@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['socket.io-client'],
+  productionBrowserSourceMaps: false,
+  turbopack: {},
 };
 
 export default nextConfig;

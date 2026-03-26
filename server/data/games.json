@@ -1,0 +1,12 @@
+[
+  {
+    "id": "game-001",
+    "name": "더 지니어스: 흑과 백",
+    "description": "상대방의 숫자를 추리하는 두뇌 심리 게임",
+    "minPlayers": 2,
+    "maxPlayers": 4,
+    "supportsMulti": true,
+    "supportsCom": false,
+    "supportsSolo": false
+  }
+]

@@ -1,0 +1,222 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Modal from '@/components/ui/Modal';
+import Input from '@/components/ui/Input';
+import Button from '@/components/ui/Button';
+import { getSocket } from '@/lib/socket';
+import { fetchGames } from '@/lib/api';
+import { useNicknameStore } from '@/stores/nickname';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import type { Game, PlayMode, RoomType } from '@/shared/types';
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function CreateRoomModal({ open, onClose }: Props) {
+  const router = useRouter();
+  const requireNickname = useNicknameStore((s) => s.requireNickname);
+
+  const [games, setGames] = useState<Game[]>([]);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [playMode, setPlayMode] = useState<PlayMode>('multi');
+  const [title, setTitle] = useState('');
+  const [roomType, setRoomType] = useState<RoomType>('public');
+  const [password, setPassword] = useState('');
+  const [maxPlayers, setMaxPlayers] = useState(4);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setError('');
+      fetchGames()
+        .then(setGames)
+        .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (selectedGame) {
+      if (selectedGame.supportsMulti) setPlayMode('multi');
+      else if (selectedGame.supportsCom) setPlayMode('com');
+      else if (selectedGame.supportsSolo) setPlayMode('solo');
+      setMaxPlayers(selectedGame.maxPlayers);
+    }
+  }, [selectedGame]);
+
+  const handleCreate = () => {
+    requireNickname(() => {
+      if (!selectedGame) return setError('게임을 선택해 주세요.');
+      if (!title.trim() || title.length > 30) return setError('방 제목은 1~30자로 입력해 주세요.');
+      if (playMode === 'multi' && roomType === 'private' && (password.length < 4 || password.length > 8)) {
+        return setError('비밀번호는 4~8자리로 입력해 주세요.');
+      }
+
+      setLoading(true);
+      setError('');
+      const socket = getSocket();
+      socket.emit(
+        'room:create',
+        {
+          gameId: selectedGame.id,
+          title: title.trim(),
+          playMode,
+          roomType: playMode === 'multi' ? roomType : 'public',
+          password: roomType === 'private' ? password : undefined,
+          maxPlayers,
+        },
+        (res) => {
+          setLoading(false);
+          if (res.success && res.roomId) {
+            onClose();
+            if (playMode === 'multi') {
+              router.push(`/room/${res.roomId}`);
+            } else {
+              router.push(`/room/${res.roomId}/play`);
+            }
+          } else {
+            setError(res.error ?? '방 생성에 실패했습니다.');
+          }
+        },
+      );
+    });
+  };
+
+  const playerRange = selectedGame
+    ? Array.from({ length: selectedGame.maxPlayers - selectedGame.minPlayers + 1 }, (_, i) => selectedGame.minPlayers + i)
+    : [];
+
+  return (
+    <Modal open={open} onClose={onClose} title="새 방 만들기" className="max-w-lg">
+      <div className="space-y-5">
+        {/* 게임 선택 */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">게임 선택</label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {games.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setSelectedGame(g)}
+                className={cn(
+                  'rounded-lg border p-3 text-left text-sm transition-colors',
+                  selectedGame?.id === g.id
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300',
+                )}
+              >
+                <div className="font-medium">{g.name}</div>
+                <div className="text-xs text-gray-500">{g.minPlayers}~{g.maxPlayers}인</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 플레이 모드 */}
+        {selectedGame && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">플레이 모드</label>
+            <div className="flex gap-2">
+              {[
+                { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
+                { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
+                { key: 'solo' as PlayMode, label: '1:1 솔로', supported: selectedGame.supportsSolo },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  disabled={!m.supported}
+                  onClick={() => setPlayMode(m.key)}
+                  className={cn(
+                    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                    playMode === m.key
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : m.supported
+                        ? 'border-gray-200 hover:border-gray-300'
+                        : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300',
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 방 제목 */}
+        <Input label="방 제목" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="초보 환영합니다!" maxLength={30} />
+
+        {/* 방 유형 */}
+        {playMode === 'multi' && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRoomType('public')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                  roomType === 'public' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
+                )}
+              >
+                🔓 공개
+              </button>
+              <button
+                onClick={() => setRoomType('private')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                  roomType === 'private' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
+                )}
+              >
+                🔒 비밀
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 비밀번호 */}
+        {playMode === 'multi' && roomType === 'private' && (
+          <Input
+            label="비밀번호"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="4~8자리"
+            maxLength={8}
+          />
+        )}
+
+        {/* 최대 인원 */}
+        {playMode === 'multi' && selectedGame && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">최대 인원</label>
+            <div className="flex gap-2">
+              {playerRange.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setMaxPlayers(n)}
+                  className={cn(
+                    'h-10 w-10 rounded-lg border text-sm font-medium transition-colors',
+                    maxPlayers === n
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300',
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="secondary" onClick={onClose}>취소</Button>
+          <Button onClick={handleCreate} loading={loading}>만들기</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
