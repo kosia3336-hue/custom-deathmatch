@@ -1,15 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { connectSocket, getSocket, type TypedSocket } from '@/lib/socket';
+import { useEffect } from 'react';
+import { connectSocket, getSocket } from '@/lib/socket';
 import { useNicknameStore } from '@/stores/nickname';
 
 export function useSocket() {
-  const socketRef = useRef<TypedSocket | null>(null);
-
   useEffect(() => {
     const s = connectSocket();
-    socketRef.current = s;
 
     const saved = sessionStorage.getItem('nickname');
     if (saved) {
@@ -25,5 +22,5 @@ export function useSocket() {
     };
   }, []);
 
-  return socketRef.current ?? getSocket();
+  return getSocket();
 }

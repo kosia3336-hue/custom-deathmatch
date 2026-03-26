@@ -29,7 +29,7 @@ export function useLobby() {
       socket.off('lobby:room:removed', handleRemoved);
       socket.emit('lobby:leave');
     };
-  }, []);
+  }, [store]);
 
   return store;
 }

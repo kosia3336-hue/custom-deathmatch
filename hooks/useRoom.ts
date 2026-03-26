@@ -63,7 +63,7 @@ export function useRoom(roomId: string) {
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
     };
-  }, [roomId]);
+  }, [roomId, store]);
 
   return store;
 }
