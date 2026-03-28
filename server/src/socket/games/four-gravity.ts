@@ -376,7 +376,8 @@ function handleWin(io: IO, s: InternalState, wr: WinResult) {
 
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
-    onEndGame(io, s.roomId, {
+    const roomId = s.roomId;
+    const payload = {
       rankings: [
         { playerId: winnerId, nickname: winnerNick, rank: 1, score: 1 },
         { playerId: loserId, nickname: loserNick, rank: 2, score: 0 },
@@ -389,8 +390,9 @@ function handleWin(io: IO, s: InternalState, wr: WinResult) {
         whiteStones: s.whitePlayer.stoneCount,
         neutralStones: s.neutralCount,
       },
-    });
-    gameStates.delete(s.roomId);
+    };
+    gameStates.delete(roomId);
+    onEndGame(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
 
@@ -408,7 +410,8 @@ function handleNoSpace(io: IO, s: InternalState) {
 
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
-    onEndGame(io, s.roomId, {
+    const roomId = s.roomId;
+    const payload = {
       rankings: [
         { playerId: winnerId, nickname: winnerNick, rank: 1, score: 1 },
         { playerId: loserId, nickname: loserNick, rank: 2, score: 0 },
@@ -421,8 +424,9 @@ function handleNoSpace(io: IO, s: InternalState) {
         whiteStones: s.whitePlayer.stoneCount,
         neutralStones: s.neutralCount,
       },
-    });
-    gameStates.delete(s.roomId);
+    };
+    gameStates.delete(roomId);
+    onEndGame(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
 

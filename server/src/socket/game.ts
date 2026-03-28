@@ -24,6 +24,10 @@ function socketRoom(roomId: string) {
 
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
 
+registerEndGameCallback((io, roomId, data) => {
+  endGame(io, roomId, data);
+});
+
 // 게임 실제 시작 시각 추적 (방 생성 시각이 아닌 게임 시작 시각으로 플레이 시간 계산)
 const gameStartTimes = new Map<string, number>();
 
@@ -57,10 +61,6 @@ export function startGame(io: IO, roomId: string) {
 }
 
 export function registerGameHandlers(io: IO, socket: TypedSocket) {
-  registerEndGameCallback((cbIo, roomId, data) => {
-    endGame(cbIo, roomId, data);
-  });
-
   socket.on('game:sync', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
@@ -122,8 +122,9 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     if (room && room.status === 'playing' && room.gameId === 'game-001') {
       const fgState = getFourGravityState(roomId);
+      cleanupFourGravity(roomId);
       if (fgState && !fgState.gameOver && room.playMode === 'multi') {
-        const other = room.players.find((p) => p.id !== socket.id);
+        const other = room.players.find((p: Player) => p.id !== socket.id);
         if (other) {
           endGame(io, roomId, {
             rankings: [
@@ -134,7 +135,6 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
           });
         }
       }
-      cleanupFourGravity(roomId);
     }
 
     const result = roomStore.removePlayer(roomId, socket.id);

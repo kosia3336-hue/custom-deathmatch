@@ -9,7 +9,7 @@ interface Props {
   board: CellType[][];
   phase: Phase;
   isMyTurn: boolean;
-  myColor: 'black' | 'white' | null;
+  previewColor: 'black' | 'white' | null;
   neutralCandidates: Position[];
   placedPosition: Position | null;
   winLine: Position[] | null;
@@ -21,7 +21,7 @@ export default function Board({
   board,
   phase,
   isMyTurn,
-  myColor,
+  previewColor,
   neutralCandidates,
   placedPosition,
   winLine,
@@ -70,7 +70,7 @@ export default function Board({
               isWinCell={isWinCell}
               isLastPlaced={isLastPlaced}
               isDimmed={isNeutralPhase && !isNeutralCandidate && cell === 'empty'}
-              previewColor={isPlacePhase && cell === 'empty' ? myColor : null}
+              previewColor={isPlacePhase && cell === 'empty' ? previewColor : null}
               gameOver={!!winner}
               onClick={() => onCellClick(r, c)}
             />

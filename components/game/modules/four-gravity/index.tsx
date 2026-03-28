@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
@@ -37,12 +37,7 @@ export default function FourGravityGame() {
 
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
-  const myColor = useMemo(() => {
-    if (!gameData) return null;
-    if (gameData.players.black.id === myId) return 'black' as const;
-    if (gameData.players.white.id === myId) return 'white' as const;
-    return null;
-  }, [gameData, myId]);
+  const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
 
   if (!gameData) {
     return (
@@ -97,7 +92,7 @@ export default function FourGravityGame() {
             board={gameData.board}
             phase={gameData.phase}
             isMyTurn={isMyTurn}
-            myColor={myColor}
+            previewColor={previewColor}
             neutralCandidates={gameData.neutralCandidates}
             placedPosition={gameData.placedPosition}
             winLine={gameData.winLine}
