@@ -38,6 +38,7 @@ export interface GameState {
   currentTurn: string | null;
   turnNumber: number;
   startedAt: number;
+  gameData?: unknown;
 }
 
 export interface GameResult {
@@ -50,6 +51,7 @@ export interface GameResult {
   }>;
   playTime: number;
   totalTurns: number;
+  gameResultData?: unknown;
 }
 
 export interface NicknameResult {
@@ -104,6 +106,7 @@ export interface ClientToServerEvents {
   'chat:send': (data: { message: string; scope: ChatScope }) => void;
 
   'game:action': (data: Record<string, unknown>) => void;
+  'game:sync': () => void;
   'game:leave': () => void;
   'game:rematch': () => void;
   'game:end': () => void;

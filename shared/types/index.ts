@@ -21,3 +21,15 @@ export type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from './events';
+export {
+  BOARD_SIZE,
+} from './four-gravity';
+export type {
+  CellType,
+  Direction,
+  Phase,
+  Position,
+  FourGravityPlayerInfo,
+  FourGravityGameData,
+  FourGravityAction,
+} from './four-gravity';

@@ -10,27 +10,28 @@ export function useRoom(roomId: string) {
   const store = useRoomStore();
 
   useEffect(() => {
-    store.clearMessages();
+    const s = useRoomStore.getState();
+    s.clearMessages();
 
     const socket = getSocket();
 
-    const onRoomState = (room: Room) => store.setRoom(room);
-    const onPlayerJoined = (player: Player) => store.addPlayer(player);
+    const onRoomState = (room: Room) => useRoomStore.getState().setRoom(room);
+    const onPlayerJoined = (player: Player) => useRoomStore.getState().addPlayer(player);
     const onPlayerLeft = ({ playerId, newHostId }: { playerId: string; newHostId?: string }) => {
-      store.removePlayer(playerId);
-      if (newHostId) store.setHost(newHostId);
+      useRoomStore.getState().removePlayer(playerId);
+      if (newHostId) useRoomStore.getState().setHost(newHostId);
     };
-    const onPlayerReady = ({ playerId }: { playerId: string }) => store.setPlayerReady(playerId, true);
-    const onPlayerUnready = ({ playerId }: { playerId: string }) => store.setPlayerReady(playerId, false);
-    const onPlayerKicked = ({ playerId }: { playerId: string }) => store.removePlayer(playerId);
-    const onHostChanged = ({ newHostId }: { newHostId: string }) => store.setHost(newHostId);
-    const onCountdown = ({ count }: { count: number }) => store.setCountdown(count);
-    const onGameStarted = () => store.setCountdown(null);
-    const onSettingsUpdated = (settings: UpdateRoomSettings) => store.updateSettings(settings);
-    const onDisbanded = () => store.reset();
-    const onChatMessage = (msg: ChatMessage) => store.addMessage(msg);
-    const onGameState = (state: GameState) => store.setGameState(state);
-    const onGameEnded = (result: GameResult) => store.setGameResult(result);
+    const onPlayerReady = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, true);
+    const onPlayerUnready = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, false);
+    const onPlayerKicked = ({ playerId }: { playerId: string }) => useRoomStore.getState().removePlayer(playerId);
+    const onHostChanged = ({ newHostId }: { newHostId: string }) => useRoomStore.getState().setHost(newHostId);
+    const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
+    const onGameStarted = () => useRoomStore.getState().setCountdown(null);
+    const onSettingsUpdated = (settings: UpdateRoomSettings) => useRoomStore.getState().updateSettings(settings);
+    const onDisbanded = () => useRoomStore.getState().reset();
+    const onChatMessage = (msg: ChatMessage) => useRoomStore.getState().addMessage(msg);
+    const onGameState = (state: GameState) => useRoomStore.getState().setGameState(state);
+    const onGameEnded = (result: GameResult) => useRoomStore.getState().setGameResult(result);
 
     socket.on('room:state', onRoomState);
     socket.on('room:player:joined', onPlayerJoined);
@@ -63,7 +64,7 @@ export function useRoom(roomId: string) {
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
     };
-  }, [roomId, store]);
+  }, [roomId]);
 
   return store;
 }

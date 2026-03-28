@@ -3,8 +3,10 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import GameShell from '@/components/game/GameShell';
+import FourGravityGame from '@/components/game/modules/four-gravity';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
+import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 
 export default function PlayPage() {
@@ -13,6 +15,7 @@ export default function PlayPage() {
   const roomId = params.roomId as string;
 
   const { gameResult } = useRoom(roomId);
+  const gameId = useRoomStore((s) => s.room?.gameId);
 
   useEffect(() => {
     if (gameResult) {
@@ -27,9 +30,13 @@ export default function PlayPage() {
     return () => { socket.off('room:disbanded', handleDisbanded); };
   }, [router]);
 
+  useEffect(() => {
+    getSocket().emit('game:sync');
+  }, []);
+
   return (
     <GameShell roomId={roomId}>
-      <GameModulePlaceholder />
+      {gameId === 'game-001' ? <FourGravityGame /> : <GameModulePlaceholder />}
     </GameShell>
   );
 }
