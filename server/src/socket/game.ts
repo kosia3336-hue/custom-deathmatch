@@ -13,7 +13,7 @@ import {
   getFourGravityState,
   emitFourGravityStateToSocket,
   registerEndGameCallback,
-} from './games/four-gravity.js';
+} from './games/four-gravity/index.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;

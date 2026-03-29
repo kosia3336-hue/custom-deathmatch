@@ -1,0 +1,190 @@
+import type { Player, PlayMode } from '@shared/types/room.js';
+import { BOARD_SIZE } from './constants.js';
+import type { IO, TypedSocket } from './constants.js';
+import type { Direction, EndGameFn } from './types.js';
+import { createEmptyBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
+import { checkWin } from './win.js';
+import type { FourGravityPlayerInfo } from './types.js';
+import {
+  gameStates,
+  registerEndGameCallback,
+  broadcastState,
+  emitStateToSocket,
+  handleWin,
+  handleNoNeutral,
+  handleNoSpace,
+  finishTurn,
+} from './state.js';
+
+export { registerEndGameCallback };
+export type { EndGameFn };
+
+export function initFourGravity(
+  io: IO,
+  roomId: string,
+  players: Player[],
+  playMode: PlayMode,
+  startedAt: number,
+) {
+  gameStates.delete(roomId);
+
+  const blackPlayer: FourGravityPlayerInfo = {
+    id: players[0].id,
+    nickname: playMode === 'solo' ? `${players[0].nickname} (흑)` : players[0].nickname,
+    stoneCount: 0,
+  };
+
+  let whitePlayer: FourGravityPlayerInfo;
+  if (playMode === 'com') {
+    whitePlayer = { id: 'AI', nickname: 'AI', stoneCount: 0 };
+  } else if (playMode === 'solo') {
+    whitePlayer = { id: players[0].id, nickname: `${players[0].nickname} (백)`, stoneCount: 0 };
+  } else {
+    whitePlayer = { id: players[1].id, nickname: players[1].nickname, stoneCount: 0 };
+  }
+
+  gameStates.set(roomId, {
+    roomId,
+    board: createEmptyBoard(),
+    currentPlayer: blackPlayer.id,
+    currentColor: 'black',
+    phase: 'place',
+    turnNumber: 1,
+    lastGravityBlack: null,
+    lastGravityWhite: null,
+    placedPosition: null,
+    movedPosition: null,
+    neutralCandidates: [],
+    blackPlayer,
+    whitePlayer,
+    neutralCount: 0,
+    winner: null,
+    winLine: null,
+    winType: null,
+    startedAt,
+    playMode,
+    gameOver: false,
+  });
+
+  broadcastState(io, gameStates.get(roomId)!);
+}
+
+export function handleFourGravityAction(
+  io: IO,
+  socket: TypedSocket,
+  roomId: string,
+  data: Record<string, unknown>,
+) {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return;
+
+  if (socket.id !== s.currentPlayer) {
+    socket.emit('error', { message: '상대 턴입니다.' });
+    return;
+  }
+
+  switch (data.type) {
+    case 'place': {
+      if (s.phase !== 'place') {
+        socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
+        return;
+      }
+      const row = data.row as number;
+      const col = data.col as number;
+      if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
+      if (s.board[row][col] !== 'empty') {
+        socket.emit('error', { message: '이미 돌이 있는 칸입니다.' });
+        return;
+      }
+      s.board[row][col] = s.currentColor;
+      s.placedPosition = { row, col };
+      if (s.currentColor === 'black') s.blackPlayer.stoneCount++;
+      else s.whitePlayer.stoneCount++;
+      s.phase = 'gravity';
+      broadcastState(io, s);
+      break;
+    }
+
+    case 'gravity': {
+      if (s.phase !== 'gravity') {
+        socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
+        return;
+      }
+      const dir = data.direction as Direction;
+      if (!['up', 'down', 'left', 'right', 'none'].includes(dir)) return;
+
+      const myLastGravity = s.currentColor === 'black' ? s.lastGravityBlack : s.lastGravityWhite;
+      if (myLastGravity !== null && dir === myLastGravity) {
+        socket.emit('error', { message: '직전에 사용한 방향은 선택할 수 없습니다.' });
+        return;
+      }
+
+      if (dir === 'none') {
+        if (s.currentColor === 'black') s.lastGravityBlack = 'none';
+        else s.lastGravityWhite = 'none';
+        s.movedPosition = s.placedPosition;
+        s.neutralCandidates = [];
+        finishTurn(io, s);
+        return;
+      }
+
+      const boardBefore = s.board.map((r) => [...r]);
+      s.board = applyGravity(s.board, dir);
+      if (s.currentColor === 'black') s.lastGravityBlack = dir;
+      else s.lastGravityWhite = dir;
+
+      const movedPos = findMovedPosition(s.placedPosition!, dir, boardBefore, s.board);
+      s.movedPosition = movedPos;
+
+      const wr = checkWin(s.board, s.currentColor);
+      if (wr) { handleWin(io, s, wr); return; }
+
+      const cands = calcNeutralCandidates(s.placedPosition!, movedPos, s.board);
+      s.neutralCandidates = cands;
+
+      if (cands.length === 0) {
+        const didMove = s.placedPosition!.row !== movedPos.row || s.placedPosition!.col !== movedPos.col;
+        if (didMove) {
+          handleNoNeutral(io, s);
+        } else {
+          finishTurn(io, s);
+        }
+      } else {
+        s.phase = 'neutral';
+        broadcastState(io, s);
+      }
+      break;
+    }
+
+    case 'neutral': {
+      if (s.phase !== 'neutral') {
+        socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
+        return;
+      }
+      const row = data.row as number;
+      const col = data.col as number;
+      if (!s.neutralCandidates.some((p) => p.row === row && p.col === col)) {
+        socket.emit('error', { message: '이 위치에는 중립 돌을 놓을 수 없습니다.' });
+        return;
+      }
+      s.board[row][col] = 'neutral';
+      s.neutralCount++;
+      finishTurn(io, s);
+      break;
+    }
+  }
+}
+
+export function cleanupFourGravity(roomId: string) {
+  gameStates.delete(roomId);
+}
+
+export function getFourGravityState(roomId: string) {
+  return gameStates.get(roomId);
+}
+
+export function emitFourGravityStateToSocket(socket: TypedSocket, roomId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return;
+  emitStateToSocket(socket, s);
+}
