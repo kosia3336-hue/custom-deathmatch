@@ -638,19 +638,6 @@ function getValidDirections(lastGravity: Direction | null): Direction[] {
 }
 
 function getCandidateCells(board: CellType[][]): Position[] {
-  let stoneCount = 0;
-  for (let r = 0; r < BOARD_SIZE; r++)
-    for (let c = 0; c < BOARD_SIZE; c++)
-      if (board[r][c] !== 'empty') stoneCount++;
-
-  if (stoneCount < 4) {
-    const cells: Position[] = [];
-    for (let r = 0; r < BOARD_SIZE; r++)
-      for (let c = 0; c < BOARD_SIZE; c++)
-        if (board[r][c] === 'empty') cells.push({ row: r, col: c });
-    return cells;
-  }
-
   const near = new Set<string>();
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
@@ -665,6 +652,12 @@ function getCandidateCells(board: CellType[][]): Position[] {
         }
       }
     }
+  }
+
+  // 돌이 하나도 없으면 중앙만 반환
+  if (near.size === 0) {
+    const mid = Math.floor(BOARD_SIZE / 2);
+    return [{ row: mid, col: mid }];
   }
 
   return Array.from(near).map((k) => {
@@ -719,8 +712,10 @@ function evaluate(board: CellType[][], aiColor: 'black' | 'white'): number {
           else if (len === 3) score -= startOpen && endOpen ? 1200 : startOpen || endOpen ? 120 : 0;
           else if (len === 2) score -= 10;
         } else {
-          if (len === 3) score += 200;
-          else if (len === 2) score += 20;
+          // 중립돌 연속: 다음 턴에 누구든 neutral 4목을 완성할 수 있는 위협
+          // 이미 3연속이면 상대(인간)가 즉시 이길 수 있으므로 AI에게 큰 손해
+          if (len === 3) score -= 8000;
+          else if (len === 2) score -= 50;
         }
       }
     }
@@ -790,22 +785,31 @@ function minimax(
       const mp = dir === 'none' ? cell : findMovedPosition(cell, dir, b1, b2);
       const ncands = dir === 'none' ? [] : calcNeutralCandidates(cell, mp, b2);
 
-      const boards: CellType[][][] = [];
       if (ncands.length === 0) {
-        boards.push(b2);
+        const s = minimax(b2, depth - 1, alpha, beta, !isMax, newLastGravBlack, newLastGravWhite, aiColor);
+        if (isMax) { best = Math.max(best, s); alpha = Math.max(alpha, best); }
+        else { best = Math.min(best, s); beta = Math.min(beta, best); }
+        if (beta <= alpha) return best;
       } else {
         for (const nc of ncands) {
           const bn = cloneBoard(b2);
           bn[nc.row][nc.col] = 'neutral';
-          boards.push(bn);
-        }
-      }
 
-      for (const brd of boards) {
-        const s = minimax(brd, depth - 1, alpha, beta, !isMax, newLastGravBlack, newLastGravWhite, aiColor);
-        if (isMax) { best = Math.max(best, s); alpha = Math.max(alpha, best); }
-        else { best = Math.min(best, s); beta = Math.min(beta, best); }
-        if (beta <= alpha) return best;
+          // 중립돌을 놓자마자 중립 4목이 완성되면 → 현재 플레이어(neutral을 놓은 쪽) 승리
+          if (findExactFour(bn, 'neutral') !== null) {
+            const val = 100_000 + depth * 100;
+            const s = isMax ? val : -val;
+            if (isMax) { best = Math.max(best, s); alpha = Math.max(alpha, best); }
+            else { best = Math.min(best, s); beta = Math.min(beta, best); }
+            if (beta <= alpha) return best;
+            continue;
+          }
+
+          const s = minimax(bn, depth - 1, alpha, beta, !isMax, newLastGravBlack, newLastGravWhite, aiColor);
+          if (isMax) { best = Math.max(best, s); alpha = Math.max(alpha, best); }
+          else { best = Math.min(best, s); beta = Math.min(beta, best); }
+          if (beta <= alpha) return best;
+        }
       }
     }
     if (beta <= alpha) return best;
@@ -859,6 +863,11 @@ function findBestMove(s: InternalState): AIMove {
 
           const nw = checkWin(bn, aiColor);
           if (nw && nw.winner === 'current') {
+            return { place: cell, gravity: dir, neutral: nc };
+          }
+
+          // AI가 neutral stone을 놓아 중립 4목이 완성되면 즉시 승리
+          if (findExactFour(bn, 'neutral') !== null) {
             return { place: cell, gravity: dir, neutral: nc };
           }
 
