@@ -32,6 +32,7 @@ export default function GameShell({ children }: Props) {
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [showLeave, setShowLeave] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(false);
 
   const startedAt = gameState?.startedAt;
 
@@ -70,9 +71,12 @@ export default function GameShell({ children }: Props) {
       <>
         <span className="mr-auto text-sm font-medium text-gray-700">{nickname}</span>
         {room && (
-          <span className="text-xs text-gray-500">
+          <button
+            onClick={() => setShowPlayers(true)}
+            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+          >
             👁️ {room.spectators.length}명 관전 중
-          </span>
+          </button>
         )}
       </>,
     );
@@ -90,6 +94,25 @@ export default function GameShell({ children }: Props) {
         className="w-full max-w-sm md:max-w-lg"
       >
         <RoomChat scope="game" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
+      </Modal>
+
+      <Modal open={showPlayers} onClose={() => setShowPlayers(false)} title="참여자 목록" className="w-full max-w-xs">
+        <ul className="space-y-2">
+          {room?.players.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 text-sm text-gray-800">
+              <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
+              <span>{p.nickname}</span>
+              {p.isHost && <span className="text-xs text-amber-500">👑</span>}
+            </li>
+          ))}
+          {room?.spectators.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 text-sm text-gray-400">
+              <span className="h-2 w-2 rounded-full bg-gray-300 shrink-0" />
+              <span>{p.nickname}</span>
+              <span className="text-xs">(관전)</span>
+            </li>
+          ))}
+        </ul>
       </Modal>
 
       <Modal open={showLeave} onClose={() => setShowLeave(false)} title="정말 나가시겠습니까?" closable={false}>
