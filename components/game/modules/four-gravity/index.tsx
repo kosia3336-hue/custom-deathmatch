@@ -54,9 +54,7 @@ export default function FourGravityGame() {
       : '';
 
     const isMe = winner === myId;
-    const message = isMe
-      ? `승리! ${reason}`
-      : `${winnerNick} 승리! ${reason}`;
+    const message = `${winnerNick} 승리! ${reason}`;
 
     if (isMe) {
       toast.success(message, { duration: 5000 });
