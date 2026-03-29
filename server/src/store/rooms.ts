@@ -230,6 +230,13 @@ export const roomStore = {
     rooms.delete(roomId);
   },
 
+  swapPlayers(roomId: string): boolean {
+    const room = rooms.get(roomId);
+    if (!room || room.status !== 'waiting' || room.players.length !== 2) return false;
+    [room.players[0], room.players[1]] = [room.players[1], room.players[0]];
+    return true;
+  },
+
   findQuickJoinRoom(gameId?: string): Room | undefined {
     return Array.from(rooms.values()).find(
       (r) =>

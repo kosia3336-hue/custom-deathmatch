@@ -1,12 +1,12 @@
 [
   {
     "id": "game-001",
-    "name": "더 지니어스: 흑과 백",
-    "description": "상대방의 숫자를 추리하는 두뇌 심리 게임",
+    "name": "사중력 사목",
+    "description": "9×9 보드 위에서 중력 방향을 바꿔가며 사목을 만드는 전략 보드게임",
     "minPlayers": 2,
-    "maxPlayers": 4,
+    "maxPlayers": 2,
     "supportsMulti": true,
-    "supportsCom": false,
-    "supportsSolo": false
+    "supportsCom": true,
+    "supportsSolo": true
   }
 ]

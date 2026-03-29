@@ -9,11 +9,12 @@ interface Props {
   player?: Player;
   isMe: boolean;
   isHostView: boolean;
+  colorLabel?: '흑' | '백';
   onKick?: (id: string) => void;
   onDelegate?: (id: string) => void;
 }
 
-export default function PlayerSlot({ player, isMe, isHostView, onKick, onDelegate }: Props) {
+export default function PlayerSlot({ player, isMe, isHostView, colorLabel, onKick, onDelegate }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (!player) {
@@ -39,6 +40,16 @@ export default function PlayerSlot({ player, isMe, isHostView, onKick, onDelegat
           <span className="font-medium text-gray-900 truncate">{player.nickname}</span>
           {isMe && <Badge variant="info">나</Badge>}
           {player.isHost && <Badge variant="success">방장</Badge>}
+          {colorLabel && (
+            <span className={cn(
+              'rounded-full px-2 py-0.5 text-xs font-bold',
+              colorLabel === '흑'
+                ? 'bg-gray-900 text-white'
+                : 'border border-gray-300 bg-white text-gray-700',
+            )}>
+              {colorLabel}
+            </span>
+          )}
         </div>
         {!player.isHost && (
           <span className={cn('text-xs', player.isReady ? 'text-green-600' : 'text-gray-400')}>

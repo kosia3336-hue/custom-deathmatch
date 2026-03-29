@@ -254,6 +254,16 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     broadcastRoomUpdated(io, roomId);
   });
 
+  socket.on('room:swap:colors', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.hostId !== socket.id || room.status !== 'waiting') return;
+    if (room.playMode !== 'multi') return;
+    roomStore.swapPlayers(roomId);
+    sendRoomState(io, roomId);
+  });
+
   socket.on('room:invite:create', (callback) => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return callback({ success: false });
