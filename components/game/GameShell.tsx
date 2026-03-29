@@ -42,6 +42,19 @@ export default function GameShell({ children }: Props) {
     router.push('/');
   };
 
+  /* ── 브라우저 뒤로가기 가로채기 ── */
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowLeave(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   /* ── 헤더 오른쪽 슬롯: 타이머 + 채팅 + 나가기 ── */
   useEffect(() => {
     setHeaderRight(
