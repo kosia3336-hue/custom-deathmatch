@@ -91,7 +91,7 @@ export default function ResultScreen() {
       {/* 포디엄 */}
       <div className="mb-8 flex items-end justify-center gap-4">
         {sorted.slice(0, 3).map((p, i) => (
-          <div key={p.playerId} className="flex flex-col items-center">
+          <div key={p.rank} className="flex flex-col items-center">
             <span className="text-2xl">{MEDALS[i]}</span>
             <span className="mt-1 text-sm font-bold text-gray-900">{p.nickname}</span>
             <span className="text-xs text-gray-500">{p.score}점</span>
