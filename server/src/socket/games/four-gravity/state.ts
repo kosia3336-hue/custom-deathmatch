@@ -250,12 +250,7 @@ export async function runAITurn(io: IO, roomId: string) {
   s.neutralCandidates = cands;
 
   if (cands.length === 0) {
-    const didMove = s.placedPosition!.row !== s.movedPosition!.row || s.placedPosition!.col !== s.movedPosition!.col;
-    if (didMove) {
-      handleNoNeutral(io, s);
-    } else {
-      finishTurn(io, s);
-    }
+    handleNoNeutral(io, s);
     return;
   }
 

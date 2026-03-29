@@ -143,12 +143,7 @@ export function handleFourGravityAction(
       s.neutralCandidates = cands;
 
       if (cands.length === 0) {
-        const didMove = s.placedPosition!.row !== movedPos.row || s.placedPosition!.col !== movedPos.col;
-        if (didMove) {
-          handleNoNeutral(io, s);
-        } else {
-          finishTurn(io, s);
-        }
+        handleNoNeutral(io, s);
       } else {
         s.phase = 'neutral';
         broadcastState(io, s);
