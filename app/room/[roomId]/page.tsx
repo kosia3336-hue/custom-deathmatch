@@ -116,6 +116,10 @@ export default function WaitingRoomPage() {
     socket.emit('room:delegate', { targetId });
   };
 
+  const handleSwapColors = () => {
+    socket.emit('room:swap:colors');
+  };
+
   const handleToSpectate = () => {
     socket.emit('room:to:spectate', (res) => {
       if (!res.success) toast.error(res.error ?? '전환에 실패했습니다.');
@@ -185,12 +189,33 @@ export default function WaitingRoomPage() {
 
         {/* 플레이어 슬롯 */}
         <div className="space-y-3">
-          {room.players.map((p) => (
+          {/* 흑/백 선택 (멀티 2인, 방장만) */}
+          {room.playMode === 'multi' && room.players.length === 2 && (
+            <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2">
+              <span className="text-xs text-gray-500 font-medium">흑/백 순서</span>
+              {isHost && (
+                <button
+                  onClick={handleSwapColors}
+                  className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="흑/백 교체"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                  교체
+                </button>
+              )}
+            </div>
+          )}
+          {room.players.map((p, i) => (
             <PlayerSlot
               key={p.id}
               player={p}
               isMe={p.id === myId}
               isHostView={isHost}
+              colorLabel={room.playMode === 'multi' && room.players.length === 2
+                ? (i === 0 ? '흑' : '백')
+                : undefined}
               onKick={(id) => setShowKick(id)}
               onDelegate={handleDelegate}
             />

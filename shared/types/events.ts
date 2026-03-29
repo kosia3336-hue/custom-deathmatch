@@ -99,6 +99,7 @@ export interface ClientToServerEvents {
   'room:delegate': (data: { targetId: string }) => void;
   'room:start': () => void;
   'room:settings:update': (data: UpdateRoomSettings) => void;
+  'room:swap:colors': () => void;
   'room:invite:create': (
     callback: (res: { success: boolean; token?: string }) => void,
   ) => void;
