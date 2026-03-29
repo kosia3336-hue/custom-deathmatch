@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
@@ -8,14 +8,22 @@ import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import type { ChatScope } from '@/shared/types';
 
+// useSyncExternalStore 셀렉터가 매 호출마다 새 참조를 반환하면 무한 루프가 생기므로
+// 안정적인 빈 배열 참조를 모듈 스코프에 선언
+const EMPTY_SPECTATORS: { id: string }[] = [];
+
 interface Props {
   scope: ChatScope;
   scrollClassName?: string;
 }
 
 export default function RoomChat({ scope, scrollClassName }: Props) {
-  const messages = useRoomStore((s) => s.messages).filter((m) => m.scope === scope || m.scope === 'room');
-  const spectators = useRoomStore((s) => s.room?.spectators ?? []);
+  const allMessages = useRoomStore((s) => s.messages);
+  const messages = useMemo(
+    () => allMessages.filter((m) => m.scope === scope || m.scope === 'room'),
+    [allMessages, scope],
+  );
+  const spectators = useRoomStore((s) => s.room?.spectators ?? EMPTY_SPECTATORS);
   const nickname = useNicknameStore((s) => s.nickname);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -32,27 +40,12 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
 
   return (
     <div className="flex flex-col rounded-xl border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 px-4 py-2">
-        <span className="text-sm font-medium text-gray-700">채팅</span>
-      </div>
-      <div ref={scrollRef} className={cn('flex-1 overflow-y-auto p-4 space-y-1 min-h-[120px] max-h-[250px]', scrollClassName)}>
+      <div ref={scrollRef} className={cn('flex-1 space-y-1 overflow-y-auto p-4 min-h-[120px] max-h-[250px]', scrollClassName)}>
         {messages.map((m) => (
-          <div key={m.id} className="text-sm">
-            {m.isSystem ? (
-              <span className="text-xs text-gray-400">[시스템] {m.message}</span>
-            ) : (
-              <>
-                <span className="font-medium text-indigo-600">{m.senderNickname}</span>
-                {spectators.some((s) => s.id === m.sender) && (
-                  <span className="ml-1 text-xs text-gray-400">👁️</span>
-                )}
-                <span className="text-gray-600">: {m.message}</span>
-              </>
-            )}
-          </div>
+          <ChatBubble key={m.id} m={m} spectators={spectators} />
         ))}
         {messages.length === 0 && (
-          <p className="text-center text-xs text-gray-400 py-6">메시지가 없습니다</p>
+          <p className="py-6 text-center text-xs text-gray-400">메시지가 없습니다</p>
         )}
       </div>
       <div className="flex gap-2 border-t border-gray-100 p-3">
@@ -66,6 +59,31 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
         />
         <Button size="sm" onClick={send}>전송</Button>
       </div>
+    </div>
+  );
+}
+
+function ChatBubble({
+  m,
+  spectators,
+}: {
+  m: { id: string; isSystem: boolean; senderNickname: string; sender: string; message: string };
+  spectators: { id: string }[];
+}) {
+  if (m.isSystem) {
+    return (
+      <div className="text-sm">
+        <span className="text-xs text-gray-400">[시스템] {m.message}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="text-sm">
+      <span className="font-medium text-indigo-600">{m.senderNickname}</span>
+      {spectators.some((s) => s.id === m.sender) && (
+        <span className="ml-1 text-xs text-gray-400">👁️</span>
+      )}
+      <span className="text-gray-600">: {m.message}</span>
     </div>
   );
 }

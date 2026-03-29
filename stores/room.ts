@@ -94,8 +94,8 @@ export const useRoomStore = create<RoomState>((set) => ({
       return {
         room: {
           ...s.room,
-          ...(settings.title && { title: settings.title }),
-          ...(settings.maxPlayers && { maxPlayers: settings.maxPlayers }),
+          ...(settings.title !== undefined && { title: settings.title }),
+          ...(settings.maxPlayers !== undefined && { maxPlayers: settings.maxPlayers }),
         },
       };
     }),

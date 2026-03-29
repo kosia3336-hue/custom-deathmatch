@@ -35,7 +35,7 @@ export default function PlayPage() {
   }, []);
 
   return (
-    <GameShell roomId={roomId}>
+    <GameShell>
       {gameId === 'game-001' ? <FourGravityGame /> : <GameModulePlaceholder />}
     </GameShell>
   );

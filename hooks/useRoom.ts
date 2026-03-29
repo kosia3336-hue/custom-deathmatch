@@ -1,18 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import type { Room, Player } from '@/shared/types';
 import type { UpdateRoomSettings, ChatMessage, GameState, GameResult } from '@/shared/types';
 
 export function useRoom(roomId: string) {
-  const store = useRoomStore();
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    const s = useRoomStore.getState();
-    s.clearMessages();
+    if (mountedRef.current) return;
+    mountedRef.current = true;
 
+    useRoomStore.getState().clearMessages();
+  }, []);
+
+  useEffect(() => {
     const socket = getSocket();
 
     const onRoomState = (room: Room) => useRoomStore.getState().setRoom(room);
@@ -66,5 +70,10 @@ export function useRoom(roomId: string) {
     };
   }, [roomId]);
 
-  return store;
+  return {
+    room: useRoomStore((s) => s.room),
+    gameState: useRoomStore((s) => s.gameState),
+    gameResult: useRoomStore((s) => s.gameResult),
+    countdown: useRoomStore((s) => s.countdown),
+  };
 }

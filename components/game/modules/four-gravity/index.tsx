@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
+import { useMySocketId } from '@/hooks/useMySocketId';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
@@ -28,13 +29,7 @@ export default function FourGravityGame() {
   const gameData = gameState?.gameData as FourGravityGameData | undefined;
   const turnNumber = gameState?.turnNumber ?? 1;
 
-  const [myId, setMyId] = useState<string | undefined>(() => getSocket().id);
-  useEffect(() => {
-    const socket = getSocket();
-    const onConnect = () => setMyId(socket.id);
-    socket.on('connect', onConnect);
-    return () => { socket.off('connect', onConnect); };
-  }, []);
+  const myId = useMySocketId();
 
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
