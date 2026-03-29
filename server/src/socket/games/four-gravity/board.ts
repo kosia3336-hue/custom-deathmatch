@@ -114,6 +114,9 @@ export function calcNeutralCandidates(
 ): Position[] {
   if (placedPos.row === movedPos.row && placedPos.col === movedPos.col) return [];
 
+  // 중력 이동은 항상 한 축만 변하므로 두 축이 모두 다르면 빈 배열 반환
+  if (placedPos.row !== movedPos.row && placedPos.col !== movedPos.col) return [];
+
   const candidates: Position[] = [];
 
   if (placedPos.col === movedPos.col) {

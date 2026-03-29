@@ -2,18 +2,12 @@ import type { GameState } from '@shared/types/events.js';
 import type { FourGravityGameData } from '@shared/types/four-gravity.js';
 import { AI_DELAY, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, WinResult, EndGameFn } from './types.js';
+import type { InternalState, WinResult } from './types.js';
 import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin, hasEmptyCells } from './win.js';
 import { findBestMove } from './ai.js';
 
 export const gameStates = new Map<string, InternalState>();
-
-let onEndGame: EndGameFn = () => {};
-
-export function registerEndGameCallback(fn: EndGameFn) {
-  onEndGame = fn;
-}
 
 function socketRoom(roomId: string) {
   return `room:${roomId}`;
@@ -142,7 +136,7 @@ export function handleWin(io: IO, s: InternalState, wr: WinResult) {
     if (!gameStates.has(s.roomId)) return;
     const roomId = s.roomId;
     gameStates.delete(roomId);
-    onEndGame(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
+    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
   }, WIN_DISPLAY_MS);
 }
 
@@ -163,7 +157,7 @@ export function handleNoNeutral(io: IO, s: InternalState) {
     if (!gameStates.has(s.roomId)) return;
     const roomId = s.roomId;
     gameStates.delete(roomId);
-    onEndGame(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
+    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
   }, WIN_DISPLAY_MS);
 }
 
@@ -183,7 +177,7 @@ export function handleNoSpace(io: IO, s: InternalState) {
     if (!gameStates.has(s.roomId)) return;
     const roomId = s.roomId;
     gameStates.delete(roomId);
-    onEndGame(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
+    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
   }, WIN_DISPLAY_MS);
 }
 

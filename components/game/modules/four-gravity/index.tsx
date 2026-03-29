@@ -10,17 +10,7 @@ import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
 import InfoPanel from './InfoPanel';
-
-function directionLabel(dir: Direction): string {
-  const map: Record<Direction, string> = {
-    up: '▲ 상',
-    down: '▼ 하',
-    left: '◀ 좌',
-    right: '▶ 우',
-    none: '무',
-  };
-  return map[dir];
-}
+import { DIR_LABEL } from './constants';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -108,7 +98,7 @@ export default function FourGravityGame() {
           <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
             <span>턴 #{turnNumber}</span>
             {gameData.lastGravity && (
-              <span>직전 중력: {directionLabel(gameData.lastGravity)}</span>
+              <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
             )}
           </div>
 

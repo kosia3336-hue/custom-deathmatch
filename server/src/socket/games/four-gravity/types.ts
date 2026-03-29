@@ -9,9 +9,20 @@ import type {
 } from '@shared/types/four-gravity.js';
 import type { IO } from './constants.js';
 
+export type EndGameFn = (
+  io: IO,
+  roomId: string,
+  data: {
+    rankings: GameResult['rankings'];
+    totalTurns: number;
+    gameResultData?: unknown;
+  },
+) => void;
+
 export type { CellType, Direction, Phase, Position, FourGravityPlayerInfo };
 
 export interface InternalState {
+  endGameCallback: EndGameFn;
   roomId: string;
   board: CellType[][];
   currentPlayer: string;
@@ -45,13 +56,3 @@ export interface AIMove {
   gravity: Direction;
   neutral: Position | null;
 }
-
-export type EndGameFn = (
-  io: IO,
-  roomId: string,
-  data: {
-    rankings: GameResult['rankings'];
-    totalTurns: number;
-    gameResultData?: unknown;
-  },
-) => void;

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Direction, FourGravityGameData } from '@/shared/types/four-gravity';
+import { DIR_LABEL } from './constants';
 
 interface Props {
   turnNumber: number;
@@ -9,14 +10,6 @@ interface Props {
   neutralCount: number;
   lastGravity: Direction | null;
 }
-
-const DIR_LABEL: Record<Direction, string> = {
-  up: '▲ 상',
-  down: '▼ 하',
-  left: '◀ 좌',
-  right: '▶ 우',
-  none: '무',
-};
 
 function PlayerCard({
   player,
@@ -64,7 +57,7 @@ export default function InfoPanel({
       <div className="border-t border-gray-200 pt-3">
         <div className="text-xs text-gray-500">중립 돌: {neutralCount}개</div>
         <div className="mt-1 text-xs text-gray-500">
-          직전 중력: {lastGravity ? DIR_LABEL[lastGravity] : '없음'}
+          금지 방향: {lastGravity ? DIR_LABEL[lastGravity] : '없음'}
         </div>
       </div>
     </div>

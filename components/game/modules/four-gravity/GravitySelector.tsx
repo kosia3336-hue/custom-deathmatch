@@ -1,6 +1,7 @@
 'use client';
 
 import type { Direction, Phase } from '@/shared/types/four-gravity';
+import { DIRECTION_LIST } from './constants';
 
 interface Props {
   phase: Phase;
@@ -10,27 +11,19 @@ interface Props {
   winner: string | null;
 }
 
-const DIRECTIONS: { key: Direction; label: string }[] = [
-  { key: 'up', label: '▲ 상' },
-  { key: 'down', label: '▼ 하' },
-  { key: 'left', label: '◀ 좌' },
-  { key: 'right', label: '▶ 우' },
-  { key: 'none', label: '무' },
-];
-
 export default function GravitySelector({ phase, isMyTurn, lastGravity, onSelect, winner }: Props) {
   const isActive = phase === 'gravity' && isMyTurn && !winner;
 
   return (
     <div className="mt-3 flex flex-wrap justify-center gap-2">
-      {DIRECTIONS.map(({ key, label }) => {
+      {DIRECTION_LIST.map(({ key, label }) => {
         const isForbidden = lastGravity !== null && key === lastGravity;
         const disabled = !isActive || isForbidden;
 
         return (
           <button
             key={key}
-            onClick={() => !disabled && onSelect(key)}
+            onClick={() => onSelect(key)}
             disabled={disabled}
             className={`
               min-h-[44px] min-w-[52px] rounded-lg border px-4 py-2 text-sm font-medium transition-colors

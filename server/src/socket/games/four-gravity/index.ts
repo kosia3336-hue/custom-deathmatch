@@ -7,7 +7,6 @@ import { checkWin } from './win.js';
 import type { FourGravityPlayerInfo } from './types.js';
 import {
   gameStates,
-  registerEndGameCallback,
   broadcastState,
   emitStateToSocket,
   handleWin,
@@ -16,7 +15,6 @@ import {
   finishTurn,
 } from './state.js';
 
-export { registerEndGameCallback };
 export type { EndGameFn };
 
 export function initFourGravity(
@@ -25,6 +23,7 @@ export function initFourGravity(
   players: Player[],
   playMode: PlayMode,
   startedAt: number,
+  endGameCallback: EndGameFn,
 ) {
   gameStates.delete(roomId);
 
@@ -44,6 +43,7 @@ export function initFourGravity(
   }
 
   gameStates.set(roomId, {
+    endGameCallback,
     roomId,
     board: createEmptyBoard(),
     currentPlayer: blackPlayer.id,
@@ -89,8 +89,12 @@ export function handleFourGravityAction(
         socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
         return;
       }
-      const row = data.row as number;
-      const col = data.col as number;
+      const row = data.row;
+      const col = data.col;
+      if (
+        typeof row !== 'number' || typeof col !== 'number' ||
+        !Number.isInteger(row) || !Number.isInteger(col)
+      ) return;
       if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
       if (s.board[row][col] !== 'empty') {
         socket.emit('error', { message: '이미 돌이 있는 칸입니다.' });
@@ -156,8 +160,12 @@ export function handleFourGravityAction(
         socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
         return;
       }
-      const row = data.row as number;
-      const col = data.col as number;
+      const row = data.row;
+      const col = data.col;
+      if (
+        typeof row !== 'number' || typeof col !== 'number' ||
+        !Number.isInteger(row) || !Number.isInteger(col)
+      ) return;
       if (!s.neutralCandidates.some((p) => p.row === row && p.col === col)) {
         socket.emit('error', { message: '이 위치에는 중립 돌을 놓을 수 없습니다.' });
         return;

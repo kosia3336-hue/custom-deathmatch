@@ -12,7 +12,6 @@ import {
   cleanupFourGravity,
   getFourGravityState,
   emitFourGravityStateToSocket,
-  registerEndGameCallback,
 } from './games/four-gravity/index.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -23,10 +22,6 @@ function socketRoom(roomId: string) {
 }
 
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
-
-registerEndGameCallback((io, roomId, data) => {
-  endGame(io, roomId, data);
-});
 
 // 게임 실제 시작 시각 추적 (방 생성 시각이 아닌 게임 시작 시각으로 플레이 시간 계산)
 const gameStartTimes = new Map<string, number>();
@@ -46,7 +41,9 @@ export function startGame(io: IO, roomId: string) {
   io.to(socketRoom(roomId)).emit('room:game:started');
 
   if (room.gameId === 'game-001') {
-    initFourGravity(io, roomId, room.players, room.playMode, startedAt);
+    initFourGravity(io, roomId, room.players, room.playMode, startedAt, (cbIo, cbRoomId, data) => {
+      endGame(cbIo, cbRoomId, data);
+    });
   } else {
     const state: GameState = {
       roomId,

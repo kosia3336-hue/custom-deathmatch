@@ -26,7 +26,7 @@ export default function PhaseIndicator({ phase, isMyTurn, winner, serverMessage 
         ? '중력 방향을 선택하세요'
         : phase === 'neutral'
           ? '경로 위에 중립 돌을 놓으세요'
-          : '';
+          : '잠시 기다려 주세요...';
 
   return (
     <div className="mt-3 flex flex-col items-center gap-2">
