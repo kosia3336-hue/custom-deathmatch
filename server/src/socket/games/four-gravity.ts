@@ -549,12 +549,7 @@ export function handleFourGravityAction(
       if (!['up', 'down', 'left', 'right', 'none'].includes(dir)) return;
 
       const myLastGravity = s.currentColor === 'black' ? s.lastGravityBlack : s.lastGravityWhite;
-      if (
-        dir !== 'none' &&
-        myLastGravity !== null &&
-        myLastGravity !== 'none' &&
-        dir === myLastGravity
-      ) {
+      if (myLastGravity !== null && dir === myLastGravity) {
         socket.emit('error', { message: '직전에 사용한 방향은 선택할 수 없습니다.' });
         return;
       }
@@ -638,7 +633,7 @@ export function emitFourGravityStateToSocket(socket: TypedSocket, roomId: string
 
 function getValidDirections(lastGravity: Direction | null): Direction[] {
   const all: Direction[] = ['up', 'down', 'left', 'right', 'none'];
-  if (lastGravity === null || lastGravity === 'none') return all;
+  if (lastGravity === null) return all;
   return all.filter((d) => d !== lastGravity);
 }
 

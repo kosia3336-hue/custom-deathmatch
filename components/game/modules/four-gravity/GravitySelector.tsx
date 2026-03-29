@@ -24,11 +24,7 @@ export default function GravitySelector({ phase, isMyTurn, lastGravity, onSelect
   return (
     <div className="mt-3 flex flex-wrap justify-center gap-2">
       {DIRECTIONS.map(({ key, label }) => {
-        const isForbidden =
-          key !== 'none' &&
-          lastGravity !== null &&
-          lastGravity !== 'none' &&
-          key === lastGravity;
+        const isForbidden = lastGravity !== null && key === lastGravity;
         const disabled = !isActive || isForbidden;
 
         return (
