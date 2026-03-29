@@ -120,14 +120,14 @@ export function calcNeutralCandidates(
     const c = placedPos.col;
     const lo = Math.min(placedPos.row, movedPos.row);
     const hi = Math.max(placedPos.row, movedPos.row);
-    for (let r = lo; r < hi; r++) {
+    for (let r = lo; r <= hi; r++) {
       if (board[r][c] === 'empty') candidates.push({ row: r, col: c });
     }
   } else {
     const r = placedPos.row;
     const lo = Math.min(placedPos.col, movedPos.col);
     const hi = Math.max(placedPos.col, movedPos.col);
-    for (let c = lo; c < hi; c++) {
+    for (let c = lo; c <= hi; c++) {
       if (board[r][c] === 'empty') candidates.push({ row: r, col: c });
     }
   }
