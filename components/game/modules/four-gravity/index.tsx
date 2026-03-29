@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
+import { toast } from 'sonner';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
@@ -38,6 +39,36 @@ export default function FourGravityGame() {
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
+
+  const shownWinnerRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!gameData?.winner || !gameData?.winType) return;
+    if (shownWinnerRef.current === gameData.winner) return;
+    shownWinnerRef.current = gameData.winner;
+
+    const { players, winner, winType } = gameData;
+    const winnerNick =
+      players.black.id === winner ? players.black.nickname : players.white.nickname;
+
+    const reason =
+      winType === 'black' ? '흑 사목 완성!'
+      : winType === 'white' ? '백 사목 완성!'
+      : winType === 'neutral' ? '중립 사목 완성!'
+      : winType === 'no-space' ? '더 이상 둘 곳 없음'
+      : winType === 'no-neutral' ? '중립 돌을 놓지 못함'
+      : '';
+
+    const isMe = winner === myId;
+    const message = isMe
+      ? `승리! ${reason}`
+      : `${winnerNick} 승리! ${reason}`;
+
+    if (isMe) {
+      toast.success(message, { duration: 5000 });
+    } else {
+      toast.error(message, { duration: 5000 });
+    }
+  }, [gameData, myId]);
 
   if (!gameData) {
     return (

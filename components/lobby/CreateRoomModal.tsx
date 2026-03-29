@@ -9,6 +9,7 @@ import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
 
 interface Props {
@@ -128,7 +129,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 <button
                   key={m.key}
                   disabled={!m.supported}
-                  onClick={() => setPlayMode(m.key)}
+                  onClick={() => {
+                    if (m.key === 'com') {
+                      toast.info('준비중인 기능입니다.');
+                      return;
+                    }
+                    setPlayMode(m.key);
+                  }}
                   className={cn(
                     'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                     playMode === m.key

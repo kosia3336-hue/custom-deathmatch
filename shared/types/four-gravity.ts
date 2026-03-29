@@ -31,7 +31,7 @@ export interface FourGravityGameData {
   neutralCount: number;
   winner: string | null;
   winLine: Position[] | null;
-  winType: 'black' | 'white' | 'neutral' | 'no-space' | null;
+  winType: 'black' | 'white' | 'neutral' | 'no-space' | 'no-neutral' | null;
 }
 
 export type FourGravityAction =

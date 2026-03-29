@@ -44,7 +44,7 @@ interface InternalState {
   neutralCount: number;
   winner: string | null;
   winLine: Position[] | null;
-  winType: 'black' | 'white' | 'neutral' | 'no-space' | null;
+  winType: 'black' | 'white' | 'neutral' | 'no-space' | 'no-neutral' | null;
   startedAt: number;
   playMode: PlayMode;
   gameOver: boolean;
@@ -219,14 +219,14 @@ function calcNeutralCandidates(
     const c = placedPos.col;
     const lo = Math.min(placedPos.row, movedPos.row);
     const hi = Math.max(placedPos.row, movedPos.row);
-    for (let r = lo + 1; r < hi; r++) {
+    for (let r = lo; r < hi; r++) {
       if (board[r][c] === 'empty') candidates.push({ row: r, col: c });
     }
   } else {
     const r = placedPos.row;
     const lo = Math.min(placedPos.col, movedPos.col);
     const hi = Math.max(placedPos.col, movedPos.col);
-    for (let c = lo + 1; c < hi; c++) {
+    for (let c = lo; c < hi; c++) {
       if (board[r][c] === 'empty') candidates.push({ row: r, col: c });
     }
   }
@@ -323,9 +323,9 @@ function toGameData(s: InternalState): FourGravityGameData {
 
 function phaseMessage(s: InternalState): string {
   if (s.gameOver) {
-    return s.winType === 'no-space'
-      ? '둘 곳이 없어 게임이 종료되었습니다.'
-      : '사목이 완성되어 게임이 종료되었습니다.';
+    if (s.winType === 'no-space') return '둘 곳이 없어 게임이 종료되었습니다.';
+    if (s.winType === 'no-neutral') return '중립 돌을 놓을 수 없어 게임이 종료되었습니다.';
+    return '사목이 완성되어 게임이 종료되었습니다.';
   }
   const isAI = s.currentPlayer === 'AI';
   if (isAI) {
@@ -385,6 +385,42 @@ function handleWin(io: IO, s: InternalState, wr: WinResult) {
       totalTurns: s.turnNumber,
       gameResultData: {
         winType: s.winType,
+        finalBoard: s.board,
+        blackStones: s.blackPlayer.stoneCount,
+        whiteStones: s.whitePlayer.stoneCount,
+        neutralStones: s.neutralCount,
+      },
+    };
+    gameStates.delete(roomId);
+    onEndGame(io, roomId, payload);
+  }, WIN_DISPLAY_MS);
+}
+
+function handleNoNeutral(io: IO, s: InternalState) {
+  // 현재 플레이어가 중립돌을 놓지 못해 패배 → 상대방 승리
+  const loserId = s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id;
+  const winnerId = loserId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
+  const winnerNick = winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+  const loserNick = loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+
+  s.winner = winnerId;
+  s.winLine = null;
+  s.winType = 'no-neutral';
+  s.gameOver = true;
+  s.phase = 'waiting';
+  broadcastState(io, s);
+
+  setTimeout(() => {
+    if (!gameStates.has(s.roomId)) return;
+    const roomId = s.roomId;
+    const payload = {
+      rankings: [
+        { playerId: winnerId, nickname: winnerNick, rank: 1, score: 1 },
+        { playerId: loserId, nickname: loserNick, rank: 2, score: 0 },
+      ],
+      totalTurns: s.turnNumber,
+      gameResultData: {
+        winType: 'no-neutral',
         finalBoard: s.board,
         blackStones: s.blackPlayer.stoneCount,
         whiteStones: s.whitePlayer.stoneCount,
@@ -578,7 +614,13 @@ export function handleFourGravityAction(
       s.neutralCandidates = cands;
 
       if (cands.length === 0) {
-        finishTurn(io, s);
+        // 돌이 실제로 움직였는데 경로에 빈칸이 없으면 → 중립돌 못 놓아 패배
+        const didMove = s.placedPosition!.row !== movedPos.row || s.placedPosition!.col !== movedPos.col;
+        if (didMove) {
+          handleNoNeutral(io, s);
+        } else {
+          finishTurn(io, s);
+        }
       } else {
         s.phase = 'neutral';
         broadcastState(io, s);
@@ -924,7 +966,12 @@ async function runAITurn(io: IO, roomId: string) {
   s.neutralCandidates = cands;
 
   if (cands.length === 0) {
-    finishTurn(io, s);
+    const didMove = s.placedPosition!.row !== s.movedPosition!.row || s.placedPosition!.col !== s.movedPosition!.col;
+    if (didMove) {
+      handleNoNeutral(io, s);
+    } else {
+      finishTurn(io, s);
+    }
     return;
   }
 
