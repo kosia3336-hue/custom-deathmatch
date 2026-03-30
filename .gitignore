@@ -24,6 +24,9 @@ server/node_modules
 # server build output
 server/dist
 
+# deploy package
+/release
+
 # misc
 .DS_Store
 *.pem
