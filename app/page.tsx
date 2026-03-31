@@ -23,6 +23,7 @@ export default function LobbyPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [passwordRoom, setPasswordRoom] = useState<RoomSummary | null>(null);
+  const [spectatePasswordRoom, setSpectatePasswordRoom] = useState<RoomSummary | null>(null);
 
   const filteredRooms = lobby.getFilteredRooms();
   const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
@@ -47,6 +48,11 @@ export default function LobbyPage() {
 
   const handleSpectate = (room: RoomSummary) => {
     requireNickname(() => {
+      if (room.roomType === 'private') {
+        setSpectatePasswordRoom(room);
+        return;
+      }
+
       const socket = getSocket();
       socket.emit('spectate:join', { roomId: room.id }, (res) => {
         if (res.success) {
@@ -80,6 +86,7 @@ export default function LobbyPage() {
 
       <CreateRoomModal open={showCreate} onClose={() => setShowCreate(false)} />
       <PasswordModal open={!!passwordRoom} onClose={() => setPasswordRoom(null)} room={passwordRoom} />
+      <PasswordModal open={!!spectatePasswordRoom} onClose={() => setSpectatePasswordRoom(null)} room={spectatePasswordRoom} mode="spectate" />
     </div>
   );
 }

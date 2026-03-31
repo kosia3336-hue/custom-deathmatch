@@ -72,6 +72,8 @@ export interface JoinRoomResult {
   /** Present on successful `room:quickjoin` */
   roomId?: string;
   error?: string;
+  /** 방이 가득 찼거나 게임 진행 중일 때 비번방 여부 */
+  isPrivate?: boolean;
 }
 
 export interface ClientToServerEvents {
@@ -113,7 +115,7 @@ export interface ClientToServerEvents {
   'game:end': () => void;
 
   'spectate:join': (
-    data: { roomId: string },
+    data: { roomId: string; password?: string },
     callback: (res: JoinRoomResult) => void,
   ) => void;
   'spectate:leave': () => void;

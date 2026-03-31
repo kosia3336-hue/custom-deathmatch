@@ -10,6 +10,7 @@ import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import Input from '@/components/ui/Input';
 import { useRoom } from '@/hooks/useRoom';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useNicknameStore } from '@/stores/nickname';
@@ -34,11 +35,32 @@ export default function WaitingRoomPage() {
   const [showKick, setShowKick] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
+  const [spectatePassword, setSpectatePassword] = useState('');
+  const [spectatePasswordError, setSpectatePasswordError] = useState('');
+  const [showSpectatePassword, setShowSpectatePassword] = useState(false);
+  const [spectatePasswordLoading, setSpectatePasswordLoading] = useState(false);
   const socket = getSocket();
 
   const isHost = !!myId && room?.hostId === myId;
   const isSpectator = !!myId && (room?.spectators.some((s) => s.id === myId) ?? false);
   const me = room?.players.find((p) => p.id === myId);
+
+  const joinAsSpectator = useCallback((password?: string) => {
+    socket.emit('spectate:join', { roomId, password }, (sRes) => {
+      if (sRes.success) {
+        setJoined(true);
+        setShowSpectatePassword(false);
+      } else {
+        setSpectatePasswordLoading(false);
+        if (showSpectatePassword) {
+          setSpectatePasswordError(sRes.error ?? '비밀번호가 틀렸습니다.');
+        } else {
+          toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
+          router.push('/');
+        }
+      }
+    });
+  }, [socket, roomId, router, showSpectatePassword]);
 
   useEffect(() => {
     if (joined) return;
@@ -54,14 +76,11 @@ export default function WaitingRoomPage() {
             res.error === '이미 게임이 진행 중입니다.' ||
             res.error === '방이 가득 찼습니다.'
           ) {
-            socket.emit('spectate:join', { roomId }, (sRes) => {
-              if (sRes.success) {
-                setJoined(true);
-              } else {
-                toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
-                router.push('/');
-              }
-            });
+            if (res.isPrivate) {
+              setShowSpectatePassword(true);
+            } else {
+              joinAsSpectator();
+            }
           } else {
             toast.error(res.error ?? '입장에 실패했습니다.');
             router.push('/');
@@ -69,7 +88,7 @@ export default function WaitingRoomPage() {
         },
       );
     });
-  }, [joined, roomId, inviteToken, requireNickname, router, socket]);
+  }, [joined, roomId, inviteToken, requireNickname, router, socket, joinAsSpectator]);
 
   useEffect(() => {
     const handleStarted = () => router.push(`/room/${roomId}/play`);
@@ -318,6 +337,37 @@ export default function WaitingRoomPage() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* 관전 비밀번호 모달 */}
+      <Modal open={showSpectatePassword} onClose={() => router.push('/')} closable={false} title="비밀방 관전">
+        <p className="mb-4 text-sm text-gray-500">관전하려면 비밀번호를 입력하세요.</p>
+        <Input
+          type="password"
+          value={spectatePassword}
+          onChange={(e) => { setSpectatePassword(e.target.value); setSpectatePasswordError(''); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !spectatePasswordLoading) {
+              setSpectatePasswordLoading(true);
+              joinAsSpectator(spectatePassword);
+            }
+          }}
+          error={spectatePasswordError}
+          placeholder="비밀번호"
+          autoFocus
+        />
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => router.push('/')}>취소</Button>
+          <Button
+            loading={spectatePasswordLoading}
+            onClick={() => {
+              setSpectatePasswordLoading(true);
+              joinAsSpectator(spectatePassword);
+            }}
+          >
+            관전
+          </Button>
+        </div>
+      </Modal>
 
       {/* 방 정보 모달 */}
       <Modal open={showRoomInfo} onClose={() => setShowRoomInfo(false)} title="방 정보">

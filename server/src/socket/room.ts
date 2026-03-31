@@ -96,11 +96,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.status === 'playing') {
-      return callback({ success: false, error: '이미 게임이 진행 중입니다.' });
+      return callback({ success: false, error: '이미 게임이 진행 중입니다.', isPrivate: room.roomType === 'private' });
     }
 
     if (room.players.length >= room.maxPlayers) {
-      return callback({ success: false, error: '방이 가득 찼습니다.' });
+      return callback({ success: false, error: '방이 가득 찼습니다.', isPrivate: room.roomType === 'private' });
     }
 
     if (room.roomType === 'private' && !data.inviteToken) {
@@ -271,13 +271,24 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     callback({ success: true, token });
   });
 
-  socket.on('spectate:join', ({ roomId }, callback) => {
+  socket.on('spectate:join', ({ roomId, password }, callback) => {
     const room = roomStore.get(roomId);
     if (!room) return callback({ success: false, error: '방을 찾을 수 없습니다.' });
 
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom && currentRoom !== roomId) {
       return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
+    }
+
+    if (sessions.isKicked(sessions.getNickname(socket.id) ?? '', roomId)) {
+      return callback({ success: false, error: '이 방에 다시 입장할 수 없습니다.' });
+    }
+
+    if (room.roomType === 'private') {
+      const pw = roomStore.getPassword(roomId);
+      if (pw && password !== pw) {
+        return callback({ success: false, error: '비밀번호가 틀렸습니다.' });
+      }
     }
 
     const spectator = makePlayer(socket, false);
