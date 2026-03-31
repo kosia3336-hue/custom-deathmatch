@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -39,20 +39,26 @@ export default function WaitingRoomPage() {
   const [spectatePasswordError, setSpectatePasswordError] = useState('');
   const [showSpectatePassword, setShowSpectatePassword] = useState(false);
   const [spectatePasswordLoading, setSpectatePasswordLoading] = useState(false);
+  const showSpectatePasswordRef = useRef(false);
   const socket = getSocket();
 
   const isHost = !!myId && room?.hostId === myId;
   const isSpectator = !!myId && (room?.spectators.some((s) => s.id === myId) ?? false);
   const me = room?.players.find((p) => p.id === myId);
 
+  useEffect(() => {
+    showSpectatePasswordRef.current = showSpectatePassword;
+  }, [showSpectatePassword]);
+
   const joinAsSpectator = useCallback((password?: string) => {
     socket.emit('spectate:join', { roomId, password }, (sRes) => {
       if (sRes.success) {
         setJoined(true);
         setShowSpectatePassword(false);
+        setSpectatePasswordLoading(false);
       } else {
         setSpectatePasswordLoading(false);
-        if (showSpectatePassword) {
+        if (showSpectatePasswordRef.current) {
           setSpectatePasswordError(sRes.error ?? '비밀번호가 틀렸습니다.');
         } else {
           toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
@@ -60,7 +66,7 @@ export default function WaitingRoomPage() {
         }
       }
     });
-  }, [socket, roomId, router, showSpectatePassword]);
+  }, [socket, roomId, router]);
 
   useEffect(() => {
     if (joined) return;
@@ -220,7 +226,7 @@ export default function WaitingRoomPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 md:p-6">
         {/* 플레이어 슬롯 */}
         <div className="space-y-3">
-          {room.playMode === 'multi' && room.players.length === 2 && (
+          {(room.playMode === 'multi' || room.playMode === 'com') && room.players.length === 2 && (
             <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2">
               <span className="text-xs font-medium text-gray-500">흑/백 순서</span>
               {isHost && (
@@ -243,7 +249,7 @@ export default function WaitingRoomPage() {
               player={p}
               isMe={p.id === myId}
               isHostView={isHost}
-              colorLabel={room.playMode === 'multi' && room.players.length === 2
+              colorLabel={(room.playMode === 'multi' || room.playMode === 'com') && room.players.length === 2
                 ? (i === 0 ? '흑' : '백')
                 : undefined}
               onKick={(id) => setShowKick(id)}

@@ -1,5 +1,6 @@
 export type { Game } from './game';
 export { GAME_IDS } from './game';
+export { AI_PLAYER_ID } from './room';
 export type {
   PlayMode,
   RoomStatus,

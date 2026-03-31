@@ -9,7 +9,6 @@ import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
 
 interface Props {
@@ -52,7 +51,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     }
   }, [selectedGame]);
 
-  const computedTimeLimit = timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
+  // COM/솔로 대전은 항상 시간제한 무제한
+  const computedTimeLimit = (timeLimitEnabled && playMode === 'multi') ? timeLimitMin * 60 + timeLimitSec : null;
 
   const handleCreate = () => {
     requireNickname(() => {
@@ -86,10 +86,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           setLoading(false);
           if (res.success && res.roomId) {
             onClose();
-            if (playMode === 'multi') {
-              router.push(`/room/${res.roomId}`);
-            } else {
+            if (playMode === 'solo') {
               router.push(`/room/${res.roomId}/play`);
+            } else {
+              router.push(`/room/${res.roomId}`);
             }
           } else {
             setError(res.error ?? '방 생성에 실패했습니다.');
@@ -141,13 +141,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 <button
                   key={m.key}
                   disabled={!m.supported}
-                  onClick={() => {
-                    if (m.key === 'com') {
-                      toast.info('준비중인 기능입니다.');
-                      return;
-                    }
-                    setPlayMode(m.key);
-                  }}
+                  onClick={() => setPlayMode(m.key)}
                   className={cn(
                     'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                     playMode === m.key
@@ -229,79 +223,81 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           </div>
         )}
 
-        {/* 시간제한 */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTimeLimitEnabled(false)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                !timeLimitEnabled ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
-              )}
-            >
-              ∞ 무제한
-            </button>
-            <button
-              onClick={() => setTimeLimitEnabled(true)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                timeLimitEnabled ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
-              )}
-            >
-              ⏱ 시간제한
-            </button>
-          </div>
-
-          {timeLimitEnabled && (
-            <div className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <select
-                  value={timeLimitMin}
-                  onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                  className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
-                >
-                  {Array.from({ length: 11 }, (_, i) => (
-                    <option key={i} value={i}>{i}</option>
-                  ))}
-                </select>
-                <span className="text-sm text-gray-600">분</span>
-                <select
-                  value={timeLimitSec}
-                  onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                  className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
-                >
-                  {[0, 10, 15, 20, 30, 45].map((s) => (
-                    <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
-                  ))}
-                </select>
-                <span className="text-sm text-gray-600">초</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: '30초', min: 0, sec: 30 },
-                  { label: '1분', min: 1, sec: 0 },
-                  { label: '2분', min: 2, sec: 0 },
-                  { label: '3분', min: 3, sec: 0 },
-                  { label: '5분', min: 5, sec: 0 },
-                ].map((p) => (
-                  <button
-                    key={p.label}
-                    onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
-                    className={cn(
-                      'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-                      timeLimitMin === p.min && timeLimitSec === p.sec
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 hover:border-gray-300',
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+        {/* 시간제한: 멀티 모드에서만 표시 (COM/솔로는 항상 무제한) */}
+        {playMode === 'multi' && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTimeLimitEnabled(false)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                  !timeLimitEnabled ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
+                )}
+              >
+                ∞ 무제한
+              </button>
+              <button
+                onClick={() => setTimeLimitEnabled(true)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                  timeLimitEnabled ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
+                )}
+              >
+                ⏱ 시간제한
+              </button>
             </div>
-          )}
-        </div>
+
+            {timeLimitEnabled && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={timeLimitMin}
+                    onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>{i}</option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-600">분</span>
+                  <select
+                    value={timeLimitSec}
+                    onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
+                  >
+                    {[0, 10, 15, 20, 30, 45].map((s) => (
+                      <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-600">초</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '30초', min: 0, sec: 30 },
+                    { label: '1분', min: 1, sec: 0 },
+                    { label: '2분', min: 2, sec: 0 },
+                    { label: '3분', min: 3, sec: 0 },
+                    { label: '5분', min: 5, sec: 0 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
+                        timeLimitMin === p.min && timeLimitSec === p.sec
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 hover:border-gray-300',
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 

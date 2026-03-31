@@ -48,7 +48,8 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       }
     }
 
-    const tl = data.timeLimitSeconds;
+    // COM/솔로 대전은 시간제한 무제한 강제
+    const tl = data.playMode === 'multi' ? data.timeLimitSeconds : null;
     if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
@@ -73,7 +74,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     callback({ success: true, roomId: room.id });
 
-    if (room.playMode !== 'multi') {
+    if (room.playMode === 'solo') {
       startGame(io, room.id);
     }
   });
@@ -263,7 +264,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.hostId !== socket.id || room.status !== 'waiting') return;
-    if (room.playMode !== 'multi') return;
+    if (room.playMode === 'solo') return;
     roomStore.swapPlayers(roomId);
     sendRoomState(io, roomId);
   });
