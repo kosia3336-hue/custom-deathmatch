@@ -19,9 +19,11 @@ export default function PlayPage() {
   const gameId = useRoomStore((s) => s.room?.gameId);
 
   useEffect(() => {
-    if (gameResult) {
+    if (!gameResult) return;
+    const timer = setTimeout(() => {
       router.push(`/room/${roomId}/result`);
-    }
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [gameResult, roomId, router]);
 
   useEffect(() => {
