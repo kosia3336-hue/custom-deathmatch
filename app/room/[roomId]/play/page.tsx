@@ -9,6 +9,7 @@ import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
+import { GAME_IDS } from '@/shared/types';
 
 export default function PlayPage() {
   const params = useParams();
@@ -43,7 +44,7 @@ export default function PlayPage() {
 
   return (
     <GameShell>
-      {gameId === 'game-001' ? <FourGravityGame /> : <GameModulePlaceholder />}
+      {gameId === GAME_IDS.FOUR_GRAVITY ? <FourGravityGame /> : <GameModulePlaceholder />}
     </GameShell>
   );
 }

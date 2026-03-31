@@ -1,4 +1,5 @@
 export type { Game } from './game';
+export { GAME_IDS } from './game';
 export type {
   PlayMode,
   RoomStatus,
@@ -18,6 +19,7 @@ export type {
   NicknameResult,
   CreateRoomResult,
   JoinRoomResult,
+  JoinRoomErrorCode,
   ClientToServerEvents,
   ServerToClientEvents,
 } from './events';
@@ -33,3 +35,8 @@ export type {
   FourGravityGameData,
   FourGravityAction,
 } from './four-gravity';
+export type {
+  GameRecordFile,
+  FourGravityTurnAction,
+  FourGravityRecord,
+} from './archive';

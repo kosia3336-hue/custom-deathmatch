@@ -6,12 +6,9 @@ import type { InternalState, WinResult } from './types.js';
 import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin, hasEmptyCells } from './win.js';
 import { findBestMove } from './ai.js';
+import { socketRoom } from '../../utils.js';
 
 export const gameStates = new Map<string, InternalState>();
-
-function socketRoom(roomId: string) {
-  return `room:${roomId}`;
-}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,6 +43,7 @@ function toGameData(s: InternalState): FourGravityGameData {
 
 function phaseMessage(s: InternalState): string {
   if (s.gameOver) {
+    if (s.winType === 'timeout') return '시간 초과로 게임이 종료되었습니다.';
     if (s.winType === 'no-space') return '둘 곳이 없어 게임이 종료되었습니다.';
     if (s.winType === 'no-neutral') return '중립 돌을 놓을 수 없어 게임이 종료되었습니다.';
     return '사목이 완성되어 게임이 종료되었습니다.';
@@ -67,28 +65,24 @@ function phaseMessage(s: InternalState): string {
   }
 }
 
-export function broadcastState(io: IO, s: InternalState) {
-  const gs: GameState = {
+function buildGameState(s: InternalState): GameState {
+  return {
     roomId: s.roomId,
     message: phaseMessage(s),
     currentTurn: s.currentPlayer,
     turnNumber: s.turnNumber,
     startedAt: s.startedAt,
+    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
     gameData: toGameData(s),
   };
-  io.to(socketRoom(s.roomId)).emit('game:state', gs);
+}
+
+export function broadcastState(io: IO, s: InternalState) {
+  io.to(socketRoom(s.roomId)).emit('game:state', buildGameState(s));
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
-  const gs: GameState = {
-    roomId: s.roomId,
-    message: phaseMessage(s),
-    currentTurn: s.currentPlayer,
-    turnNumber: s.turnNumber,
-    startedAt: s.startedAt,
-    gameData: toGameData(s),
-  };
-  socket.emit('game:state', gs);
+  socket.emit('game:state', buildGameState(s));
 }
 
 /* ────────────────────── game-over handlers ───────────── */
@@ -108,82 +102,111 @@ function buildEndPayload(
     totalTurns: s.turnNumber,
     gameResultData: {
       winType: s.winType,
+      winLine: s.winLine,
       finalBoard: s.board,
       blackStones: s.blackPlayer.stoneCount,
       whiteStones: s.whitePlayer.stoneCount,
       neutralStones: s.neutralCount,
+      actions: s.actionLog,
+      players: {
+        black: { nickname: s.blackPlayer.nickname },
+        white: { nickname: s.whitePlayer.nickname },
+      },
     },
   };
 }
 
-export function handleWin(io: IO, s: InternalState, wr: WinResult) {
-  const winnerId =
-    wr.winner === 'current'
-      ? (s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id)
-      : (s.currentColor === 'black' ? s.whitePlayer.id : s.blackPlayer.id);
-  const loserId = winnerId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
-  const winnerNick = winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-  const loserNick = loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-
-  s.winner = winnerId;
-  s.winLine = wr.line;
-  s.winType = wr.type;
-  s.gameOver = true;
-  s.phase = 'waiting';
-  broadcastState(io, s);
-
+function scheduleGameEnd(
+  io: IO,
+  s: InternalState,
+  payload: ReturnType<typeof buildEndPayload>,
+) {
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
     const roomId = s.roomId;
     gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
+    s.endGameCallback(io, roomId, payload);
   }, WIN_DISPLAY_MS);
+}
+
+function resolveGame(
+  io: IO,
+  s: InternalState,
+  opts: {
+    winnerId: string;
+    loserId: string;
+    winType: InternalState['winType'];
+    winLine?: InternalState['winLine'];
+  },
+) {
+  const winnerNick = opts.winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+  const loserNick = opts.loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+
+  s.winner = opts.winnerId;
+  s.winLine = opts.winLine ?? null;
+  s.winType = opts.winType;
+  s.gameOver = true;
+  s.phase = 'waiting';
+  broadcastState(io, s);
+
+  scheduleGameEnd(io, s, buildEndPayload(s, opts.winnerId, winnerNick, opts.loserId, loserNick));
+}
+
+function getWinnerLoser(s: InternalState, currentIsWinner: boolean) {
+  const winnerId = currentIsWinner
+    ? (s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id)
+    : (s.currentColor === 'black' ? s.whitePlayer.id : s.blackPlayer.id);
+  const loserId = winnerId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
+  return { winnerId, loserId };
+}
+
+/* ────────────────────── turn timer ─────────────────────── */
+
+export function clearTurnTimer(s: InternalState) {
+  if (s.turnTimer) {
+    clearTimeout(s.turnTimer);
+    s.turnTimer = null;
+  }
+}
+
+export function startTurnTimer(io: IO, s: InternalState) {
+  clearTurnTimer(s);
+  if (!s.timeLimitSeconds || s.currentPlayer === 'AI') return;
+  s.turnStartedAt = Date.now();
+  s.turnTimer = setTimeout(() => {
+    handleTimeout(io, s);
+  }, s.timeLimitSeconds * 1000);
+}
+
+export function handleTimeout(io: IO, s: InternalState) {
+  if (s.gameOver) return;
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, false);
+  resolveGame(io, s, { winnerId, loserId, winType: 'timeout' });
+}
+
+export function handleWin(io: IO, s: InternalState, wr: WinResult) {
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, wr.winner === 'current');
+  resolveGame(io, s, { winnerId, loserId, winType: wr.type, winLine: wr.line });
 }
 
 export function handleNoNeutral(io: IO, s: InternalState) {
-  const loserId = s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id;
-  const winnerId = loserId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
-  const winnerNick = winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-  const loserNick = loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-
-  s.winner = winnerId;
-  s.winLine = null;
-  s.winType = 'no-neutral';
-  s.gameOver = true;
-  s.phase = 'waiting';
-  broadcastState(io, s);
-
-  setTimeout(() => {
-    if (!gameStates.has(s.roomId)) return;
-    const roomId = s.roomId;
-    gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
-  }, WIN_DISPLAY_MS);
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, false);
+  resolveGame(io, s, { winnerId, loserId, winType: 'no-neutral' });
 }
 
 export function handleNoSpace(io: IO, s: InternalState) {
-  const winnerId = s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id;
-  const loserId = winnerId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
-  const winnerNick = winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-  const loserNick = loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
-
-  s.winner = winnerId;
-  s.winType = 'no-space';
-  s.gameOver = true;
-  s.phase = 'waiting';
-  broadcastState(io, s);
-
-  setTimeout(() => {
-    if (!gameStates.has(s.roomId)) return;
-    const roomId = s.roomId;
-    gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
-  }, WIN_DISPLAY_MS);
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, true);
+  resolveGame(io, s, { winnerId, loserId, winType: 'no-space' });
 }
 
 /* ────────────────────── turn management ──────────────── */
 
 export function finishTurn(io: IO, s: InternalState) {
+  clearTurnTimer(s);
   const wr = checkWin(s.board, s.currentColor);
   if (wr) { handleWin(io, s, wr); return; }
   if (!hasEmptyCells(s.board)) { handleNoSpace(io, s); return; }
@@ -195,6 +218,8 @@ export function finishTurn(io: IO, s: InternalState) {
   s.placedPosition = null;
   s.movedPosition = null;
   s.neutralCandidates = [];
+
+  startTurnTimer(io, s);
   broadcastState(io, s);
 
   if (s.playMode === 'com' && s.currentPlayer === 'AI') {
@@ -216,7 +241,14 @@ export async function runAITurn(io: IO, roomId: string) {
 
   s.board[move.place.row][move.place.col] = s.currentColor;
   s.placedPosition = move.place;
-  s.whitePlayer.stoneCount++;
+  if (s.currentColor === 'black') s.blackPlayer.stoneCount++;
+  else s.whitePlayer.stoneCount++;
+  s.actionLog.push({
+    turnNumber: s.turnNumber,
+    color: s.currentColor,
+    nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+    steps: [{ type: 'place', row: move.place.row, col: move.place.col }],
+  });
   s.phase = 'gravity';
   broadcastState(io, s);
 
@@ -228,6 +260,8 @@ export async function runAITurn(io: IO, roomId: string) {
     s.lastGravityWhite = 'none';
     s.movedPosition = s.placedPosition;
     s.neutralCandidates = [];
+    const aiLog = s.actionLog[s.actionLog.length - 1];
+    if (aiLog) aiLog.steps.push({ type: 'gravity', direction: 'none' });
     finishTurn(io, s);
     return;
   }
@@ -236,6 +270,9 @@ export async function runAITurn(io: IO, roomId: string) {
   s.board = applyGravity(s.board, move.gravity);
   s.lastGravityWhite = move.gravity;
   s.movedPosition = findMovedPosition(s.placedPosition!, move.gravity, boardBefore, s.board);
+
+  const aiGLog = s.actionLog[s.actionLog.length - 1];
+  if (aiGLog) aiGLog.steps.push({ type: 'gravity', direction: move.gravity });
 
   const wr = checkWin(s.board, s.currentColor);
   if (wr) { handleWin(io, s, wr); return; }
@@ -258,5 +295,7 @@ export async function runAITurn(io: IO, roomId: string) {
   const neutralPos = move.neutral ?? cands[0];
   s.board[neutralPos.row][neutralPos.col] = 'neutral';
   s.neutralCount++;
+  const aiNLog = s.actionLog[s.actionLog.length - 1];
+  if (aiNLog) aiNLog.steps.push({ type: 'neutral', row: neutralPos.row, col: neutralPos.col });
   finishTurn(io, s);
 }

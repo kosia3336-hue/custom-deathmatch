@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { useRouter } from 'next/navigation';
-import type { RoomSummary } from '@/shared/types';
+import type { RoomSummary, JoinRoomResult } from '@/shared/types';
 
 interface Props {
   open: boolean;
@@ -24,6 +24,25 @@ export default function PasswordModal({ open, onClose, room, mode = 'join' }: Pr
   const [locked, setLocked] = useState(false);
   const lockTimer = useRef<NodeJS.Timeout | null>(null);
 
+  const handleResponse = (res: JoinRoomResult) => {
+    setLoading(false);
+    if (res.success) {
+      onClose();
+      router.push(`/room/${room!.id}`);
+    } else {
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      setError(res.error ?? '비밀번호가 틀렸습니다.');
+      if (newAttempts >= 3) {
+        setLocked(true);
+        lockTimer.current = setTimeout(() => {
+          setLocked(false);
+          setAttempts(0);
+        }, 10000);
+      }
+    }
+  };
+
   const handleSubmit = () => {
     if (!room || locked) return;
 
@@ -32,43 +51,9 @@ export default function PasswordModal({ open, onClose, room, mode = 'join' }: Pr
     const socket = getSocket();
 
     if (mode === 'spectate') {
-      socket.emit('spectate:join', { roomId: room.id, password }, (res) => {
-        setLoading(false);
-        if (res.success) {
-          onClose();
-          router.push(`/room/${room.id}`);
-        } else {
-          const newAttempts = attempts + 1;
-          setAttempts(newAttempts);
-          setError(res.error ?? '비밀번호가 틀렸습니다.');
-          if (newAttempts >= 3) {
-            setLocked(true);
-            lockTimer.current = setTimeout(() => {
-              setLocked(false);
-              setAttempts(0);
-            }, 10000);
-          }
-        }
-      });
+      socket.emit('spectate:join', { roomId: room.id, password }, handleResponse);
     } else {
-      socket.emit('room:join', { roomId: room.id, password }, (res) => {
-        setLoading(false);
-        if (res.success) {
-          onClose();
-          router.push(`/room/${room.id}`);
-        } else {
-          const newAttempts = attempts + 1;
-          setAttempts(newAttempts);
-          setError(res.error ?? '비밀번호가 틀렸습니다.');
-          if (newAttempts >= 3) {
-            setLocked(true);
-            lockTimer.current = setTimeout(() => {
-              setLocked(false);
-              setAttempts(0);
-            }, 10000);
-          }
-        }
-      });
+      socket.emit('room:join', { roomId: room.id, password }, handleResponse);
     }
   };
 

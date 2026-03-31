@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useLobbyStore } from '@/stores/lobby';
@@ -63,6 +64,12 @@ export default function ActionBar({ onCreateRoom }: Props) {
         </select>
       </div>
       <div className="flex gap-2">
+        <Link
+          href="/archive"
+          className="sm:hidden inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          기록실
+        </Link>
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장
         </Button>

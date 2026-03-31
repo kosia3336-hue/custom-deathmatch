@@ -8,7 +8,6 @@ interface LobbyState {
   rooms: RoomSummary[];
   searchQuery: string;
   gameFilter: string;
-  statusFilter: string;
   tabFilter: TabFilter;
   sortBy: SortBy;
 
@@ -18,7 +17,6 @@ interface LobbyState {
   removeRoom: (roomId: string) => void;
   setSearchQuery: (q: string) => void;
   setGameFilter: (g: string) => void;
-  setStatusFilter: (s: string) => void;
   setTabFilter: (t: TabFilter) => void;
   setSortBy: (s: SortBy) => void;
   getFilteredRooms: () => RoomSummary[];
@@ -28,7 +26,6 @@ export const useLobbyStore = create<LobbyState>((set, get) => ({
   rooms: [],
   searchQuery: '',
   gameFilter: 'all',
-  statusFilter: 'all',
   tabFilter: 'all',
   sortBy: 'newest',
 
@@ -42,7 +39,6 @@ export const useLobbyStore = create<LobbyState>((set, get) => ({
     set((s) => ({ rooms: s.rooms.filter((r) => r.id !== roomId) })),
   setSearchQuery: (q) => set({ searchQuery: q }),
   setGameFilter: (g) => set({ gameFilter: g }),
-  setStatusFilter: (s) => set({ statusFilter: s }),
   setTabFilter: (t) => set({ tabFilter: t }),
   setSortBy: (s) => set({ sortBy: s }),
 

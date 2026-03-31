@@ -7,6 +7,7 @@ export interface CreateRoomData {
   roomType: RoomType;
   password?: string;
   maxPlayers: number;
+  timeLimitSeconds?: number | null;
 }
 
 export interface JoinRoomData {
@@ -38,6 +39,7 @@ export interface GameState {
   currentTurn: string | null;
   turnNumber: number;
   startedAt: number;
+  turnStartedAt: number | null;
   gameData?: unknown;
 }
 
@@ -66,12 +68,23 @@ export interface CreateRoomResult {
   error?: string;
 }
 
+export type JoinRoomErrorCode =
+  | 'GAME_IN_PROGRESS'
+  | 'ROOM_FULL'
+  | 'KICKED'
+  | 'WRONG_PASSWORD'
+  | 'NOT_FOUND'
+  | 'ALREADY_IN_ROOM'
+  | 'NO_NICKNAME'
+  | 'INVALID_INVITE';
+
 export interface JoinRoomResult {
   success: boolean;
   room?: Room;
   /** Present on successful `room:quickjoin` */
   roomId?: string;
   error?: string;
+  errorCode?: JoinRoomErrorCode;
   /** 방이 가득 찼거나 게임 진행 중일 때 비번방 여부 */
   isPrivate?: boolean;
 }

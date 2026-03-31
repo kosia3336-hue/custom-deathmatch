@@ -3,6 +3,7 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
+import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
 import type { RoomSummary } from '@/shared/types';
 
 interface Props {
@@ -29,9 +30,14 @@ export default function RoomCardList({ rooms, onJoin, onSpectate }: Props) {
                 <span>{room.roomType === 'private' ? '🔒' : '🔓'}</span>
                 <span className="font-medium text-gray-900">{room.gameName}</span>
               </div>
-              <Badge variant={isWaiting ? 'info' : 'warning'}>
-                {isWaiting ? '대기' : '진행'}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                {room.timeLimitSeconds != null && (
+                  <TimeLimitBadge seconds={room.timeLimitSeconds} />
+                )}
+                <Badge variant={isWaiting ? 'info' : 'warning'}>
+                  {isWaiting ? '대기' : '진행'}
+                </Badge>
+              </div>
             </div>
             <p className="mb-1 text-sm font-medium text-gray-800 truncate">{room.title}</p>
             <p className="mb-3 text-xs text-gray-500">방장: {room.hostNickname}</p>

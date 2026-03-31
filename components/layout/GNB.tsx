@@ -19,6 +19,14 @@ export default function GNB({ minimal }: GNBProps) {
       </Link>
 
       <div className="flex items-center gap-3">
+        {!minimal && (
+          <Link
+            href="/archive"
+            className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            기록실
+          </Link>
+        )}
         {nickname ? (
           <button
             onClick={() => openModal()}

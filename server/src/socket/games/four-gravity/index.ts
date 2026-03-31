@@ -13,6 +13,8 @@ import {
   handleNoNeutral,
   handleNoSpace,
   finishTurn,
+  startTurnTimer,
+  clearTurnTimer,
 } from './state.js';
 
 export type { EndGameFn };
@@ -23,8 +25,11 @@ export function initFourGravity(
   players: Player[],
   playMode: PlayMode,
   startedAt: number,
+  timeLimitSeconds: number | null,
   endGameCallback: EndGameFn,
 ) {
+  const prev = gameStates.get(roomId);
+  if (prev) clearTurnTimer(prev);
   gameStates.delete(roomId);
 
   const blackPlayer: FourGravityPlayerInfo = {
@@ -62,11 +67,17 @@ export function initFourGravity(
     winLine: null,
     winType: null,
     startedAt,
+    turnStartedAt: Date.now(),
+    timeLimitSeconds,
+    turnTimer: null,
     playMode,
     gameOver: false,
+    actionLog: [],
   });
 
-  broadcastState(io, gameStates.get(roomId)!);
+  const s = gameStates.get(roomId)!;
+  startTurnTimer(io, s);
+  broadcastState(io, s);
 }
 
 export function handleFourGravityAction(
@@ -104,6 +115,12 @@ export function handleFourGravityAction(
       s.placedPosition = { row, col };
       if (s.currentColor === 'black') s.blackPlayer.stoneCount++;
       else s.whitePlayer.stoneCount++;
+      s.actionLog.push({
+        turnNumber: s.turnNumber,
+        color: s.currentColor,
+        nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+        steps: [{ type: 'place', row, col }],
+      });
       s.phase = 'gravity';
       broadcastState(io, s);
       break;
@@ -128,6 +145,8 @@ export function handleFourGravityAction(
         else s.lastGravityWhite = 'none';
         s.movedPosition = s.placedPosition;
         s.neutralCandidates = [];
+        const log = s.actionLog[s.actionLog.length - 1];
+        if (log) log.steps.push({ type: 'gravity', direction: 'none' });
         finishTurn(io, s);
         return;
       }
@@ -139,6 +158,9 @@ export function handleFourGravityAction(
 
       const movedPos = findMovedPosition(s.placedPosition!, dir, boardBefore, s.board);
       s.movedPosition = movedPos;
+
+      const gLog = s.actionLog[s.actionLog.length - 1];
+      if (gLog) gLog.steps.push({ type: 'gravity', direction: dir });
 
       const wr = checkWin(s.board, s.currentColor);
       if (wr) { handleWin(io, s, wr); return; }
@@ -172,6 +194,8 @@ export function handleFourGravityAction(
       }
       s.board[row][col] = 'neutral';
       s.neutralCount++;
+      const nLog = s.actionLog[s.actionLog.length - 1];
+      if (nLog) nLog.steps.push({ type: 'neutral', row, col });
       finishTurn(io, s);
       break;
     }
@@ -179,6 +203,8 @@ export function handleFourGravityAction(
 }
 
 export function cleanupFourGravity(roomId: string) {
+  const s = gameStates.get(roomId);
+  if (s) clearTurnTimer(s);
   gameStates.delete(roomId);
 }
 

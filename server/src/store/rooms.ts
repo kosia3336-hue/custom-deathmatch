@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus } from '../../shared/types/room.js';
 
-type RoomInternal = Room & { _password?: string };
+type RoomInternal = Room & { _password?: string; _minPlayers: number };
 
 const rooms = new Map<string, RoomInternal>();
 const inviteTokens = new Map<string, string>();
@@ -20,12 +20,13 @@ function toSummary(room: RoomInternal): RoomSummary {
     spectatorCount: room.spectators.length,
     status: room.status,
     hostNickname: host?.nickname ?? '',
+    timeLimitSeconds: room.timeLimitSeconds,
     createdAt: room.createdAt,
   };
 }
 
 function toClientRoom(room: RoomInternal): Room {
-  const { _password, ...rest } = room;
+  const { _password, _minPlayers, ...rest } = room;
   return rest;
 }
 
@@ -38,6 +39,8 @@ export const roomStore = {
     roomType: RoomType;
     password?: string;
     maxPlayers: number;
+    minPlayers: number;
+    timeLimitSeconds?: number | null;
     host: Player;
   }): Room {
     const id = uuid().slice(0, 8);
@@ -54,7 +57,9 @@ export const roomStore = {
       status: opts.playMode === 'multi' ? 'waiting' : 'playing',
       hostId: opts.host.id,
       inviteToken: null,
+      timeLimitSeconds: opts.timeLimitSeconds ?? null,
       createdAt: Date.now(),
+      _minPlayers: opts.minPlayers,
     };
     if (opts.roomType === 'private' && opts.password) {
       room._password = opts.password;
@@ -134,7 +139,7 @@ export const roomStore = {
     if (!room) return { ok: false, reason: '방을 찾을 수 없습니다.' };
     if (room.status !== 'waiting') return { ok: false, reason: '이미 게임이 진행 중입니다.' };
 
-    const minPlayers = 2;
+    const minPlayers = room._minPlayers;
     if (room.players.length < minPlayers) {
       return { ok: false, reason: `최소 ${minPlayers}명이 필요합니다 (현재 ${room.players.length}명)` };
     }

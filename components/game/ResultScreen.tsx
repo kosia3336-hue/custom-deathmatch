@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Button from '@/components/ui/Button';
 import RoomChat from '@/components/room/RoomChat';
-import { formatTime } from '@/lib/utils';
+import { formatTime, formatTimeLimit } from '@/lib/utils';
+import { useSaveRecord } from '@/hooks/useSaveRecord';
+import { WIN_TYPE_LABEL } from '@/components/game/modules/four-gravity/constants';
 
 const PODIUM_COLORS = ['bg-indigo-600', 'bg-indigo-400', 'bg-indigo-300'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
@@ -21,7 +23,9 @@ export default function ResultScreen() {
   const room = useRoomStore((s) => s.room);
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [timer, setTimer] = useState(AUTO_LEAVE_SEC);
-  const cancelledRef = useRef(false);
+  const [cancelled, setCancelled] = useState(false);
+
+  const handleSaveRecord = useSaveRecord();
 
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
@@ -30,24 +34,25 @@ export default function ResultScreen() {
   }, [router]);
 
   const handleRematch = useCallback(() => {
-    cancelledRef.current = true;
+    if (!room) return;
+    setCancelled(true);
     getSocket().emit('game:rematch');
     useRoomStore.getState().setGameResult(null);
-    if (room?.playMode === 'multi') {
+    if (room.playMode === 'multi') {
       router.push(`/room/${room.id}`);
     } else {
-      router.push(`/room/${room?.id}/play`);
+      router.push(`/room/${room.id}/play`);
     }
   }, [room, router]);
 
   useEffect(() => {
-    if (cancelledRef.current || timer <= 0) {
-      if (timer <= 0 && !cancelledRef.current) handleLobby();
+    if (cancelled || timer <= 0) {
+      if (timer <= 0 && !cancelled) handleLobby();
       return;
     }
     const id = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(id);
-  }, [timer, handleLobby]);
+  }, [timer, cancelled, handleLobby]);
 
   /* ── 헤더 오른쪽 슬롯 ── */
   useEffect(() => {
@@ -61,19 +66,23 @@ export default function ResultScreen() {
 
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
+    const hasRecord = !!(gameResult?.gameResultData as Record<string, unknown> | undefined)?.actions;
     setFooter(
       <>
-        {!cancelledRef.current && timer > 0 && (
+        {!cancelled && timer > 0 && (
           <span className="mr-auto text-xs text-gray-400">
             {timer}초 후 자동으로 로비로 이동합니다
           </span>
+        )}
+        {hasRecord && (
+          <Button variant="ghost" onClick={handleSaveRecord}>기록 저장</Button>
         )}
         <Button onClick={handleRematch}>다시하기</Button>
         <Button variant="secondary" onClick={handleLobby}>로비로</Button>
       </>,
     );
     return () => setFooter(null);
-  }, [setFooter, timer, handleRematch, handleLobby]);
+  }, [setFooter, timer, cancelled, gameResult, handleSaveRecord, handleRematch, handleLobby]);
 
   if (!gameResult) {
     return (
@@ -82,6 +91,10 @@ export default function ResultScreen() {
       </div>
     );
   }
+
+  const grd = gameResult.gameResultData as Record<string, unknown> | undefined;
+  const winType = grd?.winType as keyof typeof WIN_TYPE_LABEL | undefined;
+  const winTypeLabel = winType ? (WIN_TYPE_LABEL[winType] ?? null) : null;
 
   const sorted = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
 
@@ -102,9 +115,13 @@ export default function ResultScreen() {
       </div>
 
       {/* 요약 */}
-      <div className="mb-6 flex justify-center gap-8 text-sm text-gray-500">
+      <div className="mb-6 flex flex-wrap justify-center gap-x-8 gap-y-1 text-sm text-gray-500">
         <span>플레이 시간: {formatTime(gameResult.playTime)}</span>
         <span>총 턴 수: {gameResult.totalTurns}턴</span>
+        {winTypeLabel && <span>승리 방식: {winTypeLabel}</span>}
+        {room?.timeLimitSeconds != null && (
+          <span>시간제한: ⏱ {formatTimeLimit(room.timeLimitSeconds)}</span>
+        )}
       </div>
 
       {/* 멀티 게임 결과 채팅 */}

@@ -7,13 +7,10 @@ import { getGameById } from '../routes/games.js';
 import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { startGame } from './game.js';
 import { clearRoomStartCountdown, setRoomStartCountdown } from './roomCountdown.js';
+import { socketRoom } from './utils.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
-
-function socketRoom(roomId: string) {
-  return `room:${roomId}`;
-}
 
 function makePlayer(socket: TypedSocket, isHost: boolean): Player {
   return {
@@ -51,6 +48,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       }
     }
 
+    const tl = data.timeLimitSeconds;
+    if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
+      return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
+    }
+
     const host = makePlayer(socket, true);
     const room = roomStore.create({
       title: data.title,
@@ -60,6 +62,8 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       roomType: data.playMode === 'multi' ? data.roomType : 'public',
       password: data.password,
       maxPlayers: data.maxPlayers,
+      minPlayers: game.minPlayers,
+      timeLimitSeconds: tl ?? null,
       host,
     });
 
@@ -96,11 +100,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.status === 'playing') {
-      return callback({ success: false, error: '이미 게임이 진행 중입니다.', isPrivate: room.roomType === 'private' });
+      return callback({ success: false, error: '이미 게임이 진행 중입니다.', errorCode: 'GAME_IN_PROGRESS', isPrivate: room.roomType === 'private' });
     }
 
     if (room.players.length >= room.maxPlayers) {
-      return callback({ success: false, error: '방이 가득 찼습니다.', isPrivate: room.roomType === 'private' });
+      return callback({ success: false, error: '방이 가득 찼습니다.', errorCode: 'ROOM_FULL', isPrivate: room.roomType === 'private' });
     }
 
     if (room.roomType === 'private' && !data.inviteToken) {
