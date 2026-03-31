@@ -6,7 +6,7 @@ import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import type { ChatScope } from '@/shared/types';
+import type { ChatScope, ChatMessage } from '@/shared/types';
 
 // useSyncExternalStore 셀렉터가 매 호출마다 새 참조를 반환하면 무한 루프가 생기므로
 // 안정적인 빈 배열 참조를 모듈 스코프에 선언
@@ -67,7 +67,7 @@ function ChatBubble({
   m,
   spectators,
 }: {
-  m: { id: string; isSystem: boolean; senderNickname: string; sender: string; message: string };
+  m: ChatMessage;
   spectators: { id: string }[];
 }) {
   if (m.isSystem) {

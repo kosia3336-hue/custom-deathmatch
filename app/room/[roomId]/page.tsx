@@ -73,8 +73,8 @@ export default function WaitingRoomPage() {
           if (res.success) {
             setJoined(true);
           } else if (
-            res.error === '이미 게임이 진행 중입니다.' ||
-            res.error === '방이 가득 찼습니다.'
+            res.errorCode === 'GAME_IN_PROGRESS' ||
+            res.errorCode === 'ROOM_FULL'
           ) {
             if (res.isPrivate) {
               setShowSpectatePassword(true);

@@ -10,6 +10,7 @@ import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
 import InfoPanel from './InfoPanel';
+import PlayerBadge from './PlayerBadge';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { DIR_LABEL } from './constants';
@@ -192,28 +193,3 @@ export default function FourGravityGame() {
   );
 }
 
-function PlayerBadge({
-  player,
-  color,
-  isCurrent,
-}: {
-  player: FourGravityGameData['players']['black'];
-  color: 'black' | 'white';
-  isCurrent: boolean;
-}) {
-  return (
-    <div
-      className={`flex items-center gap-2 rounded-lg px-3 py-1 ${
-        isCurrent ? 'bg-indigo-50 ring-1 ring-indigo-300' : ''
-      }`}
-    >
-      <span
-        className={`h-3 w-3 rounded-full ${
-          color === 'black' ? 'bg-[#1a1a2e]' : 'border border-gray-300 bg-white'
-        }`}
-      />
-      <span className="text-sm font-medium text-gray-900">{player.nickname}</span>
-      {isCurrent && <span className="text-xs text-indigo-600">◀</span>}
-    </div>
-  );
-}

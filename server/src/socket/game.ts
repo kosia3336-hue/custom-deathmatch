@@ -1,11 +1,13 @@
 import type { Server, Socket } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents, GameState, GameResult } from '../../../shared/types/events.js';
 import type { Player } from '../../../shared/types/room.js';
+import { GAME_IDS } from '../../../shared/types/game.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
+import { socketRoom } from './utils.js';
 import {
   initFourGravity,
   handleFourGravityAction,
@@ -16,10 +18,6 @@ import {
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
-
-function socketRoom(roomId: string) {
-  return `room:${roomId}`;
-}
 
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
 
@@ -40,7 +38,7 @@ export function startGame(io: IO, roomId: string) {
 
   io.to(socketRoom(roomId)).emit('room:game:started');
 
-  if (room.gameId === 'game-001') {
+  if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
     initFourGravity(io, roomId, room.players, room.playMode, startedAt, (cbIo, cbRoomId, data) => {
       endGame(cbIo, cbRoomId, data);
     });
@@ -67,7 +65,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const clientRoom = roomStore.getClientRoom(roomId);
     if (clientRoom) socket.emit('room:state', clientRoom);
 
-    if (room.gameId === 'game-001') {
+    if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
       emitFourGravityStateToSocket(socket, roomId);
     }
   });
@@ -78,7 +76,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
-    if (room.gameId === 'game-001') {
+    if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
       handleFourGravityAction(io, socket, roomId, data);
     }
   });
@@ -89,7 +87,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.hostId !== socket.id) return;
 
-    if (room.gameId === 'game-001') cleanupFourGravity(roomId);
+    if (room.gameId === GAME_IDS.FOUR_GRAVITY) cleanupFourGravity(roomId);
     endGame(io, roomId);
   });
 
@@ -123,7 +121,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       '알 수 없음';
     const spectatorsBefore = room?.spectators ?? [];
 
-    if (room && room.status === 'playing' && room.gameId === 'game-001') {
+    if (room && room.status === 'playing' && room.gameId === GAME_IDS.FOUR_GRAVITY) {
       const fgState = getFourGravityState(roomId);
       cleanupFourGravity(roomId);
       if (fgState && !fgState.gameOver && room.playMode === 'multi') {

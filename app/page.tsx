@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import GNB from '@/components/layout/GNB';
 import ActionBar from '@/components/lobby/ActionBar';
 import TabFilter from '@/components/lobby/TabFilter';
@@ -12,14 +10,10 @@ import EmptyState from '@/components/lobby/EmptyState';
 import CreateRoomModal from '@/components/lobby/CreateRoomModal';
 import PasswordModal from '@/components/lobby/PasswordModal';
 import { useLobby } from '@/hooks/useLobby';
-import { useNicknameStore } from '@/stores/nickname';
-import { getSocket } from '@/lib/socket';
 import type { RoomSummary } from '@/shared/types';
 
 export default function LobbyPage() {
-  const router = useRouter();
   const lobby = useLobby();
-  const requireNickname = useNicknameStore((s) => s.requireNickname);
 
   const [showCreate, setShowCreate] = useState(false);
   const [passwordRoom, setPasswordRoom] = useState<RoomSummary | null>(null);
@@ -27,42 +21,6 @@ export default function LobbyPage() {
 
   const filteredRooms = lobby.getFilteredRooms();
   const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
-
-  const handleJoin = (room: RoomSummary) => {
-    requireNickname(() => {
-      if (room.roomType === 'private') {
-        setPasswordRoom(room);
-        return;
-      }
-
-      const socket = getSocket();
-      socket.emit('room:join', { roomId: room.id }, (res) => {
-        if (res.success) {
-          router.push(`/room/${room.id}`);
-        } else {
-          toast.error(res.error ?? '입장에 실패했습니다.');
-        }
-      });
-    });
-  };
-
-  const handleSpectate = (room: RoomSummary) => {
-    requireNickname(() => {
-      if (room.roomType === 'private') {
-        setSpectatePasswordRoom(room);
-        return;
-      }
-
-      const socket = getSocket();
-      socket.emit('spectate:join', { roomId: room.id }, (res) => {
-        if (res.success) {
-          router.push(`/room/${room.id}`);
-        } else {
-          toast.error(res.error ?? '관전에 실패했습니다.');
-        }
-      });
-    });
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -77,8 +35,16 @@ export default function LobbyPage() {
             <EmptyState hasFilter={hasFilter} onCreate={() => setShowCreate(true)} />
           ) : (
             <>
-              <RoomTable rooms={filteredRooms} onJoin={handleJoin} onSpectate={handleSpectate} />
-              <RoomCardList rooms={filteredRooms} onJoin={handleJoin} onSpectate={handleSpectate} />
+              <RoomTable
+                rooms={filteredRooms}
+                onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
+                onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
+              />
+              <RoomCardList
+                rooms={filteredRooms}
+                onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
+                onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
+              />
             </>
           )}
         </div>

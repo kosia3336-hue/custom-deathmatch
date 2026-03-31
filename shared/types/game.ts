@@ -8,3 +8,7 @@ export interface Game {
   supportsCom: boolean;
   supportsSolo: boolean;
 }
+
+export const GAME_IDS = {
+  FOUR_GRAVITY: 'game-001',
+} as const;

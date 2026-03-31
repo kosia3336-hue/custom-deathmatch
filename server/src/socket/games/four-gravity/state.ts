@@ -6,12 +6,9 @@ import type { InternalState, WinResult } from './types.js';
 import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin, hasEmptyCells } from './win.js';
 import { findBestMove } from './ai.js';
+import { socketRoom } from '../../utils.js';
 
 export const gameStates = new Map<string, InternalState>();
-
-function socketRoom(roomId: string) {
-  return `room:${roomId}`;
-}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -122,6 +119,19 @@ function buildEndPayload(
   };
 }
 
+function scheduleGameEnd(
+  io: IO,
+  s: InternalState,
+  payload: ReturnType<typeof buildEndPayload>,
+) {
+  setTimeout(() => {
+    if (!gameStates.has(s.roomId)) return;
+    const roomId = s.roomId;
+    gameStates.delete(roomId);
+    s.endGameCallback(io, roomId, payload);
+  }, WIN_DISPLAY_MS);
+}
+
 export function handleWin(io: IO, s: InternalState, wr: WinResult) {
   const winnerId =
     wr.winner === 'current'
@@ -138,12 +148,7 @@ export function handleWin(io: IO, s: InternalState, wr: WinResult) {
   s.phase = 'waiting';
   broadcastState(io, s);
 
-  setTimeout(() => {
-    if (!gameStates.has(s.roomId)) return;
-    const roomId = s.roomId;
-    gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
-  }, WIN_DISPLAY_MS);
+  scheduleGameEnd(io, s, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
 }
 
 export function handleNoNeutral(io: IO, s: InternalState) {
@@ -159,12 +164,7 @@ export function handleNoNeutral(io: IO, s: InternalState) {
   s.phase = 'waiting';
   broadcastState(io, s);
 
-  setTimeout(() => {
-    if (!gameStates.has(s.roomId)) return;
-    const roomId = s.roomId;
-    gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
-  }, WIN_DISPLAY_MS);
+  scheduleGameEnd(io, s, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
 }
 
 export function handleNoSpace(io: IO, s: InternalState) {
@@ -179,12 +179,7 @@ export function handleNoSpace(io: IO, s: InternalState) {
   s.phase = 'waiting';
   broadcastState(io, s);
 
-  setTimeout(() => {
-    if (!gameStates.has(s.roomId)) return;
-    const roomId = s.roomId;
-    gameStates.delete(roomId);
-    s.endGameCallback(io, roomId, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
-  }, WIN_DISPLAY_MS);
+  scheduleGameEnd(io, s, buildEndPayload(s, winnerId, winnerNick, loserId, loserNick));
 }
 
 /* ────────────────────── turn management ──────────────── */

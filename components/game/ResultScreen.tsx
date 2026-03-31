@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
@@ -22,7 +22,7 @@ export default function ResultScreen() {
   const room = useRoomStore((s) => s.room);
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [timer, setTimer] = useState(AUTO_LEAVE_SEC);
-  const cancelledRef = useRef(false);
+  const [cancelled, setCancelled] = useState(false);
 
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
@@ -84,7 +84,7 @@ export default function ResultScreen() {
   }, []);
 
   const handleRematch = useCallback(() => {
-    cancelledRef.current = true;
+    setCancelled(true);
     getSocket().emit('game:rematch');
     useRoomStore.getState().setGameResult(null);
     if (room?.playMode === 'multi') {
@@ -95,13 +95,13 @@ export default function ResultScreen() {
   }, [room, router]);
 
   useEffect(() => {
-    if (cancelledRef.current || timer <= 0) {
-      if (timer <= 0 && !cancelledRef.current) handleLobby();
+    if (cancelled || timer <= 0) {
+      if (timer <= 0 && !cancelled) handleLobby();
       return;
     }
     const id = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(id);
-  }, [timer, handleLobby]);
+  }, [timer, cancelled, handleLobby]);
 
   /* ── 헤더 오른쪽 슬롯 ── */
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function ResultScreen() {
   useEffect(() => {
     setFooter(
       <>
-        {!cancelledRef.current && timer > 0 && (
+        {!cancelled && timer > 0 && (
           <span className="mr-auto text-xs text-gray-400">
             {timer}초 후 자동으로 로비로 이동합니다
           </span>
@@ -130,7 +130,7 @@ export default function ResultScreen() {
       </>,
     );
     return () => setFooter(null);
-  }, [setFooter, timer, handleRematch, handleLobby]);
+  }, [setFooter, timer, cancelled, handleRematch, handleLobby]);
 
   if (!gameResult) {
     return (
