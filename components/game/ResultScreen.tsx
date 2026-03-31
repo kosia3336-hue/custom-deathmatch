@@ -32,6 +32,7 @@ export default function ResultScreen() {
   const handleRematch = useCallback(() => {
     cancelledRef.current = true;
     getSocket().emit('game:rematch');
+    useRoomStore.getState().setGameResult(null);
     if (room?.playMode === 'multi') {
       router.push(`/room/${room.id}`);
     } else {
