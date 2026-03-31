@@ -135,6 +135,7 @@ export interface ServerToClientEvents {
   'room:player:joined': (player: Player) => void;
   'room:player:left': (data: {
     playerId: string;
+    nickname: string;
     newHostId?: string;
   }) => void;
   'room:player:ready': (data: { playerId: string }) => void;

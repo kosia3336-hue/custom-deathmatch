@@ -338,6 +338,13 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
 
   const roomBefore = roomStore.get(roomId);
   const leavingWasHost = roomBefore?.hostId === socket.id;
+  const leavingNickname =
+    roomBefore?.players.find((p: Player) => p.id === socket.id)?.nickname ??
+    roomBefore?.spectators.find((p: Player) => p.id === socket.id)?.nickname ??
+    sessions.getNickname(socket.id) ??
+    '알 수 없음';
+  const spectatorsBefore: Player[] = roomBefore?.spectators ?? [];
+
   if (leavingWasHost) {
     clearRoomStartCountdown(roomId);
   }
@@ -347,6 +354,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   socket.leave(socketRoom(roomId));
 
   if (result.destroyed) {
+    io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+    spectatorsBefore.forEach((s) => sessions.clearRoom(s.id));
     sessions.clearRoomFromAllKicks(roomId);
     broadcastRoomRemoved(io, roomId);
     return;
@@ -358,6 +367,7 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
 
   io.to(socketRoom(roomId)).emit('room:player:left', {
     playerId: socket.id,
+    nickname: leavingNickname,
     newHostId: result.newHostId,
   });
 

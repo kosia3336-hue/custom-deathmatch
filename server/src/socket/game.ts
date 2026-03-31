@@ -116,6 +116,12 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
 
     const room = roomStore.get(roomId);
+    const leavingNickname =
+      room?.players.find((p: Player) => p.id === socket.id)?.nickname ??
+      room?.spectators.find((p: Player) => p.id === socket.id)?.nickname ??
+      sessions.getNickname(socket.id) ??
+      '알 수 없음';
+    const spectatorsBefore = room?.spectators ?? [];
 
     if (room && room.status === 'playing' && room.gameId === 'game-001') {
       const fgState = getFourGravityState(roomId);
@@ -141,6 +147,8 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (result.destroyed) {
       clearAutoEnd(roomId);
       gameStartTimes.delete(roomId);
+      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+      spectatorsBefore.forEach((s: Player) => sessions.clearRoom(s.id));
       sessions.clearRoomFromAllKicks(roomId);
       broadcastRoomRemoved(io, roomId);
     } else {
@@ -149,6 +157,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       }
       io.to(socketRoom(roomId)).emit('room:player:left', {
         playerId: socket.id,
+        nickname: leavingNickname,
         newHostId: result.newHostId,
       });
       broadcastRoomUpdated(io, roomId);
