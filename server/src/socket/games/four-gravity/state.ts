@@ -108,10 +108,16 @@ function buildEndPayload(
     totalTurns: s.turnNumber,
     gameResultData: {
       winType: s.winType,
+      winLine: s.winLine,
       finalBoard: s.board,
       blackStones: s.blackPlayer.stoneCount,
       whiteStones: s.whitePlayer.stoneCount,
       neutralStones: s.neutralCount,
+      actions: s.actionLog,
+      players: {
+        black: { nickname: s.blackPlayer.nickname },
+        white: { nickname: s.whitePlayer.nickname },
+      },
     },
   };
 }
@@ -217,6 +223,12 @@ export async function runAITurn(io: IO, roomId: string) {
   s.board[move.place.row][move.place.col] = s.currentColor;
   s.placedPosition = move.place;
   s.whitePlayer.stoneCount++;
+  s.actionLog.push({
+    turnNumber: s.turnNumber,
+    color: s.currentColor,
+    nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+    steps: [{ type: 'place', row: move.place.row, col: move.place.col }],
+  });
   s.phase = 'gravity';
   broadcastState(io, s);
 
@@ -228,6 +240,8 @@ export async function runAITurn(io: IO, roomId: string) {
     s.lastGravityWhite = 'none';
     s.movedPosition = s.placedPosition;
     s.neutralCandidates = [];
+    const aiLog = s.actionLog[s.actionLog.length - 1];
+    if (aiLog) aiLog.steps.push({ type: 'gravity', direction: 'none' });
     finishTurn(io, s);
     return;
   }
@@ -236,6 +250,9 @@ export async function runAITurn(io: IO, roomId: string) {
   s.board = applyGravity(s.board, move.gravity);
   s.lastGravityWhite = move.gravity;
   s.movedPosition = findMovedPosition(s.placedPosition!, move.gravity, boardBefore, s.board);
+
+  const aiGLog = s.actionLog[s.actionLog.length - 1];
+  if (aiGLog) aiGLog.steps.push({ type: 'gravity', direction: move.gravity });
 
   const wr = checkWin(s.board, s.currentColor);
   if (wr) { handleWin(io, s, wr); return; }
@@ -258,5 +275,7 @@ export async function runAITurn(io: IO, roomId: string) {
   const neutralPos = move.neutral ?? cands[0];
   s.board[neutralPos.row][neutralPos.col] = 'neutral';
   s.neutralCount++;
+  const aiNLog = s.actionLog[s.actionLog.length - 1];
+  if (aiNLog) aiNLog.steps.push({ type: 'neutral', row: neutralPos.row, col: neutralPos.col });
   finishTurn(io, s);
 }

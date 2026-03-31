@@ -33,3 +33,8 @@ export type {
   FourGravityGameData,
   FourGravityAction,
 } from './four-gravity';
+export type {
+  GameRecordFile,
+  FourGravityTurnAction,
+  FourGravityRecord,
+} from './archive';

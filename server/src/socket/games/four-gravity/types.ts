@@ -6,6 +6,7 @@ import type {
   Phase,
   Position,
   FourGravityPlayerInfo,
+  FourGravityAction,
 } from '@shared/types/four-gravity.js';
 import type { IO } from './constants.js';
 
@@ -20,6 +21,13 @@ export type EndGameFn = (
 ) => void;
 
 export type { CellType, Direction, Phase, Position, FourGravityPlayerInfo };
+
+export interface TurnActionLog {
+  turnNumber: number;
+  color: 'black' | 'white';
+  nickname: string;
+  steps: FourGravityAction[];
+}
 
 export interface InternalState {
   endGameCallback: EndGameFn;
@@ -43,6 +51,7 @@ export interface InternalState {
   startedAt: number;
   playMode: PlayMode;
   gameOver: boolean;
+  actionLog: TurnActionLog[];
 }
 
 export interface WinResult {
