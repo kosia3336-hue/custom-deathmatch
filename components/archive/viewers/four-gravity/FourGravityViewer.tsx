@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GameRecordFile, FourGravityRecord } from '@/shared/types/archive';
 import type { Direction } from '@/shared/types/four-gravity';
 import { computeFrames } from './replayUtils';
@@ -77,6 +77,20 @@ export default function FourGravityViewer({ record }: Props) {
 
   const [mobileListOpen, setMobileListOpen] = useState(false);
 
+  /* ── 스와이프 지원 ── */
+  const touchStartX = useRef<number | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0) goNext();
+    else goPrev();
+  }, [goNext, goPrev]);
+
   // 현재 프레임의 단계 레이블
   const stepLabel = (() => {
     if (frame.stepType === 'start') return '시작';
@@ -106,7 +120,11 @@ export default function FourGravityViewer({ record }: Props) {
       <div className="flex flex-col lg:flex-row lg:gap-4">
         {/* Board + controls */}
         <div className="flex flex-1 flex-col items-center">
-          <div className="w-full flex justify-center">
+          <div
+            className="w-full flex justify-center touch-pan-y"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <ReplayBoard
               board={frame.board}
               placedPosition={frame.placedPosition}
@@ -120,36 +138,37 @@ export default function FourGravityViewer({ record }: Props) {
               <button
                 onClick={goFirst}
                 disabled={currentFrame === 0}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                className="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
               >
                 ⏮
               </button>
               <button
                 onClick={goPrev}
                 disabled={currentFrame === 0}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                className="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
               >
                 ◀
               </button>
-              <span className="min-w-[48px] text-center text-sm font-medium text-gray-700">
+              <span className="min-w-[56px] text-center text-sm font-medium text-gray-700">
                 {frame.stepType === 'start' ? '0' : String(frame.turnNumber)} / {totalTurns}
               </span>
               <button
                 onClick={goNext}
                 disabled={currentFrame === totalFrames}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                className="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
               >
                 ▶
               </button>
               <button
                 onClick={goLast}
                 disabled={currentFrame === totalFrames}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
+                className="rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-300"
               >
                 ⏭
               </button>
             </div>
             <span className="text-xs text-gray-500">{stepLabel}</span>
+            <span className="text-xs text-gray-400 lg:hidden">← 보드를 스와이프하면 이동 →</span>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import GNB from '@/components/layout/GNB';
@@ -23,7 +23,6 @@ function validateRecord(data: unknown): data is GameRecordFile {
 export default function ArchivePage() {
   const router = useRouter();
   const setRecord = useArchiveStore((s) => s.setRecord);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   const processFile = useCallback(
@@ -94,11 +93,11 @@ export default function ArchivePage() {
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center p-6">
         <h1 className="mb-8 text-2xl font-bold text-gray-900">기록실</h1>
 
-        <div
+        <label
+          htmlFor="archive-file-input"
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
           className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 transition-colors ${
             dragging
               ? 'border-indigo-400 bg-indigo-50'
@@ -110,13 +109,13 @@ export default function ArchivePage() {
             {dragging ? '놓으세요!' : '기록 파일을 올려주세요'}
           </p>
           <p className="text-sm text-gray-500">
-            여기로 파일을 드래그하거나 클릭하여 선택하세요
+            파일을 드래그하거나 탭하여 선택하세요
           </p>
           <p className="mt-2 text-xs text-gray-400">.json (최대 5MB)</p>
-        </div>
+        </label>
 
         <input
-          ref={inputRef}
+          id="archive-file-input"
           type="file"
           accept=".json"
           onChange={handleFileChange}
