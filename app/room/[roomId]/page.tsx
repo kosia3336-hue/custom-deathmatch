@@ -27,7 +27,6 @@ export default function WaitingRoomPage() {
 
   const { room, countdown } = useRoom(roomId);
   const myId = useMySocketId();
-  const nickname = useNicknameStore((s) => s.nickname);
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooter } = useRoomLayout();
 
@@ -42,7 +41,7 @@ export default function WaitingRoomPage() {
   const me = room?.players.find((p) => p.id === myId);
 
   useEffect(() => {
-    if (joined || !nickname) return;
+    if (joined) return;
 
     requireNickname(() => {
       socket.emit(
@@ -51,6 +50,18 @@ export default function WaitingRoomPage() {
         (res) => {
           if (res.success) {
             setJoined(true);
+          } else if (
+            res.error === '이미 게임이 진행 중입니다.' ||
+            res.error === '방이 가득 찼습니다.'
+          ) {
+            socket.emit('spectate:join', { roomId }, (sRes) => {
+              if (sRes.success) {
+                setJoined(true);
+              } else {
+                toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
+                router.push('/');
+              }
+            });
           } else {
             toast.error(res.error ?? '입장에 실패했습니다.');
             router.push('/');
@@ -58,7 +69,7 @@ export default function WaitingRoomPage() {
         },
       );
     });
-  }, [nickname, joined, roomId, inviteToken, requireNickname, router, socket]);
+  }, [joined, roomId, inviteToken, requireNickname, router, socket]);
 
   useEffect(() => {
     const handleStarted = () => router.push(`/room/${roomId}/play`);
