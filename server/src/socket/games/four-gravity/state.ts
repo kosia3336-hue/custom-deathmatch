@@ -1,11 +1,15 @@
 import type { GameState } from '@shared/types/events.js';
 import type { FourGravityGameData } from '@shared/types/four-gravity.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { AI_DELAY, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, WinResult } from './types.js';
 import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin, hasEmptyCells } from './win.js';
-import { findBestMove } from './ai.js';
+import { getCandidateCells, getValidDirections, findBestMoveIterative, type AIWorkerData } from './ai.js';
+import { Worker } from 'worker_threads';
+import { fileURLToPath } from 'url';
+import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -48,7 +52,7 @@ function phaseMessage(s: InternalState): string {
     if (s.winType === 'no-neutral') return '중립 돌을 놓을 수 없어 게임이 종료되었습니다.';
     return '사목이 완성되어 게임이 종료되었습니다.';
   }
-  const isAI = s.currentPlayer === 'AI';
+  const isAI = s.currentPlayer === AI_PLAYER_ID;
   if (isAI) {
     switch (s.phase) {
       case 'place':   return 'AI가 생각 중입니다...';
@@ -125,6 +129,7 @@ function scheduleGameEnd(
     if (!gameStates.has(s.roomId)) return;
     const roomId = s.roomId;
     gameStates.delete(roomId);
+    terminateAIWorker(roomId);
     s.endGameCallback(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
@@ -171,7 +176,7 @@ export function clearTurnTimer(s: InternalState) {
 
 export function startTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
-  if (!s.timeLimitSeconds || s.currentPlayer === 'AI') return;
+  if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
   s.turnTimer = setTimeout(() => {
     handleTimeout(io, s);
@@ -222,18 +227,135 @@ export function finishTurn(io: IO, s: InternalState) {
   startTurnTimer(io, s);
   broadcastState(io, s);
 
-  if (s.playMode === 'com' && s.currentPlayer === 'AI') {
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
     runAITurn(io, s.roomId);
   }
 }
 
 /* ────────────────────── AI turn runner ───────────────── */
 
+function getQuickFallbackMove(s: InternalState) {
+  const cells = getCandidateCells(s.board);
+  const lastGrav = s.currentColor === 'black' ? s.lastGravityBlack : s.lastGravityWhite;
+  const dirs = getValidDirections(lastGrav);
+
+  // 안전한 수를 찾아 반환: no-neutral 자폭이 없는 첫 번째 (cell, dir) 조합
+  for (const cell of cells) {
+    if (s.board[cell.row][cell.col] !== 'empty') continue;
+    for (const dir of dirs) {
+      if (dir === 'none') {
+        return { place: cell, gravity: 'none' as const, neutral: null };
+      }
+      const b1 = cloneBoard(s.board);
+      b1[cell.row][cell.col] = s.currentColor;
+      const b2 = applyGravity(b1, dir);
+      const mp = findMovedPosition(cell, dir, b1, b2);
+      const ncands = calcNeutralCandidates(cell, mp, b2);
+      if (ncands.length > 0) {
+        return { place: cell, gravity: dir, neutral: ncands[0] };
+      }
+    }
+  }
+
+  // 최후 수단: 중앙에 'none' (또는 첫 번째 방향)
+  const center = { row: 4, col: 4 };
+  const safeDir = dirs.find(d => d === 'none') ?? dirs[0] ?? 'none';
+  return { place: center, gravity: safeDir, neutral: null };
+}
+
+
+/* ── 퍼시스턴트 워커 풀 (룸당 1개 유지, 게임 종료 시 terminate) ── */
+
+const aiWorkerMap = new Map<string, Worker>();
+
+function resolveWorkerPath(): string {
+  const selfPath = fileURLToPath(import.meta.url);
+  const isTs = extname(selfPath) === '.ts';
+  // dev: .mjs 부트스트랩이 tsx를 등록한 후 ai-worker.ts를 로드
+  // prod: tsup으로 컴파일된 ai-worker.js를 직접 로드
+  return isTs
+    ? join(dirname(selfPath), 'ai-worker-boot.mjs')
+    : join(dirname(selfPath), 'ai-worker.js');
+}
+
+let _workerPath: string | null = null;
+
+function getOrCreateAIWorker(roomId: string): Worker {
+  const existing = aiWorkerMap.get(roomId);
+  if (existing) return existing;
+  _workerPath ??= resolveWorkerPath();
+  const worker = new Worker(_workerPath);
+  aiWorkerMap.set(roomId, worker);
+  return worker;
+}
+
+export function terminateAIWorker(roomId: string) {
+  const worker = aiWorkerMap.get(roomId);
+  if (worker) {
+    worker.terminate();
+    aiWorkerMap.delete(roomId);
+  }
+}
+
+function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMoveIterative>> {
+  const workerData: AIWorkerData = {
+    board: s.board,
+    currentColor: s.currentColor,
+    lastGravityBlack: s.lastGravityBlack,
+    lastGravityWhite: s.lastGravityWhite,
+  };
+
+  return new Promise((resolve) => {
+    const worker = getOrCreateAIWorker(s.roomId);
+
+    let settled = false;
+    const settle = (move: ReturnType<typeof findBestMoveIterative>) => {
+      if (settled) return;
+      settled = true;
+      resolve(move);
+    };
+
+    const onMessage = (move: ReturnType<typeof findBestMoveIterative>) => {
+      cleanup();
+      settle(move);
+    };
+    const onError = (err: Error) => {
+      console.error('[AI Worker Error]', err);
+      cleanup();
+      terminateAIWorker(s.roomId);
+      settle(getQuickFallbackMove(s));
+    };
+    const onExit = (code: number) => {
+      cleanup();
+      if (!settled) {
+        if (code !== 0 && gameStates.has(s.roomId)) {
+          console.error(`[AI Worker] exited unexpectedly with code ${code}`);
+        }
+        aiWorkerMap.delete(s.roomId);
+        settle(getQuickFallbackMove(s));
+      }
+    };
+    const cleanup = () => {
+      worker.off('message', onMessage);
+      worker.off('error', onError);
+      worker.off('exit', onExit);
+    };
+
+    worker.once('message', onMessage);
+    worker.once('error', onError);
+    worker.once('exit', onExit);
+    worker.postMessage(workerData);
+  });
+}
+
 export async function runAITurn(io: IO, roomId: string) {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver || s.currentPlayer !== 'AI') return;
+  if (!s || s.gameOver || s.currentPlayer !== AI_PLAYER_ID) return;
 
-  const move = findBestMove(s);
+  const move = await runAIWithWorker(s);
+
+  // 워커가 고민하는 동안 방이 사라졌을 수 있음
+  if (!gameStates.has(roomId)) return;
 
   /* ① place */
   await wait(randDelay());
@@ -257,7 +379,8 @@ export async function runAITurn(io: IO, roomId: string) {
   if (!gameStates.has(roomId)) return;
 
   if (move.gravity === 'none') {
-    s.lastGravityWhite = 'none';
+    if (s.currentColor === 'black') s.lastGravityBlack = 'none';
+    else s.lastGravityWhite = 'none';
     s.movedPosition = s.placedPosition;
     s.neutralCandidates = [];
     const aiLog = s.actionLog[s.actionLog.length - 1];
@@ -268,7 +391,8 @@ export async function runAITurn(io: IO, roomId: string) {
 
   const boardBefore = cloneBoard(s.board);
   s.board = applyGravity(s.board, move.gravity);
-  s.lastGravityWhite = move.gravity;
+  if (s.currentColor === 'black') s.lastGravityBlack = move.gravity;
+  else s.lastGravityWhite = move.gravity;
   s.movedPosition = findMovedPosition(s.placedPosition!, move.gravity, boardBefore, s.board);
 
   const aiGLog = s.actionLog[s.actionLog.length - 1];

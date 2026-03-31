@@ -1,3 +1,4 @@
+import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { BOARD_SIZE } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -15,6 +16,8 @@ import {
   finishTurn,
   startTurnTimer,
   clearTurnTimer,
+  runAITurn,
+  terminateAIWorker,
 } from './state.js';
 
 export type { EndGameFn };
@@ -32,18 +35,20 @@ export function initFourGravity(
   if (prev) clearTurnTimer(prev);
   gameStates.delete(roomId);
 
-  const blackPlayer: FourGravityPlayerInfo = {
-    id: players[0].id,
-    nickname: playMode === 'solo' ? `${players[0].nickname} (흑)` : players[0].nickname,
-    stoneCount: 0,
-  };
-
+  let blackPlayer: FourGravityPlayerInfo;
   let whitePlayer: FourGravityPlayerInfo;
+
   if (playMode === 'com') {
-    whitePlayer = { id: 'AI', nickname: 'AI', stoneCount: 0 };
+    // players[0]이 흑, players[1]이 백 (swap으로 순서 바뀔 수 있음)
+    const p0 = players[0];
+    const p1 = players[1];
+    blackPlayer = { id: p0.id, nickname: p0.nickname, stoneCount: 0 };
+    whitePlayer = { id: p1.id, nickname: p1.nickname, stoneCount: 0 };
   } else if (playMode === 'solo') {
+    blackPlayer = { id: players[0].id, nickname: `${players[0].nickname} (흑)`, stoneCount: 0 };
     whitePlayer = { id: players[0].id, nickname: `${players[0].nickname} (백)`, stoneCount: 0 };
   } else {
+    blackPlayer = { id: players[0].id, nickname: players[0].nickname, stoneCount: 0 };
     whitePlayer = { id: players[1].id, nickname: players[1].nickname, stoneCount: 0 };
   }
 
@@ -78,6 +83,11 @@ export function initFourGravity(
   const s = gameStates.get(roomId)!;
   startTurnTimer(io, s);
   broadcastState(io, s);
+
+  // AI가 흑(첫 번째 차례)일 경우 게임 시작 시 즉시 AI 턴 실행
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    runAITurn(io, roomId);
+  }
 }
 
 export function handleFourGravityAction(
@@ -206,6 +216,7 @@ export function cleanupFourGravity(roomId: string) {
   const s = gameStates.get(roomId);
   if (s) clearTurnTimer(s);
   gameStates.delete(roomId);
+  terminateAIWorker(roomId);
 }
 
 export function getFourGravityState(roomId: string) {

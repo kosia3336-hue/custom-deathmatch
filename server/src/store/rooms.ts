@@ -1,4 +1,5 @@
 import { v4 as uuid } from 'uuid';
+import { AI_PLAYER_ID } from '../../shared/types/room.js';
 import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus } from '../../shared/types/room.js';
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number };
@@ -44,6 +45,14 @@ export const roomStore = {
     host: Player;
   }): Room {
     const id = uuid().slice(0, 8);
+    const aiBot: Player = {
+      id: AI_PLAYER_ID,
+      nickname: AI_PLAYER_ID,
+      isHost: false,
+      isReady: true,
+      joinedAt: Date.now(),
+    };
+
     const room: RoomInternal = {
       id,
       title: opts.title,
@@ -51,10 +60,10 @@ export const roomStore = {
       gameName: opts.gameName,
       playMode: opts.playMode,
       roomType: opts.roomType,
-      maxPlayers: opts.playMode === 'multi' ? opts.maxPlayers : 1,
-      players: [opts.host],
+      maxPlayers: opts.playMode === 'multi' ? opts.maxPlayers : opts.playMode === 'com' ? 2 : 1,
+      players: opts.playMode === 'com' ? [opts.host, aiBot] : [opts.host],
       spectators: [],
-      status: opts.playMode === 'multi' ? 'waiting' : 'playing',
+      status: opts.playMode === 'solo' ? 'playing' : 'waiting',
       hostId: opts.host.id,
       inviteToken: null,
       timeLimitSeconds: opts.timeLimitSeconds ?? null,
@@ -110,7 +119,8 @@ export const roomStore = {
     room.players = room.players.filter((p) => p.id !== playerId);
     room.spectators = room.spectators.filter((p) => p.id !== playerId);
 
-    if (room.players.length === 0) {
+    if (room.players.length === 0 || room.players.every((p) => p.id === AI_PLAYER_ID)) {
+      if (room.inviteToken) inviteTokens.delete(room.inviteToken);
       rooms.delete(roomId);
       return { removed: true, destroyed: true };
     }
@@ -144,7 +154,7 @@ export const roomStore = {
       return { ok: false, reason: `최소 ${minPlayers}명이 필요합니다 (현재 ${room.players.length}명)` };
     }
 
-    const nonHostNotReady = room.players.filter((p) => p.id !== room.hostId && !p.isReady);
+    const nonHostNotReady = room.players.filter((p) => p.id !== room.hostId && p.id !== AI_PLAYER_ID && !p.isReady);
     if (nonHostNotReady.length > 0) {
       return { ok: false, reason: `모든 참여자가 준비해야 합니다 (${nonHostNotReady.length}명 대기 중)` };
     }

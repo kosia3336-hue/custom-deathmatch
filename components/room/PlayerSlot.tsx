@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Badge from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
+import { AI_PLAYER_ID } from '@/shared/types';
 import type { Player } from '@/shared/types';
 
 interface Props {
@@ -25,6 +26,8 @@ export default function PlayerSlot({ player, isMe, isHostView, colorLabel, onKic
     );
   }
 
+  const isAI = player.id === AI_PLAYER_ID;
+
   return (
     <div
       className={cn(
@@ -33,13 +36,14 @@ export default function PlayerSlot({ player, isMe, isHostView, colorLabel, onKic
       )}
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-lg">
-        {player.isHost ? '👑' : '😊'}
+        {isAI ? '🤖' : player.isHost ? '👑' : '😊'}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-900 truncate">{player.nickname}</span>
           {isMe && <Badge variant="info">나</Badge>}
           {player.isHost && <Badge variant="success">방장</Badge>}
+          {isAI && <Badge>컴퓨터</Badge>}
           {colorLabel && (
             <span className={cn(
               'rounded-full px-2 py-0.5 text-xs font-bold',
@@ -51,14 +55,14 @@ export default function PlayerSlot({ player, isMe, isHostView, colorLabel, onKic
             </span>
           )}
         </div>
-        {!player.isHost && (
+        {!player.isHost && !isAI && (
           <span className={cn('text-xs', player.isReady ? 'text-green-600' : 'text-gray-400')}>
             {player.isReady ? '준비 완료' : '준비 대기'}
           </span>
         )}
       </div>
 
-      {isHostView && !player.isHost && !isMe && (
+      {isHostView && !player.isHost && !isMe && !isAI && (
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}

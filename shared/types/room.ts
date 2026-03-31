@@ -1,3 +1,5 @@
+export const AI_PLAYER_ID = 'AI' as const;
+
 export type PlayMode = 'multi' | 'com' | 'solo';
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type RoomType = 'public' | 'private';
