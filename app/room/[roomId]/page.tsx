@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import PlayerSlot from '@/components/room/PlayerSlot';
 import RoomInfo from '@/components/room/RoomInfo';
-import RoomChat from '@/components/room/RoomChat';
+import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -35,8 +35,6 @@ export default function WaitingRoomPage() {
   const [showKick, setShowKick] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-
   const socket = getSocket();
 
   const isHost = !!myId && room?.hostId === myId;
@@ -141,16 +139,7 @@ export default function WaitingRoomPage() {
           </svg>
           <span className="hidden text-sm font-medium md:inline">방 정보</span>
         </button>
-        <button
-          onClick={() => setShowChat(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
-          title="채팅"
-        >
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span className="hidden text-sm font-medium md:inline">채팅</span>
-        </button>
+        <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
         </Button>
@@ -324,15 +313,6 @@ export default function WaitingRoomPage() {
         <RoomInfo room={room} />
       </Modal>
 
-      {/* 채팅 모달 */}
-      <Modal
-        open={showChat}
-        onClose={() => setShowChat(false)}
-        title="채팅"
-        className="w-full max-w-sm md:max-w-lg"
-      >
-        <RoomChat scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
-      </Modal>
 
       {/* 나가기 모달 */}
       <Modal open={showLeave} onClose={() => setShowLeave(false)} closable={false}>

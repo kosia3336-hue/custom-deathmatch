@@ -6,6 +6,7 @@ interface RoomState {
   gameState: GameState | null;
   gameResult: GameResult | null;
   messages: ChatMessage[];
+  lastSeenMsgCount: number;
   countdown: number | null;
   isSpectator: boolean;
 
@@ -14,6 +15,7 @@ interface RoomState {
   setGameResult: (result: GameResult | null) => void;
   addMessage: (msg: ChatMessage) => void;
   clearMessages: () => void;
+  clearChatUnread: () => void;
   setCountdown: (n: number | null) => void;
   setSpectator: (v: boolean) => void;
 
@@ -30,6 +32,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   gameState: null,
   gameResult: null,
   messages: [],
+  lastSeenMsgCount: 0,
   countdown: null,
   isSpectator: false,
 
@@ -37,7 +40,8 @@ export const useRoomStore = create<RoomState>((set) => ({
   setGameState: (state) => set({ gameState: state }),
   setGameResult: (result) => set({ gameResult: result }),
   addMessage: (msg) => set((s) => ({ messages: [...s.messages.slice(-200), msg] })),
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], lastSeenMsgCount: 0 }),
+  clearChatUnread: () => set((s) => ({ lastSeenMsgCount: s.messages.length })),
   setCountdown: (n) => set({ countdown: n }),
   setSpectator: (v) => set({ isSpectator: v }),
 
@@ -106,6 +110,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       gameState: null,
       gameResult: null,
       messages: [],
+      lastSeenMsgCount: 0,
       countdown: null,
       isSpectator: false,
     }),
