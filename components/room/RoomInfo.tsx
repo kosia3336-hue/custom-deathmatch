@@ -1,5 +1,6 @@
 import Badge from '@/components/ui/Badge';
 import type { Room } from '@/shared/types';
+import { formatTimeLimit } from '@/lib/utils';
 
 interface Props {
   room: Room;
@@ -27,6 +28,14 @@ export default function RoomInfo({ room }: Props) {
         <div className="flex justify-between">
           <span>인원</span>
           <span className="font-medium">{room.players.length}/{room.maxPlayers}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>시간제한</span>
+          <span className="font-medium">
+            {room.timeLimitSeconds != null
+              ? `⏱ ${formatTimeLimit(room.timeLimitSeconds)}`
+              : '∞ 무제한'}
+          </span>
         </div>
       </div>
     </div>

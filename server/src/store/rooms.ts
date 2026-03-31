@@ -20,12 +20,13 @@ function toSummary(room: RoomInternal): RoomSummary {
     spectatorCount: room.spectators.length,
     status: room.status,
     hostNickname: host?.nickname ?? '',
+    timeLimitSeconds: room.timeLimitSeconds,
     createdAt: room.createdAt,
   };
 }
 
 function toClientRoom(room: RoomInternal): Room {
-  const { _password, ...rest } = room;
+  const { _password, _minPlayers, ...rest } = room;
   return rest;
 }
 
@@ -39,6 +40,7 @@ export const roomStore = {
     password?: string;
     maxPlayers: number;
     minPlayers: number;
+    timeLimitSeconds?: number | null;
     host: Player;
   }): Room {
     const id = uuid().slice(0, 8);
@@ -55,6 +57,7 @@ export const roomStore = {
       status: opts.playMode === 'multi' ? 'waiting' : 'playing',
       hostId: opts.host.id,
       inviteToken: null,
+      timeLimitSeconds: opts.timeLimitSeconds ?? null,
       createdAt: Date.now(),
       _minPlayers: opts.minPlayers,
     };

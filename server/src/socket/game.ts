@@ -39,7 +39,7 @@ export function startGame(io: IO, roomId: string) {
   io.to(socketRoom(roomId)).emit('room:game:started');
 
   if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
-    initFourGravity(io, roomId, room.players, room.playMode, startedAt, (cbIo, cbRoomId, data) => {
+    initFourGravity(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
       endGame(cbIo, cbRoomId, data);
     });
   } else {
@@ -49,6 +49,7 @@ export function startGame(io: IO, roomId: string) {
       currentTurn: room.players[0]?.id ?? null,
       turnNumber: 1,
       startedAt,
+      turnStartedAt: null,
     };
     io.to(socketRoom(roomId)).emit('game:state', state);
   }

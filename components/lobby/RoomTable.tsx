@@ -1,8 +1,11 @@
 'use client';
 
+'use client';
+
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
+import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
 import type { RoomSummary } from '@/shared/types';
 
 interface Props {
@@ -46,7 +49,14 @@ export default function RoomTable({ rooms, onJoin, onSpectate }: Props) {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{room.gameName}</td>
-                <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate">{room.title}</td>
+                <td className="px-4 py-3 text-gray-700 max-w-[180px]">
+                  <span className="truncate">{room.title}</span>
+                  {room.timeLimitSeconds != null && (
+                    <span className="ml-1.5">
+                      <TimeLimitBadge seconds={room.timeLimitSeconds} />
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap max-w-[100px] truncate">{room.hostNickname}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <ProgressBar current={room.currentPlayers} max={room.maxPlayers} />

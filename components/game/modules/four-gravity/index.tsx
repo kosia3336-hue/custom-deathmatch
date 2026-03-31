@@ -13,8 +13,9 @@ import InfoPanel from './InfoPanel';
 import PlayerBadge from './PlayerBadge';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import { DIR_LABEL } from './constants';
+import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
 import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
+import { useTurnTimer } from '@/hooks/useTurnTimer';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -28,6 +29,7 @@ export default function FourGravityGame() {
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
+  const { remaining: timerRemaining } = useTurnTimer();
 
   const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
 
@@ -41,14 +43,7 @@ export default function FourGravityGame() {
     const winnerNick =
       players.black.id === winner ? players.black.nickname : players.white.nickname;
 
-    const reason =
-      winType === 'black' ? '흑 사목 완성!'
-      : winType === 'white' ? '백 사목 완성!'
-      : winType === 'neutral' ? '중립 사목 완성!'
-      : winType === 'no-space' ? '더 이상 둘 곳 없음'
-      : winType === 'no-neutral' ? '중립 돌을 놓지 못함'
-      : '';
-
+    const reason = winType ? (WIN_TYPE_TOAST_LABEL[winType] ?? '') : '';
     const isMe = winner === myId;
     const message = `${winnerNick} 승리! ${reason}`;
 
@@ -102,93 +97,95 @@ export default function FourGravityGame() {
 
   return (
     <>
-    <Modal
-      open={pendingGravity !== null}
-      onClose={() => setPendingGravity(null)}
-      title="패배 경고"
-      closable={false}
-    >
-      <p className="mb-2 text-sm text-gray-700">
-        <strong>{pendingGravity ? DIR_LABEL[pendingGravity] : ''}</strong> 방향으로 중력을 적용하면
-        중립 돌을 놓을 수 없어{' '}
-        <span className="font-semibold text-red-600">패배</span>합니다.
-      </p>
-      <p className="mb-6 text-sm text-gray-500">정말 이 방향을 선택하시겠습니까?</p>
-      <div className="flex justify-end gap-3">
-        <Button variant="secondary" onClick={() => setPendingGravity(null)}>
-          취소
-        </Button>
-        <Button variant="danger" onClick={confirmGravity}>
-          확인 (패배 감수)
-        </Button>
-      </div>
-    </Modal>
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* 메인 영역: 보드 + 컨트롤 */}
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 p-2 lg:p-4">
-          {/* 모바일: 플레이어 바 */}
-          <div className="mb-1 flex w-full max-w-md justify-between lg:hidden">
-            <PlayerBadge
-              player={gameData.players.black}
-              color="black"
-              isCurrent={gameData.currentColor === 'black'}
+      <Modal
+        open={pendingGravity !== null}
+        onClose={() => setPendingGravity(null)}
+        title="패배 경고"
+        closable={false}
+      >
+        <p className="mb-2 text-sm text-gray-700">
+          <strong>{pendingGravity ? DIR_LABEL[pendingGravity] : ''}</strong> 방향으로 중력을 적용하면
+          중립 돌을 놓을 수 없어{' '}
+          <span className="font-semibold text-red-600">패배</span>합니다.
+        </p>
+        <p className="mb-6 text-sm text-gray-500">정말 이 방향을 선택하시겠습니까?</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setPendingGravity(null)}>
+            취소
+          </Button>
+          <Button variant="danger" onClick={confirmGravity}>
+            확인 (패배 감수)
+          </Button>
+        </div>
+      </Modal>
+      <div className="flex h-full">
+        <div className="flex flex-1 flex-col lg:flex-row">
+          {/* 메인 영역: 보드 + 컨트롤 */}
+          <div className="flex flex-1 flex-col items-center justify-center gap-1 p-2 lg:p-4">
+            {/* 모바일: 플레이어 바 */}
+            <div className="mb-1 flex w-full max-w-md justify-between lg:hidden">
+              <PlayerBadge
+                player={gameData.players.black}
+                color="black"
+                isCurrent={gameData.currentColor === 'black'}
+                remaining={gameData.currentColor === 'black' ? timerRemaining : null}
+              />
+              <PlayerBadge
+                player={gameData.players.white}
+                color="white"
+                isCurrent={gameData.currentColor === 'white'}
+                remaining={gameData.currentColor === 'white' ? timerRemaining : null}
+              />
+            </div>
+
+            {/* 모바일: 상태 바 */}
+            <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
+              <span>턴 #{turnNumber}</span>
+              {gameData.lastGravity && (
+                <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
+              )}
+            </div>
+
+            <Board
+              board={gameData.board}
+              phase={gameData.phase}
+              isMyTurn={isMyTurn}
+              previewColor={previewColor}
+              neutralCandidates={gameData.neutralCandidates}
+              placedPosition={gameData.placedPosition}
+              winLine={gameData.winLine}
+              winner={gameData.winner}
+              onCellClick={handleCellClick}
             />
-            <PlayerBadge
-              player={gameData.players.white}
-              color="white"
-              isCurrent={gameData.currentColor === 'white'}
+
+            <PhaseIndicator
+              phase={gameData.phase}
+              isMyTurn={isMyTurn}
+              winner={gameData.winner}
+              serverMessage={gameState?.message}
+            />
+
+            <GravitySelector
+              phase={gameData.phase}
+              isMyTurn={isMyTurn}
+              lastGravity={gameData.lastGravity}
+              onSelect={handleGravity}
+              winner={gameData.winner}
             />
           </div>
 
-          {/* 모바일: 상태 바 */}
-          <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
-            <span>턴 #{turnNumber}</span>
-            {gameData.lastGravity && (
-              <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
-            )}
+          {/* 데스크탑: 정보 패널 */}
+          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
+            <InfoPanel
+              turnNumber={turnNumber}
+              players={gameData.players}
+              currentColor={gameData.currentColor}
+              neutralCount={gameData.neutralCount}
+              lastGravity={gameData.lastGravity}
+            />
           </div>
-
-          <Board
-            board={gameData.board}
-            phase={gameData.phase}
-            isMyTurn={isMyTurn}
-            previewColor={previewColor}
-            neutralCandidates={gameData.neutralCandidates}
-            placedPosition={gameData.placedPosition}
-            winLine={gameData.winLine}
-            winner={gameData.winner}
-            onCellClick={handleCellClick}
-          />
-
-          <PhaseIndicator
-            phase={gameData.phase}
-            isMyTurn={isMyTurn}
-            winner={gameData.winner}
-            serverMessage={gameState?.message}
-          />
-
-          <GravitySelector
-            phase={gameData.phase}
-            isMyTurn={isMyTurn}
-            lastGravity={gameData.lastGravity}
-            onSelect={handleGravity}
-            winner={gameData.winner}
-          />
-        </div>
-
-        {/* 데스크탑: 정보 패널 */}
-        <div className="hidden lg:flex lg:w-64 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
-          <InfoPanel
-            turnNumber={turnNumber}
-            players={gameData.players}
-            currentColor={gameData.currentColor}
-            neutralCount={gameData.neutralCount}
-            lastGravity={gameData.lastGravity}
-          />
         </div>
       </div>
-    </div>
     </>
   );
 }

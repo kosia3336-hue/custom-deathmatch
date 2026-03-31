@@ -7,6 +7,7 @@ export interface CreateRoomData {
   roomType: RoomType;
   password?: string;
   maxPlayers: number;
+  timeLimitSeconds?: number | null;
 }
 
 export interface JoinRoomData {
@@ -38,6 +39,7 @@ export interface GameState {
   currentTurn: string | null;
   turnNumber: number;
   startedAt: number;
+  turnStartedAt: number | null;
   gameData?: unknown;
 }
 

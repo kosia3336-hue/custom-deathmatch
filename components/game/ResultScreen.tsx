@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Button from '@/components/ui/Button';
 import RoomChat from '@/components/room/RoomChat';
-import { formatTime } from '@/lib/utils';
+import { formatTime, formatTimeLimit } from '@/lib/utils';
+import { useSaveRecord } from '@/hooks/useSaveRecord';
+import { WIN_TYPE_LABEL } from '@/components/game/modules/four-gravity/constants';
 
 const PODIUM_COLORS = ['bg-indigo-600', 'bg-indigo-400', 'bg-indigo-300'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
@@ -24,73 +25,23 @@ export default function ResultScreen() {
   const [timer, setTimer] = useState(AUTO_LEAVE_SEC);
   const [cancelled, setCancelled] = useState(false);
 
+  const handleSaveRecord = useSaveRecord();
+
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
     router.push('/');
   }, [router]);
 
-  const handleSaveRecord = useCallback(() => {
-    const { gameResult: gr, room: rm } = useRoomStore.getState();
-    if (!gr || !rm) return;
-
-    const grd = gr.gameResultData as Record<string, unknown> | undefined;
-    if (!grd?.actions) {
-      toast.error('기록 데이터가 없습니다.');
-      return;
-    }
-
-    const record = {
-      version: '1.0',
-      gameId: rm.gameId,
-      gameName: rm.gameName,
-      playedAt: new Date().toISOString(),
-      playMode: rm.playMode,
-      players: (grd.players as Record<string, { nickname: string }>) ?? {},
-      result: {
-        rankings: gr.rankings.map((r) => ({
-          nickname: r.nickname,
-          rank: r.rank,
-          score: r.score,
-        })),
-        playTime: gr.playTime,
-        totalTurns: gr.totalTurns,
-      },
-      gameRecord: {
-        winType: (grd.winType as string) ?? null,
-        winLine: grd.winLine ?? null,
-        actions: grd.actions ?? [],
-      },
-    };
-
-    const json = JSON.stringify(record, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const gameName = rm.gameName.replace(/\s+/g, '');
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${gameName}_${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast.success('기록이 저장되었습니다.');
-  }, []);
-
   const handleRematch = useCallback(() => {
+    if (!room) return;
     setCancelled(true);
     getSocket().emit('game:rematch');
     useRoomStore.getState().setGameResult(null);
-    if (room?.playMode === 'multi') {
+    if (room.playMode === 'multi') {
       router.push(`/room/${room.id}`);
     } else {
-      router.push(`/room/${room?.id}/play`);
+      router.push(`/room/${room.id}/play`);
     }
   }, [room, router]);
 
@@ -115,6 +66,7 @@ export default function ResultScreen() {
 
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
+    const hasRecord = !!(gameResult?.gameResultData as Record<string, unknown> | undefined)?.actions;
     setFooter(
       <>
         {!cancelled && timer > 0 && (
@@ -122,7 +74,7 @@ export default function ResultScreen() {
             {timer}초 후 자동으로 로비로 이동합니다
           </span>
         )}
-        {!!(gameResult?.gameResultData as Record<string, unknown> | undefined)?.actions && (
+        {hasRecord && (
           <Button variant="ghost" onClick={handleSaveRecord}>기록 저장</Button>
         )}
         <Button onClick={handleRematch}>다시하기</Button>
@@ -130,7 +82,7 @@ export default function ResultScreen() {
       </>,
     );
     return () => setFooter(null);
-  }, [setFooter, timer, cancelled, handleRematch, handleLobby]);
+  }, [setFooter, timer, cancelled, gameResult, handleSaveRecord, handleRematch, handleLobby]);
 
   if (!gameResult) {
     return (
@@ -139,6 +91,10 @@ export default function ResultScreen() {
       </div>
     );
   }
+
+  const grd = gameResult.gameResultData as Record<string, unknown> | undefined;
+  const winType = grd?.winType as keyof typeof WIN_TYPE_LABEL | undefined;
+  const winTypeLabel = winType ? (WIN_TYPE_LABEL[winType] ?? null) : null;
 
   const sorted = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
 
@@ -159,9 +115,13 @@ export default function ResultScreen() {
       </div>
 
       {/* 요약 */}
-      <div className="mb-6 flex justify-center gap-8 text-sm text-gray-500">
+      <div className="mb-6 flex flex-wrap justify-center gap-x-8 gap-y-1 text-sm text-gray-500">
         <span>플레이 시간: {formatTime(gameResult.playTime)}</span>
         <span>총 턴 수: {gameResult.totalTurns}턴</span>
+        {winTypeLabel && <span>승리 방식: {winTypeLabel}</span>}
+        {room?.timeLimitSeconds != null && (
+          <span>시간제한: ⏱ {formatTimeLimit(room.timeLimitSeconds)}</span>
+        )}
       </div>
 
       {/* 멀티 게임 결과 채팅 */}

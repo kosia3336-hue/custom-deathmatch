@@ -13,6 +13,8 @@ import {
   handleNoNeutral,
   handleNoSpace,
   finishTurn,
+  startTurnTimer,
+  clearTurnTimer,
 } from './state.js';
 
 export type { EndGameFn };
@@ -23,8 +25,11 @@ export function initFourGravity(
   players: Player[],
   playMode: PlayMode,
   startedAt: number,
+  timeLimitSeconds: number | null,
   endGameCallback: EndGameFn,
 ) {
+  const prev = gameStates.get(roomId);
+  if (prev) clearTurnTimer(prev);
   gameStates.delete(roomId);
 
   const blackPlayer: FourGravityPlayerInfo = {
@@ -62,12 +67,17 @@ export function initFourGravity(
     winLine: null,
     winType: null,
     startedAt,
+    turnStartedAt: Date.now(),
+    timeLimitSeconds,
+    turnTimer: null,
     playMode,
     gameOver: false,
     actionLog: [],
   });
 
-  broadcastState(io, gameStates.get(roomId)!);
+  const s = gameStates.get(roomId)!;
+  startTurnTimer(io, s);
+  broadcastState(io, s);
 }
 
 export function handleFourGravityAction(
@@ -193,6 +203,8 @@ export function handleFourGravityAction(
 }
 
 export function cleanupFourGravity(roomId: string) {
+  const s = gameStates.get(roomId);
+  if (s) clearTurnTimer(s);
   gameStates.delete(roomId);
 }
 

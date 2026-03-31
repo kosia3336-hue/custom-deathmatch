@@ -48,6 +48,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       }
     }
 
+    const tl = data.timeLimitSeconds;
+    if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
+      return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
+    }
+
     const host = makePlayer(socket, true);
     const room = roomStore.create({
       title: data.title,
@@ -58,6 +63,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       password: data.password,
       maxPlayers: data.maxPlayers,
       minPlayers: game.minPlayers,
+      timeLimitSeconds: tl ?? null,
       host,
     });
 

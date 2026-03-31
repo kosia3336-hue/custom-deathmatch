@@ -23,6 +23,7 @@ export interface Room {
   status: RoomStatus;
   hostId: string;
   inviteToken: string | null;
+  timeLimitSeconds: number | null;
   createdAt: number;
 }
 
@@ -38,5 +39,6 @@ export interface RoomSummary {
   spectatorCount: number;
   status: RoomStatus;
   hostNickname: string;
+  timeLimitSeconds: number | null;
   createdAt: number;
 }

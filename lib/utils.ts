@@ -15,9 +15,28 @@ export function generateRandomNickname(): string {
   return `${adj}${noun}${num}`;
 }
 
+/** 밀리초(ms)를 M:SS 형태로 포맷합니다. 예) 75000 → "1:15" */
 export function formatTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+/** 초(s)를 "X분 Y초" 형태로 포맷합니다. 예) 75 → "1분 15초" */
+export function formatTimeLimit(seconds: number): string {
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  if (min === 0) return `${sec}초`;
+  if (sec === 0) return `${min}분`;
+  return `${min}분 ${sec.toString().padStart(2, '0')}초`;
+}
+
+/** 초(s)를 짧은 형태로 포맷합니다. 예) 75 → "1:15", 30 → "30초" */
+export function formatTimeLimitShort(seconds: number): string {
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  if (min === 0) return `${sec}초`;
+  if (sec === 0) return `${min}분`;
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
