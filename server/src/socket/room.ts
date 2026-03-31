@@ -96,11 +96,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.status === 'playing') {
-      return callback({ success: false, error: '이미 게임이 진행 중입니다.' });
+      return callback({ success: false, error: '이미 게임이 진행 중입니다.', isPrivate: room.roomType === 'private' });
     }
 
     if (room.players.length >= room.maxPlayers) {
-      return callback({ success: false, error: '방이 가득 찼습니다.' });
+      return callback({ success: false, error: '방이 가득 찼습니다.', isPrivate: room.roomType === 'private' });
     }
 
     if (room.roomType === 'private' && !data.inviteToken) {
@@ -271,13 +271,24 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     callback({ success: true, token });
   });
 
-  socket.on('spectate:join', ({ roomId }, callback) => {
+  socket.on('spectate:join', ({ roomId, password }, callback) => {
     const room = roomStore.get(roomId);
     if (!room) return callback({ success: false, error: '방을 찾을 수 없습니다.' });
 
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom && currentRoom !== roomId) {
       return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
+    }
+
+    if (sessions.isKicked(sessions.getNickname(socket.id) ?? '', roomId)) {
+      return callback({ success: false, error: '이 방에 다시 입장할 수 없습니다.' });
+    }
+
+    if (room.roomType === 'private') {
+      const pw = roomStore.getPassword(roomId);
+      if (pw && password !== pw) {
+        return callback({ success: false, error: '비밀번호가 틀렸습니다.' });
+      }
     }
 
     const spectator = makePlayer(socket, false);
@@ -338,6 +349,13 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
 
   const roomBefore = roomStore.get(roomId);
   const leavingWasHost = roomBefore?.hostId === socket.id;
+  const leavingNickname =
+    roomBefore?.players.find((p: Player) => p.id === socket.id)?.nickname ??
+    roomBefore?.spectators.find((p: Player) => p.id === socket.id)?.nickname ??
+    sessions.getNickname(socket.id) ??
+    '알 수 없음';
+  const spectatorsBefore: Player[] = roomBefore?.spectators ?? [];
+
   if (leavingWasHost) {
     clearRoomStartCountdown(roomId);
   }
@@ -347,6 +365,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   socket.leave(socketRoom(roomId));
 
   if (result.destroyed) {
+    io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+    spectatorsBefore.forEach((s) => sessions.clearRoom(s.id));
     sessions.clearRoomFromAllKicks(roomId);
     broadcastRoomRemoved(io, roomId);
     return;
@@ -358,6 +378,7 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
 
   io.to(socketRoom(roomId)).emit('room:player:left', {
     playerId: socket.id,
+    nickname: leavingNickname,
     newHostId: result.newHostId,
   });
 

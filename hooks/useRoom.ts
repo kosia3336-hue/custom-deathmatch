@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import type { Room, Player } from '@/shared/types';
@@ -21,9 +22,10 @@ export function useRoom(roomId: string) {
 
     const onRoomState = (room: Room) => useRoomStore.getState().setRoom(room);
     const onPlayerJoined = (player: Player) => useRoomStore.getState().addPlayer(player);
-    const onPlayerLeft = ({ playerId, newHostId }: { playerId: string; newHostId?: string }) => {
+    const onPlayerLeft = ({ playerId, nickname, newHostId }: { playerId: string; nickname: string; newHostId?: string }) => {
       useRoomStore.getState().removePlayer(playerId);
       if (newHostId) useRoomStore.getState().setHost(newHostId);
+      toast.info(`${nickname} 님이 나갔습니다.`);
     };
     const onPlayerReady = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, true);
     const onPlayerUnready = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, false);

@@ -6,10 +6,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import PlayerSlot from '@/components/room/PlayerSlot';
 import RoomInfo from '@/components/room/RoomInfo';
-import RoomChat from '@/components/room/RoomChat';
+import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import Input from '@/components/ui/Input';
 import { useRoom } from '@/hooks/useRoom';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useNicknameStore } from '@/stores/nickname';
@@ -27,7 +28,6 @@ export default function WaitingRoomPage() {
 
   const { room, countdown } = useRoom(roomId);
   const myId = useMySocketId();
-  const nickname = useNicknameStore((s) => s.nickname);
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooter } = useRoomLayout();
 
@@ -35,16 +35,35 @@ export default function WaitingRoomPage() {
   const [showKick, setShowKick] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-
+  const [spectatePassword, setSpectatePassword] = useState('');
+  const [spectatePasswordError, setSpectatePasswordError] = useState('');
+  const [showSpectatePassword, setShowSpectatePassword] = useState(false);
+  const [spectatePasswordLoading, setSpectatePasswordLoading] = useState(false);
   const socket = getSocket();
 
   const isHost = !!myId && room?.hostId === myId;
   const isSpectator = !!myId && (room?.spectators.some((s) => s.id === myId) ?? false);
   const me = room?.players.find((p) => p.id === myId);
 
+  const joinAsSpectator = useCallback((password?: string) => {
+    socket.emit('spectate:join', { roomId, password }, (sRes) => {
+      if (sRes.success) {
+        setJoined(true);
+        setShowSpectatePassword(false);
+      } else {
+        setSpectatePasswordLoading(false);
+        if (showSpectatePassword) {
+          setSpectatePasswordError(sRes.error ?? '비밀번호가 틀렸습니다.');
+        } else {
+          toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
+          router.push('/');
+        }
+      }
+    });
+  }, [socket, roomId, router, showSpectatePassword]);
+
   useEffect(() => {
-    if (joined || !nickname) return;
+    if (joined) return;
 
     requireNickname(() => {
       socket.emit(
@@ -53,6 +72,15 @@ export default function WaitingRoomPage() {
         (res) => {
           if (res.success) {
             setJoined(true);
+          } else if (
+            res.error === '이미 게임이 진행 중입니다.' ||
+            res.error === '방이 가득 찼습니다.'
+          ) {
+            if (res.isPrivate) {
+              setShowSpectatePassword(true);
+            } else {
+              joinAsSpectator();
+            }
           } else {
             toast.error(res.error ?? '입장에 실패했습니다.');
             router.push('/');
@@ -60,7 +88,7 @@ export default function WaitingRoomPage() {
         },
       );
     });
-  }, [nickname, joined, roomId, inviteToken, requireNickname, router, socket]);
+  }, [joined, roomId, inviteToken, requireNickname, router, socket, joinAsSpectator]);
 
   useEffect(() => {
     const handleStarted = () => router.push(`/room/${roomId}/play`);
@@ -141,16 +169,7 @@ export default function WaitingRoomPage() {
           </svg>
           <span className="hidden text-sm font-medium md:inline">방 정보</span>
         </button>
-        <button
-          onClick={() => setShowChat(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
-          title="채팅"
-        >
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span className="hidden text-sm font-medium md:inline">채팅</span>
-        </button>
+        <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
         </Button>
@@ -319,20 +338,42 @@ export default function WaitingRoomPage() {
         </AnimatePresence>
       </main>
 
+      {/* 관전 비밀번호 모달 */}
+      <Modal open={showSpectatePassword} onClose={() => router.push('/')} closable={false} title="비밀방 관전">
+        <p className="mb-4 text-sm text-gray-500">관전하려면 비밀번호를 입력하세요.</p>
+        <Input
+          type="password"
+          value={spectatePassword}
+          onChange={(e) => { setSpectatePassword(e.target.value); setSpectatePasswordError(''); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !spectatePasswordLoading) {
+              setSpectatePasswordLoading(true);
+              joinAsSpectator(spectatePassword);
+            }
+          }}
+          error={spectatePasswordError}
+          placeholder="비밀번호"
+          autoFocus
+        />
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => router.push('/')}>취소</Button>
+          <Button
+            loading={spectatePasswordLoading}
+            onClick={() => {
+              setSpectatePasswordLoading(true);
+              joinAsSpectator(spectatePassword);
+            }}
+          >
+            관전
+          </Button>
+        </div>
+      </Modal>
+
       {/* 방 정보 모달 */}
       <Modal open={showRoomInfo} onClose={() => setShowRoomInfo(false)} title="방 정보">
         <RoomInfo room={room} />
       </Modal>
 
-      {/* 채팅 모달 */}
-      <Modal
-        open={showChat}
-        onClose={() => setShowChat(false)}
-        title="채팅"
-        className="w-full max-w-sm md:max-w-lg"
-      >
-        <RoomChat scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
-      </Modal>
 
       {/* 나가기 모달 */}
       <Modal open={showLeave} onClose={() => setShowLeave(false)} closable={false}>

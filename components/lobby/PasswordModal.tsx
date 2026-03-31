@@ -12,9 +12,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   room: RoomSummary | null;
+  mode?: 'join' | 'spectate';
 }
 
-export default function PasswordModal({ open, onClose, room }: Props) {
+export default function PasswordModal({ open, onClose, room, mode = 'join' }: Props) {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,24 +31,45 @@ export default function PasswordModal({ open, onClose, room }: Props) {
     setError('');
     const socket = getSocket();
 
-    socket.emit('room:join', { roomId: room.id, password }, (res) => {
-      setLoading(false);
-      if (res.success) {
-        onClose();
-        router.push(`/room/${room.id}`);
-      } else {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-        setError(res.error ?? '비밀번호가 틀렸습니다.');
-        if (newAttempts >= 3) {
-          setLocked(true);
-          lockTimer.current = setTimeout(() => {
-            setLocked(false);
-            setAttempts(0);
-          }, 10000);
+    if (mode === 'spectate') {
+      socket.emit('spectate:join', { roomId: room.id, password }, (res) => {
+        setLoading(false);
+        if (res.success) {
+          onClose();
+          router.push(`/room/${room.id}`);
+        } else {
+          const newAttempts = attempts + 1;
+          setAttempts(newAttempts);
+          setError(res.error ?? '비밀번호가 틀렸습니다.');
+          if (newAttempts >= 3) {
+            setLocked(true);
+            lockTimer.current = setTimeout(() => {
+              setLocked(false);
+              setAttempts(0);
+            }, 10000);
+          }
         }
-      }
-    });
+      });
+    } else {
+      socket.emit('room:join', { roomId: room.id, password }, (res) => {
+        setLoading(false);
+        if (res.success) {
+          onClose();
+          router.push(`/room/${room.id}`);
+        } else {
+          const newAttempts = attempts + 1;
+          setAttempts(newAttempts);
+          setError(res.error ?? '비밀번호가 틀렸습니다.');
+          if (newAttempts >= 3) {
+            setLocked(true);
+            lockTimer.current = setTimeout(() => {
+              setLocked(false);
+              setAttempts(0);
+            }, 10000);
+          }
+        }
+      });
+    }
   };
 
   const handleClose = () => {
@@ -60,7 +82,7 @@ export default function PasswordModal({ open, onClose, room }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="비밀방 입장">
+    <Modal open={open} onClose={handleClose} title={mode === 'spectate' ? '비밀방 관전' : '비밀방 입장'}>
       {room && (
         <div className="mb-4">
           <p className="text-sm text-gray-500">&quot;{room.title}&quot;</p>
@@ -83,7 +105,9 @@ export default function PasswordModal({ open, onClose, room }: Props) {
 
       <div className="mt-6 flex justify-end gap-3">
         <Button variant="secondary" onClick={handleClose}>취소</Button>
-        <Button onClick={handleSubmit} loading={loading} disabled={locked}>입장</Button>
+        <Button onClick={handleSubmit} loading={loading} disabled={locked}>
+          {mode === 'spectate' ? '관전' : '입장'}
+        </Button>
       </div>
     </Modal>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
@@ -10,7 +10,10 @@ import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
 import InfoPanel from './InfoPanel';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
 import { DIR_LABEL } from './constants';
+import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -24,6 +27,8 @@ export default function FourGravityGame() {
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
+
+  const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
 
   const shownWinnerRef = useRef<string | null>(null);
   useEffect(() => {
@@ -72,10 +77,51 @@ export default function FourGravityGame() {
 
   const handleGravity = (direction: Direction) => {
     if (!isMyTurn || gameData.phase !== 'gravity') return;
+
+    if (direction !== 'none' && gameData.placedPosition) {
+      const newBoard = applyGravity(gameData.board, direction);
+      const movedPos = findMovedPosition(gameData.placedPosition, direction, gameData.board, newBoard);
+      const candidates = calcNeutralCandidates(gameData.placedPosition, movedPos, newBoard);
+
+      if (candidates.length === 0) {
+        setPendingGravity(direction);
+        return;
+      }
+    }
+
     getSocket().emit('game:action', { type: 'gravity', direction });
   };
 
+  const confirmGravity = () => {
+    if (pendingGravity) {
+      getSocket().emit('game:action', { type: 'gravity', direction: pendingGravity });
+      setPendingGravity(null);
+    }
+  };
+
   return (
+    <>
+    <Modal
+      open={pendingGravity !== null}
+      onClose={() => setPendingGravity(null)}
+      title="패배 경고"
+      closable={false}
+    >
+      <p className="mb-2 text-sm text-gray-700">
+        <strong>{pendingGravity ? DIR_LABEL[pendingGravity] : ''}</strong> 방향으로 중력을 적용하면
+        중립 돌을 놓을 수 없어{' '}
+        <span className="font-semibold text-red-600">패배</span>합니다.
+      </p>
+      <p className="mb-6 text-sm text-gray-500">정말 이 방향을 선택하시겠습니까?</p>
+      <div className="flex justify-end gap-3">
+        <Button variant="secondary" onClick={() => setPendingGravity(null)}>
+          취소
+        </Button>
+        <Button variant="danger" onClick={confirmGravity}>
+          확인 (패배 감수)
+        </Button>
+      </div>
+    </Modal>
     <div className="flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* 메인 영역: 보드 + 컨트롤 */}
@@ -142,6 +188,7 @@ export default function FourGravityGame() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
