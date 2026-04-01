@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
-import { AI_PLAYER_ID } from '../../shared/types/room.js';
-import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus } from '../../shared/types/room.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
+import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus } from '@shared/types/room.js';
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number };
 
@@ -27,8 +27,10 @@ function toSummary(room: RoomInternal): RoomSummary {
 }
 
 function toClientRoom(room: RoomInternal): Room {
-  const { _password, _minPlayers, ...rest } = room;
-  return rest;
+  const copy = { ...room } as Room & { _password?: string; _minPlayers?: number };
+  delete copy._password;
+  delete copy._minPlayers;
+  return copy;
 }
 
 export const roomStore = {

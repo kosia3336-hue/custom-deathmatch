@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '../../../shared/types/events.js';
-import type { Player } from '../../../shared/types/room.js';
+import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
+import type { Player } from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById } from '../routes/games.js';

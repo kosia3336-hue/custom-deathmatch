@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { Server } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '../../shared/types/events.js';
+import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import config from './config.js';
 import { registerGameRoutes } from './routes/games.js';
 import { setupSocketHandlers } from './socket/index.js';
