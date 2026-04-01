@@ -7,17 +7,27 @@ import GNB from '@/components/layout/GNB';
 import { useArchiveStore } from '@/stores/archive';
 import type { GameRecordFile } from '@/shared/types/archive';
 
-const SUPPORTED_GAMES = new Set(['game-001']);
+const SUPPORTED_GAMES = new Set(['game-001', 'game-002']);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function validateRecord(data: unknown): data is GameRecordFile {
   if (!data || typeof data !== 'object') return false;
   const obj = data as Record<string, unknown>;
-  return (
-    typeof obj.version === 'string' &&
-    typeof obj.gameId === 'string' &&
-    obj.gameRecord != null
-  );
+  if (
+    typeof obj.version !== 'string' ||
+    typeof obj.gameId !== 'string' ||
+    typeof obj.gameName !== 'string' ||
+    typeof obj.playedAt !== 'string' ||
+    typeof obj.playMode !== 'string' ||
+    obj.gameRecord == null ||
+    typeof obj.gameRecord !== 'object'
+  ) return false;
+
+  if (!obj.result || typeof obj.result !== 'object') return false;
+  const result = obj.result as Record<string, unknown>;
+  if (!Array.isArray(result.rankings) || typeof result.playTime !== 'number') return false;
+
+  return true;
 }
 
 export default function ArchivePage() {
@@ -48,11 +58,6 @@ export default function ArchivePage() {
 
           if (!SUPPORTED_GAMES.has(data.gameId)) {
             toast.error('지원하지 않는 게임입니다.');
-            return;
-          }
-
-          if (!data.gameRecord || typeof data.gameRecord !== 'object') {
-            toast.error('기록 데이터가 없습니다.');
             return;
           }
 

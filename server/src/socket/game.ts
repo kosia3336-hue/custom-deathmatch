@@ -15,6 +15,13 @@ import {
   getFourGravityState,
   emitFourGravityStateToSocket,
 } from './games/four-gravity/index.js';
+import {
+  initDoubleSidedChess,
+  handleDoubleSidedChessAction,
+  cleanupDoubleSidedChess,
+  getDoubleSidedChessState,
+  emitDoubleSidedChessStateToSocket,
+} from './games/double-sided-chess/index.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -42,6 +49,10 @@ export function startGame(io: IO, roomId: string) {
     initFourGravity(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
       endGame(cbIo, cbRoomId, data);
     });
+  } else if (room.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) {
+    initDoubleSidedChess(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
+      endGame(cbIo, cbRoomId, data);
+    });
   } else {
     const state: GameState = {
       roomId,
@@ -56,6 +67,44 @@ export function startGame(io: IO, roomId: string) {
   broadcastRoomUpdated(io, roomId);
 }
 
+/** 게임 진행 중 플레이어가 나갈 때 멀티 포기 처리 후 cleanup. 이미 종료된 게임이면 아무 것도 하지 않음. */
+export function handleGameForfeit(io: IO, roomId: string, leavingSocketId: string) {
+  const room = roomStore.get(roomId);
+  if (!room || room.status !== 'playing') return;
+
+  if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
+    const fgState = getFourGravityState(roomId);
+    cleanupFourGravity(roomId);
+    if (fgState && !fgState.gameOver && room.playMode === 'multi') {
+      const other = room.players.find((p: Player) => p.id !== leavingSocketId);
+      if (other) {
+        endGame(io, roomId, {
+          rankings: [
+            { playerId: other.id, nickname: other.nickname, rank: 1, score: 1 },
+            { playerId: leavingSocketId, nickname: sessions.getNickname(leavingSocketId) ?? '???', rank: 2, score: 0 },
+          ],
+          totalTurns: fgState.turnNumber,
+        });
+      }
+    }
+  } else if (room.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) {
+    const dscState = getDoubleSidedChessState(roomId);
+    cleanupDoubleSidedChess(roomId);
+    if (dscState && !dscState.gameOver && room.playMode === 'multi') {
+      const other = room.players.find((p: Player) => p.id !== leavingSocketId);
+      if (other) {
+        endGame(io, roomId, {
+          rankings: [
+            { playerId: other.id, nickname: other.nickname, rank: 1, score: 1 },
+            { playerId: leavingSocketId, nickname: sessions.getNickname(leavingSocketId) ?? '???', rank: 2, score: 0 },
+          ],
+          totalTurns: dscState.turnNumber,
+        });
+      }
+    }
+  }
+}
+
 export function registerGameHandlers(io: IO, socket: TypedSocket) {
   socket.on('game:sync', () => {
     const roomId = sessions.getRoom(socket.id);
@@ -68,6 +117,8 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
       emitFourGravityStateToSocket(socket, roomId);
+    } else if (room.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) {
+      emitDoubleSidedChessStateToSocket(socket, roomId);
     }
   });
 
@@ -79,6 +130,8 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
       handleFourGravityAction(io, socket, roomId, data);
+    } else if (room.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) {
+      handleDoubleSidedChessAction(io, socket, roomId, data);
     }
   });
 
@@ -89,6 +142,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room || room.hostId !== socket.id) return;
 
     if (room.gameId === GAME_IDS.FOUR_GRAVITY) cleanupFourGravity(roomId);
+    else if (room.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) cleanupDoubleSidedChess(roomId);
     endGame(io, roomId);
   });
 
@@ -122,22 +176,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       '알 수 없음';
     const spectatorsBefore = room?.spectators ?? [];
 
-    if (room && room.status === 'playing' && room.gameId === GAME_IDS.FOUR_GRAVITY) {
-      const fgState = getFourGravityState(roomId);
-      cleanupFourGravity(roomId);
-      if (fgState && !fgState.gameOver && room.playMode === 'multi') {
-        const other = room.players.find((p: Player) => p.id !== socket.id);
-        if (other) {
-          endGame(io, roomId, {
-            rankings: [
-              { playerId: other.id, nickname: other.nickname, rank: 1, score: 1 },
-              { playerId: socket.id, nickname: sessions.getNickname(socket.id) ?? '???', rank: 2, score: 0 },
-            ],
-            totalTurns: fgState.turnNumber,
-          });
-        }
-      }
-    }
+    handleGameForfeit(io, roomId, socket.id);
 
     const result = roomStore.removePlayer(roomId, socket.id);
     sessions.clearRoom(socket.id);

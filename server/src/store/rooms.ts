@@ -255,7 +255,7 @@ export const roomStore = {
   },
 
   findQuickJoinRoom(gameId?: string): Room | undefined {
-    return Array.from(rooms.values()).find(
+    const candidates = Array.from(rooms.values()).filter(
       (r) =>
         r.status === 'waiting' &&
         r.roomType === 'public' &&
@@ -263,6 +263,10 @@ export const roomStore = {
         r.players.length < r.maxPlayers &&
         (!gameId || r.gameId === gameId),
     );
+    // 인원이 가장 많은 방 우선 (빠른 매칭), 동점이면 먼저 만들어진 방
+    return candidates.sort((a, b) =>
+      b.players.length - a.players.length || a.createdAt - b.createdAt,
+    )[0];
   },
 
   resetForRematch(roomId: string) {

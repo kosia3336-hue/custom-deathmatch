@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import GameShell from '@/components/game/GameShell';
 import FourGravityGame from '@/components/game/modules/four-gravity';
+import DoubleSidedChessGame from '@/components/game/modules/double-sided-chess';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -44,7 +45,13 @@ export default function PlayPage() {
 
   return (
     <GameShell>
-      {gameId === GAME_IDS.FOUR_GRAVITY ? <FourGravityGame /> : <GameModulePlaceholder />}
+      {gameId === GAME_IDS.FOUR_GRAVITY ? (
+        <FourGravityGame />
+      ) : gameId === GAME_IDS.DOUBLE_SIDED_CHESS ? (
+        <DoubleSidedChessGame />
+      ) : (
+        <GameModulePlaceholder />
+      )}
     </GameShell>
   );
 }

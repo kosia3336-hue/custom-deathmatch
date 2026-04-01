@@ -9,7 +9,9 @@ import Button from '@/components/ui/Button';
 import RoomChat from '@/components/room/RoomChat';
 import { formatTime, formatTimeLimit } from '@/lib/utils';
 import { useSaveRecord } from '@/hooks/useSaveRecord';
-import { WIN_TYPE_LABEL } from '@/components/game/modules/four-gravity/constants';
+import { GAME_IDS } from '@/shared/types';
+import { WIN_TYPE_LABEL as FG_WIN_TYPE_LABEL } from '@/components/game/modules/four-gravity/constants';
+import { WIN_TYPE_LABEL as DSC_WIN_TYPE_LABEL } from '@/components/game/modules/double-sided-chess/constants';
 
 const PODIUM_COLORS = ['bg-indigo-600', 'bg-indigo-400', 'bg-indigo-300'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
@@ -46,13 +48,19 @@ export default function ResultScreen() {
   }, [room, router]);
 
   useEffect(() => {
-    if (cancelled || timer <= 0) {
-      if (timer <= 0 && !cancelled) handleLobby();
-      return;
-    }
-    const id = setInterval(() => setTimer((t) => t - 1), 1000);
+    if (cancelled) return;
+    const id = setInterval(() => {
+      setTimer((t) => {
+        if (t <= 1) {
+          clearInterval(id);
+          handleLobby();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
     return () => clearInterval(id);
-  }, [timer, cancelled, handleLobby]);
+  }, [cancelled, handleLobby]);
 
   /* ── 헤더 오른쪽 슬롯 ── */
   useEffect(() => {
@@ -93,8 +101,11 @@ export default function ResultScreen() {
   }
 
   const grd = gameResult.gameResultData as Record<string, unknown> | undefined;
-  const winType = grd?.winType as keyof typeof WIN_TYPE_LABEL | undefined;
-  const winTypeLabel = winType ? (WIN_TYPE_LABEL[winType] ?? null) : null;
+  const winType = grd?.winType as string | undefined;
+  const winLabelMap = room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS
+    ? DSC_WIN_TYPE_LABEL
+    : FG_WIN_TYPE_LABEL;
+  const winTypeLabel = winType ? ((winLabelMap as Record<string, string>)[winType] ?? null) : null;
 
   const sorted = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
 

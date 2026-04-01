@@ -5,7 +5,7 @@ import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById } from '../routes/games.js';
 import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
-import { startGame } from './game.js';
+import { startGame, handleGameForfeit } from './game.js';
 import { clearRoomStartCountdown, setRoomStartCountdown } from './roomCountdown.js';
 import { socketRoom } from './utils.js';
 
@@ -364,6 +364,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   if (leavingWasHost) {
     clearRoomStartCountdown(roomId);
   }
+
+  handleGameForfeit(io, roomId, socket.id);
 
   const result = roomStore.removePlayer(roomId, socket.id);
   sessions.clearRoom(socket.id);

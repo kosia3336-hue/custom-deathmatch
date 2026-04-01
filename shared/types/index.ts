@@ -41,3 +41,17 @@ export type {
   FourGravityTurnAction,
   FourGravityRecord,
 } from './archive';
+export {
+  DSC_BOARD_SIZE,
+} from './double-sided-chess';
+export type {
+  PieceType,
+  Owner,
+  CellData,
+  Cell,
+  DSCWinType,
+  DSCPlayerInfo,
+  DoubleSidedChessGameData,
+  DoubleSidedChessAction,
+} from './double-sided-chess';
+export type { Position as DSCPosition } from './double-sided-chess';
