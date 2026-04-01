@@ -1,5 +1,5 @@
 import type { Server } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '../../../shared/types/events.js';
+import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
 import { registerLobbyHandlers } from './lobby.js';
 import { registerRoomHandlers, handleLeaveRoom } from './room.js';

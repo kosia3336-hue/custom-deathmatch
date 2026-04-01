@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents, ChatMessage } from '../../../shared/types/events.js';
+import type { ClientToServerEvents, ServerToClientEvents, ChatMessage } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;

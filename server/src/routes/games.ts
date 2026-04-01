@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import type { Game } from '../../../shared/types/game.js';
+import type { Game } from '@shared/types/game.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

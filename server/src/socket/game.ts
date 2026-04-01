@@ -1,7 +1,7 @@
 import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents, GameState, GameResult } from '../../../shared/types/events.js';
-import type { Player } from '../../../shared/types/room.js';
-import { GAME_IDS } from '../../../shared/types/game.js';
+import type { ClientToServerEvents, ServerToClientEvents, GameState, GameResult } from '@shared/types/events.js';
+import type { Player } from '@shared/types/room.js';
+import { GAME_IDS } from '@shared/types/game.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
