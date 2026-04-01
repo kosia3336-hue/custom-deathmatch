@@ -8,5 +8,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": true
+  },
+  {
+    "id": "game-002",
+    "name": "양면장기",
+    "description": "5×5 보드 위에서 말을 뒤집어가며 싸우는 양면 승격 전략 보드게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": false,
+    "supportsSolo": true
   }
 ]

@@ -3,6 +3,25 @@
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
+import { GAME_IDS } from '@/shared/types';
+
+function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown {
+  if (gameId === GAME_IDS.DOUBLE_SIDED_CHESS) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      finalBoard: grd.finalBoard ?? null,
+      prisoners: grd.prisoners ?? { first: [], second: [] },
+      actions: grd.actions ?? [],
+      players: grd.players ?? {},
+    };
+  }
+  // FOUR_GRAVITY 및 기타 게임
+  return {
+    winType: (grd.winType as string) ?? null,
+    winLine: grd.winLine ?? null,
+    actions: grd.actions ?? [],
+  };
+}
 
 export function useSaveRecord() {
   return useCallback(() => {
@@ -15,13 +34,18 @@ export function useSaveRecord() {
       return;
     }
 
+    const players =
+      rm.gameId === GAME_IDS.DOUBLE_SIDED_CHESS
+        ? (grd.players as Record<string, { nickname: string }>) ?? {}
+        : (grd.players as Record<string, { nickname: string }>) ?? {};
+
     const record = {
       version: '1.0',
       gameId: rm.gameId,
       gameName: rm.gameName,
       playedAt: new Date().toISOString(),
       playMode: rm.playMode,
-      players: (grd.players as Record<string, { nickname: string }>) ?? {},
+      players,
       result: {
         rankings: gr.rankings.map((r) => ({
           nickname: r.nickname,
@@ -31,11 +55,7 @@ export function useSaveRecord() {
         playTime: gr.playTime,
         totalTurns: gr.totalTurns,
       },
-      gameRecord: {
-        winType: (grd.winType as string) ?? null,
-        winLine: grd.winLine ?? null,
-        actions: grd.actions ?? [],
-      },
+      gameRecord: buildGameRecord(rm.gameId, grd),
     };
 
     const json = JSON.stringify(record, null, 2);

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import GNB from '@/components/layout/GNB';
 import { useArchiveStore } from '@/stores/archive';
 import FourGravityViewer from '@/components/archive/viewers/four-gravity/FourGravityViewer';
+import DoubleSidedChessViewer from '@/components/archive/viewers/double-sided-chess/DoubleSidedChessViewer';
 import Link from 'next/link';
 
 export default function ArchiveViewPage() {
@@ -35,6 +36,8 @@ export default function ArchiveViewPage() {
 
         {record.gameId === 'game-001' ? (
           <FourGravityViewer record={record} />
+        ) : record.gameId === 'game-002' ? (
+          <DoubleSidedChessViewer record={record} />
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="mb-4 text-gray-500">이 게임의 뷰어는 아직 준비되지 않았습니다.</p>
