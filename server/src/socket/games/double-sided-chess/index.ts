@@ -1,4 +1,5 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Position, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -12,6 +13,7 @@ import {
   clearTurnTimer,
   checkWinAfterAction,
   finishTurn,
+  terminateAIWorker,
 } from './state.js';
 
 export type { EndGameFn };
@@ -35,6 +37,9 @@ export function initDoubleSidedChess(
   if (playMode === 'solo') {
     firstPlayer = { id: players[0].id, nickname: `${players[0].nickname} (선)` };
     secondPlayer = { id: players[0].id, nickname: `${players[0].nickname} (후)` };
+  } else if (playMode === 'com') {
+    firstPlayer = { id: players[0].id, nickname: players[0].nickname };
+    secondPlayer = { id: AI_PLAYER_ID, nickname: 'AI' };
   } else {
     firstPlayer = { id: players[0].id, nickname: players[0].nickname };
     secondPlayer = { id: players[1].id, nickname: players[1].nickname };
@@ -188,6 +193,7 @@ export function cleanupDoubleSidedChess(roomId: string) {
   const s = gameStates.get(roomId);
   if (s) clearTurnTimer(s);
   gameStates.delete(roomId);
+  terminateAIWorker(roomId);
 }
 
 export function getDoubleSidedChessState(roomId: string) {

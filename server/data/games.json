@@ -16,7 +16,7 @@
     "minPlayers": 2,
     "maxPlayers": 2,
     "supportsMulti": true,
-    "supportsCom": false,
+    "supportsCom": true,
     "supportsSolo": true
   }
 ]
