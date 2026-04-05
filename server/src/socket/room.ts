@@ -3,7 +3,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/e
 import type { Player } from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
-import { getGameById } from '../routes/games.js';
+import { getGameById, getGames } from '../routes/games.js';
 import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { startGame, handleGameForfeit } from './game.js';
 import { clearRoomStartCountdown, setRoomStartCountdown } from './roomCountdown.js';
@@ -35,21 +35,32 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
 
-    const game = getGameById(data.gameId);
+    const isRandom = data.gameId === 'random';
+    let game: ReturnType<typeof getGameById>;
+
+    if (isRandom) {
+      const all = getGames().filter((g) => g.supportsMulti);
+      if (all.length === 0) return callback({ success: false, error: '게임을 찾을 수 없습니다.' });
+      game = all[Math.floor(Math.random() * all.length)];
+    } else {
+      game = getGameById(data.gameId);
+    }
     if (!game) return callback({ success: false, error: '게임을 찾을 수 없습니다.' });
+
+    const playMode = isRandom ? 'multi' as const : data.playMode;
+    const maxPlayers = isRandom ? game.maxPlayers : data.maxPlayers;
 
     if (!data.title || data.title.length < 1 || data.title.length > 30) {
       return callback({ success: false, error: '방 제목은 1~30자로 입력해 주세요.' });
     }
 
-    if (data.playMode === 'multi' && data.roomType === 'private') {
+    if (playMode === 'multi' && data.roomType === 'private') {
       if (!data.password || data.password.length < 4 || data.password.length > 8) {
         return callback({ success: false, error: '비밀번호는 4~8자리로 입력해 주세요.' });
       }
     }
 
-    // COM/솔로 대전은 시간제한 무제한 강제
-    const tl = data.playMode === 'multi' ? data.timeLimitSeconds : null;
+    const tl = (playMode === 'multi' && !isRandom) ? data.timeLimitSeconds : null;
     if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
@@ -57,12 +68,12 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const host = makePlayer(socket, true);
     const room = roomStore.create({
       title: data.title,
-      gameId: data.gameId,
+      gameId: game.id,
       gameName: game.name,
-      playMode: data.playMode,
-      roomType: data.playMode === 'multi' ? data.roomType : 'public',
+      playMode,
+      roomType: playMode === 'multi' ? data.roomType : 'public',
       password: data.password,
-      maxPlayers: data.maxPlayers,
+      maxPlayers,
       minPlayers: game.minPlayers,
       timeLimitSeconds: tl ?? null,
       host,

@@ -1,13 +1,19 @@
 import type { GameState } from '@shared/types/events.js';
-import type { DoubleSidedChessGameData } from '@shared/types/double-sided-chess.js';
-import { WIN_DISPLAY_MS } from './constants.js';
+import type { DoubleSidedChessGameData, PieceType } from '@shared/types/double-sided-chess.js';
+import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { WIN_DISPLAY_MS, AI_DELAY } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, DSCWinType, Owner } from './types.js';
+import type { InternalState, DSCWinType, Owner, AIMove } from './types.js';
 import {
   isKingInOpponentTerritory,
   countNonKingPieces,
   hasAnyValidAction,
 } from './board.js';
+import { getQuickFallbackMove, findBestMoveIterative, type AIWorkerData } from './ai.js';
+import { Worker } from 'worker_threads';
+import { fileURLToPath } from 'url';
+import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -45,6 +51,7 @@ function phaseMessage(s: InternalState): string {
       default: return '게임이 종료되었습니다.';
     }
   }
+  if (s.currentPlayer === AI_PLAYER_ID) return 'AI가 생각 중입니다...';
   return '말을 선택하세요';
 }
 
@@ -103,8 +110,10 @@ function scheduleGameEnd(
 ) {
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
-    gameStates.delete(s.roomId);
-    s.endGameCallback(io, s.roomId, payload);
+    const roomId = s.roomId;
+    gameStates.delete(roomId);
+    terminateAIWorker(roomId);
+    s.endGameCallback(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
 
@@ -153,7 +162,7 @@ export function clearTurnTimer(s: InternalState) {
 
 export function startTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
-  if (!s.timeLimitSeconds) return;
+  if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
   s.turnTimer = setTimeout(() => {
     handleTimeout(io, s);
@@ -219,4 +228,170 @@ export function finishTurn(io: IO, s: InternalState) {
 
   startTurnTimer(io, s);
   broadcastState(io, s);
+
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    runAITurn(io, s.roomId);
+  }
+}
+
+/* ────────────────────── AI turn runner ───────────────── */
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randDelay(): number {
+  return AI_DELAY.min + Math.random() * (AI_DELAY.max - AI_DELAY.min);
+}
+
+const aiWorkerMap = new Map<string, Worker>();
+
+function resolveWorkerPath(): string {
+  const selfPath = fileURLToPath(import.meta.url);
+  const isTs = extname(selfPath) === '.ts';
+  return isTs
+    ? join(dirname(selfPath), 'ai-worker-boot.mjs')
+    : join(dirname(selfPath), 'ai-worker.js');
+}
+
+let _workerPath: string | null = null;
+
+function getOrCreateAIWorker(roomId: string): Worker {
+  const existing = aiWorkerMap.get(roomId);
+  if (existing) return existing;
+  _workerPath ??= resolveWorkerPath();
+  const worker = new Worker(_workerPath);
+  aiWorkerMap.set(roomId, worker);
+  return worker;
+}
+
+export function terminateAIWorker(roomId: string) {
+  const worker = aiWorkerMap.get(roomId);
+  if (worker) {
+    worker.terminate();
+    aiWorkerMap.delete(roomId);
+  }
+}
+
+function runAIWithWorker(s: InternalState): Promise<AIMove> {
+  const workerData: AIWorkerData = {
+    board: s.board,
+    prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
+    currentOwner: s.currentOwner,
+  };
+
+  return new Promise((resolve) => {
+    const worker = getOrCreateAIWorker(s.roomId);
+
+    let settled = false;
+    const settle = (move: AIMove) => {
+      if (settled) return;
+      settled = true;
+      resolve(move);
+    };
+
+    const onMessage = (move: AIMove) => {
+      cleanup();
+      settle(move);
+    };
+    const onError = (err: Error) => {
+      console.error('[DSC AI Worker Error]', err);
+      cleanup();
+      terminateAIWorker(s.roomId);
+      settle(getQuickFallbackMove(s.board, s.prisoners, s.currentOwner));
+    };
+    const onExit = (code: number) => {
+      cleanup();
+      if (!settled) {
+        if (code !== 0 && gameStates.has(s.roomId)) {
+          console.error(`[DSC AI Worker] exited unexpectedly with code ${code}`);
+        }
+        aiWorkerMap.delete(s.roomId);
+        settle(getQuickFallbackMove(s.board, s.prisoners, s.currentOwner));
+      }
+    };
+    const cleanup = () => {
+      worker.off('message', onMessage);
+      worker.off('error', onError);
+      worker.off('exit', onExit);
+    };
+
+    worker.once('message', onMessage);
+    worker.once('error', onError);
+    worker.once('exit', onExit);
+    worker.postMessage(workerData);
+  });
+}
+
+export async function runAITurn(io: IO, roomId: string) {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver || s.currentPlayer !== AI_PLAYER_ID) return;
+
+  const move = await runAIWithWorker(s);
+
+  if (!gameStates.has(roomId)) return;
+
+  await wait(randDelay());
+  if (!gameStates.has(roomId)) return;
+
+  if (move.type === 'move') {
+    const cell = s.board[move.from.row][move.from.col];
+    if (!cell) return;
+
+    const target = s.board[move.to.row][move.to.col];
+    let capturedPiece: PieceType | null = null;
+
+    if (target && target.owner !== s.currentOwner) {
+      capturedPiece = target.piece;
+      if (capturedPiece !== 'king') {
+        s.prisoners[s.currentOwner].push(capturedPiece);
+      }
+    }
+
+    s.board[move.to.row][move.to.col] = {
+      piece: cell.piece,
+      owner: cell.owner,
+      isPromoted: nextIsPromoted(cell.piece, cell.isPromoted),
+    };
+    s.board[move.from.row][move.from.col] = null;
+
+    s.lastMove = { type: 'move', from: move.from, to: move.to, captured: capturedPiece };
+
+    s.actionLog.push({
+      turnNumber: s.turnNumber,
+      player: s.currentOwner,
+      nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+      action: { type: 'move', from: move.from, to: move.to },
+    });
+
+    broadcastState(io, s);
+
+    if (checkWinAfterAction(io, s, capturedPiece)) return;
+    finishTurn(io, s);
+  } else {
+    const prisonerList = s.prisoners[s.currentOwner];
+    const idx = prisonerList.indexOf(move.pieceType);
+    if (idx === -1) return;
+
+    prisonerList.splice(idx, 1);
+    s.board[move.position.row][move.position.col] = {
+      piece: move.pieceType,
+      owner: s.currentOwner,
+      isPromoted: false,
+    };
+
+    s.lastMove = { type: 'place-prisoner', from: null, to: move.position, captured: null };
+
+    s.actionLog.push({
+      turnNumber: s.turnNumber,
+      player: s.currentOwner,
+      nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+      action: { type: 'place-prisoner', pieceType: move.pieceType, position: move.position },
+    });
+
+    broadcastState(io, s);
+
+    if (checkWinAfterAction(io, s, null)) return;
+    finishTurn(io, s);
+  }
 }

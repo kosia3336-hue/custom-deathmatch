@@ -9,7 +9,19 @@ import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { GAME_IDS } from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
+
+const RANDOM_GAME: Game = {
+  id: GAME_IDS.RANDOM,
+  name: '랜덤',
+  description: '무작위 배정',
+  minPlayers: 2,
+  maxPlayers: 2,
+  supportsMulti: true,
+  supportsCom: false,
+  supportsSolo: false,
+};
 
 interface Props {
   open: boolean;
@@ -32,27 +44,50 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(false);
+
+  if (open && !prevOpen) {
+    setPrevOpen(true);
+    setError('');
+    setSelectedGame(null);
+    setPlayMode('multi');
+    setTitle('');
+    setRoomType('public');
+    setPassword('');
+    setMaxPlayers(4);
+    setTimeLimitEnabled(false);
+    setTimeLimitMin(1);
+    setTimeLimitSec(0);
+  }
+  if (!open && prevOpen) {
+    setPrevOpen(false);
+  }
 
   useEffect(() => {
-    if (open) {
-      setError('');
-      fetchGames()
-        .then(setGames)
-        .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
-    }
+    if (!open) return;
+    fetchGames()
+      .then(setGames)
+      .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
   }, [open]);
 
-  useEffect(() => {
-    if (selectedGame) {
-      if (selectedGame.supportsMulti) setPlayMode('multi');
-      else if (selectedGame.supportsCom) setPlayMode('com');
-      else if (selectedGame.supportsSolo) setPlayMode('solo');
-      setMaxPlayers(selectedGame.maxPlayers);
-    }
-  }, [selectedGame]);
+  const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
 
-  // COM/솔로 대전은 항상 시간제한 무제한
-  const computedTimeLimit = (timeLimitEnabled && playMode === 'multi') ? timeLimitMin * 60 + timeLimitSec : null;
+  const selectGame = (g: Game) => {
+    setSelectedGame(g);
+    if (g.supportsMulti) setPlayMode('multi');
+    else if (g.supportsCom) setPlayMode('com');
+    else if (g.supportsSolo) setPlayMode('solo');
+    setMaxPlayers(g.maxPlayers);
+  };
+
+  const selectRandom = () => {
+    setSelectedGame(RANDOM_GAME);
+    setPlayMode('multi');
+    setTimeLimitEnabled(false);
+  };
+
+  // COM/솔로/랜덤 모드는 항상 시간제한 무제한
+  const computedTimeLimit = (timeLimitEnabled && playMode === 'multi' && !isRandom) ? timeLimitMin * 60 + timeLimitSec : null;
 
   const handleCreate = () => {
     requireNickname(() => {
@@ -110,10 +145,22 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">게임 선택</label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <button
+              onClick={selectRandom}
+              className={cn(
+                'rounded-lg border p-3 text-left text-sm transition-colors',
+                isRandom
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 hover:border-gray-300',
+              )}
+            >
+              <div className="font-medium">🎲 랜덤</div>
+              <div className="text-xs text-gray-500">무작위 배정</div>
+            </button>
             {games.map((g) => (
               <button
                 key={g.id}
-                onClick={() => setSelectedGame(g)}
+                onClick={() => selectGame(g)}
                 className={cn(
                   'rounded-lg border p-3 text-left text-sm transition-colors',
                   selectedGame?.id === g.id
@@ -129,7 +176,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         </div>
 
         {/* 플레이 모드 */}
-        {selectedGame && (
+        {selectedGame && !isRandom && (
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">플레이 모드</label>
             <div className="flex gap-2">
@@ -182,7 +229,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   roomType === 'private' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300',
                 )}
               >
-                🔒 비밀
+                🔑 비밀
               </button>
             </div>
           </div>
@@ -201,7 +248,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         )}
 
         {/* 최대 인원 */}
-        {playMode === 'multi' && selectedGame && (
+        {playMode === 'multi' && selectedGame && !isRandom && (
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">최대 인원</label>
             <div className="flex gap-2">
@@ -223,8 +270,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           </div>
         )}
 
-        {/* 시간제한: 멀티 모드에서만 표시 (COM/솔로는 항상 무제한) */}
-        {playMode === 'multi' && (
+        {/* 시간제한: 멀티 모드에서만 표시 (COM/솔로/랜덤은 항상 무제한) */}
+        {playMode === 'multi' && !isRandom && (
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
             <div className="flex gap-2">

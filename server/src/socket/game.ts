@@ -72,6 +72,9 @@ export function handleGameForfeit(io: IO, roomId: string, leavingSocketId: strin
   const room = roomStore.get(roomId);
   if (!room || room.status !== 'playing') return;
 
+  const isPlayer = room.players.some((p: Player) => p.id === leavingSocketId);
+  if (!isPlayer) return;
+
   if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
     const fgState = getFourGravityState(roomId);
     cleanupFourGravity(roomId);

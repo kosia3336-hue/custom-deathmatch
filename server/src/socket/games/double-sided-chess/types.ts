@@ -23,6 +23,10 @@ export type EndGameFn = (
 
 export type { Cell, PieceType, Owner, Position, DSCWinType, DSCPlayerInfo };
 
+export type AIMove =
+  | { type: 'move'; from: Position; to: Position }
+  | { type: 'place-prisoner'; pieceType: PieceType; position: Position };
+
 export interface TurnActionLog {
   turnNumber: number;
   player: Owner;

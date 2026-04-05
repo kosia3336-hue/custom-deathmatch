@@ -12,4 +12,5 @@ export interface Game {
 export const GAME_IDS = {
   FOUR_GRAVITY: 'game-001',
   DOUBLE_SIDED_CHESS: 'game-002',
+  RANDOM: 'random',
 } as const;
