@@ -14,6 +14,7 @@ import {
   checkWinAfterAction,
   finishTurn,
   terminateAIWorker,
+  runAITurn,
 } from './state.js';
 
 export type { EndGameFn };
@@ -39,7 +40,7 @@ export function initDoubleSidedChess(
     secondPlayer = { id: players[0].id, nickname: `${players[0].nickname} (후)` };
   } else if (playMode === 'com') {
     firstPlayer = { id: players[0].id, nickname: players[0].nickname };
-    secondPlayer = { id: AI_PLAYER_ID, nickname: 'AI' };
+    secondPlayer = { id: players[1].id, nickname: players[1].nickname };
   } else {
     firstPlayer = { id: players[0].id, nickname: players[0].nickname };
     secondPlayer = { id: players[1].id, nickname: players[1].nickname };
@@ -70,6 +71,10 @@ export function initDoubleSidedChess(
   const s = gameStates.get(roomId)!;
   startTurnTimer(io, s);
   broadcastState(io, s);
+
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    runAITurn(io, roomId);
+  }
 }
 
 export function handleDoubleSidedChessAction(
