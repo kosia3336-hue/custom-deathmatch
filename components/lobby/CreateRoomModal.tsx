@@ -44,10 +44,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [prevOpen, setPrevOpen] = useState(false);
 
-  if (open && !prevOpen) {
-    setPrevOpen(true);
+  useEffect(() => {
+    if (!open) return;
     setError('');
     setSelectedGame(null);
     setPlayMode('multi');
@@ -58,13 +57,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitEnabled(false);
     setTimeLimitMin(1);
     setTimeLimitSec(0);
-  }
-  if (!open && prevOpen) {
-    setPrevOpen(false);
-  }
-
-  useEffect(() => {
-    if (!open) return;
     fetchGames()
       .then(setGames)
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
@@ -184,18 +176,15 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
                 { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
                 { key: 'solo' as PlayMode, label: '1:1 솔로', supported: selectedGame.supportsSolo },
-              ].map((m) => (
+              ].filter((m) => m.supported).map((m) => (
                 <button
                   key={m.key}
-                  disabled={!m.supported}
                   onClick={() => setPlayMode(m.key)}
                   className={cn(
                     'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                     playMode === m.key
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : m.supported
-                        ? 'border-gray-200 hover:border-gray-300'
-                        : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300',
+                      : 'border-gray-200 hover:border-gray-300',
                   )}
                 >
                   {m.label}

@@ -15,6 +15,16 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       players: grd.players ?? {},
     };
   }
+  if (gameId === GAME_IDS.NUMBER_FOUR) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      tiebreakerReason: grd.tiebreakerReason ?? null,
+      finalScores: grd.finalScores ?? {},
+      roundHistory: grd.roundHistory ?? [],
+      actions: grd.actions ?? [],
+      players: grd.players ?? {},
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,
@@ -34,10 +44,7 @@ export function useSaveRecord() {
       return;
     }
 
-    const players =
-      rm.gameId === GAME_IDS.DOUBLE_SIDED_CHESS
-        ? (grd.players as Record<string, { nickname: string }>) ?? {}
-        : (grd.players as Record<string, { nickname: string }>) ?? {};
+    const players = (grd.players as Record<string, { nickname: string }>) ?? {};
 
     const record = {
       version: '1.0',

@@ -3,14 +3,22 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import type { ComponentType } from 'react';
 import GameShell from '@/components/game/GameShell';
 import FourGravityGame from '@/components/game/modules/four-gravity';
 import DoubleSidedChessGame from '@/components/game/modules/double-sided-chess';
+import NumberFourGame from '@/components/game/modules/number4';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { GAME_IDS } from '@/shared/types';
+
+const GAME_MODULES: Record<string, ComponentType> = {
+  [GAME_IDS.FOUR_GRAVITY]: FourGravityGame,
+  [GAME_IDS.DOUBLE_SIDED_CHESS]: DoubleSidedChessGame,
+  [GAME_IDS.NUMBER_FOUR]: NumberFourGame,
+};
 
 export default function PlayPage() {
   const params = useParams();
@@ -45,13 +53,10 @@ export default function PlayPage() {
 
   return (
     <GameShell>
-      {gameId === GAME_IDS.FOUR_GRAVITY ? (
-        <FourGravityGame />
-      ) : gameId === GAME_IDS.DOUBLE_SIDED_CHESS ? (
-        <DoubleSidedChessGame />
-      ) : (
-        <GameModulePlaceholder />
-      )}
+      {(() => {
+        const GameModule = gameId ? GAME_MODULES[gameId] : null;
+        return GameModule ? <GameModule /> : <GameModulePlaceholder />;
+      })()}
     </GameShell>
   );
 }
