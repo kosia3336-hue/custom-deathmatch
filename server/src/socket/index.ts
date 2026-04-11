@@ -17,11 +17,14 @@ export function setupSocketHandlers(io: IO) {
         return callback({ success: false, error: '2~12자로 입력해 주세요.' });
       }
 
-      if (sessions.isNicknameTaken(trimmed) && sessions.getSocketByNickname(trimmed) !== socket.id) {
-        return callback({ success: false, error: '이미 사용 중인 닉네임입니다.' });
+      if (sessions.getNickname(socket.id) === trimmed) {
+        return callback({ success: true, nickname: trimmed });
       }
 
-      sessions.setNickname(socket.id, trimmed);
+      const ok = sessions.setNickname(socket.id, trimmed);
+      if (!ok) {
+        return callback({ success: false, error: '이미 사용 중인 닉네임입니다.' });
+      }
       callback({ success: true, nickname: trimmed });
     });
 

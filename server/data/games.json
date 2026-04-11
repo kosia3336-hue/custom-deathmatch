@@ -28,5 +28,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-004",
+    "name": "인디언홀덤Q",
+    "description": "이마에 카드를 붙이고 상대의 심리를 읽는 블러핑 베팅 카드 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

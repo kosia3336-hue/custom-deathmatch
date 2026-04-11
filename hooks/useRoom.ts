@@ -20,7 +20,10 @@ export function useRoom(roomId: string) {
     const socket = getSocket();
 
     const onRoomState = (room: Room) => {
+      const myId = getSocket().id;
+      const isSpectator = !!myId && room.spectators.some((s) => s.id === myId);
       useRoomStore.getState().setRoom(room);
+      useRoomStore.getState().setSpectator(isSpectator);
     };
     const onPlayerJoined = (player: Player) => useRoomStore.getState().addPlayer(player);
     const onPlayerLeft = ({ playerId, nickname, newHostId }: { playerId: string; nickname: string; newHostId?: string }) => {
@@ -76,7 +79,8 @@ export function useRoom(roomId: string) {
       socket.off('game:ended', onGameEnded);
       socket.off('error', onSocketError);
     };
-  }, [roomId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     room: useRoomStore((s) => s.room),

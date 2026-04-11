@@ -11,12 +11,14 @@ import { GAME_IDS } from '@/shared/types';
 import FourGravityViewer from '@/components/archive/viewers/four-gravity/FourGravityViewer';
 import DoubleSidedChessViewer from '@/components/archive/viewers/double-sided-chess/DoubleSidedChessViewer';
 import Number4Viewer from '@/components/archive/viewers/number4/Number4Viewer';
+import IndianPokerViewer from '@/components/archive/viewers/indian-poker/IndianPokerViewer';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
   [GAME_IDS.DOUBLE_SIDED_CHESS]: DoubleSidedChessViewer,
   [GAME_IDS.NUMBER_FOUR]: Number4Viewer,
+  [GAME_IDS.INDIAN_POKER]: IndianPokerViewer,
 };
 
 export default function ArchiveViewPage() {

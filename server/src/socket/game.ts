@@ -43,6 +43,15 @@ import {
   performNumberFourUndo,
   canNumberFourUndo,
 } from './games/number4/index.js';
+import {
+  initIndianPoker,
+  handleIndianPokerAction,
+  cleanupIndianPoker,
+  getIndianPokerState,
+  emitIndianPokerStateToSocket,
+  performIndianPokerUndo,
+  canIndianPokerUndo,
+} from './games/indian-poker/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -55,6 +64,7 @@ interface GameModuleHandlers {
     io: IO, roomId: string, players: Player[], playMode: PlayMode,
     startedAt: number, timeLimitSeconds: number | null,
     endGameCallback: EndGameCallback,
+    gameOptions?: Record<string, unknown>,
   ) => void;
   handleAction: (io: IO, socket: TypedSocket, roomId: string, data: Record<string, unknown>) => void;
   cleanup: (roomId: string) => void;
@@ -101,6 +111,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performNumberFourUndo,
     canUndo: canNumberFourUndo,
   },
+  [GAME_IDS.INDIAN_POKER]: {
+    init: initIndianPoker,
+    handleAction: handleIndianPokerAction,
+    cleanup: cleanupIndianPoker,
+    getState: (roomId) => {
+      const s = getIndianPokerState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.totalBettingActions } : undefined;
+    },
+    emitStateToSocket: emitIndianPokerStateToSocket,
+    performUndo: performIndianPokerUndo,
+    canUndo: canIndianPokerUndo,
+  },
 };
 
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
@@ -129,7 +151,7 @@ export function startGame(io: IO, roomId: string) {
     try {
       gameModule.init(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
         endGame(cbIo, cbRoomId, data);
-      });
+      }, room.gameOptions);
     } catch (err) {
       console.error('[startGame] 게임 초기화 예외', { roomId, gameId: room.gameId }, err);
       io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '게임을 시작하는 중 오류가 발생했습니다.' });
@@ -322,48 +344,6 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     }
   });
 
-  socket.on('game:leave', () => {
-    const roomId = sessions.getRoom(socket.id);
-    if (!roomId) return;
-
-    const room = roomStore.get(roomId);
-    const leavingNickname =
-      room?.players.find((p: Player) => p.id === socket.id)?.nickname ??
-      room?.spectators.find((p: Player) => p.id === socket.id)?.nickname ??
-      sessions.getNickname(socket.id) ??
-      '알 수 없음';
-    const spectatorsBefore = room?.spectators ?? [];
-
-    // 방장이 게임 도중 나가는 경우 카운트다운도 정리
-    if (room?.hostId === socket.id) {
-      clearRoomStartCountdown(roomId);
-    }
-
-    handleGameForfeit(io, roomId, socket.id);
-
-    const result = roomStore.removePlayer(roomId, socket.id);
-    sessions.clearRoom(socket.id);
-    socket.leave(socketRoom(roomId));
-
-    if (result.destroyed) {
-      clearAutoEnd(roomId);
-      gameStartTimes.delete(roomId);
-      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
-      spectatorsBefore.forEach((s: Player) => sessions.clearRoom(s.id));
-      sessions.clearRoomFromAllKicks(roomId);
-      broadcastRoomRemoved(io, roomId);
-    } else {
-      if (result.newHostId) {
-        io.to(socketRoom(roomId)).emit('room:host:changed', { newHostId: result.newHostId });
-      }
-      io.to(socketRoom(roomId)).emit('room:player:left', {
-        playerId: socket.id,
-        nickname: leavingNickname,
-        newHostId: result.newHostId,
-      });
-      broadcastRoomUpdated(io, roomId);
-    }
-  });
 }
 
 export function endGame(

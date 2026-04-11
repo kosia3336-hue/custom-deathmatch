@@ -13,6 +13,7 @@ import { GAME_IDS } from '@/shared/types';
 import { WIN_TYPE_LABEL as FG_WIN_TYPE_LABEL } from '@/components/game/modules/four-gravity/constants';
 import { WIN_TYPE_LABEL as DSC_WIN_TYPE_LABEL } from '@/components/game/modules/double-sided-chess/constants';
 import { WIN_TYPE_LABELS as NF4_WIN_TYPE_LABELS } from '@/components/game/modules/number4/constants';
+import { WIN_TYPE_LABELS as IP_WIN_TYPE_LABELS } from '@/components/game/modules/indian-poker/constants';
 
 const PODIUM_COLORS = ['bg-indigo-600', 'bg-indigo-400', 'bg-indigo-300'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
@@ -75,7 +76,8 @@ export default function ResultScreen() {
 
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
-    const hasRecord = !!(gameResult?.gameResultData as Record<string, unknown> | undefined)?.actions;
+    const _grd = gameResult?.gameResultData as Record<string, unknown> | undefined;
+    const hasRecord = !!(_grd?.actions || _grd?.roundHistory);
     setFooter(
       <>
         {!cancelled && timer > 0 && (
@@ -107,7 +109,9 @@ export default function ResultScreen() {
     ? DSC_WIN_TYPE_LABEL
     : room?.gameId === GAME_IDS.NUMBER_FOUR
       ? NF4_WIN_TYPE_LABELS
-      : FG_WIN_TYPE_LABEL;
+      : room?.gameId === GAME_IDS.INDIAN_POKER
+        ? IP_WIN_TYPE_LABELS
+        : FG_WIN_TYPE_LABEL;
   const winTypeLabel = winType ? ((winLabelMap as Record<string, string>)[winType] ?? null) : null;
 
   const sorted = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);

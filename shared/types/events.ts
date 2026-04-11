@@ -8,6 +8,8 @@ export interface CreateRoomData {
   password?: string;
   maxPlayers: number;
   timeLimitSeconds?: number | null;
+  /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
+  gameOptions?: Record<string, unknown>;
 }
 
 export interface JoinRoomData {

@@ -14,7 +14,8 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
   });
 
   socket.on('chat:send', ({ message, scope }) => {
-    if (!message || message.length === 0 || message.length > 200) return;
+    const trimmed = message?.trim() ?? '';
+    if (trimmed.length === 0 || trimmed.length > 200) return;
 
     const now = Date.now();
     const last = lastMessageTime.get(socket.id) ?? 0;
@@ -28,7 +29,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       id: uuid(),
       sender: socket.id,
       senderNickname: nickname,
-      message: message.trim(),
+      message: trimmed,
       scope,
       isSystem: false,
       timestamp: now,
@@ -45,15 +46,3 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
   });
 }
 
-export function sendSystemMessage(io: IO, target: string, message: string, scope: 'lobby' | 'room' | 'game') {
-  const msg: ChatMessage = {
-    id: uuid(),
-    sender: 'system',
-    senderNickname: '시스템',
-    message,
-    scope,
-    isSystem: true,
-    timestamp: Date.now(),
-  };
-  io.to(target).emit('chat:message', msg);
-}

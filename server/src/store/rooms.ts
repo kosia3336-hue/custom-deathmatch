@@ -22,6 +22,7 @@ function toSummary(room: RoomInternal): RoomSummary {
     status: room.status,
     hostNickname: host?.nickname ?? '',
     timeLimitSeconds: room.timeLimitSeconds,
+    gameOptions: room.gameOptions,
     createdAt: room.createdAt,
   };
 }
@@ -44,6 +45,7 @@ export const roomStore = {
     maxPlayers: number;
     minPlayers: number;
     timeLimitSeconds?: number | null;
+    gameOptions?: Record<string, unknown>;
     host: Player;
   }): Room {
     const id = uuid().slice(0, 8);
@@ -69,6 +71,7 @@ export const roomStore = {
       hostId: opts.host.id,
       inviteToken: null,
       timeLimitSeconds: opts.timeLimitSeconds ?? null,
+      gameOptions: opts.gameOptions ?? {},
       createdAt: Date.now(),
       _minPlayers: opts.minPlayers,
     };

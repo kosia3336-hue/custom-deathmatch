@@ -3,7 +3,11 @@
 import { useState, useCallback } from 'react';
 import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
 
-export default function TileTracker() {
+interface TileTrackerProps {
+  playerNickname?: string;
+}
+
+export default function TileTracker({ playerNickname }: TileTrackerProps = {}) {
   const [white, setWhite] = useState(INITIAL_WHITE);
   const [black, setBlack] = useState(INITIAL_BLACK);
 
@@ -21,7 +25,7 @@ export default function TileTracker() {
   return (
     <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3">
       <div className="mb-2 text-xs font-semibold text-gray-400 tracking-wide">
-        상대 타일 추리
+        {playerNickname ? `${playerNickname} 타일 추리` : '상대 타일 추리'}
       </div>
 
       <div className="flex flex-col gap-2">

@@ -78,3 +78,20 @@ export type {
   NumberFourGameData,
   NumberFourAction,
 } from './number4';
+export {
+  INITIAL_CHIPS_DEFAULT,
+  INITIAL_ANTE,
+} from './indian-poker';
+export type {
+  IPPhase,
+  IPHand,
+  IPWinType,
+  IPActionType,
+  IPPlayerInfo,
+  IPShowdownData,
+  IPDieData,
+  IPBettingAction,
+  IPRoundRecord,
+  IndianPokerGameData,
+  IndianPokerAction,
+} from './indian-poker';

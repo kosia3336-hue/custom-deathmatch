@@ -61,6 +61,10 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
 
+    const gameOptions = (!isRandom && data.gameOptions && typeof data.gameOptions === 'object')
+      ? data.gameOptions
+      : {};
+
     const host = makePlayer(socket, true);
     const room = roomStore.create({
       title: data.title,
@@ -72,6 +76,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       maxPlayers,
       minPlayers: game.minPlayers,
       timeLimitSeconds: tl ?? null,
+      gameOptions,
       host,
     });
 
@@ -365,6 +370,10 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     callback({ success: true });
     sendRoomState(io, roomId);
     broadcastRoomUpdated(io, roomId);
+  });
+
+  socket.on('game:leave', () => {
+    handleLeaveRoom(io, socket);
   });
 }
 

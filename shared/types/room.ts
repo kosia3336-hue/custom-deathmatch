@@ -26,6 +26,8 @@ export interface Room {
   hostId: string;
   inviteToken: string | null;
   timeLimitSeconds: number | null;
+  /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
+  gameOptions: Record<string, unknown>;
   createdAt: number;
 }
 
@@ -42,5 +44,7 @@ export interface RoomSummary {
   status: RoomStatus;
   hostNickname: string;
   timeLimitSeconds: number | null;
+  /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
+  gameOptions: Record<string, unknown>;
   createdAt: number;
 }

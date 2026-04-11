@@ -42,8 +42,14 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitEnabled, setTimeLimitEnabled] = useState(false);
   const [timeLimitMin, setTimeLimitMin] = useState(1);
   const [timeLimitSec, setTimeLimitSec] = useState(0);
+  const [initialChips, setInitialChips] = useState(25);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const CHIPS_MIN = 10;
+  const CHIPS_MAX = 200;
+  const CHIPS_STEP = 5;
+  const CHIPS_PRESETS = [10, 25, 50, 100];
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +63,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitEnabled(false);
     setTimeLimitMin(1);
     setTimeLimitSec(0);
+    setInitialChips(25);
     fetchGames()
       .then(setGames)
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
@@ -98,6 +105,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       setLoading(true);
       setError('');
       const socket = getSocket();
+      const gameOptions: Record<string, unknown> = {};
+      if (selectedGame.id === GAME_IDS.INDIAN_POKER) {
+        gameOptions.initialChips = initialChips;
+      }
       socket.emit(
         'room:create',
         {
@@ -108,6 +119,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           password: roomType === 'private' ? password : undefined,
           maxPlayers,
           timeLimitSeconds: computedTimeLimit,
+          gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
         },
         (res) => {
           setLoading(false);
@@ -253,6 +265,44 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   )}
                 >
                   {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 초기 칩 설정: 인디언홀덤Q 선택 시에만 */}
+        {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              초기 칩 <span className="font-normal text-gray-400">(기본 25)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={CHIPS_MIN}
+                max={CHIPS_MAX}
+                step={CHIPS_STEP}
+                value={initialChips}
+                onChange={(e) => setInitialChips(Number(e.target.value))}
+                className="flex-1"
+              />
+              <span className="w-12 text-right text-sm font-bold text-gray-900">{initialChips}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {CHIPS_PRESETS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setInitialChips(v)}
+                  className={cn(
+                    'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
+                    initialChips === v
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300',
+                  )}
+                >
+                  {v}개
                 </button>
               ))}
             </div>

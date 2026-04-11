@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: '더 지니어스',
   description: '브라우저에서 바로 즐기는 보드게임 플랫폼',
-  metadataBase: new URL('https://example.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001'),
 };
 
 export default function RootLayout({

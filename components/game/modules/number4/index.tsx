@@ -125,7 +125,15 @@ export default function NumberFourGame() {
 
             {/* 타일 트래커: 진행 중 페이즈에서만 표시 */}
             {(gameData.phase === 'tileSubmit' || gameData.phase === 'numberSubmit') && (
-              <TileTracker />
+              isSpectator ? (
+                <div className="flex flex-col gap-3">
+                  {playerEntries.map(([id, p]) => (
+                    <TileTracker key={id} playerNickname={p.nickname} />
+                  ))}
+                </div>
+              ) : (
+                <TileTracker />
+              )
             )}
           </div>
 

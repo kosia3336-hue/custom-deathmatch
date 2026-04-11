@@ -2,6 +2,7 @@ import type { PlayMode } from './room';
 import type { Position, FourGravityAction } from './four-gravity';
 import type { DSCWinType } from './double-sided-chess';
 import type { NF4Number, NF4WinType } from './number4';
+import type { IPHand, IPWinType, IPActionType } from './indian-poker';
 
 export interface GameRecordFile {
   version: string;
@@ -71,5 +72,36 @@ export interface NumberFourRecord {
   finalScores: Record<string, number>;
   roundHistory: unknown[];
   actions: NumberFourRoundAction[];
+  players: Record<string, { nickname: string }>;
+}
+
+export interface IndianPokerBettingAction {
+  playerId: string;
+  action: IPActionType;
+  amount?: number;
+}
+
+export interface IndianPokerRoundRecord {
+  round: number;
+  communityCards: [number, number];
+  /** 플레이어별 카드 숫자 (서버 내부 포맷에서 저장) */
+  playerCards?: Record<string, number>;
+  winnerId: string | null;
+  isDraw: boolean;
+  isDie: boolean;
+  chipChanges: Record<string, number>;
+  bettingActions: IndianPokerBettingAction[];
+  /** 서버 내부 포맷: Record<string, IPHand> (족보 문자열) */
+  hands?: Record<string, IPHand | { card: number; hand: IPHand }>;
+}
+
+export interface IndianPokerRecord {
+  winType: IPWinType | null;
+  finalChips: Record<string, number>;
+  totalRounds: number;
+  deckCycles: number;
+  finalAnte: number;
+  initialChips: number;
+  roundHistory: IndianPokerRoundRecord[];
   players: Record<string, { nickname: string }>;
 }
