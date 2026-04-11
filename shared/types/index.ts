@@ -17,6 +17,7 @@ export type {
   ChatMessage,
   GameState,
   GameResult,
+  GameUndoProposal,
   NicknameResult,
   CreateRoomResult,
   JoinRoomResult,
@@ -40,6 +41,10 @@ export type {
   GameRecordFile,
   FourGravityTurnAction,
   FourGravityRecord,
+  DSCTurnActionLog,
+  DSCRecord,
+  NumberFourRoundAction,
+  NumberFourRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -55,3 +60,21 @@ export type {
   DoubleSidedChessAction,
 } from './double-sided-chess';
 export type { Position as DSCPosition } from './double-sided-chess';
+export {
+  TILES_PER_ROUND,
+  TOTAL_ROUNDS,
+  INITIAL_SCORE,
+  INITIAL_WHITE,
+  INITIAL_BLACK,
+} from './number4';
+export type {
+  NF4Phase,
+  NF4WinType,
+  NF4Number,
+  NF4PlayerInfo,
+  NF4RevealPlayerData,
+  NF4RevealData,
+  NF4RoundRecord,
+  NumberFourGameData,
+  NumberFourAction,
+} from './number4';

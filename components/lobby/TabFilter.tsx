@@ -6,7 +6,7 @@ import { useLobbyStore, type TabFilter as TF } from '@/stores/lobby';
 const TABS: { key: TF; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'public', label: '🔓 공개방' },
-  { key: 'private', label: '🔒 비밀방' },
+  { key: 'private', label: '🔑 비밀방' },
   { key: 'waiting', label: '대기 중' },
   { key: 'playing', label: '게임 중' },
 ];

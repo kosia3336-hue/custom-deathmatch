@@ -66,6 +66,7 @@ export function initDoubleSidedChess(
     playMode,
     gameOver: false,
     actionLog: [],
+    undoSnapshots: [],
   });
 
   const s = gameStates.get(roomId)!;
@@ -209,4 +210,11 @@ export function emitDoubleSidedChessStateToSocket(socket: TypedSocket, roomId: s
   const s = gameStates.get(roomId);
   if (!s) return;
   emitStateToSocket(socket, s);
+}
+
+export { performDoubleSidedChessUndo } from './state.js';
+
+export function canDoubleSidedChessUndo(roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  return !!s && !s.gameOver;
 }

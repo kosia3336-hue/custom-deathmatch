@@ -6,7 +6,11 @@ import type { Game } from '@shared/types/game.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+let cachedGames: Game[] | null = null;
+
 function loadGames(): Game[] {
+  if (cachedGames) return cachedGames;
+
   const candidates = [
     resolve(process.cwd(), 'data', 'games.json'),
     resolve(__dirname, '../data/games.json'),
@@ -14,7 +18,8 @@ function loadGames(): Game[] {
   let last: unknown;
   for (const p of candidates) {
     try {
-      return JSON.parse(readFileSync(p, 'utf-8')) as Game[];
+      cachedGames = JSON.parse(readFileSync(p, 'utf-8')) as Game[];
+      return cachedGames;
     } catch (e) {
       last = e;
     }

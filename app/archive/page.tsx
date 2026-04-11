@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import GNB from '@/components/layout/GNB';
 import { useArchiveStore } from '@/stores/archive';
 import type { GameRecordFile } from '@/shared/types/archive';
+import { GAME_IDS } from '@/shared/types';
 
-const SUPPORTED_GAMES = new Set(['game-001', 'game-002']);
+const SUPPORTED_GAMES = new Set([GAME_IDS.FOUR_GRAVITY, GAME_IDS.DOUBLE_SIDED_CHESS, GAME_IDS.NUMBER_FOUR]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function validateRecord(data: unknown): data is GameRecordFile {

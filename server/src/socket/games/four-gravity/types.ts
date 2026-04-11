@@ -29,6 +29,27 @@ export interface TurnActionLog {
   steps: FourGravityAction[];
 }
 
+/** 무르기용 스냅샷(undoSnapshots 스택에만 쌓임) */
+export interface FourGravityUndoSnapshot {
+  board: CellType[][];
+  currentPlayer: string;
+  currentColor: 'black' | 'white';
+  phase: Phase;
+  turnNumber: number;
+  lastGravityBlack: Direction | null;
+  lastGravityWhite: Direction | null;
+  placedPosition: Position | null;
+  movedPosition: Position | null;
+  neutralCandidates: Position[];
+  blackPlayer: FourGravityPlayerInfo;
+  whitePlayer: FourGravityPlayerInfo;
+  neutralCount: number;
+  winner: string | null;
+  winLine: Position[] | null;
+  winType: 'black' | 'white' | 'neutral' | 'no-space' | 'no-neutral' | 'timeout' | null;
+  actionLog: TurnActionLog[];
+}
+
 export interface InternalState {
   endGameCallback: EndGameFn;
   roomId: string;
@@ -55,6 +76,7 @@ export interface InternalState {
   playMode: PlayMode;
   gameOver: boolean;
   actionLog: TurnActionLog[];
+  undoSnapshots: FourGravityUndoSnapshot[];
 }
 
 export interface WinResult {

@@ -27,7 +27,7 @@ export default function RoomCardList({ rooms, onJoin, onSpectate }: Props) {
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span>{room.roomType === 'private' ? '🔒' : '🔓'}</span>
+                <span>{room.roomType === 'private' ? '🔑' : '🔓'}</span>
                 <span className="font-medium text-gray-900">{room.gameName}</span>
               </div>
               <div className="flex items-center gap-1.5">

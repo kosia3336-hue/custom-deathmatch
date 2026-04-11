@@ -18,5 +18,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": true
+  },
+  {
+    "id": "game-003",
+    "name": "넘버4",
+    "description": "타일 배분과 넘버 선택으로 승점을 겨루는 2인 심리 전략 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

@@ -1,20 +1,18 @@
 import { v4 as uuid } from 'uuid';
-import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents, ChatMessage } from '@shared/types/events.js';
+import type { ChatMessage } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
+import { socketRoom } from './utils.js';
+import type { IO, TypedSocket } from './types.js';
+import { LOBBY_ROOM } from './types.js';
 
-type IO = Server<ClientToServerEvents, ServerToClientEvents>;
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
-
-const LOBBY_ROOM = 'lobby';
 const lastMessageTime = new Map<string, number>();
 const COOLDOWN_MS = 2000;
 
-function socketRoom(roomId: string) {
-  return `room:${roomId}`;
-}
-
 export function registerChatHandlers(io: IO, socket: TypedSocket) {
+  socket.on('disconnect', () => {
+    lastMessageTime.delete(socket.id);
+  });
+
   socket.on('chat:send', ({ message, scope }) => {
     if (!message || message.length === 0 || message.length > 200) return;
 

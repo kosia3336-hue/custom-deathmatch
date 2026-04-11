@@ -9,7 +9,9 @@
     "build": "next build && pnpm --filter the-genius-server build",
     "release": "node scripts/make-release.mjs",
     "start": "next start -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -30,6 +32,8 @@
     "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "prettier": "^3.8.2",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -1,11 +1,6 @@
-import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import { roomStore } from '../store/rooms.js';
-
-type IO = Server<ClientToServerEvents, ServerToClientEvents>;
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
-
-const LOBBY_ROOM = 'lobby';
+import type { IO, TypedSocket } from './types.js';
+import { LOBBY_ROOM } from './types.js';
 
 export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
   socket.on('lobby:join', () => {

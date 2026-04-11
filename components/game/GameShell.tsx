@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
@@ -9,7 +10,9 @@ import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ChatButton from '@/components/room/ChatButton';
-import { formatTime } from '@/lib/utils';
+import { formatTime, cn } from '@/lib/utils';
+import { GAME_IDS } from '@/shared/types/game';
+import type { GameUndoProposal } from '@/shared/types/events';
 
 function ElapsedTimer({ startedAt }: { startedAt: number }) {
   const [elapsed, setElapsed] = useState(0);
@@ -32,6 +35,10 @@ export default function GameShell({ children }: Props) {
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [showLeave, setShowLeave] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
+  const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
+  const [undoWaiting, setUndoWaiting] = useState(false);
+  const isSpectator = useRoomStore((s) => s.isSpectator);
+  const gameStateSigRef = useRef<string | null>(null);
 
   const startedAt = gameState?.startedAt;
 
@@ -68,23 +75,85 @@ export default function GameShell({ children }: Props) {
     return () => setHeaderRight(null);
   }, [setHeaderRight, startedAt]);
 
-  /* ── 푸터 슬롯: 닉네임 + 관전자 수 ── */
   useEffect(() => {
+    const s = getSocket();
+    const onProposal = (p: GameUndoProposal) => setUndoProposal(p);
+    const onDeclined = () => {
+      setUndoWaiting(false);
+      toast.message('상대가 무르기를 거절했습니다.');
+    };
+    // 무르기 요청이 서버에서 거부된 경우 (권한 없음, 이미 진행 중 등)
+    const onError = (data: { message: string }) => {
+      if (undoWaiting) {
+        setUndoWaiting(false);
+      }
+      if (data?.message) toast.error(data.message);
+    };
+    s.on('game:undo:proposal', onProposal);
+    s.on('game:undo:declined', onDeclined);
+    s.on('error', onError);
+    return () => {
+      s.off('game:undo:proposal', onProposal);
+      s.off('game:undo:declined', onDeclined);
+      s.off('error', onError);
+    };
+  }, [undoWaiting]);
+
+  const gameStateSig = gameState
+    ? `${gameState.turnNumber}-${gameState.turnStartedAt ?? ''}-${gameState.message}`
+    : null;
+
+  useEffect(() => {
+    if (!undoWaiting) {
+      gameStateSigRef.current = gameStateSig;
+      return;
+    }
+    if (gameStateSig && gameStateSig !== gameStateSigRef.current) {
+      setUndoWaiting(false);
+      gameStateSigRef.current = gameStateSig;
+    }
+  }, [gameStateSig, undoWaiting]);
+
+  /* ── 푸터 슬롯: 닉네임 + 무르기 + 관전자 수 ── */
+  useEffect(() => {
+    const showUndo = !isSpectator && !!room;
+
     setFooter(
-      <>
-        <span className="mr-auto text-sm font-medium text-gray-700">{nickname}</span>
-        {room && (
-          <button
-            onClick={() => setShowPlayers(true)}
-            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            👁️ {room.spectators.length}명 관전 중
-          </button>
-        )}
-      </>,
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">
+        <span className="text-sm font-medium text-gray-700 sm:mr-auto">{nickname}</span>
+        <div className="flex items-center justify-end gap-2 sm:justify-start">
+          {showUndo && (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              loading={undoWaiting}
+              className={cn('min-h-11 min-w-18 sm:min-h-8')}
+              onClick={() => {
+                const s = getSocket();
+                if (room?.playMode === 'multi') {
+                  setUndoWaiting(true);
+                }
+                s.emit('game:undo:request');
+              }}
+            >
+              무르기
+            </Button>
+          )}
+          {room && (
+            <button
+              type="button"
+              onClick={() => setShowPlayers(true)}
+              className="min-h-11 px-1 text-xs text-gray-500 transition-colors hover:text-gray-700 sm:min-h-0"
+            >
+              👁️ {room.spectators.length}명 관전 중
+            </button>
+          )}
+        </div>
+      </div>,
     );
     return () => setFooter(null);
-  }, [setFooter, nickname, room]);
+  }, [setFooter, nickname, room, isSpectator, undoWaiting]);
 
   return (
     <>
@@ -115,6 +184,38 @@ export default function GameShell({ children }: Props) {
           <Button variant="secondary" onClick={() => setShowLeave(false)}>계속하기</Button>
           <Button variant="danger" onClick={handleLeave}>나가기</Button>
         </div>
+      </Modal>
+
+      <Modal open={!!undoProposal} title="무르기 요청" closable={false} className="max-w-sm">
+        {undoProposal && (
+          <>
+            <p className="mb-6 text-sm text-gray-600">
+              <span className="font-medium text-gray-900">{undoProposal.requesterNickname}</span>
+              님이 무르기를 요청했습니다. 받으시겠습니까?
+            </p>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                variant="secondary"
+                className="min-h-11 w-full sm:w-auto"
+                onClick={() => {
+                  getSocket().emit('game:undo:decline', { requestId: undoProposal.requestId });
+                  setUndoProposal(null);
+                }}
+              >
+                거절
+              </Button>
+              <Button
+                className="min-h-11 w-full sm:w-auto"
+                onClick={() => {
+                  getSocket().emit('game:undo:accept', { requestId: undoProposal.requestId });
+                  setUndoProposal(null);
+                }}
+              >
+                수락
+              </Button>
+            </div>
+          </>
+        )}
       </Modal>
     </>
   );

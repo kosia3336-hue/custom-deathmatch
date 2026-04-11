@@ -4,7 +4,7 @@ import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { WIN_DISPLAY_MS, AI_DELAY } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, DSCWinType, Owner, AIMove } from './types.js';
+import type { InternalState, DSCWinType, Owner, AIMove, DSCUndoSnapshot } from './types.js';
 import {
   isKingInOpponentTerritory,
   countNonKingPieces,
@@ -160,13 +160,66 @@ export function clearTurnTimer(s: InternalState) {
   }
 }
 
-export function startTurnTimer(io: IO, s: InternalState) {
+function cloneUndoSnapshot(s: InternalState): DSCUndoSnapshot {
+  return {
+    board: s.board.map((row) => row.map((c) => (c ? { ...c } : null))) as InternalState['board'],
+    currentPlayer: s.currentPlayer,
+    currentOwner: s.currentOwner,
+    turnNumber: s.turnNumber,
+    firstPlayer: { ...s.firstPlayer },
+    secondPlayer: { ...s.secondPlayer },
+    prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
+    lastMove: s.lastMove
+      ? {
+          type: s.lastMove.type,
+          from: s.lastMove.from ? { ...s.lastMove.from } : null,
+          to: { ...s.lastMove.to },
+          captured: s.lastMove.captured,
+        }
+      : null,
+    actionLog: JSON.parse(JSON.stringify(s.actionLog)) as InternalState['actionLog'],
+    winner: s.winner,
+    winType: s.winType,
+  };
+}
+
+function pushUndoSnapshot(s: InternalState) {
+  s.undoSnapshots.push(cloneUndoSnapshot(s));
+}
+
+function applyUndoSnapshot(s: InternalState, snap: DSCUndoSnapshot) {
+  s.board = snap.board.map((row) => row.map((c) => (c ? { ...c } : null))) as InternalState['board'];
+  s.currentPlayer = snap.currentPlayer;
+  s.currentOwner = snap.currentOwner;
+  s.turnNumber = snap.turnNumber;
+  s.firstPlayer = { ...snap.firstPlayer };
+  s.secondPlayer = { ...snap.secondPlayer };
+  s.prisoners = { first: [...snap.prisoners.first], second: [...snap.prisoners.second] };
+  s.lastMove = snap.lastMove
+    ? {
+        type: snap.lastMove.type,
+        from: snap.lastMove.from ? { ...snap.lastMove.from } : null,
+        to: { ...snap.lastMove.to },
+        captured: snap.lastMove.captured,
+      }
+    : null;
+  s.actionLog = JSON.parse(JSON.stringify(snap.actionLog)) as InternalState['actionLog'];
+  s.winner = snap.winner;
+  s.winType = snap.winType;
+}
+
+function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
   s.turnTimer = setTimeout(() => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
+}
+
+export function startTurnTimer(io: IO, s: InternalState) {
+  pushUndoSnapshot(s);
+  armTurnTimer(io, s);
 }
 
 export function handleTimeout(io: IO, s: InternalState) {
@@ -232,6 +285,35 @@ export function finishTurn(io: IO, s: InternalState) {
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
     runAITurn(io, s.roomId);
   }
+}
+
+export function performDoubleSidedChessUndo(io: IO, roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+  terminateAIWorker(roomId);
+
+  const wantDouble =
+    s.playMode === 'com' &&
+    s.currentPlayer !== AI_PLAYER_ID &&
+    s.undoSnapshots.length >= 3;
+
+  if (wantDouble) {
+    s.undoSnapshots.pop();
+    s.undoSnapshots.pop();
+  } else {
+    if (s.undoSnapshots.length < 2) return false;
+    s.undoSnapshots.pop();
+  }
+
+  const top = s.undoSnapshots[s.undoSnapshots.length - 1];
+  if (!top) return false;
+  applyUndoSnapshot(s, top);
+  armTurnTimer(io, s);
+  broadcastState(io, s);
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    void runAITurn(io, s.roomId);
+  }
+  return true;
 }
 
 /* ────────────────────── AI turn runner ───────────────── */
@@ -330,9 +412,11 @@ export async function runAITurn(io: IO, roomId: string) {
   const move = await runAIWithWorker(s);
 
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   await wait(randDelay());
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   if (move.type === 'move') {
     const cell = s.board[move.from.row][move.from.col];

@@ -3,11 +3,21 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import type { ComponentType } from 'react';
 import GNB from '@/components/layout/GNB';
 import { useArchiveStore } from '@/stores/archive';
+import type { GameRecordFile } from '@/shared/types/archive';
+import { GAME_IDS } from '@/shared/types';
 import FourGravityViewer from '@/components/archive/viewers/four-gravity/FourGravityViewer';
 import DoubleSidedChessViewer from '@/components/archive/viewers/double-sided-chess/DoubleSidedChessViewer';
+import Number4Viewer from '@/components/archive/viewers/number4/Number4Viewer';
 import Link from 'next/link';
+
+const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
+  [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
+  [GAME_IDS.DOUBLE_SIDED_CHESS]: DoubleSidedChessViewer,
+  [GAME_IDS.NUMBER_FOUR]: Number4Viewer,
+};
 
 export default function ArchiveViewPage() {
   const router = useRouter();
@@ -34,18 +44,18 @@ export default function ArchiveViewPage() {
           ← 다른 기록 열기
         </Link>
 
-        {record.gameId === 'game-001' ? (
-          <FourGravityViewer record={record} />
-        ) : record.gameId === 'game-002' ? (
-          <DoubleSidedChessViewer record={record} />
-        ) : (
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-            <p className="mb-4 text-gray-500">이 게임의 뷰어는 아직 준비되지 않았습니다.</p>
-            <pre className="mx-auto max-h-96 max-w-2xl overflow-auto rounded bg-gray-50 p-4 text-left text-xs text-gray-600">
-              {JSON.stringify(record, null, 2)}
-            </pre>
-          </div>
-        )}
+        {(() => {
+          const Viewer = VIEWER_MAP[record.gameId];
+          if (Viewer) return <Viewer record={record} />;
+          return (
+            <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+              <p className="mb-4 text-gray-500">이 게임의 뷰어는 아직 준비되지 않았습니다.</p>
+              <pre className="mx-auto max-h-96 max-w-2xl overflow-auto rounded bg-gray-50 p-4 text-left text-xs text-gray-600">
+                {JSON.stringify(record, null, 2)}
+              </pre>
+            </div>
+          );
+        })()}
       </main>
     </div>
   );

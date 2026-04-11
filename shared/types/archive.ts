@@ -1,6 +1,7 @@
 import type { PlayMode } from './room';
 import type { Position, FourGravityAction } from './four-gravity';
 import type { DSCWinType } from './double-sided-chess';
+import type { NF4Number, NF4WinType } from './number4';
 
 export interface GameRecordFile {
   version: string;
@@ -48,4 +49,27 @@ export interface DSCRecord {
     first: { nickname: string };
     second: { nickname: string };
   };
+}
+
+export interface NumberFourRoundAction {
+  round: number;
+  players: Record<string, {
+    nickname: string;
+    white: number;
+    black: number;
+    number: NF4Number;
+    success: boolean;
+    scoreChange: number;
+    scoreBefore: number;
+    scoreAfter: number;
+  }>;
+}
+
+export interface NumberFourRecord {
+  winType: NF4WinType | null;
+  tiebreakerReason: string | null;
+  finalScores: Record<string, number>;
+  roundHistory: unknown[];
+  actions: NumberFourRoundAction[];
+  players: Record<string, { nickname: string }>;
 }

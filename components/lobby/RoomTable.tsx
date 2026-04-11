@@ -1,7 +1,5 @@
 'use client';
 
-'use client';
-
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
@@ -42,7 +40,7 @@ export default function RoomTable({ rooms, onJoin, onSpectate }: Props) {
               >
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
-                    <span>{room.roomType === 'private' ? '🔒' : '🔓'}</span>
+                    <span>{room.roomType === 'private' ? '🔑' : '🔓'}</span>
                     <Badge variant={isWaiting ? 'info' : 'warning'}>
                       {isWaiting ? '대기' : '진행'}
                     </Badge>
