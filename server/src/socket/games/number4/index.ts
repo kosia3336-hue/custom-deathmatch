@@ -11,10 +11,12 @@ import {
   startRoundTimer,
   clearRoundTimer,
   processRound,
+  performNumberFourUndo,
 } from './state.js';
 import { aiSubmitTiles, aiSubmitNumber } from './ai.js';
 
 export type { EndGameFn };
+export { performNumberFourUndo };
 
 export function initNumberFour(
   io: IO,
@@ -60,6 +62,8 @@ export function initNumberFour(
     actionLog: [],
     currentSide: playMode === 'solo' ? 'player1' : null,
     aiTargetNumber: null,
+    undoSnapshots: [],
+    aiGeneration: 0,
   });
 
   const s = gameStates.get(roomId)!;
@@ -227,6 +231,16 @@ function getActionPlayer(
   if (s.player1.id === socketId) return s.player1;
   if (s.player2.id === socketId) return s.player2;
   return null;
+}
+
+export function canNumberFourUndo(roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+  const partial =
+    s.phase !== 'tileSubmit' ||
+    s.player1.submitted || s.player2.submitted ||
+    s.player1.submittedWhite !== null || s.player2.submittedWhite !== null;
+  return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
 }
 
 export function cleanupNumberFour(roomId: string) {

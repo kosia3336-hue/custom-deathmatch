@@ -1,16 +1,12 @@
-import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import type { Player } from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById, getGames } from '../routes/games.js';
 import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
-import { startGame, handleGameForfeit } from './game.js';
-import { clearRoomStartCountdown, setRoomStartCountdown } from './roomCountdown.js';
+import { startGame, handleGameForfeit, clearAutoEnd, clearGameStartTime } from './game.js';
+import { clearRoomStartCountdown, setRoomStartCountdown, hasRoomStartCountdown } from './roomCountdown.js';
 import { socketRoom } from './utils.js';
-
-type IO = Server<ClientToServerEvents, ServerToClientEvents>;
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
+import type { IO, TypedSocket } from './types.js';
 
 function makePlayer(socket: TypedSocket, isHost: boolean): Player {
   return {
@@ -83,11 +79,14 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     sessions.setRoom(socket.id, room.id);
     broadcastRoomCreated(io, room.id);
 
-    callback({ success: true, roomId: room.id });
-
+    // 솔로: startGame이 room:state·game:state를 먼저 보낸 뒤 콜백해야 클라이언트가 /play로
+    // 이동할 때 스토어에 gameId가 이미 반영된다(콜백 선행 시 플레이스홀더 깜빡임·HMR과 겹쳐
+    // "새로고침"처럼 느껴질 수 있음).
     if (room.playMode === 'solo') {
       startGame(io, room.id);
     }
+
+    callback({ success: true, roomId: room.id });
   });
 
   socket.on('room:join', (data, callback) => {
@@ -207,10 +206,17 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const targetNickname = sessions.getNickname(targetId);
     if (targetNickname) sessions.addKick(targetNickname, roomId);
 
-    roomStore.removePlayer(roomId, targetId);
+    const kickResult = roomStore.removePlayer(roomId, targetId);
     sessions.clearRoom(targetId);
     targetSocket.leave(socketRoom(roomId));
     targetSocket.emit('kicked', { reason: '방장에 의해 퇴장되었습니다.' });
+
+    if (kickResult.destroyed) {
+      sessions.clearRoomFromAllKicks(roomId);
+      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+      broadcastRoomRemoved(io, roomId);
+      return;
+    }
 
     io.to(socketRoom(roomId)).emit('room:player:kicked', { playerId: targetId });
     sendRoomState(io, roomId);
@@ -235,6 +241,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.hostId !== socket.id) return;
+
+    // 이미 카운트다운이 진행 중이면 무시
+    if (hasRoomStartCountdown(roomId)) return;
 
     const check = roomStore.canStart(roomId);
     if (!check.ok) {
@@ -383,6 +392,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   socket.leave(socketRoom(roomId));
 
   if (result.destroyed) {
+    clearAutoEnd(roomId);
+    clearGameStartTime(roomId);
     io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
     spectatorsBefore.forEach((s) => sessions.clearRoom(s.id));
     sessions.clearRoomFromAllKicks(roomId);

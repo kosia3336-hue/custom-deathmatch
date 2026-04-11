@@ -17,6 +17,7 @@ export type {
   ChatMessage,
   GameState,
   GameResult,
+  GameUndoProposal,
   NicknameResult,
   CreateRoomResult,
   JoinRoomResult,

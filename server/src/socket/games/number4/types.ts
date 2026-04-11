@@ -55,6 +55,27 @@ export interface RoundActionLog {
   }>;
 }
 
+export interface NF4PlayerSnapshot {
+  score: number;
+  remainingWhite: number;
+  remainingBlack: number;
+  submitted: boolean;
+  submittedWhite: number | null;
+  submittedBlack: number | null;
+  submittedNumber: NF4Number | null;
+}
+
+export interface NF4UndoSnapshot {
+  round: number;
+  phase: NF4Phase;
+  player1: NF4PlayerSnapshot;
+  player2: NF4PlayerSnapshot;
+  roundHistory: InternalRoundRecord[];
+  actionLog: RoundActionLog[];
+  currentSide: 'player1' | 'player2' | null;
+  aiTargetNumber: NF4Number | null;
+}
+
 export interface InternalState {
   endGameCallback: EndGameFn;
   roomId: string;
@@ -77,6 +98,10 @@ export interface InternalState {
   currentSide: 'player1' | 'player2' | null;
   /** COM AI가 타일 제출 시 결정한 넘버 (방별 격리) */
   aiTargetNumber: NF4Number | null;
+  /** 무르기용 라운드 스냅샷 스택 */
+  undoSnapshots: NF4UndoSnapshot[];
+  /** 무르기 발생 시 증가 — AI 비동기 제출 취소 신호 */
+  aiGeneration: number;
 }
 
 export interface JudgeResult {

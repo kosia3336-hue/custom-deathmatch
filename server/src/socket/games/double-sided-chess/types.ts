@@ -34,6 +34,25 @@ export interface TurnActionLog {
   action: DoubleSidedChessAction;
 }
 
+export interface DSCUndoSnapshot {
+  board: Cell[][];
+  currentPlayer: string;
+  currentOwner: Owner;
+  turnNumber: number;
+  firstPlayer: DSCPlayerInfo;
+  secondPlayer: DSCPlayerInfo;
+  prisoners: { first: PieceType[]; second: PieceType[] };
+  lastMove: {
+    type: 'move' | 'place-prisoner';
+    from: Position | null;
+    to: Position;
+    captured: PieceType | null;
+  } | null;
+  actionLog: TurnActionLog[];
+  winner: string | null;
+  winType: DSCWinType | null;
+}
+
 export interface InternalState {
   endGameCallback: EndGameFn;
   roomId: string;
@@ -62,4 +81,5 @@ export interface InternalState {
   playMode: PlayMode;
   gameOver: boolean;
   actionLog: TurnActionLog[];
+  undoSnapshots: DSCUndoSnapshot[];
 }

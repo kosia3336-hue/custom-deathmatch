@@ -3,7 +3,7 @@ import type { FourGravityGameData } from '@shared/types/four-gravity.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { AI_DELAY, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, WinResult } from './types.js';
+import type { InternalState, WinResult, FourGravityUndoSnapshot } from './types.js';
 import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin, hasEmptyCells } from './win.js';
 import { getCandidateCells, getValidDirections, findBestMoveIterative, type AIWorkerData } from './ai.js';
@@ -174,13 +174,70 @@ export function clearTurnTimer(s: InternalState) {
   }
 }
 
-export function startTurnTimer(io: IO, s: InternalState) {
+function cloneUndoSnapshot(s: InternalState): FourGravityUndoSnapshot {
+  return {
+    board: s.board.map((r) => [...r]),
+    currentPlayer: s.currentPlayer,
+    currentColor: s.currentColor,
+    phase: s.phase,
+    turnNumber: s.turnNumber,
+    lastGravityBlack: s.lastGravityBlack,
+    lastGravityWhite: s.lastGravityWhite,
+    placedPosition: s.placedPosition ? { ...s.placedPosition } : null,
+    movedPosition: s.movedPosition ? { ...s.movedPosition } : null,
+    neutralCandidates: s.neutralCandidates.map((p) => ({ ...p })),
+    blackPlayer: { ...s.blackPlayer },
+    whitePlayer: { ...s.whitePlayer },
+    neutralCount: s.neutralCount,
+    winner: s.winner,
+    winLine: s.winLine ? s.winLine.map((p) => ({ ...p })) : null,
+    winType: s.winType,
+    actionLog: JSON.parse(JSON.stringify(s.actionLog)) as InternalState['actionLog'],
+  };
+}
+
+function pushUndoSnapshot(s: InternalState) {
+  s.undoSnapshots.push(cloneUndoSnapshot(s));
+}
+
+function applyUndoSnapshot(s: InternalState, snap: FourGravityUndoSnapshot) {
+  s.board = snap.board.map((r) => [...r]);
+  s.currentPlayer = snap.currentPlayer;
+  s.currentColor = snap.currentColor;
+  s.phase = snap.phase;
+  s.turnNumber = snap.turnNumber;
+  s.lastGravityBlack = snap.lastGravityBlack;
+  s.lastGravityWhite = snap.lastGravityWhite;
+  s.placedPosition = snap.placedPosition ? { ...snap.placedPosition } : null;
+  s.movedPosition = snap.movedPosition ? { ...snap.movedPosition } : null;
+  s.neutralCandidates = snap.neutralCandidates.map((p) => ({ ...p }));
+  s.blackPlayer = { ...snap.blackPlayer };
+  s.whitePlayer = { ...snap.whitePlayer };
+  s.neutralCount = snap.neutralCount;
+  s.winner = snap.winner;
+  s.winLine = snap.winLine ? snap.winLine.map((p) => ({ ...p })) : null;
+  s.winType = snap.winType;
+  s.actionLog = JSON.parse(JSON.stringify(snap.actionLog)) as InternalState['actionLog'];
+}
+
+function hasPartialTurnFourGravity(s: InternalState): boolean {
+  if (s.phase !== 'place') return true;
+  const last = s.actionLog[s.actionLog.length - 1];
+  return !!(last && last.turnNumber === s.turnNumber);
+}
+
+function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
   s.turnTimer = setTimeout(() => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
+}
+
+export function startTurnTimer(io: IO, s: InternalState) {
+  pushUndoSnapshot(s);
+  armTurnTimer(io, s);
 }
 
 export function handleTimeout(io: IO, s: InternalState) {
@@ -230,6 +287,48 @@ export function finishTurn(io: IO, s: InternalState) {
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
     runAITurn(io, s.roomId);
   }
+}
+
+export function performFourGravityUndo(io: IO, roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+
+  terminateAIWorker(roomId);
+
+  const partial = hasPartialTurnFourGravity(s);
+  if (partial) {
+    if (s.undoSnapshots.length < 1) return false;
+    applyUndoSnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
+    armTurnTimer(io, s);
+    broadcastState(io, s);
+    if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+      void runAITurn(io, roomId);
+    }
+    return true;
+  }
+
+  const wantDouble =
+    s.playMode === 'com' &&
+    s.currentPlayer !== AI_PLAYER_ID &&
+    s.undoSnapshots.length >= 3;
+
+  if (wantDouble) {
+    s.undoSnapshots.pop();
+    s.undoSnapshots.pop();
+  } else {
+    if (s.undoSnapshots.length < 2) return false;
+    s.undoSnapshots.pop();
+  }
+
+  const top = s.undoSnapshots[s.undoSnapshots.length - 1];
+  if (!top) return false;
+  applyUndoSnapshot(s, top);
+  armTurnTimer(io, s);
+  broadcastState(io, s);
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    void runAITurn(io, roomId);
+  }
+  return true;
 }
 
 /* ────────────────────── AI turn runner ───────────────── */
@@ -354,12 +453,13 @@ export async function runAITurn(io: IO, roomId: string) {
 
   const move = await runAIWithWorker(s);
 
-  // 워커가 고민하는 동안 방이 사라졌을 수 있음
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   /* ① place */
   await wait(randDelay());
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   s.board[move.place.row][move.place.col] = s.currentColor;
   s.placedPosition = move.place;
@@ -377,6 +477,7 @@ export async function runAITurn(io: IO, roomId: string) {
   /* ② gravity */
   await wait(randDelay());
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   if (move.gravity === 'none') {
     if (s.currentColor === 'black') s.lastGravityBlack = 'none';
@@ -415,6 +516,7 @@ export async function runAITurn(io: IO, roomId: string) {
   /* ③ neutral */
   await wait(randDelay());
   if (!gameStates.has(roomId)) return;
+  if (s.currentPlayer !== AI_PLAYER_ID) return;
 
   const neutralPos = move.neutral ?? cands[0];
   s.board[neutralPos.row][neutralPos.col] = 'neutral';

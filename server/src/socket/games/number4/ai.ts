@@ -252,8 +252,10 @@ export async function aiSubmitTiles(io: IO, s: InternalState) {
   const ai = s.player1.id === AI_PLAYER_ID ? s.player1 : s.player2;
   if (ai.submitted && ai.submittedWhite !== null) return;
 
+  const gen = s.aiGeneration;
   await wait(randDelay());
   if (!gameStates.has(s.roomId) || s.gameOver) return;
+  if (s.aiGeneration !== gen) return;
 
   const plan = findBestPlan(s, ai);
   s.aiTargetNumber = plan.number;
@@ -276,8 +278,10 @@ export async function aiSubmitNumber(io: IO, s: InternalState) {
   const ai = s.player1.id === AI_PLAYER_ID ? s.player1 : s.player2;
   if (ai.submitted && ai.submittedNumber !== null) return;
 
+  const gen = s.aiGeneration;
   await wait(randDelay());
   if (!gameStates.has(s.roomId) || s.gameOver) return;
+  if (s.aiGeneration !== gen) return;
 
   ai.submittedNumber = s.aiTargetNumber ?? 1;
   ai.submitted = true;

@@ -4,8 +4,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
-import type { Room, Player } from '@/shared/types';
-import type { UpdateRoomSettings, ChatMessage, GameState, GameResult } from '@/shared/types';
+import type { Room, Player, UpdateRoomSettings, ChatMessage, GameState, GameResult } from '@/shared/types';
 
 export function useRoom(roomId: string) {
   const mountedRef = useRef(false);
@@ -20,7 +19,9 @@ export function useRoom(roomId: string) {
   useEffect(() => {
     const socket = getSocket();
 
-    const onRoomState = (room: Room) => useRoomStore.getState().setRoom(room);
+    const onRoomState = (room: Room) => {
+      useRoomStore.getState().setRoom(room);
+    };
     const onPlayerJoined = (player: Player) => useRoomStore.getState().addPlayer(player);
     const onPlayerLeft = ({ playerId, nickname, newHostId }: { playerId: string; nickname: string; newHostId?: string }) => {
       useRoomStore.getState().removePlayer(playerId);
@@ -32,12 +33,15 @@ export function useRoom(roomId: string) {
     const onPlayerKicked = ({ playerId }: { playerId: string }) => useRoomStore.getState().removePlayer(playerId);
     const onHostChanged = ({ newHostId }: { newHostId: string }) => useRoomStore.getState().setHost(newHostId);
     const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
-    const onGameStarted = () => useRoomStore.getState().setCountdown(null);
+    const onGameStarted = () => { useRoomStore.getState().setCountdown(null); };
     const onSettingsUpdated = (settings: UpdateRoomSettings) => useRoomStore.getState().updateSettings(settings);
-    const onDisbanded = () => useRoomStore.getState().reset();
+    const onDisbanded = () => { useRoomStore.getState().reset(); };
     const onChatMessage = (msg: ChatMessage) => useRoomStore.getState().addMessage(msg);
-    const onGameState = (state: GameState) => useRoomStore.getState().setGameState(state);
-    const onGameEnded = (result: GameResult) => useRoomStore.getState().setGameResult(result);
+    const onGameState = (state: GameState) => { useRoomStore.getState().setGameState(state); };
+    const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
+    const onSocketError = (data: { message?: string }) => {
+      if (data?.message) toast.error(data.message);
+    };
 
     socket.on('room:state', onRoomState);
     socket.on('room:player:joined', onPlayerJoined);
@@ -53,6 +57,7 @@ export function useRoom(roomId: string) {
     socket.on('chat:message', onChatMessage);
     socket.on('game:state', onGameState);
     socket.on('game:ended', onGameEnded);
+    socket.on('error', onSocketError);
 
     return () => {
       socket.off('room:state', onRoomState);
@@ -69,6 +74,7 @@ export function useRoom(roomId: string) {
       socket.off('chat:message', onChatMessage);
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
+      socket.off('error', onSocketError);
     };
   }, [roomId]);
 

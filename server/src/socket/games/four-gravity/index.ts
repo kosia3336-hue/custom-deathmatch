@@ -78,6 +78,7 @@ export function initFourGravity(
     playMode,
     gameOver: false,
     actionLog: [],
+    undoSnapshots: [],
   });
 
   const s = gameStates.get(roomId)!;
@@ -227,4 +228,11 @@ export function emitFourGravityStateToSocket(socket: TypedSocket, roomId: string
   const s = gameStates.get(roomId);
   if (!s) return;
   emitStateToSocket(socket, s);
+}
+
+export { performFourGravityUndo } from './state.js';
+
+export function canFourGravityUndo(roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  return !!s && !s.gameOver;
 }

@@ -1,6 +1,7 @@
-import type { Server, Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents, GameState, GameResult } from '@shared/types/events.js';
+import { randomUUID } from 'node:crypto';
+import type { GameState, GameResult } from '@shared/types/events.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { GAME_IDS } from '@shared/types/game.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
@@ -8,12 +9,21 @@ import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
 import { socketRoom } from './utils.js';
+import type { IO, TypedSocket } from './types.js';
+import {
+  clearPendingUndo,
+  peekPendingUndo,
+  setPendingUndo,
+  takePendingUndo,
+} from './gameUndoPending.js';
 import {
   initFourGravity,
   handleFourGravityAction,
   cleanupFourGravity,
   getFourGravityState,
   emitFourGravityStateToSocket,
+  performFourGravityUndo,
+  canFourGravityUndo,
 } from './games/four-gravity/index.js';
 import {
   initDoubleSidedChess,
@@ -21,6 +31,8 @@ import {
   cleanupDoubleSidedChess,
   getDoubleSidedChessState,
   emitDoubleSidedChessStateToSocket,
+  performDoubleSidedChessUndo,
+  canDoubleSidedChessUndo,
 } from './games/double-sided-chess/index.js';
 import {
   initNumberFour,
@@ -28,10 +40,9 @@ import {
   cleanupNumberFour,
   getNumberFourState,
   emitNumberFourStateToSocket,
+  performNumberFourUndo,
+  canNumberFourUndo,
 } from './games/number4/index.js';
-
-type IO = Server<ClientToServerEvents, ServerToClientEvents>;
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 
 type EndGameCallback = (
   io: IO,
@@ -49,6 +60,8 @@ interface GameModuleHandlers {
   cleanup: (roomId: string) => void;
   getState: (roomId: string) => { gameOver: boolean; totalTurns: number } | undefined;
   emitStateToSocket: (socket: TypedSocket, roomId: string) => void;
+  performUndo: (io: IO, roomId: string) => boolean;
+  canUndo: (roomId: string) => boolean;
 }
 
 const gameModules: Record<string, GameModuleHandlers> = {
@@ -61,6 +74,8 @@ const gameModules: Record<string, GameModuleHandlers> = {
       return s ? { gameOver: s.gameOver, totalTurns: s.turnNumber } : undefined;
     },
     emitStateToSocket: emitFourGravityStateToSocket,
+    performUndo: performFourGravityUndo,
+    canUndo: canFourGravityUndo,
   },
   [GAME_IDS.DOUBLE_SIDED_CHESS]: {
     init: initDoubleSidedChess,
@@ -71,6 +86,8 @@ const gameModules: Record<string, GameModuleHandlers> = {
       return s ? { gameOver: s.gameOver, totalTurns: s.turnNumber } : undefined;
     },
     emitStateToSocket: emitDoubleSidedChessStateToSocket,
+    performUndo: performDoubleSidedChessUndo,
+    canUndo: canDoubleSidedChessUndo,
   },
   [GAME_IDS.NUMBER_FOUR]: {
     init: initNumberFour,
@@ -81,6 +98,8 @@ const gameModules: Record<string, GameModuleHandlers> = {
       return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
     },
     emitStateToSocket: emitNumberFourStateToSocket,
+    performUndo: performNumberFourUndo,
+    canUndo: canNumberFourUndo,
   },
 };
 
@@ -92,6 +111,8 @@ const gameStartTimes = new Map<string, number>();
 export function startGame(io: IO, roomId: string) {
   const room = roomStore.get(roomId);
   if (!room) return;
+
+  clearPendingUndo(roomId);
 
   const startedAt = Date.now();
   gameStartTimes.set(roomId, startedAt);
@@ -105,9 +126,17 @@ export function startGame(io: IO, roomId: string) {
 
   const gameModule = gameModules[room.gameId];
   if (gameModule) {
-    gameModule.init(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
-      endGame(cbIo, cbRoomId, data);
-    });
+    try {
+      gameModule.init(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
+        endGame(cbIo, cbRoomId, data);
+      });
+    } catch (err) {
+      console.error('[startGame] 게임 초기화 예외', { roomId, gameId: room.gameId }, err);
+      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '게임을 시작하는 중 오류가 발생했습니다.' });
+      roomStore.delete(roomId);
+      broadcastRoomRemoved(io, roomId);
+      return;
+    }
   } else {
     const state: GameState = {
       roomId,
@@ -134,6 +163,7 @@ export function handleGameForfeit(io: IO, roomId: string, leavingSocketId: strin
   if (!gameModule) return;
 
   const state = gameModule.getState(roomId);
+  clearPendingUndo(roomId);
   gameModule.cleanup(roomId);
 
   if (state && !state.gameOver && room.playMode === 'multi') {
@@ -172,12 +202,104 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     gameModules[room.gameId]?.handleAction(io, socket, roomId, data);
   });
 
+  socket.on('game:undo:request', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+
+    if (!room.players.some((p: Player) => p.id === socket.id)) {
+      socket.emit('error', { message: '플레이어만 무르기를 요청할 수 있습니다.' });
+      return;
+    }
+
+    if (peekPendingUndo(roomId)) {
+      socket.emit('error', { message: '이미 처리 중인 무르기 요청이 있습니다.' });
+      return;
+    }
+
+    const gameModule = gameModules[room.gameId];
+    if (!gameModule?.canUndo(roomId)) {
+      socket.emit('error', { message: '지금은 무르기를 요청할 수 없습니다.' });
+      return;
+    }
+
+    if (room.playMode === 'multi') {
+      const opponent = room.players.find((p: Player) => p.id !== socket.id);
+      if (!opponent) return;
+      const requestId = randomUUID();
+      setPendingUndo(roomId, {
+        requestId,
+        requesterId: socket.id,
+        gameId: room.gameId,
+      });
+      io.to(opponent.id).emit('game:undo:proposal', {
+        requestId,
+        requesterId: socket.id,
+        requesterNickname: sessions.getNickname(socket.id) ?? '플레이어',
+      });
+      return;
+    }
+
+    const ok = gameModule.performUndo(io, roomId);
+    if (!ok) {
+      socket.emit('error', { message: '지금은 무를 수 있는 수가 없습니다.' });
+    }
+  });
+
+  socket.on('game:undo:accept', (data) => {
+    const requestId = data?.requestId;
+    if (typeof requestId !== 'string') return;
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+
+    const pending = peekPendingUndo(roomId);
+    if (!pending || pending.requestId !== requestId) return;
+    if (socket.id === pending.requesterId) return;
+
+    const isOpponent = room.players.some(
+      (p: Player) => p.id === socket.id && p.id !== pending.requesterId,
+    );
+    if (!isOpponent) return;
+
+    takePendingUndo(roomId, requestId);
+
+    const ok = gameModules[room.gameId]?.performUndo(io, roomId) ?? false;
+    if (!ok) {
+      socket.emit('error', { message: '무르기에 실패했습니다.' });
+    }
+  });
+
+  socket.on('game:undo:decline', (data) => {
+    const requestId = data?.requestId;
+    if (typeof requestId !== 'string') return;
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+
+    const pending = peekPendingUndo(roomId);
+    if (!pending || pending.requestId !== requestId) return;
+    if (socket.id === pending.requesterId) return;
+
+    const isOpponent = room.players.some(
+      (p: Player) => p.id === socket.id && p.id !== pending.requesterId,
+    );
+    if (!isOpponent) return;
+
+    clearPendingUndo(roomId);
+    io.to(pending.requesterId).emit('game:undo:declined');
+  });
+
   socket.on('game:end', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.hostId !== socket.id) return;
 
+    clearPendingUndo(roomId);
     gameModules[room.gameId]?.cleanup(roomId);
     endGame(io, roomId);
   });
@@ -211,6 +333,11 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       sessions.getNickname(socket.id) ??
       '알 수 없음';
     const spectatorsBefore = room?.spectators ?? [];
+
+    // 방장이 게임 도중 나가는 경우 카운트다운도 정리
+    if (room?.hostId === socket.id) {
+      clearRoomStartCountdown(roomId);
+    }
 
     handleGameForfeit(io, roomId, socket.id);
 
@@ -246,6 +373,9 @@ export function endGame(
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
+
+  // 이중 호출 시 기존 타이머를 먼저 정리
+  clearAutoEnd(roomId);
 
   roomStore.setStatus(roomId, 'finished');
 
@@ -286,10 +416,14 @@ export function endGame(
   autoEndTimers.set(roomId, timer);
 }
 
-function clearAutoEnd(roomId: string) {
+export function clearAutoEnd(roomId: string) {
   const timer = autoEndTimers.get(roomId);
   if (timer) {
     clearTimeout(timer);
     autoEndTimers.delete(roomId);
   }
+}
+
+export function clearGameStartTime(roomId: string) {
+  gameStartTimes.delete(roomId);
 }

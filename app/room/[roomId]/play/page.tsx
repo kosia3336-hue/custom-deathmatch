@@ -28,6 +28,11 @@ export default function PlayPage() {
   const { gameResult } = useRoom(roomId);
   const gameId = useRoomStore((s) => s.room?.gameId);
 
+  /** 플레이 라우트 진입마다(대기실→플레이는 roomId 동일) 이전 판 gameResult 제거 */
+  useEffect(() => {
+    useRoomStore.getState().setGameResult(null);
+  }, []);
+
   useEffect(() => {
     if (!gameResult) return;
     const timer = setTimeout(() => {
@@ -49,7 +54,7 @@ export default function PlayPage() {
 
   useEffect(() => {
     getSocket().emit('game:sync');
-  }, []);
+  }, [roomId]);
 
   return (
     <GameShell>

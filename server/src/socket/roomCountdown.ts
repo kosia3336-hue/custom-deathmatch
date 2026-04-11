@@ -15,3 +15,7 @@ export function setRoomStartCountdown(
   clearRoomStartCountdown(roomId);
   roomStartIntervals.set(roomId, interval);
 }
+
+export function hasRoomStartCountdown(roomId: string): boolean {
+  return roomStartIntervals.has(roomId);
+}

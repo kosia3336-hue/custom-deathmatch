@@ -3,7 +3,7 @@ import type { NumberFourGameData, NF4PlayerInfo, NF4Number, NF4RoundRecord } fro
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { TOTAL_ROUNDS, TILES_PER_ROUND, REVEAL_DELAY_MS, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, InternalRoundRecord, NF4PlayerInternal } from './types.js';
+import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnapshot } from './types.js';
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
 
@@ -148,13 +148,98 @@ export function clearRoundTimer(s: InternalState) {
   }
 }
 
-export function startRoundTimer(io: IO, s: InternalState) {
+function armRoundTimer(io: IO, s: InternalState) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
   s.roundTimer = setTimeout(() => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
+}
+
+export function startRoundTimer(io: IO, s: InternalState) {
+  pushUndoSnapshot(s);
+  armRoundTimer(io, s);
+}
+
+/* ────────────────────── undo snapshots ───────────── */
+
+function snapshotPlayer(p: NF4PlayerInternal): NF4UndoSnapshot['player1'] {
+  return {
+    score: p.score,
+    remainingWhite: p.remainingWhite,
+    remainingBlack: p.remainingBlack,
+    submitted: p.submitted,
+    submittedWhite: p.submittedWhite,
+    submittedBlack: p.submittedBlack,
+    submittedNumber: p.submittedNumber,
+  };
+}
+
+function restorePlayer(p: NF4PlayerInternal, snap: NF4UndoSnapshot['player1']) {
+  p.score = snap.score;
+  p.remainingWhite = snap.remainingWhite;
+  p.remainingBlack = snap.remainingBlack;
+  p.submitted = snap.submitted;
+  p.submittedWhite = snap.submittedWhite;
+  p.submittedBlack = snap.submittedBlack;
+  p.submittedNumber = snap.submittedNumber;
+}
+
+function pushUndoSnapshot(s: InternalState) {
+  s.undoSnapshots.push({
+    round: s.round,
+    phase: s.phase,
+    player1: snapshotPlayer(s.player1),
+    player2: snapshotPlayer(s.player2),
+    roundHistory: JSON.parse(JSON.stringify(s.roundHistory)) as InternalRoundRecord[],
+    actionLog: JSON.parse(JSON.stringify(s.actionLog)) as InternalState['actionLog'],
+    currentSide: s.currentSide,
+    aiTargetNumber: s.aiTargetNumber,
+  });
+}
+
+function applyNF4UndoSnapshot(s: InternalState, snap: NF4UndoSnapshot) {
+  s.round = snap.round;
+  s.phase = snap.phase;
+  restorePlayer(s.player1, snap.player1);
+  restorePlayer(s.player2, snap.player2);
+  s.roundHistory = JSON.parse(JSON.stringify(snap.roundHistory)) as InternalRoundRecord[];
+  s.actionLog = JSON.parse(JSON.stringify(snap.actionLog)) as InternalState['actionLog'];
+  s.currentSide = snap.currentSide;
+  s.aiTargetNumber = snap.aiTargetNumber;
+}
+
+function hasPartialRoundNF4(s: InternalState): boolean {
+  if (s.phase !== 'tileSubmit') return true;
+  return (
+    s.player1.submitted || s.player2.submitted ||
+    s.player1.submittedWhite !== null || s.player2.submittedWhite !== null
+  );
+}
+
+export function performNumberFourUndo(io: IO, roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+
+  s.aiGeneration++;
+  clearRoundTimer(s);
+
+  if (hasPartialRoundNF4(s)) {
+    if (s.undoSnapshots.length < 1) return false;
+    applyNF4UndoSnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
+    armRoundTimer(io, s);
+    broadcastState(io, s);
+    return true;
+  }
+
+  if (s.undoSnapshots.length < 2) return false;
+  s.undoSnapshots.pop();
+  const prev = s.undoSnapshots[s.undoSnapshots.length - 1];
+  applyNF4UndoSnapshot(s, prev);
+  armRoundTimer(io, s);
+  broadcastState(io, s);
+  return true;
 }
 
 function handleTimeout(io: IO, s: InternalState) {
@@ -250,8 +335,10 @@ function delayedResolve(
 ) {
   const winnerP = winnerId === s.player1.id ? s.player1 : s.player2;
   const loserP = loserId === s.player1.id ? s.player1 : s.player2;
+  const gen = s.aiGeneration;
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
+    if (s.aiGeneration !== gen) return;
     resolveGame(io, s, winnerId, winnerP.nickname, loserId, loserP.nickname, winType);
   }, REVEAL_DELAY_MS);
 }
@@ -353,8 +440,10 @@ export function processRound(io: IO, s: InternalState) {
     return;
   }
 
+  const gen = s.aiGeneration;
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
+    if (s.aiGeneration !== gen) return;
     advanceRound(io, s);
   }, REVEAL_DELAY_MS);
 }

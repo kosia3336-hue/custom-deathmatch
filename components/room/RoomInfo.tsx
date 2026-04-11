@@ -23,7 +23,7 @@ export default function RoomInfo({ room }: Props) {
         </div>
         <div className="flex justify-between">
           <span>방 유형</span>
-          <span>{room.roomType === 'public' ? '🔓 공개' : '🔒 비밀'}</span>
+          <span>{room.roomType === 'public' ? '🔓 공개' : '🔑 비밀'}</span>
         </div>
         <div className="flex justify-between">
           <span>인원</span>

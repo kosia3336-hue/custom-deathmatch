@@ -56,6 +56,12 @@ export interface GameResult {
   gameResultData?: unknown;
 }
 
+export interface GameUndoProposal {
+  requestId: string;
+  requesterId: string;
+  requesterNickname: string;
+}
+
 export interface NicknameResult {
   success: boolean;
   nickname?: string;
@@ -122,6 +128,9 @@ export interface ClientToServerEvents {
   'chat:send': (data: { message: string; scope: ChatScope }) => void;
 
   'game:action': (data: Record<string, unknown>) => void;
+  'game:undo:request': () => void;
+  'game:undo:accept': (data: { requestId: string }) => void;
+  'game:undo:decline': (data: { requestId: string }) => void;
   'game:sync': () => void;
   'game:leave': () => void;
   'game:rematch': () => void;
@@ -165,6 +174,8 @@ export interface ServerToClientEvents {
   'chat:message': (msg: ChatMessage) => void;
 
   'game:state': (state: GameState) => void;
+  'game:undo:proposal': (data: GameUndoProposal) => void;
+  'game:undo:declined': () => void;
   'game:ended': (result: GameResult) => void;
 
   error: (data: { message: string }) => void;
