@@ -12,6 +12,7 @@ import FourGravityViewer from '@/components/archive/viewers/four-gravity/FourGra
 import DoubleSidedChessViewer from '@/components/archive/viewers/double-sided-chess/DoubleSidedChessViewer';
 import Number4Viewer from '@/components/archive/viewers/number4/Number4Viewer';
 import IndianPokerViewer from '@/components/archive/viewers/indian-poker/IndianPokerViewer';
+import InvestDonateViewer from '@/components/archive/viewers/invest-donate/InvestDonateViewer';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -19,6 +20,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.DOUBLE_SIDED_CHESS]: DoubleSidedChessViewer,
   [GAME_IDS.NUMBER_FOUR]: Number4Viewer,
   [GAME_IDS.INDIAN_POKER]: IndianPokerViewer,
+  [GAME_IDS.INVEST_DONATE]: InvestDonateViewer,
 };
 
 export default function ArchiveViewPage() {

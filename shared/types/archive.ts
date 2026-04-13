@@ -3,6 +3,7 @@ import type { Position, FourGravityAction } from './four-gravity';
 import type { DSCWinType } from './double-sided-chess';
 import type { NF4Number, NF4WinType } from './number4';
 import type { IPHand, IPWinType, IPActionType } from './indian-poker';
+import type { IDCoinAllocation, IDCoinStock, IDBadge, IDWinType } from './invest-donate';
 
 export interface GameRecordFile {
   version: string;
@@ -103,5 +104,31 @@ export interface IndianPokerRecord {
   finalAnte: number;
   initialChips: number;
   roundHistory: IndianPokerRoundRecord[];
+  players: Record<string, { nickname: string }>;
+}
+
+export interface InvestDonateRoundAction {
+  round: number;
+  players: Record<string, {
+    nickname: string;
+    investCoins: IDCoinAllocation;
+    donateCoins: IDCoinAllocation;
+    investTotal: number;
+    donateTotal: number;
+    investBadge: IDBadge;
+    donateBadge: IDBadge;
+    scoreChange: number;
+    scoreBefore: number;
+    scoreAfter: number;
+    coinStockAfter: IDCoinStock;
+  }>;
+}
+
+export interface InvestDonateRecord {
+  winType: IDWinType | null;
+  finalScores: Record<string, number>;
+  finalCoinStocks: Record<string, IDCoinStock>;
+  totalRounds: number;
+  actions: InvestDonateRoundAction[];
   players: Record<string, { nickname: string }>;
 }

@@ -52,6 +52,15 @@ import {
   performIndianPokerUndo,
   canIndianPokerUndo,
 } from './games/indian-poker/index.js';
+import {
+  initInvestDonate,
+  handleInvestDonateAction,
+  cleanupInvestDonate,
+  getInvestDonateState,
+  emitInvestDonateStateToSocket,
+  performInvestDonateUndo,
+  canInvestDonateUndo,
+} from './games/invest-donate/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -122,6 +131,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitIndianPokerStateToSocket,
     performUndo: performIndianPokerUndo,
     canUndo: canIndianPokerUndo,
+  },
+  [GAME_IDS.INVEST_DONATE]: {
+    init: initInvestDonate,
+    handleAction: handleInvestDonateAction,
+    cleanup: cleanupInvestDonate,
+    getState: (roomId) => {
+      const s = getInvestDonateState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
+    },
+    emitStateToSocket: emitInvestDonateStateToSocket,
+    performUndo: performInvestDonateUndo,
+    canUndo: canInvestDonateUndo,
   },
 };
 

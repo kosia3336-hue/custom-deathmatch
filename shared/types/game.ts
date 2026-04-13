@@ -14,5 +14,6 @@ export const GAME_IDS = {
   DOUBLE_SIDED_CHESS: 'game-002',
   NUMBER_FOUR: 'game-003',
   INDIAN_POKER: 'game-004',
+  INVEST_DONATE: 'game-005',
   RANDOM: 'random',
 } as const;

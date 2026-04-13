@@ -45,6 +45,8 @@ export type {
   DSCRecord,
   NumberFourRoundAction,
   NumberFourRecord,
+  InvestDonateRoundAction,
+  InvestDonateRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -82,6 +84,24 @@ export {
   INITIAL_CHIPS_DEFAULT,
   INITIAL_ANTE,
 } from './indian-poker';
+export {
+  ID_TOTAL_ROUNDS,
+  ID_INITIAL_SCORE,
+  ID_INITIAL_COIN_STOCK,
+} from './invest-donate';
+export type {
+  IDPhase,
+  IDWinType,
+  IDBadge,
+  IDCoinAllocation,
+  IDCoinStock,
+  IDPlayerInfo,
+  IDRevealPlayerData,
+  IDRevealData,
+  IDRoundRecord,
+  InvestDonateGameData,
+  InvestDonateAction,
+} from './invest-donate';
 export type {
   IPPhase,
   IPHand,

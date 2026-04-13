@@ -38,5 +38,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-005",
+    "name": "투자와 기부",
+    "description": "한정된 코인을 투자와 기부에 배분하여 대주주와 수전노를 겨루는 심리 전략 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]
