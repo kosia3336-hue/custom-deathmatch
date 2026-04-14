@@ -64,6 +64,14 @@ export default function IndianPokerGame() {
   const isBettingPhase = gameData.phase === 'betting';
   const isResultPhase = gameData.phase === 'showdown' || gameData.phase === 'dieResult' || gameData.phase === 'finished';
 
+  // 관전자용: BettingPanel에 현재 턴 플레이어 기준 데이터 전달
+  const activeTurnEntry = playerEntries.find(([id]) => id === gameData.currentTurnId);
+  const passiveTurnEntry = playerEntries.find(([id]) => id !== gameData.currentTurnId);
+  const bettingMyPlayer = isSpectator ? (activeTurnEntry?.[1] ?? myPlayer!) : myPlayer!;
+  const bettingOpponent = isSpectator ? passiveTurnEntry?.[1] : opponentPlayer;
+  const bettingMyId = isSpectator ? (gameData.currentTurnId ?? undefined) : (myId ?? undefined);
+  const bettingOpponentId = isSpectator ? passiveTurnEntry?.[0] : opponentId;
+
   return (
     <div className="flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
@@ -107,9 +115,10 @@ export default function IndianPokerGame() {
           <div className="w-full max-w-lg">
             <CardArea
               communityCards={gameData.communityCards}
-              myPlayer={isSpectator ? undefined : myPlayer}
-              opponentPlayer={isSpectator ? undefined : opponentPlayer}
+              myPlayer={isSpectator ? playerEntries[1]?.[1] : myPlayer}
+              opponentPlayer={isSpectator ? playerEntries[0]?.[1] : opponentPlayer}
               revealMyCard={isResultPhase}
+              isSpectator={isSpectator}
             />
           </div>
 
@@ -119,14 +128,14 @@ export default function IndianPokerGame() {
               <BettingPanel
                 isMyTurn={isMyTurn}
                 canCheck={canCheck}
-                myPlayer={myPlayer!}
-                opponentPlayer={opponentPlayer}
+                myPlayer={bettingMyPlayer}
+                opponentPlayer={bettingOpponent}
                 pot={gameData.pot}
                 isSpectator={isSpectator}
                 currentRoundActions={gameData.currentRoundActions ?? []}
                 players={gameData.players}
-                opponentId={opponentId}
-                myId={myId ?? undefined}
+                opponentId={bettingOpponentId}
+                myId={bettingMyId}
               />
             )}
 

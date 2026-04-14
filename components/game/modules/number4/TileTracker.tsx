@@ -1,25 +1,21 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
 
 interface TileTrackerProps {
   playerNickname?: string;
+  white: number;
+  black: number;
+  onAdjust: (color: 'white' | 'black', delta: number) => void;
 }
 
-export default function TileTracker({ playerNickname }: TileTrackerProps = {}) {
-  const [white, setWhite] = useState(INITIAL_WHITE);
-  const [black, setBlack] = useState(INITIAL_BLACK);
-
+export default function TileTracker({ playerNickname, white, black, onAdjust }: TileTrackerProps) {
   const adjust = useCallback(
     (color: 'white' | 'black', delta: number) => {
-      if (color === 'white') {
-        setWhite((v) => Math.min(INITIAL_WHITE, Math.max(0, v + delta)));
-      } else {
-        setBlack((v) => Math.min(INITIAL_BLACK, Math.max(0, v + delta)));
-      }
+      onAdjust(color, delta);
     },
-    [],
+    [onAdjust],
   );
 
   return (

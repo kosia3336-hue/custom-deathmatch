@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
@@ -13,6 +13,7 @@ import BetSelector from './BetSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import RoundHistoryTable from './RoundHistoryTable';
+import CoinTracker from './CoinTracker';
 import { WIN_TYPE_LABELS } from './constants';
 
 export default function BettingRpsGame() {
@@ -23,6 +24,13 @@ export default function BettingRpsGame() {
   useTurnTimer();
 
   const shownWinnerRef = useRef<string | null>(null);
+
+  // 코인 추리 상태 — 서버 데이터 연동 없이 수동으로 관리, 라운드 걸쳐 유지
+  const [coinTrackerValue, setCoinTrackerValue] = useState(0);
+
+  const handleCoinTrackerAdjust = useCallback((delta: number) => {
+    setCoinTrackerValue((prev) => Math.max(0, prev + delta));
+  }, []);
 
   useEffect(() => {
     if (!gameData) return;
@@ -162,6 +170,21 @@ export default function BettingRpsGame() {
                 winType={gameData.winType}
               />
             )}
+
+            {/* 코인 추리 트래커: 승부 역할 + submit 페이즈에서만 표시 */}
+            {!isSpectator && isSubmitPhase && iAmMatch && (() => {
+              const opponentEntry = playerEntries.find(([id]) => id !== myId);
+              if (!opponentEntry) return null;
+              const [, opponent] = opponentEntry;
+              return (
+                <CoinTracker
+                  opponentNickname={opponent.nickname}
+                  value={coinTrackerValue}
+                  maxValue={opponent.chips}
+                  onAdjust={handleCoinTrackerAdjust}
+                />
+              );
+            })()}
           </div>
 
           {/* Mobile: round history */}

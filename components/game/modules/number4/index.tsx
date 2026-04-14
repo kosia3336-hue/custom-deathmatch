@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { NumberFourGameData } from '@/shared/types/number4';
+import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
 import TileSelector from './TileSelector';
 import NumberSelector from './NumberSelector';
 import RevealPanel from './RevealPanel';
@@ -22,6 +23,33 @@ export default function NumberFourGame() {
   const { remaining: timerRemaining } = useTurnTimer();
 
   const shownWinnerRef = useRef<string | null>(null);
+
+  // 타일 추리 상태 - 라운드가 바뀌어도 유지되도록 부모에서 관리
+  const [trackerWhite, setTrackerWhite] = useState(INITIAL_WHITE);
+  const [trackerBlack, setTrackerBlack] = useState(INITIAL_BLACK);
+  // 관전자용: 플레이어별 상태
+  const [spectatorTrackers, setSpectatorTrackers] = useState<Record<string, { white: number; black: number }>>({});
+
+  const handleAdjust = useCallback((color: 'white' | 'black', delta: number) => {
+    if (color === 'white') {
+      setTrackerWhite((v) => Math.min(INITIAL_WHITE, Math.max(0, v + delta)));
+    } else {
+      setTrackerBlack((v) => Math.min(INITIAL_BLACK, Math.max(0, v + delta)));
+    }
+  }, []);
+
+  const handleSpectatorAdjust = useCallback((playerId: string, color: 'white' | 'black', delta: number) => {
+    setSpectatorTrackers((prev) => {
+      const cur = prev[playerId] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK };
+      return {
+        ...prev,
+        [playerId]: {
+          white: color === 'white' ? Math.min(INITIAL_WHITE, Math.max(0, cur.white + delta)) : cur.white,
+          black: color === 'black' ? Math.min(INITIAL_BLACK, Math.max(0, cur.black + delta)) : cur.black,
+        },
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!gameData?.winner || !gameData?.winType) return;
@@ -127,12 +155,25 @@ export default function NumberFourGame() {
             {(gameData.phase === 'tileSubmit' || gameData.phase === 'numberSubmit') && (
               isSpectator ? (
                 <div className="flex flex-col gap-3">
-                  {playerEntries.map(([id, p]) => (
-                    <TileTracker key={id} playerNickname={p.nickname} />
-                  ))}
+                  {playerEntries.map(([id, p]) => {
+                    const tracker = spectatorTrackers[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK };
+                    return (
+                      <TileTracker
+                        key={id}
+                        playerNickname={p.nickname}
+                        white={tracker.white}
+                        black={tracker.black}
+                        onAdjust={(color, delta) => handleSpectatorAdjust(id, color, delta)}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
-                <TileTracker />
+                <TileTracker
+                  white={trackerWhite}
+                  black={trackerBlack}
+                  onAdjust={handleAdjust}
+                />
               )
             )}
           </div>

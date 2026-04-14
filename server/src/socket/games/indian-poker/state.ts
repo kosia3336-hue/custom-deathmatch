@@ -58,7 +58,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
     if (isShowingCards) {
       canSeeCard = true;
     } else if (isSpectator) {
-      canSeeCard = true;
+      canSeeCard = isShowingCards; // showdown/dieResult/finished 때만 카드 공개
     } else {
       canSeeCard = pid !== viewerId;
     }

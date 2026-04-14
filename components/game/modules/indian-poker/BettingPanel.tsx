@@ -6,7 +6,6 @@ import type { IPBettingAction, IPPlayerInfo } from '@/shared/types/indian-poker'
 import Button from '@/components/ui/Button';
 import {
   formatBettingVerb,
-  formatSpectatorLastLine,
   getLastActionByPlayer,
 } from './constants';
 
@@ -95,31 +94,13 @@ export default function BettingPanel({
   const lastMine = myId ? getLastActionByPlayer(currentRoundActions, myId) : undefined;
   const myLine = myId ? `나 · ${formatBettingVerb(lastMine)}` : '';
 
-  if (!isMyTurn || isSpectator) {
-    const spectatorLine = isSpectator ? formatSpectatorLastLine(currentRoundActions, players) : null;
-    return (
-      <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
-        <div className="animate-pulse text-gray-400">●  ●  ●</div>
-        <p className="text-sm text-gray-500 lg:text-base">
-          {isSpectator ? '관전 중...' : '상대의 베팅을 기다리는 중...'}
-        </p>
-        {isSpectator && spectatorLine && spectatorLine !== '—' && (
-          <p className="text-center text-xs text-gray-600 lg:text-sm">최근: {spectatorLine}</p>
-        )}
-        {!isSpectator && myLine && lastMine && (
-          <p className="text-center text-xs text-gray-600 lg:text-sm">{myLine}</p>
-        )}
-      </div>
-    );
-  }
-
+  // 베팅 계산 (관전자 뷰에서도 필요하므로 early return 전에 수행)
   const opponentRoundBet = opponentPlayer?.roundBet ?? 0;
   const opponentChips = opponentPlayer?.chips ?? 0;
-
   const callCost = opponentRoundBet - myPlayer.roundBet;
-  const canCall = callCost > 0 && callCost <= myPlayer.chips;
+  // Bug fix: 선플레이어 체크 후 callCost=0인 경우에도 콜 가능해야 함 (쇼다운으로 진행)
+  const canCall = callCost >= 0 && callCost <= myPlayer.chips;
 
-  // 최대 레이즈 = min(내 올인, 상대 올인) — 상대가 콜할 수 없는 초과 레이즈 불허
   const myMaxRaise = myPlayer.roundBet + myPlayer.chips;
   const opponentMaxCall = opponentRoundBet + opponentChips;
   const minRaise = opponentRoundBet + 1;
@@ -128,6 +109,42 @@ export default function BettingPanel({
   const isAllIn = maxRaise === myMaxRaise && myMaxRaise === opponentMaxCall;
 
   const currentRaiseAmount = raiseAmount ?? minRaise;
+
+  // 관전자: 베팅 현황 표시 (버튼 없음)
+  if (isSpectator) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <BettingInfoRow pot={pot} callCost={callCost} centerLabel={opponentLine} />
+        <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+          {currentRoundActions.length > 0 ? (
+            <div className="space-y-0.5">
+              {currentRoundActions.map((a, i) => (
+                <p key={i} className="text-xs text-gray-500">
+                  {players[a.playerId]?.nickname}: {formatBettingVerb(a)}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-gray-400">아직 베팅 없음</p>
+          )}
+        </div>
+        <p className="text-center text-xs text-gray-400">관전 중</p>
+      </div>
+    );
+  }
+
+  // 상대 턴 대기
+  if (!isMyTurn) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
+        <div className="animate-pulse text-gray-400">●  ●  ●</div>
+        <p className="text-sm text-gray-500 lg:text-base">상대의 베팅을 기다리는 중...</p>
+        {myLine && lastMine && (
+          <p className="text-center text-xs text-gray-600 lg:text-sm">{myLine}</p>
+        )}
+      </div>
+    );
+  }
 
   const handleAction = (type: string, amount?: number) => {
     const data: Record<string, unknown> = { type };
@@ -203,7 +220,7 @@ export default function BettingPanel({
               onClick={() => handleAction('call')}
               disabled={!canCall}
             >
-              콜 ({callCost})
+              {callCost > 0 ? `콜 (${callCost})` : '콜'}
             </Button>
           )}
           <Button
