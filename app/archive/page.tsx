@@ -8,7 +8,7 @@ import { useArchiveStore } from '@/stores/archive';
 import type { GameRecordFile } from '@/shared/types/archive';
 import { GAME_IDS } from '@/shared/types';
 
-const SUPPORTED_GAMES = new Set<string>([GAME_IDS.FOUR_GRAVITY, GAME_IDS.DOUBLE_SIDED_CHESS, GAME_IDS.NUMBER_FOUR, GAME_IDS.INDIAN_POKER, GAME_IDS.INVEST_DONATE]);
+const SUPPORTED_GAMES = new Set<string>([GAME_IDS.FOUR_GRAVITY, GAME_IDS.DOUBLE_SIDED_CHESS, GAME_IDS.NUMBER_FOUR, GAME_IDS.INDIAN_POKER, GAME_IDS.INVEST_DONATE, GAME_IDS.BETTING_RPS]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function validateRecord(data: unknown): data is GameRecordFile {

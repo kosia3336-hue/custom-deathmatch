@@ -48,5 +48,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-006",
+    "name": "베팅! 가위바위보",
+    "description": "승부 플레이어는 결과를 고르고, 베팅 플레이어는 예측에 칩을 건다",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

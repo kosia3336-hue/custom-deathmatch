@@ -10,6 +10,7 @@ import DoubleSidedChessGame from '@/components/game/modules/double-sided-chess';
 import NumberFourGame from '@/components/game/modules/number4';
 import IndianPokerGame from '@/components/game/modules/indian-poker';
 import InvestDonateGame from '@/components/game/modules/invest-donate';
+import BettingRpsGame from '@/components/game/modules/betting-rps';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -22,6 +23,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.NUMBER_FOUR]: NumberFourGame,
   [GAME_IDS.INDIAN_POKER]: IndianPokerGame,
   [GAME_IDS.INVEST_DONATE]: InvestDonateGame,
+  [GAME_IDS.BETTING_RPS]: BettingRpsGame,
 };
 
 export default function PlayPage() {

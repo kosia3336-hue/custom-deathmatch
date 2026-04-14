@@ -4,6 +4,7 @@ import type { DSCWinType } from './double-sided-chess';
 import type { NF4Number, NF4WinType } from './number4';
 import type { IPHand, IPWinType, IPActionType } from './indian-poker';
 import type { IDCoinAllocation, IDCoinStock, IDBadge, IDWinType } from './invest-donate';
+import type { BRPSResult, BRPSRole, BRPSBetOutcome, BRPSWinType } from './betting-rps';
 
 export interface GameRecordFile {
   version: string;
@@ -130,5 +131,29 @@ export interface InvestDonateRecord {
   finalCoinStocks: Record<string, IDCoinStock>;
   totalRounds: number;
   actions: InvestDonateRoundAction[];
+  players: Record<string, { nickname: string }>;
+}
+
+export interface BettingRpsRoundAction {
+  round: number;
+  choiceRightPlayerId: string;
+  players: Record<string, {
+    nickname: string;
+    role: BRPSRole;
+    matchResult: BRPSResult | null;
+    prediction: BRPSResult | null;
+    betChips: number | null;
+    betOutcome: BRPSBetOutcome | null;
+    chipsBefore: number;
+    chipsAfter: number;
+    chipChange: number;
+  }>;
+}
+
+export interface BettingRpsRecord {
+  winType: BRPSWinType | null;
+  finalChips: Record<string, number>;
+  totalRounds: number;
+  actions: BettingRpsRoundAction[];
   players: Record<string, { nickname: string }>;
 }

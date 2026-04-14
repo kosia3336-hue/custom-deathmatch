@@ -47,6 +47,8 @@ export type {
   NumberFourRecord,
   InvestDonateRoundAction,
   InvestDonateRecord,
+  BettingRpsRoundAction,
+  BettingRpsRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -115,3 +117,21 @@ export type {
   IndianPokerGameData,
   IndianPokerAction,
 } from './indian-poker';
+export {
+  BRPS_TOTAL_ROUNDS,
+  BRPS_INITIAL_CHIPS,
+  BRPS_BET_MULTIPLIER,
+} from './betting-rps';
+export type {
+  BRPSPhase,
+  BRPSResult,
+  BRPSRole,
+  BRPSBetOutcome,
+  BRPSWinType,
+  BRPSPlayerInfo,
+  BRPSRevealPlayerData,
+  BRPSRevealData,
+  BRPSRoundRecord,
+  BettingRpsGameData,
+  BettingRpsAction,
+} from './betting-rps';

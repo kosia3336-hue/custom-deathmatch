@@ -47,6 +47,15 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       players: grd.players ?? {},
     };
   }
+  if (gameId === GAME_IDS.BETTING_RPS) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      finalChips: grd.finalChips ?? {},
+      totalRounds: grd.totalRounds ?? 0,
+      actions: grd.actions ?? [],
+      players: grd.players ?? {},
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,

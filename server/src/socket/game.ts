@@ -61,6 +61,15 @@ import {
   performInvestDonateUndo,
   canInvestDonateUndo,
 } from './games/invest-donate/index.js';
+import {
+  initBettingRps,
+  handleBettingRpsAction,
+  cleanupBettingRps,
+  getBettingRpsState,
+  emitBettingRpsStateToSocket,
+  performBettingRpsUndo,
+  canBettingRpsUndo,
+} from './games/betting-rps/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -143,6 +152,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitInvestDonateStateToSocket,
     performUndo: performInvestDonateUndo,
     canUndo: canInvestDonateUndo,
+  },
+  [GAME_IDS.BETTING_RPS]: {
+    init: initBettingRps,
+    handleAction: handleBettingRpsAction,
+    cleanup: cleanupBettingRps,
+    getState: (roomId) => {
+      const s = getBettingRpsState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
+    },
+    emitStateToSocket: emitBettingRpsStateToSocket,
+    performUndo: performBettingRpsUndo,
+    canUndo: canBettingRpsUndo,
   },
 };
 
