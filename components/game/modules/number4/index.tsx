@@ -7,8 +7,7 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { NumberFourGameData } from '@/shared/types/number4';
 import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
-import TileSelector from './TileSelector';
-import NumberSelector from './NumberSelector';
+import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import PlayerBadge from './PlayerBadge';
@@ -84,7 +83,9 @@ export default function NumberFourGame() {
     return playerEntries.find(([id]) => id === myId)?.[1];
   })();
 
-  const canAct = !isSpectator && gameData.phase !== 'reveal' && gameData.phase !== 'finished';
+  const isSubmitPhase = gameData.phase === 'submit';
+  const canAct = !isSpectator && isSubmitPhase;
+  const opponent = playerEntries.find(([id]) => id !== myId && id !== myId + '_p2')?.[1];
 
   return (
     <div className="flex h-full">
@@ -110,33 +111,21 @@ export default function NumberFourGame() {
 
           {/* 페이즈별 UI */}
           <div className="w-full max-w-lg flex flex-col gap-3">
-            {gameData.phase === 'tileSubmit' && canAct && myPlayer && (
-              <TileSelector
+            {isSubmitPhase && canAct && myPlayer && !myPlayer.submitted && (
+              <SubmitSelector
                 player={myPlayer}
                 currentSide={gameData.currentSide}
                 isSpectator={isSpectator}
               />
             )}
 
-            {gameData.phase === 'numberSubmit' && canAct && myPlayer && (
-              <NumberSelector
-                submitted={myPlayer.submitted}
-                currentSide={gameData.currentSide}
-                isSpectator={isSpectator}
-              />
-            )}
-
-            {gameData.phase === 'tileSubmit' && (isSpectator || myPlayer?.submitted) && !gameData.currentSide && (
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8">
+            {isSubmitPhase && (isSpectator || myPlayer?.submitted) && !gameData.currentSide && (
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
                 <div className="animate-pulse text-gray-400">●  ●  ●</div>
-                <p className="text-sm text-gray-500">상대의 타일 선택을 기다리는 중...</p>
-              </div>
-            )}
-
-            {gameData.phase === 'numberSubmit' && (isSpectator || myPlayer?.submitted) && !gameData.currentSide && (
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8">
-                <div className="animate-pulse text-gray-400">●  ●  ●</div>
-                <p className="text-sm text-gray-500">상대의 넘버 선택을 기다리는 중...</p>
+                <p className="text-sm text-gray-500">
+                  <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span>
+                  {' '}선택 중...
+                </p>
               </div>
             )}
 
@@ -152,7 +141,7 @@ export default function NumberFourGame() {
             )}
 
             {/* 타일 트래커: 진행 중 페이즈에서만 표시 */}
-            {(gameData.phase === 'tileSubmit' || gameData.phase === 'numberSubmit') && (
+            {isSubmitPhase && (
               isSpectator ? (
                 <div className="flex flex-col gap-3">
                   {playerEntries.map(([id, p]) => {

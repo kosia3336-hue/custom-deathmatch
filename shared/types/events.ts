@@ -18,9 +18,19 @@ export interface JoinRoomData {
   inviteToken?: string;
 }
 
+/** 대기실에서 방장이 보내는 설정 변경 페이로드 */
 export interface UpdateRoomSettings {
   title?: string;
+  gameId?: string;
   maxPlayers?: number;
+  roomType?: RoomType;
+  /** 새로 설정할 비밀번호 (미전송 시 기존 값 유지) */
+  password?: string;
+  /** true면 비밀번호 제거 (공개 전환) */
+  clearPassword?: boolean;
+  timeLimitSeconds?: number | null;
+  /** 게임별 커스텀 옵션 */
+  gameOptions?: Record<string, unknown>;
 }
 
 export type ChatScope = 'lobby' | 'room' | 'game';
@@ -138,6 +148,8 @@ export interface ClientToServerEvents {
   'game:rematch': () => void;
   'game:end': () => void;
 
+  'session:restore': (data: { token: string }) => void;
+
   'spectate:join': (
     data: { roomId: string; password?: string },
     callback: (res: JoinRoomResult) => void,
@@ -170,7 +182,7 @@ export interface ServerToClientEvents {
   'room:host:changed': (data: { newHostId: string }) => void;
   'room:countdown': (data: { count: number }) => void;
   'room:game:started': () => void;
-  'room:settings:updated': (data: UpdateRoomSettings) => void;
+  'room:settings:updated': (room: Room) => void;
   'room:disbanded': (data: { reason: string }) => void;
 
   'chat:message': (msg: ChatMessage) => void;
@@ -183,4 +195,8 @@ export interface ServerToClientEvents {
   error: (data: { message: string }) => void;
   kicked: (data: { reason: string }) => void;
   'connection:duplicate': () => void;
+
+  'session:restored': (data: { nickname: string; roomId?: string }) => void;
+  'player:reconnecting': (data: { playerId: string; nickname: string; secondsLeft: number }) => void;
+  'player:reconnected': (data: { playerId: string; nickname: string }) => void;
 }

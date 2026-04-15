@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { BettingRpsGameData } from '@/shared/types/betting-rps';
+import { brpsMatchWinBonus } from '@/shared/types/betting-rps';
 import PlayerStatusCard from './PlayerStatusCard';
 import RoleSelector from './RoleSelector';
 import ResultSelector from './ResultSelector';
@@ -13,7 +14,6 @@ import BetSelector from './BetSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import RoundHistoryTable from './RoundHistoryTable';
-import CoinTracker from './CoinTracker';
 import { WIN_TYPE_LABELS } from './constants';
 
 export default function BettingRpsGame() {
@@ -24,13 +24,6 @@ export default function BettingRpsGame() {
   useTurnTimer();
 
   const shownWinnerRef = useRef<string | null>(null);
-
-  // 코인 추리 상태 — 서버 데이터 연동 없이 수동으로 관리, 라운드 걸쳐 유지
-  const [coinTrackerValue, setCoinTrackerValue] = useState(0);
-
-  const handleCoinTrackerAdjust = useCallback((delta: number) => {
-    setCoinTrackerValue((prev) => Math.max(0, prev + delta));
-  }, []);
 
   useEffect(() => {
     if (!gameData) return;
@@ -67,6 +60,7 @@ export default function BettingRpsGame() {
 
   const playerEntries = Object.entries(gameData.players);
   const myPlayer = playerEntries.find(([id]) => id === myId)?.[1];
+  const opponent = playerEntries.find(([id]) => id !== myId)?.[1];
 
   const isRoleSelectPhase = gameData.phase === 'roleSelect';
   const isSubmitPhase = gameData.phase === 'submit';
@@ -105,10 +99,10 @@ export default function BettingRpsGame() {
             })}
           </div>
 
-          {/* Status message */}
-          {gameState?.message && (
-            <div className="text-center text-xs text-gray-400">{gameState.message}</div>
-          )}
+          {/* 라운드 + 승리 보너스 헤더 — 항상 표시 */}
+          <div className="text-center text-xl font-bold text-gray-800 sm:text-2xl">
+            라운드 {gameData.round} — 승리시 {brpsMatchWinBonus(gameData.round)}칩
+          </div>
 
           <div className="w-full max-w-lg space-y-2">
             {/* Player status card */}
@@ -132,7 +126,7 @@ export default function BettingRpsGame() {
             {!isSpectator && isRoleSelectPhase && (
               <>
                 {iMyTurn ? (
-                  <RoleSelector />
+                  <RoleSelector round={gameData.round} />
                 ) : (
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-3 text-sm text-amber-700">
                     <span className="animate-pulse">●</span>
@@ -154,7 +148,8 @@ export default function BettingRpsGame() {
                 {waitingForOpponent && (
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
                     <span>✓ 제출 완료</span>
-                    <span className="text-gray-400">— 상대 대기 중</span>
+                    <span className="text-gray-400">—</span>
+                    <span className="animate-pulse text-gray-400">{opponent?.nickname ?? '상대'} 선택 중...</span>
                   </div>
                 )}
               </>
@@ -171,20 +166,6 @@ export default function BettingRpsGame() {
               />
             )}
 
-            {/* 코인 추리 트래커: 승부 역할 + submit 페이즈에서만 표시 */}
-            {!isSpectator && isSubmitPhase && iAmMatch && (() => {
-              const opponentEntry = playerEntries.find(([id]) => id !== myId);
-              if (!opponentEntry) return null;
-              const [, opponent] = opponentEntry;
-              return (
-                <CoinTracker
-                  opponentNickname={opponent.nickname}
-                  value={coinTrackerValue}
-                  maxValue={opponent.chips}
-                  onAdjust={handleCoinTrackerAdjust}
-                />
-              );
-            })()}
           </div>
 
           {/* Mobile: round history */}

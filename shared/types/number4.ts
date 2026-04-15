@@ -4,7 +4,7 @@ export const INITIAL_SCORE = 3;
 export const INITIAL_WHITE = 22;
 export const INITIAL_BLACK = 20;
 
-export type NF4Phase = 'tileSubmit' | 'numberSubmit' | 'reveal' | 'finished';
+export type NF4Phase = 'submit' | 'reveal' | 'finished';
 export type NF4WinType = 'score' | 'elimination' | 'tiebreaker' | 'timeout';
 export type NF4Number = 0 | 1 | 2 | 3 | 4;
 
@@ -51,5 +51,4 @@ export interface NumberFourGameData {
 }
 
 export type NumberFourAction =
-  | { type: 'submitTiles'; white: number; black: number }
-  | { type: 'submitNumber'; number: NF4Number };
+  | { type: 'submit'; white: number; black: number; number: NF4Number };

@@ -55,14 +55,19 @@ export default function ResultScreen() {
       setTimer((t) => {
         if (t <= 1) {
           clearInterval(id);
-          handleLobby();
           return 0;
         }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [cancelled, handleLobby]);
+  }, [cancelled]);
+
+  useEffect(() => {
+    if (!cancelled && timer === 0) {
+      handleLobby();
+    }
+  }, [timer, cancelled, handleLobby]);
 
   /* ── 헤더 오른쪽 슬롯 ── */
   useEffect(() => {

@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { sessions } from '../../../store/sessions.js';
 import type { BettingRpsAction } from '@shared/types/betting-rps.js';
 import { BRPS_TOTAL_ROUNDS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -15,7 +16,10 @@ import {
   getChoiceRightId,
   makePlayer,
   getPlayer,
+  performBettingRpsUndo,
 } from './state.js';
+
+export { performBettingRpsUndo };
 import { aiSelectRole, aiSubmit } from './ai.js';
 
 export type { EndGameFn };
@@ -60,6 +64,7 @@ export function initBettingRps(
     gameOver: false,
     actionLog: [],
     aiGeneration: 0,
+    undoSnapshots: [],
   });
 
   const s = gameStates.get(roomId)!;
@@ -118,16 +123,17 @@ function handleSelectRole(
     socket.emit('error', { message: '유효하지 않은 역할입니다.' });
     return;
   }
-  if (getChoiceRightId(s) !== socket.id) {
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (getChoiceRightId(s) !== myId) {
     socket.emit('error', { message: '선택권이 없습니다.' });
     return;
   }
 
-  assignRoles(s, socket.id, role as 'match' | 'bet');
+  assignRoles(s, myId, role as 'match' | 'bet');
   s.phase = 'submit';
   broadcastState(io, s);
 
-  if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
+  if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
     aiSubmit(io, s);
   }
 }
@@ -143,7 +149,8 @@ function handleSubmitMatch(
     return;
   }
 
-  const player = getPlayer(s, socket.id);
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const player = getPlayer(s, myId);
   if (!player) return;
 
   if (player.role !== 'match') {
@@ -167,7 +174,7 @@ function handleSubmitMatch(
     processRound(io, s);
   } else {
     broadcastState(io, s);
-    if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
+    if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
       aiSubmit(io, s);
     }
   }
@@ -185,7 +192,8 @@ function handleSubmitBet(
     return;
   }
 
-  const player = getPlayer(s, socket.id);
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const player = getPlayer(s, myId);
   if (!player) return;
 
   if (player.role !== 'bet') {
@@ -214,7 +222,7 @@ function handleSubmitBet(
     processRound(io, s);
   } else {
     broadcastState(io, s);
-    if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
+    if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
       aiSubmit(io, s);
     }
   }
@@ -236,10 +244,9 @@ export function emitBettingRpsStateToSocket(socket: TypedSocket, roomId: string)
   emitStateToSocket(socket, s);
 }
 
-export function canBettingRpsUndo(_roomId: string): boolean {
-  return false;
-}
-
-export function performBettingRpsUndo(_io: IO, _roomId: string): boolean {
-  return false;
+export function canBettingRpsUndo(roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+  const partial = s.phase !== 'roleSelect';
+  return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
 }

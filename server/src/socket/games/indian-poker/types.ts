@@ -93,4 +93,6 @@ export interface InternalState {
   undoSnapshots: IPUndoSnapshot[];
   aiGeneration: number;
   initialChips: number;
+  /** 이번 라운드에 실제로 차감된 앤티 (숏스택 시 표준 앤티보다 작을 수 있음) */
+  roundAnte: number;
 }

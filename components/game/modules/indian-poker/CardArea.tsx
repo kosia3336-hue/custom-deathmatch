@@ -1,12 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { IPPlayerInfo } from '@/shared/types/indian-poker';
 
 interface CardAreaProps {
   communityCards: [number, number] | null;
   myPlayer: IPPlayerInfo | undefined;
   opponentPlayer: IPPlayerInfo | undefined;
-  /** 결과 페이즈(showdown/dieResult/finished)에서 내 카드 공개 */
   revealMyCard?: boolean;
   isSpectator?: boolean;
 }
@@ -16,11 +16,13 @@ function Card({
   hidden,
   label,
   size = 'md',
+  animateIn = false,
 }: {
   value: number | null;
   hidden?: boolean;
   label?: string;
   size?: 'sm' | 'md';
+  animateIn?: boolean;
 }) {
   const show = !hidden && value !== null;
   return (
@@ -35,8 +37,9 @@ function Card({
             : 'h-11 w-9 text-lg lg:h-16 lg:w-12 lg:text-2xl'}
           ${show
             ? 'border-gray-300 bg-white text-gray-900'
-            : 'border-indigo-300 bg-indigo-50 text-indigo-300'
-          }`}
+            : 'border-indigo-300 bg-indigo-50 text-indigo-300'}
+          ${animateIn ? 'duration-500' : 'duration-200'}
+        `}
       >
         {show ? value : '?'}
       </div>
@@ -45,6 +48,18 @@ function Card({
 }
 
 export default function CardArea({ communityCards, myPlayer, opponentPlayer, revealMyCard = false, isSpectator = false }: CardAreaProps) {
+  // 내 카드 reveal 애니메이션: revealMyCard가 true가 되면 짧은 딜레이 후 실제 값 표시
+  const [myCardVisible, setMyCardVisible] = useState(revealMyCard);
+
+  useEffect(() => {
+    if (revealMyCard) {
+      const t = setTimeout(() => setMyCardVisible(true), 300);
+      return () => clearTimeout(t);
+    } else {
+      setMyCardVisible(false);
+    }
+  }, [revealMyCard]);
+
   return (
     <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 lg:gap-3 lg:p-5">
       {/* 다이아몬드 상단 — 상대 카드 */}
@@ -67,12 +82,17 @@ export default function CardArea({ communityCards, myPlayer, opponentPlayer, rev
         </div>
       </div>
 
-      {/* 다이아몬드 하단 — 내 카드 (결과 페이즈에만 공개) */}
+      {/* 다이아몬드 하단 — 내 카드 */}
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] text-gray-400 lg:text-xs">
           {isSpectator ? `${myPlayer?.nickname ?? '플레이어'} 카드` : '내 카드 (이마)'}
         </span>
-        <Card value={revealMyCard ? (myPlayer?.card ?? null) : null} hidden={!revealMyCard} size="md" />
+        <Card
+          value={myCardVisible ? (myPlayer?.card ?? null) : null}
+          hidden={!myCardVisible}
+          size="md"
+          animateIn={myCardVisible}
+        />
       </div>
     </div>
   );

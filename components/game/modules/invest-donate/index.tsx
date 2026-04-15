@@ -130,21 +130,23 @@ export default function InvestDonateGame() {
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
                     <span>✓ 제출 완료</span>
                     {opponent && !opponent.submitted && (
-                      <span className="text-gray-400">— 상대 대기 중</span>
+                      <>
+                        <span className="text-gray-400">—</span>
+                        <span className="animate-pulse text-gray-400">{opponent.nickname} 배분 중...</span>
+                      </>
                     )}
                   </div>
                 )}
 
-                {/* Opponent inference panel(s) */}
+                {/* Opponent coin display */}
                 {!isSpectator && opponent && (
                   <OpponentInferPanel
                     opponentNickname={opponent.nickname}
-                    round={gameData.round}
                     opponentCoinStock={opponent.coinStock}
                   />
                 )}
 
-                {/* Spectator: two inference panels + waiting indicator */}
+                {/* Spectator: two coin panels + waiting indicator */}
                 {isSpectator && (
                   <>
                     <div className="flex gap-2">
@@ -152,7 +154,6 @@ export default function InvestDonateGame() {
                         <div key={id} className="flex-1">
                           <OpponentInferPanel
                             opponentNickname={p.nickname}
-                            round={gameData.round}
                             opponentCoinStock={p.coinStock}
                           />
                         </div>

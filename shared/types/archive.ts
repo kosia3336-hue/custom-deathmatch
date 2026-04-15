@@ -5,6 +5,7 @@ import type { NF4Number, NF4WinType } from './number4';
 import type { IPHand, IPWinType, IPActionType } from './indian-poker';
 import type { IDCoinAllocation, IDCoinStock, IDBadge, IDWinType } from './invest-donate';
 import type { BRPSResult, BRPSRole, BRPSBetOutcome, BRPSWinType } from './betting-rps';
+import type { MBNWTileColor, MBNWWinType } from './multiple-bnw';
 
 export interface GameRecordFile {
   version: string;
@@ -155,5 +156,30 @@ export interface BettingRpsRecord {
   finalChips: Record<string, number>;
   totalRounds: number;
   actions: BettingRpsRoundAction[];
+  players: Record<string, { nickname: string }>;
+}
+
+export interface MultipleBnwRoundAction {
+  round: number;
+  firstPlayerId: string;
+  players: Record<string, {
+    nickname: string;
+    tile: number;
+    tileColor: MBNWTileColor;
+    suspected: boolean;
+    suspectSuccess: boolean | null;
+    suspectDetail: string | null;
+    bonusPoint: number;
+    normalPoint: number;
+    totalScoreChange: number;
+    scoreBefore: number;
+    scoreAfter: number;
+  }>;
+}
+
+export interface MultipleBnwArchiveRecord {
+  winType: MBNWWinType;
+  finalScores: Record<string, number>;
+  actions: MultipleBnwRoundAction[];
   players: Record<string, { nickname: string }>;
 }

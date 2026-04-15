@@ -32,6 +32,7 @@ export default function GameShell({ children }: Props) {
   const room = useRoomStore((s) => s.room);
   const gameState = useRoomStore((s) => s.gameState);
   const nickname = useNicknameStore((s) => s.nickname);
+  const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [showLeave, setShowLeave] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
@@ -39,6 +40,7 @@ export default function GameShell({ children }: Props) {
   const [undoWaiting, setUndoWaiting] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameStateSigRef = useRef<string | null>(null);
+  const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
 
   const startedAt = gameState?.startedAt;
 
@@ -99,6 +101,40 @@ export default function GameShell({ children }: Props) {
     };
   }, [undoWaiting]);
 
+  // 재연결 대기 카운트다운 (플레이어별 독립 타이머)
+  useEffect(() => {
+    if (reconnectingPlayers.length === 0) {
+      setReconnectTimers({});
+      return;
+    }
+    // 새로 추가된 플레이어는 초기값 설정
+    setReconnectTimers((prev) => {
+      const next = { ...prev };
+      reconnectingPlayers.forEach((p) => {
+        if (!(p.playerId in next)) next[p.playerId] = p.secondsLeft;
+      });
+      // 이미 재연결된 플레이어 제거
+      Object.keys(next).forEach((id) => {
+        if (!reconnectingPlayers.some((p) => p.playerId === id)) delete next[id];
+      });
+      return next;
+    });
+  }, [reconnectingPlayers]);
+
+  useEffect(() => {
+    if (Object.keys(reconnectTimers).length === 0) return;
+    const id = setInterval(() => {
+      setReconnectTimers((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((pid) => {
+          next[pid] = Math.max(0, (next[pid] ?? 1) - 1);
+        });
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [reconnectTimers]);
+
   const gameStateSig = gameState
     ? `${gameState.turnNumber}-${gameState.turnStartedAt ?? ''}-${gameState.message}`
     : null;
@@ -157,7 +193,51 @@ export default function GameShell({ children }: Props) {
 
   return (
     <>
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <div className="relative flex-1 overflow-hidden">
+        {children}
+        {/* 재연결 대기 오버레이 */}
+        {reconnectingPlayers.length > 0 && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+              <div className="mb-3 text-4xl">⚡</div>
+              {reconnectingPlayers.length === 1 ? (
+                <>
+                  <h3 className="mb-1 text-lg font-bold text-gray-900">
+                    {reconnectingPlayers[0].nickname} 님 연결이 끊어졌습니다
+                  </h3>
+                  <p className="mb-4 text-sm text-gray-500">재연결 대기 중...</p>
+                  <div className="mb-4 text-3xl font-bold tabular-nums text-indigo-600">
+                    {reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft}초
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    시간이 초과되면 상대방이 기권 처리됩니다.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="mb-3 text-lg font-bold text-gray-900">
+                    두 플레이어 모두 연결이 끊어졌습니다
+                  </h3>
+                  <p className="mb-4 text-sm text-gray-500">재연결 대기 중...</p>
+                  <div className="mb-4 space-y-2">
+                    {reconnectingPlayers.map((p) => (
+                      <div key={p.playerId} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2">
+                        <span className="text-sm font-medium text-gray-700">{p.nickname}</span>
+                        <span className="text-lg font-bold tabular-nums text-indigo-600">
+                          {reconnectTimers[p.playerId] ?? p.secondsLeft}초
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    30초 초과 시 해당 플레이어 기권 처리됩니다.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <Modal open={showPlayers} onClose={() => setShowPlayers(false)} title="참여자 목록" className="w-full max-w-xs">
         <ul className="space-y-2">

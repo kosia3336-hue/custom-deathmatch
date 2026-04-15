@@ -247,10 +247,10 @@ function selectBestEV(plans: Plan[]): Plan {
 
 /* ── 공개 API ────────────────────────────────────────── */
 
-export async function aiSubmitTiles(io: IO, s: InternalState) {
+export async function aiSubmit(io: IO, s: InternalState) {
   if (s.gameOver) return;
   const ai = s.player1.id === AI_PLAYER_ID ? s.player1 : s.player2;
-  if (ai.submitted && ai.submittedWhite !== null) return;
+  if (ai.submitted) return;
 
   const gen = s.aiGeneration;
   await wait(randDelay());
@@ -258,34 +258,11 @@ export async function aiSubmitTiles(io: IO, s: InternalState) {
   if (s.aiGeneration !== gen) return;
 
   const plan = findBestPlan(s, ai);
-  s.aiTargetNumber = plan.number;
 
   ai.submittedWhite = plan.white;
   ai.submittedBlack = plan.black;
+  ai.submittedNumber = plan.number;
   ai.submitted = true;
-
-  if (s.player1.submitted && s.player2.submitted) {
-    s.phase = 'numberSubmit';
-    s.player1.submitted = false;
-    s.player2.submitted = false;
-  }
-
-  broadcastState(io, s);
-}
-
-export async function aiSubmitNumber(io: IO, s: InternalState) {
-  if (s.gameOver) return;
-  const ai = s.player1.id === AI_PLAYER_ID ? s.player1 : s.player2;
-  if (ai.submitted && ai.submittedNumber !== null) return;
-
-  const gen = s.aiGeneration;
-  await wait(randDelay());
-  if (!gameStates.has(s.roomId) || s.gameOver) return;
-  if (s.aiGeneration !== gen) return;
-
-  ai.submittedNumber = s.aiTargetNumber ?? 1;
-  ai.submitted = true;
-  s.aiTargetNumber = null;
 
   if (s.player1.submitted && s.player2.submitted) {
     processRound(io, s);

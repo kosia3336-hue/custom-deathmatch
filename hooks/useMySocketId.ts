@@ -1,18 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getSocket } from '@/lib/socket';
+import { getOrCreateSessionToken } from '@/lib/socket';
 
-export function useMySocketId() {
-  const [myId, setMyId] = useState<string | undefined>(() => getSocket().id);
-
-  useEffect(() => {
-    const socket = getSocket();
-    const sync = () => setMyId(socket.id);
-    sync();
-    socket.on('connect', sync);
-    return () => { socket.off('connect', sync); };
-  }, []);
-
-  return myId;
+/**
+ * 현재 플레이어의 고유 ID를 반환합니다.
+ * Player.id = localStorage 세션 토큰 (재연결 후에도 동일)
+ */
+export function useMySocketId(): string {
+  return getOrCreateSessionToken();
 }

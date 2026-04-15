@@ -1,13 +1,13 @@
 'use client';
 
-import { getSocket } from '@/lib/socket';
+import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import Button from '@/components/ui/Button';
 
 export default function GameModulePlaceholder() {
   const gameState = useRoomStore((s) => s.gameState);
   const room = useRoomStore((s) => s.room);
-  const isHost = room?.hostId === getSocket().id;
+  const isHost = room?.hostId === getOrCreateSessionToken();
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 p-8 text-center">

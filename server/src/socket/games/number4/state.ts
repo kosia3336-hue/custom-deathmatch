@@ -1,4 +1,5 @@
 import type { GameState } from '@shared/types/events.js';
+import { sessions } from '../../../store/sessions.js';
 import type { NumberFourGameData, NF4PlayerInfo, NF4Number, NF4RoundRecord } from '@shared/types/number4.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { TOTAL_ROUNDS, TILES_PER_ROUND, REVEAL_DELAY_MS, WIN_DISPLAY_MS } from './constants.js';
@@ -48,12 +49,10 @@ function phaseMessage(s: InternalState): string {
 
   if (s.playMode === 'solo' && s.currentSide) {
     const label = s.currentSide === 'player1' ? '1P' : '2P';
-    if (s.phase === 'tileSubmit') return `라운드 ${s.round} — ${label} 타일을 선택하세요`;
-    if (s.phase === 'numberSubmit') return `라운드 ${s.round} — ${label} 넘버를 선택하세요`;
+    if (s.phase === 'submit') return `라운드 ${s.round} — ${label} 타일과 넘버를 선택하세요`;
   }
 
-  if (s.phase === 'tileSubmit') return `라운드 ${s.round} — 타일을 선택하세요`;
-  if (s.phase === 'numberSubmit') return `라운드 ${s.round} — 넘버를 선택하세요`;
+  if (s.phase === 'submit') return `라운드 ${s.round} — 타일과 넘버를 선택하세요`;
   return '';
 }
 
@@ -125,17 +124,19 @@ export async function broadcastState(io: IO, s: InternalState) {
   const sockets = await io.in(room).fetchSockets();
 
   for (const sock of sockets) {
+    const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = s.phase === 'reveal' || s.phase === 'finished'
-      ? buildRevealGameData(s, sock.id)
-      : buildGameDataForPlayer(s, sock.id);
+      ? buildRevealGameData(s, pid)
+      : buildGameDataForPlayer(s, pid);
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
+  const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = s.phase === 'reveal' || s.phase === 'finished'
-    ? buildRevealGameData(s, socket.id)
-    : buildGameDataForPlayer(s, socket.id);
+    ? buildRevealGameData(s, pid)
+    : buildGameDataForPlayer(s, pid);
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -211,7 +212,7 @@ function applyNF4UndoSnapshot(s: InternalState, snap: NF4UndoSnapshot) {
 }
 
 function hasPartialRoundNF4(s: InternalState): boolean {
-  if (s.phase !== 'tileSubmit') return true;
+  if (s.phase !== 'submit') return true;
   return (
     s.player1.submitted || s.player2.submitted ||
     s.player1.submittedWhite !== null || s.player2.submittedWhite !== null
@@ -452,30 +453,10 @@ export function processRound(io: IO, s: InternalState) {
 
 export function advanceRound(io: IO, s: InternalState) {
   s.round++;
-  s.phase = 'tileSubmit';
+  s.phase = 'submit';
 
   resetSubmissions(s.player1);
   resetSubmissions(s.player2);
-
-  const p1Total = s.player1.remainingWhite + s.player1.remainingBlack;
-  const p2Total = s.player2.remainingWhite + s.player2.remainingBlack;
-
-  if (p1Total === TILES_PER_ROUND) {
-    s.player1.submittedWhite = s.player1.remainingWhite;
-    s.player1.submittedBlack = s.player1.remainingBlack;
-    s.player1.submitted = true;
-  }
-  if (p2Total === TILES_PER_ROUND) {
-    s.player2.submittedWhite = s.player2.remainingWhite;
-    s.player2.submittedBlack = s.player2.remainingBlack;
-    s.player2.submitted = true;
-  }
-
-  if (s.player1.submitted && s.player2.submitted) {
-    s.phase = 'numberSubmit';
-    s.player1.submitted = false;
-    s.player2.submitted = false;
-  }
 
   if (s.playMode === 'solo') {
     s.currentSide = 'player1';

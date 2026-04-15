@@ -136,11 +136,23 @@ export default function BettingPanel({
   // 상대 턴 대기
   if (!isMyTurn) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
-        <div className="animate-pulse text-gray-400">●  ●  ●</div>
-        <p className="text-sm text-gray-500 lg:text-base">상대의 베팅을 기다리는 중...</p>
-        {myLine && lastMine && (
-          <p className="text-center text-xs text-gray-600 lg:text-sm">{myLine}</p>
+      <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="flex items-center justify-center gap-2">
+          <div className="animate-pulse text-gray-400">●  ●  ●</div>
+          <p className="text-sm text-gray-500">
+            <span className="animate-pulse">{opponentNick}</span> 베팅 중...
+          </p>
+        </div>
+        {currentRoundActions.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-white px-3 py-2">
+            <div className="space-y-0.5">
+              {currentRoundActions.map((a, i) => (
+                <p key={i} className="text-xs text-gray-500">
+                  {players[a.playerId]?.nickname}: {formatBettingVerb(a)}
+                </p>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -186,6 +198,10 @@ export default function BettingPanel({
               }}
               className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
             />
+          </div>
+          <div className="flex justify-between text-[11px] text-gray-400">
+            <span>최소 {minRaise}</span>
+            <span>최대 {maxRaise}</span>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => handleAction('raise', currentRaiseAmount)} className="flex-1">

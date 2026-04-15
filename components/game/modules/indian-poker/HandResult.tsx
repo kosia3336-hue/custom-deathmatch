@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { IPShowdownData, IPDieData, IPPlayerInfo, IPWinType } from '@/shared/types/indian-poker';
 import { HAND_LABELS, HAND_COLORS, WIN_TYPE_LABELS } from './constants';
 
@@ -9,25 +10,62 @@ interface HandResultProps {
   players: Record<string, IPPlayerInfo>;
   winner: string | null;
   winType: IPWinType | null;
+  communityCards?: [number, number] | null;
 }
 
-export default function HandResult({ showdownData, dieData, players, winner, winType }: HandResultProps) {
+function CardChip({ value, label }: { value: number; label?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {label && <span className="text-[10px] text-gray-400">{label}</span>}
+      <div className="flex h-12 w-9 items-center justify-center rounded-lg border-2 border-gray-300 bg-white text-xl font-bold text-gray-900 shadow-sm">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export default function HandResult({ showdownData, dieData, players, winner, winType, communityCards }: HandResultProps) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    setStep(0);
+    const t1 = setTimeout(() => setStep(1), 200);
+    const t2 = setTimeout(() => setStep(2), 700);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [showdownData, dieData]);
+
   if (showdownData) {
+    const entries = Object.entries(showdownData.players);
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-5">
         <div className="text-center text-sm font-semibold text-gray-600">
           {showdownData.isDraw ? '무승부!' : '쇼다운 결과'}
         </div>
+
+        {/* 공유 카드 */}
+        {communityCards && (
+          <div className="flex justify-center gap-3">
+            <CardChip value={communityCards[0]} label="공유" />
+            <CardChip value={communityCards[1]} label="공유" />
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
-          {Object.entries(showdownData.players).map(([pid, data]) => {
+          {entries.map(([pid, data], idx) => {
             const p = players[pid];
             const isWinner = pid === showdownData.winnerId;
+            const visible = step >= idx + 1;
             return (
-              <div key={pid} className={`flex flex-col items-center gap-1 rounded-lg border p-3 ${
-                isWinner ? 'border-green-300 bg-green-50' : showdownData.isDraw ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
-              }`}>
+              <div
+                key={pid}
+                className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all duration-500 ${
+                  visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                } ${
+                  isWinner ? 'border-green-300 bg-green-50' : showdownData.isDraw ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
+                }`}
+              >
                 <span className="text-xs text-gray-500 truncate">{p?.nickname}</span>
-                <span className="text-lg font-bold">{data.card}</span>
+                <CardChip value={data.card} />
                 <span className="text-sm font-semibold" style={{ color: HAND_COLORS[data.hand] }}>
                   {HAND_LABELS[data.hand]}
                 </span>
@@ -49,15 +87,28 @@ export default function HandResult({ showdownData, dieData, players, winner, win
         <div className="text-center text-sm font-semibold text-red-600">
           {diedP?.nickname} 다이!
         </div>
+
+        {/* 공유 카드 + 다이한 카드 */}
+        <div className="flex justify-center items-end gap-3">
+          {communityCards && (
+            <>
+              <CardChip value={communityCards[0]} label="공유" />
+              <CardChip value={communityCards[1]} label="공유" />
+              <span className="mb-1 text-gray-300 text-lg">+</span>
+            </>
+          )}
+          <CardChip value={dieData.diedCard} label="내 카드" />
+        </div>
+
         <div className="flex flex-col items-center gap-1 text-sm">
-          <span>카드: <strong>{dieData.diedCard}</strong></span>
-          <span style={{ color: HAND_COLORS[dieData.diedHand] }}>
+          <span className="font-semibold" style={{ color: HAND_COLORS[dieData.diedHand] }}>
             {HAND_LABELS[dieData.diedHand]}
           </span>
           {dieData.penalty > 0 && (
             <span className="text-red-500 font-medium">패널티: -{dieData.penalty}칩</span>
           )}
         </div>
+
         <div className="flex justify-center gap-4 text-xs text-gray-500">
           {Object.entries(dieData.chipChanges).map(([pid, change]) => (
             <span key={pid}>

@@ -1,4 +1,5 @@
 import type { GameState } from '@shared/types/events.js';
+import { sessions } from '../../../store/sessions.js';
 import type {
   InvestDonateGameData, IDPlayerInfo, IDRoundRecord, IDRevealData, IDRevealPlayerData,
 } from '@shared/types/invest-donate.js';
@@ -132,18 +133,20 @@ export async function broadcastState(io: IO, s: InternalState) {
   const sockets = await io.in(room).fetchSockets();
 
   for (const sock of sockets) {
-    const isPlayer = sock.id === s.player1.id || sock.id === s.player2.id;
+    const pid = sessions.getToken(sock.id) ?? sock.id;
+    const isPlayer = pid === s.player1.id || pid === s.player2.id;
     const gameData = isPlayer
-      ? buildGameDataForPlayer(s, sock.id)
+      ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
-  const isPlayer = socket.id === s.player1.id || socket.id === s.player2.id;
+  const pid = sessions.getToken(socket.id) ?? socket.id;
+  const isPlayer = pid === s.player1.id || pid === s.player2.id;
   const gameData = isPlayer
-    ? buildGameDataForPlayer(s, socket.id)
+    ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
   socket.emit('game:state', buildGameState(s, gameData));
 }

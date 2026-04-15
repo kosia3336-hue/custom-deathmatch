@@ -1,11 +1,12 @@
 import type { GameState } from '@shared/types/events.js';
+import { sessions } from '../../../store/sessions.js';
 import type {
   BettingRpsGameData, BRPSPlayerInfo, BRPSRevealData, BRPSRevealPlayerData, BRPSRoundRecord,
 } from '@shared/types/betting-rps.js';
 import { brpsMatchWinBonus } from '@shared/types/betting-rps.js';
 import { BRPS_TOTAL_ROUNDS, BRPS_INITIAL_CHIPS, BRPS_BET_MULTIPLIER, REVEAL_DELAY_MS, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, BRPSPlayerInternal, BRPSRoundActionLog } from './types.js';
+import type { InternalState, BRPSPlayerInternal, BRPSRoundActionLog, BRPSPlayerSnapshot, BRPSUndoSnapshot } from './types.js';
 import { judgeBet, settleChips } from './judge.js';
 import { socketRoom } from '../../utils.js';
 
@@ -154,18 +155,20 @@ export async function broadcastState(io: IO, s: InternalState) {
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
-    const isPlayer = sock.id === s.player1.id || sock.id === s.player2.id;
+    const pid = sessions.getToken(sock.id) ?? sock.id;
+    const isPlayer = pid === s.player1.id || pid === s.player2.id;
     const gameData = isPlayer
-      ? buildGameDataForPlayer(s, sock.id)
+      ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
-  const isPlayer = socket.id === s.player1.id || socket.id === s.player2.id;
+  const pid = sessions.getToken(socket.id) ?? socket.id;
+  const isPlayer = pid === s.player1.id || pid === s.player2.id;
   const gameData = isPlayer
-    ? buildGameDataForPlayer(s, socket.id)
+    ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
   socket.emit('game:state', buildGameState(s, gameData));
 }
@@ -187,7 +190,82 @@ function armRoundTimer(io: IO, s: InternalState) {
 }
 
 export function startRoundTimer(io: IO, s: InternalState) {
+  pushUndoSnapshot(s);
   armRoundTimer(io, s);
+}
+
+/* ────────── undo snapshots ────────── */
+
+function snapshotPlayer(p: BRPSPlayerInternal): BRPSPlayerSnapshot {
+  return {
+    chips: p.chips,
+    role: p.role,
+    hasChoiceRight: p.hasChoiceRight,
+    submitted: p.submitted,
+    matchResult: p.matchResult,
+    prediction: p.prediction,
+    betChips: p.betChips,
+  };
+}
+
+function restorePlayer(p: BRPSPlayerInternal, snap: BRPSPlayerSnapshot) {
+  p.chips = snap.chips;
+  p.role = snap.role;
+  p.hasChoiceRight = snap.hasChoiceRight;
+  p.submitted = snap.submitted;
+  p.matchResult = snap.matchResult;
+  p.prediction = snap.prediction;
+  p.betChips = snap.betChips;
+}
+
+function pushUndoSnapshot(s: InternalState) {
+  s.undoSnapshots.push({
+    round: s.round,
+    phase: s.phase,
+    player1: snapshotPlayer(s.player1),
+    player2: snapshotPlayer(s.player2),
+    actionLog: JSON.parse(JSON.stringify(s.actionLog)) as BRPSRoundActionLog[],
+  });
+}
+
+function applyBRPSUndoSnapshot(s: InternalState, snap: BRPSUndoSnapshot) {
+  s.round = snap.round;
+  s.phase = snap.phase;
+  restorePlayer(s.player1, snap.player1);
+  restorePlayer(s.player2, snap.player2);
+  s.actionLog = JSON.parse(JSON.stringify(snap.actionLog)) as BRPSRoundActionLog[];
+}
+
+/** 이번 라운드에서 이미 행동이 발생했는지 (역할 선택 이후 = partial) */
+function hasPartialRound(s: InternalState): boolean {
+  return s.phase !== 'roleSelect';
+}
+
+export function performBettingRpsUndo(io: IO, roomId: string): boolean {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver) return false;
+
+  s.aiGeneration++;
+  clearRoundTimer(s);
+
+  if (hasPartialRound(s)) {
+    // 진행 중인 라운드 → 이번 라운드 시작 시점으로 복원 (스냅샷 유지)
+    if (s.undoSnapshots.length < 1) return false;
+    applyBRPSUndoSnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
+    armRoundTimer(io, s);
+    broadcastState(io, s);
+    if (s.playMode === 'com') s.onAITurn?.(io, s);
+    return true;
+  }
+
+  // 라운드 시작 직후 아무것도 안 한 상태 → 직전 완료 라운드 취소
+  if (s.undoSnapshots.length < 2) return false;
+  s.undoSnapshots.pop();
+  applyBRPSUndoSnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
+  armRoundTimer(io, s);
+  broadcastState(io, s);
+  if (s.playMode === 'com') s.onAITurn?.(io, s);
+  return true;
 }
 
 /* ────────── timeout ────────── */

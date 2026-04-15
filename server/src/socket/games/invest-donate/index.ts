@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { sessions } from '../../../store/sessions.js';
 import type { IDCoinAllocation } from '@shared/types/invest-donate.js';
 import { ID_INITIAL_SCORE, ID_INITIAL_COIN_STOCK, ID_TOTAL_ROUNDS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -119,7 +120,8 @@ function handleSubmit(
     return;
   }
 
-  const player = getPlayer(s, socket.id);
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const player = getPlayer(s, myId);
   if (!player) return;
 
   if (player.submitted) {
@@ -158,7 +160,7 @@ function handleSubmit(
 
   broadcastState(io, s);
 
-  if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
+  if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
     aiSubmit(io, s);
   }
 }
@@ -169,7 +171,8 @@ function handleCancelSubmit(io: IO, socket: TypedSocket, s: import('./types.js')
     return;
   }
 
-  const player = getPlayer(s, socket.id);
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const player = getPlayer(s, myId);
   if (!player) return;
 
   if (!player.submitted) {
@@ -177,7 +180,7 @@ function handleCancelSubmit(io: IO, socket: TypedSocket, s: import('./types.js')
     return;
   }
 
-  const opponent = getOpponent(s, socket.id);
+  const opponent = getOpponent(s, myId);
   if (opponent && opponent.submitted) {
     socket.emit('error', { message: '상대가 이미 제출하여 취소할 수 없습니다.' });
     return;

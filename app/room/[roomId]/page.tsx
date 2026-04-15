@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import PlayerSlot from '@/components/room/PlayerSlot';
 import RoomInfo from '@/components/room/RoomInfo';
+import RoomSettingsModal from '@/components/room/RoomSettingsModal';
 import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
@@ -35,6 +36,7 @@ export default function WaitingRoomPage() {
   const [showKick, setShowKick] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
+  const [showRoomSettings, setShowRoomSettings] = useState(false);
   const [spectatePassword, setSpectatePassword] = useState('');
   const [spectatePasswordError, setSpectatePasswordError] = useState('');
   const [showSpectatePassword, setShowSpectatePassword] = useState(false);
@@ -123,6 +125,13 @@ export default function WaitingRoomPage() {
     }
   }, [room?.status, roomId, router]);
 
+  // 카운트다운 시작 시 설정 모달 닫기
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      setShowRoomSettings(false);
+    }
+  }, [countdown]);
+
   const handleLeave = useCallback(() => {
     socket.emit('room:leave');
     useRoomStore.getState().reset();
@@ -175,6 +184,19 @@ export default function WaitingRoomPage() {
           </svg>
           <span className="hidden text-sm font-medium md:inline">방 정보</span>
         </button>
+        {isHost && (
+          <button
+            onClick={() => setShowRoomSettings(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
+            title="설정 변경"
+          >
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="hidden text-sm font-medium md:inline">설정 변경</span>
+          </button>
+        )}
         <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
@@ -182,7 +204,7 @@ export default function WaitingRoomPage() {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight]);
+  }, [setHeaderRight, isHost]);
 
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
@@ -378,7 +400,31 @@ export default function WaitingRoomPage() {
       {/* 방 정보 모달 */}
       <Modal open={showRoomInfo} onClose={() => setShowRoomInfo(false)} title="방 정보">
         <RoomInfo room={room} />
+        {isHost && (
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => { setShowRoomInfo(false); setShowRoomSettings(true); }}
+            >
+              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              설정 변경
+            </Button>
+          </div>
+        )}
       </Modal>
+
+      {/* 방 설정 변경 모달 (방장 전용) */}
+      {isHost && (
+        <RoomSettingsModal
+          open={showRoomSettings}
+          room={room}
+          onClose={() => setShowRoomSettings(false)}
+        />
+      )}
 
 
       {/* 나가기 모달 */}

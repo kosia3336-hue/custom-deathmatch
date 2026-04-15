@@ -1,4 +1,5 @@
 import type { GameState } from '@shared/types/events.js';
+import { sessions } from '../../../store/sessions.js';
 import type { IndianPokerGameData, IPBettingAction, IPPlayerInfo, IPRoundRecord } from '@shared/types/indian-poker.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { RESULT_DISPLAY_MS, WIN_DISPLAY_MS } from './constants.js';
@@ -120,13 +121,15 @@ export async function broadcastState(io: IO, s: InternalState) {
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
-    const gameData = buildGameDataForPlayer(s, sock.id);
+    const pid = sessions.getToken(sock.id) ?? sock.id;
+    const gameData = buildGameDataForPlayer(s, pid);
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
-  const gameData = buildGameDataForPlayer(s, socket.id);
+  const pid = sessions.getToken(socket.id) ?? socket.id;
+  const gameData = buildGameDataForPlayer(s, pid);
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -382,8 +385,8 @@ function processShowdown(io: IO, s: InternalState) {
 
     s.showdownData = {
       players: {
-        [p1.id]: { card: p1.card!, hand: hand1, chipChange: half - (s.ante + p1.roundBet) },
-        [p2.id]: { card: p2.card!, hand: hand2, chipChange: half - (s.ante + p2.roundBet) },
+        [p1.id]: { card: p1.card!, hand: hand1, chipChange: half - (s.roundAnte + p1.roundBet) },
+        [p2.id]: { card: p2.card!, hand: hand2, chipChange: half - (s.roundAnte + p2.roundBet) },
       },
       winnerId: null,
       isDraw: true,
@@ -396,11 +399,11 @@ function processShowdown(io: IO, s: InternalState) {
       players: {
         [p1.id]: {
           card: p1.card!, hand: hand1,
-          chipChange: p1.id === winnerId ? s.pot - (s.ante + p1.roundBet) : -(s.ante + p1.roundBet),
+          chipChange: p1.id === winnerId ? s.pot - (s.roundAnte + p1.roundBet) : -(s.roundAnte + p1.roundBet),
         },
         [p2.id]: {
           card: p2.card!, hand: hand2,
-          chipChange: p2.id === winnerId ? s.pot - (s.ante + p2.roundBet) : -(s.ante + p2.roundBet),
+          chipChange: p2.id === winnerId ? s.pot - (s.roundAnte + p2.roundBet) : -(s.roundAnte + p2.roundBet),
         },
       },
       winnerId,
@@ -436,8 +439,8 @@ function processDie(io: IO, s: InternalState, diedPlayerId: string) {
     penalty,
     potAmount: s.pot,
     chipChanges: {
-      [diedPlayerId]: -(s.ante + diedPlayer.roundBet + penalty),
-      [opponent.id]: s.pot + penalty - (s.ante + opponent.roundBet),
+      [diedPlayerId]: -(s.roundAnte + diedPlayer.roundBet + penalty),
+      [opponent.id]: s.pot + penalty - (s.roundAnte + opponent.roundBet),
     },
   };
 
@@ -506,12 +509,6 @@ function checkGameEnd(s: InternalState): boolean {
   return false;
 }
 
-function checkAnteAffordable(s: InternalState): string | null {
-  for (const player of Object.values(s.players)) {
-    if (player.chips < s.ante) return player.id;
-  }
-  return null;
-}
 
 /** 직전 라운드 결과를 바탕으로 다음 선 플레이어를 결정한다.
  *  - 승자 있음: 승자가 선
@@ -541,18 +538,10 @@ export function advanceRound(io: IO, s: InternalState) {
   // 2. 덱 리셋 검사
   s.deckResetOccurred = checkDeckReset(s);
 
-  // 3. 앤트 지불 가능 검사
-  const cantAffordId = checkAnteAffordable(s);
-  if (cantAffordId) {
-    const winnerId = cantAffordId === s.player1Id ? s.player2Id : s.player1Id;
-    resolveGame(io, s, winnerId, cantAffordId, 'anteLack');
-    return;
-  }
-
-  // 4. 다음 선 플레이어 결정 (showdown/die 결과 참조, 리셋 전에 읽어야 함)
+  // 3. 다음 선 플레이어 결정 (showdown/die 결과 참조, 리셋 전에 읽어야 함)
   const nextFirstBettorId = resolveNextFirstBettorId(s);
 
-  // 5. 라운드 상태 리셋
+  // 4. 라운드 상태 리셋
   s.round += 1;
   s.pot = 0;
   s.currentBet = 0;
@@ -563,11 +552,14 @@ export function advanceRound(io: IO, s: InternalState) {
   s.firstBettorId = nextFirstBettorId;
   // deckResetOccurred는 위에서 이미 set, 다음 라운드 시작 브로드캐스트 후 해제됨
 
-  // 6. 앤트 차감
+  // 5. 앤트 차감 — 숏스택 처리: 실효 앤티 = min(표준 앤티, 양쪽 칩 수)
+  //    칩이 적은 플레이어는 전부 걸고, 상대도 같은 금액만 낸다
+  const effectiveAnte = Math.min(s.ante, ...Object.values(s.players).map(p => p.chips));
+  s.roundAnte = effectiveAnte;
   for (const player of Object.values(s.players)) {
-    player.chips -= s.ante;
+    player.chips -= effectiveAnte;
     player.roundBet = 0;
-    s.pot += s.ante;
+    s.pot += effectiveAnte;
   }
 
   // 7. 딜링

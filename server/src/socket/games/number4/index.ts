@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { sessions } from '../../../store/sessions.js';
 import type { NF4Number } from '@shared/types/number4.js';
 import { INITIAL_SCORE, INITIAL_WHITE, INITIAL_BLACK, TILES_PER_ROUND } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -13,7 +14,7 @@ import {
   processRound,
   performNumberFourUndo,
 } from './state.js';
-import { aiSubmitTiles, aiSubmitNumber } from './ai.js';
+import { aiSubmit } from './ai.js';
 
 export type { EndGameFn };
 export { performNumberFourUndo };
@@ -46,7 +47,7 @@ export function initNumberFour(
     endGameCallback,
     roomId,
     round: 1,
-    phase: 'tileSubmit',
+    phase: 'submit',
     player1: p1,
     player2: p2,
     roundHistory: [],
@@ -95,36 +96,40 @@ export function handleNumberFourAction(
   if (!s || s.gameOver) return;
 
   switch (data.type) {
-    case 'submitTiles':
-      handleSubmitTiles(io, socket, s, data);
-      break;
-    case 'submitNumber':
-      handleSubmitNumber(io, socket, s, data);
+    case 'submit':
+      handleSubmit(io, socket, s, data);
       break;
   }
 }
 
-function handleSubmitTiles(
+function handleSubmit(
   io: IO,
   socket: TypedSocket,
   s: import('./types.js').InternalState,
   data: Record<string, unknown>,
 ) {
-  if (s.phase !== 'tileSubmit') {
+  if (s.phase !== 'submit') {
     socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
     return;
   }
 
   const white = data.white;
   const black = data.black;
+  const num = data.number;
+
   if (typeof white !== 'number' || typeof black !== 'number') return;
   if (!Number.isInteger(white) || !Number.isInteger(black)) return;
   if (white + black !== TILES_PER_ROUND) {
     socket.emit('error', { message: '백색과 흑색 타일의 합이 7개여야 합니다.' });
     return;
   }
+  if (typeof num !== 'number' || !Number.isInteger(num) || num < 0 || num > 4) {
+    socket.emit('error', { message: '0~4 사이의 넘버를 선택해 주세요.' });
+    return;
+  }
 
-  const player = getActionPlayer(s, socket.id);
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const player = getActionPlayer(s, myId);
   if (!player) return;
 
   if (player.submitted) {
@@ -139,63 +144,6 @@ function handleSubmitTiles(
 
   player.submittedWhite = white;
   player.submittedBlack = black;
-  player.submitted = true;
-
-  if (s.playMode === 'solo') {
-    if (s.currentSide === 'player1') {
-      s.currentSide = 'player2';
-      broadcastState(io, s);
-      return;
-    } else {
-      s.currentSide = 'player1';
-    }
-  }
-
-  if (s.player1.submitted && s.player2.submitted) {
-    s.phase = 'numberSubmit';
-    s.player1.submitted = false;
-    s.player2.submitted = false;
-    broadcastState(io, s);
-
-    if (s.playMode === 'com') {
-      aiSubmitTiles(io, s);
-    }
-
-    return;
-  }
-
-  broadcastState(io, s);
-
-  if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
-    aiSubmitTiles(io, s);
-  }
-}
-
-function handleSubmitNumber(
-  io: IO,
-  socket: TypedSocket,
-  s: import('./types.js').InternalState,
-  data: Record<string, unknown>,
-) {
-  if (s.phase !== 'numberSubmit') {
-    socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
-    return;
-  }
-
-  const num = data.number;
-  if (typeof num !== 'number' || !Number.isInteger(num) || num < 0 || num > 4) {
-    socket.emit('error', { message: '0~4 사이의 넘버를 선택해 주세요.' });
-    return;
-  }
-
-  const player = getActionPlayer(s, socket.id);
-  if (!player) return;
-
-  if (player.submitted) {
-    socket.emit('error', { message: '이미 제출했습니다.' });
-    return;
-  }
-
   player.submittedNumber = num as NF4Number;
   player.submitted = true;
 
@@ -216,8 +164,8 @@ function handleSubmitNumber(
 
   broadcastState(io, s);
 
-  if (s.playMode === 'com' && socket.id !== AI_PLAYER_ID) {
-    aiSubmitNumber(io, s);
+  if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
+    aiSubmit(io, s);
   }
 }
 
@@ -237,7 +185,7 @@ export function canNumberFourUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
   const partial =
-    s.phase !== 'tileSubmit' ||
+    s.phase !== 'submit' ||
     s.player1.submitted || s.player2.submitted ||
     s.player1.submittedWhite !== null || s.player2.submittedWhite !== null;
   return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;

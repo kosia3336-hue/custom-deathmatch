@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { getSocket } from '@/lib/socket';
+import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
-import type { Room, Player, UpdateRoomSettings, ChatMessage, GameState, GameResult } from '@/shared/types';
+import { useNicknameStore } from '@/stores/nickname';
+import type { Room, Player, ChatMessage, GameState, GameResult } from '@/shared/types';
 
 export function useRoom(roomId: string) {
   const mountedRef = useRef(false);
@@ -20,8 +21,8 @@ export function useRoom(roomId: string) {
     const socket = getSocket();
 
     const onRoomState = (room: Room) => {
-      const myId = getSocket().id;
-      const isSpectator = !!myId && room.spectators.some((s) => s.id === myId);
+      const myId = getOrCreateSessionToken();
+      const isSpectator = room.spectators.some((s) => s.id === myId);
       useRoomStore.getState().setRoom(room);
       useRoomStore.getState().setSpectator(isSpectator);
     };
@@ -37,13 +38,27 @@ export function useRoom(roomId: string) {
     const onHostChanged = ({ newHostId }: { newHostId: string }) => useRoomStore.getState().setHost(newHostId);
     const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
     const onGameStarted = () => { useRoomStore.getState().setCountdown(null); };
-    const onSettingsUpdated = (settings: UpdateRoomSettings) => useRoomStore.getState().updateSettings(settings);
+    const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
     const onDisbanded = () => { useRoomStore.getState().reset(); };
     const onChatMessage = (msg: ChatMessage) => useRoomStore.getState().addMessage(msg);
     const onGameState = (state: GameState) => { useRoomStore.getState().setGameState(state); };
     const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
     const onSocketError = (data: { message?: string }) => {
       if (data?.message) toast.error(data.message);
+    };
+
+    // 재연결 관련 핸들러
+    const onPlayerReconnecting = ({ playerId, nickname, secondsLeft }: { playerId: string; nickname: string; secondsLeft: number }) => {
+      useRoomStore.getState().addReconnectingPlayer({ playerId, nickname, secondsLeft });
+    };
+    const onPlayerReconnected = ({ playerId, nickname }: { playerId: string; nickname: string }) => {
+      useRoomStore.getState().removeReconnectingPlayer(playerId);
+      toast.success(`${nickname} 님이 재연결되었습니다.`);
+    };
+    const onSessionRestored = ({ nickname }: { nickname: string; roomId?: string }) => {
+      // 닉네임 스토어 복원 (서버가 room:state + game:state를 이미 함께 전송)
+      useNicknameStore.getState().setNickname(nickname);
+      toast.success('연결이 복구되었습니다.');
     };
 
     socket.on('room:state', onRoomState);
@@ -61,6 +76,9 @@ export function useRoom(roomId: string) {
     socket.on('game:state', onGameState);
     socket.on('game:ended', onGameEnded);
     socket.on('error', onSocketError);
+    socket.on('player:reconnecting', onPlayerReconnecting);
+    socket.on('player:reconnected', onPlayerReconnected);
+    socket.on('session:restored', onSessionRestored);
 
     return () => {
       socket.off('room:state', onRoomState);
@@ -78,6 +96,9 @@ export function useRoom(roomId: string) {
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
       socket.off('error', onSocketError);
+      socket.off('player:reconnecting', onPlayerReconnecting);
+      socket.off('player:reconnected', onPlayerReconnected);
+      socket.off('session:restored', onSessionRestored);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

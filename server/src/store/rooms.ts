@@ -48,7 +48,10 @@ export const roomStore = {
     gameOptions?: Record<string, unknown>;
     host: Player;
   }): Room {
-    const id = uuid().slice(0, 8);
+    let id: string;
+    do {
+      id = uuid().slice(0, 8);
+    } while (rooms.has(id));
     const aiBot: Player = {
       id: AI_PLAYER_ID,
       nickname: AI_PLAYER_ID,
@@ -82,7 +85,11 @@ export const roomStore = {
     return room;
   },
 
-  get(roomId: string): Room | undefined {
+  /**
+   * 서버 내부 로직용. 반환값을 절대 클라이언트에 직접 전송하지 말 것.
+   * 클라이언트 전송에는 getClientRoom() 을 사용할 것.
+   */
+  get(roomId: string): RoomInternal | undefined {
     return rooms.get(roomId);
   },
 
@@ -172,12 +179,61 @@ export const roomStore = {
     if (room) room.status = status;
   },
 
-  updateSettings(roomId: string, settings: { title?: string; maxPlayers?: number }) {
+  updateSettings(
+    roomId: string,
+    settings: {
+      title?: string;
+      gameId?: string;
+      gameName?: string;
+      minPlayers?: number;
+      maxPlayers?: number;
+      roomType?: RoomType;
+      password?: string;
+      clearPassword?: boolean;
+      timeLimitSeconds?: number | null;
+      gameOptions?: Record<string, unknown>;
+    },
+  ) {
     const room = rooms.get(roomId);
     if (!room) return;
-    if (settings.title) room.title = settings.title;
-    if (settings.maxPlayers && settings.maxPlayers >= room.players.length) {
+
+    if (settings.title !== undefined) room.title = settings.title;
+
+    if (settings.gameId !== undefined) {
+      room.gameId = settings.gameId;
+      room.gameName = settings.gameName ?? room.gameName;
+      if (settings.minPlayers !== undefined) room._minPlayers = settings.minPlayers;
+      room.gameOptions = settings.gameOptions ?? {};
+      // 게임 변경 시 방장 제외 전원 준비 해제
+      room.players.forEach((p) => {
+        if (p.id !== room.hostId && p.id !== AI_PLAYER_ID) {
+          p.isReady = false;
+        }
+      });
+    } else if (settings.gameOptions !== undefined) {
+      room.gameOptions = settings.gameOptions;
+    }
+
+    if (settings.maxPlayers !== undefined) {
       room.maxPlayers = settings.maxPlayers;
+    }
+
+    if (settings.roomType !== undefined) {
+      room.roomType = settings.roomType;
+    }
+
+    if (settings.clearPassword) {
+      delete room._password;
+      if (room.inviteToken) {
+        inviteTokens.delete(room.inviteToken);
+        room.inviteToken = null;
+      }
+    } else if (settings.password !== undefined) {
+      room._password = settings.password;
+    }
+
+    if (settings.timeLimitSeconds !== undefined) {
+      room.timeLimitSeconds = settings.timeLimitSeconds;
     }
   },
 

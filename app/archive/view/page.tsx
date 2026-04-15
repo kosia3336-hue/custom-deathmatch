@@ -14,6 +14,7 @@ import Number4Viewer from '@/components/archive/viewers/number4/Number4Viewer';
 import IndianPokerViewer from '@/components/archive/viewers/indian-poker/IndianPokerViewer';
 import InvestDonateViewer from '@/components/archive/viewers/invest-donate/InvestDonateViewer';
 import BettingRpsViewer from '@/components/archive/viewers/betting-rps/BettingRpsViewer';
+import MultipleBnwViewer from '@/components/archive/viewers/multiple-bnw';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -23,6 +24,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.INDIAN_POKER]: IndianPokerViewer,
   [GAME_IDS.INVEST_DONATE]: InvestDonateViewer,
   [GAME_IDS.BETTING_RPS]: BettingRpsViewer,
+  [GAME_IDS.MULTIPLE_BNW]: MultipleBnwViewer,
 };
 
 export default function ArchiveViewPage() {

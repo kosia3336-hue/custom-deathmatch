@@ -169,6 +169,12 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
             무승부!
           </div>
         )}
+
+        {step >= 3 && !winner && !winType && (
+          <div className="text-center text-xs text-gray-400 animate-pulse">
+            다음 라운드 준비 중...
+          </div>
+        )}
       </div>
     </div>
   );

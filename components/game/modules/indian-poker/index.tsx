@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
@@ -22,12 +22,17 @@ export default function IndianPokerGame() {
 
   const shownWinnerRef = useRef<string | null>(null);
   const shownDeckResetRef = useRef<number>(0);
+  const [showShuffle, setShowShuffle] = useState(false);
+  const [shuffleAnte, setShuffleAnte] = useState(0);
 
   useEffect(() => {
     if (!gameData?.deckResetOccurred) return;
     if (shownDeckResetRef.current === gameData.deckCycle) return;
     shownDeckResetRef.current = gameData.deckCycle;
-    toast.info(`🔀 덱 리셋! 앤트가 ${gameData.ante}개로 올랐습니다.`, { duration: 4000 });
+    setShuffleAnte(gameData.ante);
+    setShowShuffle(true);
+    const t = setTimeout(() => setShowShuffle(false), 2800);
+    return () => clearTimeout(t);
   }, [gameData?.deckResetOccurred, gameData?.deckCycle, gameData?.ante]);
 
   useEffect(() => {
@@ -73,6 +78,30 @@ export default function IndianPokerGame() {
   const bettingOpponentId = isSpectator ? passiveTurnEntry?.[0] : opponentId;
 
   return (
+    <>
+    {/* 셔플 오버레이 */}
+    <div
+      className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ${
+        showShuffle ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <div
+        className={`flex flex-col items-center gap-4 rounded-3xl border border-indigo-400/30 bg-indigo-900/95 px-12 py-8 text-center text-white shadow-2xl backdrop-blur-sm transition-transform duration-500 ${
+          showShuffle ? 'scale-100' : 'scale-90'
+        }`}
+      >
+        <div className="flex items-end gap-1">
+          <span className="text-5xl">🃏</span>
+          <span className="mb-1 text-3xl opacity-60">🃏</span>
+          <span className="mb-2 text-xl opacity-30">🃏</span>
+        </div>
+        <div>
+          <p className="text-2xl font-bold tracking-wide">카드를 셔플합니다</p>
+          <p className="mt-1 text-sm text-indigo-300">앤티 {shuffleAnte}개로 인상됩니다</p>
+        </div>
+      </div>
+    </div>
+
     <div className="flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* 메인 영역 */}
@@ -146,6 +175,7 @@ export default function IndianPokerGame() {
                 players={gameData.players}
                 winner={gameData.winner}
                 winType={gameData.winType}
+                communityCards={gameData.communityCards}
               />
             )}
 
@@ -173,5 +203,6 @@ export default function IndianPokerGame() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { BRPSResult } from '@/shared/types/betting-rps';
+import { BRPS_BET_MULTIPLIER } from '@/shared/types/betting-rps';
 import { getSocket } from '@/lib/socket';
 import { RESULT_LABELS } from './constants';
 
@@ -39,8 +40,12 @@ export default function BetSelector({ myChips, disabled }: Props) {
     setBetChips((prev) => Math.max(0, Math.min(myChips, prev + delta)));
   }
 
-  const gainIfSuccess = betChips * 2; // betChips * (3-1)
+  // 승/패 예측: 성공 시 net +betChips (multiplier=2), 무 예측: 성공 시 net +betChips*(BRPS_BET_MULTIPLIER-1)
+  const gainIfSuccess = prediction === 'draw'
+    ? betChips * (BRPS_BET_MULTIPLIER - 1)
+    : betChips;
   const loseIfFail = betChips;
+  const hasRefund = prediction !== null && prediction !== 'draw';
 
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
@@ -93,9 +98,14 @@ export default function BetSelector({ myChips, disabled }: Props) {
           </button>
         </div>
         {betChips > 0 && (
-          <div className="mt-1 flex justify-between text-[11px]">
-            <span className="text-emerald-600">성공 시 +{gainIfSuccess}칩</span>
-            <span className="text-red-500">실패 시 −{loseIfFail}칩</span>
+          <div className="mt-1 space-y-0.5">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-emerald-600">성공 시 +{gainIfSuccess}칩</span>
+              <span className="text-red-500">실패 시 −{loseIfFail}칩</span>
+            </div>
+            {hasRefund && (
+              <div className="text-center text-[11px] text-amber-500">무 결과 시 베팅 환불</div>
+            )}
           </div>
         )}
         {betChips === 0 && (

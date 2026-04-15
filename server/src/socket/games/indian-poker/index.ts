@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { sessions } from '../../../store/sessions.js';
 import {
   INITIAL_CHIPS_DEFAULT, INITIAL_CHIPS_MIN, INITIAL_CHIPS_MAX, INITIAL_CHIPS_STEP,
   INITIAL_ANTE,
@@ -70,6 +71,7 @@ export function initIndianPoker(
     firstBettorId: p1.id,
     bettingStarted: false,
     deckResetOccurred: false,
+    roundAnte: INITIAL_ANTE,
     showdownData: null,
     dieData: null,
     winner: null,
@@ -100,7 +102,8 @@ function makePlayer(id: string, nickname: string, chips: number): IPPlayerIntern
 }
 
 function startFirstRound(io: IO, s: InternalState) {
-  // 앤트 차감
+  // 앤트 차감 (게임 시작 시 initialChips >= ante 보장)
+  s.roundAnte = s.ante;
   for (const player of Object.values(s.players)) {
     player.chips -= s.ante;
     player.roundBet = 0;
@@ -161,7 +164,8 @@ export function handleIndianPokerAction(
     return;
   }
 
-  if (s.currentTurnId !== socket.id) {
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (s.currentTurnId !== myId) {
     socket.emit('error', { message: '지금은 상대의 턴입니다.' });
     return;
   }
@@ -169,8 +173,8 @@ export function handleIndianPokerAction(
   const actionType = data.type;
   if (typeof actionType !== 'string') return;
 
-  const player = s.players[socket.id];
-  const opponent = Object.values(s.players).find(p => p.id !== socket.id)!;
+  const player = s.players[myId];
+  const opponent = Object.values(s.players).find(p => p.id !== myId)!;
 
   switch (actionType) {
     case 'check': {
@@ -178,7 +182,7 @@ export function handleIndianPokerAction(
         socket.emit('error', { message: '체크할 수 없습니다. 콜, 레이즈 또는 다이를 선택하세요.' });
         return;
       }
-      processBettingAction(io, s, socket.id, { type: 'check' });
+      processBettingAction(io, s, myId, { type: 'check' });
       break;
     }
 
@@ -188,7 +192,7 @@ export function handleIndianPokerAction(
         socket.emit('error', { message: '콜할 칩이 부족합니다. 다이만 가능합니다.' });
         return;
       }
-      processBettingAction(io, s, socket.id, { type: 'call' });
+      processBettingAction(io, s, myId, { type: 'call' });
       break;
     }
 
@@ -207,18 +211,17 @@ export function handleIndianPokerAction(
         socket.emit('error', { message: '보유 칩이 부족합니다.' });
         return;
       }
-      // 상대가 콜할 수 있는 최대치(상대 올인)를 초과한 레이즈는 불허
       const opponentMaxCall = opponent.roundBet + opponent.chips;
       if (amount > opponentMaxCall) {
         socket.emit('error', { message: '상대의 보유 칩을 초과한 레이즈는 불가능합니다.' });
         return;
       }
-      processBettingAction(io, s, socket.id, { type: 'raise', amount });
+      processBettingAction(io, s, myId, { type: 'raise', amount });
       break;
     }
 
     case 'die': {
-      processBettingAction(io, s, socket.id, { type: 'die' });
+      processBettingAction(io, s, myId, { type: 'die' });
       break;
     }
 

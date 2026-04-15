@@ -49,6 +49,8 @@ export type {
   InvestDonateRecord,
   BettingRpsRoundAction,
   BettingRpsRecord,
+  MultipleBnwRoundAction,
+  MultipleBnwArchiveRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -135,3 +137,22 @@ export type {
   BettingRpsGameData,
   BettingRpsAction,
 } from './betting-rps';
+export {
+  MBNW_TILE_SET,
+  MBNW_TOTAL_ROUNDS,
+  MBNW_TILE_COLOR,
+} from './multiple-bnw';
+export type {
+  MBNWTile,
+  MBNWTileColor,
+  MBNWPhase,
+  MBNWWinType,
+  MBNWPlayerInfo,
+  MBNWColorReveal,
+  MBNWSuspectResult,
+  MBNWResultPlayerData,
+  MBNWResultData,
+  MBNWRoundRecord,
+  MultipleBnwGameData,
+  MultipleBnwAction,
+} from './multiple-bnw';

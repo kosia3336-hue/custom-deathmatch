@@ -19,7 +19,14 @@ export function evaluateHand(
   }
 
   const sorted = [playerCard, c1, c2].sort((a, b) => a - b);
+
+  // 일반 스트레이트
   if (sorted[1] === sorted[0] + 1 && sorted[2] === sorted[1] + 1) {
+    return 'straight';
+  }
+
+  // 백스트레이트 (1~10 순환): 9→10→1([1,9,10]) 또는 10→1→2([1,2,10])
+  if (sorted[0] === 1 && sorted[2] === 10 && (sorted[1] === 9 || sorted[1] === 2)) {
     return 'straight';
   }
 

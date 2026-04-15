@@ -70,6 +70,15 @@ import {
   performBettingRpsUndo,
   canBettingRpsUndo,
 } from './games/betting-rps/index.js';
+import {
+  initMultipleBnw,
+  handleMultipleBnwAction,
+  cleanupMultipleBnw,
+  getMultipleBnwState,
+  emitMultipleBnwStateToSocket,
+  performMultipleBnwUndo,
+  canMultipleBnwUndo,
+} from './games/multiple-bnw/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -165,12 +174,27 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performBettingRpsUndo,
     canUndo: canBettingRpsUndo,
   },
+  [GAME_IDS.MULTIPLE_BNW]: {
+    init: initMultipleBnw,
+    handleAction: handleMultipleBnwAction,
+    cleanup: cleanupMultipleBnw,
+    getState: (roomId) => {
+      const s = getMultipleBnwState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
+    },
+    emitStateToSocket: emitMultipleBnwStateToSocket,
+    performUndo: performMultipleBnwUndo,
+    canUndo: canMultipleBnwUndo,
+  },
 };
 
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
-
-// 게임 실제 시작 시각 추적 (방 생성 시각이 아닌 게임 시작 시각으로 플레이 시간 계산)
 const gameStartTimes = new Map<string, number>();
+
+/** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
+function getPlayerId(socket: TypedSocket): string {
+  return sessions.getToken(socket.id) ?? socket.id;
+}
 
 export function startGame(io: IO, roomId: string) {
   const room = roomStore.get(roomId);
@@ -215,12 +239,12 @@ export function startGame(io: IO, roomId: string) {
   broadcastRoomUpdated(io, roomId);
 }
 
-/** 게임 진행 중 플레이어가 나갈 때 멀티 포기 처리 후 cleanup. 이미 종료된 게임이면 아무 것도 하지 않음. */
-export function handleGameForfeit(io: IO, roomId: string, leavingSocketId: string) {
+/** 게임 진행 중 플레이어가 나갈 때 멀티 포기 처리. playerId = Player.id(token) */
+export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
   const room = roomStore.get(roomId);
   if (!room || room.status !== 'playing') return;
 
-  const isPlayer = room.players.some((p: Player) => p.id === leavingSocketId);
+  const isPlayer = room.players.some((p: Player) => p.id === playerId);
   if (!isPlayer) return;
 
   const gameModule = gameModules[room.gameId];
@@ -231,17 +255,26 @@ export function handleGameForfeit(io: IO, roomId: string, leavingSocketId: strin
   gameModule.cleanup(roomId);
 
   if (state && !state.gameOver && room.playMode === 'multi') {
-    const other = room.players.find((p: Player) => p.id !== leavingSocketId);
+    const other = room.players.find((p: Player) => p.id !== playerId);
+    const leaverNickname =
+      room.players.find((p: Player) => p.id === playerId)?.nickname ??
+      sessions.getNicknameByToken(playerId) ??
+      '???';
     if (other) {
       endGame(io, roomId, {
         rankings: [
           { playerId: other.id, nickname: other.nickname, rank: 1, score: 1 },
-          { playerId: leavingSocketId, nickname: sessions.getNickname(leavingSocketId) ?? '???', rank: 2, score: 0 },
+          { playerId, nickname: leaverNickname, rank: 2, score: 0 },
         ],
         totalTurns: state.totalTurns,
       });
     }
   }
+}
+
+/** session:restore 시 index.ts에서 game:state를 재전송하는 데 사용 */
+export function emitGameStateToSocket(socket: TypedSocket, roomId: string, gameId: string) {
+  gameModules[gameId]?.emitStateToSocket(socket, roomId);
 }
 
 export function registerGameHandlers(io: IO, socket: TypedSocket) {
@@ -272,7 +305,9 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
-    if (!room.players.some((p: Player) => p.id === socket.id)) {
+    const myId = getPlayerId(socket);
+
+    if (!room.players.some((p: Player) => p.id === myId)) {
       socket.emit('error', { message: '플레이어만 무르기를 요청할 수 있습니다.' });
       return;
     }
@@ -289,17 +324,19 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.playMode === 'multi') {
-      const opponent = room.players.find((p: Player) => p.id !== socket.id);
+      const opponent = room.players.find((p: Player) => p.id !== myId);
       if (!opponent) return;
       const requestId = randomUUID();
       setPendingUndo(roomId, {
         requestId,
-        requesterId: socket.id,
+        requesterId: myId,
         gameId: room.gameId,
       });
-      io.to(opponent.id).emit('game:undo:proposal', {
+      // opponent.id = token → 실제 소켓으로 라우팅
+      const opponentSocketId = sessions.getSocketByToken(opponent.id) ?? opponent.id;
+      io.to(opponentSocketId).emit('game:undo:proposal', {
         requestId,
-        requesterId: socket.id,
+        requesterId: myId,
         requesterNickname: sessions.getNickname(socket.id) ?? '플레이어',
       });
       return;
@@ -319,12 +356,13 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
+    const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
     if (!pending || pending.requestId !== requestId) return;
-    if (socket.id === pending.requesterId) return;
+    if (myId === pending.requesterId) return;
 
     const isOpponent = room.players.some(
-      (p: Player) => p.id === socket.id && p.id !== pending.requesterId,
+      (p: Player) => p.id === myId && p.id !== pending.requesterId,
     );
     if (!isOpponent) return;
 
@@ -344,24 +382,28 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
+    const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
     if (!pending || pending.requestId !== requestId) return;
-    if (socket.id === pending.requesterId) return;
+    if (myId === pending.requesterId) return;
 
     const isOpponent = room.players.some(
-      (p: Player) => p.id === socket.id && p.id !== pending.requesterId,
+      (p: Player) => p.id === myId && p.id !== pending.requesterId,
     );
     if (!isOpponent) return;
 
     clearPendingUndo(roomId);
-    io.to(pending.requesterId).emit('game:undo:declined');
+    // pending.requesterId = token → 실제 소켓으로 라우팅
+    const requesterSocketId = sessions.getSocketByToken(pending.requesterId) ?? pending.requesterId;
+    io.to(requesterSocketId).emit('game:undo:declined');
   });
 
   socket.on('game:end', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
-    if (!room || room.hostId !== socket.id) return;
+    const myId = getPlayerId(socket);
+    if (!room || room.hostId !== myId) return;
 
     clearPendingUndo(roomId);
     gameModules[room.gameId]?.cleanup(roomId);
@@ -385,7 +427,6 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       startGame(io, roomId);
     }
   });
-
 }
 
 export function endGame(
@@ -396,7 +437,6 @@ export function endGame(
   const room = roomStore.get(roomId);
   if (!room) return;
 
-  // 이중 호출 시 기존 타이머를 먼저 정리
   clearAutoEnd(roomId);
 
   roomStore.setStatus(roomId, 'finished');
@@ -425,8 +465,15 @@ export function endGame(
     const r = roomStore.get(roomId);
     if (r && r.status === 'finished') {
       io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '시간 초과로 방이 종료되었습니다.' });
-      r.players.forEach((p: Player) => sessions.clearRoom(p.id));
-      r.spectators.forEach((p: Player) => sessions.clearRoom(p.id));
+      // p.id = token → 소켓 ID를 역조회해서 clearRoom
+      r.players.forEach((p: Player) => {
+        const sid = sessions.getSocketByToken(p.id) ?? p.id;
+        sessions.clearRoom(sid);
+      });
+      r.spectators.forEach((p: Player) => {
+        const sid = sessions.getSocketByToken(p.id) ?? p.id;
+        sessions.clearRoom(sid);
+      });
       clearRoomStartCountdown(roomId);
       sessions.clearRoomFromAllKicks(roomId);
       roomStore.delete(roomId);

@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { sessions } from '../../../store/sessions.js';
 import type { Position, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -87,7 +88,8 @@ export function handleDoubleSidedChessAction(
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return;
 
-  if (socket.id !== s.currentPlayer) {
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (myId !== s.currentPlayer) {
     socket.emit('error', { message: '상대 턴입니다.' });
     return;
   }
