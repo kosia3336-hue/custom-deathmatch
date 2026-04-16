@@ -51,6 +51,8 @@ export type {
   BettingRpsRecord,
   MultipleBnwRoundAction,
   MultipleBnwArchiveRecord,
+  WinningStreakRoundAction,
+  WinningStreakArchiveRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -156,3 +158,21 @@ export type {
   MultipleBnwGameData,
   MultipleBnwAction,
 } from './multiple-bnw';
+export {
+  WS_TOTAL_ROUNDS,
+  WS_INITIAL_CARDS,
+  CARD_TYPES,
+} from './winning-streak';
+export type {
+  WSCardType,
+  WSPhase,
+  WSWinType,
+  WSMatchResult,
+  WSCardCount,
+  WSPlayerInfo,
+  WSRevealPlayerData,
+  WSRevealData,
+  WSRoundRecord,
+  WinningStreakGameData,
+  WinningStreakAction,
+} from './winning-streak';

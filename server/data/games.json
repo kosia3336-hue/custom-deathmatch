@@ -68,5 +68,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-008",
+    "name": "연승게임 리뉴얼",
+    "description": "카드 상성과 연속 제한을 활용해 연승을 쌓는 2인 동시 제출 심리전 카드 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

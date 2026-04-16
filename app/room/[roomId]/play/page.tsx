@@ -12,6 +12,7 @@ import IndianPokerGame from '@/components/game/modules/indian-poker';
 import InvestDonateGame from '@/components/game/modules/invest-donate';
 import BettingRpsGame from '@/components/game/modules/betting-rps';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
+import WinningStreakGame from '@/components/game/modules/winning-streak';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -26,6 +27,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.INVEST_DONATE]: InvestDonateGame,
   [GAME_IDS.BETTING_RPS]: BettingRpsGame,
   [GAME_IDS.MULTIPLE_BNW]: MultipleBnwGame,
+  [GAME_IDS.WINNING_STREAK]: WinningStreakGame,
 };
 
 export default function PlayPage() {

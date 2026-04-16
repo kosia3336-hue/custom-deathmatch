@@ -4,6 +4,7 @@ import './globals.css';
 import SocketProvider from '@/components/providers/SocketProvider';
 import ToastProvider from '@/components/providers/ToastProvider';
 import NicknameModal from '@/components/lobby/NicknameModal';
+import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,6 +33,7 @@ export default function RootLayout({
         <SocketProvider>
           {children}
           <NicknameModal />
+          <SessionTakeoverModal />
           <ToastProvider />
         </SocketProvider>
       </body>

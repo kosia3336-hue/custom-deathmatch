@@ -6,6 +6,7 @@ import type { IPHand, IPWinType, IPActionType } from './indian-poker';
 import type { IDCoinAllocation, IDCoinStock, IDBadge, IDWinType } from './invest-donate';
 import type { BRPSResult, BRPSRole, BRPSBetOutcome, BRPSWinType } from './betting-rps';
 import type { MBNWTileColor, MBNWWinType } from './multiple-bnw';
+import type { WSCardType, WSMatchResult, WSWinType } from './winning-streak';
 
 export interface GameRecordFile {
   version: string;
@@ -181,5 +182,24 @@ export interface MultipleBnwArchiveRecord {
   winType: MBNWWinType;
   finalScores: Record<string, number>;
   actions: MultipleBnwRoundAction[];
+  players: Record<string, { nickname: string }>;
+}
+
+export interface WinningStreakRoundAction {
+  round: number;
+  matchDescription: string;
+  players: Record<string, {
+    card: WSCardType;
+    result: WSMatchResult;
+    streakAfter: number;
+    maxStreakAfter: number;
+    totalWinsAfter: number;
+  }>;
+}
+
+export interface WinningStreakArchiveRecord {
+  winType: WSWinType | null;
+  finalStats: Record<string, { maxStreak: number; totalWins: number }>;
+  actions: WinningStreakRoundAction[];
   players: Record<string, { nickname: string }>;
 }

@@ -18,7 +18,7 @@ export const useNicknameStore = create<NicknameState>((set, get) => ({
   setNickname: (name) => {
     set({ nickname: name, showModal: false });
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('nickname', name);
+      localStorage.setItem('nickname', name);
     }
     const pending = get().pendingAction;
     if (pending) {

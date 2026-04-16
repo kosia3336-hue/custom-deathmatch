@@ -148,7 +148,7 @@ export interface ClientToServerEvents {
   'game:rematch': () => void;
   'game:end': () => void;
 
-  'session:restore': (data: { token: string }) => void;
+  'session:restore': (data: { token: string; confirmed?: boolean }) => void;
 
   'spectate:join': (
     data: { roomId: string; password?: string },
@@ -196,6 +196,9 @@ export interface ServerToClientEvents {
   kicked: (data: { reason: string }) => void;
   'connection:duplicate': () => void;
 
+  'session:new': () => void;
+  'session:exists': (data: { nickname: string; roomId?: string }) => void;
+  'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;
   'player:reconnecting': (data: { playerId: string; nickname: string; secondsLeft: number }) => void;
   'player:reconnected': (data: { playerId: string; nickname: string }) => void;

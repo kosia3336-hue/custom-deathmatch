@@ -115,6 +115,16 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(data.roomId);
     if (!room) return callback({ success: false, error: '이 방은 더 이상 존재하지 않습니다.' });
 
+    // 세션 복원 후 재입장: 이미 room.players에 있는 토큰이면 소켓만 재입장 (관전자 폴백 방지)
+    const token = sessions.getToken(socket.id);
+    if (token && room.players.find((p) => p.id === token)) {
+      socket.join(socketRoom(data.roomId));
+      sessions.setRoom(socket.id, data.roomId);
+      const clientRoom = roomStore.getClientRoom(data.roomId);
+      if (clientRoom) socket.emit('room:state', clientRoom);
+      return callback({ success: true, room: clientRoom ?? undefined });
+    }
+
     if (sessions.isKicked(nickname, data.roomId)) {
       return callback({ success: false, error: '이 방에 다시 입장할 수 없습니다.' });
     }

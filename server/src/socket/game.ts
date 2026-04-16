@@ -79,6 +79,15 @@ import {
   performMultipleBnwUndo,
   canMultipleBnwUndo,
 } from './games/multiple-bnw/index.js';
+import {
+  initWinningStreak,
+  handleWinningStreakAction,
+  cleanupWinningStreak,
+  getWinningStreakState,
+  emitWinningStreakStateToSocket,
+  performWinningStreakUndo,
+  canWinningStreakUndo,
+} from './games/winning-streak/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -185,6 +194,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitMultipleBnwStateToSocket,
     performUndo: performMultipleBnwUndo,
     canUndo: canMultipleBnwUndo,
+  },
+  [GAME_IDS.WINNING_STREAK]: {
+    init: initWinningStreak,
+    handleAction: handleWinningStreakAction,
+    cleanup: cleanupWinningStreak,
+    getState: (roomId) => {
+      const s = getWinningStreakState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
+    },
+    emitStateToSocket: emitWinningStreakStateToSocket,
+    performUndo: performWinningStreakUndo,
+    canUndo: canWinningStreakUndo,
   },
 };
 

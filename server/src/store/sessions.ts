@@ -117,6 +117,11 @@ export const sessions = {
       if (prevSocketId && prevSocketId !== socketId) {
         socketToNickname.delete(prevSocketId);
       }
+      // 이 소켓에 이미 다른 닉네임이 있으면 nicknameToSocket에서 정리 (stale 방지)
+      const currentNickname = socketToNickname.get(socketId);
+      if (currentNickname && currentNickname !== prevNickname) {
+        nicknameToSocket.delete(currentNickname);
+      }
       socketToNickname.set(socketId, prevNickname);
       nicknameToSocket.set(prevNickname, socketId);
       tokenToNickname.set(token, prevNickname);

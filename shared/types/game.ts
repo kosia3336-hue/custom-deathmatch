@@ -17,5 +17,6 @@ export const GAME_IDS = {
   INVEST_DONATE: 'game-005',
   BETTING_RPS: 'game-006',
   MULTIPLE_BNW: 'game-007',
+  WINNING_STREAK: 'game-008',
   RANDOM: 'random',
 } as const;

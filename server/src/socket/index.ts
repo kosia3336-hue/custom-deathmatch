@@ -17,15 +17,29 @@ export function setupSocketHandlers(io: IO) {
   io.on('connection', (socket) => {
 
     // ── 세션 복원 ─────────────────────────────────────────────────────────
-    socket.on('session:restore', ({ token }) => {
-      // 기존 소켓이 아직 살아있으면 새 탭 시나리오 → 새 탭에 알리고 기존 탭 유지
+    socket.on('session:restore', ({ token, confirmed }) => {
       const prevSocketId = sessions.getSocketByToken(token);
-      if (prevSocketId && prevSocketId !== socket.id && io.sockets.sockets.has(prevSocketId)) {
-        socket.emit('connection:duplicate');
+      const prevSocketAlive = !!prevSocketId && prevSocketId !== socket.id && io.sockets.sockets.has(prevSocketId);
+
+      if (prevSocketAlive && !confirmed) {
+        // 새 탭 시나리오: 기존 세션 정보를 새 탭에 알리고 대기
+        const nickname = sessions.getNicknameByToken(token) ?? '';
+        const roomId = sessions.getRoom(prevSocketId!) ?? undefined;
+        socket.emit('session:exists', { nickname, roomId });
         return;
       }
 
+      // linkToken을 먼저 실행: disconnect 이벤트(동기 가능)보다 앞서 방·닉네임을 이전
       const result = sessions.linkToken(socket.id, token);
+
+      if (prevSocketAlive && confirmed) {
+        // 인계 확정: 세션 이전 후 기존 탭 강제 해제
+        const prevSocket = io.sockets.sockets.get(prevSocketId!);
+        if (prevSocket) {
+          prevSocket.emit('session:replaced');
+          prevSocket.disconnect(true);
+        }
+      }
 
       if (result === 'restored') {
         const nickname = sessions.getNickname(socket.id);
@@ -33,6 +47,7 @@ export function setupSocketHandlers(io: IO) {
 
         if (!nickname) {
           // 닉네임 없으면 신규 세션과 동일하게 처리
+          socket.emit('session:new');
           return;
         }
 
@@ -59,8 +74,10 @@ export function setupSocketHandlers(io: IO) {
         }
 
         socket.emit('session:restored', { nickname, roomId: roomId ?? undefined });
+      } else {
+        // result === 'new': 신규 세션 — 클라이언트에게 nickname:set을 진행하도록 알림
+        socket.emit('session:new');
       }
-      // result === 'new': 신규 세션, 아무것도 하지 않음 (기존 흐름대로 nickname:set 기다림)
     });
 
     // ── 닉네임 설정 ───────────────────────────────────────────────────────
