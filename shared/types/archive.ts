@@ -191,6 +191,8 @@ export interface WinningStreakRoundAction {
   players: Record<string, {
     card: WSCardType;
     result: WSMatchResult;
+    /** 없으면 이전 라운드의 streakAfter로 복원 */
+    streakBefore?: number;
     streakAfter: number;
     maxStreakAfter: number;
     totalWinsAfter: number;

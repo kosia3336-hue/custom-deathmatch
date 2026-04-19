@@ -208,7 +208,8 @@ function handleSubmitBet(
     socket.emit('error', { message: '유효하지 않은 예측입니다.' });
     return;
   }
-  if (typeof chips !== 'number' || !Number.isInteger(chips) || chips < 0 || chips > player.chips) {
+  const minBet = player.chips > 0 ? 1 : 0;
+  if (typeof chips !== 'number' || !Number.isInteger(chips) || chips < minBet || chips > player.chips) {
     socket.emit('error', { message: '유효하지 않은 베팅 칩 수입니다.' });
     return;
   }

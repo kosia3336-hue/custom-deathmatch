@@ -251,10 +251,9 @@ export function checkWinAfterAction(
     return true;
   }
 
-  // 3. 전멸 (상대 킹 외 기물 없음 + 포로 없음)
+  // 3. 전멸 (상대 킹 외 판 위 기물 없음)
   const opponentBoardPieces = countNonKingPieces(s.board, opponentOwner);
-  const opponentPrisoners = s.prisoners[opponentOwner].length;
-  if (opponentBoardPieces === 0 && opponentPrisoners === 0) {
+  if (opponentBoardPieces === 0) {
     clearTurnTimer(s);
     resolveGame(io, s, { winnerOwner: getWinnerOwner(s, true), winType: 'all-captured' });
     return true;

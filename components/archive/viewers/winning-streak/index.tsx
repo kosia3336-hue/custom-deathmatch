@@ -35,12 +35,14 @@ const RESULT_LABELS: Record<string, string> = {
 };
 
 function RoundRow({
-  action, playerIds, nicknames, isLast,
+  action, playerIds, nicknames, isLast, prevStreakAfterByPlayer,
 }: {
   action: WinningStreakRoundAction;
   playerIds: string[];
   nicknames: Record<string, string>;
   isLast: boolean;
+  /** 직전 라운드 종료 시점 연승 (첫 라운드는 0) */
+  prevStreakAfterByPlayer: Record<string, number>;
 }) {
   return (
     <div
@@ -62,6 +64,9 @@ function RoundRow({
           const pd = action.players[pid];
           if (!pd) return <div key={pid} className="text-gray-300">-</div>;
 
+          const streakBefore =
+            pd.streakBefore ?? prevStreakAfterByPlayer[pid] ?? 0;
+
           const isWin = pd.result === 'win' || pd.result === 'draw_win';
           const cs = CARD_STYLE[pd.card];
 
@@ -77,8 +82,8 @@ function RoundRow({
                 {RESULT_LABELS[pd.result] ?? pd.result}
               </span>
               <div className="text-xs text-gray-400">
-                {pd.streakBefore > 0 && <span className="mr-0.5">🔥</span>}
-                {pd.streakBefore}→{pd.streakAfter}
+                {streakBefore > 0 && <span className="mr-0.5">🔥</span>}
+                {streakBefore}→{pd.streakAfter}
                 <span className="ml-1.5">최대 {pd.maxStreakAfter}</span>
               </div>
             </div>
@@ -151,15 +156,25 @@ export default function WinningStreakViewer({ record }: Props) {
           {actions.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-400">라운드 기록이 없습니다.</p>
           ) : (
-            actions.map((action, idx) => (
-              <RoundRow
-                key={action.round}
-                action={action}
-                playerIds={playerIds}
-                nicknames={nicknames}
-                isLast={idx === actions.length - 1}
-              />
-            ))
+            actions.map((action, idx) => {
+              const prev = idx > 0 ? actions[idx - 1] : null;
+              const prevStreakAfterByPlayer = Object.fromEntries(
+                playerIds.map((pid) => [
+                  pid,
+                  prev?.players[pid]?.streakAfter ?? 0,
+                ]),
+              );
+              return (
+                <RoundRow
+                  key={action.round}
+                  action={action}
+                  playerIds={playerIds}
+                  nicknames={nicknames}
+                  isLast={idx === actions.length - 1}
+                  prevStreakAfterByPlayer={prevStreakAfterByPlayer}
+                />
+              );
+            })
           )}
         </div>
       </div>

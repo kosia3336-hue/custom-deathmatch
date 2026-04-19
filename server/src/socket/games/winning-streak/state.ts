@@ -74,13 +74,10 @@ function buildGameDataForPlayer(s: InternalState, _pid: string): WinningStreakGa
     revealData = {
       players: Object.fromEntries(
         Object.entries(last.players).map(([id, pr]) => {
-          const p = id === s.player1.id ? s.player1 : s.player2;
           return [id, {
             card: pr.card,
             result: pr.result,
-            streakBefore: pr.result === 'win' || pr.result === 'draw_win'
-              ? pr.streakAfter - 1
-              : pr.streakAfter === 0 ? (p.currentStreak) : 0,
+            streakBefore: pr.streakBefore,
             streakAfter: pr.streakAfter,
             maxStreakBefore: pr.maxStreakAfter === pr.streakAfter && pr.streakAfter > 0
               ? pr.maxStreakAfter - 1
@@ -107,6 +104,7 @@ function buildGameDataForPlayer(s: InternalState, _pid: string): WinningStreakGa
       Object.entries(r.players).map(([id, pr]) => [id, {
         card: pr.card,
         result: pr.result,
+        streakBefore: pr.streakBefore,
         streakAfter: pr.streakAfter,
         maxStreakAfter: pr.maxStreakAfter,
         totalWinsAfter: pr.totalWinsAfter,
@@ -329,6 +327,9 @@ export function processRound(io: IO, s: InternalState) {
 
   const { resultA, resultB, description } = judgeMatch(c1, c2);
 
+  const streakBefore1 = p1.currentStreak;
+  const streakBefore2 = p2.currentStreak;
+
   const s1 = updateStreak(p1.currentStreak, p1.maxStreak, p1.totalWins, resultA);
   const s2 = updateStreak(p2.currentStreak, p2.maxStreak, p2.totalWins, resultB);
 
@@ -353,6 +354,7 @@ export function processRound(io: IO, s: InternalState) {
         nickname: p1.nickname,
         card: c1,
         result: resultA,
+        streakBefore: streakBefore1,
         streakAfter: p1.currentStreak,
         maxStreakAfter: p1.maxStreak,
         totalWinsAfter: p1.totalWins,
@@ -361,6 +363,7 @@ export function processRound(io: IO, s: InternalState) {
         nickname: p2.nickname,
         card: c2,
         result: resultB,
+        streakBefore: streakBefore2,
         streakAfter: p2.currentStreak,
         maxStreakAfter: p2.maxStreak,
         totalWinsAfter: p2.totalWins,

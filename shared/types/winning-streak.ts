@@ -57,6 +57,7 @@ export interface WSRoundRecord {
   players: Record<string, {
     card: WSCardType;
     result: WSMatchResult;
+    streakBefore: number;
     streakAfter: number;
     maxStreakAfter: number;
     totalWinsAfter: number;

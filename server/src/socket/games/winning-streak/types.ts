@@ -33,6 +33,7 @@ export interface WSRoundActionLog {
     nickname: string;
     card: WSCardType;
     result: WSMatchResult;
+    streakBefore: number;
     streakAfter: number;
     maxStreakAfter: number;
     totalWinsAfter: number;
