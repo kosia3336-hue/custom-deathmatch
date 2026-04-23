@@ -88,6 +88,24 @@ import {
   performWinningStreakUndo,
   canWinningStreakUndo,
 } from './games/winning-streak/index.js';
+import {
+  initBNW2,
+  handleBNW2Action,
+  cleanupBNW2,
+  getBNW2State,
+  emitBNW2StateToSocket,
+  performBNW2Undo,
+  canBNW2Undo,
+} from './games/bnw2/index.js';
+import {
+  initSilperBnw,
+  handleSilperBnwAction,
+  cleanupSilperBnw,
+  getSilperBnwState,
+  emitSilperBnwStateToSocket,
+  performSilperBnwUndo,
+  canSilperBnwUndo,
+} from './games/silper-bnw/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -206,6 +224,32 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitWinningStreakStateToSocket,
     performUndo: performWinningStreakUndo,
     canUndo: canWinningStreakUndo,
+  },
+  [GAME_IDS.BNW2]: {
+    init: initBNW2,
+    handleAction: handleBNW2Action,
+    cleanup: cleanupBNW2,
+    getState: (roomId) => {
+      const s = getBNW2State(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.round } : undefined;
+    },
+    emitStateToSocket: emitBNW2StateToSocket,
+    performUndo: performBNW2Undo,
+    canUndo: canBNW2Undo,
+  },
+  [GAME_IDS.SILPER_BNW]: {
+    init: initSilperBnw,
+    handleAction: handleSilperBnwAction,
+    cleanup: cleanupSilperBnw,
+    getState: (roomId) => {
+      const s = getSilperBnwState(roomId);
+      if (!s) return undefined;
+      const totalRounds = s.segmentsHistory.reduce((sum, seg) => sum + seg.rounds.length, 0) + s.actionLog.length;
+      return { gameOver: s.gameOver, totalTurns: totalRounds };
+    },
+    emitStateToSocket: emitSilperBnwStateToSocket,
+    performUndo: performSilperBnwUndo,
+    canUndo: canSilperBnwUndo,
   },
 };
 

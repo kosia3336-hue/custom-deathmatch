@@ -13,6 +13,8 @@ import InvestDonateGame from '@/components/game/modules/invest-donate';
 import BettingRpsGame from '@/components/game/modules/betting-rps';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
+import BNW2Game from '@/components/game/modules/bnw2';
+import SilperBnwGame from '@/components/game/modules/silper-bnw';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -28,6 +30,8 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.BETTING_RPS]: BettingRpsGame,
   [GAME_IDS.MULTIPLE_BNW]: MultipleBnwGame,
   [GAME_IDS.WINNING_STREAK]: WinningStreakGame,
+  [GAME_IDS.BNW2]: BNW2Game,
+  [GAME_IDS.SILPER_BNW]: SilperBnwGame,
 };
 
 export default function PlayPage() {

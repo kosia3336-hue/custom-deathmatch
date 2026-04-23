@@ -72,6 +72,20 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       players: grd.players ?? {},
     };
   }
+  if (gameId === GAME_IDS.SILPER_BNW) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      winnerId: grd.winnerId ?? null,
+      finalScores: grd.finalScores ?? {},
+      finalTiles: grd.finalTiles ?? {},
+      totalRounds: grd.totalRounds ?? 0,
+      rematchCount: grd.rematchCount ?? 0,
+      segmentsHistory: grd.segmentsHistory ?? [],
+      actions: grd.actions ?? [],
+      players: grd.players ?? {},
+      finishReason: grd.finishReason ?? null,
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,

@@ -233,10 +233,9 @@ function handleSuspectFirst(io: IO, socket: TypedSocket, s: import('./types.js')
     if (result.success) {
       processRound(io, s);
     } else {
-      s.phase = 'suspectSecond';
-      startPhaseTimer(io, s);
-      broadcastState(io, s);
-      if (s.playMode === 'com') handleAiTurn(io, s);
+      // 실패: 후 의심 스킵하고 바로 정산 (패널티 +1은 processRound에서 처리)
+      s.suspectResult!.secondSkipped = true;
+      processRound(io, s);
     }
   }
 }

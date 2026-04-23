@@ -53,6 +53,10 @@ export type {
   MultipleBnwArchiveRecord,
   WinningStreakRoundAction,
   WinningStreakArchiveRecord,
+  BNW2RoundAction,
+  BNW2ArchiveRecord,
+  SilperBnwRoundAction,
+  SilperBnwArchiveRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -176,3 +180,43 @@ export type {
   WinningStreakGameData,
   WinningStreakAction,
 } from './winning-streak';
+export {
+  BNW2_INITIAL_POINTS,
+  BNW2_MAX_SCORE,
+  BNW2_STAGE_UNIT,
+  BNW2_TOTAL_STAGES,
+  calcBNW2Stage,
+  calcBNW2Color,
+} from './bnw2';
+export type {
+  BNW2Phase,
+  BNW2Color,
+  BNW2WinType,
+  BNW2PlayerInfo,
+  BNW2RevealData,
+  BNW2RoundRecord,
+  BNW2GameData,
+  BNW2Action,
+} from './bnw2';
+export {
+  SBNW_MAX_SCORE,
+  SBNW_TOTAL_ROUNDS,
+  SBNW_MAX_REMATCH,
+  SBNW_TOTAL_TILE_COUNT,
+  SBNW_INITIAL_TILES,
+} from './silper-bnw';
+export type {
+  SBNWTile,
+  SBNWPhase,
+  SBNWWinType,
+  SBNWFirstHint,
+  SBNWPlayerInfo,
+  SBNWRevealSide,
+  SBNWRevealData,
+  SBNWRoundPlayerRecord,
+  SBNWRoundRecord,
+  SBNWSegmentResolution,
+  SBNWSegmentSummary,
+  SBNWGameData,
+  SBNWAction,
+} from './silper-bnw';

@@ -7,6 +7,13 @@ import type { IDCoinAllocation, IDCoinStock, IDBadge, IDWinType } from './invest
 import type { BRPSResult, BRPSRole, BRPSBetOutcome, BRPSWinType } from './betting-rps';
 import type { MBNWTileColor, MBNWWinType } from './multiple-bnw';
 import type { WSCardType, WSMatchResult, WSWinType } from './winning-streak';
+import type { BNW2Color, BNW2WinType } from './bnw2';
+import type {
+  SBNWTile,
+  SBNWWinType,
+  SBNWSegmentSummary,
+  SBNWRoundRecord,
+} from './silper-bnw';
 
 export interface GameRecordFile {
   version: string;
@@ -204,4 +211,42 @@ export interface WinningStreakArchiveRecord {
   finalStats: Record<string, { maxStreak: number; totalWins: number }>;
   actions: WinningStreakRoundAction[];
   players: Record<string, { nickname: string }>;
+}
+
+export interface BNW2RoundAction {
+  round: number;
+  firstPlayerId: string;
+  players: Record<string, {
+    nickname: string;
+    color: BNW2Color;
+    scoreChange: number;
+    scoreBefore: number;
+    scoreAfter: number;
+    stageBefore: number;
+    stageAfter: number;
+  }>;
+  winnerId: string | null;
+}
+
+export interface BNW2ArchiveRecord {
+  winType: BNW2WinType | null;
+  finalScores: Record<string, number>;
+  finalPoints: Record<string, number>;
+  actions: BNW2RoundAction[];
+  players: Record<string, { nickname: string }>;
+}
+
+export type SilperBnwRoundAction = SBNWRoundRecord;
+
+export interface SilperBnwArchiveRecord {
+  winType: SBNWWinType | null;
+  winnerId: string | null;
+  finalScores: Record<string, number>;
+  finalTiles: Record<string, Record<SBNWTile, number>>;
+  totalRounds: number;
+  rematchCount: number;
+  segmentsHistory: SBNWSegmentSummary[];
+  actions: SilperBnwRoundAction[];
+  players: Record<string, { nickname: string }>;
+  finishReason: string | null;
 }

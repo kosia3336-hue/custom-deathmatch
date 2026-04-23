@@ -273,6 +273,7 @@ export function performMultipleBnwUndo(io: IO, roomId: string): boolean {
     applySnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
     armRoundTimer(io, s);
     broadcastState(io, s);
+    if (s.playMode === 'com') s.onAITurn?.(io, s);
     return true;
   }
 
@@ -281,6 +282,7 @@ export function performMultipleBnwUndo(io: IO, roomId: string): boolean {
   applySnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
   armRoundTimer(io, s);
   broadcastState(io, s);
+  if (s.playMode === 'com') s.onAITurn?.(io, s);
   return true;
 }
 

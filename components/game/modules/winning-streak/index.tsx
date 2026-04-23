@@ -80,11 +80,12 @@ export default function WinningStreakGame() {
       setModalCard(null);
       setSubmitting(false);
       setRoundOverlay(gameData.round);
-      const t = setTimeout(() => setRoundOverlay(null), 1200);
+      prevRoundRef.current = gameData.round;
+      const t = setTimeout(() => setRoundOverlay(null), 2000);
       return () => clearTimeout(t);
     }
     prevRoundRef.current = gameData.round;
-  }, [gameData?.round, gameData]);
+  }, [gameData?.round]);
 
   useEffect(() => {
     if (gameData?.phase === 'cardSelect') setSubmitting(false);
@@ -424,6 +425,17 @@ function MyCardHand({
 
 /* ────────── RevealArea ────────── */
 
+// step 1: 첫 번째 카드 | step 2: 두 번째 카드 | step 3: 승패 결과 | step 4: 연승 변화
+const REVEAL_STEPS = [400, 1000, 1700, 2500];
+
+function Reveal({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+      {children}
+    </div>
+  );
+}
+
 function RevealArea({
   revealData, playerIds, players, myId,
 }: {
@@ -432,6 +444,17 @@ function RevealArea({
   players: Record<string, WSPlayerInfo>;
   myId: string | null;
 }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (!revealData) return;
+    setStep(0);
+    const timers = REVEAL_STEPS.map((delay, i) =>
+      setTimeout(() => setStep(i + 1), delay),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [revealData]);
+
   if (!revealData) return null;
 
   const orderedIds = myId && playerIds.includes(myId)
@@ -439,53 +462,71 @@ function RevealArea({
     : playerIds;
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full">
-      <p className="text-base font-semibold text-gray-700 lg:text-lg text-center">
-        {revealData.matchDescription}
-      </p>
+    <div className="flex flex-col items-center gap-4 w-full">
+      {/* Step 1~2: 카드 한 장씩 공개 */}
       <div className="flex items-center justify-center gap-6 sm:gap-12">
-        {orderedIds.map((pid) => {
+        {orderedIds.map((pid, idx) => {
           const pr = revealData.players[pid];
           if (!pr) return null;
           const style = CARD_COLORS[pr.card];
-          const isWin = pr.result === 'win' || pr.result === 'draw_win';
-          const isLose = pr.result === 'lose' || pr.result === 'draw_lose';
-
           return (
-            <div key={pid} className="flex flex-col items-center gap-2">
+            <div key={pid} className={`flex flex-col items-center gap-2 transition-all duration-500 ${step >= idx + 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
               <span className="text-sm font-medium text-gray-500 truncate max-w-[90px] lg:text-base lg:max-w-[120px]">
                 {players[pid]?.nickname}
               </span>
-              <div className={`flex flex-col items-center justify-center rounded-xl border-2
-                w-20 h-28 lg:w-28 lg:h-40
-                ${isWin
-                  ? 'ring-2 ring-emerald-400 border-emerald-500'
-                  : isLose
-                    ? 'ring-2 ring-red-300 border-red-400'
-                    : 'border-gray-300'}
-                ${style.bg} ${style.text}
-              `}>
+              <div className={`flex flex-col items-center justify-center rounded-xl border-2 w-20 h-28 lg:w-28 lg:h-40 ${style.bg} ${style.text} border-gray-300`}>
                 <span className="text-3xl lg:text-5xl">{style.icon}</span>
                 <span className="mt-1 text-xs font-semibold lg:text-base">{CARD_NAMES[pr.card]}</span>
-              </div>
-              <div className="flex flex-col items-center text-sm lg:text-base gap-0.5">
-                <span className={`font-bold ${isWin ? 'text-emerald-600' : isLose ? 'text-red-500' : 'text-gray-500'}`}>
-                  {pr.result === 'win' ? '승리'
-                    : pr.result === 'lose' ? '패배'
-                    : pr.result === 'draw_win' ? '양측 승리'
-                    : '양측 패배'}
-                </span>
-                {pr.streakAfter > 0
-                  ? <span className="text-orange-500 font-bold">{pr.streakAfter}연승 🔥</span>
-                  : <span className="text-gray-400 text-xs">연승 리셋</span>}
-                {pr.maxStreakUpdated && (
-                  <span className="text-yellow-500 font-bold animate-pulse text-xs lg:text-sm">⭐ 최대 연승 갱신!</span>
-                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Step 3: 승패 + 설명 */}
+      <Reveal visible={step >= 3}>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-base font-semibold text-gray-700 lg:text-lg text-center">
+            {revealData.matchDescription}
+          </p>
+          <div className="flex items-center justify-center gap-6 sm:gap-12">
+            {orderedIds.map((pid) => {
+              const pr = revealData.players[pid];
+              if (!pr) return null;
+              const isWin = pr.result === 'win' || pr.result === 'draw_win';
+              const isLose = pr.result === 'lose' || pr.result === 'draw_lose';
+              return (
+                <span key={pid} className={`text-lg font-bold lg:text-xl ${isWin ? 'text-emerald-600' : isLose ? 'text-red-500' : 'text-gray-500'}`}>
+                  {pr.result === 'win' ? '승리'
+                    : pr.result === 'lose' ? '패배'
+                    : pr.result === 'draw_win' ? '양측 승리'
+                    : '양측 패배'}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </Reveal>
+
+      {/* Step 4: 연승 변화 */}
+      <Reveal visible={step >= 4}>
+        <div className="flex items-center justify-center gap-6 sm:gap-12">
+          {orderedIds.map((pid) => {
+            const pr = revealData.players[pid];
+            if (!pr) return null;
+            return (
+              <div key={pid} className="flex flex-col items-center gap-0.5 text-sm">
+                {pr.streakAfter > 0
+                  ? <span className="text-orange-500 font-bold">{pr.streakAfter}연승 🔥</span>
+                  : <span className="text-gray-400 text-xs">연승 리셋</span>}
+                {pr.maxStreakUpdated && (
+                  <span className="text-yellow-500 font-bold text-xs lg:text-sm">⭐ 최대 연승 갱신!</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Reveal>
     </div>
   );
 }

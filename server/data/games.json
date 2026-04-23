@@ -78,5 +78,25 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-009",
+    "name": "흑과백2",
+    "description": "포인트를 제시해 승점을 쌓는 정보 비대칭 포인트 베팅 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
+  },
+  {
+    "id": "game-010",
+    "name": "실퍼의 흑과백",
+    "description": "0~4 타일을 조합해 다자리수를 제시하는 11판 6선승 심리·기억 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

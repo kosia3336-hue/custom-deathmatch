@@ -6,7 +6,7 @@ import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 
 const lastMessageTime = new Map<string, number>();
-const COOLDOWN_MS = 2000;
+const COOLDOWN_MS = 500;
 
 export function registerChatHandlers(io: IO, socket: TypedSocket) {
   socket.on('disconnect', () => {
