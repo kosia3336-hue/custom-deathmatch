@@ -59,7 +59,7 @@ function ColorRevealBanner({ color, firstNick, stageBefore, stageAfter }: {
   stageBefore?: number | null;
   stageAfter?: number | null;
 }) {
-  const stagesConsumed = (stageBefore != null && stageAfter != null) ? stageBefore - stageAfter : null;
+  const stagesConsumed = (stageBefore != null && stageAfter != null) ? stageBefore - Math.max(stageAfter, 1) : null;
   return (
     <div
       className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3"
@@ -174,8 +174,8 @@ function RevealPanel({
               </div>
               {colorVisible && (
                 <p className="text-xs font-medium text-indigo-500">
-                  {pd.stageBefore - pd.stageAfter > 0
-                    ? `불이 ${pd.stageBefore - pd.stageAfter}칸 꺼집니다.`
+                  {pd.stageBefore - Math.max(pd.stageAfter, 1) > 0
+                    ? `불이 ${pd.stageBefore - Math.max(pd.stageAfter, 1)}칸 꺼집니다.`
                     : '불이 꺼지지 않습니다.'}
                 </p>
               )}

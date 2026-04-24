@@ -86,6 +86,32 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       finishReason: grd.finishReason ?? null,
     };
   }
+  if (gameId === GAME_IDS.GRAPE_SUGAR_2) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      finalScores: grd.finalScores ?? {},
+      sides: grd.sides ?? { p1: '', p2: '' },
+      totalRounds: grd.totalRounds ?? 0,
+      extensions: grd.extensions ?? 0,
+      stages: grd.stages ?? [],
+      cardUsage: grd.cardUsage ?? { p1: [], p2: [] },
+      players: grd.players ?? {},
+    };
+  }
+  if (gameId === GAME_IDS.FIVE_TOWERS) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      winnerId: grd.winnerId ?? null,
+      finalScores: grd.finalScores ?? {},
+      totalTurns: grd.totalTurns ?? 0,
+      finishReason: grd.finishReason ?? null,
+      finalTowers: grd.finalTowers ?? {},
+      itemsUsed: grd.itemsUsed ?? {},
+      actions: grd.actions ?? [],
+      milestones: grd.milestones ?? [],
+      players: grd.players ?? {},
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,
@@ -100,7 +126,7 @@ export function useSaveRecord() {
     if (!gr || !rm) return;
 
     const grd = gr.gameResultData as Record<string, unknown> | undefined;
-    if (!grd?.actions && !grd?.roundHistory) {
+    if (!grd?.actions && !grd?.roundHistory && !grd?.stages) {
       toast.error('기록 데이터가 없습니다.');
       return;
     }

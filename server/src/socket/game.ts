@@ -106,6 +106,24 @@ import {
   performSilperBnwUndo,
   canSilperBnwUndo,
 } from './games/silper-bnw/index.js';
+import {
+  initFiveTowers,
+  handleFiveTowersAction,
+  cleanupFiveTowers,
+  getFiveTowersState,
+  emitFiveTowersStateToSocket,
+  performFiveTowersUndo,
+  canFiveTowersUndo,
+} from './games/five-towers/index.js';
+import {
+  initGrapeSugar2,
+  handleGrapeSugar2Action,
+  cleanupGrapeSugar2,
+  getGrapeSugar2State,
+  emitGrapeSugar2StateToSocket,
+  performGS2Undo,
+  canGrapeSugar2Undo,
+} from './games/grape-sugar-2/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -250,6 +268,30 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitSilperBnwStateToSocket,
     performUndo: performSilperBnwUndo,
     canUndo: canSilperBnwUndo,
+  },
+  [GAME_IDS.FIVE_TOWERS]: {
+    init: initFiveTowers,
+    handleAction: handleFiveTowersAction,
+    cleanup: cleanupFiveTowers,
+    getState: (roomId) => {
+      const s = getFiveTowersState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.turn } : undefined;
+    },
+    emitStateToSocket: emitFiveTowersStateToSocket,
+    performUndo: performFiveTowersUndo,
+    canUndo: canFiveTowersUndo,
+  },
+  [GAME_IDS.GRAPE_SUGAR_2]: {
+    init: initGrapeSugar2,
+    handleAction: handleGrapeSugar2Action,
+    cleanup: cleanupGrapeSugar2,
+    getState: (roomId) => {
+      const s = getGrapeSugar2State(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.history.length } : undefined;
+    },
+    emitStateToSocket: emitGrapeSugar2StateToSocket,
+    performUndo: performGS2Undo,
+    canUndo: canGrapeSugar2Undo,
   },
 };
 

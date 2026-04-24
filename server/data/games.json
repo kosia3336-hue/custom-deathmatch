@@ -98,5 +98,25 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-011",
+    "name": "5개의 탑",
+    "description": "5개의 탑에 1~3칸씩 비밀스럽게 쌓아 3선승을 노리는 추리·심리 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
+  },
+  {
+    "id": "game-012",
+    "name": "포도설탕2",
+    "description": "8라운드 동안 카드와 설탕을 동시 제출해 승점을 겨루는 2인 카드 베팅 심리전 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

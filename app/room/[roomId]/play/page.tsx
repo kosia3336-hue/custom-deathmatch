@@ -15,6 +15,8 @@ import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
 import SilperBnwGame from '@/components/game/modules/silper-bnw';
+import FiveTowersGame from '@/components/game/modules/five-towers';
+import GrapeSugar2Game from '@/components/game/modules/grape-sugar-2';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -32,6 +34,8 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.WINNING_STREAK]: WinningStreakGame,
   [GAME_IDS.BNW2]: BNW2Game,
   [GAME_IDS.SILPER_BNW]: SilperBnwGame,
+  [GAME_IDS.FIVE_TOWERS]: FiveTowersGame,
+  [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Game,
 };
 
 export default function PlayPage() {

@@ -20,5 +20,7 @@ export const GAME_IDS = {
   WINNING_STREAK: 'game-008',
   BNW2: 'game-009',
   SILPER_BNW: 'game-010',
+  FIVE_TOWERS: 'game-011',
+  GRAPE_SUGAR_2: 'game-012',
   RANDOM: 'random',
 } as const;

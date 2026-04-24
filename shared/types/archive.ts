@@ -14,6 +14,13 @@ import type {
   SBNWSegmentSummary,
   SBNWRoundRecord,
 } from './silper-bnw';
+import type { FTTower, FTItem, FTWinType } from './five-towers';
+import type {
+  GS2CardId,
+  GS2RoundRecord,
+  GS2Side,
+  GS2WinType,
+} from './grape-sugar-2';
 
 export interface GameRecordFile {
   version: string;
@@ -247,6 +254,104 @@ export interface SilperBnwArchiveRecord {
   rematchCount: number;
   segmentsHistory: SBNWSegmentSummary[];
   actions: SilperBnwRoundAction[];
+  players: Record<string, { nickname: string }>;
+  finishReason: string | null;
+}
+
+/* ════════ 5개의 탑 (Five Towers) ════════ */
+
+export type FiveTowersActionKind = 'stack' | 'item-info' | 'item-zero' | 'item-secret';
+
+export interface FiveTowersActionRecord {
+  turn: number;
+  actorId: string;
+  actorNickname: string;
+  kind: FiveTowersActionKind;
+  /** stack/zero/secret 대상 탑 */
+  tower?: FTTower;
+  /** info 아이템 대상 탑 */
+  targets?: [FTTower, FTTower];
+  /** 실제 쌓은 칸 수 (stack/zero/secret) */
+  count?: 0 | 1 | 2 | 3;
+  /** info 아이템 결과 합계 */
+  sum?: number;
+  /** 마일스톤 동시 발생 시 */
+  milestone?: 'half' | 'complete';
+  /** 점수 변동 (탑 완성 시) */
+  scoreChange?: number;
+}
+
+export interface FiveTowersMilestoneRecord {
+  turn: number;
+  tower: FTTower;
+  kind: 'half' | 'complete';
+  actorId: string;
+  actorNickname: string;
+}
+
+export interface FiveTowersTowerRecord {
+  finalHeight: number;
+  completedBy: string | null;
+  /** 각 플레이어가 누적한 칸 수 */
+  contributions: Record<string, number>;
+}
+
+export interface FiveTowersItemUsage {
+  item: FTItem;
+  turn: number;
+  /** info: targets, sum / zero: tower / secret: tower, count */
+  detail: {
+    tower?: FTTower;
+    targets?: [FTTower, FTTower];
+    count?: 0 | 1 | 2 | 3;
+    sum?: number;
+  };
+}
+
+export interface FiveTowersArchiveRecord {
+  winType: FTWinType | null;
+  winnerId: string | null;
+  finalScores: Record<string, number>;
+  totalTurns: number;
+  finishReason: string | null;
+  finalTowers: Record<FTTower, FiveTowersTowerRecord>;
+  itemsUsed: Record<string, FiveTowersItemUsage>;
+  actions: FiveTowersActionRecord[];
+  milestones: FiveTowersMilestoneRecord[];
+  players: Record<string, { nickname: string }>;
+}
+
+/* ════════ 포도설탕2 (Grape Sugar 2) ════════ */
+
+/** 본 게임 + N차 연장전 단계 단위 */
+export interface GrapeSugar2Stage {
+  /** 0 = 본 게임, 1+ = N차 연장전 */
+  extension: number;
+  maxRound: 8 | 9;
+  rounds: GS2RoundRecord[];
+  /** 단계 종료 시 사이드별 점수 */
+  scoreAfter: { p1: number; p2: number };
+  /** 단계 결과: 승자 사이드 또는 'tie' (연장전 진입) */
+  result: GS2Side | 'tie';
+}
+
+export interface GrapeSugar2CardUsage {
+  card: GS2CardId;
+  count: number;
+}
+
+export interface GrapeSugar2ArchiveRecord {
+  winType: GS2WinType;
+  winnerId: string | null;
+  finalScores: Record<string, number>;
+  /** 본 게임 + 연장전 모두 합한 라운드 수 */
+  totalRounds: number;
+  extensions: number;
+  stages: GrapeSugar2Stage[];
+  /** 사이드별 ↔ playerId 매핑 */
+  sides: { p1: string; p2: string };
+  /** 사이드별 카드 사용 통계 */
+  cardUsage: { p1: GrapeSugar2CardUsage[]; p2: GrapeSugar2CardUsage[] };
   players: Record<string, { nickname: string }>;
   finishReason: string | null;
 }

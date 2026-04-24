@@ -83,7 +83,7 @@ export default function ResultScreen() {
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
     const _grd = gameResult?.gameResultData as Record<string, unknown> | undefined;
-    const hasRecord = !!(_grd?.actions || _grd?.roundHistory);
+    const hasRecord = !!(_grd?.actions || _grd?.roundHistory || _grd?.stages);
     setFooter(
       <>
         {!cancelled && timer > 0 && (
