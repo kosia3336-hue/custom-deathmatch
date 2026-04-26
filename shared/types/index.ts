@@ -66,6 +66,9 @@ export type {
   GrapeSugar2Stage,
   GrapeSugar2CardUsage,
   GrapeSugar2ArchiveRecord,
+  SunMoonStar2MarkStats,
+  SunMoonStar2PlayerStats,
+  SunMoonStar2ArchiveRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -282,3 +285,38 @@ export type {
   GS2GameData,
   GS2Action,
 } from './grape-sugar-2';
+export {
+  SMS2_MAX_ROUNDS,
+  SMS2_INITIAL_POWDER,
+  SMS2_INITIAL_CHIPS,
+  SMS2_POWDER_STAGE_SIZE,
+  SMS2_POWDER_STAGE_COUNT,
+  MARK_IDS,
+  MARK_LABELS,
+  MARK_ICONS,
+  MARK_PRIORITY,
+  powderStageOf,
+  powderStageRange,
+  firstMaxBet,
+  secondMinBet,
+  decideLitMark,
+  zeroBet,
+  zeroPowder,
+  sumBet,
+  sumPowder,
+} from './sun-moon-star-2';
+export type {
+  SMS2MarkId,
+  SMS2Phase,
+  SMS2Side,
+  SMS2WinType,
+  SMS2PowderStage,
+  SMS2PowderSubmission,
+  SMS2ChipBet,
+  SMS2Action,
+  SMS2ResolveStep,
+  SMS2PlayerPublic,
+  SMS2SelfPrivate,
+  SMS2RoundRecord,
+  SMS2GameData,
+} from './sun-moon-star-2';

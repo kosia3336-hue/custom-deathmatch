@@ -22,5 +22,6 @@ export const GAME_IDS = {
   SILPER_BNW: 'game-010',
   FIVE_TOWERS: 'game-011',
   GRAPE_SUGAR_2: 'game-012',
+  SUN_MOON_STAR_2: 'game-013',
   RANDOM: 'random',
 } as const;

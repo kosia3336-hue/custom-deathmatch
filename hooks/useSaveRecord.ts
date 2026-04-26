@@ -112,6 +112,22 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       players: grd.players ?? {},
     };
   }
+  if (gameId === GAME_IDS.SUN_MOON_STAR_2) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      winnerId: grd.winnerId ?? null,
+      finalChips: grd.finalChips ?? {},
+      finalPowder: grd.finalPowder ?? {},
+      totalRounds: grd.totalRounds ?? 0,
+      suddenDeath: grd.suddenDeath ?? false,
+      sides: grd.sides ?? { p1: '', p2: '' },
+      rounds: grd.rounds ?? [],
+      markStats: grd.markStats ?? {},
+      playerStats: grd.playerStats ?? { p1: {}, p2: {} },
+      players: grd.players ?? {},
+      finishReason: grd.finishReason ?? null,
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,
@@ -126,7 +142,7 @@ export function useSaveRecord() {
     if (!gr || !rm) return;
 
     const grd = gr.gameResultData as Record<string, unknown> | undefined;
-    if (!grd?.actions && !grd?.roundHistory && !grd?.stages) {
+    if (!grd?.actions && !grd?.roundHistory && !grd?.stages && !grd?.rounds) {
       toast.error('기록 데이터가 없습니다.');
       return;
     }

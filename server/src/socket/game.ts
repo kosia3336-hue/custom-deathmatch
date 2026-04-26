@@ -124,6 +124,15 @@ import {
   performGS2Undo,
   canGrapeSugar2Undo,
 } from './games/grape-sugar-2/index.js';
+import {
+  initSunMoonStar2,
+  handleSunMoonStar2Action,
+  cleanupSunMoonStar2,
+  getSunMoonStar2State,
+  emitSunMoonStar2StateToSocket,
+  performSunMoonStar2Undo,
+  canSunMoonStar2Undo,
+} from './games/sun-moon-star-2/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -292,6 +301,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitGrapeSugar2StateToSocket,
     performUndo: performGS2Undo,
     canUndo: canGrapeSugar2Undo,
+  },
+  [GAME_IDS.SUN_MOON_STAR_2]: {
+    init: initSunMoonStar2,
+    handleAction: handleSunMoonStar2Action,
+    cleanup: cleanupSunMoonStar2,
+    getState: (roomId) => {
+      const s = getSunMoonStar2State(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.history.length } : undefined;
+    },
+    emitStateToSocket: emitSunMoonStar2StateToSocket,
+    performUndo: performSunMoonStar2Undo,
+    canUndo: canSunMoonStar2Undo,
   },
 };
 

@@ -20,6 +20,7 @@ import BNW2Viewer from '@/components/archive/viewers/bnw2';
 import SilperBnwViewer from '@/components/archive/viewers/silper-bnw';
 import FiveTowersViewer from '@/components/archive/viewers/five-towers';
 import GrapeSugar2Viewer from '@/components/archive/viewers/grape-sugar-2';
+import SunMoonStar2Viewer from '@/components/archive/viewers/sun-moon-star-2';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -35,6 +36,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.SILPER_BNW]: SilperBnwViewer,
   [GAME_IDS.FIVE_TOWERS]: FiveTowersViewer,
   [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Viewer,
+  [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Viewer,
 };
 
 export default function ArchiveViewPage() {

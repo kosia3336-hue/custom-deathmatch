@@ -118,5 +118,15 @@
     "supportsMulti": true,
     "supportsCom": true,
     "supportsSolo": false
+  },
+  {
+    "id": "game-013",
+    "name": "해달별2",
+    "description": "빛가루를 해·달·별에 비밀 분배하고 칩을 베팅해 점등된 표식으로 승부를 가르는 10R 2인 심리전 게임",
+    "minPlayers": 2,
+    "maxPlayers": 2,
+    "supportsMulti": true,
+    "supportsCom": true,
+    "supportsSolo": false
   }
 ]

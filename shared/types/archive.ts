@@ -21,6 +21,12 @@ import type {
   GS2Side,
   GS2WinType,
 } from './grape-sugar-2';
+import type {
+  SMS2MarkId,
+  SMS2RoundRecord,
+  SMS2Side,
+  SMS2WinType,
+} from './sun-moon-star-2';
 
 export interface GameRecordFile {
   version: string;
@@ -352,6 +358,49 @@ export interface GrapeSugar2ArchiveRecord {
   sides: { p1: string; p2: string };
   /** 사이드별 카드 사용 통계 */
   cardUsage: { p1: GrapeSugar2CardUsage[]; p2: GrapeSugar2CardUsage[] };
+  players: Record<string, { nickname: string }>;
+  finishReason: string | null;
+}
+
+/* ════════ 해달별2 (Sun-Moon-Star 2) ════════ */
+
+export interface SunMoonStar2MarkStats {
+  /** 표식이 점등된 횟수 */
+  litCount: number;
+  /** 이 표식에 누적된 빛가루 합 */
+  powderConsumed: number;
+}
+
+export interface SunMoonStar2PlayerStats {
+  /** 표식별 총 기여 빛가루 */
+  powderByMark: Record<SMS2MarkId, number>;
+  /** 표식별 총 베팅 칩 */
+  betByMark: Record<SMS2MarkId, number>;
+  /** 총 환급 칩 (점등 표식 베팅의 2배 수령) */
+  totalReturned: number;
+  /** 총 몰수 칩 (비점등 표식 베팅 소실) */
+  totalForfeited: number;
+  /** 선이었던 라운드 수 */
+  firstRounds: number;
+  /** 자동 제출된 라운드 수 */
+  autoRounds: number;
+}
+
+export interface SunMoonStar2ArchiveRecord {
+  winType: SMS2WinType;
+  winnerId: string | null;
+  /** 최종 칩 */
+  finalChips: Record<string, number>;
+  /** 최종 잔여 빛가루 (참고용) */
+  finalPowder: Record<string, number>;
+  totalRounds: number;
+  /** 서든데스 1R가 진행됐는가 */
+  suddenDeath: boolean;
+  /** 사이드 ↔ playerId 매핑 */
+  sides: { p1: string; p2: string };
+  rounds: SMS2RoundRecord[];
+  markStats: Record<SMS2MarkId, SunMoonStar2MarkStats>;
+  playerStats: { p1: SunMoonStar2PlayerStats; p2: SunMoonStar2PlayerStats };
   players: Record<string, { nickname: string }>;
   finishReason: string | null;
 }
