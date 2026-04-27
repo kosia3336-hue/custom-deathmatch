@@ -239,9 +239,9 @@ export function resolveRound(
   for (const side of SIDES) {
     if (!blessActive[side]) continue;
     if (winner === side) {
-      scoreDelta[side] += 2;
+      scoreDelta[side] += 1;
       blessOutcome[side] = 'win';
-      steps.push({ type: 'bless', actor: side, outcome: 'win', scoreDelta: 2 });
+      steps.push({ type: 'bless', actor: side, outcome: 'win', scoreDelta: 1 });
     } else if (winner === 'tie') {
       blessOutcome[side] = 'tie';
       steps.push({ type: 'bless', actor: side, outcome: 'tie', scoreDelta: 0 });

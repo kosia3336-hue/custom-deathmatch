@@ -381,7 +381,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       gameName: newGame?.name,
       minPlayers: newGame?.minPlayers,
       maxPlayers: resolvedMaxPlayers,
-      roomType: data.roomType,
+      roomType: room.playMode === 'multi' ? data.roomType : 'public',
       password: data.password,
       clearPassword: data.clearPassword,
       timeLimitSeconds: data.timeLimitSeconds,

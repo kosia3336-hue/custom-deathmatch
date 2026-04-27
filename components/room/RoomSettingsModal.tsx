@@ -355,44 +355,48 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                       </div>
                     ) : (
                       <>
-                        {/* 방 유형 */}
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
-                          <div className="flex gap-2">
-                            {[
-                              { key: 'public' as RoomType, label: '🔓 공개' },
-                              { key: 'private' as RoomType, label: '🔑 비밀' },
-                            ].map((rt) => (
-                              <button
-                                key={rt.key}
-                                onClick={() => { setRoomType(rt.key); setPassword(''); }}
-                                className={cn(
-                                  'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                                  roomType === rt.key
-                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                    : 'border-gray-200 hover:border-gray-300',
-                                )}
-                              >
-                                {rt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        {/* 방 유형 — 멀티 모드만 */}
+                        {room.playMode === 'multi' && (
+                          <>
+                            <div>
+                              <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
+                              <div className="flex gap-2">
+                                {[
+                                  { key: 'public' as RoomType, label: '🔓 공개' },
+                                  { key: 'private' as RoomType, label: '🔑 비밀' },
+                                ].map((rt) => (
+                                  <button
+                                    key={rt.key}
+                                    onClick={() => { setRoomType(rt.key); setPassword(''); }}
+                                    className={cn(
+                                      'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                                      roomType === rt.key
+                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                        : 'border-gray-200 hover:border-gray-300',
+                                    )}
+                                  >
+                                    {rt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
 
-                        {/* 비밀번호 */}
-                        {roomType === 'private' && (
-                          <Input
-                            label={
-                              room.roomType === 'private'
-                                ? '새 비밀번호 (변경 시만 입력)'
-                                : '비밀번호'
-                            }
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
-                            maxLength={8}
-                          />
+                            {/* 비밀번호 */}
+                            {roomType === 'private' && (
+                              <Input
+                                label={
+                                  room.roomType === 'private'
+                                    ? '새 비밀번호 (변경 시만 입력)'
+                                    : '비밀번호'
+                                }
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
+                                maxLength={8}
+                              />
+                            )}
+                          </>
                         )}
 
                         {/* 최대 인원 */}
