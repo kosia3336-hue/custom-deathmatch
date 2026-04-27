@@ -1,0 +1,157 @@
+'use client';
+
+import type { BankContextValue } from './hooks/useBankContext';
+import InventoryRow from './InventoryRow';
+import FirstCountRevealBanner from './FirstCountRevealBanner';
+import RoundHistoryTable from './RoundHistoryTable';
+import ScorePanel from './ScorePanel';
+import OpponentInventoryTracker from './OpponentInventoryTracker';
+import PhaseStepperDesktop from './PhaseStepperDesktop';
+import PhaseArea from './PhaseArea';
+import { PHASE_PILL_COLORS, PHASE_LABELS } from './constants';
+
+/* ════════════════════════════════════════════════════════════
+ * DesktopLayout — ≥ 1024px
+ *   sun-moon-star-2 와 동일 패턴:
+ *     메인 (flex-1, items-center, overflow-y-auto, p-5)
+ *       └── w-full max-w-2xl 자식들 → 가운데 정렬
+ *     우측 사이드바 (w-72, border-l, p-4)
+ *       └── ScorePanel + OpponentBox + RoundHistoryTable
+ * ════════════════════════════════════════════════════════════ */
+
+interface Props {
+  ctx: BankContextValue;
+}
+
+export default function DesktopLayout({ ctx }: Props) {
+  const {
+    gameData,
+    isSpectator,
+    myId,
+    myPlayer,
+    mySide,
+    firstSide,
+    firstPlayer,
+    secondPlayer,
+    phase,
+    isFirstReveal,
+    isSecondSubmit,
+    myTurnInput,
+    stepperActiveTurn,
+    pendingBet,
+    showOpponentTracker,
+  } = ctx;
+
+  if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
+
+  const myIsFirst = mySide === firstSide;
+  const firstBetCount = firstPlayer.publicBetCount;
+  const showBanner = (isFirstReveal || isSecondSubmit) && firstBetCount != null;
+  const phaseLabel = phase ? PHASE_LABELS[phase] ?? phase : '';
+  const phasePill = phase ? PHASE_PILL_COLORS[phase] ?? '' : '';
+
+  return (
+    <div className="flex h-full">
+      <div className="flex flex-1 flex-col lg:flex-row">
+
+        {/* ── 메인 영역 (가운데 정렬) ── */}
+        <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-5">
+
+          {/* 라운드 헤더 */}
+          <div className="w-full max-w-2xl text-center">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl font-extrabold tabular-nums text-gray-800">
+                R {gameData.round}
+              </span>
+              <span className="text-xs tabular-nums text-gray-400">
+                / {gameData.maxRound}
+              </span>
+              {phaseLabel && (
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${phasePill}`}>
+                  {phaseLabel}
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 text-sm text-amber-600">
+              {firstPlayer.nickname} 선 👑
+            </div>
+          </div>
+
+          {/* 페이즈 스테퍼 */}
+          <div className="w-full max-w-2xl">
+            <PhaseStepperDesktop
+              phase={phase ?? 'firstSubmit'}
+              isMyTurn={stepperActiveTurn}
+              isSpectator={isSpectator}
+              firstNick={firstPlayer.nickname}
+              secondNick={secondPlayer.nickname}
+              myIsFirst={myIsFirst}
+            />
+          </div>
+
+          {/* 본인 인벤토리 — 관전자 숨김 */}
+          {!isSpectator && myPlayer?.inventory && myPlayer.inventoryAmount != null && (
+            <div className="w-full max-w-2xl">
+              <InventoryRow
+                inventory={myPlayer.inventory}
+                inventoryAmount={myPlayer.inventoryAmount}
+                pendingBet={myTurnInput ? pendingBet : null}
+                size="md"
+              />
+            </div>
+          )}
+
+          {/* 선 장수 공개 배너 */}
+          {showBanner && firstBetCount != null && (
+            <div className="w-full max-w-2xl">
+              <FirstCountRevealBanner
+                firstNick={firstPlayer.nickname}
+                firstBetCount={firstBetCount}
+                isMyTurn={!isSpectator && !myIsFirst && isSecondSubmit}
+              />
+            </div>
+          )}
+
+          {/* 메인 페이즈 영역 */}
+          <div className="w-full max-w-2xl">
+            <PhaseArea ctx={ctx} size="md" />
+          </div>
+
+          {/* 상대 금액 추리 — 메인 영역 */}
+          {showOpponentTracker && (
+            <div className="w-full max-w-2xl">
+              <OpponentInventoryTracker />
+            </div>
+          )}
+        </div>
+
+        {/* ── 우측 사이드바 ── */}
+        <div className="hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col lg:gap-3 lg:border-l lg:border-gray-200 lg:p-4">
+          <ScorePanel
+            p1={gameData.players.p1}
+            p2={gameData.players.p2}
+            firstSide={firstSide}
+            myId={myId}
+          />
+
+          {/* 라운드 기록 */}
+          {gameData.history.length > 0 && (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                라운드 기록
+              </p>
+              <div className="flex-1 overflow-y-auto pr-1">
+                <RoundHistoryTable
+                  history={gameData.history}
+                  mySide={mySide}
+                  players={gameData.players}
+                  variant="desktop"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

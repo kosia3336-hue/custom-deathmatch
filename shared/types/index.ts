@@ -69,6 +69,10 @@ export type {
   SunMoonStar2MarkStats,
   SunMoonStar2PlayerStats,
   SunMoonStar2ArchiveRecord,
+  BankRoundArchiveRecord,
+  BankPlayerArchiveStats,
+  BankMatchArchiveStats,
+  BankGameArchiveRecord,
 } from './archive';
 export {
   DSC_BOARD_SIZE,
@@ -320,3 +324,32 @@ export type {
   SMS2RoundRecord,
   SMS2GameData,
 } from './sun-moon-star-2';
+export {
+  BANK_TOTAL_ROUNDS,
+  BANK_DENOMINATIONS,
+  BANK_INITIAL_INVENTORY,
+  BANK_INITIAL_TOTAL_COUNT,
+  BANK_INITIAL_TOTAL_AMOUNT,
+  zeroBet as bankZeroBet,
+  emptyInventory as bankEmptyInventory,
+  initialInventory as bankInitialInventory,
+  sumBetCount as bankSumBetCount,
+  sumBetAmount as bankSumBetAmount,
+  sumInventoryCount as bankSumInventoryCount,
+  sumInventoryAmount as bankSumInventoryAmount,
+  compareBetAmount as bankCompareBetAmount,
+  subtractInventory as bankSubtractInventory,
+  validateBet as bankValidateBet,
+} from './bank-game';
+export type {
+  BankDenomination,
+  BankPhase,
+  BankSide,
+  BankWinType,
+  BankBet,
+  BankAction,
+  BankResolveStep,
+  BankPlayerInfo,
+  BankRoundResult,
+  BankGameData,
+} from './bank-game';

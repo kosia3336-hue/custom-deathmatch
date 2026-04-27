@@ -133,6 +133,15 @@ import {
   performSunMoonStar2Undo,
   canSunMoonStar2Undo,
 } from './games/sun-moon-star-2/index.js';
+import {
+  initBankGame,
+  handleBankGameAction,
+  cleanupBankGame,
+  getBankGameState,
+  emitBankGameStateToSocket,
+  performBankGameUndo,
+  canBankGameUndo,
+} from './games/bank-game/index.js';
 
 type EndGameCallback = (
   io: IO,
@@ -313,6 +322,18 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitSunMoonStar2StateToSocket,
     performUndo: performSunMoonStar2Undo,
     canUndo: canSunMoonStar2Undo,
+  },
+  [GAME_IDS.BANK_GAME]: {
+    init: initBankGame,
+    handleAction: handleBankGameAction,
+    cleanup: cleanupBankGame,
+    getState: (roomId) => {
+      const s = getBankGameState(roomId);
+      return s ? { gameOver: s.gameOver, totalTurns: s.history.length } : undefined;
+    },
+    emitStateToSocket: emitBankGameStateToSocket,
+    performUndo: performBankGameUndo,
+    canUndo: canBankGameUndo,
   },
 };
 

@@ -128,6 +128,23 @@ function buildGameRecord(gameId: string, grd: Record<string, unknown>): unknown 
       finishReason: grd.finishReason ?? null,
     };
   }
+  if (gameId === GAME_IDS.BANK_GAME) {
+    return {
+      winType: (grd.winType as string) ?? null,
+      winnerId: grd.winnerId ?? null,
+      finalScore: grd.finalScore ?? { p1: 0, p2: 0 },
+      finalInventory: grd.finalInventory ?? { p1: {}, p2: {} },
+      finalInventoryTotalCount: grd.finalInventoryTotalCount ?? { p1: 0, p2: 0 },
+      finalInventoryTotalAmount: grd.finalInventoryTotalAmount ?? { p1: 0, p2: 0 },
+      totalRounds: grd.totalRounds ?? 0,
+      sides: grd.sides ?? { p1: '', p2: '' },
+      rounds: grd.rounds ?? [],
+      playerStats: grd.playerStats ?? { p1: {}, p2: {} },
+      matchStats: grd.matchStats ?? {},
+      players: grd.players ?? {},
+      finishReason: grd.finishReason ?? null,
+    };
+  }
   // FOUR_GRAVITY 및 기타 게임
   return {
     winType: (grd.winType as string) ?? null,

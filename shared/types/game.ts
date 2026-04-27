@@ -23,5 +23,6 @@ export const GAME_IDS = {
   FIVE_TOWERS: 'game-011',
   GRAPE_SUGAR_2: 'game-012',
   SUN_MOON_STAR_2: 'game-013',
+  BANK_GAME: 'game-014',
   RANDOM: 'random',
 } as const;

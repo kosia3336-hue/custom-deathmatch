@@ -27,6 +27,12 @@ import type {
   SMS2Side,
   SMS2WinType,
 } from './sun-moon-star-2';
+import type {
+  BankBet,
+  BankDenomination,
+  BankSide,
+  BankWinType,
+} from './bank-game';
 
 export interface GameRecordFile {
   version: string;
@@ -401,6 +407,91 @@ export interface SunMoonStar2ArchiveRecord {
   rounds: SMS2RoundRecord[];
   markStats: Record<SMS2MarkId, SunMoonStar2MarkStats>;
   playerStats: { p1: SunMoonStar2PlayerStats; p2: SunMoonStar2PlayerStats };
+  players: Record<string, { nickname: string }>;
+  finishReason: string | null;
+}
+
+/* ════════ 은행놀이 (Bank Game) ════════ */
+
+export interface BankRoundArchiveRecord {
+  round: number;
+  firstSide: BankSide;
+  outcome: 'first_win' | 'second_win' | 'draw';
+  winnerSide: BankSide | null;
+  loserSide: BankSide | null;
+  /** 양측 베팅 (사후 공개 — 승자 베팅도 포함) */
+  bets: { p1: BankBet; p2: BankBet };
+  amounts: { p1: number; p2: number };
+  counts: { p1: number; p2: number };
+  scoreDelta: { p1: number; p2: number };
+  scoreAfter: { p1: number; p2: number };
+  inventoryBefore: { p1: BankBet; p2: BankBet };
+  inventoryAfter: { p1: BankBet; p2: BankBet };
+  inventoryTotalCountBefore: { p1: number; p2: number };
+  inventoryTotalCountAfter: { p1: number; p2: number };
+  inventoryTotalAmountBefore: { p1: number; p2: number };
+  inventoryTotalAmountAfter: { p1: number; p2: number };
+  /** 자동 제출 / 무르기 표식 */
+  auto: { p1: boolean; p2: boolean };
+}
+
+export interface BankPlayerArchiveStats {
+  /** 라운드 평균 베팅 금액 */
+  avgBetAmount: number;
+  /** 라운드 평균 베팅 장수 */
+  avgBetCount: number;
+  /** 라운드 평균 단가 (총 베팅 금액 / 총 베팅 장수) */
+  avgUnitPrice: number;
+  /** 액면별 사용 장수 합 */
+  usageByDenomination: Record<BankDenomination, number>;
+  /** 0장 제출 라운드 수 */
+  zeroBetRounds: number;
+  /** 자동 제출 라운드 수 */
+  autoRounds: number;
+  /** 선이었던 라운드 수 */
+  firstRounds: number;
+  /** 라운드 승수 */
+  winRounds: number;
+  /** 패배 라운드 누적 금액 (이 플레이어가 패배한 라운드의 본인 금액 합) */
+  loserAmountTotal: number;
+  /** 라운드 승리 시 평균 우위 금액 */
+  avgWinningMargin: number;
+}
+
+export interface BankMatchArchiveStats {
+  totalRounds: number;
+  drawRounds: number;
+  /** 양측 동시 0장 라운드 수 */
+  bothZeroRounds: number;
+  /** 가장 큰 승리 마진 (승자 금액 − 패자 금액) */
+  largestMargin: number;
+  /** 가장 작은 승리 마진 (>0) */
+  smallestMargin: number;
+  /** 평균 우위 금액 (승부가 난 라운드만) */
+  avgMargin: number;
+  /** 라운드별 누적 패자 금액 — 차트용 */
+  loserAmountTrend: number[];
+  /** 라운드별 양측 잔여 인벤토리 총 장수 — 차트용 */
+  inventoryCountTrend: { p1: number[]; p2: number[] };
+  /** 라운드별 양측 잔여 인벤토리 총 금액 — 차트용 */
+  inventoryAmountTrend: { p1: number[]; p2: number[] };
+  /** 라운드별 누적 점수 — 차트용 */
+  scoreTrend: { p1: number[]; p2: number[] };
+}
+
+export interface BankGameArchiveRecord {
+  winType: BankWinType;
+  winnerId: string | null;
+  finalScore: { p1: number; p2: number };
+  finalInventory: { p1: BankBet; p2: BankBet };
+  finalInventoryTotalCount: { p1: number; p2: number };
+  finalInventoryTotalAmount: { p1: number; p2: number };
+  totalRounds: number;
+  /** 사이드 ↔ playerId 매핑 */
+  sides: { p1: string; p2: string };
+  rounds: BankRoundArchiveRecord[];
+  playerStats: { p1: BankPlayerArchiveStats; p2: BankPlayerArchiveStats };
+  matchStats: BankMatchArchiveStats;
   players: Record<string, { nickname: string }>;
   finishReason: string | null;
 }
