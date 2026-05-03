@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { GameState, GameResult } from '@shared/types/events.js';
-import type { Player, PlayMode } from '@shared/types/room.js';
+import type { Player, PlayMode, Room } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { GAME_IDS } from '@shared/types/game.js';
 import { roomStore } from '../store/rooms.js';
@@ -10,6 +10,7 @@ import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
 import { socketRoom } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import {
   clearPendingUndo,
   peekPendingUndo,
@@ -594,13 +595,17 @@ export function endGame(
   const playTime = Date.now() - startedAt;
   gameStartTimes.delete(roomId);
 
+  const baseRankings = data?.rankings ?? room.players.map((p: Player, i: number) => ({
+    playerId: p.id,
+    nickname: p.nickname,
+    rank: i + 1,
+    score: 0,
+  }));
   const result: GameResult = {
     roomId,
-    rankings: data?.rankings ?? room.players.map((p: Player, i: number) => ({
-      playerId: p.id,
-      nickname: p.nickname,
-      rank: i + 1,
-      score: 0,
+    rankings: baseRankings.map((r) => ({
+      ...r,
+      memberId: room.players.find((p: Player) => p.id === r.playerId)?.memberId ?? null,
     })),
     playTime,
     totalTurns: data?.totalTurns ?? 0,
@@ -609,6 +614,24 @@ export function endGame(
 
   io.to(socketRoom(roomId)).emit('game:ended', result);
   broadcastRoomUpdated(io, roomId);
+
+  // 게임 중 부여된 pending 칭호 알림을 각 플레이어에게 전달
+  for (const player of room.players) {
+    if (player.id === AI_PLAYER_ID) continue;
+    if (!sessions.hasPendingTitles(player.id)) continue;
+    const sid = sessions.getSocketByToken(player.id);
+    if (!sid) continue;
+    const sock = io.sockets.sockets.get(sid);
+    if (!sock) continue;
+    for (const notif of sessions.takePendingTitles(player.id)) {
+      sock.emit('title:granted', notif);
+    }
+  }
+
+  // v2 — DB 적재 (멀티/COM/솔로 모두 로그는 저장. counts_for_stats는 multi만 true)
+  recordGameEndAsync(room, result).catch((err) => {
+    console.warn('[game:ended] record_game_end 실패:', (err as Error).message);
+  });
 
   const timer = setTimeout(() => {
     const r = roomStore.get(roomId);
@@ -644,4 +667,66 @@ export function clearAutoEnd(roomId: string) {
 
 export function clearGameStartTime(roomId: string) {
   gameStartTimes.delete(roomId);
+}
+
+/**
+ * v2 — 게임 종료 시 DB 적재.
+ * Supabase service_role 로 record_game_end RPC 호출.
+ *  - mode = 'multi' / 'com' / 'solo' 모두 game_logs 적재
+ *  - counts_for_stats = (mode === 'multi') 만 통계 반영 (RPC 안에서 처리)
+ */
+async function recordGameEndAsync(room: Room, result: GameResult): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+
+  const startedAt = result.playTime != null ? Date.now() - result.playTime : Date.now();
+  const playedAt = new Date(Date.now()).toISOString();
+
+  // participants 만들기 — Player.turnPosition (server toClientRoom이 채움) 직접 사용
+  // server 내부 Room (rooms.ts) 의 Player 는 turnPosition이 비어 있으니, players[i] 인덱스로 first/second 결정
+  const participants = room.players.map((p, i) => {
+    const isAi = p.id === AI_PLAYER_ID;
+    const ranking = result.rankings.find((r) => r.playerId === p.id);
+    const position: 'first' | 'second' = i === 0 ? 'first' : 'second';
+    const isWinner = ranking ? ranking.rank === 1 : null;
+    return {
+      member_id: isAi ? null : p.memberId ?? null,
+      position,
+      is_winner: isWinner,
+      is_draw: false,
+      is_resign: false,
+      nickname: isAi ? 'COM' : p.nickname,
+      title: p.displayedTitle ?? null,
+    };
+  });
+
+  const playMode = room.playMode;
+  const sb = getSupabaseAdmin();
+
+  const args = {
+    p_game_id: room.gameId,
+    p_mode: playMode,
+    p_room_snapshot: {
+      title: room.title,
+      gameName: room.gameName,
+      playMode,
+      maxPlayers: room.maxPlayers,
+      timeLimitSeconds: room.timeLimitSeconds,
+      gameOptions: room.gameOptions,
+    },
+    p_result: {
+      winner_position: participants.find((p) => p.is_winner)?.position ?? null,
+      rankings: result.rankings,
+      gameResultData: result.gameResultData,
+    },
+    p_play_time_seconds: Math.max(0, Math.floor(result.playTime / 1000)),
+    p_total_turns: result.totalTurns ?? 0,
+    p_game_record: result.gameResultData ?? {},
+    p_played_at: playedAt,
+    p_participants: participants,
+  };
+  void startedAt;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (sb.rpc as any)('record_game_end', args);
+  if (error) throw new Error(error.message);
 }

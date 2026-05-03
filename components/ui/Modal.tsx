@@ -43,7 +43,7 @@ export default function Modal({ open, onClose, title, closable = true, children,
           <motion.div
             ref={contentRef}
             className={cn(
-              'relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto',
+              'relative z-10 w-full max-w-md rounded-cdm-xl bg-cdm-bg p-6 shadow-(--cdm-shadow-lg) max-h-[90vh] overflow-y-auto',
               className,
             )}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -53,9 +53,9 @@ export default function Modal({ open, onClose, title, closable = true, children,
           >
             {(title || closable) && (
               <div className="mb-4 flex items-center justify-between">
-                {title && <h2 className="text-lg font-bold text-gray-900">{title}</h2>}
+                {title && <h2 className="text-lg font-bold text-cdm-fg">{title}</h2>}
                 {closable && (
-                  <button onClick={onClose} className="ml-auto p-1 text-gray-400 hover:text-gray-600">
+                  <button onClick={onClose} className="ml-auto p-1 text-cdm-fg-muted hover:text-cdm-fg">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>

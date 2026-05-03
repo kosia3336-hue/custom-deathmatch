@@ -285,7 +285,10 @@ interface Props {
 }
 
 export default function SilperBnwViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as SilperBnwArchiveRecord;
+  const gameRecord = record.gameRecord as SilperBnwArchiveRecord | null;
+  const [activeSegIdx, setActiveSegIdx] = useState(0);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const segments: SBNWSegmentSummary[] = gameRecord.segmentsHistory ?? [];
 
   const playerIds = Object.keys(gameRecord.players ?? record.players);
@@ -306,8 +309,6 @@ export default function SilperBnwViewer({ record }: Props) {
   const totalRoundsPlayed =
     gameRecord.totalRounds ??
     segments.reduce((sum, seg) => sum + seg.rounds.length, 0);
-
-  const [activeSegIdx, setActiveSegIdx] = useState(0);
   const activeSeg = segments[activeSegIdx];
 
   /* ── 렌더 ── */

@@ -7,6 +7,8 @@ import { registerRoomHandlers, handleLeaveRoom } from './room.js';
 import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { socketRoom } from './utils.js';
+import { getMemberFromAccessToken } from '../db/member.js';
+import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -14,6 +16,33 @@ type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 const RECONNECT_GRACE_PLAYING = 30_000;
 
 export function setupSocketHandlers(io: IO) {
+  // ── v2 — connect 핸드셰이크에서 Supabase access_token 검증 ──────────────
+  // accessToken 있으면 회원 검증 후 socket.data.member 세팅.
+  // 없거나 실패하면 게스트로 연결 허용 (로비 관전 전용 — 방 생성/입장은 닉네임 체크로 차단).
+  io.use(async (socket, next) => {
+    try {
+      const accessToken = (socket.handshake.auth as { accessToken?: string } | undefined)?.accessToken;
+      if (!accessToken) {
+        // 게스트: member 없이 연결 허용
+        (socket.data as { member?: null }).member = null;
+        return next();
+      }
+      const member = await getMemberFromAccessToken(accessToken);
+      if (!member) {
+        return next(new Error('UNAUTHENTICATED'));
+      }
+      if (member.status === 'banned' || member.status === 'withdrawn' || member.status === 'suspended') {
+        return next(new Error('FORBIDDEN'));
+      }
+      // socket.data 에 저장 (전역 핸들러에서 접근)
+      (socket.data as { member?: typeof member }).member = member;
+      next();
+    } catch (err) {
+      console.error('[socket auth]', err);
+      next(new Error('UNAUTHENTICATED'));
+    }
+  });
+
   io.on('connection', (socket) => {
 
     // ── 세션 복원 ─────────────────────────────────────────────────────────
@@ -41,13 +70,53 @@ export function setupSocketHandlers(io: IO) {
         }
       }
 
+      // ── v2 — 회원 정보로 닉네임/칭호 자동 설정 ──────────────────────
+      const member = (
+        socket.data as {
+          member?: {
+            id: string;
+            nickname: string;
+            displayedTitle: { id: string; name: string; color: string } | null;
+          };
+        }
+      ).member;
+      if (member) {
+        sessions.setNickname(socket.id, member.nickname, true);
+        sessions.setMemberInfo(token, member.id, member.displayedTitle);
+      }
+
+      // ── 칭호 획득 모달 pending 처리 ──────────────────────────────────────
+      if (member) {
+        const roomId = sessions.getRoom(socket.id);
+        const isInGame = roomId ? roomStore.get(roomId)?.status === 'playing' : false;
+
+        if (!isInGame) {
+          if (sessions.hasPendingTitles(token)) {
+            // 온라인 중 인게임으로 인해 지연된 알림 (in-memory)
+            const pending = sessions.takePendingTitles(token);
+            for (const notif of pending) socket.emit('title:granted', notif);
+            markAllTitleNotifsRead(member.id).catch(() => {});
+          } else {
+            // 미접속 중 부여된 알림 — Supabase notifications 에서 읽어 emit
+            fetchAndMarkPendingTitles(member.id)
+              .then((notifs) => {
+                for (const n of notifs) socket.emit('title:granted', n);
+              })
+              .catch((err) => {
+                console.warn('[session:restore] pending title fetch 실패:', err);
+              });
+          }
+        }
+        // isInGame = true 면 game:ended 시 emit (sessions.pendingTitles는 그대로 유지)
+      }
+
       if (result === 'restored') {
         const nickname = sessions.getNickname(socket.id);
         const roomId = sessions.getRoom(socket.id);
 
         if (!nickname) {
           // 닉네임 없으면 신규 세션과 동일하게 처리
-          socket.emit('session:new');
+          socket.emit('session:new', { nickname: '' });
           return;
         }
 
@@ -75,29 +144,19 @@ export function setupSocketHandlers(io: IO) {
 
         socket.emit('session:restored', { nickname, roomId: roomId ?? undefined });
       } else {
-        // result === 'new': 신규 세션 — 클라이언트에게 nickname:set을 진행하도록 알림
-        socket.emit('session:new');
+        // result === 'new': 신규 세션 — 닉네임을 함께 전달
+        socket.emit('session:new', { nickname: member?.nickname ?? '' });
       }
     });
 
-    // ── 닉네임 설정 ───────────────────────────────────────────────────────
-    socket.on('nickname:set', ({ nickname }, callback) => {
-      const trimmed = nickname.trim();
-
-      if (trimmed.length < 2 || trimmed.length > 12) {
-        return callback({ success: false, error: '2~12자로 입력해 주세요.' });
+    // ── 닉네임 설정 (v2: deprecated — 회원 닉네임 자동 적용) ───────────
+    socket.on('nickname:set', (_data, callback) => {
+      const current = sessions.getNickname(socket.id);
+      if (current) {
+        callback({ success: true, nickname: current });
+      } else {
+        callback({ success: false, error: '회원 닉네임이 설정되지 않았습니다.' });
       }
-
-      if (sessions.getNickname(socket.id) === trimmed) {
-        return callback({ success: true, nickname: trimmed });
-      }
-
-      const ok = sessions.setNickname(socket.id, trimmed);
-      if (!ok) {
-        return callback({ success: false, error: '이미 사용 중인 닉네임입니다.' });
-      }
-
-      callback({ success: true, nickname: trimmed });
     });
 
     registerLobbyHandlers(io, socket);

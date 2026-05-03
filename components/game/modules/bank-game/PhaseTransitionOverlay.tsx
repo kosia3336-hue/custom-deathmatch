@@ -82,7 +82,7 @@ export default function PhaseTransitionOverlay({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="pointer-events-none fixed inset-0 z-40 flex items-start justify-center pt-20 lg:pt-32"
+      className="pointer-events-none fixed inset-0 z-(--cdm-z-overlay) flex items-start justify-center pt-20 lg:pt-32"
       key={overlay.key}
     >
       <div

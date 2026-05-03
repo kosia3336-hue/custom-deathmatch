@@ -13,11 +13,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<Variant, string> = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]',
-  secondary: 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50 active:scale-[0.98]',
-  tertiary: 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50',
-  danger: 'bg-red-500 text-white hover:bg-red-600 active:scale-[0.98]',
-  ghost: 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+  primary: 'bg-cdm-primary text-white hover:bg-cdm-primary-strong active:scale-[0.98]',
+  secondary: 'border border-cdm-primary text-cdm-primary hover:bg-cdm-primary-soft active:scale-[0.98]',
+  tertiary: 'text-cdm-primary hover:text-cdm-primary-strong hover:bg-cdm-primary-soft',
+  danger: 'bg-cdm-accent text-white hover:bg-cdm-accent-strong active:scale-[0.98]',
+  ghost: 'text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg',
 };
 
 const sizeStyles: Record<Size, string> = {
@@ -31,7 +31,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2',
+        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:[box-shadow:var(--cdm-ring-primary)]',
         variantStyles[variant],
         sizeStyles[size],
         (disabled || loading) && 'opacity-40 cursor-not-allowed pointer-events-none',

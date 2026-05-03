@@ -38,14 +38,14 @@ function BottomSheet({
     <>
       {/* 오버레이 */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={onClose}
       />
       {/* 시트 */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[85vh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -202,7 +202,7 @@ function MilestoneOverlay({
   const isComplete = entry?.kind === 'complete';
   return (
     <div
-      className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ${
+      className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-500 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
     >
@@ -600,7 +600,7 @@ export default function FiveTowersGame() {
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-50 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg transition-transform active:scale-95 lg:hidden"
+              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg transition-transform active:scale-95 lg:hidden"
             >
               행동하기 →
             </button>

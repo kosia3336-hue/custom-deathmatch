@@ -17,7 +17,13 @@ export function useLobby() {
     const socket = getSocket();
     const { setRooms, addRoom, updateRoom, removeRoom } = useLobbyStore.getState();
 
-    socket.emit('lobby:join');
+    // 소켓이 연결된 경우에만 lobby:join 전송 (비로그인 시 연결 안 됨)
+    const onConnect = () => socket.emit('lobby:join');
+    if (socket.connected) {
+      socket.emit('lobby:join');
+    } else {
+      socket.on('connect', onConnect);
+    }
 
     socket.on('lobby:rooms', setRooms);
     socket.on('lobby:room:created', addRoom);
@@ -25,11 +31,12 @@ export function useLobby() {
     socket.on('lobby:room:removed', removeRoom);
 
     return () => {
+      socket.off('connect', onConnect);
       socket.off('lobby:rooms', setRooms);
       socket.off('lobby:room:created', addRoom);
       socket.off('lobby:room:updated', updateRoom);
       socket.off('lobby:room:removed', removeRoom);
-      socket.emit('lobby:leave');
+      if (socket.connected) socket.emit('lobby:leave');
     };
   }, []);
 

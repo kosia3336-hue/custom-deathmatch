@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRoomStore } from '@/stores/room';
-import Modal from '@/components/ui/Modal';
+import { Modal } from '@/components/cdm/Modal';
 import RoomChat from '@/components/room/RoomChat';
 import type { ChatScope } from '@/shared/types';
 

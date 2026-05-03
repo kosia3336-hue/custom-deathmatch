@@ -12,12 +12,15 @@ export default function ProgressBar({ current, max, className }: ProgressBarProp
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <span className="text-xs font-medium text-gray-600 tabular-nums">
+      <span className="text-xs font-medium text-cdm-fg-muted tabular-nums">
         {current}/{max}
       </span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-cdm-bg-elev-2">
         <div
-          className={cn('h-full rounded-full transition-all', isFull ? 'bg-red-500' : 'bg-indigo-500')}
+          className={cn(
+            'h-full rounded-full transition-all',
+            isFull ? 'bg-cdm-accent' : 'bg-cdm-primary',
+          )}
           style={{ width: `${pct}%` }}
         />
       </div>

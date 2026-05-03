@@ -55,7 +55,7 @@ export default function ActionBar({ onCreateRoom }: Props) {
         <select
           value={gameFilter}
           onChange={(e) => setGameFilter(e.target.value)}
-          className="h-10 rounded-lg border border-gray-300 px-3 text-sm"
+          className="h-10 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm text-cdm-fg"
         >
           <option value="all">전체 게임</option>
           {games.map((g) => (
@@ -65,10 +65,10 @@ export default function ActionBar({ onCreateRoom }: Props) {
       </div>
       <div className="flex gap-2">
         <Link
-          href="/archive"
-          className="sm:hidden inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          href="/me?tab=logs"
+          className="sm:hidden inline-flex items-center rounded-cdm-md border border-cdm-border bg-cdm-bg px-4 py-2 text-sm font-medium text-cdm-fg hover:bg-cdm-bg-elev-1"
         >
-          기록실
+          내 게임 로그
         </Link>
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장

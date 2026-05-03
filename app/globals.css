@@ -1,28 +1,204 @@
-@import "tailwindcss";
+/* Pretendard 본문 폰트 — 경량 동적 subset (CSS spec 상 @import 는 모든 룰보다 먼저 와야 함) */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+@import 'tailwindcss';
+
+/* ──────────────────────────────────────────────
+   Custom Deathmatch — v2 디자인 토큰 (단일 라이트 테마)
+   docs/v2/2_branding.md, docs/v2/15_common_ui.md
+   ────────────────────────────────────────────── */
 
 :root {
-  --color-primary: #4F46E5;
-  --color-danger: #EF4444;
-  --color-warning: #F59E0B;
-  --color-success: #22C55E;
-  --color-info: #3B82F6;
-  --color-bg: #FFFFFF;
-  --color-surface: #F8FAFC;
-  --color-text-primary: #1E293B;
-  --color-text-secondary: #64748B;
-  --color-border: #E2E8F0;
+  color-scheme: light;
+
+  /* 메인 3색 */
+  --cdm-primary: #4f46e5;          /* 인디고 — 메인/선공/링크 */
+  --cdm-primary-strong: #4338ca;
+  --cdm-primary-soft: #eef2ff;
+
+  --cdm-accent: #f43f5e;           /* 코랄 — 강조/후공/위험/승리 */
+  --cdm-accent-strong: #e11d48;
+  --cdm-accent-soft: #ffe4e6;
+
+  --cdm-highlight: #f59e0b;        /* 앰버 — 1위/하이라이트 */
+  --cdm-highlight-strong: #d97706;
+  --cdm-highlight-soft: #fef3c7;
+
+  /* 시맨틱 */
+  --cdm-success: #22c55e;
+  --cdm-success-soft: #dcfce7;
+  --cdm-info: #3b82f6;
+  --cdm-info-soft: #dbeafe;
+  --cdm-warning: var(--cdm-highlight);
+  --cdm-danger: var(--cdm-accent);
+
+  /* 회색 톤 */
+  --cdm-bg: #ffffff;
+  --cdm-bg-elev-1: #f8fafc;
+  --cdm-bg-elev-2: #f1f5f9;
+  --cdm-bg-elev-3: #e2e8f0;
+
+  --cdm-border: #e2e8f0;
+  --cdm-border-strong: #cbd5e1;
+
+  --cdm-fg: #0f172a;
+  --cdm-fg-muted: #64748b;
+  --cdm-fg-subtle: #94a3b8;
+  --cdm-fg-inverse: #ffffff;
+
+  /* 칭호 색 (16색 토큰) — title_color enum 과 1:1 매핑 */
+  --title-coral:    #f43f5e;
+  --title-amber:    #f59e0b;
+  --title-emerald:  #10b981;
+  --title-sky:      #0ea5e9;
+  --title-violet:   #8b5cf6;
+  --title-pink:     #ec4899;
+  --title-lime:     #84cc16;
+  --title-rose:     #f43f5e;
+  --title-cyan:     #06b6d4;
+  --title-orange:   #f97316;
+  --title-fuchsia:  #d946ef;
+  --title-teal:     #14b8a6;
+  --title-yellow:   #eab308;
+  --title-indigo:   #4f46e5;
+  --title-slate:    #475569;
+  --title-gold:     #b8860b;
+
+  /* 간격 */
+  --cdm-space-1: 4px;
+  --cdm-space-2: 8px;
+  --cdm-space-3: 12px;
+  --cdm-space-4: 16px;
+  --cdm-space-5: 24px;
+  --cdm-space-6: 32px;
+  --cdm-space-7: 48px;
+  --cdm-space-8: 64px;
+
+  /* 라운딩 */
+  --cdm-radius-sm: 4px;
+  --cdm-radius-md: 8px;
+  --cdm-radius-lg: 12px;
+  --cdm-radius-xl: 16px;
+  --cdm-radius-full: 9999px;
+
+  /* 그림자 / 링 */
+  --cdm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --cdm-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --cdm-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --cdm-ring-primary: 0 0 0 3px rgba(79, 70, 229, 0.20);
+  --cdm-ring-accent:  0 0 0 3px rgba(244, 63, 94, 0.20);
+
+  /* 모션 */
+  --cdm-duration-fast: 120ms;
+  --cdm-duration-base: 200ms;
+  --cdm-duration-slow: 360ms;
+  --cdm-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --cdm-ease-in:  cubic-bezier(0.4, 0, 1, 1);
+
+  /* z-index */
+  --cdm-z-sticky: 100;
+  --cdm-z-overlay: 800;
+  --cdm-z-modal: 900;
+  --cdm-z-toast: 950;
+  --cdm-z-tooltip: 1000;
+}
+
+/* Tailwind v4 — @theme inline 으로 색 팔레트 노출 */
+@theme inline {
+  --color-cdm-primary: var(--cdm-primary);
+  --color-cdm-primary-strong: var(--cdm-primary-strong);
+  --color-cdm-primary-soft: var(--cdm-primary-soft);
+  --color-cdm-accent: var(--cdm-accent);
+  --color-cdm-accent-strong: var(--cdm-accent-strong);
+  --color-cdm-accent-soft: var(--cdm-accent-soft);
+  --color-cdm-highlight: var(--cdm-highlight);
+  --color-cdm-highlight-strong: var(--cdm-highlight-strong);
+  --color-cdm-highlight-soft: var(--cdm-highlight-soft);
+  --color-cdm-success: var(--cdm-success);
+  --color-cdm-success-soft: var(--cdm-success-soft);
+  --color-cdm-info: var(--cdm-info);
+  --color-cdm-info-soft: var(--cdm-info-soft);
+  --color-cdm-bg: var(--cdm-bg);
+  --color-cdm-bg-elev-1: var(--cdm-bg-elev-1);
+  --color-cdm-bg-elev-2: var(--cdm-bg-elev-2);
+  --color-cdm-bg-elev-3: var(--cdm-bg-elev-3);
+  --color-cdm-border: var(--cdm-border);
+  --color-cdm-border-strong: var(--cdm-border-strong);
+  --color-cdm-fg: var(--cdm-fg);
+  --color-cdm-fg-muted: var(--cdm-fg-muted);
+  --color-cdm-fg-subtle: var(--cdm-fg-subtle);
+  --color-cdm-fg-inverse: var(--cdm-fg-inverse);
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-mono: var(--font-geist-mono), 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius-cdm-sm: var(--cdm-radius-sm);
+  --radius-cdm-md: var(--cdm-radius-md);
+  --radius-cdm-lg: var(--cdm-radius-lg);
+  --radius-cdm-xl: var(--cdm-radius-xl);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  /* 모바일 15px → 태블릿 16px → 데스크탑 17px
+     rem 기반 Tailwind 유틸(text-sm, text-base 등)이 자동으로 비례 조정됩니다. */
+  font-size: 15px;
+}
+@media (min-width: 768px) {
+  html { font-size: 16px; }
+}
+@media (min-width: 1280px) {
+  html { font-size: 17px; }
 }
 
 body {
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--color-text-primary);
-  background-color: var(--color-bg);
+  font-family: var(--font-sans);
+  color: var(--cdm-fg);
+  background-color: var(--cdm-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
+/* 포커스 가시성 */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--cdm-ring-primary);
+  border-radius: var(--cdm-radius-md);
+}
+
+/* 모션 감소 환경 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 스크롤바 숨김 유틸 (v1 호환) */
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* 카운트다운 펄스 — 마지막 10초 강조 */
+@keyframes cdm-countdown-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.cdm-countdown-critical {
+  color: var(--cdm-accent);
+  animation: cdm-countdown-pulse 1s var(--cdm-ease-out) infinite;
 }

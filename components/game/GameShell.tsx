@@ -10,6 +10,7 @@ import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ChatButton from '@/components/room/ChatButton';
+import { ReportModal } from '@/components/cdm/ReportModal';
 import { formatTime, cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal } from '@/shared/types/events';
@@ -20,7 +21,7 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
     const id = setInterval(() => setElapsed(Date.now() - startedAt), 1000);
     return () => clearInterval(id);
   }, [startedAt]);
-  return <span className="text-sm tabular-nums text-gray-500">{formatTime(elapsed)}</span>;
+  return <span className="text-sm tabular-nums text-cdm-fg-muted">{formatTime(elapsed)}</span>;
 }
 
 interface Props {
@@ -36,6 +37,7 @@ export default function GameShell({ children }: Props) {
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [showLeave, setShowLeave] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
   const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
   const [undoWaiting, setUndoWaiting] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
@@ -156,7 +158,7 @@ export default function GameShell({ children }: Props) {
 
     setFooter(
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">
-        <span className="text-sm font-medium text-gray-700 sm:mr-auto">{nickname}</span>
+        <span className="text-sm font-medium text-cdm-fg sm:mr-auto">{nickname}</span>
         <div className="flex items-center justify-end gap-2 sm:justify-start">
           {showUndo && (
             <Button
@@ -180,7 +182,7 @@ export default function GameShell({ children }: Props) {
             <button
               type="button"
               onClick={() => setShowPlayers(true)}
-              className="min-h-11 px-1 text-xs text-gray-500 transition-colors hover:text-gray-700 sm:min-h-0"
+              className="min-h-11 px-1 text-xs text-cdm-fg-muted transition-colors hover:text-cdm-fg sm:min-h-0"
             >
               👁️ {room.spectators.length}명 관전 중
             </button>
@@ -197,39 +199,39 @@ export default function GameShell({ children }: Props) {
         {children}
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+          <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-sm rounded-cdm-xl bg-cdm-bg p-6 text-center shadow-(--cdm-shadow-lg)">
               <div className="mb-3 text-4xl">⚡</div>
               {reconnectingPlayers.length === 1 ? (
                 <>
-                  <h3 className="mb-1 text-lg font-bold text-gray-900">
+                  <h3 className="mb-1 text-lg font-bold text-cdm-fg">
                     {reconnectingPlayers[0].nickname} 님 연결이 끊어졌습니다
                   </h3>
-                  <p className="mb-4 text-sm text-gray-500">재연결 대기 중...</p>
-                  <div className="mb-4 text-3xl font-bold tabular-nums text-indigo-600">
+                  <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
+                  <div className="mb-4 text-3xl font-bold tabular-nums text-cdm-primary">
                     {reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft}초
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-cdm-fg-subtle">
                     시간이 초과되면 상대방이 기권 처리됩니다.
                   </p>
                 </>
               ) : (
                 <>
-                  <h3 className="mb-3 text-lg font-bold text-gray-900">
+                  <h3 className="mb-3 text-lg font-bold text-cdm-fg">
                     두 플레이어 모두 연결이 끊어졌습니다
                   </h3>
-                  <p className="mb-4 text-sm text-gray-500">재연결 대기 중...</p>
+                  <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
                   <div className="mb-4 space-y-2">
                     {reconnectingPlayers.map((p) => (
-                      <div key={p.playerId} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2">
-                        <span className="text-sm font-medium text-gray-700">{p.nickname}</span>
-                        <span className="text-lg font-bold tabular-nums text-indigo-600">
+                      <div key={p.playerId} className="flex items-center justify-between rounded-cdm-md bg-cdm-bg-elev-1 px-4 py-2">
+                        <span className="text-sm font-medium text-cdm-fg">{p.nickname}</span>
+                        <span className="text-lg font-bold tabular-nums text-cdm-primary">
                           {reconnectTimers[p.playerId] ?? p.secondsLeft}초
                         </span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-cdm-fg-subtle">
                     30초 초과 시 해당 플레이어 기권 처리됩니다.
                   </p>
                 </>
@@ -242,24 +244,57 @@ export default function GameShell({ children }: Props) {
       <Modal open={showPlayers} onClose={() => setShowPlayers(false)} title="참여자 목록" className="w-full max-w-xs">
         <ul className="space-y-2">
           {room?.players.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-sm text-gray-800">
-              <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
-              <span>{p.nickname}</span>
-              {p.isHost && <span className="text-xs text-amber-500">👑</span>}
+            <li key={p.id} className="flex items-center gap-2 text-sm text-cdm-fg">
+              <span className="h-2 w-2 rounded-full bg-cdm-primary shrink-0" />
+              <span className="flex-1">{p.nickname}</span>
+              {p.isHost && <span className="text-xs text-cdm-highlight">👑</span>}
+              {p.memberId && p.nickname !== nickname && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportTarget({ memberId: p.memberId!, nickname: p.nickname });
+                    setShowPlayers(false);
+                  }}
+                  className="text-xs text-cdm-fg-subtle hover:text-cdm-danger"
+                >
+                  신고
+                </button>
+              )}
             </li>
           ))}
           {room?.spectators.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-sm text-gray-400">
-              <span className="h-2 w-2 rounded-full bg-gray-300 shrink-0" />
-              <span>{p.nickname}</span>
+            <li key={p.id} className="flex items-center gap-2 text-sm text-cdm-fg-muted">
+              <span className="h-2 w-2 rounded-full bg-cdm-fg-subtle shrink-0" />
+              <span className="flex-1">{p.nickname}</span>
               <span className="text-xs">(관전)</span>
+              {p.memberId && p.nickname !== nickname && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportTarget({ memberId: p.memberId!, nickname: p.nickname });
+                    setShowPlayers(false);
+                  }}
+                  className="text-xs text-cdm-fg-subtle hover:text-cdm-danger"
+                >
+                  신고
+                </button>
+              )}
             </li>
           ))}
         </ul>
       </Modal>
 
+      <ReportModal
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetId={reportTarget?.memberId ?? null}
+        targetNickname={reportTarget?.nickname}
+        context="ingame"
+        contextData={{ roomId: room?.id }}
+      />
+
       <Modal open={showLeave} onClose={() => setShowLeave(false)} title="정말 나가시겠습니까?" closable={false}>
-        <p className="mb-6 text-sm text-gray-500">게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.</p>
+        <p className="mb-6 text-sm text-cdm-fg-muted">게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowLeave(false)}>계속하기</Button>
           <Button variant="danger" onClick={handleLeave}>나가기</Button>
@@ -269,8 +304,8 @@ export default function GameShell({ children }: Props) {
       <Modal open={!!undoProposal} title="무르기 요청" closable={false} className="max-w-sm">
         {undoProposal && (
           <>
-            <p className="mb-6 text-sm text-gray-600">
-              <span className="font-medium text-gray-900">{undoProposal.requesterNickname}</span>
+            <p className="mb-6 text-sm text-cdm-fg-muted">
+              <span className="font-medium text-cdm-fg">{undoProposal.requesterNickname}</span>
               님이 무르기를 요청했습니다. 받으시겠습니까?
             </p>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

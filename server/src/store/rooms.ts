@@ -31,6 +31,15 @@ function toClientRoom(room: RoomInternal): Room {
   const copy = { ...room } as Room & { _password?: string; _minPlayers?: number };
   delete copy._password;
   delete copy._minPlayers;
+  // v2: 2인 게임의 자리 순서 = 선/후공 (players[0] = 선공)
+  if (copy.players.length === 2) {
+    copy.players = copy.players.map((p, i) => ({
+      ...p,
+      turnPosition: i === 0 ? 'first' : 'second',
+    }));
+  } else {
+    copy.players = copy.players.map((p) => ({ ...p, turnPosition: null }));
+  }
   return copy;
 }
 
@@ -313,14 +322,15 @@ export const roomStore = {
     return true;
   },
 
-  findQuickJoinRoom(gameId?: string): Room | undefined {
+  findQuickJoinRoom(gameId?: string, isKicked?: (roomId: string) => boolean): Room | undefined {
     const candidates = Array.from(rooms.values()).filter(
       (r) =>
         r.status === 'waiting' &&
         r.roomType === 'public' &&
         r.playMode === 'multi' &&
         r.players.length < r.maxPlayers &&
-        (!gameId || r.gameId === gameId),
+        (!gameId || r.gameId === gameId) &&
+        (!isKicked || !isKicked(r.id)),
     );
     // 인원이 가장 많은 방 우선 (빠른 매칭), 동점이면 먼저 만들어진 방
     return candidates.sort((a, b) =>

@@ -186,7 +186,7 @@ export default function MobileLayout({ ctx }: Props) {
         <>
           {/* dim overlay — 터치로 닫기 */}
           <div
-            className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 lg:hidden ${
+            className={`fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
               showSheet ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
             onClick={() => setSheetOpen(false)}
@@ -194,7 +194,7 @@ export default function MobileLayout({ ctx }: Props) {
 
           {/* sheet */}
           <div
-            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
+            className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[80dvh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
               showSheet ? 'translate-y-0' : 'translate-y-full'
             }`}
           >
@@ -228,7 +228,7 @@ export default function MobileLayout({ ctx }: Props) {
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-50 rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
+              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
             >
               💵 베팅 입력하기 →
             </button>

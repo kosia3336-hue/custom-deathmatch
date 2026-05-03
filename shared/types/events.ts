@@ -1,4 +1,4 @@
-import type { Player, Room, RoomSummary, RoomType, PlayMode } from './room';
+import type { Player, Room, RoomSummary, RoomType, PlayMode, DisplayedTitle } from './room';
 
 export interface CreateRoomData {
   gameId: string;
@@ -43,6 +43,12 @@ export interface ChatMessage {
   scope: ChatScope;
   isSystem: boolean;
   timestamp: number;
+  /** v2 — 발신자의 표시 칭호 (보유자만) */
+  senderTitle?: DisplayedTitle | null;
+  /** v2 — 발신자가 관전자면 true (👁️ 마크 표시용) */
+  isSpectator?: boolean;
+  /** v2 — 신고용 발신자 회원 ID (AI/익명은 null) */
+  senderMemberId?: string | null;
 }
 
 export interface GameState {
@@ -59,6 +65,8 @@ export interface GameResult {
   roomId: string;
   rankings: Array<{
     playerId: string;
+    /** v2 — 신고용 회원 ID (AI/익명은 null) */
+    memberId?: string | null;
     nickname: string;
     rank: number;
     score: number;
@@ -196,10 +204,18 @@ export interface ServerToClientEvents {
   kicked: (data: { reason: string }) => void;
   'connection:duplicate': () => void;
 
-  'session:new': () => void;
+  'session:new': (data: { nickname: string }) => void;
   'session:exists': (data: { nickname: string; roomId?: string }) => void;
   'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;
   'player:reconnecting': (data: { playerId: string; nickname: string; secondsLeft: number }) => void;
   'player:reconnected': (data: { playerId: string; nickname: string }) => void;
+
+  /** 관리자가 칭호 부여 시 대상 유저에게 emit. 게임 중이면 게임 종료 후, 미접속이면 다음 접속 시 */
+  'title:granted': (data: {
+    titleId: string;
+    name: string;
+    color: string;
+    description: string | null;
+  }) => void;
 }

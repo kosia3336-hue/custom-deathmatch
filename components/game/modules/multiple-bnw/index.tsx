@@ -375,7 +375,7 @@ export default function MultipleBnwGame() {
       </div>
 
       {/* Suspect animation overlay */}
-      <div className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
+      <div className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
         suspectAnim ? 'opacity-100' : 'opacity-0'
       }`}>
         {suspectAnim && (
@@ -400,7 +400,7 @@ export default function MultipleBnwGame() {
       </div>
 
       {/* Round transition overlay */}
-      <div className={`pointer-events-none fixed inset-0 z-40 flex items-center justify-center transition-all duration-300 ${
+      <div className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
         roundOverlay ? 'opacity-100' : 'opacity-0'
       }`}>
         {roundOverlay && (

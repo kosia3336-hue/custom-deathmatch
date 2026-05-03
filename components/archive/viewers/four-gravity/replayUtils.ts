@@ -29,6 +29,9 @@ export interface ComputeResult {
 }
 
 export function computeFrames(actions: FourGravityTurnAction[]): ComputeResult {
+  if (!actions || !Array.isArray(actions)) {
+    return { frames: [], turnFirstFrame: [] };
+  }
   const frames: ReplayFrame[] = [];
   const turnFirstFrame: number[] = [];
   let board = createEmptyBoard();

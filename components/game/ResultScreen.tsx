@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
+import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Button from '@/components/ui/Button';
 import RoomChat from '@/components/room/RoomChat';
+import { ReportModal } from '@/components/cdm/ReportModal';
 import { formatTime, formatTimeLimit } from '@/lib/utils';
 import { useSaveRecord } from '@/hooks/useSaveRecord';
 import { GAME_IDS } from '@/shared/types';
@@ -16,7 +18,7 @@ import { WIN_TYPE_LABELS as NF4_WIN_TYPE_LABELS } from '@/components/game/module
 import { WIN_TYPE_LABELS as IP_WIN_TYPE_LABELS } from '@/components/game/modules/indian-poker/constants';
 import { WIN_TYPE_LABELS as WS_WIN_TYPE_LABELS } from '@/components/game/modules/winning-streak/constants';
 
-const PODIUM_COLORS = ['bg-indigo-600', 'bg-indigo-400', 'bg-indigo-300'] as const;
+const PODIUM_COLORS = ['bg-cdm-primary', 'bg-cdm-primary/70', 'bg-cdm-primary/50'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
 const MEDALS = ['🥇', '🥈', '🥉'] as const;
 
@@ -29,6 +31,8 @@ export default function ResultScreen() {
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [timer, setTimer] = useState(AUTO_LEAVE_SEC);
   const [cancelled, setCancelled] = useState(false);
+  const myNickname = useNicknameStore((s) => s.nickname);
+  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
 
   const handleSaveRecord = useSaveRecord();
 
@@ -87,7 +91,7 @@ export default function ResultScreen() {
     setFooter(
       <>
         {!cancelled && timer > 0 && (
-          <span className="mr-auto text-xs text-gray-400">
+          <span className="mr-auto text-xs text-cdm-fg-subtle">
             {timer}초 후 자동으로 로비로 이동합니다
           </span>
         )}
@@ -104,7 +108,7 @@ export default function ResultScreen() {
   if (!gameResult) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-gray-500">결과를 불러오는 중...</p>
+        <p className="text-cdm-fg-muted">결과를 불러오는 중...</p>
       </div>
     );
   }
@@ -126,22 +130,31 @@ export default function ResultScreen() {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 p-6">
-      <h1 className="mb-8 text-center text-2xl font-bold text-gray-900">게임 결과</h1>
+      <h1 className="mb-8 text-center text-2xl font-bold text-cdm-fg">게임 결과</h1>
 
       {/* 포디엄 */}
       <div className="mb-8 flex items-end justify-center gap-4">
         {sorted.slice(0, 3).map((p, i) => (
           <div key={p.rank} className="flex flex-col items-center">
             <span className="text-2xl">{MEDALS[i]}</span>
-            <span className="mt-1 text-sm font-bold text-gray-900">{p.nickname}</span>
-            <span className="text-xs text-gray-500">{p.score}점</span>
-            <div className={`mt-2 w-20 rounded-t-lg ${PODIUM_COLORS[i]} ${PODIUM_HEIGHTS[i]}`} />
+            <span className="mt-1 text-sm font-bold text-cdm-fg">{p.nickname}</span>
+            <span className="text-xs text-cdm-fg-muted">{p.score}점</span>
+            {p.memberId && p.nickname !== myNickname && (
+              <button
+                type="button"
+                onClick={() => setReportTarget({ memberId: p.memberId!, nickname: p.nickname })}
+                className="mt-1 text-xs text-cdm-fg-subtle hover:text-cdm-danger"
+              >
+                신고
+              </button>
+            )}
+            <div className={`mt-2 w-20 rounded-t-cdm-md ${PODIUM_COLORS[i]} ${PODIUM_HEIGHTS[i]}`} />
           </div>
         ))}
       </div>
 
       {/* 요약 */}
-      <div className="mb-6 flex flex-wrap justify-center gap-x-8 gap-y-1 text-sm text-gray-500">
+      <div className="mb-6 flex flex-wrap justify-center gap-x-8 gap-y-1 text-sm text-cdm-fg-muted">
         <span>플레이 시간: {formatTime(gameResult.playTime)}</span>
         <span>총 턴 수: {gameResult.totalTurns}턴</span>
         {winTypeLabel && <span>승리 방식: {winTypeLabel}</span>}
@@ -156,6 +169,15 @@ export default function ResultScreen() {
           <RoomChat scope="game" />
         </div>
       )}
+
+      <ReportModal
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetId={reportTarget?.memberId ?? null}
+        targetNickname={reportTarget?.nickname}
+        context="postgame"
+        contextData={{ roomId: room?.id }}
+      />
     </div>
   );
 }

@@ -33,10 +33,10 @@ export default function TabFilter() {
           key={tab.key}
           onClick={() => setTabFilter(tab.key)}
           className={cn(
-            'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+            'whitespace-nowrap rounded-cdm-md px-3 py-1.5 text-sm font-medium transition-colors',
             tabFilter === tab.key
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+              ? 'bg-cdm-primary-soft text-cdm-primary-strong'
+              : 'text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg',
           )}
         >
           {tab.label} ({getCounts(tab.key)})

@@ -98,7 +98,10 @@ interface Props {
 }
 
 export default function MultipleBnwViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as MultipleBnwArchiveRecord;
+  const gameRecord = record.gameRecord as MultipleBnwArchiveRecord | null;
+  const [mobileOpen, setMobileOpen] = useState(true);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const actions = gameRecord.actions ?? [];
 
   const playerIds = Object.keys(gameRecord.players ?? record.players);
@@ -111,8 +114,6 @@ export default function MultipleBnwViewer({ record }: Props) {
   const winnerEntry = record.result.rankings.find((r) => r.rank === 1);
   const winnerNick = winnerEntry?.nickname;
   const winTypeLabel = gameRecord.winType ? (WIN_TYPE_LABELS[gameRecord.winType] ?? gameRecord.winType) : null;
-
-  const [mobileOpen, setMobileOpen] = useState(true);
 
   return (
     <div className="space-y-4">

@@ -368,7 +368,7 @@ function pushUndoSnapshot(s: InternalState) {
     firstDigits: s.firstDigits,
     player1: snapshotPlayer(s.player1),
     player2: snapshotPlayer(s.player2),
-    actionLog: cloneRoundHistory(s.actionLog),
+    actionLog: cloneRoundHistoryFull(s.actionLog),
     consecutiveTimeouts: { ...s.consecutiveTimeouts },
   });
 }
@@ -383,7 +383,7 @@ function applyUndoSnapshot(s: InternalState, snap: SBNWUndoSnapshot) {
   s.secondTiles = null;
   restorePlayer(s.player1, snap.player1);
   restorePlayer(s.player2, snap.player2);
-  s.actionLog = cloneRoundHistory(snap.actionLog);
+  s.actionLog = cloneRoundHistoryFull(snap.actionLog);
   s.consecutiveTimeouts = { ...snap.consecutiveTimeouts };
   s.lastAutoSubmittedBy = null;
 }

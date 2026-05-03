@@ -1,0 +1,402 @@
+/**
+ * Supabase DB 타입 정의 (수동 작성).
+ *
+ * 향후 supabase CLI 의 `supabase gen types typescript` 로 자동 생성 가능하지만,
+ * v2 시작 시점에는 17_database_schema.md 기반으로 직접 정의한다.
+ */
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+// ──────────────────────────────────────────────
+// ENUM 타입
+// ──────────────────────────────────────────────
+
+export type MemberStatus = 'active' | 'suspended' | 'banned' | 'withdrawn';
+export type MemberRole = 'user' | 'admin';
+export type PlayMode = 'multi' | 'com' | 'solo';
+export type TurnPosition = 'first' | 'second';
+export type TitleColor =
+  | 'coral' | 'amber' | 'emerald' | 'sky' | 'violet' | 'pink'
+  | 'lime' | 'rose' | 'cyan' | 'orange' | 'fuchsia' | 'teal'
+  | 'yellow' | 'indigo' | 'slate' | 'gold';
+export type AgreementKind = 'terms' | 'privacy' | 'marketing';
+export type ReportCategory = 'abuse' | 'spam' | 'cheat' | 'bad_manner' | 'improper_nickname' | 'etc';
+export type ReportStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
+export type ReportResolution = 'warning' | 'suspended' | 'banned' | 'rejected';
+export type ReportContext = 'chat' | 'room' | 'ingame' | 'postgame' | 'profile';
+export type InquiryCategory = 'bug' | 'account' | 'rules' | 'report_followup' | 'etc';
+export type InquiryStatus = 'pending' | 'processing' | 'answered' | 'replied' | 'closed';
+export type SanctionKind = 'warning' | 'suspension' | 'ban' | 'lift';
+export type NotificationKind =
+  | 'title_granted' | 'title_revoked'
+  | 'report_processed' | 'inquiry_answered'
+  | 'sanction_issued' | 'sanction_lifted'
+  | 'misc';
+export type AdminTargetKind =
+  | 'member' | 'title' | 'member_title'
+  | 'report' | 'inquiry' | 'agreement' | 'word';
+export type BannedWordScope = 'nickname' | 'chat' | 'both';
+
+// ──────────────────────────────────────────────
+// 테이블 행 타입
+// ──────────────────────────────────────────────
+
+export interface MemberRow {
+  id: string;
+  nickname: string;
+  displayed_title_id: string | null;
+  created_at: string;
+  withdrawn_at: string | null;
+}
+
+export interface MemberPrivateRow {
+  member_id: string;
+  role: MemberRole;
+  status: MemberStatus;
+  last_login_at: string | null;
+  last_nickname_changed_at: string | null;
+  suspended_until: string | null;
+  suspended_reason: string | null;
+  suspended_by: string | null;
+  banned_reason: string | null;
+  banned_by: string | null;
+  withdrawn_reason: string | null;
+  settings: Json;
+  updated_at: string;
+}
+
+export interface NicknameHistoryRow {
+  id: number;
+  member_id: string;
+  old_nickname: string;
+  new_nickname: string;
+  changed_at: string;
+}
+
+export interface AgreementVersionRow {
+  id: number;
+  kind: AgreementKind;
+  version: number;
+  body: string;
+  is_active: boolean;
+  published_at: string;
+  published_by: string | null;
+}
+
+export interface MemberAgreementRow {
+  id: number;
+  member_id: string;
+  kind: AgreementKind;
+  version: number;
+  agreed_at: string;
+}
+
+export interface TitleRow {
+  id: string;
+  name: string;
+  color: TitleColor;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+}
+
+export interface MemberTitleRow {
+  id: number;
+  member_id: string;
+  title_id: string;
+  granted_at: string;
+  granted_by: string | null;
+  reason: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  revoked_reason: string | null;
+}
+
+export interface GameLogRow {
+  id: string;
+  game_id: string;
+  mode: PlayMode;
+  room_snapshot: Json;
+  result: Json;
+  play_time_seconds: number;
+  total_turns: number;
+  game_record: Json;
+  counts_for_stats: boolean;
+  played_at: string;
+  created_at: string;
+}
+
+export interface GameLogParticipantRow {
+  id: number;
+  game_log_id: string;
+  member_id: string | null;
+  position: TurnPosition;
+  is_winner: boolean | null;
+  is_draw: boolean;
+  is_resign: boolean;
+  nickname_snapshot: string;
+  title_snapshot: { id: string; name: string; color: TitleColor } | null;
+}
+
+export interface MemberGameStatsRow {
+  member_id: string;
+  game_id: string;
+  total_games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  resigns: number;
+  total_first: number;
+  wins_first: number;
+  total_second: number;
+  wins_second: number;
+  last_played_at: string | null;
+  updated_at: string;
+}
+
+export interface ReportRow {
+  id: string;
+  reporter_id: string;
+  target_id: string | null;
+  category: ReportCategory;
+  reason: string;
+  context_kind: ReportContext;
+  context_data: Json;
+  reporter_snapshot: Json;
+  target_snapshot: Json;
+  status: ReportStatus;
+  resolution: ReportResolution | null;
+  resolution_reason: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  admin_memo: string | null;
+  created_at: string;
+}
+
+export interface InquiryRow {
+  id: string;
+  author_id: string;
+  category: InquiryCategory;
+  title: string;
+  body: string;
+  attachments: Json;
+  status: InquiryStatus;
+  reason_tag: string | null;
+  answer_body: string | null;
+  answered_by: string | null;
+  answered_at: string | null;
+  reply_body: string | null;
+  replied_at: string | null;
+  admin_memo: string | null;
+  auto_close_at: string | null;
+  closed_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationRow {
+  id: number;
+  member_id: string;
+  kind: NotificationKind;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface SanctionRow {
+  id: number;
+  member_id: string;
+  kind: SanctionKind;
+  reason: string;
+  starts_at: string;
+  ends_at: string | null;
+  issued_by: string;
+  related_report_id: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  revoked_reason: string | null;
+  created_at: string;
+}
+
+export interface AdminActionRow {
+  id: number;
+  actor_id: string;
+  action_kind: string;
+  target_kind: AdminTargetKind;
+  target_id: string | null;
+  payload: Json;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export interface GameRow {
+  id: string;
+  name: string;
+  description: string;
+  min_players: number;
+  max_players: number;
+  supports_multi: boolean;
+  supports_com: boolean;
+  supports_solo: boolean;
+  is_active: boolean;
+  sort_order: number;
+  bayesian_c: number;
+  ranking_active: boolean;
+  created_at: string;
+}
+
+
+export interface BannedWordRow {
+  id: number;
+  word: string;
+  scope: BannedWordScope;
+  created_at: string;
+  created_by: string | null;
+}
+
+// ──────────────────────────────────────────────
+// Database 타입 (Supabase 클라이언트 제네릭)
+// ──────────────────────────────────────────────
+
+export interface Database {
+  public: {
+    Tables: {
+      members: { Row: MemberRow; Insert: Partial<MemberRow> & { id: string; nickname: string }; Update: Partial<MemberRow> };
+      members_private: { Row: MemberPrivateRow; Insert: Partial<MemberPrivateRow> & { member_id: string }; Update: Partial<MemberPrivateRow> };
+      nickname_history: { Row: NicknameHistoryRow; Insert: Omit<NicknameHistoryRow, 'id' | 'changed_at'> & { changed_at?: string }; Update: Partial<NicknameHistoryRow> };
+      agreement_versions: { Row: AgreementVersionRow; Insert: Partial<AgreementVersionRow> & { kind: AgreementKind; version: number; body: string }; Update: Partial<AgreementVersionRow> };
+      member_agreements: { Row: MemberAgreementRow; Insert: Omit<MemberAgreementRow, 'id' | 'agreed_at'> & { agreed_at?: string }; Update: Partial<MemberAgreementRow> };
+      titles: { Row: TitleRow; Insert: Partial<TitleRow> & { name: string; color: TitleColor }; Update: Partial<TitleRow> };
+      member_titles: { Row: MemberTitleRow; Insert: Omit<MemberTitleRow, 'id' | 'granted_at'> & { granted_at?: string }; Update: Partial<MemberTitleRow> };
+      game_logs: { Row: GameLogRow; Insert: Partial<GameLogRow> & { game_id: string; mode: PlayMode; counts_for_stats: boolean; played_at: string }; Update: Partial<GameLogRow> };
+      game_log_participants: { Row: GameLogParticipantRow; Insert: Omit<GameLogParticipantRow, 'id'>; Update: Partial<GameLogParticipantRow> };
+      member_game_stats: { Row: MemberGameStatsRow; Insert: Partial<MemberGameStatsRow> & { member_id: string; game_id: string }; Update: Partial<MemberGameStatsRow> };
+      reports: { Row: ReportRow; Insert: Partial<ReportRow> & { reporter_id: string; category: ReportCategory; reason: string; context_kind: ReportContext }; Update: Partial<ReportRow> };
+      inquiries: { Row: InquiryRow; Insert: Partial<InquiryRow> & { author_id: string; category: InquiryCategory; title: string; body: string }; Update: Partial<InquiryRow> };
+      notifications: { Row: NotificationRow; Insert: Omit<NotificationRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<NotificationRow> };
+      sanctions: { Row: SanctionRow; Insert: Omit<SanctionRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<SanctionRow> };
+      admin_actions: { Row: AdminActionRow; Insert: Omit<AdminActionRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<AdminActionRow> };
+      games: { Row: GameRow; Insert: Omit<GameRow, 'created_at'> & { created_at?: string }; Update: Partial<GameRow> };
+      banned_words: { Row: BannedWordRow; Insert: Omit<BannedWordRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<BannedWordRow> };
+    };
+    Views: {
+      public_member_titles: { Row: { member_id: string; title_id: string; granted_at: string } };
+      members_directory: {
+        Row: {
+          id: string;
+          nickname: string;
+          created_at: string;
+          withdrawn_at: string | null;
+          displayed_title: { id: string; name: string; color: TitleColor } | null;
+        };
+      };
+      reports_for_reporter: { Row: Omit<ReportRow, 'admin_memo'> };
+    };
+    Functions: {
+      // 헬퍼
+      current_member_id: { Args: Record<string, never>; Returns: string };
+      is_admin: { Args: { uid?: string }; Returns: boolean };
+      is_active_member: { Args: { uid?: string }; Returns: boolean };
+
+      // 회원
+      check_nickname_available: { Args: { p_nick: string }; Returns: boolean };
+      complete_signup: { Args: { p_nickname: string; p_agreed_versions: Json }; Returns: void };
+      change_nickname: { Args: { p_new_nick: string }; Returns: void };
+      update_member_settings: { Args: { p_patch: Json }; Returns: void };
+      set_displayed_title: { Args: { p_title_id: string | null }; Returns: void };
+      withdraw_member: { Args: { p_confirm_nick: string }; Returns: void };
+      mark_notification_read: { Args: { p_id: number }; Returns: void };
+
+      // 신고/문의
+      submit_report: {
+        Args: {
+          p_target_id: string;
+          p_category: ReportCategory;
+          p_reason: string;
+          p_context_kind: ReportContext;
+          p_context_data?: Json;
+        };
+        Returns: string;
+      };
+      submit_inquiry: {
+        Args: {
+          p_category: InquiryCategory;
+          p_title: string;
+          p_body: string;
+          p_attachments?: Json;
+          p_reason_tag?: string;
+        };
+        Returns: string;
+      };
+      member_reply_inquiry: { Args: { p_id: string; p_body: string }; Returns: void };
+
+      // 게임 종료 (서버 전용)
+      record_game_end: {
+        Args: {
+          p_game_id: string;
+          p_mode: PlayMode;
+          p_room_snapshot: Json;
+          p_result: Json;
+          p_play_time_seconds: number;
+          p_total_turns: number;
+          p_game_record: Json;
+          p_played_at: string;
+          p_participants: Json;
+        };
+        Returns: string;
+      };
+
+      // 랭킹
+      compute_ranking: {
+        Args: { p_game_id: string; p_period?: 'weekly' | 'monthly' | 'all' };
+        Returns: Array<{
+          rank: number;
+          member_id: string;
+          nickname: string;
+          title: { id: string; name: string; color: TitleColor } | null;
+          total_games: number;
+          wins: number;
+          win_rate: number;
+          score: number;
+        }>;
+      };
+      my_rank: {
+        Args: { p_game_id: string; p_period?: 'weekly' | 'monthly' | 'all' };
+        Returns: Array<{ rank: number; total_games: number; wins: number; win_rate: number; score: number }>;
+      };
+
+      // 관리자
+      admin_create_title: { Args: { p_name: string; p_color: TitleColor; p_description?: string }; Returns: string };
+      admin_grant_title: { Args: { p_member_id: string; p_title_id: string; p_reason?: string }; Returns: void };
+      admin_revoke_title: { Args: { p_member_id: string; p_title_id: string; p_reason?: string }; Returns: void };
+      admin_suspend_member: { Args: { p_member_id: string; p_until: string; p_reason: string; p_related_report_id?: string }; Returns: void };
+      admin_ban_member: { Args: { p_member_id: string; p_reason: string; p_related_report_id?: string }; Returns: void };
+      admin_lift_sanction: { Args: { p_member_id: string; p_reason?: string }; Returns: void };
+      admin_resolve_report: { Args: { p_report_id: string; p_resolution: ReportResolution; p_reason?: string; p_sanction_until?: string }; Returns: void };
+      admin_reject_report: { Args: { p_report_id: string; p_reason?: string }; Returns: void };
+      admin_answer_inquiry: { Args: { p_id: string; p_body: string }; Returns: void };
+      admin_set_role: { Args: { p_member_id: string; p_role: 'user' | 'admin' }; Returns: void };
+    };
+    Enums: {
+      member_status: MemberStatus;
+      member_role: MemberRole;
+      play_mode: PlayMode;
+      turn_position: TurnPosition;
+      title_color: TitleColor;
+      agreement_kind: AgreementKind;
+      report_category: ReportCategory;
+      report_status: ReportStatus;
+      report_resolution: ReportResolution;
+      report_context: ReportContext;
+      inquiry_category: InquiryCategory;
+      inquiry_status: InquiryStatus;
+      sanction_kind: SanctionKind;
+      notification_kind: NotificationKind;
+      admin_target_kind: AdminTargetKind;
+      banned_word_scope: BannedWordScope;
+    };
+  };
+}

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^11",
+    "@supabase/supabase-js": "^2.105.0",
+    "dotenv": "^17.4.2",
     "fastify": "^5",
     "socket.io": "^4",
     "uuid": "^11"

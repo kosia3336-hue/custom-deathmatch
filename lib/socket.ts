@@ -1,5 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/shared/types';
+import { getBrowserSupabase } from './supabase/client';
+import { isSupabaseConfigured } from './supabase/env';
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -17,11 +19,22 @@ export function getOrCreateSessionToken(): string {
     }
     return token;
   } catch {
-    // localStorage 사용 불가 시 모듈 변수에 캐싱하여 렌더마다 새 UUID 생성 방지
     if (!fallbackToken) {
       fallbackToken = crypto.randomUUID();
     }
     return fallbackToken;
+  }
+}
+
+/** 현재 Supabase access_token (없으면 null) */
+async function getCurrentAccessToken(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const sb = getBrowserSupabase();
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -35,6 +48,8 @@ export function getSocket(): TypedSocket {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      // 초기 auth 는 connectSocket() 안에서 동적으로 채운다
+      auth: {},
     }) as TypedSocket;
 
     socket.on('connect', () => {
@@ -45,9 +60,17 @@ export function getSocket(): TypedSocket {
   return socket;
 }
 
-export function connectSocket(): TypedSocket {
+/**
+ * Supabase access_token 으로 socket 인증 후 연결.
+ * 미인증/만료 시 connect 자체가 거부되며 'connect_error' 가 발생한다.
+ */
+export async function connectSocket(): Promise<TypedSocket> {
   const s = getSocket();
-  if (!s.connected) s.connect();
+  if (!s.connected) {
+    const accessToken = await getCurrentAccessToken();
+    s.auth = { accessToken };
+    s.connect();
+  }
   return s;
 }
 

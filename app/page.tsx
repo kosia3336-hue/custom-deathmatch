@@ -23,7 +23,7 @@ export default function LobbyPage() {
   const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-cdm-bg">
       <GNB />
 
       <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">

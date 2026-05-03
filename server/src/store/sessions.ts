@@ -1,3 +1,5 @@
+import type { DisplayedTitle } from '@shared/types/room.js';
+
 // ── 소켓 ↔ 닉네임 (임시, 현재 연결된 소켓 기준) ─────────────────────────────
 const socketToNickname = new Map<string, string>();
 const nicknameToSocket = new Map<string, string>();
@@ -13,19 +15,44 @@ const socketToToken = new Map<string, string>();
 // token → nickname (O(1) 역탐색용, 오프라인 상태에서도 닉네임 조회 가능)
 const tokenToNickname = new Map<string, string>();
 
+// ── v2 — 회원 정보 (token 기준) ────────────────────────────────────────────
+// token → memberId (Supabase auth.users.id). 회원 가입 안 된 익명/v1 호환의 경우 null
+const tokenToMemberId = new Map<string, string | null>();
+// token → 표시 칭호 (없으면 null)
+const tokenToDisplayedTitle = new Map<string, DisplayedTitle | null>();
+
 // ── 재연결 유예 타이머 ────────────────────────────────────────────────────────
 const pendingDisconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 // ── 강퇴 기록 (닉네임 기준, 재접속 후에도 유지) ───────────────────────────────
 const kickedFromRoom = new Map<string, Set<string>>();
 
+// ── 칭호 획득 모달 pending (인게임 중 부여 → 게임 종료 후 emit) ──────────────
+export interface PendingTitlePayload {
+  titleId: string;
+  name: string;
+  color: string;
+  description: string | null;
+}
+const pendingTitles = new Map<string, PendingTitlePayload[]>();
+
+// ── memberId → token 역탐색 (관리자 알림 emit 시 대상 소켓 탐색용) ────────────
+const memberIdToToken = new Map<string, string>();
+
 export const sessions = {
   // ── 닉네임 ─────────────────────────────────────────────────────────────────
 
-  setNickname(socketId: string, nickname: string): boolean {
-    if (nicknameToSocket.has(nickname)) return false;
+  /**
+   * 닉네임 세팅. force=true 면 이미 점유 중인 닉네임이라도 빼앗는다 (회원 닉네임 동기화용).
+   */
+  setNickname(socketId: string, nickname: string, force = false): boolean {
+    const occupant = nicknameToSocket.get(nickname);
+    if (occupant && occupant !== socketId && !force) return false;
     const old = socketToNickname.get(socketId);
-    if (old) nicknameToSocket.delete(old);
+    if (old && old !== nickname) nicknameToSocket.delete(old);
+    if (occupant && occupant !== socketId && force) {
+      socketToNickname.delete(occupant);
+    }
     socketToNickname.set(socketId, nickname);
     nicknameToSocket.set(nickname, socketId);
     // tokenToNickname 동기화
@@ -159,6 +186,33 @@ export const sessions = {
     return tokenToSocketId.has(token);
   },
 
+  // ── v2 — 회원 정보 ─────────────────────────────────────────────────────
+
+  /** 토큰에 회원 정보(id, displayedTitle) 를 바인딩 */
+  setMemberInfo(token: string, memberId: string | null, displayedTitle: DisplayedTitle | null) {
+    tokenToMemberId.set(token, memberId);
+    tokenToDisplayedTitle.set(token, displayedTitle);
+    if (memberId) memberIdToToken.set(memberId, token);
+  },
+
+  getMemberId(token: string): string | null {
+    return tokenToMemberId.get(token) ?? null;
+  },
+
+  getDisplayedTitle(token: string): DisplayedTitle | null {
+    return tokenToDisplayedTitle.get(token) ?? null;
+  },
+
+  getMemberIdBySocket(socketId: string): string | null {
+    const t = socketToToken.get(socketId);
+    return t ? tokenToMemberId.get(t) ?? null : null;
+  },
+
+  getDisplayedTitleBySocket(socketId: string): DisplayedTitle | null {
+    const t = socketToToken.get(socketId);
+    return t ? tokenToDisplayedTitle.get(t) ?? null : null;
+  },
+
   // ── 재연결 유예 타이머 ────────────────────────────────────────────────────
 
   setPendingDisconnect(token: string, timer: ReturnType<typeof setTimeout>) {
@@ -175,5 +229,29 @@ export const sessions = {
 
   hasPendingDisconnect(token: string): boolean {
     return pendingDisconnectTimers.has(token);
+  },
+
+  // ── 칭호 획득 pending (인게임 부여 → 종료 후 전달) ───────────────────────
+
+  addPendingTitle(token: string, payload: PendingTitlePayload) {
+    const list = pendingTitles.get(token) ?? [];
+    list.push(payload);
+    pendingTitles.set(token, list);
+  },
+
+  takePendingTitles(token: string): PendingTitlePayload[] {
+    const list = pendingTitles.get(token) ?? [];
+    pendingTitles.delete(token);
+    return list;
+  },
+
+  hasPendingTitles(token: string): boolean {
+    return (pendingTitles.get(token)?.length ?? 0) > 0;
+  },
+
+  // ── memberId 역탐색 ────────────────────────────────────────────────────────
+
+  getTokenByMemberId(memberId: string): string | undefined {
+    return memberIdToToken.get(memberId);
   },
 };

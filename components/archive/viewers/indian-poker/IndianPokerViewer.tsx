@@ -136,7 +136,10 @@ function RoundRow({
 }
 
 export default function IndianPokerViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as IndianPokerRecord;
+  const gameRecord = record.gameRecord as IndianPokerRecord | null;
+  const [mobileOpen, setMobileOpen] = useState(true);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const rounds = gameRecord.roundHistory ?? [];
   const playerIds = Object.keys(gameRecord.players ?? record.players);
   const nicknames: Record<string, string> = {};
@@ -146,7 +149,6 @@ export default function IndianPokerViewer({ record }: Props) {
   }
 
   const winnerNick = record.result.rankings.find((r) => r.rank === 1)?.nickname;
-  const [mobileOpen, setMobileOpen] = useState(true);
 
   return (
     <div className="space-y-4">

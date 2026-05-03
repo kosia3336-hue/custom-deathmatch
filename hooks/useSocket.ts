@@ -10,32 +10,40 @@ export function useSocket() {
   const router = useRouter();
 
   useEffect(() => {
-    const s = connectSocket();
+    let cancelled = false;
 
-    // nickname:set은 session:new(신규 세션 확정) 때만 전송
-    // session:restored / session:exists 케이스에선 서버가 이미 닉네임을 알고 있으므로 불필요
-    const onSessionNew = () => {
-      const saved = localStorage.getItem('nickname');
-      if (saved) {
-        s.emit('nickname:set', { nickname: saved }, (res) => {
-          if (res.success && res.nickname) {
-            useNicknameStore.getState().setNickname(res.nickname);
-          }
-        });
-      }
-    };
+    async function bootstrap() {
+      // 로그인 여부와 무관하게 소켓 연결 (비로그인 = 게스트, 로비 방 목록만 수신 가능)
+      if (cancelled) return;
+      const s = await connectSocket();
 
-    const onSessionExists = (data: { nickname: string; roomId?: string }) => {
-      useSessionTakeoverStore.getState().setPending(data);
-    };
+      // v2: 서버가 session:new 에 닉네임을 실어 보냄
+      // 닉네임 없음 = 게스트 연결 → stale 로컬스토리지 닉네임 제거
+      const onSessionNew = ({ nickname }: { nickname: string }) => {
+        if (nickname) {
+          useNicknameStore.getState().setNickname(nickname);
+        } else {
+          useNicknameStore.setState({ nickname: null });
+          try { localStorage.removeItem('nickname'); } catch { /* ignore */ }
+        }
+      };
 
-    s.on('session:new', onSessionNew);
-    s.on('session:exists', onSessionExists);
+      const onSessionExists = (data: { nickname: string; roomId?: string }) => {
+        useSessionTakeoverStore.getState().setPending(data);
+      };
+
+      s.on('session:new', onSessionNew);
+      s.on('session:exists', onSessionExists);
+    }
+
+    bootstrap();
 
     return () => {
-      s.off('session:new', onSessionNew);
-      s.off('session:exists', onSessionExists);
-      // don't disconnect on unmount — socket persists across pages
+      cancelled = true;
+      // socket 객체 자체는 모듈 싱글톤이므로 listener 만 정리 (페이지 이동 시 유지)
+      const s = getSocket();
+      s.off('session:new');
+      s.off('session:exists');
     };
   }, []);
 
@@ -44,7 +52,6 @@ export function useSocket() {
 
     const onSessionRestored = ({ nickname, roomId }: { nickname: string; roomId?: string }) => {
       if (nickname) useNicknameStore.getState().setNickname(nickname);
-      // router.push() 사용 — window.location.href는 풀 리로드 → 새 소켓 생성 → 무한 루프
       if (roomId && !window.location.pathname.startsWith('/room/')) {
         router.push(`/room/${roomId}`);
       }
@@ -55,12 +62,19 @@ export function useSocket() {
       router.replace('/disconnected');
     };
 
+    const onConnectError = (err: Error) => {
+      // 인증 실패 등은 페이지 단(proxy.ts) 가드가 이미 처리. 여기선 콘솔만.
+      console.warn('[socket] connect_error:', err.message);
+    };
+
     s.on('session:restored', onSessionRestored);
     s.on('session:replaced', onSessionReplaced);
+    s.on('connect_error', onConnectError);
 
     return () => {
       s.off('session:restored', onSessionRestored);
       s.off('session:replaced', onSessionReplaced);
+      s.off('connect_error', onConnectError);
     };
   }, [router]);
 

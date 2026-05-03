@@ -45,12 +45,13 @@ interface Props {
 }
 
 export default function GrapeSugar2Viewer({ record }: Props) {
-  const gameRecord = record.gameRecord as GrapeSugar2ArchiveRecord;
-  const stages = gameRecord.stages ?? [];
-  const sides = gameRecord.sides ?? { p1: '', p2: '' };
-
+  const gameRecord = record.gameRecord as GrapeSugar2ArchiveRecord | null;
   const [activeStageIdx, setActiveStageIdx] = useState(0);
   const [expandedRound, setExpandedRound] = useState<string | null>(null);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
+  const stages = gameRecord.stages ?? [];
+  const sides = gameRecord.sides ?? { p1: '', p2: '' };
 
   const playerNicknames: Record<GS2Side, string> = {
     p1: gameRecord.players?.[sides.p1]?.nickname ?? record.players?.[sides.p1]?.nickname ?? 'P1',

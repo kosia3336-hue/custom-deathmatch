@@ -578,9 +578,28 @@ function proceedFromSecondSubmit(io: IO, s: BankInternalState) {
   }, animMs);
 }
 
+function checkEarlyWin(s: BankInternalState): BankSide | null {
+  const remainingRounds = s.maxRound - s.round;
+  const p1 = s.player1;
+  const p2 = s.player2;
+  if (p1.score > p2.score + remainingRounds) return 'p1';
+  if (p2.score > p1.score + remainingRounds) return 'p2';
+  return null;
+}
+
 function enterRoundEnd(io: IO, s: BankInternalState) {
   s.phase = 'roundEnd';
   void broadcastState(io, s);
+
+  const earlyWinner = checkEarlyWin(s);
+  if (earlyWinner) {
+    const gen = s.aiGeneration;
+    s.nextRoundTimer = setTimeout(() => {
+      if (!gameStates.has(s.roomId) || s.aiGeneration !== gen) return;
+      finalizeGame(io, s, earlyWinner, 'score');
+    }, ROUND_END_AUTO_DELAY_MS);
+    return;
+  }
 
   const isLastRound = s.round >= s.maxRound;
   if (isLastRound) {
@@ -991,7 +1010,10 @@ export function tryNextRoundReady(io: IO, s: BankInternalState, _pid: string): s
 
   // 즉시 다음 라운드 진행
   if (s.nextRoundTimer) { clearTimeout(s.nextRoundTimer); s.nextRoundTimer = null; }
-  if (s.round >= s.maxRound) {
+  const earlyWinner = checkEarlyWin(s);
+  if (earlyWinner) {
+    finalizeGame(io, s, earlyWinner, 'score');
+  } else if (s.round >= s.maxRound) {
     concludeAfterFinalRound(io, s);
   } else {
     advanceToNextRound(io, s);

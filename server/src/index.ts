@@ -1,9 +1,12 @@
+import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
+import type { IO } from './socket/types.js';
 import config from './config.js';
-import { registerGameRoutes } from './routes/games.js';
+import { registerGameRoutes, initGames, getGames } from './routes/games.js';
+import { registerAdminRoutes } from './routes/admin.js';
 import { setupSocketHandlers } from './socket/index.js';
 
 async function main() {
@@ -15,14 +18,21 @@ async function main() {
 
   app.get('/health', async () => ({ status: 'ok', timestamp: Date.now() }));
 
+  // io 인스턴스는 listen 후 생성되므로 lazy getter로 전달
+  let ioInstance: IO | null = null;
+  registerAdminRoutes(app, () => ioInstance);
+
   await app.listen({ port: config.port, host: config.host });
 
-  const io = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
+  ioInstance = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
     cors: { origin: config.corsOrigins, credentials: true },
     transports: ['websocket', 'polling'],
   });
 
-  setupSocketHandlers(io);
+  setupSocketHandlers(ioInstance);
+
+  await initGames();
+  app.log.info(`[games] ${getGames().length}개 게임 로드 완료`);
 
   app.log.info(`listening on http://${config.host}:${config.port}`);
 }

@@ -85,12 +85,17 @@ function ColorRevealBanner({ color, firstNick, stageBefore, stageAfter }: {
 }
 
 /** 상대 잔여 포인트 개인 추리 트래커 (클라이언트 전용 메모) */
-function OpponentPointTracker({ opponentStage }: { opponentStage: number }) {
+function OpponentPointTracker({
+  opponentStage,
+  estimate,
+  setEstimate,
+}: {
+  opponentStage: number;
+  estimate: number;
+  setEstimate: React.Dispatch<React.SetStateAction<number>>;
+}) {
   const lo = opponentStage === 0 ? 0 : (opponentStage - 1) * 20 + 1;
   const hi = opponentStage * 20;
-
-  /** 상대 stage가 바뀌면 부모가 `key={stage}`로 리마운트해 추정값이 구간 상한으로 맞춰짐 */
-  const [estimate, setEstimate] = useState(hi);
 
   const clamp = (v: number) => Math.min(hi, Math.max(lo, v));
 
@@ -258,13 +263,13 @@ function BottomSheet({
   return (
     <>
       <div
-        className={`fixed inset-0 z-45 bg-black/40 transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={onClose}
       />
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[80vh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -297,6 +302,7 @@ export default function BNW2Game() {
   const [roundOverlay, setRoundOverlay] = useState<{ round: number; firstNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [opponentEstimate, setOpponentEstimate] = useState<number>(200);
 
   // Winner/draw toast
   useEffect(() => {
@@ -358,6 +364,18 @@ export default function BNW2Game() {
     }
   }, [gameData?.phase]);
 
+  // 상대 stage 변경 시 추리 estimate를 구간 상한으로 리셋
+  const opponentStageForEffect = (() => {
+    if (!gameData) return null;
+    const playerEntries = Object.entries(gameData.players);
+    const oppEntry = playerEntries.find(([id]) => id !== myId);
+    return oppEntry?.[1]?.stage ?? null;
+  })();
+  useEffect(() => {
+    if (opponentStageForEffect === null) return;
+    setOpponentEstimate(opponentStageForEffect * 20);
+  }, [opponentStageForEffect]);
+
   // 내 차례가 되면 바텀시트 자동 열기 (모바일)
   useEffect(() => {
     if (!gameData || isSpectator) return;
@@ -418,8 +436,9 @@ export default function BNW2Game() {
       {showTracker && opponentPlayer && (
         <div className="lg:hidden">
           <OpponentPointTracker
-            key={opponentPlayer.stage}
             opponentStage={opponentPlayer.stage}
+            estimate={opponentEstimate}
+            setEstimate={setOpponentEstimate}
           />
         </div>
       )}
@@ -523,8 +542,9 @@ export default function BNW2Game() {
             {showTracker && opponentPlayer && !isMyTurn && (
               <div className="w-full max-w-sm lg:hidden">
                 <OpponentPointTracker
-                  key={opponentPlayer.stage}
                   opponentStage={opponentPlayer.stage}
+                  estimate={opponentEstimate}
+                  setEstimate={setOpponentEstimate}
                 />
               </div>
             )}
@@ -533,8 +553,9 @@ export default function BNW2Game() {
             {showTracker && opponentPlayer && (
               <div className="hidden w-full max-w-sm lg:block">
                 <OpponentPointTracker
-                  key={opponentPlayer.stage}
                   opponentStage={opponentPlayer.stage}
+                  estimate={opponentEstimate}
+                  setEstimate={setOpponentEstimate}
                 />
               </div>
             )}
@@ -662,7 +683,7 @@ export default function BNW2Game() {
           {isMyTurn && !sheetOpen && (
             <button
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-50 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
+              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
             >
               포인트 제시하기 →
             </button>
@@ -675,7 +696,7 @@ export default function BNW2Game() {
 
       {/* ── Round transition overlay ── */}
       <div
-        className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
+        className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
           roundOverlay ? 'opacity-100' : 'opacity-0'
         }`}
       >

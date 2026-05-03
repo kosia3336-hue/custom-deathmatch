@@ -17,7 +17,10 @@ interface Props {
 }
 
 export default function BankGameViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as BankGameArchiveRecord;
+  const gameRecord = record.gameRecord as BankGameArchiveRecord | null;
+  const [expandedRound, setExpandedRound] = useState<number | null>(null);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const sides = gameRecord.sides;
   const rounds = gameRecord.rounds ?? [];
 
@@ -40,8 +43,6 @@ export default function BankGameViewer({ record }: Props) {
   const winTypeLabel = gameRecord.winType
     ? (WIN_TYPE_LABELS as Record<string, string>)[gameRecord.winType] ?? gameRecord.winType
     : null;
-
-  const [expandedRound, setExpandedRound] = useState<number | null>(null);
 
   return (
     <div className="space-y-4 lg:space-y-5">

@@ -1,48 +1,46 @@
 'use client';
 
-import Link from 'next/link';
-import { useNicknameStore } from '@/stores/nickname';
+import { useCurrentMember } from '@/hooks/useCurrentMember';
+import { GNB as CdmGNB } from '@/components/cdm/GNB';
+import type { TitleColor } from '@/lib/supabase/database.types';
 
 interface GNBProps {
+  /** 룸/인게임 등에서 minimal=true 면 좁은 GNB */
   minimal?: boolean;
 }
 
-export default function GNB({ minimal }: GNBProps) {
-  const nickname = useNicknameStore((s) => s.nickname);
-  const openModal = useNicknameStore((s) => s.openModal);
+/**
+ * v2 GNB 어댑터.
+ * - 회원 정보가 로드되면 components/cdm/GNB 를 사용 (닉/칭호/드롭다운/로그아웃).
+ * - 로딩 중이면 스켈레톤.
+ * - 회원 없음 (예: Supabase 미설정 데모 모드) 이면 로고만 표시 + 로그인 버튼.
+ */
+export default function GNB({ minimal: _minimal }: GNBProps) {
+  const { member, loading } = useCurrentMember();
 
-  return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-gray-200 bg-white/80 px-4 backdrop-blur-sm md:px-6">
-      <Link href="/" className="flex items-center gap-2">
-        <span className="text-xl font-bold text-indigo-600">🎲</span>
-        {!minimal && <span className="text-lg font-bold text-gray-900">더 지니어스</span>}
-      </Link>
+  const cdmMember = member
+    ? {
+        id: member.id,
+        nickname: member.nickname,
+        status: 'active' as const,
+        role: member.role,
+        createdAt: '',
+        displayedTitle: member.displayedTitle
+          ? {
+              id: member.displayedTitle.id,
+              name: member.displayedTitle.name,
+              color: member.displayedTitle.color as TitleColor,
+            }
+          : null,
+      }
+    : null;
 
-      <div className="flex items-center gap-3">
-        {!minimal && (
-          <Link
-            href="/archive"
-            className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            기록실
-          </Link>
-        )}
-        {nickname ? (
-          <button
-            onClick={() => openModal()}
-            className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            {nickname}
-          </button>
-        ) : (
-          <button
-            onClick={() => openModal()}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-          >
-            닉네임 설정
-          </button>
-        )}
-      </div>
-    </header>
-  );
+  // 로딩 중에도 nav(로비/랭킹/문의)는 보여야 함 — 우측만 스켈레톤 처리
+  if (loading) {
+    return (
+      <CdmGNB member={null} loadingRight />
+    );
+  }
+
+  return <CdmGNB member={cdmMember} />;
 }

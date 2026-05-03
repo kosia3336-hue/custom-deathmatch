@@ -106,7 +106,10 @@ interface Props {
 }
 
 export default function InvestDonateViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as InvestDonateRecord;
+  const gameRecord = record.gameRecord as InvestDonateRecord | null;
+  const [mobileOpen, setMobileOpen] = useState(true);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const actions = gameRecord.actions ?? [];
 
   const playerIds = Object.keys(gameRecord.players ?? record.players);
@@ -116,7 +119,6 @@ export default function InvestDonateViewer({ record }: Props) {
   }
 
   const winnerNick = record.result.rankings.find((r) => r.rank === 1)?.nickname;
-  const [mobileOpen, setMobileOpen] = useState(true);
 
   return (
     <div className="space-y-4">

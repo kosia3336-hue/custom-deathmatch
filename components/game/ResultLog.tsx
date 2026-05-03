@@ -1,0 +1,166 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSocket } from '@/lib/socket';
+import { useRoomStore } from '@/stores/room';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { Button } from '@/components/cdm/Button';
+import { Countdown } from '@/components/cdm/Countdown';
+import { Card } from '@/components/cdm/Card';
+import RoomChat from '@/components/room/RoomChat';
+import { VIEWER_MAP } from '@/components/archive/LogViewer';
+import GameLogView from '@/components/game/GameLogView';
+import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
+import type { GameRecordFile } from '@/shared/types/archive';
+import type { TitleColor } from '@/lib/supabase/database.types';
+
+const AUTO_LEAVE_SEC = 120;
+
+/**
+ * 게임 결과 화면 컨텍스트 래퍼.
+ * 소켓 상태에서 데이터를 읽어 GameLogView에 전달하고,
+ * 타이머 / 다시하기 / 결과 채팅을 추가한다.
+ * 페이지 이동 없이 방 레이아웃 내에서 렌더된다.
+ */
+export default function ResultLog() {
+  const router = useRouter();
+  const gameResult = useRoomStore((s) => s.gameResult);
+  const room = useRoomStore((s) => s.room);
+  const { setHeaderRight, setFooter } = useRoomLayout();
+  const [cancelled, setCancelled] = useState(false);
+
+  const handleLobby = useCallback(() => {
+    getSocket().emit('game:leave');
+    useRoomStore.getState().reset();
+    router.push('/');
+  }, [router]);
+
+  const handleRematch = useCallback(() => {
+    if (!room) return;
+    setCancelled(true);
+    getSocket().emit('game:rematch');
+    useRoomStore.getState().setGameResult(null);
+    if (room.playMode === 'multi') {
+      router.push(`/room/${room.id}`);
+    } else {
+      router.push(`/room/${room.id}/play`);
+    }
+  }, [room, router]);
+
+  useEffect(() => {
+    setHeaderRight(
+      <Button variant="ghost" size="sm" onClick={handleLobby}>
+        로비로
+      </Button>,
+    );
+    return () => setHeaderRight(null);
+  }, [setHeaderRight, handleLobby]);
+
+  useEffect(() => {
+    setFooter(
+      <>
+        {!cancelled && (
+          <span className="mr-auto inline-flex items-center gap-1 text-xs text-cdm-fg-muted">
+            <Countdown seconds={AUTO_LEAVE_SEC} onComplete={handleLobby} format="mm:ss" />
+            <span>후 자동 이동</span>
+          </span>
+        )}
+        <Button onClick={handleRematch}>다시하기</Button>
+        <Button variant="secondary" onClick={handleLobby}>로비로</Button>
+      </>,
+    );
+    return () => setFooter(null);
+  }, [setFooter, cancelled, handleRematch, handleLobby]);
+
+  if (!gameResult) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-cdm-fg-muted">결과를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  const sortedRanks = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
+  const isDraw = sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
+
+  // GameLogView용 players 변환
+  const players: GameLogPlayer[] = room
+    ? room.players.map((p, i) => {
+        const ranking = gameResult.rankings.find((r) => r.playerId === p.id);
+        return {
+          nickname: p.nickname,
+          title: p.displayedTitle
+            ? { name: p.displayedTitle.name, color: p.displayedTitle.color as TitleColor }
+            : null,
+          turn: i === 0 ? 'first' : 'second',
+          isWinner: !isDraw && ranking?.rank === 1,
+          isDraw,
+          isResign: false,
+        };
+      })
+    : sortedRanks.map((r, i) => ({
+        nickname: r.nickname,
+        title: null,
+        turn: i === 0 ? ('first' as const) : ('second' as const),
+        isWinner: !isDraw && r.rank === 1,
+        isDraw,
+        isResign: false,
+      }));
+
+  // GameLogView용 meta 변환
+  const meta: GameLogMeta = {
+    gameId: room?.gameId ?? '',
+    gameName: room?.gameName ?? '',
+    playedAt: new Date().toISOString(),
+    playTimeMs: gameResult.playTime,
+    totalTurns: gameResult.totalTurns,
+    mode: room?.playMode ?? 'multi',
+    countsForStats: room?.playMode === 'multi',
+  };
+
+  // archive viewer용 GameRecordFile
+  const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
+  const record: GameRecordFile | null = room
+    ? {
+        version: '2',
+        gameId: room.gameId,
+        gameName: room.gameName,
+        playedAt: new Date().toISOString(),
+        playMode: room.playMode,
+        players: room.players.reduce<Record<string, { nickname: string }>>((acc, p) => {
+          acc[p.id] = { nickname: p.nickname };
+          return acc;
+        }, {}),
+        result: {
+          rankings: gameResult.rankings.map((r) => ({
+            nickname: r.nickname,
+            rank: r.rank,
+            score: r.score,
+          })),
+          playTime: gameResult.playTime,
+          totalTurns: gameResult.totalTurns,
+        },
+        gameRecord: gameResult.gameResultData ?? null,
+      }
+    : null;
+
+  return (
+    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6">
+      <GameLogView
+        players={players}
+        meta={meta}
+        record={Viewer && record ? record : null}
+        viewingAs="self"
+      />
+
+      {/* 결과 채팅 (멀티 모드만) */}
+      {room?.playMode === 'multi' && (
+        <Card className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold text-cdm-fg">결과 채팅</h2>
+          <RoomChat scope="game" />
+        </Card>
+      )}
+    </div>
+  );
+}

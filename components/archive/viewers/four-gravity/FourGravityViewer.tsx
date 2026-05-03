@@ -36,13 +36,18 @@ interface Props {
 }
 
 export default function FourGravityViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as FourGravityRecord;
+  const gameRecord = record.gameRecord as FourGravityRecord | null;
   const { frames, turnFirstFrame } = useMemo(
-    () => computeFrames(gameRecord.actions),
-    [gameRecord.actions],
+    () => (
+      gameRecord?.actions && Array.isArray(gameRecord.actions)
+        ? computeFrames(gameRecord.actions)
+        : { frames: [], turnFirstFrame: [] }
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameRecord],
   );
   const totalFrames = frames.length - 1;
-  const totalTurns = gameRecord.actions.length;
+  const totalTurns = gameRecord?.actions?.length ?? 0;
 
   // 1번 프레임(첫 돌 놓기)부터 시작
   const [currentFrame, setCurrentFrame] = useState(1);
@@ -68,7 +73,7 @@ export default function FourGravityViewer({ record }: Props) {
 
   const frame = frames[currentFrame];
   const isLastFrame = currentFrame === totalFrames;
-  const winLine = isLastFrame ? gameRecord.winLine : null;
+  const winLine = isLastFrame ? gameRecord?.winLine ?? null : null;
 
   const blackNick = record.players.black?.nickname ?? '흑';
   const whiteNick = record.players.white?.nickname ?? '백';
@@ -90,6 +95,10 @@ export default function FourGravityViewer({ record }: Props) {
     if (dx < 0) goNext();
     else goPrev();
   }, [goNext, goPrev]);
+
+  if (!gameRecord || !Array.isArray(gameRecord.actions)) {
+    return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+  }
 
   // 현재 프레임의 단계 레이블
   const stepLabel = (() => {
@@ -213,20 +222,20 @@ export default function FourGravityViewer({ record }: Props) {
 
       {/* Game info summary */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
-          <span>
-            <span className="text-gray-400">게임</span>{' '}
-            <span className="font-medium text-gray-800">{record.gameName}</span>
-          </span>
-          <span>
-            <span className="text-gray-400">모드</span>{' '}
-            <span className="font-medium text-gray-800">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:flex sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">게임</dt>
+            <dd className="font-medium text-gray-800">{record.gameName}</dd>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">모드</dt>
+            <dd className="font-medium text-gray-800">
               {record.playMode === 'multi' ? '멀티' : record.playMode === 'com' ? '1:COM' : '1:1 솔로'}
-            </span>
-          </span>
-          <span>
-            <span className="text-gray-400">일시</span>{' '}
-            <span className="font-medium text-gray-800">
+            </dd>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">일시</dt>
+            <dd className="font-medium text-gray-800">
               {new Date(record.playedAt).toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: '2-digit',
@@ -234,24 +243,24 @@ export default function FourGravityViewer({ record }: Props) {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
-            </span>
-          </span>
-          <span>
-            <span className="text-gray-400">결과</span>{' '}
-            <span className="font-medium text-gray-800">
+            </dd>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">결과</dt>
+            <dd className="font-medium text-gray-800">
               {winnerNick ? `${winnerNick} 승` : '알 수 없음'}
               {gameRecord.winType ? ` (${WIN_TYPE_LABEL[gameRecord.winType] ?? gameRecord.winType})` : ''}
-            </span>
-          </span>
-          <span>
-            <span className="text-gray-400">시간</span>{' '}
-            <span className="font-medium text-gray-800">{formatTime(record.result.playTime)}</span>
-          </span>
-          <span>
-            <span className="text-gray-400">턴</span>{' '}
-            <span className="font-medium text-gray-800">{record.result.totalTurns}턴</span>
-          </span>
-        </div>
+            </dd>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">시간</dt>
+            <dd className="font-medium text-gray-800">{formatTime(record.result.playTime)}</dd>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
+            <dt className="text-gray-400">턴</dt>
+            <dd className="font-medium text-gray-800">{record.result.totalTurns}턴</dd>
+          </div>
+        </dl>
       </div>
     </div>
   );

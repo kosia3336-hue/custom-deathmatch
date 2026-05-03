@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import PlayerSlot from '@/components/room/PlayerSlot';
 import RoomInfo from '@/components/room/RoomInfo';
+import { ReportModal } from '@/components/cdm/ReportModal';
 import RoomSettingsModal from '@/components/room/RoomSettingsModal';
 import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
@@ -34,6 +35,7 @@ export default function WaitingRoomPage() {
 
   const [joined, setJoined] = useState(false);
   const [showKick, setShowKick] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
   const [showRoomSettings, setShowRoomSettings] = useState(false);
@@ -176,7 +178,7 @@ export default function WaitingRoomPage() {
       <>
         <button
           onClick={() => setShowRoomInfo(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
+          className="flex items-center gap-1.5 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-1 transition-colors md:px-3"
           title="방 정보"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -187,7 +189,7 @@ export default function WaitingRoomPage() {
         {isHost && (
           <button
             onClick={() => setShowRoomSettings(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
+            className="flex items-center gap-1.5 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-1 transition-colors md:px-3"
             title="설정 변경"
           >
             <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -211,7 +213,7 @@ export default function WaitingRoomPage() {
     setFooter(
       <>
         {isSpectator && (
-          <span className="mr-auto rounded-full bg-gray-100 px-3 py-1.5 text-xs text-gray-500 md:text-sm">
+          <span className="mr-auto rounded-full bg-cdm-bg-elev-2 px-3 py-1.5 text-xs text-cdm-fg-muted md:text-sm">
             👁️ 관전 중
           </span>
         )}
@@ -236,7 +238,7 @@ export default function WaitingRoomPage() {
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-cdm-bg-elev-2 border-t-cdm-primary" />
       </div>
     );
   }
@@ -248,34 +250,17 @@ export default function WaitingRoomPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 md:p-6">
         {/* 플레이어 슬롯 */}
         <div className="space-y-3">
-          {(room.playMode === 'multi' || room.playMode === 'com') && room.players.length === 2 && (
-            <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2">
-              <span className="text-xs font-medium text-gray-500">흑/백 순서</span>
-              {isHost && (
-                <button
-                  onClick={handleSwapColors}
-                  className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100"
-                  title="흑/백 교체"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                  교체
-                </button>
-              )}
-            </div>
-          )}
-          {room.players.map((p, i) => (
+          {room.players.map((p) => (
             <PlayerSlot
               key={p.id}
               player={p}
               isMe={p.id === myId}
               isHostView={isHost}
-              colorLabel={(room.playMode === 'multi' || room.playMode === 'com') && room.players.length === 2
-                ? (i === 0 ? '흑' : '백')
-                : undefined}
               onKick={(id) => setShowKick(id)}
               onDelegate={handleDelegate}
+              onSwapTurns={handleSwapColors}
+              isGameStarted={room.status !== 'waiting'}
+              onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
             />
           ))}
           {Array.from({ length: emptySlots }).map((_, i) => (
@@ -283,7 +268,7 @@ export default function WaitingRoomPage() {
               <button
                 key={`empty-${i}`}
                 onClick={handleToPlayer}
-                className="flex h-16 w-full items-center justify-center rounded-xl border-2 border-dashed border-indigo-300 text-sm text-indigo-400 transition-colors hover:border-indigo-400 hover:bg-indigo-50"
+                className="flex h-16 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-primary text-sm text-cdm-primary transition-colors hover:border-cdm-primary-strong hover:bg-cdm-primary-soft"
               >
                 + 플레이어로 참여
               </button>
@@ -296,11 +281,11 @@ export default function WaitingRoomPage() {
         {/* 관전자 영역 */}
         <div className="mt-6">
           <div className="mb-2 flex items-center gap-2">
-            <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs font-medium text-gray-400">
-              관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
+            <div className="h-px flex-1 bg-cdm-border" />
+            <span className="text-xs font-medium text-cdm-fg-muted">
+              👁️ 관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
             </span>
-            <div className="h-px flex-1 bg-gray-200" />
+            <div className="h-px flex-1 bg-cdm-border" />
           </div>
 
           <div className="space-y-2">
@@ -308,34 +293,34 @@ export default function WaitingRoomPage() {
               <div
                 key={s.id}
                 className={cn(
-                  'flex items-center gap-3 rounded-xl border px-4 py-3',
+                  'flex items-center gap-3 rounded-cdm-lg border px-4 py-3',
                   s.id === myId
-                    ? 'border-indigo-200 bg-indigo-50'
-                    : 'border-gray-200 bg-white',
+                    ? 'border-cdm-primary bg-cdm-primary-soft/40'
+                    : 'border-cdm-border bg-cdm-bg-elev-1',
                 )}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-sm select-none">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cdm-bg-elev-2 text-sm select-none">
                   👁️
-                </div>
-                <span className="flex-1 text-sm text-gray-600">{s.nickname}</span>
+                </span>
+                <span className="flex-1 text-sm text-cdm-fg">{s.nickname}</span>
                 {s.id === myId && (
-                  <span className="text-xs font-medium text-indigo-500">나</span>
+                  <span className="text-xs font-medium text-cdm-fg-muted">(나)</span>
                 )}
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">관전</span>
+                <span className="rounded-full bg-cdm-bg-elev-2 px-2 py-0.5 text-xs text-cdm-fg-muted">관전</span>
               </div>
             ))}
 
             {!isSpectator && !isHost && (
               <button
                 onClick={handleToSpectate}
-                className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-400 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                className="flex h-14 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
               >
                 👁️ 관전하기
               </button>
             )}
 
             {room.spectators.length === 0 && (isSpectator || isHost) && (
-              <div className="flex h-14 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-400">
+              <div className="flex h-14 items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-subtle">
                 관전자 없음
               </div>
             )}
@@ -346,7 +331,7 @@ export default function WaitingRoomPage() {
         <AnimatePresence>
           {countdown !== null && countdown > 0 && (
             <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+              className="fixed inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/60"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -368,7 +353,7 @@ export default function WaitingRoomPage() {
 
       {/* 관전 비밀번호 모달 */}
       <Modal open={showSpectatePassword} onClose={() => router.push('/')} closable={false} title="비밀방 관전">
-        <p className="mb-4 text-sm text-gray-500">관전하려면 비밀번호를 입력하세요.</p>
+        <p className="mb-4 text-sm text-cdm-fg-muted">관전하려면 비밀번호를 입력하세요.</p>
         <Input
           type="password"
           value={spectatePassword}
@@ -429,19 +414,29 @@ export default function WaitingRoomPage() {
 
       {/* 나가기 모달 */}
       <Modal open={showLeave} onClose={() => setShowLeave(false)} closable={false}>
-        <p className="mb-6 text-sm text-gray-600">정말 방을 나가시겠습니까?</p>
+        <p className="mb-6 text-sm text-cdm-fg-muted">정말 방을 나가시겠습니까?</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowLeave(false)}>취소</Button>
           <Button variant="danger" onClick={handleLeave}>나가기</Button>
         </div>
       </Modal>
 
+      {/* 신고 모달 */}
+      <ReportModal
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetId={reportTarget?.memberId ?? null}
+        targetNickname={reportTarget?.nickname}
+        context="room"
+        contextData={{ roomId }}
+      />
+
       {/* 강퇴 모달 */}
       <Modal open={!!showKick} onClose={() => setShowKick(null)} closable={false}>
-        <p className="mb-2 text-sm text-gray-600">
+        <p className="mb-2 text-sm text-cdm-fg-muted">
           {room.players.find((p) => p.id === showKick)?.nickname}님을 강퇴할까요?
         </p>
-        <p className="mb-6 text-xs text-gray-400">강퇴된 유저는 재입장 불가합니다.</p>
+        <p className="mb-6 text-xs text-cdm-fg-subtle">강퇴된 유저는 재입장 불가합니다.</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowKick(null)}>취소</Button>
           <Button variant="danger" onClick={() => showKick && handleKick(showKick)}>강퇴하기</Button>

@@ -22,6 +22,9 @@ function makePlayer(socket: TypedSocket, isHost: boolean): Player {
     isHost,
     isReady: false,
     joinedAt: Date.now(),
+    // v2: 회원 정보 자동 첨부
+    memberId: sessions.getMemberIdBySocket(socket.id),
+    displayedTitle: sessions.getDisplayedTitleBySocket(socket.id),
   };
 }
 
@@ -173,7 +176,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
 
-    const found = roomStore.findQuickJoinRoom();
+    const found = roomStore.findQuickJoinRoom(undefined, (roomId) => sessions.isKicked(nickname, roomId));
     if (found) {
       const player = makePlayer(socket, false);
       const added = roomStore.addPlayer(found.id, player);

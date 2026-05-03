@@ -81,7 +81,7 @@ export default function IndianPokerGame() {
     <>
     {/* 셔플 오버레이 */}
     <div
-      className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-500 ${
+      className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-500 ${
         showShuffle ? 'opacity-100' : 'opacity-0'
       }`}
     >

@@ -8,12 +8,12 @@ interface Props {
 
 export default function RoomInfo({ room }: Props) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-bold text-gray-700">방 정보</h3>
-      <div className="space-y-2 text-sm text-gray-600">
+    <div className="rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 p-4">
+      <h3 className="mb-3 text-sm font-bold text-cdm-fg">방 정보</h3>
+      <div className="space-y-2 text-sm text-cdm-fg-muted">
         <div className="flex justify-between">
           <span>게임</span>
-          <span className="font-medium text-gray-900">{room.gameName}</span>
+          <span className="font-medium text-cdm-fg">{room.gameName}</span>
         </div>
         <div className="flex justify-between">
           <span>모드</span>

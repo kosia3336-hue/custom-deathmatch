@@ -13,11 +13,18 @@ interface Props {
 }
 
 export default function DoubleSidedChessViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as DSCRecord;
-  const frames = useMemo(() => computeFrames(gameRecord.actions), [gameRecord.actions]);
+  const gameRecord = record.gameRecord as DSCRecord | null;
+  const frames = useMemo(
+    () => (gameRecord ? computeFrames(gameRecord.actions) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameRecord],
+  );
   const totalFrames = frames.length - 1;
 
   const [currentFrame, setCurrentFrame] = useState(totalFrames > 0 ? 1 : 0);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
 
   const goFirst = useCallback(() => setCurrentFrame(0), []);
   const goPrev = useCallback(() => setCurrentFrame((f) => Math.max(0, f - 1)), []);
@@ -27,25 +34,6 @@ export default function DoubleSidedChessViewer({ record }: Props) {
   );
   const goLast = useCallback(() => setCurrentFrame(totalFrames), [totalFrames]);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-      if (e.key === 'Home') { e.preventDefault(); goFirst(); }
-      if (e.key === 'End') { e.preventDefault(); goLast(); }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [goFirst, goPrev, goNext, goLast]);
-
-  const frame = frames[currentFrame];
-  const firstNick = record.players.first?.nickname ?? gameRecord.players?.first?.nickname ?? '선';
-  const secondNick = record.players.second?.nickname ?? gameRecord.players?.second?.nickname ?? '후';
-  const winnerNick = record.result.rankings.find((r) => r.rank === 1)?.nickname;
-
-  const [mobileListOpen, setMobileListOpen] = useState(false);
-
-  const touchStartX = useRef<number | null>(null);
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   }, []);
@@ -60,6 +48,24 @@ export default function DoubleSidedChessViewer({ record }: Props) {
     },
     [goNext, goPrev],
   );
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      if (e.key === 'Home') { e.preventDefault(); goFirst(); }
+      if (e.key === 'End') { e.preventDefault(); goLast(); }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [goFirst, goPrev, goNext, goLast]);
+
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
+  const frame = frames[currentFrame];
+  const firstNick = record.players.first?.nickname ?? gameRecord.players?.first?.nickname ?? '선';
+  const secondNick = record.players.second?.nickname ?? gameRecord.players?.second?.nickname ?? '후';
+  const winnerNick = record.result.rankings.find((r) => r.rank === 1)?.nickname;
 
   const turnLabel =
     currentFrame === 0

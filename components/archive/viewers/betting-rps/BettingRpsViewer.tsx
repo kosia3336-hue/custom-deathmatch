@@ -108,7 +108,10 @@ interface Props {
 }
 
 export default function BettingRpsViewer({ record }: Props) {
-  const gameRecord = record.gameRecord as BettingRpsRecord;
+  const gameRecord = record.gameRecord as BettingRpsRecord | null;
+  const [mobileOpen, setMobileOpen] = useState(true);
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
+
   const actions = gameRecord.actions ?? [];
 
   const playerIds = Object.keys(gameRecord.players ?? record.players);
@@ -119,7 +122,6 @@ export default function BettingRpsViewer({ record }: Props) {
 
   const winnerEntry = record.result.rankings.find((r) => r.rank === 1);
   const winnerNick = winnerEntry?.nickname;
-  const [mobileOpen, setMobileOpen] = useState(true);
 
   return (
     <div className="space-y-4">

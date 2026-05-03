@@ -223,10 +223,10 @@ export default function MobileLayout({ ctx }: Props) {
       {showBetSheet && myPlayer && (
         <>
           {/* dim overlay */}
-          <div className="fixed inset-0 z-40 bg-black/30" />
+          <div className="fixed inset-0 z-(--cdm-z-overlay) bg-black/30" />
           {/* sheet */}
           <div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl"
+            className="fixed inset-x-0 bottom-0 z-(--cdm-z-modal) rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl"
             style={{ animation: 'sms2SlideUp 250ms ease-out forwards' }}
           >
             <div className="mx-auto mb-3 mt-2 h-1 w-10 rounded-full bg-gray-300" />

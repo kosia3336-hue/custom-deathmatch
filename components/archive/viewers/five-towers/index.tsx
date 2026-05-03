@@ -91,15 +91,21 @@ function ActionRow({ action, height, playerColor }: ActionRowProps) {
 }
 
 export default function FiveTowersViewer({ record }: { record: GameRecordFile }) {
-  const gameRecord = record.gameRecord as FiveTowersArchiveRecord;
+  const gameRecord = record.gameRecord as FiveTowersArchiveRecord | null;
   const [showFullLog, setShowFullLog] = useState(false);
 
-  const playerIds = useMemo(() => Object.keys(gameRecord.players), [gameRecord.players]);
+  const playerIds = useMemo(
+    () => (gameRecord ? Object.keys(gameRecord.players) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameRecord],
+  );
   const playerNames = useMemo(() => {
+    if (!gameRecord) return {} as Record<string, string>;
     const m: Record<string, string> = {};
     for (const [id, info] of Object.entries(gameRecord.players)) m[id] = info.nickname;
     return m;
-  }, [gameRecord.players]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameRecord]);
 
   const playerColorMap = useMemo<Record<string, string>>(() => {
     const map: Record<string, string> = {};
@@ -111,6 +117,7 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
 
   // 각 액션 시점의 탑 누적 높이
   const actionHeights = useMemo(() => {
+    if (!gameRecord) return [];
     const heights: Record<FTTower, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
     return gameRecord.actions.map((a) => {
       if ((a.kind === 'stack' || a.kind === 'item-secret') && a.tower && a.count) {
@@ -118,7 +125,10 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
       }
       return a.tower ? heights[a.tower] : 0;
     });
-  }, [gameRecord.actions]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameRecord]);
+
+  if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
 
   const visibleActions = showFullLog ? gameRecord.actions : gameRecord.actions.slice(-30);
   const visibleHeights = showFullLog ? actionHeights : actionHeights.slice(-30);
