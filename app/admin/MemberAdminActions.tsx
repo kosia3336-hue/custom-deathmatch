@@ -14,6 +14,7 @@ interface Props {
   nickname: string;
   currentStatus: MemberStatus;
   currentRole: 'user' | 'admin';
+  isWithdrawn?: boolean;
 }
 
 export default function MemberAdminActions({
@@ -21,11 +22,13 @@ export default function MemberAdminActions({
   nickname,
   currentStatus,
   currentRole,
+  isWithdrawn = false,
 }: Props) {
   const router = useRouter();
   const [openSuspend, setOpenSuspend] = useState(false);
   const [openBan, setOpenBan] = useState(false);
   const [openLift, setOpenLift] = useState(false);
+  const [openRestore, setOpenRestore] = useState(false);
   const [busy, startTransition] = useTransition();
 
   function toggleRole() {
@@ -42,6 +45,24 @@ export default function MemberAdminActions({
         toast.error(`실패: ${(e as Error).message}`);
       }
     });
+  }
+
+  if (isWithdrawn) {
+    return (
+      <>
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" variant="secondary" onClick={() => setOpenRestore(true)}>
+            계정 복구
+          </Button>
+        </div>
+        <RestoreModal
+          open={openRestore}
+          onClose={() => setOpenRestore(false)}
+          memberId={memberId}
+          nickname={nickname}
+        />
+      </>
+    );
   }
 
   return (
@@ -306,6 +327,105 @@ function LiftModal({
           placeholder="제재 해제 사유를 입력하세요"
           className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary"
         />
+      </div>
+    </Modal>
+  );
+}
+
+function RestoreModal({
+  open,
+  onClose,
+  memberId,
+  nickname,
+}: {
+  open: boolean;
+  onClose: () => void;
+  memberId: string;
+  nickname: string;
+}) {
+  const router = useRouter();
+  const [confirm, setConfirm] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (open) { setConfirm(''); setReason(''); }
+  }, [open]);
+
+  function go() {
+    if (confirm.trim() !== nickname) {
+      toast.error('닉네임이 일치하지 않습니다');
+      return;
+    }
+    if (!reason.trim()) {
+      toast.error('사유를 입력해 주세요');
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const sb = getBrowserSupabase();
+        await callRpc(sb, 'admin_restore_member', {
+          p_member_id: memberId,
+          p_reason: reason.trim(),
+        });
+        toast.success(`${nickname} 계정이 복구되었습니다`);
+        onClose();
+        router.refresh();
+      } catch (e) {
+        toast.error(`실패: ${(e as Error).message}`);
+      }
+    });
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`${nickname} 계정 복구`}
+      closeOnBackdrop={false}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            취소
+          </Button>
+          <Button
+            onClick={go}
+            loading={busy}
+            disabled={confirm.trim() !== nickname || !reason.trim()}
+          >
+            복구
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-cdm-fg-muted">
+          탈퇴 처리를 취소하고 계정을 정상 상태로 복구합니다. 기존 전적·칭호·설정이 모두
+          유지됩니다.
+        </p>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-cdm-fg">
+            확인을 위해 닉네임 <span className="font-bold text-cdm-fg">{nickname}</span>을(를)
+            입력하세요
+          </label>
+          <input
+            type="text"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoFocus
+            className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none focus:border-cdm-primary"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-cdm-fg">복구 사유</label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            placeholder="복구 사유를 입력하세요"
+            className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary"
+          />
+        </div>
       </div>
     </Modal>
   );

@@ -70,7 +70,7 @@ export default function GameShell({ children }: Props) {
     setHeaderRight(
       <>
         {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
-        <ChatButton scope="game" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
+        <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button size="sm" variant="ghost" onClick={() => setShowLeave(true)}>
           나가기
         </Button>

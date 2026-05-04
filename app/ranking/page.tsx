@@ -3,15 +3,33 @@ import { GNB } from '@/components/cdm/GNB';
 import { Card } from '@/components/cdm/Card';
 import { EmptyState } from '@/components/cdm/EmptyState';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { RoutePagination } from '@/components/cdm/Pagination';
 import { getAuthState } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { callRpc } from '@/lib/supabase/rpc';
+import {
+  DEFAULT_PAGE_SIZE,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/pagination';
 import RankingTabs from './RankingTabs';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
-export const metadata: Metadata = { title: '랭킹' };
+export const metadata: Metadata = {
+  title: '랭킹',
+  description:
+    '게임별 주간·월간·전체 랭킹. 베이지안 평균 점수로 공정하게 집계된 1:1 보드·카드 게임 순위를 확인하세요.',
+  alternates: { canonical: '/ranking' },
+  openGraph: {
+    title: '랭킹 — 커스텀 데스매치',
+    description: '게임별 주간·월간·전체 랭킹. 베이지안 평균 점수로 공정 집계.',
+    type: 'website',
+  },
+  robots: { index: true, follow: true },
+};
 
 interface Props {
-  searchParams: Promise<{ game?: string; period?: string }>;
+  searchParams: Promise<{ game?: string; period?: string; page?: string }>;
 }
 
 interface GameRow {
@@ -27,8 +45,18 @@ interface RankRow {
   title: { id: string; name: string; color: TitleColor } | null;
   total_games: number;
   wins: number;
+  draws: number;
   win_rate: number;
   score: number;
+  total_count: number;
+}
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
+function formatKstDate(date: Date): string {
+  const kstOffsetMin = 9 * 60;
+  const kst = new Date(date.getTime() + kstOffsetMin * 60_000);
+  return `${kst.getUTCMonth() + 1}/${kst.getUTCDate()}`;
 }
 
 function periodKstRange(period: 'weekly' | 'monthly' | 'all'): { from: Date; to: Date } | null {
@@ -63,67 +91,44 @@ export default async function RankingPage({ searchParams }: Props) {
 
   const sb = await getServerSupabase();
 
-  const metaRes = await sb.from('games').select('id, name, ranking_active').eq('ranking_active', true).order('sort_order');
+  const metaRes = await sb
+    .from('games')
+    .select('id, name, ranking_active')
+    .eq('ranking_active', true)
+    .order('sort_order');
   const meta = (metaRes.data ?? []) as unknown as GameRow[];
 
-  // sp.game 이 없거나 빈 문자열이면 "전체" 모드
   const gameId = sp.game ?? '';
   const period = (sp.period as 'weekly' | 'monthly' | 'all') ?? 'weekly';
+  const page = parsePageParam(sp.page);
+  const offset = (page - 1) * PAGE_SIZE;
 
   let rankings: RankRow[] = [];
+  let totalCount = 0;
 
-  if (gameId) {
-    // 특정 게임 랭킹
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rpc = await (sb.rpc as any)('compute_ranking', { p_game_id: gameId, p_period: period });
-    if (!rpc.error) {
-      rankings = (rpc.data ?? []) as RankRow[];
+  try {
+    if (gameId) {
+      const data = await callRpc(sb, 'compute_ranking', {
+        p_game_id: gameId,
+        p_period: period,
+        p_limit: PAGE_SIZE,
+        p_offset: offset,
+      });
+      rankings = (data ?? []) as unknown as RankRow[];
+    } else if (meta.length > 0) {
+      const data = await callRpc(sb, 'compute_ranking_all', {
+        p_period: period,
+        p_limit: PAGE_SIZE,
+        p_offset: offset,
+      });
+      rankings = (data ?? []) as unknown as RankRow[];
     }
-  } else if (meta.length > 0) {
-    // 전체 모드 — 모든 게임의 랭킹을 합산 후 베이지안 재계산
-    type Acc = { member_id: string; nickname: string; title: RankRow['title']; total_games: number; wins: number };
-    const memberMap = new Map<string, Acc>();
-
-    for (const game of meta) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rpc = await (sb.rpc as any)('compute_ranking', { p_game_id: game.id, p_period: period });
-      if (rpc.error || !rpc.data) continue;
-      for (const row of rpc.data as RankRow[]) {
-        const ex = memberMap.get(row.member_id);
-        if (ex) {
-          ex.total_games += row.total_games;
-          ex.wins += row.wins;
-        } else {
-          memberMap.set(row.member_id, {
-            member_id: row.member_id,
-            nickname: row.nickname,
-            title: row.title,
-            total_games: row.total_games,
-            wins: row.wins,
-          });
-        }
-      }
-    }
-
-    if (memberMap.size > 0) {
-      const entries = Array.from(memberMap.values());
-      const totalWins = entries.reduce((s, v) => s + v.wins, 0);
-      const totalGames = entries.reduce((s, v) => s + v.total_games, 0);
-      const globalMean = totalGames > 0 ? totalWins / totalGames : 0.5;
-      const C = 10;
-
-      rankings = entries
-        .map((v) => ({
-          ...v,
-          win_rate: v.total_games > 0 ? v.wins / v.total_games : 0,
-          score: (v.wins + C * globalMean) / (v.total_games + C),
-          rank: 0,
-        }))
-        .sort((a, b) => b.score - a.score || b.total_games - a.total_games || b.wins - a.wins)
-        .map((r, i) => ({ ...r, rank: i + 1 }));
-    }
+    totalCount = rankings.length > 0 ? rankings[0].total_count : 0;
+  } catch (e) {
+    console.error('[ranking] RPC error', e);
   }
 
+  const totalPages = getTotalPages(totalCount, PAGE_SIZE);
   const range = periodKstRange(period);
 
   return (
@@ -142,8 +147,7 @@ export default async function RankingPage({ searchParams }: Props) {
 
         {range && (
           <p className="mb-3 text-xs text-cdm-fg-muted">
-            기간: {range.from.toLocaleDateString('ko-KR')} ~{' '}
-            {new Date(range.to.getTime() - 1).toLocaleDateString('ko-KR')} (KST)
+            기간: {formatKstDate(range.from)} ~ {formatKstDate(new Date(range.to.getTime() - 24 * 60 * 60 * 1000))} (KST)
           </p>
         )}
 
@@ -153,6 +157,9 @@ export default async function RankingPage({ searchParams }: Props) {
           />
         ) : (
           <div className="flex flex-col gap-2">
+            <p className="text-xs text-cdm-fg-muted">
+              총 {totalCount}명 · {page} / {totalPages} 페이지
+            </p>
             {rankings.map((r) => {
               const isMe = member != null && r.member_id === member.id;
               return (
@@ -178,12 +185,13 @@ export default async function RankingPage({ searchParams }: Props) {
                       </span>
                     </div>
                     <p className="text-xs text-cdm-fg-muted">
-                      {r.total_games}판 · 승률 {Math.round((r.win_rate ?? 0) * 1000) / 10}%
+                      {r.total_games}판 · {r.wins}승 {r.draws}무 {r.total_games - r.wins - r.draws}패 · 승률 {Math.round((r.win_rate ?? 0) * 1000) / 10}%
                     </p>
                   </div>
                 </Card>
               );
             })}
+            <RoutePagination totalPages={totalPages} />
           </div>
         )}
       </main>

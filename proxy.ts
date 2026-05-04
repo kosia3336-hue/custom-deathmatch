@@ -108,11 +108,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 탈퇴 회원: 강제 로그아웃 처리는 /auth/signout 에서. 일단 /login 으로
+  // 탈퇴 회원: /withdrawn 화면으로. 문의/로그아웃/약관만 허용
   if (isWithdrawn) {
-    if (pathname.startsWith('/auth/')) return response;
+    if (
+      pathname === '/withdrawn' ||
+      pathname.startsWith('/auth/') ||
+      pathname.startsWith('/support/inquiry') ||
+      pathname.startsWith('/legal/')
+    ) {
+      return response;
+    }
     const url = request.nextUrl.clone();
-    url.pathname = '/auth/signout';
+    url.pathname = '/withdrawn';
     return NextResponse.redirect(url);
   }
 

@@ -218,5 +218,7 @@ export { performDoubleSidedChessUndo } from './state.js';
 
 export function canDoubleSidedChessUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
-  return !!s && !s.gameOver;
+  if (!s || s.gameOver) return false;
+  const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
+  return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;
 }

@@ -4,7 +4,7 @@ export const CARD_TYPES = ['spade', 'diamond', 'heart', 'club', 'blackJoker', 'c
 export type WSCardType = typeof CARD_TYPES[number];
 
 export type WSPhase = 'cardSelect' | 'reveal' | 'result' | 'finished';
-export type WSWinType = 'streak' | 'wins' | 'draw' | 'timeout' | 'abandon' | null;
+export type WSWinType = 'streak' | 'wins' | 'draw' | 'timeout' | 'abandon' | 'stuck' | null;
 export type WSMatchResult = 'win' | 'lose' | 'draw_lose' | 'draw_win';
 
 export interface WSCardCount {

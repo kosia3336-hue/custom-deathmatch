@@ -71,6 +71,9 @@ function RoundRow({
               </span>
               <div className="flex items-center gap-1.5">
                 <ColorBadge color={pd.color} />
+                {pd.points != null && (
+                  <span className="text-xs font-semibold tabular-nums text-gray-700">{pd.points}p</span>
+                )}
               </div>
               <div className="text-xs text-gray-500">
                 {pd.scoreBefore}

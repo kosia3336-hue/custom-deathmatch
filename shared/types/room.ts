@@ -14,6 +14,9 @@ export interface DisplayedTitle {
 /** v2 — 선공/후공 (모든 2인 게임 통일) */
 export type TurnPosition = 'first' | 'second';
 
+/** 게임 시작 시 선후공 결정 방식 */
+export type TurnOrderMode = 'fixed' | 'random';
+
 export interface Player {
   id: string;
   nickname: string;
@@ -47,6 +50,8 @@ export interface Room {
   timeLimitSeconds: number | null;
   /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
   gameOptions: Record<string, unknown>;
+  /** 선후공 결정 방식. fixed = 슬롯 순서 고정, random = 게임 시작 시 코인플립 */
+  turnOrderMode: TurnOrderMode;
   createdAt: number;
 }
 

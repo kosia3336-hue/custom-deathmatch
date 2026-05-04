@@ -29,6 +29,7 @@ export interface BNW2PlayerInfo {
 export interface BNW2RevealData {
   players: Record<string, {
     color: BNW2Color;
+    points: number;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;
@@ -43,6 +44,7 @@ export interface BNW2RoundRecord {
   firstPlayerId: string;
   players: Record<string, {
     color: BNW2Color;
+    points: number;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;

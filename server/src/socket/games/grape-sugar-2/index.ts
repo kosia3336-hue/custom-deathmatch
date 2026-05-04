@@ -132,5 +132,5 @@ export function emitGrapeSugar2StateToSocket(socket: TypedSocket, roomId: string
 export function canGrapeSugar2Undo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
-  return s.undoSnapshots.length >= 2;
+  return s.undoSnapshots.length >= 1;
 }

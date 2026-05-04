@@ -38,8 +38,8 @@ export function initMultipleBnw(
   gameStates.delete(roomId);
 
   const tiles = [...MBNW_TILE_SET] as MBNWTile[];
-  const firstIdx = Math.random() < 0.5 ? 0 : 1;
-  const secondIdx = firstIdx === 0 ? 1 : 0;
+  const firstIdx = 0;
+  const secondIdx = 1;
 
   const p1 = makePlayer(players[0].id, players[0].nickname, tiles, firstIdx === 0);
   const p2 = makePlayer(players[1].id, players[1].nickname, tiles, firstIdx === 1);

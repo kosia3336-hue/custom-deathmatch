@@ -37,7 +37,7 @@ export function initSunMoonStar2(
   const p1 = makePlayer(players[0].id, players[0].nickname, 'p1', players[0].id === AI_PLAYER_ID);
   const p2 = makePlayer(players[1].id, players[1].nickname, 'p2', players[1].id === AI_PLAYER_ID);
 
-  const firstPlayerSide: SMS2Side = Math.random() < 0.5 ? 'p1' : 'p2';
+  const firstPlayerSide: SMS2Side = 'p1';
 
   const enableSuddenDeath = resolveBool(gameOptions?.enableSuddenDeath, false);
   const enableUndo = resolveBool(gameOptions?.enableUndo, true);
@@ -160,5 +160,5 @@ export function canSunMoonStar2Undo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
   if (!s.options.enableUndo) return false;
-  return s.undoSnapshots.length >= 2;
+  return s.undoSnapshots.length >= 1;
 }

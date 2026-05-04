@@ -46,7 +46,7 @@ export function initSilperBnw(
 
   const p1 = makePlayer(players[0].id, players[0].nickname);
   const p2 = makePlayer(players[1].id, players[1].nickname);
-  const firstPlayerId = Math.random() < 0.5 ? p1.id : p2.id;
+  const firstPlayerId = p1.id;
 
   const s: InternalState = {
     endGameCallback,

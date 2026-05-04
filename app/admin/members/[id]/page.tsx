@@ -8,6 +8,12 @@ import { MemberStatusChip } from '@/components/cdm/StatusChip';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import MemberAdminActions from '@/app/admin/MemberAdminActions';
 import MemberDetailClient from './MemberDetailClient';
+import {
+  DEFAULT_PAGE_SIZE,
+  getRange,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/pagination';
 import type {
   MemberTitleData,
   TitleData,
@@ -23,8 +29,6 @@ import type {
   SanctionKind,
   ReportCategory,
   ReportStatus,
-  InquiryCategory,
-  InquiryStatus,
 } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = { title: '회원 상세', robots: { index: false } };
@@ -83,16 +87,6 @@ interface RawReport {
   target_snapshot: unknown;
   reporter_snapshot: unknown;
 }
-interface RawInquiry {
-  id: string;
-  title: string;
-  category: InquiryCategory;
-  status: InquiryStatus;
-  created_at: string;
-  body: string;
-  answer_body: string | null;
-  answered_at: string | null;
-}
 interface RawTitle {
   id: string;
   name: string;
@@ -106,8 +100,17 @@ interface RawGame {
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    nicknamePage?: string;
+    sanctionsPage?: string;
+    reportsReceivedPage?: string;
+    reportsSentPage?: string;
+    inquiriesPage?: string;
+  }>;
 }
+
+const SECTION_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export default async function MemberDetailPage({ params, searchParams }: Props) {
   const me = await getActiveMember();
@@ -115,8 +118,22 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
   if (me.role !== 'admin') redirect('/');
 
   const { id } = await params;
-  const { tab: defaultTab } = await searchParams;
+  const sp = await searchParams;
+  const defaultTab = sp.tab;
   const sb = await getServerSupabase();
+
+  // 각 섹션 페이지
+  const nicknamePage = parsePageParam(sp.nicknamePage);
+  const sanctionsPage = parsePageParam(sp.sanctionsPage);
+  const reportsReceivedPage = parsePageParam(sp.reportsReceivedPage);
+  const reportsSentPage = parsePageParam(sp.reportsSentPage);
+  const inquiriesPage = parsePageParam(sp.inquiriesPage);
+
+  const nicknameRange = getRange(nicknamePage, SECTION_PAGE_SIZE);
+  const sanctionsRange = getRange(sanctionsPage, SECTION_PAGE_SIZE);
+  const reportsReceivedRange = getRange(reportsReceivedPage, SECTION_PAGE_SIZE);
+  const reportsSentRange = getRange(reportsSentPage, SECTION_PAGE_SIZE);
+  const inquiriesRange = getRange(inquiriesPage, SECTION_PAGE_SIZE);
 
   // ─── Phase 1: 주요 데이터 병렬 패칭 ─────────────────────────────
   const [
@@ -149,37 +166,51 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
     sb.from('titles').select('id, name, color, description').eq('is_active', true).order('name'),
     sb
       .from('nickname_history')
-      .select('id, old_nickname, new_nickname, changed_at')
+      .select('id, old_nickname, new_nickname, changed_at', { count: 'exact' })
       .eq('member_id', id)
-      .order('changed_at', { ascending: false }),
+      .order('changed_at', { ascending: false })
+      .range(nicknameRange.from, nicknameRange.to),
     sb
       .from('sanctions')
-      .select('id, kind, reason, starts_at, ends_at, issued_by, revoked_at, revoked_reason, created_at')
+      .select(
+        'id, kind, reason, starts_at, ends_at, issued_by, revoked_at, revoked_reason, created_at',
+        { count: 'exact' },
+      )
       .eq('member_id', id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .range(sanctionsRange.from, sanctionsRange.to),
     sb
       .from('member_game_stats')
       .select('game_id, total_games, wins, losses, draws, resigns, last_played_at')
       .eq('member_id', id),
     sb
       .from('reports')
-      .select('id, category, status, created_at, reporter_snapshot')
+      .select('id, category, status, created_at, reporter_snapshot', { count: 'exact' })
       .eq('target_id', id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .range(reportsReceivedRange.from, reportsReceivedRange.to),
     sb
       .from('reports')
-      .select('id, category, status, created_at, target_snapshot')
+      .select('id, category, status, created_at, target_snapshot', { count: 'exact' })
       .eq('reporter_id', id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .range(reportsSentRange.from, reportsSentRange.to),
     sb
       .from('inquiries')
-      .select('id, title, category, status, created_at, body, answer_body, answered_at')
+      .select(
+        'id, title, category, status, created_at, body, answer_body, answered_at',
+        { count: 'exact' },
+      )
       .eq('author_id', id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .range(inquiriesRange.from, inquiriesRange.to),
   ]);
+
+  const nicknameTotal = nicknameHistoryRes.count ?? 0;
+  const sanctionsTotal = sanctionsRawRes.count ?? 0;
+  const receivedReportsTotal = receivedReportsRawRes.count ?? 0;
+  const sentReportsTotal = sentReportsRawRes.count ?? 0;
+  const inquiriesTotal = inquiriesRes.count ?? 0;
 
   if (!memberRes.data) notFound();
 
@@ -313,7 +344,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
         <div className="mb-4 rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 p-4 sm:p-5">
           {isWithdrawn && (
             <div className="mb-3 rounded-cdm-md bg-cdm-bg-elev-2 px-3 py-2 text-xs text-cdm-fg-muted">
-              탈퇴 회원 — 읽기 전용
+              탈퇴 회원
             </div>
           )}
 
@@ -354,14 +385,15 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
             </div>
           </div>
 
-          {/* 액션 버튼 (탈퇴 회원 제외) */}
-          {!isWithdrawn && priv && (
+          {/* 액션 버튼 */}
+          {(isWithdrawn || priv) && (
             <div className="mt-3 border-t border-cdm-border pt-3">
               <MemberAdminActions
                 memberId={member.id}
                 nickname={member.nickname}
-                currentStatus={priv.status}
-                currentRole={priv.role}
+                currentStatus={priv?.status ?? 'active'}
+                currentRole={priv?.role ?? 'user'}
+                isWithdrawn={isWithdrawn}
               />
             </div>
           )}
@@ -375,11 +407,26 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
           memberTitles={memberTitles}
           allActiveTitles={allActiveTitles}
           nicknameHistory={nicknameHistory}
+          nicknamePage={nicknamePage}
+          nicknameTotalPages={getTotalPages(nicknameTotal, SECTION_PAGE_SIZE)}
+          nicknameTotalCount={nicknameTotal}
           sanctions={sanctions}
+          sanctionsPage={sanctionsPage}
+          sanctionsTotalPages={getTotalPages(sanctionsTotal, SECTION_PAGE_SIZE)}
+          sanctionsTotalCount={sanctionsTotal}
           gameStats={gameStats}
           receivedReports={receivedReports}
+          receivedReportsPage={reportsReceivedPage}
+          receivedReportsTotalPages={getTotalPages(receivedReportsTotal, SECTION_PAGE_SIZE)}
+          receivedReportsTotalCount={receivedReportsTotal}
           sentReports={sentReports}
+          sentReportsPage={reportsSentPage}
+          sentReportsTotalPages={getTotalPages(sentReportsTotal, SECTION_PAGE_SIZE)}
+          sentReportsTotalCount={sentReportsTotal}
           inquiries={inquiries}
+          inquiriesPage={inquiriesPage}
+          inquiriesTotalPages={getTotalPages(inquiriesTotal, SECTION_PAGE_SIZE)}
+          inquiriesTotalCount={inquiriesTotal}
           defaultTab={defaultTab}
         />
       </main>

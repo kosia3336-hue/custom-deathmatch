@@ -156,9 +156,9 @@ export default function WaitingRoomPage() {
     socket.emit('room:delegate', { targetId });
   };
 
-  const handleSwapColors = () => {
-    socket.emit('room:swap:colors');
-  };
+  const handleSetTurnOrder = useCallback((mode: 'first' | 'second' | 'random') => {
+    socket.emit('room:set:turn-order', { mode });
+  }, [socket]);
 
   const handleToSpectate = () => {
     socket.emit('room:to:spectate', (res) => {
@@ -250,18 +250,45 @@ export default function WaitingRoomPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 md:p-6">
         {/* 플레이어 슬롯 */}
         <div className="space-y-3">
-          {room.players.map((p) => (
-            <PlayerSlot
-              key={p.id}
-              player={p}
-              isMe={p.id === myId}
-              isHostView={isHost}
-              onKick={(id) => setShowKick(id)}
-              onDelegate={handleDelegate}
-              onSwapTurns={handleSwapColors}
-              isGameStarted={room.status !== 'waiting'}
-              onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
-            />
+          {room.players.map((p, i) => (
+            <div key={p.id}>
+              <PlayerSlot
+                player={p}
+                isMe={p.id === myId}
+                isHostView={isHost}
+                onKick={(id) => setShowKick(id)}
+                onDelegate={handleDelegate}
+                isGameStarted={room.status !== 'waiting'}
+                onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
+              />
+              {/* 선후공 설정 토글 — 방장 전용, 2인 대기 중일 때 첫 슬롯 아래 */}
+              {i === 0 && isHost && room.players.length === 2 && room.status === 'waiting' && (() => {
+                const mode = room.turnOrderMode;
+                const hostIsFirst = room.players[0].id === myId;
+                const activeMode = mode === 'random' ? 'random' : hostIsFirst ? 'first' : 'second';
+                return (
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
+                    <div className="flex flex-1 overflow-hidden rounded-cdm-md border border-cdm-border">
+                      {(['first', 'random', 'second'] as const).map((btn) => (
+                        <button
+                          key={btn}
+                          type="button"
+                          onClick={() => handleSetTurnOrder(btn)}
+                          className={cn(
+                            'flex-1 py-1.5 text-xs font-medium transition-colors',
+                            activeMode === btn
+                              ? 'bg-cdm-primary text-white'
+                              : 'bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
+                          )}
+                        >
+                          {btn === 'first' ? '내가 선공' : btn === 'random' ? '🎲 랜덤' : '내가 후공'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}</div>
           ))}
           {Array.from({ length: emptySlots }).map((_, i) => (
             isSpectator ? (

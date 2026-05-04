@@ -47,6 +47,7 @@ export default function InquiryForm({ reasonTag }: { reasonTag: string | null })
           p_attachments: [],
           p_reason_tag: reasonTag ?? undefined,
         });
+        fetch('/api/hidden-titles/check-inquiry', { method: 'POST' }).catch(() => {});
         toast.success('문의가 접수되었습니다');
         router.push('/me?tab=support');
       } catch (e) {

@@ -8,12 +8,19 @@ import MembersTab from './MembersTab';
 import TitlesTab from './TitlesTab';
 import ReportsTab from './ReportsTab';
 import InquiriesTab from './InquiriesTab';
+import NoticesTab from './NoticesTab';
 import AuditTab from './AuditTab';
 
 export const metadata: Metadata = { title: '관리자', robots: { index: false } };
 
 interface Props {
-  searchParams: Promise<{ tab?: string; q?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    q?: string;
+    page?: string;
+    actionKind?: string;
+    actor?: string;
+  }>;
 }
 
 export default async function AdminPage({ searchParams }: Props) {
@@ -36,11 +43,14 @@ export default async function AdminPage({ searchParams }: Props) {
 
         <section className="mt-4">
           {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'members' && <MembersTab query={sp.q ?? ''} />}
-          {tab === 'titles' && <TitlesTab />}
-          {tab === 'reports' && <ReportsTab />}
-          {tab === 'inquiries' && <InquiriesTab />}
-          {tab === 'audit' && <AuditTab />}
+          {tab === 'members' && <MembersTab query={sp.q ?? ''} page={sp.page} />}
+          {tab === 'titles' && <TitlesTab page={sp.page} />}
+          {tab === 'reports' && <ReportsTab page={sp.page} />}
+          {tab === 'inquiries' && <InquiriesTab page={sp.page} />}
+          {tab === 'notices' && <NoticesTab page={sp.page} />}
+          {tab === 'audit' && (
+            <AuditTab page={sp.page} actionKind={sp.actionKind} actor={sp.actor} />
+          )}
         </section>
       </main>
     </>

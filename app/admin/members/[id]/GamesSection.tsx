@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Pagination } from '@/components/cdm/Pagination';
+import { usePagination } from '@/hooks/usePagination';
+import { DEFAULT_PAGE_SIZE, getRange, getTotalPages } from '@/lib/pagination';
 import type { GameStatData } from './types';
 import type { PlayMode } from '@/lib/supabase/database.types';
 import { getBrowserSupabase } from '@/lib/supabase/client';
@@ -11,6 +14,8 @@ const MODE_LABELS: Record<string, string> = {
   com: 'AI',
   solo: '솔로',
 };
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 interface GameLogEntry {
   game_log_id: string;
@@ -37,19 +42,30 @@ export default function GamesSection({ memberId, gameStats }: Props) {
   );
 
   const [selectedGameId, setSelectedGameId] = useState<'all' | string>('all');
+  const { page, setPage } = usePagination({ paramKey: 'gamesPage' });
   const [logs, setLogs] = useState<GameLogEntry[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    // setLoading 은 effect-동기 호출이지만 외부 비동기(fetch) 와의 동기화를 위한 정당한 케이스
+    // (cascading render 가 발생하더라도 의도된 동작) — 룰을 한 줄 우회.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    void fetchLogs(memberId, selectedGameId, gameNameMap)
-      .then((rows) => {
-        if (!cancelled) setLogs(rows);
+    void fetchLogs(memberId, selectedGameId, page, gameNameMap)
+      .then(({ rows, count }) => {
+        if (!cancelled) {
+          setLogs(rows);
+          setTotalCount(count);
+        }
       })
       .catch((e) => {
         console.error(e);
-        if (!cancelled) setLogs([]);
+        if (!cancelled) {
+          setLogs([]);
+          setTotalCount(0);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -57,18 +73,34 @@ export default function GamesSection({ memberId, gameStats }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [memberId, selectedGameId, gameNameMap]);
+  }, [memberId, selectedGameId, page, gameNameMap]);
+
+  // 게임 필터 변경 시 페이지 1로 리셋
+  function changeGame(next: 'all' | string) {
+    if (next === selectedGameId) return;
+    setSelectedGameId(next);
+    setPage(1);
+  }
+
+  const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-6">
       <section>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h3 className="text-sm font-semibold text-cdm-fg-muted">게임 로그</h3>
+          <h3 className="text-sm font-semibold text-cdm-fg-muted">
+            게임 로그
+            {!loading && totalCount > 0 && (
+              <span className="ml-2 text-xs font-normal text-cdm-fg-subtle">
+                총 {totalCount}판 · {page} / {totalPages} 페이지
+              </span>
+            )}
+          </h3>
           <div className="sm:min-w-[200px]">
             <select
               aria-label="로그 필터"
               value={selectedGameId}
-              onChange={(e) => setSelectedGameId(e.target.value === 'all' ? 'all' : e.target.value)}
+              onChange={(e) => changeGame(e.target.value === 'all' ? 'all' : e.target.value)}
               disabled={loading}
               className="w-full rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none focus:border-cdm-primary disabled:opacity-60"
             >
@@ -87,89 +119,92 @@ export default function GamesSection({ memberId, gameStats }: Props) {
           <p className="text-xs text-cdm-fg-subtle">해당 조건의 게임 로그가 없습니다.</p>
         )}
         {!loading && logs !== null && logs.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <p className="text-[11px] text-cdm-fg-subtle">최신 순 (플레이 시각 기준)</p>
-            {logs.map((log) => (
-              <GameLogRow
-                key={log.game_log_id}
-                game={log}
-                memberId={memberId}
-                showGameName={selectedGameId === 'all'}
-              />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] text-cdm-fg-subtle">최신 순 (플레이 시각 기준)</p>
+              {logs.map((log) => (
+                <GameLogRow
+                  key={log.game_log_id}
+                  game={log}
+                  memberId={memberId}
+                  showGameName={selectedGameId === 'all'}
+                />
+              ))}
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </section>
     </div>
   );
 }
 
-async function fetchLogs(
-  memberId: string,
-  filterGameId: 'all' | string,
-  gameNameMap: Map<string, string>,
-): Promise<GameLogEntry[]> {
-  const sb = getBrowserSupabase();
-
-  const participantsRes = await sb
-    .from('game_log_participants')
-    .select('id, game_log_id, position, is_winner, is_draw, is_resign')
-    .eq('member_id', memberId)
-    .order('id', { ascending: false })
-    .limit(100);
-
-  const participants = (participantsRes.data ?? []) as {
-    id: number;
-    game_log_id: string;
-    position: string;
-    is_winner: boolean | null;
-    is_draw: boolean;
-    is_resign: boolean;
-  }[];
-
-  if (participants.length === 0) return [];
-
-  const logIds = [...new Set(participants.map((p) => p.game_log_id))];
-
-  const logsRes = await sb
-    .from('game_logs')
-    .select('id, game_id, mode, played_at, play_time_seconds')
-    .in('id', logIds);
-
-  const gameLogs = (logsRes.data ?? []) as {
-    id: string;
+interface JoinedRow {
+  id: number;
+  game_log_id: string;
+  position: string;
+  is_winner: boolean | null;
+  is_draw: boolean;
+  is_resign: boolean;
+  game_logs: {
     game_id: string;
     mode: PlayMode;
     played_at: string;
     play_time_seconds: number;
-  }[];
+  };
+}
 
-  const logMap = new Map(gameLogs.map((l) => [l.id, l]));
+async function fetchLogs(
+  memberId: string,
+  filterGameId: 'all' | string,
+  page: number,
+  gameNameMap: Map<string, string>,
+): Promise<{ rows: GameLogEntry[]; count: number }> {
+  const sb = getBrowserSupabase();
+  const { from, to } = getRange(page, PAGE_SIZE);
 
-  let rows: GameLogEntry[] = participants
-    .filter((p) => logMap.has(p.game_log_id))
-    .map((p) => {
-      const log = logMap.get(p.game_log_id)!;
-      return {
-        game_log_id: p.game_log_id,
-        game_id: log.game_id,
-        game_name: gameNameMap.get(log.game_id) ?? log.game_id,
-        position: p.position,
-        is_winner: p.is_winner,
-        is_draw: p.is_draw,
-        is_resign: p.is_resign,
-        played_at: log.played_at,
-        play_time_seconds: log.play_time_seconds,
-        mode: log.mode,
-      };
-    });
+  let query = sb
+    .from('game_log_participants')
+    .select(
+      'id, game_log_id, position, is_winner, is_draw, is_resign, game_logs!inner(game_id, mode, played_at, play_time_seconds)',
+      { count: 'exact' },
+    )
+    .eq('member_id', memberId);
 
   if (filterGameId !== 'all') {
-    rows = rows.filter((r) => r.game_id === filterGameId);
+    // PostgREST 의 inner join 컬럼 필터
+    query = query.eq('game_logs.game_id', filterGameId);
   }
 
+  const res = await query
+    .order('id', { ascending: false })
+    .range(from, to);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = (res.data ?? []) as any as JoinedRow[];
+
+  const rows: GameLogEntry[] = data
+    .filter((r) => !!r.game_logs)
+    .map((r) => ({
+      game_log_id: r.game_log_id,
+      game_id: r.game_logs.game_id,
+      game_name: gameNameMap.get(r.game_logs.game_id) ?? r.game_logs.game_id,
+      position: r.position,
+      is_winner: r.is_winner,
+      is_draw: r.is_draw,
+      is_resign: r.is_resign,
+      played_at: r.game_logs.played_at,
+      play_time_seconds: r.game_logs.play_time_seconds,
+      mode: r.game_logs.mode,
+    }));
+
   rows.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
-  return rows;
+
+  return { rows, count: res.count ?? 0 };
 }
 
 function GameLogRow({

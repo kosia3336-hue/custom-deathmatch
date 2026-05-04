@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useCallback } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Pagination } from '@/components/cdm/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import type { Json } from '@/lib/supabase/database.types';
 
 export interface AuditRow {
@@ -23,6 +26,7 @@ const ACTION_LABELS: Record<string, { label: string; variant: string }> = {
   'title.create':          { label: '칭호 생성',    variant: 'accent'  },
   'title.update':          { label: '칭호 편집',    variant: 'accent'  },
   'title.grant':           { label: '칭호 부여',    variant: 'accent'  },
+  'title.auto_grant':      { label: '칭호 자동부여', variant: 'accent'  },
   'title.revoke':          { label: '칭호 압수',    variant: 'danger'  },
   'report.resolve':        { label: '신고 처리',    variant: 'default' },
   'report.reject':         { label: '신고 반려',    variant: 'default' },
@@ -31,7 +35,15 @@ const ACTION_LABELS: Record<string, { label: string; variant: string }> = {
   'agreement.publish':     { label: '약관 게시',    variant: 'default' },
   'word.add':              { label: '금칙어 추가',   variant: 'default' },
   'word.delete':           { label: '금칙어 삭제',   variant: 'default' },
+  // 공지사항 (v2.7)
+  'notice.create':         { label: '공지 등록',    variant: 'accent'  },
+  'notice.update':         { label: '공지 편집',    variant: 'accent'  },
+  'notice.pin':            { label: '공지 고정',    variant: 'default' },
+  'notice.publish':        { label: '공지 공개',    variant: 'default' },
+  'notice.delete':         { label: '공지 삭제',    variant: 'danger'  },
 };
+
+export const ACTION_KINDS = Object.keys(ACTION_LABELS);
 
 const BADGE_CLASSES: Record<string, string> = {
   default: 'bg-cdm-bg-elev-2 text-cdm-fg-muted',
@@ -42,15 +54,23 @@ const BADGE_CLASSES: Record<string, string> = {
 };
 
 const PAYLOAD_KEY_LABELS: Record<string, string> = {
-  reason:     '사유',
-  resolution: '처리 결과',
-  role:       '역할',
-  until:      '정지 만료',
-  name:       '이름',
-  color:      '색상',
+  reason:       '사유',
+  resolution:   '처리 결과',
+  role:         '역할',
+  until:        '정지 만료',
+  name:         '이름',
+  color:        '색상',
+  // 공지 관련 (v2.7)
+  title:        '제목',
+  category:     '카테고리',
+  is_pinned:    '상단 고정',
+  is_published: '공개',
+  pinned:       '고정',
+  published:    '공개',
+  body_len:     '본문 길이',
 };
 
-const HIDDEN_PAYLOAD_KEYS = new Set(['report_id', 'len', 'title_id']);
+const HIDDEN_PAYLOAD_KEYS = new Set(['report_id', 'len', 'title_id', 'body']);
 
 const RESOLUTION_KO: Record<string, string> = {
   warning:   '경고',
@@ -62,6 +82,14 @@ const RESOLUTION_KO: Record<string, string> = {
 const ROLE_KO: Record<string, string> = {
   admin: '관리자',
   user:  '일반',
+};
+
+const NOTICE_CATEGORY_KO: Record<string, string> = {
+  general:     '일반',
+  maintenance: '점검',
+  update:      '업데이트',
+  event:       '이벤트',
+  urgent:      '긴급',
 };
 
 function formatDateTime(iso: string): { date: string; time: string } {
@@ -77,6 +105,7 @@ function renderPayloadValue(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return '';
   if (key === 'resolution') return RESOLUTION_KO[String(value)] ?? String(value);
   if (key === 'role') return ROLE_KO[String(value)] ?? String(value);
+  if (key === 'category') return NOTICE_CATEGORY_KO[String(value)] ?? String(value);
   if (key === 'until') {
     const d = new Date(String(value));
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -98,6 +127,40 @@ function ActionBadge({ kind }: { kind: string }) {
   );
 }
 
+function PayloadEntry({ k, v }: { k: string; v: unknown }) {
+  // before/after 중첩 객체 → "변경 전 제목: …" 형태로 평탄화
+  if ((k === 'before' || k === 'after') && v && typeof v === 'object' && !Array.isArray(v)) {
+    const prefix = k === 'before' ? '변경 전' : '변경 후';
+    return (
+      <>
+        {Object.entries(v as Record<string, unknown>)
+          .filter(([ik, iv]) => !HIDDEN_PAYLOAD_KEYS.has(ik) && iv !== null && iv !== undefined && iv !== '')
+          .map(([ik, iv]) => {
+            const rendered = renderPayloadValue(ik, iv);
+            if (!rendered) return null;
+            const innerLabel = PAYLOAD_KEY_LABELS[ik] ?? ik;
+            return (
+              <span key={`${k}-${ik}`} className="text-[11px] text-cdm-fg-muted leading-relaxed">
+                <span className="font-medium text-cdm-fg-subtle">{prefix} {innerLabel}:</span>{' '}
+                {rendered}
+              </span>
+            );
+          })}
+      </>
+    );
+  }
+  const rendered = renderPayloadValue(k, v);
+  if (!rendered) return null;
+  return (
+    <span className="text-[11px] text-cdm-fg-muted leading-relaxed">
+      <span className="font-medium text-cdm-fg-subtle">
+        {PAYLOAD_KEY_LABELS[k] ?? k}:
+      </span>{' '}
+      {rendered}
+    </span>
+  );
+}
+
 function PayloadList({ payload }: { payload: Json }) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   const entries = Object.entries(payload as Record<string, unknown>).filter(
@@ -106,45 +169,70 @@ function PayloadList({ payload }: { payload: Json }) {
   if (entries.length === 0) return null;
   return (
     <div className="flex flex-col gap-0.5">
-      {entries.map(([k, v]) => {
-        const rendered = renderPayloadValue(k, v);
-        if (!rendered) return null;
-        return (
-          <span key={k} className="text-[11px] text-cdm-fg-muted leading-relaxed">
-            <span className="font-medium text-cdm-fg-subtle">
-              {PAYLOAD_KEY_LABELS[k] ?? k}:
-            </span>{' '}
-            {rendered}
-          </span>
-        );
-      })}
+      {entries.map(([k, v]) => (
+        <PayloadEntry key={k} k={k} v={v} />
+      ))}
     </div>
   );
 }
 
-export default function AuditTabClient({ rows }: { rows: AuditRow[] }) {
-  const [filterKind, setFilterKind] = useState('');
-  const [filterActor, setFilterActor] = useState('');
+interface ActorOption {
+  id: string;
+  nickname: string;
+}
 
-  const allKinds = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.action_kind))).sort(),
-    [rows],
+interface Props {
+  rows: AuditRow[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  filterActionKind: string;
+  filterActorId: string;
+  actorOptions: ActorOption[];
+}
+
+export default function AuditTabClient({
+  rows,
+  currentPage,
+  totalPages,
+  totalCount,
+  filterActionKind,
+  filterActorId,
+  actorOptions,
+}: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { setPage } = usePagination();
+
+  const replaceFilter = useCallback(
+    (key: 'actionKind' | 'actor', value: string) => {
+      const next = new URLSearchParams(searchParams);
+      if (value) {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+      // 필터 변경 시 page 자동 리셋 (1페이지)
+      next.delete('page');
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams],
   );
-  const allActors = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.actor_nickname))).sort(),
-    [rows],
-  );
 
-  const filtered = useMemo(() => {
-    let out = rows;
-    if (filterKind) out = out.filter((r) => r.action_kind === filterKind);
-    if (filterActor) out = out.filter((r) => r.actor_nickname === filterActor);
-    return out;
-  }, [rows, filterKind, filterActor]);
+  const resetFilters = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('actionKind');
+    next.delete('actor');
+    next.delete('page');
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [router, pathname, searchParams]);
 
-  const hasFilter = filterKind || filterActor;
+  const hasFilter = !!filterActionKind || !!filterActorId;
 
-  if (rows.length === 0) {
+  if (totalCount === 0 && !hasFilter) {
     return <p className="text-sm text-cdm-fg-subtle">관리자 로그가 없습니다.</p>;
   }
 
@@ -153,34 +241,34 @@ export default function AuditTabClient({ rows }: { rows: AuditRow[] }) {
       {/* 필터 */}
       <div className="flex flex-wrap items-center gap-2">
         <select
-          value={filterKind}
-          onChange={(e) => setFilterKind(e.target.value)}
+          value={filterActionKind}
+          onChange={(e) => replaceFilter('actionKind', e.target.value)}
           className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-2.5 py-1.5 text-sm text-cdm-fg outline-none focus:border-cdm-primary"
         >
-          <option value="">액션 유형 전체 ({rows.length}건)</option>
-          {allKinds.map((k) => (
+          <option value="">액션 유형 전체</option>
+          {ACTION_KINDS.map((k) => (
             <option key={k} value={k}>
-              {ACTION_LABELS[k]?.label ?? k} ({rows.filter((r) => r.action_kind === k).length}건)
+              {ACTION_LABELS[k]?.label ?? k}
             </option>
           ))}
         </select>
 
         <select
-          value={filterActor}
-          onChange={(e) => setFilterActor(e.target.value)}
+          value={filterActorId}
+          onChange={(e) => replaceFilter('actor', e.target.value)}
           className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-2.5 py-1.5 text-sm text-cdm-fg outline-none focus:border-cdm-primary"
         >
           <option value="">처리자 전체</option>
-          {allActors.map((a) => (
-            <option key={a} value={a}>
-              {a} ({rows.filter((r) => r.actor_nickname === a).length}건)
+          {actorOptions.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.nickname}
             </option>
           ))}
         </select>
 
         {hasFilter && (
           <button
-            onClick={() => { setFilterKind(''); setFilterActor(''); }}
+            onClick={resetFilters}
             className="text-xs text-cdm-fg-muted underline underline-offset-2 hover:text-cdm-fg"
           >
             초기화
@@ -188,112 +276,114 @@ export default function AuditTabClient({ rows }: { rows: AuditRow[] }) {
         )}
 
         <span className="ml-auto text-xs text-cdm-fg-muted">
-          {filtered.length}건
+          {totalCount}건 · {currentPage} / {totalPages} 페이지
         </span>
       </div>
 
-      {/* 데스크톱 표 */}
-      <div className="hidden md:block overflow-x-auto rounded-cdm-lg border border-cdm-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-cdm-border bg-cdm-bg-elev-1 text-left text-xs font-semibold text-cdm-fg-muted">
-              <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 80 }}>시간</th>
-              <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 80 }}>처리자</th>
-              <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 100 }}>액션</th>
-              <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 140 }}>대상</th>
-              <th className="px-3 py-2">내용</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r, i) => {
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-cdm-fg-subtle">해당 항목이 없습니다.</p>
+      ) : (
+        <>
+          {/* 데스크톱 표 */}
+          <div className="hidden md:block overflow-x-auto rounded-cdm-lg border border-cdm-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-cdm-border bg-cdm-bg-elev-1 text-left text-xs font-semibold text-cdm-fg-muted">
+                  <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 80 }}>시간</th>
+                  <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 80 }}>처리자</th>
+                  <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 100 }}>액션</th>
+                  <th className="px-3 py-2 whitespace-nowrap" style={{ minWidth: 140 }}>대상</th>
+                  <th className="px-3 py-2">내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const { date, time } = formatDateTime(r.created_at);
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`border-b border-cdm-border last:border-0 ${i % 2 === 1 ? 'bg-cdm-bg-elev-1/40' : ''}`}
+                    >
+                      <td className="px-3 py-2.5 align-top whitespace-nowrap">
+                        <div className="flex flex-col text-[11px] text-cdm-fg-muted leading-relaxed">
+                          <span>{date}</span>
+                          <span>{time}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 align-top">
+                        <span className="text-xs font-medium text-cdm-fg">{r.actor_nickname}</span>
+                      </td>
+                      <td className="px-3 py-2.5 align-top whitespace-nowrap">
+                        <ActionBadge kind={r.action_kind} />
+                      </td>
+                      <td className="px-3 py-2.5 align-top">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[11px] font-medium text-cdm-fg-muted">
+                            {r.target_kind_label}
+                          </span>
+                          {r.target_label && r.target_label !== '-' && (
+                            <span className="text-[11px] text-cdm-fg">
+                              {r.target_label}
+                            </span>
+                          )}
+                          {r.sub_labels?.map((s, i) => (
+                            <span key={i} className="text-[11px] text-cdm-fg">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 align-top">
+                        <PayloadList payload={r.payload} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 모바일 카드 */}
+          <div className="md:hidden flex flex-col gap-2">
+            {rows.map((r) => {
               const { date, time } = formatDateTime(r.created_at);
               return (
-                <tr
+                <div
                   key={r.id}
-                  className={`border-b border-cdm-border last:border-0 ${i % 2 === 1 ? 'bg-cdm-bg-elev-1/40' : ''}`}
+                  className="rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 px-3.5 py-3 flex flex-col gap-1.5"
                 >
-                  <td className="px-3 py-2.5 align-top whitespace-nowrap">
-                    <div className="flex flex-col text-[11px] text-cdm-fg-muted leading-relaxed">
-                      <span>{date}</span>
-                      <span>{time}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
-                    <span className="text-xs font-medium text-cdm-fg">{r.actor_nickname}</span>
-                  </td>
-                  <td className="px-3 py-2.5 align-top whitespace-nowrap">
+                  <div className="flex items-center justify-between gap-2">
                     <ActionBadge kind={r.action_kind} />
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
+                    <span className="text-[11px] text-cdm-fg-muted whitespace-nowrap">
+                      {r.actor_nickname} · {date} {time}
+                    </span>
+                  </div>
+                  {r.target_label && r.target_label !== '-' && (
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[11px] font-medium text-cdm-fg-muted">
-                        {r.target_kind_label}
-                      </span>
-                      {r.target_label && r.target_label !== '-' && (
-                        <span className="text-[11px] text-cdm-fg">
-                          {r.target_label}
-                        </span>
-                      )}
+                      <p className="text-[11px] text-cdm-fg">
+                        <span className="font-medium text-cdm-fg-muted">{r.target_kind_label}: </span>
+                        {r.target_label}
+                      </p>
                       {r.sub_labels?.map((s, i) => (
-                        <span key={i} className="text-[11px] text-cdm-fg">
+                        <p key={i} className="text-[11px] text-cdm-fg">
                           {s}
-                        </span>
+                        </p>
                       ))}
                     </div>
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
-                    <PayloadList payload={r.payload} />
-                  </td>
-                </tr>
+                  )}
+                  <PayloadList payload={r.payload} />
+                </div>
               );
             })}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <p className="py-6 text-center text-sm text-cdm-fg-subtle">해당 항목이 없습니다.</p>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
-      {/* 모바일 카드 */}
-      <div className="md:hidden flex flex-col gap-2">
-        {filtered.length === 0 ? (
-          <p className="py-6 text-center text-sm text-cdm-fg-subtle">해당 항목이 없습니다.</p>
-        ) : (
-          filtered.map((r) => {
-            const { date, time } = formatDateTime(r.created_at);
-            return (
-              <div
-                key={r.id}
-                className="rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 px-3.5 py-3 flex flex-col gap-1.5"
-              >
-                {/* 1행: 액션 배지 + 처리자·시간 */}
-                <div className="flex items-center justify-between gap-2">
-                  <ActionBadge kind={r.action_kind} />
-                  <span className="text-[11px] text-cdm-fg-muted whitespace-nowrap">
-                    {r.actor_nickname} · {date} {time}
-                  </span>
-                </div>
-                {/* 2행: 대상 */}
-                {r.target_label && r.target_label !== '-' && (
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-[11px] text-cdm-fg">
-                      <span className="font-medium text-cdm-fg-muted">{r.target_kind_label}: </span>
-                      {r.target_label}
-                    </p>
-                    {r.sub_labels?.map((s, i) => (
-                      <p key={i} className="text-[11px] text-cdm-fg">
-                        {s}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {/* 3행~: payload */}
-                <PayloadList payload={r.payload} />
-              </div>
-            );
-          })
-        )}
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

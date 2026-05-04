@@ -65,10 +65,10 @@ export default function ActionBar({ onCreateRoom }: Props) {
       </div>
       <div className="flex gap-2">
         <Link
-          href="/me?tab=logs"
+          href="/ranking"
           className="sm:hidden inline-flex items-center rounded-cdm-md border border-cdm-border bg-cdm-bg px-4 py-2 text-sm font-medium text-cdm-fg hover:bg-cdm-bg-elev-1"
         >
-          내 게임 로그
+          랭킹
         </Link>
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장

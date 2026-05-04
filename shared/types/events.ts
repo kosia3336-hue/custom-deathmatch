@@ -1,4 +1,4 @@
-import type { Player, Room, RoomSummary, RoomType, PlayMode, DisplayedTitle } from './room';
+import type { Player, Room, RoomSummary, RoomType, PlayMode, DisplayedTitle, TurnOrderMode } from './room';
 
 export interface CreateRoomData {
   gameId: string;
@@ -141,6 +141,7 @@ export interface ClientToServerEvents {
   'room:start': () => void;
   'room:settings:update': (data: UpdateRoomSettings) => void;
   'room:swap:colors': () => void;
+  'room:set:turn-order': (data: { mode: 'first' | 'second' | 'random' }) => void;
   'room:invite:create': (
     callback: (res: { success: boolean; token?: string }) => void,
   ) => void;

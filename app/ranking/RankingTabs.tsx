@@ -23,6 +23,7 @@ export default function RankingTabs({ games, activeGame, activePeriod }: Props) 
     const game = next.game !== undefined ? next.game : (activeGame ?? '');
     if (game) params.set('game', game);
     params.set('period', next.period ?? activePeriod);
+    // 게임/기간 변경 시 page 자동 리셋 (page 자체를 안 넣어 1페이지로)
     router.replace(`/ranking?${params.toString()}`);
   }
 

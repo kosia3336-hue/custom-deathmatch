@@ -666,12 +666,11 @@ function applySnapshot(s: GS2InternalState, snap: GS2UndoSnapshot) {
 export function performGS2Undo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
-  if (s.undoSnapshots.length < 2) return false;
+  if (s.undoSnapshots.length < 1) return false;
 
   s.aiGeneration += 1;
   clearAllTimers(s);
 
-  s.undoSnapshots.pop();
   const snap = s.undoSnapshots[s.undoSnapshots.length - 1];
   applySnapshot(s, snap);
 

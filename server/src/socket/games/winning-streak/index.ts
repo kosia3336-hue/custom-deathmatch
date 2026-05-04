@@ -126,7 +126,7 @@ export function handleWinningStreakAction(
 export function canWinningStreakUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
-  const partial = s.phase !== 'cardSelect';
+  const partial = s.phase !== 'cardSelect' || s.player1.submitted || s.player2.submitted;
   return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
 }
 

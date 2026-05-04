@@ -60,6 +60,7 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
           p_attachments: [],
           p_reason_tag: reasonTag ?? undefined,
         });
+        fetch('/api/hidden-titles/check-inquiry', { method: 'POST' }).catch(() => {});
         toast.success('문의가 접수되었습니다');
         onClose();
         onSuccess();

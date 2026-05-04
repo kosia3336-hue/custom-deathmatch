@@ -6,9 +6,11 @@ import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
 import { TextInput } from '@/components/cdm/TextInput';
 import { Modal } from '@/components/cdm/Modal';
+import { Slider } from '@/components/cdm/Slider';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import { useRouter } from 'next/navigation';
+import { useBgm } from '@/components/providers/BgmProvider';
 
 export default function SettingsTab() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function SettingsTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <SoundCard />
+
       <Card>
         <h2 className="text-sm font-semibold text-cdm-fg-muted">계정</h2>
         <div className="mt-3 flex flex-col gap-2">
@@ -37,6 +41,98 @@ export default function SettingsTab() {
       <NicknameModal open={openNick} onClose={() => setOpenNick(false)} onDone={() => router.refresh()} />
       <WithdrawModal open={openWithdraw} onClose={() => setOpenWithdraw(false)} />
     </div>
+  );
+}
+
+function SoundCard() {
+  const { hasTracks, muted, volume, setMuted, setVolume } = useBgm();
+  const volumePct = Math.round(volume * 100);
+
+  if (!hasTracks) return null;
+
+  return (
+    <Card>
+      <h2 className="text-sm font-semibold text-cdm-fg-muted">소리</h2>
+      <div className="mt-3 flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium text-cdm-fg">배경음악 (BGM)</div>
+            <div className="text-xs text-cdm-fg-muted">
+              사이트에서 흘러나오는 배경음악을 켜고 끕니다
+            </div>
+          </div>
+          <ToggleSwitch
+            checked={!muted}
+            onChange={(on) => setMuted(!on)}
+            ariaLabel="배경음악"
+          />
+        </div>
+
+        <div>
+          <Slider
+            value={volumePct}
+            min={0}
+            max={100}
+            step={1}
+            disabled={muted}
+            ariaLabel="배경음악 음량"
+            leftAdornment={<VolumeMinIcon />}
+            rightAdornment={<VolumeMaxIcon />}
+            valueLabel={`${volumePct}%`}
+            onChange={(pct) => setVolume(pct / 100)}
+          />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function ToggleSwitch({
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+        checked ? 'bg-cdm-primary' : 'bg-cdm-bg-elev-2'
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
+  );
+}
+
+function VolumeMinIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M11 5L6 9H2v6h4l5 4V5z" />
+      <line x1="22" y1="9" x2="16" y2="15" />
+      <line x1="16" y1="9" x2="22" y2="15" />
+    </svg>
+  );
+}
+
+function VolumeMaxIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M11 5L6 9H2v6h4l5 4V5z" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
   );
 }
 
@@ -152,8 +248,9 @@ function WithdrawModal({ open, onClose }: { open: boolean; onClose: () => void }
       }
     >
       <p className="text-sm text-cdm-fg-muted">
-        탈퇴하면 닉네임/카카오 연결이 삭제되고, 게임 로그의 닉네임은 "탈퇴 회원"으로
-        익명화됩니다. 보유 칭호는 회수됩니다.
+        탈퇴 후에는 사이트를 이용할 수 없습니다.
+        <br />
+        동일한 계정으로 재가입하려면 관리자 검토가 필요하며, 복구가 거절될 수 있습니다.
       </p>
       <div className="mt-4">
         <TextInput

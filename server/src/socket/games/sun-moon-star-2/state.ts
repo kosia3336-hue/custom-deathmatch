@@ -974,12 +974,11 @@ export function performSMS2Undo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return false;
   if (!s.options.enableUndo) return false;
-  if (s.undoSnapshots.length < 2) return false;
+  if (s.undoSnapshots.length < 1) return false;
 
   s.aiGeneration += 1;
   clearAllTimers(s);
 
-  s.undoSnapshots.pop();
   const snap = s.undoSnapshots[s.undoSnapshots.length - 1];
   applySnapshot(s, snap);
 

@@ -4,11 +4,18 @@ import { Tag } from '@/components/cdm/Tag';
 import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { EmptyState } from '@/components/cdm/EmptyState';
+import { RoutePagination } from '@/components/cdm/Pagination';
 import { getServerSupabase } from '@/lib/supabase/server';
+import {
+  DEFAULT_PAGE_SIZE,
+  getRange,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/pagination';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { formatTime } from '@/lib/utils';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 interface LogParticipant {
   position: 'first' | 'second';
@@ -32,20 +39,25 @@ interface LogRow {
   participants: LogParticipant[];
 }
 
-async function loadLogs(memberId: string): Promise<LogRow[]> {
+async function loadLogs(
+  memberId: string,
+  page: number,
+): Promise<{ logs: LogRow[]; totalCount: number }> {
   const sb = await getServerSupabase();
+  const { from, to } = getRange(page, PAGE_SIZE);
 
-  // 본인이 참가한 game_log_participants → game_log 매칭
+  // 본인이 참가한 game_log_participants → game_log 매칭 (페이지네이션은 본인 행 기준)
   const partRes = await sb
     .from('game_log_participants')
-    .select('game_log_id')
+    .select('game_log_id', { count: 'exact' })
     .eq('member_id', memberId)
     .order('id', { ascending: false })
-    .limit(PAGE_SIZE * 2); // 한 게임당 2 행이므로 넉넉히
+    .range(from, to);
   const partRows = (partRes.data ?? []) as unknown as { game_log_id: string }[];
+  const totalCount = partRes.count ?? 0;
 
-  const ids = Array.from(new Set(partRows.map((r) => r.game_log_id))).slice(0, PAGE_SIZE);
-  if (ids.length === 0) return [];
+  const ids = Array.from(new Set(partRows.map((r) => r.game_log_id)));
+  if (ids.length === 0) return { logs: [], totalCount };
 
   const logsRes = await sb
     .from('game_logs')
@@ -65,23 +77,34 @@ async function loadLogs(memberId: string): Promise<LogRow[]> {
     .in('game_log_id', ids);
   const partAll = (participantsRes.data ?? []) as unknown as (LogParticipant & { game_log_id: string })[];
 
-  return logRows.map((row) => ({
+  const logs = logRows.map((row) => ({
     ...row,
     participants: partAll.filter((p) => p.game_log_id === row.id),
   }));
+
+  return { logs, totalCount };
 }
 
-export default async function LogsTab({ memberId }: { memberId: string }) {
-  const logs = await loadLogs(memberId);
+export default async function LogsTab({
+  memberId,
+  page: pageParam,
+}: {
+  memberId: string;
+  page: string | undefined;
+}) {
+  const page = parsePageParam(pageParam);
+  const { logs, totalCount } = await loadLogs(memberId, page);
+  const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
-  if (logs.length === 0) {
-    return (
-      <EmptyState title="아직 게임 로그가 없어요" />
-    );
+  if (totalCount === 0) {
+    return <EmptyState title="아직 게임 로그가 없어요" />;
   }
 
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-xs text-cdm-fg-muted">
+        총 {totalCount}판 · {page} / {totalPages} 페이지
+      </p>
       {logs.map((log) => {
         const me = log.participants.find((p) => p.member_id === memberId);
         const opponent = log.participants.find((p) => p.member_id !== memberId);
@@ -147,6 +170,7 @@ export default async function LogsTab({ memberId }: { memberId: string }) {
           </Card>
         );
       })}
+      <RoutePagination totalPages={totalPages} />
     </div>
   );
 }

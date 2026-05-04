@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { Card } from '@/components/cdm/Card';
 import { MemberStatusChip } from '@/components/cdm/StatusChip';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { RoutePagination } from '@/components/cdm/Pagination';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { DEFAULT_PAGE_SIZE, getRange, getTotalPages, parsePageParam } from '@/lib/pagination';
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
 import MemberSearch from './MemberSearch';
 
@@ -25,17 +27,29 @@ interface TitleRow {
   color: TitleColor;
 }
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
-export default async function MembersTab({ query }: { query: string }) {
+export default async function MembersTab({
+  query,
+  page: pageParam,
+}: {
+  query: string;
+  page: string | undefined;
+}) {
   const sb = await getServerSupabase();
+  const page = parsePageParam(pageParam);
+  const { from, to } = getRange(page, PAGE_SIZE);
 
-  let q = sb.from('members').select('id, nickname, created_at, withdrawn_at, displayed_title_id');
+  let q = sb
+    .from('members')
+    .select('id, nickname, created_at, withdrawn_at, displayed_title_id', { count: 'exact' });
   if (query.trim()) {
     q = q.ilike('nickname', `%${query.trim()}%`);
   }
-  const membersRes = await q.order('created_at', { ascending: false }).limit(PAGE_SIZE);
+  const membersRes = await q.order('created_at', { ascending: false }).range(from, to);
   const members = (membersRes.data ?? []) as unknown as MemberListRow[];
+  const totalCount = membersRes.count ?? 0;
+  const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
   if (members.length === 0) {
     return (
@@ -62,6 +76,9 @@ export default async function MembersTab({ query }: { query: string }) {
   return (
     <div className="flex flex-col gap-3">
       <MemberSearch initial={query} />
+      <p className="text-xs text-cdm-fg-muted">
+        총 {totalCount}명 · {page} / {totalPages} 페이지
+      </p>
       {members.map((m) => {
         const priv = privs.find((p) => p.member_id === m.id);
         const title = m.displayed_title_id
@@ -102,6 +119,7 @@ export default async function MembersTab({ query }: { query: string }) {
           </Link>
         );
       })}
+      <RoutePagination totalPages={totalPages} />
     </div>
   );
 }

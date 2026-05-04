@@ -220,7 +220,7 @@ function applyUndoSnapshot(s: InternalState, snap: FourGravityUndoSnapshot) {
   s.actionLog = JSON.parse(JSON.stringify(snap.actionLog)) as InternalState['actionLog'];
 }
 
-function hasPartialTurnFourGravity(s: InternalState): boolean {
+export function hasPartialTurnFourGravity(s: InternalState): boolean {
   if (s.phase !== 'place') return true;
   const last = s.actionLog[s.actionLog.length - 1];
   return !!(last && last.turnNumber === s.turnNumber);

@@ -1,7 +1,9 @@
 import { Card } from '@/components/cdm/Card';
 import { InquiryStatusChip } from '@/components/cdm/StatusChip';
 import { EmptyState } from '@/components/cdm/EmptyState';
+import { RoutePagination } from '@/components/cdm/Pagination';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { DEFAULT_PAGE_SIZE, getRange, getTotalPages, parsePageParam } from '@/lib/pagination';
 import type { InquiryStatus, InquiryCategory } from '@/lib/supabase/database.types';
 import InquiryAnswerForm from './InquiryAnswerForm';
 
@@ -24,31 +26,41 @@ interface AuthorRow {
   nickname: string;
 }
 
-export default async function InquiriesTab() {
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
+export default async function InquiriesTab({ page: pageParam }: { page: string | undefined }) {
   const sb = await getServerSupabase();
+  const page = parsePageParam(pageParam);
+  const { from, to } = getRange(page, PAGE_SIZE);
+
   const res = await sb
     .from('inquiries')
     .select(
       'id, author_id, category, title, body, status, reason_tag, answer_body, reply_body, created_at, answered_at',
+      { count: 'exact' },
     )
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(from, to);
   const rows = (res.data ?? []) as unknown as Row[];
+  const totalCount = res.count ?? 0;
+  const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
-  if (rows.length === 0) {
+  if (totalCount === 0) {
     return <EmptyState title="문의가 없습니다" />;
   }
 
   const authorIds = Array.from(new Set(rows.map((r) => r.author_id)));
-  const authorsRes = await sb
-    .from('members')
-    .select('id, nickname')
-    .in('id', authorIds);
+  const authorsRes = authorIds.length
+    ? await sb.from('members').select('id, nickname').in('id', authorIds)
+    : { data: [] };
   const authors = (authorsRes.data ?? []) as unknown as AuthorRow[];
   const nameOf = (id: string) => authors.find((a) => a.id === id)?.nickname ?? id.slice(0, 6);
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-xs text-cdm-fg-muted">
+        총 {totalCount}건 · {page} / {totalPages} 페이지
+      </p>
       {rows.map((q) => (
         <Card key={q.id} className="!p-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -83,6 +95,7 @@ export default async function InquiriesTab() {
           )}
         </Card>
       ))}
+      <RoutePagination totalPages={totalPages} />
     </div>
   );
 }

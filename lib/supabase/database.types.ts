@@ -34,8 +34,11 @@ export type NotificationKind =
   | 'misc';
 export type AdminTargetKind =
   | 'member' | 'title' | 'member_title'
-  | 'report' | 'inquiry' | 'agreement' | 'word';
+  | 'report' | 'inquiry' | 'agreement' | 'word' | 'notice';
 export type BannedWordScope = 'nickname' | 'chat' | 'both';
+
+// v2.7 (20번 문서: 공지사항)
+export type NoticeCategory = 'general' | 'maintenance' | 'update' | 'event' | 'urgent';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입
@@ -96,6 +99,8 @@ export interface TitleRow {
   name: string;
   color: TitleColor;
   description: string | null;
+  condition_text: string | null;
+  is_system: boolean;
   is_active: boolean;
   created_at: string;
   created_by: string | null;
@@ -222,7 +227,7 @@ export interface SanctionRow {
 
 export interface AdminActionRow {
   id: number;
-  actor_id: string;
+  actor_id: string | null;
   action_kind: string;
   target_kind: AdminTargetKind;
   target_id: string | null;
@@ -257,6 +262,19 @@ export interface BannedWordRow {
   created_by: string | null;
 }
 
+export interface NoticeRow {
+  id: string;
+  category: NoticeCategory;
+  title: string;
+  body: string;
+  is_pinned: boolean;
+  is_published: boolean;
+  published_at: string;
+  created_by: string | null;
+  updated_at: string;
+  created_at: string;
+}
+
 // ──────────────────────────────────────────────
 // Database 타입 (Supabase 클라이언트 제네릭)
 // ──────────────────────────────────────────────
@@ -281,6 +299,7 @@ export interface Database {
       admin_actions: { Row: AdminActionRow; Insert: Omit<AdminActionRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<AdminActionRow> };
       games: { Row: GameRow; Insert: Omit<GameRow, 'created_at'> & { created_at?: string }; Update: Partial<GameRow> };
       banned_words: { Row: BannedWordRow; Insert: Omit<BannedWordRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<BannedWordRow> };
+      notices: { Row: NoticeRow; Insert: Partial<NoticeRow> & { title: string; body: string }; Update: Partial<NoticeRow> };
     };
     Views: {
       public_member_titles: { Row: { member_id: string; title_id: string; granted_at: string } };
@@ -351,7 +370,12 @@ export interface Database {
 
       // 랭킹
       compute_ranking: {
-        Args: { p_game_id: string; p_period?: 'weekly' | 'monthly' | 'all' };
+        Args: {
+          p_game_id: string;
+          p_period?: 'weekly' | 'monthly' | 'all';
+          p_limit?: number;
+          p_offset?: number;
+        };
         Returns: Array<{
           rank: number;
           member_id: string;
@@ -361,6 +385,25 @@ export interface Database {
           wins: number;
           win_rate: number;
           score: number;
+          total_count: number;
+        }>;
+      };
+      compute_ranking_all: {
+        Args: {
+          p_period?: 'weekly' | 'monthly' | 'all';
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          rank: number;
+          member_id: string;
+          nickname: string;
+          title: { id: string; name: string; color: TitleColor } | null;
+          total_games: number;
+          wins: number;
+          win_rate: number;
+          score: number;
+          total_count: number;
         }>;
       };
       my_rank: {
@@ -369,7 +412,15 @@ export interface Database {
       };
 
       // 관리자
-      admin_create_title: { Args: { p_name: string; p_color: TitleColor; p_description?: string }; Returns: string };
+      admin_create_title: {
+        Args: {
+          p_name: string;
+          p_color: TitleColor;
+          p_description?: string;
+          p_condition_text?: string;
+        };
+        Returns: string;
+      };
       admin_grant_title: { Args: { p_member_id: string; p_title_id: string; p_reason?: string }; Returns: void };
       admin_revoke_title: { Args: { p_member_id: string; p_title_id: string; p_reason?: string }; Returns: void };
       admin_suspend_member: { Args: { p_member_id: string; p_until: string; p_reason: string; p_related_report_id?: string }; Returns: void };
@@ -379,6 +430,74 @@ export interface Database {
       admin_reject_report: { Args: { p_report_id: string; p_reason?: string }; Returns: void };
       admin_answer_inquiry: { Args: { p_id: string; p_body: string }; Returns: void };
       admin_set_role: { Args: { p_member_id: string; p_role: 'user' | 'admin' }; Returns: void };
+
+      // 공지사항 (v2.7)
+      admin_create_notice: {
+        Args: {
+          p_title: string;
+          p_body: string;
+          p_category?: NoticeCategory;
+          p_is_pinned?: boolean;
+          p_is_published?: boolean;
+        };
+        Returns: string;
+      };
+      admin_update_notice: {
+        Args: {
+          p_id: string;
+          p_title?: string;
+          p_body?: string;
+          p_category?: NoticeCategory;
+        };
+        Returns: void;
+      };
+      admin_toggle_notice_pin: { Args: { p_id: string; p_pinned: boolean }; Returns: void };
+      admin_set_notice_published: { Args: { p_id: string; p_published: boolean }; Returns: void };
+      admin_delete_notice: { Args: { p_id: string }; Returns: void };
+
+      // 히든 칭호 / 공개 칭호 (v2.11)
+      system_grant_hidden_title: {
+        Args: {
+          p_title_key: string;
+          p_title_name: string;
+          p_title_color: TitleColor;
+          p_title_description: string;
+          p_title_condition_text: string;
+          p_member_id: string;
+        };
+        Returns: {
+          granted: boolean;
+          reason?: string;
+          title_id: string;
+          holder_id?: string;
+          created: boolean;
+        };
+      };
+      admin_restore_member: {
+        Args: { p_member_id: string; p_reason?: string | null };
+        Returns: void;
+      };
+      list_public_titles: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          name: string;
+          color: TitleColor;
+          description: string | null;
+          condition_text: string | null;
+          is_system: boolean;
+          holder_count: number;
+          first_granted_at: string | null;
+        }>;
+      };
+      get_public_title_holders: {
+        Args: { p_title_id: string };
+        Returns: Array<{
+          member_id: string;
+          nickname: string;
+          granted_at: string;
+        }>;
+      };
     };
     Enums: {
       member_status: MemberStatus;
@@ -397,6 +516,7 @@ export interface Database {
       notification_kind: NotificationKind;
       admin_target_kind: AdminTargetKind;
       banned_word_scope: BannedWordScope;
+      notice_category: NoticeCategory;
     };
   };
 }

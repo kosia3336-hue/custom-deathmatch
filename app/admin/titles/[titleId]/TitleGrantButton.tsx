@@ -116,6 +116,13 @@ export default function TitleGrantButton({
           }),
         }).catch(() => {});
 
+        // 히든 칭호 판정 훅 (수집가) — fire-and-forget
+        fetch('/api/hidden-titles/check-title-granted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId: selected.id }),
+        }).catch(() => {});
+
         setOpen(false);
         router.refresh();
       } catch (e) {

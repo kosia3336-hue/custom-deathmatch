@@ -21,6 +21,7 @@ export default function CreateTitleForm() {
   const [name, setName] = useState('');
   const [color, setColor] = useState<TitleColor>('indigo');
   const [description, setDescription] = useState('');
+  const [conditionText, setConditionText] = useState('');
   const [busy, startTransition] = useTransition();
 
   function go() {
@@ -39,10 +40,12 @@ export default function CreateTitleForm() {
           p_name: name.trim(),
           p_color: color,
           p_description: description.trim(),
+          p_condition_text: conditionText.trim() || undefined,
         });
         toast.success('칭호가 생성되었습니다');
         setName('');
         setDescription('');
+        setConditionText('');
         router.refresh();
       } catch (e) {
         toast.error(`실패: ${(e as Error).message}`);
@@ -87,6 +90,18 @@ export default function CreateTitleForm() {
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           placeholder="예) 2026-05월 흑과백2 랭킹 1등 달성"
+          className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary"
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-cdm-fg">
+          달성 조건 <span className="text-cdm-fg-subtle text-xs">(선택 · /칭호 모달에 공개)</span>
+        </label>
+        <textarea
+          value={conditionText}
+          onChange={(e) => setConditionText(e.target.value)}
+          rows={2}
+          placeholder="예) 2026-05월 흑과백2 시즌 1위"
           className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary"
         />
       </div>

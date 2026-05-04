@@ -42,7 +42,7 @@ export function initBankGame(
   const p1 = makePlayer(players[0].id, players[0].nickname, 'p1', players[0].id === AI_PLAYER_ID);
   const p2 = makePlayer(players[1].id, players[1].nickname, 'p2', players[1].id === AI_PLAYER_ID);
 
-  const firstSide: BankSide = Math.random() < 0.5 ? 'p1' : 'p2';
+  const firstSide: BankSide = 'p1';
 
   const enableUndo = resolveBool(gameOptions?.enableUndo, true);
   const aiDifficulty = resolveDifficulty(gameOptions?.aiDifficulty);

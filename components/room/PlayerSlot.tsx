@@ -17,8 +17,6 @@ interface Props {
   colorLabel?: '흑' | '백';
   onKick?: (id: string) => void;
   onDelegate?: (id: string) => void;
-  /** v2 — 방장이 자기 슬롯에서 [선후공 전환] 누름 */
-  onSwapTurns?: () => void;
   /** v2 — 게임 시작 후엔 토글 비활성 */
   isGameStarted?: boolean;
   onReport?: (memberId: string, nickname: string) => void;
@@ -30,7 +28,6 @@ export default function PlayerSlot({
   isHostView,
   onKick,
   onDelegate,
-  onSwapTurns,
   isGameStarted,
   onReport,
 }: Props) {
@@ -47,9 +44,6 @@ export default function PlayerSlot({
   const isAI = player.id === AI_PLAYER_ID;
   const turn = player.turnPosition ?? null;
   const title = player.displayedTitle;
-
-  const showSwapButton =
-    isMe && player.isHost && !isAI && onSwapTurns && !isGameStarted;
 
   return (
     <div
@@ -155,16 +149,6 @@ export default function PlayerSlot({
         </span>
       )}
 
-      {/* 방장 슬롯 — [선후공 전환] 토글 (v2) */}
-      {showSwapButton && (
-        <button
-          type="button"
-          onClick={() => onSwapTurns?.()}
-          className="self-start rounded-cdm-md border border-cdm-border-strong bg-cdm-bg px-2.5 py-1 text-xs font-medium text-cdm-fg hover:bg-cdm-bg-elev-2"
-        >
-          ↔ 선후공 전환
-        </button>
-      )}
     </div>
   );
 }

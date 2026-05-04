@@ -238,6 +238,7 @@ export interface BNW2RoundAction {
   players: Record<string, {
     nickname: string;
     color: BNW2Color;
+    points: number;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;

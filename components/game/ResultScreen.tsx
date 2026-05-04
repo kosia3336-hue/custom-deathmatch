@@ -166,7 +166,7 @@ export default function ResultScreen() {
       {/* 멀티 게임 결과 채팅 */}
       {room?.playMode === 'multi' && (
         <div className="mt-8">
-          <RoomChat scope="game" />
+          <RoomChat scope="room" />
         </div>
       )}
 

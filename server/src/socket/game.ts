@@ -11,6 +11,7 @@ import config from '../config.js';
 import { socketRoom } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
+import { onGameEnd as hiddenOnGameEnd } from '../hidden-titles/hooks.js';
 import {
   clearPendingUndo,
   peekPendingUndo,
@@ -365,7 +366,12 @@ export function startGame(io: IO, roomId: string) {
   const gameModule = gameModules[room.gameId];
   if (gameModule) {
     try {
-      gameModule.init(io, roomId, room.players, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
+      // random 모드이면 50% 확률로 플레이어 순서 뒤집기
+      const playersForGame =
+        room.turnOrderMode === 'random' && room.players.length === 2 && Math.random() < 0.5
+          ? [room.players[1], room.players[0]]
+          : room.players;
+      gameModule.init(io, roomId, playersForGame, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
         endGame(cbIo, cbRoomId, data);
       }, room.gameOptions);
     } catch (err) {
@@ -629,7 +635,7 @@ export function endGame(
   }
 
   // v2 — DB 적재 (멀티/COM/솔로 모두 로그는 저장. counts_for_stats는 multi만 true)
-  recordGameEndAsync(room, result).catch((err) => {
+  recordGameEndAsync(io, room, result).catch((err) => {
     console.warn('[game:ended] record_game_end 실패:', (err as Error).message);
   });
 
@@ -675,7 +681,7 @@ export function clearGameStartTime(roomId: string) {
  *  - mode = 'multi' / 'com' / 'solo' 모두 game_logs 적재
  *  - counts_for_stats = (mode === 'multi') 만 통계 반영 (RPC 안에서 처리)
  */
-async function recordGameEndAsync(room: Room, result: GameResult): Promise<void> {
+async function recordGameEndAsync(io: IO, room: Room, result: GameResult): Promise<void> {
   if (!isSupabaseConfigured()) return;
 
   const startedAt = result.playTime != null ? Date.now() - result.playTime : Date.now();
@@ -683,16 +689,19 @@ async function recordGameEndAsync(room: Room, result: GameResult): Promise<void>
 
   // participants 만들기 — Player.turnPosition (server toClientRoom이 채움) 직접 사용
   // server 내부 Room (rooms.ts) 의 Player 는 turnPosition이 비어 있으니, players[i] 인덱스로 first/second 결정
+  const nonAiRankings = result.rankings.filter((r) => r.playerId !== AI_PLAYER_ID);
+  const isDraw = nonAiRankings.length > 1 && nonAiRankings.every((r) => r.rank === 1);
+
   const participants = room.players.map((p, i) => {
     const isAi = p.id === AI_PLAYER_ID;
     const ranking = result.rankings.find((r) => r.playerId === p.id);
     const position: 'first' | 'second' = i === 0 ? 'first' : 'second';
-    const isWinner = ranking ? ranking.rank === 1 : null;
+    const isWinner = isDraw ? false : (ranking ? ranking.rank === 1 : null);
     return {
       member_id: isAi ? null : p.memberId ?? null,
       position,
       is_winner: isWinner,
-      is_draw: false,
+      is_draw: isDraw && !isAi,
       is_resign: false,
       nickname: isAi ? 'COM' : p.nickname,
       title: p.displayedTitle ?? null,
@@ -729,4 +738,25 @@ async function recordGameEndAsync(room: Room, result: GameResult): Promise<void>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (sb.rpc as any)('record_game_end', args);
   if (error) throw new Error(error.message);
+
+  // 히든 칭호 판정 훅 (fire-and-forget) — 멀티만 대상
+  const winners = participants
+    .filter((p) => p.is_winner === true && p.member_id)
+    .map((p) => p.member_id as string);
+  const losers = participants
+    .filter((p) => p.is_winner === false && !p.is_draw && p.member_id)
+    .map((p) => p.member_id as string);
+  const drawMembers = participants
+    .filter((p) => p.is_draw && p.member_id)
+    .map((p) => p.member_id as string);
+
+  hiddenOnGameEnd(io, {
+    isMulti: playMode === 'multi',
+    playedAt,
+    winners,
+    losers,
+    drawMembers,
+  }).catch((err) => {
+    console.warn('[game:ended] hidden-titles onGameEnd 실패:', (err as Error).message);
+  });
 }

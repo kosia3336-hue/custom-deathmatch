@@ -6,6 +6,13 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { Card } from '@/components/cdm/Card';
 import { GNB } from '@/components/cdm/GNB';
+import { RoutePagination } from '@/components/cdm/Pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  getRange,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/pagination';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import TitleOwnerActions from './TitleOwnerActions';
 import TitleDeleteButton from './TitleDeleteButton';
@@ -19,6 +26,8 @@ interface TitleRow {
   name: string;
   color: TitleColor;
   description: string | null;
+  condition_text: string | null;
+  is_system: boolean;
   is_active: boolean;
 }
 
@@ -35,12 +44,17 @@ interface MemberRow {
   nickname: string;
 }
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
 export default async function TitleOwnersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ titleId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { titleId } = await params;
+  const { page: pageParam } = await searchParams;
 
   const me = await getActiveMember();
   if (!me || me.role !== 'admin') redirect('/');
@@ -49,21 +63,27 @@ export default async function TitleOwnersPage({
 
   const { data: titleData } = await sb
     .from('titles')
-    .select('id, name, color, description, is_active')
+    .select('id, name, color, description, condition_text, is_system, is_active')
     .eq('id', titleId)
     .maybeSingle();
 
   if (!titleData) notFound();
   const title = titleData as unknown as TitleRow;
 
-  const { data: ownersData } = await sb
+  const page = parsePageParam(pageParam);
+  const { from, to } = getRange(page, PAGE_SIZE);
+
+  const ownersRes = await sb
     .from('member_titles')
-    .select('id, member_id, granted_at, granted_by, reason')
+    .select('id, member_id, granted_at, granted_by, reason', { count: 'exact' })
     .eq('title_id', titleId)
     .is('revoked_at', null)
-    .order('granted_at', { ascending: false });
+    .order('granted_at', { ascending: false })
+    .range(from, to);
 
-  const owners = (ownersData ?? []) as unknown as OwnerRow[];
+  const owners = (ownersRes.data ?? []) as unknown as OwnerRow[];
+  const totalOwners = ownersRes.count ?? 0;
+  const totalPages = getTotalPages(totalOwners, PAGE_SIZE);
 
   const memberIds = owners.map((o) => o.member_id);
   const granterIds = owners.map((o) => o.granted_by).filter(Boolean) as string[];
@@ -77,6 +97,20 @@ export default async function TitleOwnersPage({
       .in('id', allIds);
     nameMap = new Map(
       ((membersData ?? []) as unknown as MemberRow[]).map((m) => [m.id, m.nickname]),
+    );
+  }
+
+  // 부여/압수 모달에 넘길 "이미 보유한 회원 ID" — 전체 보유자 ID 가 필요하므로 별도 조회.
+  // 보유자 수가 매우 많을 경우 별도 RPC 필요할 수 있으나, 통상적인 운영 규모에선 충분.
+  let activeOwnerIds: string[] = owners.map((o) => o.member_id);
+  if (totalOwners > owners.length) {
+    const allOwnersRes = await sb
+      .from('member_titles')
+      .select('member_id')
+      .eq('title_id', titleId)
+      .is('revoked_at', null);
+    activeOwnerIds = ((allOwnersRes.data ?? []) as { member_id: string }[]).map(
+      (r) => r.member_id,
     );
   }
 
@@ -95,10 +129,18 @@ export default async function TitleOwnersPage({
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <TitleBadge name={title.name} color={title.color} size="lg" />
+              {title.is_system && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-cdm-border px-2 py-px text-[11px] font-semibold text-cdm-fg-muted"
+                  title="히든 시스템 칭호 — 조건은 서버 코드에서 관리"
+                >
+                  🔒 시스템
+                </span>
+              )}
               {!title.is_active && (
                 <span className="text-xs text-cdm-fg-subtle">비활성</span>
               )}
-              <span className="text-sm text-cdm-fg-muted">보유자 {owners.length}명</span>
+              <span className="text-sm text-cdm-fg-muted">보유자 {totalOwners}명</span>
             </div>
             <div className="flex items-center gap-2">
               <TitleGrantButton
@@ -106,32 +148,50 @@ export default async function TitleOwnersPage({
                 titleName={title.name}
                 titleColor={title.color}
                 titleDescription={title.description}
-                activeOwnerIds={owners.map((o) => o.member_id)}
+                activeOwnerIds={activeOwnerIds}
               />
-              <TitleEditButton
-                titleId={title.id}
-                initialName={title.name}
-                initialColor={title.color}
-                initialDescription={title.description}
-                initialIsActive={title.is_active}
-              />
-              <TitleDeleteButton
-                titleId={title.id}
-                titleName={title.name}
-                activeOwnerCount={owners.length}
-              />
+              {!title.is_system && (
+                <>
+                  <TitleEditButton
+                    titleId={title.id}
+                    initialName={title.name}
+                    initialColor={title.color}
+                    initialDescription={title.description}
+                    initialIsActive={title.is_active}
+                  />
+                  <TitleDeleteButton
+                    titleId={title.id}
+                    titleName={title.name}
+                    activeOwnerCount={totalOwners}
+                  />
+                </>
+              )}
             </div>
           </div>
           {title.description && (
             <p className="mt-2 text-sm text-cdm-fg-muted">{title.description}</p>
           )}
+          {title.condition_text && (
+            <p className="mt-1 text-xs text-cdm-fg-subtle">
+              달성 조건(공개): {title.condition_text}
+            </p>
+          )}
+          {title.is_system && (
+            <p className="mt-1 text-xs text-cdm-fg-subtle">
+              이 칭호는 시스템이 자동으로 부여한 히든 칭호예요. 구체적인 달성 조건은 서버 코드에서만 관리되며,
+              이 페이지에서는 편집/삭제할 수 없습니다.
+            </p>
+          )}
         </div>
 
         {/* 보유자 목록 */}
-        {owners.length === 0 ? (
+        {totalOwners === 0 ? (
           <p className="text-sm text-cdm-fg-subtle">현재 이 칭호를 보유한 회원이 없습니다.</p>
         ) : (
           <div className="flex flex-col gap-2">
+            <p className="text-xs text-cdm-fg-muted">
+              {page} / {totalPages} 페이지
+            </p>
             {owners.map((o) => {
               const memberNickname = nameMap.get(o.member_id) ?? o.member_id;
               const granterNickname = o.granted_by ? (nameMap.get(o.granted_by) ?? o.granted_by) : null;
@@ -162,6 +222,7 @@ export default async function TitleOwnersPage({
                 </Card>
               );
             })}
+            <RoutePagination totalPages={totalPages} />
           </div>
         )}
       </main>

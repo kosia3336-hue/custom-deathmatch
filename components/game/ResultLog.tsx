@@ -158,7 +158,7 @@ export default function ResultLog() {
       {room?.playMode === 'multi' && (
         <Card className="mt-6">
           <h2 className="mb-2 text-sm font-semibold text-cdm-fg">결과 채팅</h2>
-          <RoomChat scope="game" />
+          <RoomChat scope="room" />
         </Card>
       )}
     </div>

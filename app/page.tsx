@@ -1,58 +1,37 @@
-'use client';
-
-import { useState } from 'react';
 import GNB from '@/components/layout/GNB';
-import ActionBar from '@/components/lobby/ActionBar';
-import TabFilter from '@/components/lobby/TabFilter';
-import RoomTable from '@/components/lobby/RoomTable';
-import RoomCardList from '@/components/lobby/RoomCard';
-import EmptyState from '@/components/lobby/EmptyState';
-import CreateRoomModal from '@/components/lobby/CreateRoomModal';
-import PasswordModal from '@/components/lobby/PasswordModal';
-import { useLobby } from '@/hooks/useLobby';
-import type { RoomSummary } from '@/shared/types';
+import LobbyClient from './LobbyClient';
+import { getSiteUrl } from '@/lib/site';
 
 export default function LobbyPage() {
-  const lobby = useLobby();
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [passwordRoom, setPasswordRoom] = useState<RoomSummary | null>(null);
-  const [spectatePasswordRoom, setSpectatePasswordRoom] = useState<RoomSummary | null>(null);
-
-  const filteredRooms = lobby.getFilteredRooms();
-  const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
+  const siteUrl = getSiteUrl();
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '커스텀 데스매치',
+    alternateName: 'Custom Deathmatch',
+    url: siteUrl,
+    description: '브라우저에서 바로 즐기는 1:1 보드/카드 게임 플랫폼.',
+    inLanguage: 'ko-KR',
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-cdm-bg">
       <GNB />
 
       <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">
-        <div className="space-y-4">
-          <ActionBar onCreateRoom={() => setShowCreate(true)} />
-          <TabFilter />
+        <h1 className="sr-only">커스텀 데스매치 — 브라우저 1:1 보드·카드 게임 플랫폼</h1>
+        <p className="sr-only">
+          카카오 로그인 후 로비에서 방을 만들거나 참여해 흑과백, 인디안 포커, 사칙연산, 베팅 가위바위보 등 다양한 1:1 보드·카드 게임을 즐길 수 있습니다. 게임 로그·랭킹·칭호를 지원합니다.
+        </p>
 
-          {filteredRooms.length === 0 ? (
-            <EmptyState hasFilter={hasFilter} onCreate={() => setShowCreate(true)} />
-          ) : (
-            <>
-              <RoomTable
-                rooms={filteredRooms}
-                onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
-                onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
-              />
-              <RoomCardList
-                rooms={filteredRooms}
-                onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
-                onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
-              />
-            </>
-          )}
-        </div>
+        <LobbyClient />
       </main>
 
-      <CreateRoomModal open={showCreate} onClose={() => setShowCreate(false)} />
-      <PasswordModal open={!!passwordRoom} onClose={() => setPasswordRoom(null)} room={passwordRoom} />
-      <PasswordModal open={!!spectatePasswordRoom} onClose={() => setSpectatePasswordRoom(null)} room={spectatePasswordRoom} mode="spectate" />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </div>
   );
 }

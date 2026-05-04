@@ -32,11 +32,26 @@ interface Props {
   memberTitles: MemberTitleData[];
   allActiveTitles: TitleData[];
   nicknameHistory: NicknameHistoryData[];
+  nicknamePage: number;
+  nicknameTotalPages: number;
+  nicknameTotalCount: number;
   sanctions: SanctionData[];
+  sanctionsPage: number;
+  sanctionsTotalPages: number;
+  sanctionsTotalCount: number;
   gameStats: GameStatData[];
   receivedReports: ReportData[];
+  receivedReportsPage: number;
+  receivedReportsTotalPages: number;
+  receivedReportsTotalCount: number;
   sentReports: ReportData[];
+  sentReportsPage: number;
+  sentReportsTotalPages: number;
+  sentReportsTotalCount: number;
   inquiries: InquiryData[];
+  inquiriesPage: number;
+  inquiriesTotalPages: number;
+  inquiriesTotalCount: number;
   defaultTab?: string;
 }
 
@@ -47,11 +62,26 @@ export default function MemberDetailClient({
   memberTitles,
   allActiveTitles,
   nicknameHistory,
+  nicknamePage,
+  nicknameTotalPages,
+  nicknameTotalCount,
   sanctions,
+  sanctionsPage,
+  sanctionsTotalPages,
+  sanctionsTotalCount,
   gameStats,
   receivedReports,
+  receivedReportsPage,
+  receivedReportsTotalPages,
+  receivedReportsTotalCount,
   sentReports,
+  sentReportsPage,
+  sentReportsTotalPages,
+  sentReportsTotalCount,
   inquiries,
+  inquiriesPage,
+  inquiriesTotalPages,
+  inquiriesTotalCount,
   defaultTab,
 }: Props) {
   const [tab, setTab] = useState(() =>
@@ -74,15 +104,30 @@ export default function MemberDetailClient({
         {tab === 'log' && (
           <LogSection
             nicknameHistory={nicknameHistory}
+            nicknamePage={nicknamePage}
+            nicknameTotalPages={nicknameTotalPages}
+            nicknameTotalCount={nicknameTotalCount}
             sanctions={sanctions}
+            sanctionsPage={sanctionsPage}
+            sanctionsTotalPages={sanctionsTotalPages}
+            sanctionsTotalCount={sanctionsTotalCount}
           />
         )}
         {tab === 'games' && <GamesSection memberId={memberId} gameStats={gameStats} />}
         {tab === 'reports' && (
           <ReportsSection
             receivedReports={receivedReports}
+            receivedReportsPage={receivedReportsPage}
+            receivedReportsTotalPages={receivedReportsTotalPages}
+            receivedReportsTotalCount={receivedReportsTotalCount}
             sentReports={sentReports}
+            sentReportsPage={sentReportsPage}
+            sentReportsTotalPages={sentReportsTotalPages}
+            sentReportsTotalCount={sentReportsTotalCount}
             inquiries={inquiries}
+            inquiriesPage={inquiriesPage}
+            inquiriesTotalPages={inquiriesTotalPages}
+            inquiriesTotalCount={inquiriesTotalCount}
           />
         )}
       </div>

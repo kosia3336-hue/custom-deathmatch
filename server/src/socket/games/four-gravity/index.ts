@@ -19,6 +19,7 @@ import {
   clearTurnTimer,
   runAITurn,
   terminateAIWorker,
+  hasPartialTurnFourGravity,
 } from './state.js';
 
 export type { EndGameFn };
@@ -236,5 +237,8 @@ export { performFourGravityUndo } from './state.js';
 
 export function canFourGravityUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
-  return !!s && !s.gameOver;
+  if (!s || s.gameOver) return false;
+  if (hasPartialTurnFourGravity(s)) return s.undoSnapshots.length >= 1;
+  const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
+  return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;
 }

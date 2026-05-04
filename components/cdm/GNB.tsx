@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
+import { BgmButton } from './BgmButton';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
 import type { CurrentMember } from '@/lib/auth/server';
 
@@ -17,6 +18,8 @@ interface GNBProps {
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/', label: '로비' },
   { href: '/ranking', label: '랭킹' },
+  { href: '/titles', label: '칭호' },
+  { href: '/notice', label: '공지사항' },
 ];
 
 export function GNB({ member, loadingRight = false }: GNBProps) {
@@ -43,12 +46,7 @@ export function GNB({ member, loadingRight = false }: GNBProps) {
     <header className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-border bg-cdm-bg/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" aria-label="홈" className="flex items-center gap-3">
-          <span className="hidden sm:inline">
-            <Logo size="sm" />
-          </span>
-          <span className="sm:hidden">
-            <Logo variant="mark" size="md" />
-          </span>
+          <Logo size="sm" />
         </Link>
 
         <nav className="hidden gap-1 sm:flex">
@@ -76,6 +74,9 @@ export function GNB({ member, loadingRight = false }: GNBProps) {
             </button>
           )}
         </nav>
+
+        <div className="flex items-center gap-1">
+          <BgmButton />
 
         {loadingRight ? (
           <div className="h-8 w-22 animate-pulse rounded-cdm-md bg-cdm-bg-elev-2" />
@@ -140,6 +141,7 @@ export function GNB({ member, loadingRight = false }: GNBProps) {
             로그인
           </Link>
         )}
+        </div>
       </div>
     </header>
 

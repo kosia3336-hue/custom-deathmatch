@@ -4,7 +4,6 @@ import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
 import { Card } from '@/components/cdm/Card';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
-import { EmptyState } from '@/components/cdm/EmptyState';
 import MyPageTabs from './MyPageTabs';
 import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
@@ -16,7 +15,12 @@ import SupportTab from './SupportTab';
 export const metadata: Metadata = { title: '마이페이지' };
 
 interface Props {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    page?: string;
+    inquiriesPage?: string;
+    reportsPage?: string;
+  }>;
 }
 
 export default async function MyPage({ searchParams }: Props) {
@@ -53,12 +57,18 @@ export default async function MyPage({ searchParams }: Props) {
 
         <section>
           {tab === 'overview' && <OverviewTab member={member} />}
-          {tab === 'logs' && <LogsTab memberId={member.id} />}
+          {tab === 'logs' && <LogsTab memberId={member.id} page={sp.page} />}
           {tab === 'stats' && <StatsTab memberId={member.id} />}
           {tab === 'titles' && (
             <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
           )}
-          {tab === 'support' && <SupportTab memberId={member.id} />}
+          {tab === 'support' && (
+            <SupportTab
+              memberId={member.id}
+              inquiriesPage={sp.inquiriesPage}
+              reportsPage={sp.reportsPage}
+            />
+          )}
           {tab === 'settings' && <SettingsTab />}
         </section>
       </main>

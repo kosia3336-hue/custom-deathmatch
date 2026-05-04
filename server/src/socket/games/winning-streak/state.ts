@@ -221,7 +221,7 @@ function applySnapshot(s: InternalState, snap: WSUndoSnapshot) {
 }
 
 function hasPartialRound(s: InternalState): boolean {
-  return s.phase !== 'cardSelect';
+  return s.phase !== 'cardSelect' || s.player1.submitted || s.player2.submitted;
 }
 
 export function performWinningStreakUndo(io: IO, roomId: string): boolean {
@@ -426,7 +426,7 @@ function resolveGame(
   io: IO, s: InternalState,
   winnerId: string, winnerNick: string,
   loserId: string, loserNick: string,
-  winType: 'streak' | 'wins' | 'timeout' | 'abandon',
+  winType: 'streak' | 'wins' | 'timeout' | 'abandon' | 'stuck',
 ) {
   s.winner = winnerId;
   s.winType = winType;
@@ -497,6 +497,15 @@ function buildGameResultData(s: InternalState) {
 
 /* ────────── round advance ────────── */
 
+function isStuck(player: WSPlayerInternal): boolean {
+  if (!player.lastPlayedCard) return false;
+  for (const ct of CARD_TYPES) {
+    if (player.remainingCards[ct] <= 0) continue;
+    if (ct !== player.lastPlayedCard) return false;
+  }
+  return player.remainingCards[player.lastPlayedCard] > 0;
+}
+
 function advanceRound(io: IO, s: InternalState) {
   s.round++;
 
@@ -506,6 +515,20 @@ function advanceRound(io: IO, s: InternalState) {
   s.player2.submitted = false;
 
   s.phase = 'cardSelect';
+
+  const p1Stuck = isStuck(s.player1);
+  const p2Stuck = isStuck(s.player2);
+
+  if (p1Stuck || p2Stuck) {
+    if (p1Stuck && p2Stuck) {
+      endByStreak(io, s);
+    } else if (p1Stuck) {
+      resolveGame(io, s, s.player2.id, s.player2.nickname, s.player1.id, s.player1.nickname, 'stuck');
+    } else {
+      resolveGame(io, s, s.player1.id, s.player1.nickname, s.player2.id, s.player2.nickname, 'stuck');
+    }
+    return;
+  }
 
   startRoundWithSnapshot(io, s);
   broadcastState(io, s);

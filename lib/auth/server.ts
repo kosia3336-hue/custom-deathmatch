@@ -9,7 +9,7 @@
  *   - ACTIVE         : 정상 회원
  *   - SUSPENDED      : 일시정지
  *   - BANNED         : 영구정지
- *   - WITHDRAWN      : 탈퇴 (재로그인 시 SIGNUP_PENDING 으로 강등됨, 보통 로그인 차단 화면으로)
+ *   - WITHDRAWN      : 탈퇴 (소프트 삭제, /withdrawn 화면으로 리다이렉트, 복구 가능)
  */
 
 import 'server-only';

@@ -51,6 +51,7 @@ function buildRevealData(s: InternalState): BNW2RevealData | null {
   for (const [pid, pd] of Object.entries(last.players)) {
     players[pid] = {
       color: pd.color,
+      points: pd.points,
       scoreChange: pd.scoreChange,
       scoreBefore: pd.scoreBefore,
       scoreAfter: pd.scoreAfter,
@@ -103,12 +104,14 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
 function logToRecord(log: BNW2RoundLog) {
   const players: Record<string, {
     color: import('@shared/types/bnw2.js').BNW2Color;
+    points: number;
     scoreChange: number; scoreBefore: number; scoreAfter: number;
     stageBefore: number; stageAfter: number;
   }> = {};
   for (const [pid, pd] of Object.entries(log.players)) {
     players[pid] = {
       color: pd.color,
+      points: pd.points,
       scoreChange: pd.scoreChange,
       scoreBefore: pd.scoreBefore,
       scoreAfter: pd.scoreAfter,

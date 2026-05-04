@@ -45,6 +45,7 @@ export const WIN_TYPE_LABELS: Record<string, string> = {
   draw: '무승부',
   timeout: '시간 초과',
   abandon: '기권',
+  stuck: '카드 고갈',
 };
 
 export const CARD_LABELS: Record<WSCardType, string> = {

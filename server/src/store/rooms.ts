@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
-import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus } from '@shared/types/room.js';
+import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus, TurnOrderMode } from '@shared/types/room.js';
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number };
 
@@ -55,6 +55,7 @@ export const roomStore = {
     minPlayers: number;
     timeLimitSeconds?: number | null;
     gameOptions?: Record<string, unknown>;
+    turnOrderMode?: TurnOrderMode;
     host: Player;
   }): Room {
     let id: string;
@@ -84,6 +85,7 @@ export const roomStore = {
       inviteToken: null,
       timeLimitSeconds: opts.timeLimitSeconds ?? null,
       gameOptions: opts.gameOptions ?? {},
+      turnOrderMode: opts.turnOrderMode ?? 'random',
       createdAt: Date.now(),
       _minPlayers: opts.minPlayers,
     };
@@ -201,6 +203,7 @@ export const roomStore = {
       clearPassword?: boolean;
       timeLimitSeconds?: number | null;
       gameOptions?: Record<string, unknown>;
+      turnOrderMode?: TurnOrderMode;
     },
   ) {
     const room = rooms.get(roomId);
@@ -244,6 +247,17 @@ export const roomStore = {
     if (settings.timeLimitSeconds !== undefined) {
       room.timeLimitSeconds = settings.timeLimitSeconds;
     }
+
+    if (settings.turnOrderMode !== undefined) {
+      room.turnOrderMode = settings.turnOrderMode;
+    }
+  },
+
+  setTurnOrderMode(roomId: string, mode: TurnOrderMode): boolean {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    room.turnOrderMode = mode;
+    return true;
   },
 
   delegateHost(roomId: string, newHostId: string): boolean {

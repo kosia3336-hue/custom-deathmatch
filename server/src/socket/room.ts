@@ -423,6 +423,33 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     sendRoomState(io, roomId);
   });
 
+  socket.on('room:set:turn-order', ({ mode }) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    const myId = getPlayerId(socket);
+    if (!room || room.hostId !== myId || room.status !== 'waiting') return;
+    if (room.playMode === 'solo') return;
+
+    if (mode === 'random') {
+      roomStore.setTurnOrderMode(roomId, 'random');
+    } else if (mode === 'first') {
+      // 방장이 선공: 방장이 players[1]이면 스왑
+      if (room.players.length === 2 && room.players[1]?.id === myId) {
+        roomStore.swapPlayers(roomId);
+      }
+      roomStore.setTurnOrderMode(roomId, 'fixed');
+    } else if (mode === 'second') {
+      // 방장이 후공: 방장이 players[0]이면 스왑
+      if (room.players.length === 2 && room.players[0]?.id === myId) {
+        roomStore.swapPlayers(roomId);
+      }
+      roomStore.setTurnOrderMode(roomId, 'fixed');
+    }
+
+    sendRoomState(io, roomId);
+  });
+
   socket.on('room:invite:create', (callback) => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return callback({ success: false });

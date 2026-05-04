@@ -61,15 +61,13 @@ export default async function TitlesTab({
       {displayed && (
         <Card variant="highlight" accent="highlight">
           <h2 className="text-xs font-semibold text-cdm-fg-muted">표시 칭호</h2>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <TitleBadge name={displayed.name} color={displayed.color} size="lg" />
+            <TitleActions kind="unset" />
           </div>
           {displayed.description && (
             <p className="mt-2 text-sm text-cdm-fg-muted">{displayed.description}</p>
           )}
-          <div className="mt-3">
-            <TitleActions kind="unset" />
-          </div>
         </Card>
       )}
 
