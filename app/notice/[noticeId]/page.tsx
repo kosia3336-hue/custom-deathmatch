@@ -6,6 +6,7 @@ import { NoticeCategoryChip, getNoticeCategoryLabel } from '@/components/cdm/Not
 import { getAuthState } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { MarkdownView, extractPlainText } from '@/lib/markdown';
+import { NoticeReadTracker } from '@/components/notice/NoticeReadTracker';
 import type { NoticeCategory } from '@/lib/supabase/database.types';
 
 interface Props {
@@ -21,6 +22,7 @@ interface NoticeDetail {
   published_at: string;
   updated_at: string;
   created_at: string;
+  created_by: string | null;
 }
 
 interface SiblingRow {
@@ -37,7 +39,7 @@ async function loadNotice(noticeId: string): Promise<NoticeDetail | null> {
   const sb = await getServerSupabase();
   const res = await sb
     .from('notices')
-    .select('id, category, title, body, is_pinned, published_at, updated_at, created_at')
+    .select('id, category, title, body, is_pinned, published_at, updated_at, created_at, created_by')
     .eq('id', noticeId)
     .eq('is_published', true)
     .maybeSingle();
@@ -70,6 +72,15 @@ export default async function NoticeDetailPage({ params }: Props) {
   const member = authState.kind === 'ACTIVE' ? authState.member : null;
 
   const sb = await getServerSupabase();
+
+  const authorName = notice.created_by
+    ? await sb
+        .from('members')
+        .select('nickname')
+        .eq('id', notice.created_by)
+        .maybeSingle()
+        .then((r) => (r.data as unknown as { nickname: string } | null)?.nickname ?? '운영진')
+    : '운영진';
 
   // 이전/다음 공지 — 핀/published_at 정렬 기준에서 인접 행
   // 단순화: 같은 published_at 으로 인접 행만. 핀은 정렬 키지만 이전/다음에서는
@@ -122,6 +133,7 @@ export default async function NoticeDetailPage({ params }: Props) {
         </Link>
 
         <article>
+          <NoticeReadTracker noticeId={notice.id} enabled={!!member} />
           <header className="border-b border-cdm-border pb-4">
             <div className="mb-2 flex items-center gap-2">
               <NoticeCategoryChip category={notice.category} size="md" />
@@ -136,7 +148,7 @@ export default async function NoticeDetailPage({ params }: Props) {
               {notice.title}
             </h1>
             <p className="mt-2 text-xs text-cdm-fg-muted">
-              운영진 · <time dateTime={notice.published_at}>{publishedAt}</time>
+              {authorName} · <time dateTime={notice.published_at}>{publishedAt}</time>
               {updated && (
                 <span className="ml-2 text-cdm-fg-subtle">
                   (수정 <time dateTime={notice.updated_at}>{updated}</time>)

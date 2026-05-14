@@ -11,6 +11,7 @@ import type {
 import { evaluateHand, judgeShowdown, getDiePenalty } from './judge.js';
 import { deal, checkDeckReset } from './deck.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 import { aiTakeTurn } from './ai.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -52,6 +53,9 @@ function toClientRoundHistory(history: InternalRoundRecord[]): IPRoundRecord[] {
 function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPokerGameData {
   const isSpectator = viewerId !== s.player1Id && viewerId !== s.player2Id;
   const isShowingCards = s.phase === 'showdown' || s.phase === 'dieResult' || s.phase === 'finished';
+  const p1 = s.players[s.player1Id];
+  const p2 = s.players[s.player2Id];
+  const purin = p1 && p2 && isPurinInsightViewer(s.playMode, viewerId, p1, p2);
 
   const players: Record<string, IPPlayerInfo> = {};
   for (const [pid, p] of Object.entries(s.players)) {
@@ -61,7 +65,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
     } else if (isSpectator) {
       canSeeCard = isShowingCards; // showdown/dieResult/finished 때만 카드 공개
     } else {
-      canSeeCard = pid !== viewerId;
+      canSeeCard = pid !== viewerId || !!purin;
     }
     players[pid] = playerToInfo(p, canSeeCard);
   }
@@ -123,6 +127,18 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = buildGameDataForPlayer(s, pid);
+    const p1 = s.players[s.player1Id];
+    const p2 = s.players[s.player2Id];
+    if (p1 && p2 && isPurinInsightViewer(s.playMode, pid, p1, p2)) {
+      const self = s.players[pid];
+      if (self && s.phase === 'betting' && self.card != null) {
+        sock.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'ownCard', card: self.card });
+      } else if (s.phase === 'showdown' && s.showdownData) {
+        sock.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'showdown', showdownData: s.showdownData });
+      } else if (s.phase === 'dieResult' && s.dieData) {
+        sock.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'dieResult', dieData: s.dieData });
+      }
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -130,6 +146,18 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = buildGameDataForPlayer(s, pid);
+  const p1 = s.players[s.player1Id];
+  const p2 = s.players[s.player2Id];
+  if (p1 && p2 && isPurinInsightViewer(s.playMode, pid, p1, p2)) {
+    const self = s.players[pid];
+    if (self && s.phase === 'betting' && self.card != null) {
+      socket.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'ownCard', card: self.card });
+    } else if (s.phase === 'showdown' && s.showdownData) {
+      socket.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'showdown', showdownData: s.showdownData });
+    } else if (s.phase === 'dieResult' && s.dieData) {
+      socket.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'dieResult', dieData: s.dieData });
+    }
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -586,4 +614,22 @@ export function advanceRound(io: IO, s: InternalState) {
   if (s.playMode === 'com' && s.currentTurnId === s.player2Id) {
     aiTakeTurn(io, s);
   }
+}
+
+export function getIndianPokerResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    finalChips: { [s.player1Id]: s.players[s.player1Id].chips, [s.player2Id]: s.players[s.player2Id].chips },
+    totalRounds: s.round,
+    deckCycles: s.deckCycle,
+    finalAnte: s.ante,
+    initialChips: s.initialChips,
+    roundHistory: s.roundHistory,
+    players: {
+      [s.player1Id]: { nickname: s.players[s.player1Id].nickname },
+      [s.player2Id]: { nickname: s.players[s.player2Id].nickname },
+    },
+  };
 }

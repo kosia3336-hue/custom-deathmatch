@@ -22,6 +22,7 @@ import type {
 } from '@shared/types/archive.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 import {
   FT_HALF_MILESTONE,
   FT_MAX_SCORE,
@@ -114,7 +115,7 @@ function playerToInfo(p: FTPlayerInternal, isSelf: boolean): FTPlayerInfo {
     nickname: p.nickname,
     score: p.score,
     myStackedHeights: isSelf ? { ...p.myStackedHeights } : null,
-    itemUsed: isSelf ? p.itemUsed : p.itemUsed, // 사용 여부는 공개 (시크릿/제로/정보 모두 사용 시점에 마스킹은 로그에서 처리)
+    itemUsed: isSelf ? p.itemUsed : false,
     myItemUsedKind: isSelf ? p.itemUsedKind : null,
   };
 }
@@ -292,6 +293,29 @@ function buildGameState(s: InternalState, gameData: FTGameData): GameState {
   };
 }
 
+function applyPurinFiveTowers(s: InternalState, viewerId: string, data: FTGameData): FTGameData {
+  const oppId = viewerId === s.player1.id ? s.player2.id : s.player1.id;
+  const opp = getPlayer(s, oppId)!;
+  const lastOppAction = s.actionLog.slice().reverse().find(e => e.actorId === oppId);
+  return {
+    ...data,
+    players: {
+      ...data.players,
+      [oppId]: playerToInfo(opp, true),
+    },
+    unresolvedSecrets: [
+      ...buildUnresolvedSecrets(s, viewerId),
+      ...buildUnresolvedSecrets(s, oppId),
+    ],
+    actionLog: s.actionLog.map((e) => ({ ...e })),
+    _purin: {
+      latestOppAction: lastOppAction ? { ...lastOppAction } : null,
+      opponentInfoResults: [...(s.infoResults[oppId] ?? [])],
+      opponentSecretLog: [...(s.secretLog[oppId] ?? [])],
+    },
+  } as FTGameData;
+}
+
 /* ────────── broadcast ────────── */
 
 export async function broadcastState(io: IO, s: InternalState) {
@@ -300,9 +324,15 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = pid === s.player1.id || pid === s.player2.id;
-    const gameData = isPlayer
+    let gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
+    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+      gameData = applyPurinFiveTowers(s, pid, gameData);
+    }
+    const raw = gameData as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -310,9 +340,15 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
-  const gameData = isPlayer
+  let gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
+  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+    gameData = applyPurinFiveTowers(s, pid, gameData);
+  }
+  const raw = gameData as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -868,6 +904,12 @@ export function handleFiveTowersLeave(io: IO, s: InternalState, leftPlayerId: st
   // 승점 우위 보장
   if (opponent.score <= leaver.score) opponent.score = leaver.score + 1;
   finalize(io, s);
+}
+
+export function getFiveTowersResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return buildArchive(s);
 }
 
 /* ────────── re-exports for index ────────── */

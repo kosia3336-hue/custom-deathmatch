@@ -8,11 +8,15 @@ import RoomCardList from '@/components/lobby/RoomCard';
 import EmptyState from '@/components/lobby/EmptyState';
 import CreateRoomModal from '@/components/lobby/CreateRoomModal';
 import PasswordModal from '@/components/lobby/PasswordModal';
+import { RankAutoRejoinListener } from '@/components/lobby/RankAutoJoinFromQuery';
 import { useLobby } from '@/hooks/useLobby';
+import { useRankMatchStore } from '@/stores/rankMatch';
+import { toast } from 'sonner';
 import type { RoomSummary } from '@/shared/types';
 
 export default function LobbyClient() {
   const lobby = useLobby();
+  const queuing = useRankMatchStore((s) => s.queuing);
 
   const [showCreate, setShowCreate] = useState(false);
   const [passwordRoom, setPasswordRoom] = useState<RoomSummary | null>(null);
@@ -21,8 +25,17 @@ export default function LobbyClient() {
   const filteredRooms = lobby.getFilteredRooms();
   const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
 
+  const handleJoin = (room: RoomSummary) => {
+    if (queuing) {
+      toast.error('랭크 큐 대기 중에는 게임에 참가할 수 없습니다.');
+      return;
+    }
+    lobby.joinRoom(room, () => setPasswordRoom(room));
+  };
+
   return (
     <>
+      <RankAutoRejoinListener />
       <div className="space-y-4">
         <ActionBar onCreateRoom={() => setShowCreate(true)} />
         <TabFilter />
@@ -33,12 +46,14 @@ export default function LobbyClient() {
           <>
             <RoomTable
               rooms={filteredRooms}
-              onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
+              queuing={queuing}
+              onJoin={handleJoin}
               onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
             />
             <RoomCardList
               rooms={filteredRooms}
-              onJoin={(room) => lobby.joinRoom(room, () => setPasswordRoom(room))}
+              queuing={queuing}
+              onJoin={handleJoin}
               onSpectate={(room) => lobby.spectateRoom(room, () => setSpectatePasswordRoom(room))}
             />
           </>

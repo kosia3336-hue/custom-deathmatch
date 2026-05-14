@@ -1,4 +1,4 @@
-import type { Player, PlayMode } from '@shared/types/room.js';
+﻿import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { BankAction, BankSide } from '@shared/types/bank-game.js';
@@ -162,3 +162,5 @@ export function canBankGameUndo(roomId: string): boolean {
   if (first.pendingBet) return false;
   return s.undoSnapshots.length >= 2;
 }
+
+export { getBankGameResultData } from './state.js';

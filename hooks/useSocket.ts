@@ -4,9 +4,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { useNicknameStore } from '@/stores/nickname';
+import { useRankMatchStore, type RankMatchedPayload } from '@/stores/rankMatch';
 import { useSessionTakeoverStore } from '@/stores/sessionTakeover';
+import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { useOnlineUsersStore } from '@/stores/onlineUsers';
+import type { ChatMessage } from '@/shared/types';
+import type { OnlineUser } from '@/shared/types/events';
 
-export function useSocket() {
+/** 루트에서 한 번만 호출하면 됨 (`SocketProvider`). 반환값 없음 — 소켓은 `getSocket()`. */
+export function useSocket(): void {
   const router = useRouter();
 
   useEffect(() => {
@@ -16,6 +22,9 @@ export function useSocket() {
       // 로그인 여부와 무관하게 소켓 연결 (비로그인 = 게스트, 로비 방 목록만 수신 가능)
       if (cancelled) return;
       const s = await connectSocket();
+
+      // 초기 연결 시 LOBBY_ROOM 참여 (모든 페이지에서 온라인 유저 업데이트 수신)
+      s.emit('lobby:join');
 
       // v2: 서버가 session:new 에 닉네임을 실어 보냄
       // 닉네임 없음 = 게스트 연결 → stale 로컬스토리지 닉네임 제거
@@ -67,16 +76,63 @@ export function useSocket() {
       console.warn('[socket] connect_error:', err.message);
     };
 
+    const onRankMatched = (data: RankMatchedPayload) => {
+      useRankMatchStore.getState().setMatched(data);
+    };
+
+    s.on('rank:queue:matched', onRankMatched);
     s.on('session:restored', onSessionRestored);
     s.on('session:replaced', onSessionReplaced);
     s.on('connect_error', onConnectError);
 
     return () => {
+      s.off('rank:queue:matched', onRankMatched);
       s.off('session:restored', onSessionRestored);
       s.off('session:replaced', onSessionReplaced);
       s.off('connect_error', onConnectError);
     };
   }, [router]);
 
-  return getSocket();
+  // v2.1: 로비 채팅 + 접속자 현황 — 글로벌 수신 + 라이프사이클 초기화
+  useEffect(() => {
+    const s = getSocket();
+
+    const onLobbyChat = (msg: ChatMessage) => {
+      if (msg.scope !== 'lobby') return;
+      useLobbyChatStore.getState().addMessage(msg);
+    };
+
+    // lobby:users:online 글로벌 리스너 — 모든 페이지에서 실시간 업데이트
+    const onOnlineUsers = (data: { users: OnlineUser[] }) => {
+      useOnlineUsersStore.getState().setUsers(data.users);
+    };
+
+    const onDisconnect = () => {
+      useLobbyChatStore.getState().clearAll();
+    };
+
+    const onReconnect = () => {
+      // 재연결 시 LOBBY_ROOM 재가입 + 채팅 초기화
+      s.emit('lobby:join');
+      useLobbyChatStore.getState().clearAll();
+    };
+
+    const onSessionReplacedClear = () => {
+      useLobbyChatStore.getState().clearAll();
+    };
+
+    s.on('chat:message', onLobbyChat);
+    s.on('lobby:users:online', onOnlineUsers);
+    s.on('disconnect', onDisconnect);
+    s.on('connect', onReconnect);
+    s.on('session:replaced', onSessionReplacedClear);
+
+    return () => {
+      s.off('chat:message', onLobbyChat);
+      s.off('lobby:users:online', onOnlineUsers);
+      s.off('disconnect', onDisconnect);
+      s.off('connect', onReconnect);
+      s.off('session:replaced', onSessionReplacedClear);
+    };
+  }, []);
 }

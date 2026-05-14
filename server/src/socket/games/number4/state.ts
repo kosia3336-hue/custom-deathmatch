@@ -7,6 +7,7 @@ import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnapshot } from './types.js';
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -60,6 +61,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   const isPlayer1 = socketId === s.player1.id;
   const isPlayer2 = socketId === s.player2.id;
   const isSolo = s.playMode === 'solo';
+  const purin = !isSolo && isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
 
   const players: Record<string, NF4PlayerInfo> = {};
 
@@ -69,9 +71,13 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   } else {
     players[s.player1.id] = playerToInfo(s.player1, isPlayer1);
     players[s.player2.id] = playerToInfo(s.player2, isPlayer2);
+    if (purin && (isPlayer1 || isPlayer2)) {
+      const opp = isPlayer1 ? s.player2 : s.player1;
+      players[opp.id] = playerToInfo(opp, true);
+    }
   }
 
-  return {
+  const base: NumberFourGameData = {
     round: s.round,
     phase: s.phase,
     players,
@@ -82,6 +88,24 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     tiebreakerReason: s.tiebreakerReason,
     currentSide: s.currentSide,
   };
+
+  if (purin && (isPlayer1 || isPlayer2) && s.phase === 'submit') {
+    const opp = isPlayer1 ? s.player2 : s.player1;
+    if (opp.submitted) {
+      return {
+        ...base,
+        _purin: {
+          opponentSubmitted: {
+            number: opp.submittedNumber,
+            white: opp.submittedWhite,
+            black: opp.submittedBlack,
+          },
+        },
+      } as NumberFourGameData;
+    }
+  }
+
+  return base;
 }
 
 function buildRevealGameData(s: InternalState, socketId: string): NumberFourGameData {
@@ -128,6 +152,9 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = s.phase === 'reveal' || s.phase === 'finished'
       ? buildRevealGameData(s, pid)
       : buildGameDataForPlayer(s, pid);
+    const raw = gameData as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -137,6 +164,9 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = s.phase === 'reveal' || s.phase === 'finished'
     ? buildRevealGameData(s, pid)
     : buildGameDataForPlayer(s, pid);
+  const raw = gameData as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -471,4 +501,20 @@ function resetSubmissions(p: NF4PlayerInternal) {
   p.submittedWhite = null;
   p.submittedBlack = null;
   p.submittedNumber = null;
+}
+
+export function getNumberFourResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    tiebreakerReason: s.tiebreakerReason,
+    finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+    roundHistory: s.roundHistory,
+    actions: s.actionLog,
+    players: {
+      [s.player1.id]: { nickname: s.player1.nickname },
+      [s.player2.id]: { nickname: s.player2.nickname },
+    },
+  };
 }

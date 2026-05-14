@@ -5,6 +5,7 @@ import { Tabs } from '@/components/cdm/Tabs';
 import TitlesSection from './TitlesSection';
 import LogSection from './LogSection';
 import GamesSection from './GamesSection';
+import MemberRankTab from './MemberRankTab';
 import ReportsSection from './ReportsSection';
 import type {
   MemberTitleData,
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'titles', label: '칭호' },
   { id: 'log', label: '이력' },
   { id: 'games', label: '게임' },
+  { id: 'rank', label: '랭크' },
   { id: 'reports', label: '신고/문의' },
 ];
 
@@ -114,6 +116,7 @@ export default function MemberDetailClient({
           />
         )}
         {tab === 'games' && <GamesSection memberId={memberId} gameStats={gameStats} />}
+        {tab === 'rank' && <MemberRankTab memberId={memberId} />}
         {tab === 'reports' && (
           <ReportsSection
             receivedReports={receivedReports}

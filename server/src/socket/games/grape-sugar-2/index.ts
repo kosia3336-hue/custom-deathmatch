@@ -1,4 +1,4 @@
-import type { Player, PlayMode } from '@shared/types/room.js';
+﻿import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { GS2Action, GS2CardId } from '@shared/types/grape-sugar-2.js';
@@ -134,3 +134,5 @@ export function canGrapeSugar2Undo(roomId: string): boolean {
   if (!s || s.gameOver) return false;
   return s.undoSnapshots.length >= 1;
 }
+
+export { getGrapeSugar2ResultData } from './state.js';

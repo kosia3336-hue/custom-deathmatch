@@ -127,3 +127,8 @@ export async function getActiveMember(): Promise<CurrentMember | null> {
   const state = await getAuthState();
   return state.kind === 'ACTIVE' ? state.member : null;
 }
+
+/** API 라우트에서 ACTIVE 회원 가드. null 반환 시 401/403 처리는 호출자 책임. */
+export async function requireActiveMember(): Promise<CurrentMember | null> {
+  return getActiveMember();
+}

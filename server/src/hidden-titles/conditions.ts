@@ -7,7 +7,24 @@
  *    조건 체크 → 부여 사이의 경합은 안전하다.
  */
 import { getSupabaseAdmin } from '../db/supabase.js';
-import { HIDDEN_TITLES_POST_UPDATE_START_AT } from './constants.js';
+import {
+  HIDDEN_TITLES_POST_UPDATE_START_AT,
+  HIDDEN_TITLES_V2_START_AT,
+} from './constants.js';
+
+/** 게임 로그 조인 결과 정규화 */
+function collectGameIdsFromJoinedParticipants(data: unknown[] | null): string[] {
+  const ids: string[] = [];
+  for (const row of data ?? []) {
+    const gl = (row as unknown as { game_logs: { game_id: string } | { game_id: string }[] }).game_logs;
+    if (Array.isArray(gl)) {
+      for (const g of gl) ids.push(g.game_id);
+    } else if (gl?.game_id) {
+      ids.push(gl.game_id);
+    }
+  }
+  return ids;
+}
 
 // ── 공통 ────────────────────────────────────────────────────────────
 
@@ -164,3 +181,69 @@ export async function countTotalMultiGamesAll(): Promise<number> {
   }
   return count ?? 0;
 }
+
+/**
+ * since 이후 COM 모드 승리 횟수 (인류의 희망).
+ */
+export async function countComWinsSince(memberId: string, sinceIso: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { count, error } = await sb
+    .from('game_log_participants')
+    .select('id, game_logs!inner(mode, played_at)', { count: 'exact', head: true })
+    .eq('member_id', memberId)
+    .eq('is_winner', true)
+    .eq('game_logs.mode', 'com')
+    .gte('game_logs.played_at', sinceIso);
+  if (error) {
+    console.warn('[hidden-titles] countComWinsSince:', error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * since 이후 멀티에서 같은 game_id 로 가장 많이 참가한 횟수 (일격필살).
+ */
+export async function maxMultiPlaysSingleGameSince(memberId: string, sinceIso: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from('game_log_participants')
+    .select('game_logs!inner(game_id, mode, played_at)')
+    .eq('member_id', memberId)
+    .eq('game_logs.mode', 'multi')
+    .gte('game_logs.played_at', sinceIso);
+  if (error) {
+    console.warn('[hidden-titles] maxMultiPlaysSingleGameSince:', error.message);
+    return 0;
+  }
+  const gameIds = collectGameIdsFromJoinedParticipants(data as unknown[]);
+  const tally = new Map<string, number>();
+  for (const gid of gameIds) {
+    tally.set(gid, (tally.get(gid) ?? 0) + 1);
+  }
+  let max = 0;
+  for (const n of tally.values()) {
+    if (n > max) max = n;
+  }
+  return max;
+}
+
+/**
+ * 닉네임 변경 시각이 v2 히든 컷오프 이후인지 (둔갑술).
+ */
+export async function isNicknameChangedSinceV2Cutoff(memberId: string): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from('members_private')
+    .select('last_nickname_changed_at')
+    .eq('member_id', memberId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[hidden-titles] isNicknameChangedSinceV2Cutoff:', error.message);
+    return false;
+  }
+  const t = (data as { last_nickname_changed_at?: string | null } | null)?.last_nickname_changed_at;
+  if (!t) return false;
+  return t >= HIDDEN_TITLES_V2_START_AT;
+}
+

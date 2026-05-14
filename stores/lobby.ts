@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { RoomSummary } from '@/shared/types';
 
-export type TabFilter = 'all' | 'public' | 'private' | 'waiting' | 'playing';
+export type TabFilter = 'all' | 'rank' | 'public' | 'private' | 'waiting' | 'playing';
 export type SortBy = 'newest' | 'most-players' | 'least-players';
 
 interface LobbyState {
@@ -56,6 +56,9 @@ export const useLobbyStore = create<LobbyState>((set, get) => ({
     }
 
     switch (tabFilter) {
+      case 'rank':
+        filtered = filtered.filter((r) => r.isRanked === true);
+        break;
       case 'public':
         filtered = filtered.filter((r) => r.roomType === 'public');
         break;

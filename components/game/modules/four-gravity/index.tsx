@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
+import { useNicknameStore } from '@/stores/nickname';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
+import { GAME_IDS } from '@/shared/types/game';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
@@ -19,7 +21,9 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
+  const room = useRoomStore((s) => s.room);
   const isSpectator = useRoomStore((s) => s.isSpectator);
+  const nickname = useNicknameStore((s) => s.nickname);
 
   const gameData = gameState?.gameData as FourGravityGameData | undefined;
   const turnNumber = gameState?.turnNumber ?? 1;
@@ -27,6 +31,15 @@ export default function FourGravityGame() {
   const myId = useMySocketId();
 
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
+
+  const isSpecialSolo =
+    nickname === '천하' &&
+    room?.gameId === GAME_IDS.FOUR_GRAVITY &&
+    room?.playMode === 'solo';
+
+  const isAIMode = isSpecialSolo && !!gameData && (
+    gameData.players.black.id === 'AI' || gameData.players.white.id === 'AI'
+  );
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
   const { remaining: timerRemaining } = useTurnTimer();
@@ -172,6 +185,19 @@ export default function FourGravityGame() {
               onSelect={handleGravity}
               winner={gameData.winner}
             />
+
+            {isSpecialSolo && !gameData.winner && (
+              <Button
+                size="sm"
+                variant={isAIMode ? 'secondary' : 'ghost'}
+                disabled={!isAIMode && gameData.phase !== 'place'}
+                onClick={() => {
+                  getSocket().emit('game:four-gravity:toggle-ai', { ai: !isAIMode });
+                }}
+              >
+                {isAIMode ? '직접하기' : 'AI 쓰기'}
+              </Button>
+            )}
           </div>
 
           {/* 데스크탑: 정보 패널 */}

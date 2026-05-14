@@ -7,7 +7,7 @@ import { formatTime } from '@/lib/utils';
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '점수 우위',
   suspectCount: '의심 성공 횟수',
-  tiebreaker: '타이브레이커',
+  draw: '무승부',
   timeout: '시간 초과',
   abandon: '기권',
 };

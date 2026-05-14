@@ -2,6 +2,7 @@ import type { GameState } from '@shared/types/events.js';
 import type { BNW2GameData, BNW2PlayerInfo, BNW2RevealData } from '@shared/types/bnw2.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 import { BNW2_INITIAL_POINTS, BNW2_MAX_SCORE, REVEAL_DELAY_MS, WIN_DISPLAY_MS, calcBNW2Stage, calcBNW2Color } from './constants.js';
 import { judgeRound, autoSubmitPoints } from './judge.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -63,10 +64,10 @@ function buildRevealData(s: InternalState): BNW2RevealData | null {
 }
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameData {
-  const isReveal = s.phase === 'reveal' || s.phase === 'finished';
+  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
   const players: Record<string, BNW2PlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, socketId === s.player1.id),
-    [s.player2.id]: playerToInfo(s.player2, socketId === s.player2.id),
+    [s.player1.id]: playerToInfo(s.player1, socketId === s.player1.id || (purin && socketId === s.player2.id)),
+    [s.player2.id]: playerToInfo(s.player2, socketId === s.player2.id || (purin && socketId === s.player1.id)),
   };
   return {
     phase: s.phase,
@@ -145,6 +146,17 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
+    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+      const oppId = pid === s.player1.id ? s.player2.id : s.player1.id;
+      if (s.phase === 'reveal' || s.phase === 'finished') {
+        const last = s.actionLog[s.actionLog.length - 1];
+        const d = last?.players[oppId];
+        if (d) sock.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: d.nickname, color: d.color, points: d.points });
+      } else if (s.phase === 'secondSubmit' && s.firstPoints !== null && pid !== s.firstPlayerId) {
+        const fp = getFirstPlayer(s);
+        sock.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fp.nickname, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
+      }
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -155,6 +167,17 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
+  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+    const oppId = pid === s.player1.id ? s.player2.id : s.player1.id;
+    if (s.phase === 'reveal' || s.phase === 'finished') {
+      const last = s.actionLog[s.actionLog.length - 1];
+      const d = last?.players[oppId];
+      if (d) socket.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: d.nickname, color: d.color, points: d.points });
+    } else if (s.phase === 'secondSubmit' && s.firstPoints !== null && pid !== s.firstPlayerId) {
+      const fp = getFirstPlayer(s);
+      socket.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fp.nickname, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
+    }
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -462,6 +485,20 @@ export function handleBNW2Timeout(io: IO, s: InternalState) {
 }
 
 /* ────────── public helpers ────────── */
+
+export function getBNW2ResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  const p1 = s.player1;
+  const p2 = s.player2;
+  return {
+    winType: s.winType,
+    finalScores: { [p1.id]: p1.score, [p2.id]: p2.score },
+    finalPoints: { [p1.id]: p1.remainingPoints, [p2.id]: p2.remainingPoints },
+    actions: s.actionLog.map(logToRecord),
+    players: { [p1.id]: { nickname: p1.nickname }, [p2.id]: { nickname: p2.nickname } },
+  };
+}
 
 export function makePlayer(id: string, nickname: string): BNW2PlayerInternal {
   return {

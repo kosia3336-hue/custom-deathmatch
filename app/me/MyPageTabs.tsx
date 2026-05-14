@@ -8,6 +8,7 @@ const TABS: TabItem[] = [
   { id: 'logs', label: '게임 로그' },
   { id: 'stats', label: '전적' },
   { id: 'titles', label: '보유 칭호' },
+  { id: 'shop', label: '상점' },
   { id: 'support', label: '문의' },
   { id: 'settings', label: '설정' },
 ];

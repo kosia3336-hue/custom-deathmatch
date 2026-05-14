@@ -2,18 +2,18 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 
 /**
- * Next.js 16 Proxy — 세션 갱신 + 인증 가드.
+ * Next.js Middleware — 세션 갱신 + 인증 가드.
  *
  * 라우트 분류:
- *   - public       : 어디서든 접근 가능. /login, /auth/*, /signup/*, /banned, /api/*
+ *   - public       : 어디서든 접근 가능. /login, /auth/*, /signup/*, /banned, /api/*, /notice/*
  *   - signup-only  : 가입 미완료 회원만. /signup/agreement, /signup/profile
  *   - inquiry-only : 정지 회원도 접근 가능. /support/inquiry, /me/inquiries (정책상)
- *   - active-only  : 정상 회원만. 그 외 모든 페이지
+ *   - active-only  : 정상 회원만. 그 외 모든 페이지 (예: /shop, /me, /admin, /room, /game)
  *
  * 영구정지(banned) → /banned
  * 일시정지(suspended) → /suspended (단 /support/inquiry, /auth/signout 은 허용)
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Supabase 미설정 시 통과 (개발 초기)
@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 로비(/)와 랭킹(/ranking)은 로그인 없이도 볼 수 있다.
+  // 로비(/)와 랭킹(/ranking), 공지(/notice), 약관(/legal/*) 은 로그인 없이도 볼 수 있다.
   // 방 입장·마이페이지 등 로그인이 필요한 액션은 각 페이지/컴포넌트에서 /login 으로 보낸다.
   if (!user) {
     const isPublic =
@@ -47,6 +47,8 @@ export async function proxy(request: NextRequest) {
       pathname === '/suspended' ||
       pathname.startsWith('/legal/') ||
       pathname.startsWith('/ranking') ||
+      pathname.startsWith('/notice') ||
+      pathname.startsWith('/titles') ||
       pathname.startsWith('/support/inquiry');
 
     if (isPublic) return response;

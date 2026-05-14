@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Card } from '@/components/cdm/Card';
 import { Tag } from '@/components/cdm/Tag';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -23,6 +24,67 @@ interface GameRow {
 
 export default async function StatsTab({ memberId }: { memberId: string }) {
   const sb = await getServerSupabase();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = sb as any;
+
+  let rankBlock: ReactNode = null;
+  try {
+    const { data: season } = await db
+      .from('rank_seasons')
+      .select('id, name')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (season) {
+      const { data: rs } = await db
+        .from('rank_stats')
+        .select(
+          'tier, rp, placement_done, placement_games, win_streak, season_wins, season_losses, season_draws, season_peak_tier',
+        )
+        .eq('season_id', season.id)
+        .eq('member_id', memberId)
+        .maybeSingle();
+      if (rs) {
+        const row = rs as Record<string, unknown>;
+        const tierKo: Record<string, string> = {
+          unranked: '언랭',
+          bronze: '브론즈',
+          silver: '실버',
+          gold: '골드',
+          diamond: '다이아',
+        };
+        const tier = String(row.tier ?? 'unranked');
+        const peak = String(row.season_peak_tier ?? 'unranked');
+        const placementDone = Boolean(row.placement_done);
+        const pg = Number(row.placement_games ?? 0);
+        const ws = Number(row.win_streak ?? 0);
+        const sw = Number(row.season_wins ?? 0);
+        const sl = Number(row.season_losses ?? 0);
+        const sd = Number(row.season_draws ?? 0);
+        const rp = Number(row.rp ?? 0);
+        rankBlock = (
+          <Card variant="highlight" accent="accent">
+            <h2 className="text-sm font-semibold text-cdm-fg-muted">🏆 랭크 전적 ({season.name})</h2>
+            {!placementDone ? (
+              <p className="mt-2 text-sm text-cdm-fg">
+                배치전 진행 중 ({Math.min(5, pg)}/5) · 언랭
+              </p>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm text-cdm-fg">
+                <span className="font-semibold">{tierKo[tier] ?? tier}</span>
+                <span className="text-cdm-fg-muted">{rp} RP</span>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-cdm-fg-muted">
+              시즌 {sw + sl + sd}전 {sw}승 {sl}패{sd > 0 ? ` ${sd}무` : ''}
+              {placementDone && ws > 0 ? ` · 현재 ${ws}연승` : ''} · 최고 티어 {tierKo[peak] ?? peak}
+            </p>
+          </Card>
+        );
+      }
+    }
+  } catch {
+    /* 테이블 미구성 등 */
+  }
 
   const statsRes = await sb
     .from('member_game_stats')
@@ -46,10 +108,14 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
     { games: 0, wins: 0, losses: 0, draws: 0 },
   );
 
-  if (stats.length === 0) {
+  if (stats.length === 0 && !rankBlock) {
     return (
       <EmptyState title="아직 전적이 없어요" />
     );
+  }
+
+  if (stats.length === 0 && rankBlock) {
+    return <div className="flex flex-col gap-4">{rankBlock}</div>;
   }
 
   const rate = total.games > 0
@@ -60,6 +126,7 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {rankBlock}
       <Card variant="highlight" accent="primary">
         <div className="flex items-baseline gap-3 flex-wrap">
           <h2 className="text-sm font-semibold text-cdm-fg-muted">전체</h2>

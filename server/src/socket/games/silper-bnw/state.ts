@@ -12,11 +12,11 @@ import type {
 } from '@shared/types/silper-bnw.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 import {
   REMATCH_INTRO_MS,
   REVEAL_DELAY_MS,
   SBNW_INITIAL_TILES,
-  SBNW_MAX_REMATCH,
   SBNW_MAX_SCORE,
   SBNW_TOTAL_ROUNDS,
   SBNW_TOTAL_TILE_COUNT,
@@ -116,12 +116,21 @@ function maskedRevealSide(digits: number): SBNWRevealSide {
  * - 상대 카드: 타일/값 숨김(tilesUsed:[], valueStr:''), digits만 공개
  * - 관전자(viewerId=null): 양측 모두 숨김
  */
-function buildRevealData(s: InternalState, viewerId: string | null): SBNWRevealData | null {
+function buildRevealData(s: InternalState, viewerId: string | null, seeBothSides = false): SBNWRevealData | null {
   if (s.phase !== 'reveal' && s.phase !== 'finished' && s.phase !== 'rematchIntro') return null;
   if (!s.firstTiles || !s.secondTiles) return null;
   const last = s.actionLog[s.actionLog.length - 1] ?? null;
 
-  const firstIsViewer  = viewerId === s.firstPlayerId;
+  if (seeBothSides && viewerId != null) {
+    return {
+      firstPlayerId: s.firstPlayerId,
+      first: buildRevealSide(s.firstTiles),
+      second: buildRevealSide(s.secondTiles),
+      winnerId: last?.winnerId ?? null,
+    };
+  }
+
+  const firstIsViewer = viewerId === s.firstPlayerId;
   const secondIsViewer = viewerId != null && viewerId !== s.firstPlayerId;
 
   return {
@@ -177,7 +186,7 @@ function cloneSegmentSummaryFull(seg: SBNWSegmentSummary): SBNWSegmentSummary {
  * 라운드 기록을 뷰어 기준으로 복제한다.
  * 상대 플레이어의 tilesUsed / valueStr 는 숨긴다 (digits는 공개).
  */
-function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null): SBNWRoundRecord[] {
+function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null, seeBothSides = false): SBNWRoundRecord[] {
   return actionLog.map((log) => ({
     round: log.round,
     rematchIndex: log.rematchIndex,
@@ -185,7 +194,7 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
     winnerId: log.winnerId,
     players: Object.fromEntries(
       Object.entries(log.players).map(([pid, pd]) => {
-        const isSelf = viewerId === pid;
+        const isSelf = seeBothSides || viewerId === pid;
         return [
           pid,
           {
@@ -205,21 +214,22 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
   }));
 }
 
-function buildGameDataFor(s: InternalState, viewerId: string | null): SBNWGameData {
+function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsight = false): SBNWGameData {
   const isP1 = viewerId === s.player1.id;
   const isP2 = viewerId === s.player2.id;
+  const seeBothTiles = purinInsight && (isP1 || isP2);
   return {
     phase: s.phase,
     round: s.round,
     firstPlayerId: s.firstPlayerId,
     players: {
-      [s.player1.id]: playerToInfo(s.player1, isP1),
-      [s.player2.id]: playerToInfo(s.player2, isP2),
+      [s.player1.id]: playerToInfo(s.player1, isP1 || seeBothTiles),
+      [s.player2.id]: playerToInfo(s.player2, isP2 || seeBothTiles),
     },
     firstHint: s.firstDigits != null ? { digits: s.firstDigits } : null,
-    revealData: buildRevealData(s, viewerId),
-    roundHistory: cloneRoundHistory(s.actionLog, viewerId),
-    segmentsHistory: s.segmentsHistory.map((seg) => cloneSegmentSummary(seg, viewerId)),
+    revealData: buildRevealData(s, viewerId, seeBothTiles),
+    roundHistory: cloneRoundHistory(s.actionLog, viewerId, seeBothTiles),
+    segmentsHistory: s.segmentsHistory.map((seg) => cloneSegmentSummary(seg, viewerId, seeBothTiles)),
     rematchIndex: s.rematchIndex,
     finishReason: s.finishReason,
     winner: s.winner,
@@ -227,7 +237,7 @@ function buildGameDataFor(s: InternalState, viewerId: string | null): SBNWGameDa
   };
 }
 
-function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null): SBNWSegmentSummary {
+function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null, seeBothSides = false): SBNWSegmentSummary {
   return {
     rematchIndex: seg.rematchIndex,
     firstPlayerIdAtStart: seg.firstPlayerIdAtStart,
@@ -237,7 +247,7 @@ function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null): 
     ) as Record<string, Record<SBNWTile, number>>,
     resolution: seg.resolution,
     winnerId: seg.winnerId,
-    rounds: cloneRoundHistory(seg.rounds, viewerId),
+    rounds: cloneRoundHistory(seg.rounds, viewerId, seeBothSides),
   };
 }
 
@@ -266,7 +276,19 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = pid === s.player1.id || pid === s.player2.id;
-    const gameData = buildGameDataFor(s, isPlayer ? pid : null);
+    const purin = isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
+    const gameData = buildGameDataFor(s, isPlayer ? pid : null, purin);
+    if (purin) {
+      if (s.phase === 'reveal' || s.phase === 'finished') {
+        const opp = pid === s.player1.id ? s.player2 : s.player1;
+        const last = s.actionLog[s.actionLog.length - 1];
+        const d = last?.players[opp.id];
+        if (d) sock.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: opp.nickname, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+      } else if (s.phase === 'secondSubmit' && s.firstTiles && pid !== s.firstPlayerId) {
+        const fp = getFirstPlayer(s);
+        sock.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fp.nickname, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
+      }
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -274,7 +296,19 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
-  const gameData = buildGameDataFor(s, isPlayer ? pid : null);
+  const purin = isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
+  const gameData = buildGameDataFor(s, isPlayer ? pid : null, purin);
+  if (purin) {
+    if (s.phase === 'reveal' || s.phase === 'finished') {
+      const opp = pid === s.player1.id ? s.player2 : s.player1;
+      const last = s.actionLog[s.actionLog.length - 1];
+      const d = last?.players[opp.id];
+      if (d) socket.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: opp.nickname, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+    } else if (s.phase === 'secondSubmit' && s.firstTiles && pid !== s.firstPlayerId) {
+      const fp = getFirstPlayer(s);
+      socket.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fp.nickname, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
+    }
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -575,16 +609,10 @@ function endSegment(io: IO, s: InternalState) {
     return;
   }
 
-  // rematchNeeded
+  // rematchNeeded → 즉시 무승부 처리
   pushSegmentSummary(s, 'rematchNeeded', null);
-
-  if (s.rematchIndex + 1 > SBNW_MAX_REMATCH) {
-    s.finishReason = `최대 재대결 횟수(${SBNW_MAX_REMATCH}) 초과 — 무승부`;
-    resolveGame(io, s, null, '', null, '', 'draw');
-    return;
-  }
-
-  beginRematch(io, s);
+  s.finishReason = '점수·타일 모두 동일 — 무승부';
+  resolveGame(io, s, null, '', null, '', 'draw');
 }
 
 function beginRematch(io: IO, s: InternalState) {
@@ -832,6 +860,39 @@ export function handleSilperBnwTimeout(io: IO, s: InternalState) {
   } else if (s.phase === 'secondSubmit') {
     handleSecondTimeout(io, s);
   }
+}
+
+export function getSilperBnwResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  const p1 = s.player1;
+  const p2 = s.player2;
+  const totalRounds = s.segmentsHistory.reduce((sum, seg) => sum + seg.rounds.length, 0) + s.actionLog.length;
+  const allSegments: SBNWSegmentSummary[] = [...s.segmentsHistory];
+  const lastPushedRematch = s.segmentsHistory.at(-1)?.rematchIndex;
+  if (lastPushedRematch !== s.rematchIndex && s.actionLog.length > 0) {
+    allSegments.push({
+      rematchIndex: s.rematchIndex,
+      firstPlayerIdAtStart: s.actionLog[0]?.firstPlayerId ?? s.firstPlayerId,
+      finalScores: { [p1.id]: p1.score, [p2.id]: p2.score },
+      finalTiles: { [p1.id]: { ...p1.tiles }, [p2.id]: { ...p2.tiles } },
+      resolution: 'continuing' as SBNWSegmentResolution,
+      winnerId: null,
+      rounds: cloneRoundHistoryFull(s.actionLog),
+    });
+  }
+  return {
+    winType: s.winType,
+    winnerId: s.winner,
+    finalScores: { [p1.id]: p1.score, [p2.id]: p2.score },
+    finalTiles: { [p1.id]: { ...p1.tiles }, [p2.id]: { ...p2.tiles } },
+    totalRounds,
+    rematchCount: s.rematchIndex,
+    segmentsHistory: allSegments.map(cloneSegmentSummaryFull),
+    actions: cloneRoundHistoryFull(s.actionLog),
+    players: { [p1.id]: { nickname: p1.nickname }, [p2.id]: { nickname: p2.nickname } },
+    finishReason: s.finishReason,
+  };
 }
 
 /* ────────── leave ────────── */

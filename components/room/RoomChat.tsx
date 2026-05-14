@@ -78,7 +78,7 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
           placeholder="메시지 입력..."
           maxLength={200}
         />
-        <Button size="sm" onClick={send}>
+        <Button size="sm" onClick={send} className="shrink-0">
           전송
         </Button>
       </div>
@@ -94,7 +94,7 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
   );
 }
 
-function ChatBubble({
+export function ChatBubble({
   m,
   spectators,
   myNickname,

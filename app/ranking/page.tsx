@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { GNB } from '@/components/cdm/GNB';
 import { Card } from '@/components/cdm/Card';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -13,6 +14,8 @@ import {
   parsePageParam,
 } from '@/lib/pagination';
 import RankingTabs from './RankingTabs';
+import RankingBoardTabs from './RankingBoardTabs';
+import RankSeasonLeaderboard from './RankSeasonLeaderboard';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = {
@@ -29,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ game?: string; period?: string; page?: string }>;
+  searchParams: Promise<{ game?: string; period?: string; page?: string; board?: string; season?: string; tier?: string }>;
 }
 
 interface GameRow {
@@ -90,6 +93,29 @@ export default async function RankingPage({ searchParams }: Props) {
   const member = authState.kind === 'ACTIVE' ? authState.member : null;
 
   const sb = await getServerSupabase();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = sb as any;
+
+  const board = sp.board === 'game' ? 'game' : 'rank';
+
+  let seasons: { id: number; name: string; is_active: boolean | null }[] = [];
+  if (board === 'rank') {
+    const { data } = await db
+      .from('rank_seasons')
+      .select('id, name, is_active')
+      .order('id', { ascending: false });
+    seasons = (data ?? []) as typeof seasons;
+  }
+
+  let seasonIdNum: number | null = null;
+  if (board === 'rank' && seasons.length > 0) {
+    const parsed = sp.season ? Number(sp.season) : NaN;
+    if (!Number.isNaN(parsed) && seasons.some((s) => s.id === parsed)) {
+      seasonIdNum = parsed;
+    } else {
+      seasonIdNum = seasons.find((s) => s.is_active)?.id ?? seasons[0].id;
+    }
+  }
 
   const metaRes = await sb
     .from('games')
@@ -106,26 +132,28 @@ export default async function RankingPage({ searchParams }: Props) {
   let rankings: RankRow[] = [];
   let totalCount = 0;
 
-  try {
-    if (gameId) {
-      const data = await callRpc(sb, 'compute_ranking', {
-        p_game_id: gameId,
-        p_period: period,
-        p_limit: PAGE_SIZE,
-        p_offset: offset,
-      });
-      rankings = (data ?? []) as unknown as RankRow[];
-    } else if (meta.length > 0) {
-      const data = await callRpc(sb, 'compute_ranking_all', {
-        p_period: period,
-        p_limit: PAGE_SIZE,
-        p_offset: offset,
-      });
-      rankings = (data ?? []) as unknown as RankRow[];
+  if (board === 'game') {
+    try {
+      if (gameId) {
+        const data = await callRpc(sb, 'compute_ranking', {
+          p_game_id: gameId,
+          p_period: period,
+          p_limit: PAGE_SIZE,
+          p_offset: offset,
+        });
+        rankings = (data ?? []) as unknown as RankRow[];
+      } else if (meta.length > 0) {
+        const data = await callRpc(sb, 'compute_ranking_all', {
+          p_period: period,
+          p_limit: PAGE_SIZE,
+          p_offset: offset,
+        });
+        rankings = (data ?? []) as unknown as RankRow[];
+      }
+      totalCount = rankings.length > 0 ? rankings[0].total_count : 0;
+    } catch (e) {
+      console.error('[ranking] RPC error', e);
     }
-    totalCount = rankings.length > 0 ? rankings[0].total_count : 0;
-  } catch (e) {
-    console.error('[ranking] RPC error', e);
   }
 
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
@@ -139,60 +167,89 @@ export default async function RankingPage({ searchParams }: Props) {
           <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">랭킹</h1>
         </header>
 
-        <RankingTabs
-          games={meta.map((m) => ({ id: m.id, name: m.name }))}
-          activeGame={gameId || null}
-          activePeriod={period}
-        />
+        <Suspense fallback={<div className="mb-4 h-12 animate-pulse rounded-cdm-md bg-cdm-bg-elev-2" />}>
+          <RankingBoardTabs board={board} seasons={seasons} defaultSeasonId={seasonIdNum} />
+        </Suspense>
 
-        {range && (
-          <p className="mb-3 text-xs text-cdm-fg-muted">
-            기간: {formatKstDate(range.from)} ~ {formatKstDate(new Date(range.to.getTime() - 24 * 60 * 60 * 1000))} (KST)
-          </p>
+        {board === 'game' && (
+          <>
+            <RankingTabs
+              games={meta.map((m) => ({ id: m.id, name: m.name }))}
+              activeGame={gameId || null}
+              activePeriod={period}
+            />
+
+            {range && (
+              <p className="mb-3 text-xs text-cdm-fg-muted">
+                기간: {formatKstDate(range.from)} ~ {formatKstDate(new Date(range.to.getTime() - 24 * 60 * 60 * 1000))}{' '}
+                (KST)
+              </p>
+            )}
+
+            {rankings.length === 0 ? (
+              <EmptyState title="아직 집계된 랭킹이 없어요" />
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-cdm-fg-muted">
+                  총 {totalCount}명 · {page} / {totalPages} 페이지
+                </p>
+                {rankings.map((r) => {
+                  const isMe = member != null && r.member_id === member.id;
+                  return (
+                    <Card
+                      key={r.member_id}
+                      variant={isMe ? 'highlight' : 'default'}
+                      accent="primary"
+                      className="!p-3 flex items-center gap-3"
+                    >
+                      <span
+                        className={`w-10 text-center text-lg font-bold tabular-nums ${
+                          r.rank === 1
+                            ? 'text-cdm-highlight'
+                            : r.rank <= 3
+                              ? 'text-cdm-primary'
+                              : 'text-cdm-fg-muted'
+                        }`}
+                      >
+                        {r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          {r.title && (
+                            <TitleBadge name={r.title.name} color={r.title.color} size="sm" />
+                          )}
+                          <span className="truncate font-semibold text-cdm-fg">
+                            {r.nickname}
+                            {isMe && <span className="ml-1 text-xs text-cdm-fg-muted">(나)</span>}
+                          </span>
+                        </div>
+                        <p className="text-xs text-cdm-fg-muted">
+                          {r.total_games}판 · {r.wins}승 {r.draws}무 {r.total_games - r.wins - r.draws}패 · 승률{' '}
+                          {Math.round((r.win_rate ?? 0) * 1000) / 10}%
+                        </p>
+                      </div>
+                    </Card>
+                  );
+                })}
+                <RoutePagination totalPages={totalPages} />
+              </div>
+            )}
+          </>
         )}
 
-        {rankings.length === 0 ? (
-          <EmptyState
-            title="아직 집계된 랭킹이 없어요"
-          />
-        ) : (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-cdm-fg-muted">
-              총 {totalCount}명 · {page} / {totalPages} 페이지
-            </p>
-            {rankings.map((r) => {
-              const isMe = member != null && r.member_id === member.id;
-              return (
-                <Card
-                  key={r.member_id}
-                  variant={isMe ? 'highlight' : 'default'}
-                  accent="primary"
-                  className="!p-3 flex items-center gap-3"
-                >
-                  <span className={`w-10 text-center text-lg font-bold tabular-nums ${
-                    r.rank === 1 ? 'text-cdm-highlight' : r.rank <= 3 ? 'text-cdm-primary' : 'text-cdm-fg-muted'
-                  }`}>
-                    {r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {r.title && (
-                        <TitleBadge name={r.title.name} color={r.title.color} size="sm" />
-                      )}
-                      <span className="truncate font-semibold text-cdm-fg">
-                        {r.nickname}
-                        {isMe && <span className="ml-1 text-xs text-cdm-fg-muted">(나)</span>}
-                      </span>
-                    </div>
-                    <p className="text-xs text-cdm-fg-muted">
-                      {r.total_games}판 · {r.wins}승 {r.draws}무 {r.total_games - r.wins - r.draws}패 · 승률 {Math.round((r.win_rate ?? 0) * 1000) / 10}%
-                    </p>
-                  </div>
-                </Card>
-              );
-            })}
-            <RoutePagination totalPages={totalPages} />
-          </div>
+        {board === 'rank' && (
+          <>
+            {seasonIdNum == null ? (
+              <EmptyState title="랭크 시즌이 아직 없습니다" />
+            ) : (
+              <RankSeasonLeaderboard
+                seasonId={seasonIdNum}
+                page={page}
+                memberId={member?.id ?? null}
+                tierFilter={sp.tier ?? null}
+              />
+            )}
+          </>
         )}
       </main>
     </>

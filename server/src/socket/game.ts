@@ -8,10 +8,12 @@ import { sessions } from '../store/sessions.js';
 import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
-import { socketRoom } from './utils.js';
+import { socketRoom, maskedClientRoomForSocket, emitRoomStateToRoom } from './utils.js';
+import { getRoomShopState, cleanupRoomShopState } from '../shop/roomShopState.js';
+import { maskRankingForViewer } from '../shop/maskNicknames.js';
 import type { IO, TypedSocket } from './types.js';
-import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
-import { onGameEnd as hiddenOnGameEnd } from '../hidden-titles/hooks.js';
+import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
+import { persistGameEndLog } from './gameEndPersistence.js';
 import {
   clearPendingUndo,
   peekPendingUndo,
@@ -26,6 +28,8 @@ import {
   emitFourGravityStateToSocket,
   performFourGravityUndo,
   canFourGravityUndo,
+  handleFourGravityToggleAI,
+  getFourGravityResultData,
 } from './games/four-gravity/index.js';
 import {
   initDoubleSidedChess,
@@ -35,6 +39,7 @@ import {
   emitDoubleSidedChessStateToSocket,
   performDoubleSidedChessUndo,
   canDoubleSidedChessUndo,
+  getDoubleSidedChessResultData,
 } from './games/double-sided-chess/index.js';
 import {
   initNumberFour,
@@ -44,6 +49,7 @@ import {
   emitNumberFourStateToSocket,
   performNumberFourUndo,
   canNumberFourUndo,
+  getNumberFourResultData,
 } from './games/number4/index.js';
 import {
   initIndianPoker,
@@ -53,6 +59,7 @@ import {
   emitIndianPokerStateToSocket,
   performIndianPokerUndo,
   canIndianPokerUndo,
+  getIndianPokerResultData,
 } from './games/indian-poker/index.js';
 import {
   initInvestDonate,
@@ -62,6 +69,7 @@ import {
   emitInvestDonateStateToSocket,
   performInvestDonateUndo,
   canInvestDonateUndo,
+  getInvestDonateResultData,
 } from './games/invest-donate/index.js';
 import {
   initBettingRps,
@@ -71,6 +79,7 @@ import {
   emitBettingRpsStateToSocket,
   performBettingRpsUndo,
   canBettingRpsUndo,
+  getBettingRpsResultData,
 } from './games/betting-rps/index.js';
 import {
   initMultipleBnw,
@@ -80,6 +89,7 @@ import {
   emitMultipleBnwStateToSocket,
   performMultipleBnwUndo,
   canMultipleBnwUndo,
+  getMultipleBnwResultData,
 } from './games/multiple-bnw/index.js';
 import {
   initWinningStreak,
@@ -89,6 +99,7 @@ import {
   emitWinningStreakStateToSocket,
   performWinningStreakUndo,
   canWinningStreakUndo,
+  getWinningStreakResultData,
 } from './games/winning-streak/index.js';
 import {
   initBNW2,
@@ -98,6 +109,7 @@ import {
   emitBNW2StateToSocket,
   performBNW2Undo,
   canBNW2Undo,
+  getBNW2ResultData,
 } from './games/bnw2/index.js';
 import {
   initSilperBnw,
@@ -107,6 +119,7 @@ import {
   emitSilperBnwStateToSocket,
   performSilperBnwUndo,
   canSilperBnwUndo,
+  getSilperBnwResultData,
 } from './games/silper-bnw/index.js';
 import {
   initFiveTowers,
@@ -116,6 +129,7 @@ import {
   emitFiveTowersStateToSocket,
   performFiveTowersUndo,
   canFiveTowersUndo,
+  getFiveTowersResultData,
 } from './games/five-towers/index.js';
 import {
   initGrapeSugar2,
@@ -125,6 +139,7 @@ import {
   emitGrapeSugar2StateToSocket,
   performGS2Undo,
   canGrapeSugar2Undo,
+  getGrapeSugar2ResultData,
 } from './games/grape-sugar-2/index.js';
 import {
   initSunMoonStar2,
@@ -134,6 +149,7 @@ import {
   emitSunMoonStar2StateToSocket,
   performSunMoonStar2Undo,
   canSunMoonStar2Undo,
+  getSunMoonStar2ResultData,
 } from './games/sun-moon-star-2/index.js';
 import {
   initBankGame,
@@ -143,12 +159,53 @@ import {
   emitBankGameStateToSocket,
   performBankGameUndo,
   canBankGameUndo,
+  getBankGameResultData,
 } from './games/bank-game/index.js';
+import {
+  initBanPick,
+  handleBanPickBan,
+  handleBanPickReady,
+  cleanupBanPick,
+  getBanPickState,
+  emitBanPickStateToSocket,
+  canBanPickUndo,
+  performBanPickUndo,
+} from './games/ban-pick/index.js';
+import { saveRankBanPickLog } from '../db/rankBanLog.js';
+
+function launchPickedGame(
+  io: IO,
+  roomId: string,
+  pickedGameId: string,
+  pickedGameName: string,
+  players: Player[],
+  playMode: PlayMode,
+  endGameCallback: EndGameCallback,
+) {
+  const room = roomStore.get(roomId);
+  if (!room) return;
+
+  roomStore.setGameId(roomId, pickedGameId, pickedGameName);
+  roomStore.markFromBanPick(roomId);
+
+  // Initialise the real game first so game:state arrives before room:state
+  const gameModule = gameModules[pickedGameId];
+  if (gameModule) {
+    gameModule.init(io, roomId, players, playMode, Date.now(), room.timeLimitSeconds, endGameCallback, {});
+  }
+
+  emitRoomStateToRoom(io, roomId);
+}
 
 type EndGameCallback = (
   io: IO,
   roomId: string,
-  data: { rankings?: GameResult['rankings']; totalTurns?: number; gameResultData?: unknown },
+  data: {
+    rankings?: GameResult['rankings'];
+    totalTurns?: number;
+    gameResultData?: unknown;
+    endedByForfeit?: boolean;
+  },
 ) => void;
 
 interface GameModuleHandlers {
@@ -164,6 +221,7 @@ interface GameModuleHandlers {
   emitStateToSocket: (socket: TypedSocket, roomId: string) => void;
   performUndo: (io: IO, roomId: string) => boolean;
   canUndo: (roomId: string) => boolean;
+  getResultData?: (roomId: string) => unknown;
 }
 
 const gameModules: Record<string, GameModuleHandlers> = {
@@ -178,6 +236,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitFourGravityStateToSocket,
     performUndo: performFourGravityUndo,
     canUndo: canFourGravityUndo,
+    getResultData: getFourGravityResultData,
   },
   [GAME_IDS.DOUBLE_SIDED_CHESS]: {
     init: initDoubleSidedChess,
@@ -190,6 +249,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitDoubleSidedChessStateToSocket,
     performUndo: performDoubleSidedChessUndo,
     canUndo: canDoubleSidedChessUndo,
+    getResultData: getDoubleSidedChessResultData,
   },
   [GAME_IDS.NUMBER_FOUR]: {
     init: initNumberFour,
@@ -202,6 +262,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitNumberFourStateToSocket,
     performUndo: performNumberFourUndo,
     canUndo: canNumberFourUndo,
+    getResultData: getNumberFourResultData,
   },
   [GAME_IDS.INDIAN_POKER]: {
     init: initIndianPoker,
@@ -214,6 +275,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitIndianPokerStateToSocket,
     performUndo: performIndianPokerUndo,
     canUndo: canIndianPokerUndo,
+    getResultData: getIndianPokerResultData,
   },
   [GAME_IDS.INVEST_DONATE]: {
     init: initInvestDonate,
@@ -226,6 +288,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitInvestDonateStateToSocket,
     performUndo: performInvestDonateUndo,
     canUndo: canInvestDonateUndo,
+    getResultData: getInvestDonateResultData,
   },
   [GAME_IDS.BETTING_RPS]: {
     init: initBettingRps,
@@ -238,6 +301,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitBettingRpsStateToSocket,
     performUndo: performBettingRpsUndo,
     canUndo: canBettingRpsUndo,
+    getResultData: getBettingRpsResultData,
   },
   [GAME_IDS.MULTIPLE_BNW]: {
     init: initMultipleBnw,
@@ -250,6 +314,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitMultipleBnwStateToSocket,
     performUndo: performMultipleBnwUndo,
     canUndo: canMultipleBnwUndo,
+    getResultData: getMultipleBnwResultData,
   },
   [GAME_IDS.WINNING_STREAK]: {
     init: initWinningStreak,
@@ -262,6 +327,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitWinningStreakStateToSocket,
     performUndo: performWinningStreakUndo,
     canUndo: canWinningStreakUndo,
+    getResultData: getWinningStreakResultData,
   },
   [GAME_IDS.BNW2]: {
     init: initBNW2,
@@ -274,6 +340,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitBNW2StateToSocket,
     performUndo: performBNW2Undo,
     canUndo: canBNW2Undo,
+    getResultData: getBNW2ResultData,
   },
   [GAME_IDS.SILPER_BNW]: {
     init: initSilperBnw,
@@ -288,6 +355,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitSilperBnwStateToSocket,
     performUndo: performSilperBnwUndo,
     canUndo: canSilperBnwUndo,
+    getResultData: getSilperBnwResultData,
   },
   [GAME_IDS.FIVE_TOWERS]: {
     init: initFiveTowers,
@@ -300,6 +368,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitFiveTowersStateToSocket,
     performUndo: performFiveTowersUndo,
     canUndo: canFiveTowersUndo,
+    getResultData: getFiveTowersResultData,
   },
   [GAME_IDS.GRAPE_SUGAR_2]: {
     init: initGrapeSugar2,
@@ -312,6 +381,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitGrapeSugar2StateToSocket,
     performUndo: performGS2Undo,
     canUndo: canGrapeSugar2Undo,
+    getResultData: getGrapeSugar2ResultData,
   },
   [GAME_IDS.SUN_MOON_STAR_2]: {
     init: initSunMoonStar2,
@@ -324,6 +394,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitSunMoonStar2StateToSocket,
     performUndo: performSunMoonStar2Undo,
     canUndo: canSunMoonStar2Undo,
+    getResultData: getSunMoonStar2ResultData,
   },
   [GAME_IDS.BANK_GAME]: {
     init: initBankGame,
@@ -336,6 +407,37 @@ const gameModules: Record<string, GameModuleHandlers> = {
     emitStateToSocket: emitBankGameStateToSocket,
     performUndo: performBankGameUndo,
     canUndo: canBankGameUndo,
+    getResultData: getBankGameResultData,
+  },
+  [GAME_IDS.BAN_PICK]: {
+    init: (io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions) => {
+      initBanPick(io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions,
+        (pickedGameId, pickedGameName) => {
+          launchPickedGame(io, roomId, pickedGameId, pickedGameName, players, playMode, endGameCallback);
+        },
+        (banData) => {
+          const room = roomStore.get(roomId);
+          if (!room?.isRanked || room.rankSeasonId == null) return;
+          const firstPlayer = players[0];
+          const secondPlayer = players[1];
+          saveRankBanPickLog({
+            seasonId: room.rankSeasonId,
+            firstMemberId: firstPlayer?.memberId ?? null,
+            secondMemberId: secondPlayer?.memberId ?? null,
+            pickedGameId: banData.pickedGameId,
+            bannedGames: banData.bannedGames,
+          }).catch((err) => {
+            console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
+          });
+        },
+      );
+    },
+    handleAction: () => {},
+    cleanup: cleanupBanPick,
+    getState: getBanPickState,
+    emitStateToSocket: emitBanPickStateToSocket,
+    performUndo: performBanPickUndo,
+    canUndo: canBanPickUndo,
   },
 };
 
@@ -358,8 +460,7 @@ export function startGame(io: IO, roomId: string) {
 
   roomStore.setStatus(roomId, 'playing');
 
-  const clientRoom = roomStore.getClientRoom(roomId);
-  if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+  emitRoomStateToRoom(io, roomId);
 
   io.to(socketRoom(roomId)).emit('room:game:started');
 
@@ -407,6 +508,7 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
   if (!gameModule) return;
 
   const state = gameModule.getState(roomId);
+  const gameResultData = gameModule.getResultData?.(roomId);
   clearPendingUndo(roomId);
   gameModule.cleanup(roomId);
 
@@ -423,6 +525,8 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
           { playerId, nickname: leaverNickname, rank: 2, score: 0 },
         ],
         totalTurns: state.totalTurns,
+        endedByForfeit: true,
+        gameResultData,
       });
     }
   }
@@ -440,7 +544,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
-    const clientRoom = roomStore.getClientRoom(roomId);
+    const clientRoom = maskedClientRoomForSocket(roomId, socket);
     if (clientRoom) socket.emit('room:state', clientRoom);
 
     gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
@@ -459,9 +563,17 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
-    if (!room || room.status !== 'playing') return;
+    if (!room) return;
 
     const myId = getPlayerId(socket);
+
+    const isSpecialPostGame =
+      room.status === 'finished' &&
+      room.gameId === 'game-001' &&
+      room.playMode === 'solo' &&
+      room.players.some((p: Player) => p.nickname === '천하');
+
+    if (!isSpecialPostGame && room.status !== 'playing') return;
 
     if (!room.players.some((p: Player) => p.id === myId)) {
       socket.emit('error', { message: '플레이어만 무르기를 요청할 수 있습니다.' });
@@ -499,9 +611,39 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     }
 
     const ok = gameModule.performUndo(io, roomId);
+    if (ok && isSpecialPostGame) {
+      clearAutoEnd(roomId);
+      roomStore.setStatus(roomId, 'playing');
+      const clientRoom = roomStore.getClientRoom(roomId);
+      if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+    }
     if (!ok) {
       socket.emit('error', { message: '지금은 무를 수 있는 수가 없습니다.' });
     }
+  });
+
+  socket.on('banpick:ban', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleBanPickBan(io, socket, roomId, data.gameId);
+  });
+
+  socket.on('banpick:ready', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleBanPickReady(io, roomId, getPlayerId(socket));
+  });
+
+  socket.on('game:four-gravity:toggle-ai', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleFourGravityToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
   socket.on('game:undo:accept', (data) => {
@@ -566,6 +708,17 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     endGame(io, roomId);
   });
 
+  socket.on('game:resign', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing' || !room.isRanked) return;
+    const myId = getPlayerId(socket);
+    if (!room.players.some((p: Player) => p.id === myId)) return;
+    // forfeit 처리(game:ended 방송)만 하고 소켓 방은 유지 — 결과화면을 보여주기 위함
+    handleGameForfeit(io, roomId, myId);
+  });
+
   socket.on('game:rematch', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
@@ -588,7 +741,12 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 export function endGame(
   io: IO,
   roomId: string,
-  data?: { rankings?: GameResult['rankings']; totalTurns?: number; gameResultData?: unknown },
+  data?: {
+    rankings?: GameResult['rankings'];
+    totalTurns?: number;
+    gameResultData?: unknown;
+    endedByForfeit?: boolean;
+  },
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
@@ -616,28 +774,66 @@ export function endGame(
     playTime,
     totalTurns: data?.totalTurns ?? 0,
     ...(data?.gameResultData != null && { gameResultData: data.gameResultData }),
+    ...(data?.endedByForfeit === true && { endedByForfeit: true }),
   };
 
-  io.to(socketRoom(roomId)).emit('game:ended', result);
-  broadcastRoomUpdated(io, roomId);
-
-  // 게임 중 부여된 pending 칭호 알림을 각 플레이어에게 전달
-  for (const player of room.players) {
-    if (player.id === AI_PLAYER_ID) continue;
-    if (!sessions.hasPendingTitles(player.id)) continue;
-    const sid = sessions.getSocketByToken(player.id);
-    if (!sid) continue;
-    const sock = io.sockets.sockets.get(sid);
-    if (!sock) continue;
-    for (const notif of sessions.takePendingTitles(player.id)) {
-      sock.emit('title:granted', notif);
+  const emitEndedAndGrants = (payload: GameResult) => {
+    const shopState = getRoomShopState(roomId);
+    if (shopState && shopState.anonymizedTokens.size > 0) {
+      // viewer 시점별 마스킹: 본인은 원본, 다른 사람은 닉네임 ??? 처리
+      const sockets = io.sockets.adapter.rooms.get(socketRoom(roomId));
+      if (sockets) {
+        for (const sid of sockets) {
+          const viewerToken = sessions.getToken(sid) ?? null;
+          const masked: GameResult = {
+            ...payload,
+            rankings: maskRankingForViewer(roomId, payload.rankings, viewerToken),
+          };
+          io.sockets.sockets.get(sid)?.emit('game:ended', masked);
+        }
+      } else {
+        io.to(socketRoom(roomId)).emit('game:ended', payload);
+      }
+    } else {
+      io.to(socketRoom(roomId)).emit('game:ended', payload);
     }
-  }
 
-  // v2 — DB 적재 (멀티/COM/솔로 모두 로그는 저장. counts_for_stats는 multi만 true)
-  recordGameEndAsync(io, room, result).catch((err) => {
-    console.warn('[game:ended] record_game_end 실패:', (err as Error).message);
-  });
+    broadcastRoomUpdated(io, roomId);
+    for (const player of room.players) {
+      if (player.id === AI_PLAYER_ID) continue;
+      if (!sessions.hasPendingTitles(player.id)) continue;
+      const sid = sessions.getSocketByToken(player.id);
+      if (!sid) continue;
+      const sock = io.sockets.sockets.get(sid);
+      if (!sock) continue;
+      for (const notif of sessions.takePendingTitles(player.id)) {
+        sock.emit('title:granted', notif);
+      }
+    }
+  };
+
+  const shouldRankFinalize =
+    room.isRanked === true
+    && room.rankSeasonId != null
+    && room.playMode === 'multi'
+    && room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length === 2;
+
+  console.log(`[endGame] roomId=${roomId} gameId=${room.gameId} isRanked=${room.isRanked} seasonId=${room.rankSeasonId} playMode=${room.playMode} memberedPlayers=${room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length} shouldRankFinalize=${shouldRankFinalize}`);
+
+  if (shouldRankFinalize) {
+    const roomSnapshot = { ...room, players: [...room.players] };
+    void finalizeRankedMultiGameEnd(io, roomSnapshot, result)
+      .then((final) => emitEndedAndGrants(final))
+      .catch((err) => {
+        console.warn('[rank] finalizeRankedMultiGameEnd 실패:', (err as Error).message);
+        emitEndedAndGrants(result);
+      });
+  } else {
+    emitEndedAndGrants(result);
+    recordGameEndAsync(io, room, result).catch((err) => {
+      console.warn('[game:ended] record_game_end 실패:', (err as Error).message);
+    });
+  }
 
   const timer = setTimeout(() => {
     const r = roomStore.get(roomId);
@@ -654,6 +850,7 @@ export function endGame(
       });
       clearRoomStartCountdown(roomId);
       sessions.clearRoomFromAllKicks(roomId);
+      cleanupRoomShopState(roomId);
       roomStore.delete(roomId);
       broadcastRoomRemoved(io, roomId);
     }
@@ -675,88 +872,10 @@ export function clearGameStartTime(roomId: string) {
   gameStartTimes.delete(roomId);
 }
 
-/**
- * v2 — 게임 종료 시 DB 적재.
- * Supabase service_role 로 record_game_end RPC 호출.
- *  - mode = 'multi' / 'com' / 'solo' 모두 game_logs 적재
- *  - counts_for_stats = (mode === 'multi') 만 통계 반영 (RPC 안에서 처리)
- */
 async function recordGameEndAsync(io: IO, room: Room, result: GameResult): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-
-  const startedAt = result.playTime != null ? Date.now() - result.playTime : Date.now();
-  const playedAt = new Date(Date.now()).toISOString();
-
-  // participants 만들기 — Player.turnPosition (server toClientRoom이 채움) 직접 사용
-  // server 내부 Room (rooms.ts) 의 Player 는 turnPosition이 비어 있으니, players[i] 인덱스로 first/second 결정
-  const nonAiRankings = result.rankings.filter((r) => r.playerId !== AI_PLAYER_ID);
-  const isDraw = nonAiRankings.length > 1 && nonAiRankings.every((r) => r.rank === 1);
-
-  const participants = room.players.map((p, i) => {
-    const isAi = p.id === AI_PLAYER_ID;
-    const ranking = result.rankings.find((r) => r.playerId === p.id);
-    const position: 'first' | 'second' = i === 0 ? 'first' : 'second';
-    const isWinner = isDraw ? false : (ranking ? ranking.rank === 1 : null);
-    return {
-      member_id: isAi ? null : p.memberId ?? null,
-      position,
-      is_winner: isWinner,
-      is_draw: isDraw && !isAi,
-      is_resign: false,
-      nickname: isAi ? 'COM' : p.nickname,
-      title: p.displayedTitle ?? null,
-    };
-  });
-
-  const playMode = room.playMode;
-  const sb = getSupabaseAdmin();
-
-  const args = {
-    p_game_id: room.gameId,
-    p_mode: playMode,
-    p_room_snapshot: {
-      title: room.title,
-      gameName: room.gameName,
-      playMode,
-      maxPlayers: room.maxPlayers,
-      timeLimitSeconds: room.timeLimitSeconds,
-      gameOptions: room.gameOptions,
-    },
-    p_result: {
-      winner_position: participants.find((p) => p.is_winner)?.position ?? null,
-      rankings: result.rankings,
-      gameResultData: result.gameResultData,
-    },
-    p_play_time_seconds: Math.max(0, Math.floor(result.playTime / 1000)),
-    p_total_turns: result.totalTurns ?? 0,
-    p_game_record: result.gameResultData ?? {},
-    p_played_at: playedAt,
-    p_participants: participants,
-  };
-  void startedAt;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (sb.rpc as any)('record_game_end', args);
-  if (error) throw new Error(error.message);
-
-  // 히든 칭호 판정 훅 (fire-and-forget) — 멀티만 대상
-  const winners = participants
-    .filter((p) => p.is_winner === true && p.member_id)
-    .map((p) => p.member_id as string);
-  const losers = participants
-    .filter((p) => p.is_winner === false && !p.is_draw && p.member_id)
-    .map((p) => p.member_id as string);
-  const drawMembers = participants
-    .filter((p) => p.is_draw && p.member_id)
-    .map((p) => p.member_id as string);
-
-  hiddenOnGameEnd(io, {
-    isMulti: playMode === 'multi',
-    playedAt,
-    winners,
-    losers,
-    drawMembers,
-  }).catch((err) => {
-    console.warn('[game:ended] hidden-titles onGameEnd 실패:', (err as Error).message);
-  });
+  try {
+    await persistGameEndLog(io, room, result);
+  } catch (err) {
+    console.warn('[game:ended] record_game_end 실패:', (err as Error).message);
+  }
 }

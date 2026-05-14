@@ -251,3 +251,5 @@ export function canBettingRpsUndo(roomId: string): boolean {
   const partial = s.phase !== 'roleSelect';
   return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
 }
+
+export { getBettingRpsResultData } from './state.js';

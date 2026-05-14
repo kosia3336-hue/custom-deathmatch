@@ -10,6 +10,8 @@ interface PublicTitleCardProps {
   description: string | null;
   holderCount: number;
   isSystem: boolean;
+  /** 상점에서 현재 구매 가능한 칭호 */
+  purchasable?: boolean;
   onClick: () => void;
 }
 
@@ -23,6 +25,7 @@ export function PublicTitleCard({
   description,
   holderCount,
   isSystem,
+  purchasable = false,
   onClick,
 }: PublicTitleCardProps) {
   return (
@@ -35,15 +38,26 @@ export function PublicTitleCard({
       <Card variant="interactive" className="p-4! h-full flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <TitleBadge name={name} color={color} size="md" />
-          {isSystem && (
-            <span
-              className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"
-              aria-label="히든 시스템 칭호"
-              title="히든 시스템 칭호"
-            >
-              히든
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            {purchasable && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full border border-cdm-primary/40 bg-cdm-primary/10 px-2 py-px text-[10px] font-bold text-cdm-primary"
+                aria-label="상점에서 구매 가능"
+                title="상점에서 구매 가능"
+              >
+                🛒 구매 가능
+              </span>
+            )}
+            {isSystem && (
+              <span
+                className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"
+                aria-label="히든 시스템 칭호"
+                title="히든 시스템 칭호"
+              >
+                히든
+              </span>
+            )}
+          </div>
         </div>
         {description && (
           <p className="text-sm text-cdm-fg-muted line-clamp-3">{description}</p>

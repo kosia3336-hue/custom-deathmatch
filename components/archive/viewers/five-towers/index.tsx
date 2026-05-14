@@ -95,12 +95,12 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
   const [showFullLog, setShowFullLog] = useState(false);
 
   const playerIds = useMemo(
-    () => (gameRecord ? Object.keys(gameRecord.players) : []),
+    () => (gameRecord?.players ? Object.keys(gameRecord.players) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameRecord],
   );
   const playerNames = useMemo(() => {
-    if (!gameRecord) return {} as Record<string, string>;
+    if (!gameRecord?.players) return {} as Record<string, string>;
     const m: Record<string, string> = {};
     for (const [id, info] of Object.entries(gameRecord.players)) m[id] = info.nickname;
     return m;
@@ -117,7 +117,7 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
 
   // 각 액션 시점의 탑 누적 높이
   const actionHeights = useMemo(() => {
-    if (!gameRecord) return [];
+    if (!gameRecord?.actions) return [];
     const heights: Record<FTTower, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
     return gameRecord.actions.map((a) => {
       if ((a.kind === 'stack' || a.kind === 'item-secret') && a.tower && a.count) {
@@ -130,7 +130,8 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
 
   if (!gameRecord) return <p className="text-sm text-gray-500">기보 데이터가 없습니다.</p>;
 
-  const visibleActions = showFullLog ? gameRecord.actions : gameRecord.actions.slice(-30);
+  const actions = gameRecord.actions ?? [];
+  const visibleActions = showFullLog ? actions : actions.slice(-30);
   const visibleHeights = showFullLog ? actionHeights : actionHeights.slice(-30);
 
   const winnerNick =
@@ -241,13 +242,13 @@ export default function FiveTowersViewer({ record }: { record: GameRecordFile })
       <div className="rounded-xl border border-gray-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">액션 타임라인</h3>
-          {gameRecord.actions.length > 30 && (
+          {actions.length > 30 && (
             <button
               type="button"
               onClick={() => setShowFullLog((v) => !v)}
               className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
             >
-              {showFullLog ? '최근 30개만' : `전체 ${gameRecord.actions.length}개 보기`}
+              {showFullLog ? '최근 30개만' : `전체 ${actions.length}개 보기`}
             </button>
           )}
         </div>

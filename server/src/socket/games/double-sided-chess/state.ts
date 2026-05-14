@@ -478,3 +478,18 @@ export async function runAITurn(io: IO, roomId: string) {
     finishTurn(io, s);
   }
 }
+
+export function getDoubleSidedChessResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    finalBoard: s.board,
+    prisoners: s.prisoners,
+    actions: s.actionLog,
+    players: {
+      first: { nickname: s.firstPlayer.nickname },
+      second: { nickname: s.secondPlayer.nickname },
+    },
+  };
+}

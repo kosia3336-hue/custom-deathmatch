@@ -15,11 +15,12 @@ import {
   processFirstSubmit,
   processSecondSubmit,
   performSilperBnwUndo,
+  getSilperBnwResultData,
   startFirstSubmitTimer,
 } from './state.js';
 import { aiSubmitFirst, aiSubmitSecond } from './ai.js';
 
-export { performSilperBnwUndo, handleSilperBnwLeave };
+export { performSilperBnwUndo, handleSilperBnwLeave, getSilperBnwResultData };
 export type { EndGameFn };
 
 const ERROR_MESSAGES: Record<string, string> = {

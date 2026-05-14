@@ -2,18 +2,25 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
+import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { Button } from '@/components/cdm/Button';
 import { Countdown } from '@/components/cdm/Countdown';
+import { GAME_IDS } from '@/shared/types/game';
 import { Card } from '@/components/cdm/Card';
 import RoomChat from '@/components/room/RoomChat';
 import { VIEWER_MAP } from '@/components/archive/LogViewer';
 import GameLogView from '@/components/game/GameLogView';
+import { RankResultSection } from '@/components/game/RankResultSection';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
+import { useCurrentMember } from '@/hooks/useCurrentMember';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst';
+import { RANK_REJOIN_STORAGE_KEY } from '@/components/lobby/RankAutoJoinFromQuery';
 
 const AUTO_LEAVE_SEC = 120;
 
@@ -26,15 +33,57 @@ const AUTO_LEAVE_SEC = 120;
 export default function ResultLog() {
   const router = useRouter();
   const gameResult = useRoomStore((s) => s.gameResult);
+  const rankGameEnded = useRoomStore((s) => s.rankGameEnded);
   const room = useRoomStore((s) => s.room);
+  const isSpectator = useRoomStore((s) => s.isSpectator);
+  const { member } = useCurrentMember();
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [cancelled, setCancelled] = useState(false);
+  const nickname = useNicknameStore((s) => s.nickname);
+  const [queueClock, setQueueClock] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setQueueClock((n) => n + 1), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const rankQueueOpenNow = isRankQueueOpen();
+  const rankQueueCanJoinNow = isRankQueueAcceptingNewJoins();
+
+  const isSpecialSolo =
+    nickname === '천하' &&
+    room?.gameId === GAME_IDS.FOUR_GRAVITY &&
+    room?.playMode === 'solo';
 
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
     router.push('/');
   }, [router]);
+
+  const handleRankRequeue = useCallback(() => {
+    if (!member) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    if (!isRankQueueOpen()) {
+      toast.error('랭크 운영 시간이 아닙니다. (평일 21:00~익일 01:00 KST / 주말 24시간)');
+      return;
+    }
+    if (!isRankQueueAcceptingNewJoins()) {
+      toast.error('운영 종료 1분 전입니다. 새 랭크 매칭을 시작할 수 없습니다.');
+      return;
+    }
+    try {
+      sessionStorage.setItem(RANK_REJOIN_STORAGE_KEY, '1');
+    } catch {
+      toast.error('브라우저 저장소를 사용할 수 없어 자동 매칭을 시작할 수 없습니다.');
+      return;
+    }
+    getSocket().emit('game:leave');
+    useRoomStore.getState().reset();
+    router.push('/');
+  }, [member, router]);
 
   const handleRematch = useCallback(() => {
     if (!room) return;
@@ -58,6 +107,25 @@ export default function ResultLog() {
   }, [setHeaderRight, handleLobby]);
 
   useEffect(() => {
+    if (!isSpecialSolo) return;
+    const socket = getSocket();
+    const handleGameState = () => {
+      useRoomStore.getState().setGameResult(null);
+      router.push(`/room/${room?.id}/play`);
+    };
+    socket.on('game:state', handleGameState);
+    return () => { socket.off('game:state', handleGameState); };
+  }, [isSpecialSolo, room?.id, router]);
+
+  useEffect(() => {
+    const showRankRequeue =
+      !!gameResult
+      && gameResult.isRanked === true
+      && room?.isRanked === true
+      && room.playMode === 'multi'
+      && !isSpectator
+      && !!member;
+
     setFooter(
       <>
         {!cancelled && (
@@ -66,12 +134,50 @@ export default function ResultLog() {
             <span>후 자동 이동</span>
           </span>
         )}
-        <Button onClick={handleRematch}>다시하기</Button>
+        {isSpecialSolo && (
+          <Button
+            variant="secondary"
+            onClick={() => { getSocket().emit('game:undo:request'); }}
+          >
+            무르기
+          </Button>
+        )}
+        {showRankRequeue && (
+          <Button
+            variant="secondary"
+            disabled={!rankQueueCanJoinNow}
+            title={
+              rankQueueCanJoinNow
+                ? '로비로 이동 후 랭크 매칭을 다시 시작합니다'
+                : rankQueueOpenNow
+                  ? '운영 종료 1분 전에는 새 매칭을 시작할 수 없습니다'
+                  : '평일 21:00~01:00 KST / 주말 24시간'
+            }
+            onClick={handleRankRequeue}
+          >
+            다시 큐
+          </Button>
+        )}
+        {!room?.isRanked && <Button onClick={handleRematch}>다시하기</Button>}
         <Button variant="secondary" onClick={handleLobby}>로비로</Button>
       </>,
     );
     return () => setFooter(null);
-  }, [setFooter, cancelled, handleRematch, handleLobby]);
+  }, [
+    setFooter,
+    cancelled,
+    isSpecialSolo,
+    handleRematch,
+    handleLobby,
+    handleRankRequeue,
+    gameResult,
+    room,
+    isSpectator,
+    member,
+    rankQueueOpenNow,
+    rankQueueCanJoinNow,
+    queueClock,
+  ]);
 
   if (!gameResult) {
     return (
@@ -121,6 +227,17 @@ export default function ResultLog() {
 
   // archive viewer용 GameRecordFile
   const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
+  const myRankOutcome =
+    gameResult.isRanked === true
+    && gameResult.rankOutcome
+    && !isSpectator
+    && member
+      ? gameResult.rankOutcome.players.find((p) => p.memberId === member.id)
+      : undefined;
+
+  const rankEndedMatch =
+    rankGameEnded && rankGameEnded.roomId === gameResult.roomId ? rankGameEnded : null;
+
   const record: GameRecordFile | null = room
     ? {
         version: '2',
@@ -153,6 +270,10 @@ export default function ResultLog() {
         record={Viewer && record ? record : null}
         viewingAs="self"
       />
+
+      {myRankOutcome ? (
+        <RankResultSection outcome={myRankOutcome} rankEnded={rankEndedMatch} />
+      ) : null}
 
       {/* 결과 채팅 (멀티 모드만) */}
       {room?.playMode === 'multi' && (

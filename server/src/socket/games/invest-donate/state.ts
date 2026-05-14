@@ -12,6 +12,7 @@ import type {
 } from './types.js';
 import { judgeInvest, judgeDonate, coinValue, coinAdd, coinSubtract, stockTotal } from './judge.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -77,10 +78,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): InvestDonat
   const isP1 = socketId === s.player1.id;
   const isP2 = socketId === s.player2.id;
   const isReveal = s.phase === 'reveal' || s.phase === 'finished';
+  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
 
   const players: Record<string, IDPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, isReveal || isP1),
-    [s.player2.id]: playerToInfo(s.player2, isReveal || isP2),
+    [s.player1.id]: playerToInfo(s.player1, isReveal || isP1 || (purin && isP2)),
+    [s.player2.id]: playerToInfo(s.player2, isReveal || isP2 || (purin && isP1)),
   };
 
   return {
@@ -138,6 +140,16 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
+    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+      const opp = pid === s.player1.id ? s.player2 : s.player1;
+      if ((s.phase === 'reveal' || s.phase === 'finished') && s.roundHistory.length > 0) {
+        const last = s.roundHistory[s.roundHistory.length - 1];
+        const d = last.players[opp.id];
+        if (d) sock.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: opp.nickname, investCoins: d.investCoins, donateCoins: d.donateCoins });
+      } else if (s.phase === 'submit' && opp.submitted && opp.investCoins && opp.donateCoins) {
+        sock.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: opp.nickname, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
+      }
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -148,6 +160,16 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
+  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+    const opp = pid === s.player1.id ? s.player2 : s.player1;
+    if ((s.phase === 'reveal' || s.phase === 'finished') && s.roundHistory.length > 0) {
+      const last = s.roundHistory[s.roundHistory.length - 1];
+      const d = last.players[opp.id];
+      if (d) socket.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: opp.nickname, investCoins: d.investCoins, donateCoins: d.donateCoins });
+    } else if (s.phase === 'submit' && opp.submitted && opp.investCoins && opp.donateCoins) {
+      socket.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: opp.nickname, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
+    }
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -400,7 +422,7 @@ export function processRound(io: IO, s: InternalState) {
   const p2Dead = p2.score === 0;
 
   if (p1Dead && p2Dead) {
-    handleRematch(io, s, '양 플레이어 동시 탈락');
+    resolveDraw(io, s);
     return;
   }
   if (p1Dead) {
@@ -427,7 +449,7 @@ export function processRound(io: IO, s: InternalState) {
       delayedResolve(io, s, wId, lId, 'tiebreaker');
       return;
     }
-    handleRematch(io, s, '승점과 보유 코인이 동일');
+    resolveDraw(io, s);
     return;
   }
 
@@ -448,16 +470,40 @@ function delayedResolve(io: IO, s: InternalState, winnerId: string, loserId: str
   }, REVEAL_DELAY_MS);
 }
 
-function handleRematch(io: IO, s: InternalState, reason: string) {
-  s.rematchReason = reason;
-  broadcastState(io, s);
-
+function resolveDraw(io: IO, s: InternalState) {
   const gen = s.aiGeneration;
   setTimeout(() => {
     if (!gameStates.has(s.roomId) || s.aiGeneration !== gen) return;
-    resetGame(s);
-    startRoundTimer(io, s);
+    s.winner = null;
+    s.winType = 'draw';
+    s.gameOver = true;
+    s.phase = 'finished';
     broadcastState(io, s);
+
+    const payload = {
+      rankings: [
+        { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
+        { playerId: s.player2.id, nickname: s.player2.nickname, rank: 1, score: s.player2.score },
+      ],
+      totalTurns: s.round,
+      gameResultData: {
+        winType: 'draw' as const,
+        finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+        finalCoinStocks: { [s.player1.id]: s.player1.coinStock, [s.player2.id]: s.player2.coinStock },
+        totalRounds: s.round,
+        actions: s.actionLog,
+        players: {
+          [s.player1.id]: { nickname: s.player1.nickname },
+          [s.player2.id]: { nickname: s.player2.nickname },
+        },
+      },
+    };
+
+    setTimeout(() => {
+      if (!gameStates.has(s.roomId)) return;
+      gameStates.delete(s.roomId);
+      s.endGameCallback(io, s.roomId, payload);
+    }, WIN_DISPLAY_MS);
   }, REVEAL_DELAY_MS);
 }
 
@@ -499,4 +545,20 @@ export function advanceRound(io: IO, s: InternalState) {
 
   startRoundTimer(io, s);
   broadcastState(io, s);
+}
+
+export function getInvestDonateResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+    finalCoinStocks: { [s.player1.id]: s.player1.coinStock, [s.player2.id]: s.player2.coinStock },
+    totalRounds: s.round,
+    actions: s.actionLog,
+    players: {
+      [s.player1.id]: { nickname: s.player1.nickname },
+      [s.player2.id]: { nickname: s.player2.nickname },
+    },
+  };
 }

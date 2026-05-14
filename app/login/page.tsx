@@ -38,10 +38,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <a href="/legal/privacy" className="hover:text-cdm-fg">
             개인정보처리방침
           </a>
-          <span aria-hidden>·</span>
-          <a href="/support/inquiry" className="hover:text-cdm-fg">
-            문의
-          </a>
         </nav>
       </div>
     </main>

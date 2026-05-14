@@ -7,6 +7,37 @@ export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: TypedSocket | null = null;
 
+/** SSR/프리렌더 시 `io()`·`window`를 쓰지 않는 no-op 소켓 (이벤트는 클라이언트에서만 구독) */
+let ssrSocketStub: TypedSocket | null = null;
+
+function getSsrSocketStub(): TypedSocket {
+  if (ssrSocketStub) return ssrSocketStub;
+  const stub = {
+    id: '',
+    connected: false,
+    disconnected: true,
+    auth: {},
+    connect(): TypedSocket {
+      return stub as unknown as TypedSocket;
+    },
+    disconnect() {},
+    on(): TypedSocket {
+      return stub as unknown as TypedSocket;
+    },
+    once(): TypedSocket {
+      return stub as unknown as TypedSocket;
+    },
+    off(): TypedSocket {
+      return stub as unknown as TypedSocket;
+    },
+    emit(): TypedSocket {
+      return stub as unknown as TypedSocket;
+    },
+  };
+  ssrSocketStub = stub as unknown as TypedSocket;
+  return ssrSocketStub;
+}
+
 /** localStorage 사용 불가 환경(시크릿 모드 등)에서 세션 유지용 모듈-레벨 캐시 */
 let fallbackToken: string | null = null;
 
@@ -39,6 +70,9 @@ async function getCurrentAccessToken(): Promise<string | null> {
 }
 
 export function getSocket(): TypedSocket {
+  if (typeof window === 'undefined') {
+    return getSsrSocketStub();
+  }
   if (!socket) {
     const url = process.env.NEXT_PUBLIC_SOCKET_URL ?? '';
     socket = io(url, {
@@ -56,6 +90,8 @@ export function getSocket(): TypedSocket {
       const token = getOrCreateSessionToken();
       socket!.emit('session:restore', { token });
     });
+
+    (window as unknown as Record<string, unknown>)['__s'] = socket;
   }
   return socket;
 }

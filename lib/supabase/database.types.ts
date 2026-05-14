@@ -5,6 +5,10 @@
  * v2 시작 시점에는 17_database_schema.md 기반으로 직접 정의한다.
  */
 
+import type { RankTier } from '../../shared/types/rank';
+
+export type { RankTier };
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 // ──────────────────────────────────────────────
@@ -34,11 +38,20 @@ export type NotificationKind =
   | 'misc';
 export type AdminTargetKind =
   | 'member' | 'title' | 'member_title'
-  | 'report' | 'inquiry' | 'agreement' | 'word' | 'notice';
+  | 'report' | 'inquiry' | 'agreement' | 'word' | 'notice'
+  | 'rank_stats'
+  | 'member_cdp' | 'shop_item' | 'shop_purchase' | 'shop_consumable';
 export type BannedWordScope = 'nickname' | 'chat' | 'both';
 
 // v2.7 (20번 문서: 공지사항)
 export type NoticeCategory = 'general' | 'maintenance' | 'update' | 'event' | 'urgent';
+
+// CDP Shop v2 — 소모성 아이템 종류
+export type ConsumableKind =
+  | 'nickname_change'
+  | 'rank_reset'
+  | 'spectator_lock'
+  | 'anonymity';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입
@@ -143,6 +156,7 @@ export interface GameLogParticipantRow {
   is_resign: boolean;
   nickname_snapshot: string;
   title_snapshot: { id: string; name: string; color: TitleColor } | null;
+  anonymized: boolean;
 }
 
 export interface MemberGameStatsRow {
@@ -275,6 +289,140 @@ export interface NoticeRow {
   created_at: string;
 }
 
+export interface RankSeasonRow {
+  id: number;
+  name: string;
+  started_at: string;
+  ended_at: string | null;
+  is_active: boolean;
+}
+
+export interface RankStatsRow {
+  id: string;
+  season_id: number;
+  member_id: string;
+  tier: RankTier;
+  rp: number;
+  win_streak: number;
+  loss_streak: number;
+  placement_done: boolean;
+  placement_games: number;
+  placement_wins: number;
+  season_wins: number;
+  season_losses: number;
+  season_draws: number;
+  season_peak_tier: RankTier;
+  season_final_tier: RankTier | null;
+  updated_at: string;
+}
+
+export interface RankMatchHistoryRow {
+  id: string;
+  season_id: number;
+  game_log_id: string | null;
+  winner_id: string;
+  winner_tier: string;
+  winner_rp_before: number;
+  winner_rp_gain: number;
+  winner_rp_after: number;
+  winner_promoted: boolean;
+  loser_id: string;
+  loser_tier: string;
+  loser_rp_before: number;
+  loser_rp_loss: number;
+  loser_rp_after: number;
+  loser_demoted: boolean;
+  game_id: string;
+  is_forfeit: boolean;
+  played_at: string;
+}
+
+// ──────────────────────────────────────────────
+// CDP Shop System (member_cdp / cdp_ledger / shop_items / shop_purchases)
+// ──────────────────────────────────────────────
+
+export type CdpReason =
+  | 'rank_win' | 'rank_loss' | 'rank_draw' | 'rank_win_forfeit'
+  | 'shop_purchase' | 'admin_adjust';
+
+export type CdpRefKind = 'rank_match' | 'shop_purchase' | 'admin_action';
+
+export interface MemberCdpRow {
+  member_id: string;
+  balance: number;
+  total_earned: number;
+  total_spent: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CdpLedgerRow {
+  id: string;
+  member_id: string;
+  delta: number;
+  balance_after: number;
+  reason: string;
+  ref_kind: string;
+  ref_id: string | null;
+  metadata: Json;
+  created_at: string;
+}
+
+export interface ShopItemRow {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  price: number;
+  payload: Json;
+  stock: number | null;
+  is_active: boolean;
+  is_limited: boolean;
+  available_from: string | null;
+  available_until: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface ShopPurchaseRow {
+  id: string;
+  member_id: string;
+  item_id: string;
+  price_paid: number;
+  payload_snapshot: Json;
+  name_snapshot: string;
+  type_snapshot: string;
+  purchased_at: string;
+}
+
+// CDP Shop v2 — 소모성 인벤토리 / 사용 로그 / 조정 로그
+export interface ShopConsumableInventoryRow {
+  member_id: string;
+  kind: string;
+  count: number;
+  updated_at: string;
+}
+
+export interface ShopConsumableUsesRow {
+  id: string;
+  member_id: string;
+  kind: string;
+  ref_kind: string;
+  ref_id: string;
+  metadata: Json;
+  used_at: string;
+}
+
+export interface ShopConsumableInventoryLogRow {
+  purchase_id: string;
+  member_id: string;
+  kind: string;
+  delta: number;
+  applied_at: string;
+}
+
 // ──────────────────────────────────────────────
 // Database 타입 (Supabase 클라이언트 제네릭)
 // ──────────────────────────────────────────────
@@ -300,6 +448,56 @@ export interface Database {
       games: { Row: GameRow; Insert: Omit<GameRow, 'created_at'> & { created_at?: string }; Update: Partial<GameRow> };
       banned_words: { Row: BannedWordRow; Insert: Omit<BannedWordRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<BannedWordRow> };
       notices: { Row: NoticeRow; Insert: Partial<NoticeRow> & { title: string; body: string }; Update: Partial<NoticeRow> };
+      rank_seasons: {
+        Row: RankSeasonRow;
+        Insert: Omit<RankSeasonRow, 'id'> & { id?: number };
+        Update: Partial<RankSeasonRow>;
+      };
+      rank_stats: {
+        Row: RankStatsRow;
+        Insert: Omit<RankStatsRow, 'id' | 'updated_at'> & { id?: string; updated_at?: string };
+        Update: Partial<RankStatsRow>;
+      };
+      rank_match_history: {
+        Row: RankMatchHistoryRow;
+        Insert: Omit<RankMatchHistoryRow, 'id' | 'played_at'> & { id?: string; played_at?: string };
+        Update: Partial<RankMatchHistoryRow>;
+      };
+      member_cdp: {
+        Row: MemberCdpRow;
+        Insert: Partial<MemberCdpRow> & { member_id: string };
+        Update: Partial<MemberCdpRow>;
+      };
+      cdp_ledger: {
+        Row: CdpLedgerRow;
+        Insert: Omit<CdpLedgerRow, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<CdpLedgerRow>;
+      };
+      shop_items: {
+        Row: ShopItemRow;
+        Insert: Partial<ShopItemRow> & { type: string; name: string; price: number };
+        Update: Partial<ShopItemRow>;
+      };
+      shop_purchases: {
+        Row: ShopPurchaseRow;
+        Insert: Omit<ShopPurchaseRow, 'id' | 'purchased_at'> & { id?: string; purchased_at?: string };
+        Update: Partial<ShopPurchaseRow>;
+      };
+      shop_consumable_inventory: {
+        Row: ShopConsumableInventoryRow;
+        Insert: Omit<ShopConsumableInventoryRow, 'updated_at'> & { updated_at?: string };
+        Update: Partial<ShopConsumableInventoryRow>;
+      };
+      shop_consumable_uses: {
+        Row: ShopConsumableUsesRow;
+        Insert: Omit<ShopConsumableUsesRow, 'id' | 'used_at'> & { id?: string; used_at?: string };
+        Update: Partial<ShopConsumableUsesRow>;
+      };
+      shop_consumable_inventory_log: {
+        Row: ShopConsumableInventoryLogRow;
+        Insert: Omit<ShopConsumableInventoryLogRow, 'applied_at'> & { applied_at?: string };
+        Update: Partial<ShopConsumableInventoryLogRow>;
+      };
     };
     Views: {
       public_member_titles: { Row: { member_id: string; title_id: string; granted_at: string } };
@@ -352,6 +550,9 @@ export interface Database {
       };
       member_reply_inquiry: { Args: { p_id: string; p_body: string }; Returns: void };
 
+      /** 공지 상세 조회 기록 (유레카 히든 트리거용) */
+      record_notice_read: { Args: { p_notice_id: string }; Returns: void };
+
       // 게임 종료 (서버 전용)
       record_game_end: {
         Args: {
@@ -366,6 +567,38 @@ export interface Database {
           p_participants: Json;
         };
         Returns: string;
+      };
+
+      /** 랭크 리더보드 (배치 완료·언랭 제외) */
+      get_rank_leaderboard: {
+        Args: { p_season_id: number; p_limit?: number };
+        Returns: Array<{
+          rank_position: number;
+          member_id: string;
+          nickname: string;
+          title_name: string | null;
+          title_color: TitleColor | null;
+          tier: RankTier;
+          rp: number;
+          season_wins: number;
+          season_losses: number;
+          is_challenger: boolean;
+        }>;
+      };
+      /** 시즌 종료 + 해당 시즌 플레이어 랭크 리셋 (service_role) */
+      admin_end_season: { Args: { p_season_id: number }; Returns: void };
+      /** 새 시즌 시작 — 진행 중 시즌 없을 때만 (service_role) */
+      admin_start_season: { Args: { p_name?: string | null }; Returns: number };
+      /** 관리자 RP 상대 조정 (service_role). 감사 로그 기록 */
+      admin_adjust_rank_rp: {
+        Args: {
+          p_actor_id: string;
+          p_member_id: string;
+          p_season_id: number;
+          p_delta: number;
+          p_reason: string;
+        };
+        Returns: void;
       };
 
       // 랭킹
@@ -497,6 +730,108 @@ export interface Database {
           nickname: string;
           granted_at: string;
         }>;
+      };
+
+      // CDP Shop System
+      grant_cdp_for_rank_match: {
+        Args: {
+          p_member_id: string;
+          p_rank_match_id: string;
+          p_amount: number;
+          p_reason: 'rank_win' | 'rank_loss' | 'rank_draw' | 'rank_win_forfeit';
+          p_metadata?: Json;
+        };
+        Returns: Array<{ inserted: boolean; new_balance: number }>;
+      };
+      purchase_shop_item: {
+        Args: { p_member_id: string; p_item_id: string };
+        Returns: Array<{
+          purchase_id: string;
+          new_balance: number;
+          price_paid: number;
+          price_original: number;
+          discount_applied: number;
+          stock_after: number | null;
+          granted_title_id: string | null;
+          consumable_kind: string | null;
+          consumable_added: number;
+        }>;
+      };
+      admin_adjust_cdp: {
+        Args: {
+          p_actor_id: string;
+          p_member_id: string;
+          p_delta: number;
+          p_reason: string;
+        };
+        Returns: Array<{ new_balance: number; applied_delta: number; clamped: boolean }>;
+      };
+      admin_create_shop_item: {
+        Args: {
+          p_actor_id: string;
+          p_type: string;
+          p_name: string;
+          p_description: string;
+          p_price: number;
+          p_payload: Json;
+          p_stock: number | null;
+          p_is_active: boolean;
+          p_is_limited: boolean;
+          p_available_from: string | null;
+          p_available_until: string | null;
+          p_sort_order: number;
+        };
+        Returns: string;
+      };
+      admin_update_shop_item: {
+        Args: {
+          p_actor_id: string;
+          p_item_id: string;
+          p_name: string;
+          p_description: string;
+          p_price: number;
+          p_payload: Json;
+          p_stock: number | null;
+          p_is_limited: boolean;
+          p_available_from: string | null;
+          p_available_until: string | null;
+          p_sort_order: number;
+        };
+        Returns: void;
+      };
+      admin_set_shop_item_active: {
+        Args: { p_actor_id: string; p_item_id: string; p_active: boolean };
+        Returns: void;
+      };
+
+      // CDP Shop v2 — 소모성 / 거상 / 칭호 추가
+      use_consumable: {
+        Args: {
+          p_member_id: string;
+          p_kind: ConsumableKind | string;
+          p_ref_kind: string;
+          p_ref_id: string;
+          p_metadata?: Json;
+        };
+        Returns: Array<{ used: boolean; count_after: number; use_id: string | null }>;
+      };
+      change_nickname_with_ticket: {
+        Args: { p_new_nick: string; p_use_ticket?: boolean };
+        Returns: Array<{ used_ticket: boolean; ticket_count_after: number }>;
+      };
+      use_rank_reset_ticket: {
+        Args: { p_member_id: string; p_season_id: number };
+        Returns: Array<{ success: boolean; used_count_in_season: number; ticket_count_after: number }>;
+      };
+      admin_grant_consumable: {
+        Args: {
+          p_actor_id: string;
+          p_member_id: string;
+          p_kind: ConsumableKind | string;
+          p_delta: number;
+          p_reason: string;
+        };
+        Returns: Array<{ count_after: number; applied_delta: number; clamped: boolean }>;
       };
     };
     Enums: {

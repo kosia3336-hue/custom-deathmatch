@@ -62,7 +62,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       disabled={isDisabled}
       data-loading={loading ? 'true' : undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-semibold transition-colors duration-(--cdm-duration-fast)',
+        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-semibold whitespace-nowrap transition-colors duration-(--cdm-duration-fast)',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         VARIANT[variant],
         SIZE[size],

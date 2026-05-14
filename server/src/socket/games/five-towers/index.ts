@@ -16,10 +16,11 @@ import {
   makeTowers,
   performFiveTowersUndo,
   handleFiveTowersLeave,
+  getFiveTowersResultData,
 } from './state.js';
 import { aiAct } from './ai.js';
 
-export { performFiveTowersUndo, handleFiveTowersLeave };
+export { performFiveTowersUndo, handleFiveTowersLeave, getFiveTowersResultData };
 export type { EndGameFn };
 
 export function initFiveTowers(

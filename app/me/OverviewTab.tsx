@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OverviewRankCard } from '@/components/me/OverviewRankCard';
 import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
@@ -45,16 +46,32 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
   const nameOf = (id: string) => meta.find((m) => m.id === id)?.name ?? id;
 
   const totalGames = stats.reduce((acc, s) => acc + s.total_games, 0);
+  const totalWins = stats.reduce((acc, s) => acc + s.wins, 0);
+  const totalLosses = stats.reduce((acc, s) => acc + s.losses, 0);
+  const totalDraws = stats.reduce((acc, s) => acc + s.draws, 0);
+  const winRate = totalGames > 0 ? Math.round(((totalWins + totalDraws * 0.5) / totalGames) * 1000) / 10 : 0;
   const topGames = [...stats].sort((a, b) => b.total_games - a.total_games).slice(0, 3);
   const pendingCount = (reportsPendingRes.count ?? 0) + (inquiriesPendingRes.count ?? 0);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Card>
-        <h2 className="text-sm font-semibold text-cdm-fg-muted">누적 전적</h2>
-        <p className="mt-2 text-2xl font-bold text-cdm-fg">
-          {totalGames === 0 ? '0판' : `${totalGames}판`}
-        </p>
+      <OverviewRankCard />
+
+      <Card variant="highlight" accent="primary">
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <h2 className="text-sm font-semibold text-cdm-fg-muted">누적 전적</h2>
+          {totalGames === 0 ? (
+            <span className="text-sm text-cdm-fg-muted">아직 데이터가 없습니다.</span>
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-cdm-fg">{totalGames}판</span>
+              <span className="text-sm text-cdm-fg-muted">승률 {winRate}%</span>
+              <span className="text-sm text-cdm-fg-muted">
+                {totalWins}승 / {totalLosses}패 / {totalDraws}무
+              </span>
+            </>
+          )}
+        </div>
       </Card>
 
       <Card>

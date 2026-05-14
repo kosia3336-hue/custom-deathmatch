@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus, TurnOrderMode } from '@shared/types/room.js';
 
-type RoomInternal = Room & { _password?: string; _minPlayers: number };
+type RoomInternal = Room & { _password?: string; _minPlayers: number; _fromBanPick?: boolean };
 
 const rooms = new Map<string, RoomInternal>();
 const inviteTokens = new Map<string, string>();
@@ -24,13 +24,19 @@ function toSummary(room: RoomInternal): RoomSummary {
     timeLimitSeconds: room.timeLimitSeconds,
     gameOptions: room.gameOptions,
     createdAt: room.createdAt,
+    ...(room.isRanked ? { isRanked: true } : {}),
   };
 }
 
 function toClientRoom(room: RoomInternal): Room {
-  const copy = { ...room } as Room & { _password?: string; _minPlayers?: number };
+  const copy = { ...room } as Room & {
+    _password?: string;
+    _minPlayers?: number;
+    _fromBanPick?: boolean;
+  };
   delete copy._password;
   delete copy._minPlayers;
+  delete copy._fromBanPick;
   // v2: 2인 게임의 자리 순서 = 선/후공 (players[0] = 선공)
   if (copy.players.length === 2) {
     copy.players = copy.players.map((p, i) => ({
@@ -57,6 +63,9 @@ export const roomStore = {
     gameOptions?: Record<string, unknown>;
     turnOrderMode?: TurnOrderMode;
     host: Player;
+    isRanked?: boolean;
+    rankSeasonId?: number;
+    spectatorAllowed?: boolean;
   }): Room {
     let id: string;
     do {
@@ -88,6 +97,9 @@ export const roomStore = {
       turnOrderMode: opts.turnOrderMode ?? 'random',
       createdAt: Date.now(),
       _minPlayers: opts.minPlayers,
+      ...(opts.isRanked === true ? { isRanked: true as const } : {}),
+      ...(opts.rankSeasonId != null ? { rankSeasonId: opts.rankSeasonId } : {}),
+      ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
     };
     if (opts.roomType === 'private' && opts.password) {
       room._password = opts.password;
@@ -350,6 +362,27 @@ export const roomStore = {
     return candidates.sort((a, b) =>
       b.players.length - a.players.length || a.createdAt - b.createdAt,
     )[0];
+  },
+
+  setGameId(roomId: string, gameId: string, gameName: string) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    room.gameId = gameId;
+    room.gameName = gameName;
+  },
+
+  /** 밴픽 추첨 후 실게임으로 전환됐음을 표시 (히든 전략가 집계용). */
+  markFromBanPick(roomId: string) {
+    const room = rooms.get(roomId);
+    if (room) room._fromBanPick = true;
+  },
+
+  /** 소비형 플래그: 첫 번째 조회 시 true 면 제거하고 true 반환 */
+  consumeFromBanPick(roomId: string): boolean {
+    const room = rooms.get(roomId);
+    if (!room || !room._fromBanPick) return false;
+    delete room._fromBanPick;
+    return true;
   },
 
   resetForRematch(roomId: string) {

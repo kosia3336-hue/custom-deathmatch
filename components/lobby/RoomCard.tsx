@@ -10,24 +10,29 @@ interface Props {
   rooms: RoomSummary[];
   onJoin: (room: RoomSummary) => void;
   onSpectate: (room: RoomSummary) => void;
+  /** true이면 입장 버튼 비활성화 (랭크 큐 대기 중) */
+  queuing?: boolean;
 }
 
-export default function RoomCardList({ rooms, onJoin, onSpectate }: Props) {
+export default function RoomCardList({ rooms, onJoin, onSpectate, queuing = false }: Props) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {rooms.map((room) => {
         const isWaiting = room.status === 'waiting';
         const isFull = room.currentPlayers >= room.maxPlayers;
+        const isRanked = room.isRanked === true;
+        const canJoin = isWaiting && !isFull && !isRanked;
+        const joinBlocked = canJoin && queuing;
 
         return (
           <div
             key={room.id}
             className="rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 p-4 transition-all hover:border-cdm-border-strong hover:shadow-(--cdm-shadow-sm)"
-            onClick={() => isWaiting && !isFull && onJoin(room)}
+            onClick={() => canJoin && onJoin(room)}
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span>{room.roomType === 'private' ? '🔑' : '🔓'}</span>
+                <span>{isRanked ? '🏆' : room.roomType === 'private' ? '🔑' : '🔓'}</span>
                 <span className="font-medium text-cdm-fg">{room.gameName}</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -43,8 +48,12 @@ export default function RoomCardList({ rooms, onJoin, onSpectate }: Props) {
             <p className="mb-3 text-xs text-cdm-fg-muted">방장: {room.hostNickname}</p>
             <div className="flex items-center justify-between">
               <ProgressBar current={room.currentPlayers} max={room.maxPlayers} className="flex-1 mr-3" />
-              {isWaiting && !isFull ? (
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); onJoin(room); }}>
+              {canJoin ? (
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onJoin(room); }}
+                  className={joinBlocked ? 'opacity-40 cursor-not-allowed' : undefined}
+                >
                   입장
                 </Button>
               ) : (

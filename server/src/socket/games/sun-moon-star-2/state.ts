@@ -47,6 +47,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, SMS2InternalState>();
 
@@ -222,6 +223,28 @@ function buildGameDataForViewer(
   return data;
 }
 
+function applyPurinSms2(
+  s: SMS2InternalState,
+  token: string,
+  viewerSide: SMS2Side | 'spectator',
+  data: SMS2GameData,
+): SMS2GameData {
+  if (viewerSide !== 'p1' && viewerSide !== 'p2') return data;
+  if (!isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) return data;
+  const oppSide = viewerSide === 'p1' ? 'p2' : 'p1';
+  const out: SMS2GameData & { _purin?: { opponentPrivate: SMS2SelfPrivate } } = {
+    ...data,
+    history: s.history.map((r) => sanitizeRoundForView(r, viewerSide, true)),
+    _purin: {
+      opponentPrivate: buildSelfPrivate(getPlayerBySide(s, oppSide)),
+    },
+  };
+  if ((s.phase === 'resolve' || s.phase === 'roundEnd') && s.lastRoundRecord) {
+    out.roundResult = sanitizeRoundForView(s.lastRoundRecord, viewerSide, true);
+  }
+  return out;
+}
+
 function buildGameState(s: SMS2InternalState, gameData: SMS2GameData): GameState {
   const isInputPhase = s.phase === 'powder' || s.phase === 'betFirst' || s.phase === 'betSecond';
   return {
@@ -253,7 +276,11 @@ export async function broadcastState(io: IO, s: SMS2InternalState) {
   for (const sock of sockets) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
-    const data = buildGameDataForViewer(s, viewerSide);
+    let data = buildGameDataForViewer(s, viewerSide);
+    data = applyPurinSms2(s, token, viewerSide, data);
+    const raw = data as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, data));
   }
 }
@@ -261,7 +288,11 @@ export async function broadcastState(io: IO, s: SMS2InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: SMS2InternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
-  const data = buildGameDataForViewer(s, viewerSide);
+  let data = buildGameDataForViewer(s, viewerSide);
+  data = applyPurinSms2(s, token, viewerSide, data);
+  const raw = data as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, data));
 }
 
@@ -990,6 +1021,12 @@ export function performSMS2Undo(io: IO, roomId: string): boolean {
     s.onAITurn?.(io, s);
   }
   return true;
+}
+
+export function getSunMoonStar2ResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return buildArchiveRecord(s);
 }
 
 /* ────────── next round ready (관전/확장용 noop) ────────── */

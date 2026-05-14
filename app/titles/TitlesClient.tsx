@@ -21,9 +21,11 @@ interface PublicTitle {
 
 interface Props {
   titles: PublicTitle[];
+  purchasableIds: string[];
 }
 
-export default function TitlesClient({ titles }: Props) {
+export default function TitlesClient({ titles, purchasableIds }: Props) {
+  const purchasableSet = new Set(purchasableIds);
   const [selected, setSelected] = useState<PublicTitle | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -47,6 +49,7 @@ export default function TitlesClient({ titles }: Props) {
             description={t.description}
             holderCount={t.holder_count}
             isSystem={t.is_system}
+            purchasable={purchasableSet.has(t.id)}
             onClick={() => setSelected(t)}
           />
         ))}

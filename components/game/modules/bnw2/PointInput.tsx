@@ -40,19 +40,23 @@ export default function PointInput({ remaining, actionType, label }: Props) {
         잔여 포인트: <span className="font-bold text-gray-800">{remaining}</span>
       </p>
 
-      <div className="flex items-center justify-center gap-1.5">
-        {([-10, -5] as const).map(delta => (
+      {/* 빠른 조절 버튼 (위 줄) */}
+      <div className="flex justify-center gap-2">
+        {([-10, -5, 5, 10] as const).map(delta => (
           <button
             key={delta}
             onClick={() => setValue(v => clamp(v + delta))}
-            className="rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+            className="flex-1 rounded-lg border border-gray-300 bg-white py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
           >
-            {delta}
+            {delta > 0 ? `+${delta}` : delta}
           </button>
         ))}
+      </div>
+      {/* 정밀 조절 + 입력 (아래 줄) */}
+      <div className="flex items-center justify-center gap-2">
         <button
           onClick={() => setValue(v => clamp(v - 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
         >
           −
         </button>
@@ -65,23 +69,14 @@ export default function PointInput({ remaining, actionType, label }: Props) {
             const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
             setValue(isNaN(n) ? 0 : clamp(n));
           }}
-          className="w-20 rounded-lg border border-gray-300 bg-white py-2 text-center text-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="w-24 rounded-lg border border-gray-300 bg-white py-2 text-center text-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <button
           onClick={() => setValue(v => clamp(v + 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
         >
           +
         </button>
-        {([5, 10] as const).map(delta => (
-          <button
-            key={delta}
-            onClick={() => setValue(v => clamp(v + delta))}
-            className="rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
-          >
-            +{delta}
-          </button>
-        ))}
       </div>
 
       <button

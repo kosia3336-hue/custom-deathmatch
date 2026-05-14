@@ -252,3 +252,5 @@ export function emitIndianPokerStateToSocket(socket: TypedSocket, roomId: string
   if (!s) return;
   emitStateToSocket(socket, s);
 }
+
+export { getIndianPokerResultData } from './state.js';

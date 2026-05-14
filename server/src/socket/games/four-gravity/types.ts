@@ -77,6 +77,7 @@ export interface InternalState {
   gameOver: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: FourGravityUndoSnapshot[];
+  ownerToken: string | null;
 }
 
 export interface WinResult {

@@ -1,5 +1,16 @@
 export type { Game } from './game';
 export { GAME_IDS } from './game';
+export type { RankTier, DisplayRankTier } from './rank';
+export {
+  rankTierNumericForRp,
+  calcRankRpChange,
+  calcRankRpParts,
+  placementTierAndRp,
+  tierOrder,
+  peakTierMax,
+  applyRankWin,
+  applyRankLoss,
+} from './rank';
 export { AI_PLAYER_ID } from './room';
 export type {
   PlayMode,
@@ -9,6 +20,7 @@ export type {
   Room,
   RoomSummary,
 } from './room';
+export type { BanTurn, BannedGame, BanPickStartPayload, BanPickUpdatePayload, BanPickLotteryPayload } from './ban-pick';
 export type {
   CreateRoomData,
   JoinRoomData,
@@ -17,6 +29,10 @@ export type {
   ChatMessage,
   GameState,
   GameResult,
+  GameRankOutcome,
+  RankGameEndedPayload,
+  RankGameEndedRpDetail,
+  RankPlayerOutcome,
   GameUndoProposal,
   NicknameResult,
   CreateRoomResult,

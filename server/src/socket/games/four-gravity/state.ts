@@ -127,9 +127,12 @@ function scheduleGameEnd(
 ) {
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
+    if (!s.gameOver) return;
     const roomId = s.roomId;
-    gameStates.delete(roomId);
-    terminateAIWorker(roomId);
+    if (!s.ownerToken) {
+      gameStates.delete(roomId);
+      terminateAIWorker(roomId);
+    }
     s.endGameCallback(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
@@ -226,7 +229,7 @@ export function hasPartialTurnFourGravity(s: InternalState): boolean {
   return !!(last && last.turnNumber === s.turnNumber);
 }
 
-function armTurnTimer(io: IO, s: InternalState) {
+export function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
@@ -291,14 +294,18 @@ export function finishTurn(io: IO, s: InternalState) {
 
 export function performFourGravityUndo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s) return false;
+  if (s.gameOver && !s.ownerToken) return false;
 
   terminateAIWorker(roomId);
+
+  const wasGameOver = s.gameOver;
 
   const partial = hasPartialTurnFourGravity(s);
   if (partial) {
     if (s.undoSnapshots.length < 1) return false;
     applyUndoSnapshot(s, s.undoSnapshots[s.undoSnapshots.length - 1]);
+    if (wasGameOver) s.gameOver = false;
     armTurnTimer(io, s);
     broadcastState(io, s);
     if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
@@ -323,6 +330,7 @@ export function performFourGravityUndo(io: IO, roomId: string): boolean {
   const top = s.undoSnapshots[s.undoSnapshots.length - 1];
   if (!top) return false;
   applyUndoSnapshot(s, top);
+  if (wasGameOver) s.gameOver = false;
   armTurnTimer(io, s);
   broadcastState(io, s);
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
@@ -524,4 +532,22 @@ export async function runAITurn(io: IO, roomId: string) {
   const aiNLog = s.actionLog[s.actionLog.length - 1];
   if (aiNLog) aiNLog.steps.push({ type: 'neutral', row: neutralPos.row, col: neutralPos.col });
   finishTurn(io, s);
+}
+
+export function getFourGravityResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    winLine: s.winLine,
+    finalBoard: s.board,
+    blackStones: s.blackPlayer.stoneCount,
+    whiteStones: s.whitePlayer.stoneCount,
+    neutralStones: s.neutralCount,
+    actions: s.actionLog,
+    players: {
+      black: { nickname: s.blackPlayer.nickname },
+      white: { nickname: s.whitePlayer.nickname },
+    },
+  };
 }

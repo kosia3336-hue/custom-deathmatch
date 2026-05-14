@@ -18,6 +18,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, GS2InternalState>();
 
@@ -98,6 +99,7 @@ function buildGameDataForPlayer(s: GS2InternalState, pid: string): GS2GameData {
   const isPlayer1 = s.player1.id === pid;
   const isPlayer2 = s.player2.id === pid;
   const me = isPlayer1 ? s.player1 : isPlayer2 ? s.player2 : null;
+  const purin = !!me && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
 
   const data: GS2GameData = {
     phase: s.phase,
@@ -115,6 +117,13 @@ function buildGameDataForPlayer(s: GS2InternalState, pid: string): GS2GameData {
     data.selfPending = {
       card: me.pendingCard,
       sugar: me.pendingSugar,
+    };
+  }
+
+  if (purin && me && s.phase === 'input') {
+    const opp = me.id === s.player1.id ? s.player2 : s.player1;
+    (data as GS2GameData & { _purin?: { opponentPending: { card: typeof opp.pendingCard; sugar: number } } })._purin = {
+      opponentPending: { card: opp.pendingCard, sugar: opp.pendingSugar },
     };
   }
 
@@ -149,6 +158,9 @@ export async function broadcastState(io: IO, s: GS2InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const data = buildGameDataForPlayer(s, pid);
+    const raw = data as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, data));
   }
 }
@@ -156,6 +168,9 @@ export async function broadcastState(io: IO, s: GS2InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: GS2InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const data = buildGameDataForPlayer(s, pid);
+  const raw = data as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, data));
 }
 
@@ -680,6 +695,12 @@ export function performGS2Undo(io: IO, roomId: string): boolean {
   void broadcastState(io, s);
   if (s.playMode === 'com' && s.phase === 'input') s.onAITurn?.(io, s);
   return true;
+}
+
+export function getGrapeSugar2ResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return buildArchiveRecord(s);
 }
 
 export function tryNextRoundReady(io: IO, s: GS2InternalState, _pid: string): string | null {

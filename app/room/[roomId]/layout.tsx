@@ -3,6 +3,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { RoomLayoutContext } from '@/contexts/RoomLayoutContext';
+import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 
 export default function RoomLayout({ children }: { children: ReactNode }) {
   const room = useRoomStore((s) => s.room);
@@ -39,6 +40,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+              <RankQueueDesktopChip />
               {headerRight}
             </div>
           </div>

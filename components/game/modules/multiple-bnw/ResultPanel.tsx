@@ -119,15 +119,17 @@ export default function ResultPanel({ resultData, players, round, winner, winTyp
         })}
       </div>
 
-      {winner && (
+      {winType && (
         <div className={`mt-1 text-center transition-all duration-500 ${step >= 3 ? 'opacity-100' : 'opacity-0'}`}>
-          <p className="text-lg font-bold text-indigo-700">
-            {players[winner]?.nickname ?? winner} 승리!
-          </p>
-          {winType && (
-            <p className="text-xs text-gray-500">
-              {WIN_TYPE_LABELS[winType] ?? winType}
-            </p>
+          {winner ? (
+            <>
+              <p className="text-lg font-bold text-indigo-700">
+                {players[winner]?.nickname ?? winner} 승리!
+              </p>
+              <p className="text-xs text-gray-500">{WIN_TYPE_LABELS[winType] ?? winType}</p>
+            </>
+          ) : (
+            <p className="text-lg font-bold text-amber-600">무승부</p>
           )}
         </div>
       )}

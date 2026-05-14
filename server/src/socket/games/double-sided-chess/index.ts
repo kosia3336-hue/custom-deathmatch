@@ -222,3 +222,5 @@ export function canDoubleSidedChessUndo(roomId: string): boolean {
   const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
   return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;
 }
+
+export { getDoubleSidedChessResultData } from './state.js';

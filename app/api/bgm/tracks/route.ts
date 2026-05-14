@@ -14,6 +14,13 @@ const TRACKS = [
   '/audio/bgm/track_04.mp3',
   '/audio/bgm/track_05.mp3',
   '/audio/bgm/track_06.mp3',
+  '/audio/bgm/track_07.mp3',
+  '/audio/bgm/track_08.mp3',
+  '/audio/bgm/track_09.mp3',
+  '/audio/bgm/track_10.mp3',
+  '/audio/bgm/track_11.mp3',
+  '/audio/bgm/track_12.mp3',
+  '/audio/bgm/track_13.mp3',
 ];
 
 export async function GET() {

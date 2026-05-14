@@ -163,7 +163,7 @@ export default function BetInput({
           type="button"
           disabled={!canSubmit}
           onClick={onSubmit}
-          className="flex-1 rounded-lg bg-amber-600 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-40"
+          className="flex-1 rounded-lg bg-amber-600 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-40 whitespace-nowrap"
         >
           {submitLabel}
         </button>

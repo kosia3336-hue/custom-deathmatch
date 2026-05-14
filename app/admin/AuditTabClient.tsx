@@ -41,6 +41,11 @@ const ACTION_LABELS: Record<string, { label: string; variant: string }> = {
   'notice.pin':            { label: '공지 고정',    variant: 'default' },
   'notice.publish':        { label: '공지 공개',    variant: 'default' },
   'notice.delete':         { label: '공지 삭제',    variant: 'danger'  },
+  // 상점 / CDP (v2.8)
+  'cdp.adjust':            { label: 'CDP 조정',     variant: 'accent'  },
+  'shop.item_create':      { label: '아이템 등록',  variant: 'accent'  },
+  'shop.item_update':      { label: '아이템 편집',  variant: 'accent'  },
+  'shop.item_set_active':  { label: '아이템 노출',  variant: 'default' },
 };
 
 export const ACTION_KINDS = Object.keys(ACTION_LABELS);
@@ -68,6 +73,16 @@ const PAYLOAD_KEY_LABELS: Record<string, string> = {
   pinned:       '고정',
   published:    '공개',
   body_len:     '본문 길이',
+  // 상점 / CDP
+  requested_delta: '요청 변경량',
+  applied_delta:   '적용 변경량',
+  clamped:         '0 보정',
+  before:          '변경 전',
+  after:           '변경 후',
+  price:           '가격',
+  stock:           '재고',
+  type:            '유형',
+  active:          '노출',
 };
 
 const HIDDEN_PAYLOAD_KEYS = new Set(['report_id', 'len', 'title_id', 'body']);

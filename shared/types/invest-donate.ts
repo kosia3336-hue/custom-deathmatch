@@ -7,7 +7,7 @@ export const ID_INITIAL_COIN_STOCK = {
 } as const;
 
 export type IDPhase = 'submit' | 'reveal' | 'finished';
-export type IDWinType = 'elimination' | 'score' | 'tiebreaker' | 'timeout' | 'leave';
+export type IDWinType = 'elimination' | 'score' | 'tiebreaker' | 'timeout' | 'leave' | 'draw';
 export type IDBadge = 'majorShareholder' | 'miser' | null;
 
 export interface IDCoinAllocation {

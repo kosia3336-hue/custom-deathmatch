@@ -206,3 +206,5 @@ export function emitNumberFourStateToSocket(socket: TypedSocket, roomId: string)
   if (!s) return;
   emitStateToSocket(socket, s);
 }
+
+export { getNumberFourResultData } from './state.js';

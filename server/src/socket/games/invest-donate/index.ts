@@ -227,3 +227,5 @@ export function emitInvestDonateStateToSocket(socket: TypedSocket, roomId: strin
   if (!s) return;
   emitStateToSocket(socket, s);
 }
+
+export { getInvestDonateResultData } from './state.js';

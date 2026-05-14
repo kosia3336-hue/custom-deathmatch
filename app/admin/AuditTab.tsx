@@ -26,6 +26,9 @@ const TARGET_KIND_LABELS: Record<string, string> = {
   agreement:    '약관',
   word:         '금칙어',
   notice:       '공지',
+  member_cdp:   '회원·CDP',
+  shop_item:    '상점 아이템',
+  shop_purchase:'상점 구매',
 };
 
 const PAGE_SIZE = 50; // audit 은 짧은 행 + 시간순 빠른 스캔이라 50 (19_pagination.md §19.8)
@@ -86,11 +89,12 @@ export default async function AuditTab({
   const reportUUIDs = new Set<string>();
   const inquiryUUIDs = new Set<string>();
   const noticeUUIDs = new Set<string>();
+  const shopItemUUIDs = new Set<string>();
 
   for (const r of raw) {
     if (r.actor_id) memberUUIDs.add(r.actor_id);
     if (r.target_id) {
-      if (r.target_kind === 'member') {
+      if (r.target_kind === 'member' || r.target_kind === 'member_cdp') {
         memberUUIDs.add(r.target_id);
       } else if (r.target_kind === 'member_title') {
         const [mId, tId] = r.target_id.split(':');
@@ -104,7 +108,26 @@ export default async function AuditTab({
         inquiryUUIDs.add(r.target_id);
       } else if (r.target_kind === 'notice') {
         noticeUUIDs.add(r.target_id);
+      } else if (r.target_kind === 'shop_item') {
+        shopItemUUIDs.add(r.target_id);
       }
+    }
+  }
+
+  type ShopItemRow = { id: string; name: string };
+  const shopItemsRes =
+    shopItemUUIDs.size > 0
+      ? await sb.from('shop_items').select('id, name').in('id', [...shopItemUUIDs])
+      : { data: [] as ShopItemRow[] };
+  const shopItemMap = new Map(
+    ((shopItemsRes.data ?? []) as ShopItemRow[]).map((s) => [s.id, s.name]),
+  );
+  // 삭제 / 미존재시 payload.name fallback
+  for (const r of raw) {
+    if (r.target_kind === 'shop_item' && r.target_id && !shopItemMap.has(r.target_id)) {
+      const p = r.payload as Record<string, unknown> | null;
+      const fallback = p?.name ?? (p?.after as Record<string, unknown> | undefined)?.name;
+      if (typeof fallback === 'string') shopItemMap.set(r.target_id, fallback);
     }
   }
 
@@ -224,6 +247,12 @@ export default async function AuditTab({
         return { label: id };
       case 'notice':
         return { label: noticeMap.get(id) ?? `#${id.slice(0, 8)}` };
+      case 'member_cdp':
+        return { label: memberMap.get(id) ?? '(탈퇴)' };
+      case 'shop_item':
+        return { label: shopItemMap.get(id) ?? `#${id.slice(0, 8)}` };
+      case 'shop_purchase':
+        return { label: `#${id.slice(0, 8)}` };
       default:
         return { label: id };
     }

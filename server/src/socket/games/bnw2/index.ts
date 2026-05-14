@@ -16,11 +16,12 @@ import {
   makePlayer,
   getPlayer,
   performBNW2Undo,
+  getBNW2ResultData,
   advanceRound,
 } from './state.js';
 import { aiSubmitFirst, aiSubmitSecond } from './ai.js';
 
-export { performBNW2Undo };
+export { performBNW2Undo, getBNW2ResultData };
 export type { EndGameFn };
 
 export function initBNW2(

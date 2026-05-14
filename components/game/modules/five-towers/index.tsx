@@ -110,9 +110,9 @@ function ScoreCard({
           <span className="ml-0.5 text-xs font-normal text-gray-400">/{FT_MAX_SCORE}</span>
         </span>
       </div>
-      {player.itemUsed && (
+      {isMe && player.itemUsed && (
         <div className="mt-0.5 text-[10px] font-medium text-gray-400">
-          아이템 사용함{player.myItemUsedKind && isMe ? ` (${labelOfItem(player.myItemUsedKind)})` : ''}
+          아이템 사용함{player.myItemUsedKind ? ` (${labelOfItem(player.myItemUsedKind)})` : ''}
         </div>
       )}
     </div>
@@ -365,8 +365,9 @@ export default function FiveTowersGame() {
         clearTimeout(tClear);
       };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameData?.milestoneLog]);
+  // milestoneLog 배열 참조가 매 브로드캐스트마다 바뀌어 effect가 재실행되면
+  // cleanup이 타이머를 취소해 완성 창이 닫히지 않는 버그 방지 → 길이로만 비교
+  }, [gameData?.milestoneLog.length]);
 
   /* 행동 알림 (상대/관전자 시점) */
   useEffect(() => {

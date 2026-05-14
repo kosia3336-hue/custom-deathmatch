@@ -47,6 +47,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, BankInternalState>();
 
@@ -223,6 +224,77 @@ function maskResolveStepsForViewer(
   });
 }
 
+function maskRoundResultPurin(full: BankRoundFullRecord): BankRoundResult {
+  const winnerSide = full.outcome === 'draw' ? null
+    : full.outcome === 'first_win' ? full.firstSide
+    : full.firstSide === 'p1' ? 'p2' : 'p1';
+  const loserSide = full.outcome === 'draw' ? null
+    : winnerSide === 'p1' ? 'p2' : 'p1';
+  const secondSide = full.firstSide === 'p1' ? 'p2' : 'p1';
+  return {
+    round: full.round,
+    firstSide: full.firstSide,
+    outcome: full.outcome,
+    winnerSide,
+    loserSide,
+    firstCount: full.counts[full.firstSide],
+    secondCount: full.counts[secondSide],
+    firstAmount: full.amounts[full.firstSide],
+    secondAmount: full.amounts[secondSide],
+    firstAuto: full.auto[full.firstSide],
+    secondAuto: full.auto[secondSide],
+    scoreAfter: { ...full.scoreAfter },
+    scoreDelta: { ...full.scoreDelta },
+    loserAmountThisRound: full.outcome === 'draw'
+      ? null
+      : full.amounts[full.outcome === 'first_win' ? secondSide : full.firstSide],
+    inventoryCountAfter: {
+      p1: sumInventoryCount(full.inventoryAfter.p1),
+      p2: sumInventoryCount(full.inventoryAfter.p2),
+    },
+  };
+}
+
+function maskResolveStepsPurin(steps: BankResolveStep[]): BankResolveStep[] {
+  return steps.map((step) => {
+    if (step.type === 'crownWinner') {
+      return {
+        type: 'crownWinner',
+        side: step.side,
+        count: step.count,
+        ...(step.privateAmount !== undefined ? { privateAmount: step.privateAmount } : {}),
+      };
+    }
+    return step;
+  });
+}
+
+function applyPurinBank(
+  s: BankInternalState,
+  token: string,
+  viewerSide: BankSide | 'spectator',
+  data: BankGameData,
+): BankGameData {
+  if (viewerSide === 'spectator') return data;
+  if (!isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) return data;
+  const opp = viewerSide === 'p1' ? s.player2 : s.player1;
+  const next: BankGameData = {
+    ...data,
+    players: {
+      ...data.players,
+      [opp.id]: buildPlayerInfo(s, opp, opp.side),
+    },
+    history: s.history.map((full) => maskRoundResultPurin(full)),
+  };
+  if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
+    next.roundResult = maskRoundResultPurin(s.lastRoundFull);
+  }
+  if (s.phase === 'reveal' && s.resolveSteps.length > 0) {
+    next.resolveSteps = maskResolveStepsPurin(s.resolveSteps);
+  }
+  return next;
+}
+
 function buildHistoryForViewer(
   s: BankInternalState,
   viewerSide: BankSide | 'spectator',
@@ -304,7 +376,18 @@ export async function broadcastState(io: IO, s: BankInternalState) {
   for (const sock of sockets) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
-    const data = buildGameDataForViewer(s, viewerSide);
+    let data = buildGameDataForViewer(s, viewerSide);
+    data = applyPurinBank(s, token, viewerSide, data);
+    if (viewerSide !== 'spectator' && isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) {
+      if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
+        sock.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: maskRoundResultPurin(s.lastRoundFull) });
+      } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
+        const first = getFirst(s);
+        if (first.id !== token && first.pendingBet) {
+          sock.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: first.nickname, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
+        }
+      }
+    }
     sock.emit('game:state', buildGameState(s, data));
   }
 }
@@ -312,7 +395,18 @@ export async function broadcastState(io: IO, s: BankInternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: BankInternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
-  const data = buildGameDataForViewer(s, viewerSide);
+  let data = buildGameDataForViewer(s, viewerSide);
+  data = applyPurinBank(s, token, viewerSide, data);
+  if (viewerSide !== 'spectator' && isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) {
+    if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
+      socket.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: maskRoundResultPurin(s.lastRoundFull) });
+    } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
+      const first = getFirst(s);
+      if (first.id !== token && first.pendingBet) {
+        socket.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: first.nickname, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
+      }
+    }
+  }
   socket.emit('game:state', buildGameState(s, data));
 }
 
@@ -1035,4 +1129,10 @@ export function trySkipReveal(io: IO, s: BankInternalState, _pid: string): strin
     return null;
   }
   return '지금은 건너뛸 수 없습니다.';
+}
+
+export function getBankGameResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return buildArchiveRecord(s);
 }

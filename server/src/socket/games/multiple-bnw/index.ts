@@ -284,3 +284,5 @@ export function emitMultipleBnwStateToSocket(socket: TypedSocket, roomId: string
   if (!s) return;
   emitStateToSocket(socket, s);
 }
+
+export { getMultipleBnwResultData } from './state.js';

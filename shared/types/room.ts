@@ -2,7 +2,7 @@ export const AI_PLAYER_ID = 'AI' as const;
 
 export type PlayMode = 'multi' | 'com' | 'solo';
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
-export type RoomType = 'public' | 'private';
+export type RoomType = 'public' | 'private' | 'rank';
 
 /** v2 — 회원의 표시 칭호 스냅샷 */
 export interface DisplayedTitle {
@@ -53,6 +53,11 @@ export interface Room {
   /** 선후공 결정 방식. fixed = 슬롯 순서 고정, random = 게임 시작 시 코인플립 */
   turnOrderMode: TurnOrderMode;
   createdAt: number;
+  /** 랭크 매치 여부 (RP·히스토리 반영) */
+  isRanked?: boolean;
+  rankSeasonId?: number;
+  /** 랭크 방은 항상 관전 허용 */
+  spectatorAllowed?: boolean;
 }
 
 export interface RoomSummary {
@@ -71,4 +76,5 @@ export interface RoomSummary {
   /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
   gameOptions: Record<string, unknown>;
   createdAt: number;
+  isRanked?: boolean;
 }

@@ -10,9 +10,11 @@ interface Props {
   rooms: RoomSummary[];
   onJoin: (room: RoomSummary) => void;
   onSpectate: (room: RoomSummary) => void;
+  /** true이면 입장 버튼 비활성화 (랭크 큐 대기 중) */
+  queuing?: boolean;
 }
 
-export default function RoomTable({ rooms, onJoin, onSpectate }: Props) {
+export default function RoomTable({ rooms, onJoin, onSpectate, queuing = false }: Props) {
   return (
     <div className="hidden md:block overflow-x-auto">
       <table className="w-full text-sm">
@@ -31,16 +33,19 @@ export default function RoomTable({ rooms, onJoin, onSpectate }: Props) {
           {rooms.map((room) => {
             const isWaiting = room.status === 'waiting';
             const isFull = room.currentPlayers >= room.maxPlayers;
+            const isRanked = room.isRanked === true;
+            const canJoin = isWaiting && !isFull && !isRanked;
+            const joinBlocked = canJoin && queuing;
 
             return (
               <tr
                 key={room.id}
                 className="border-b border-cdm-border transition-colors hover:bg-cdm-bg-elev-1 cursor-pointer"
-                onClick={() => isWaiting && !isFull && onJoin(room)}
+                onClick={() => canJoin && onJoin(room)}
               >
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
-                    <span>{room.roomType === 'private' ? '🔑' : '🔓'}</span>
+                    <span>{isRanked ? '🏆' : room.roomType === 'private' ? '🔑' : '🔓'}</span>
                     <Badge variant={isWaiting ? 'info' : 'warning'}>
                       {isWaiting ? '대기' : '진행'}
                     </Badge>
@@ -65,10 +70,11 @@ export default function RoomTable({ rooms, onJoin, onSpectate }: Props) {
                   )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {isWaiting && !isFull ? (
+                  {canJoin ? (
                     <Button
                       size="sm"
                       onClick={(e) => { e.stopPropagation(); onJoin(room); }}
+                      className={joinBlocked ? 'opacity-40 cursor-not-allowed' : undefined}
                     >
                       입장
                     </Button>

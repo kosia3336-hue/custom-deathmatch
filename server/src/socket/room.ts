@@ -4,11 +4,14 @@ import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById, getGames } from '../routes/games.js';
-import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
+import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved, broadcastOnlineUsers } from './lobby.js';
 import { startGame, handleGameForfeit, clearAutoEnd, clearGameStartTime } from './game.js';
 import { clearRoomStartCountdown, setRoomStartCountdown, hasRoomStartCountdown } from './roomCountdown.js';
-import { socketRoom } from './utils.js';
+import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
+import { LOBBY_ROOM } from './types.js';
+import { isRoomSpectatorLocked, getRoomShopState, cleanupRoomShopState } from '../shop/roomShopState.js';
+import { maskRoomForViewer } from '../shop/maskNicknames.js';
 
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
@@ -29,8 +32,7 @@ function makePlayer(socket: TypedSocket, isHost: boolean): Player {
 }
 
 function sendRoomState(io: IO, roomId: string) {
-  const room = roomStore.getClientRoom(roomId);
-  if (room) io.to(socketRoom(roomId)).emit('room:state', room);
+  emitRoomStateToRoom(io, roomId);
 }
 
 export function registerRoomHandlers(io: IO, socket: TypedSocket) {
@@ -40,6 +42,45 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
+
+    if (!data.title || data.title.length < 1 || data.title.length > 30) {
+      return callback({ success: false, error: '방 제목은 1~30자로 입력해 주세요.' });
+    }
+
+    // ── 밴픽 모드 ─────────────────────────────────────────────────────────
+    if (data.gameId === 'ban-pick') {
+      const bpPlayMode = data.playMode === 'com' ? 'com' as const : 'multi' as const;
+      if (bpPlayMode === 'multi' && data.roomType === 'private') {
+        if (!data.password || data.password.length < 4 || data.password.length > 8) {
+          return callback({ success: false, error: '비밀번호는 4~8자리로 입력해 주세요.' });
+        }
+      }
+      const tl = bpPlayMode === 'multi' ? (data.timeLimitSeconds ?? null) : null;
+      if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
+        return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
+      }
+      const rawBanCount = typeof data.gameOptions?.banCount === 'number' ? data.gameOptions.banCount : 3;
+      const host = makePlayer(socket, true);
+      const room = roomStore.create({
+        title: data.title,
+        gameId: 'ban-pick',
+        gameName: '밴픽',
+        playMode: bpPlayMode,
+        roomType: bpPlayMode === 'multi' ? data.roomType : 'public',
+        password: data.password,
+        maxPlayers: 2,
+        minPlayers: 2,
+        timeLimitSeconds: tl,
+        gameOptions: { banCount: rawBanCount },
+        host,
+      });
+      socket.leave(LOBBY_ROOM);
+      socket.join(socketRoom(room.id));
+      sessions.setRoom(socket.id, room.id);
+      broadcastRoomCreated(io, room.id);
+      return callback({ success: true, roomId: room.id });
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     const isRandom = data.gameId === 'random';
     let game: ReturnType<typeof getGameById>;
@@ -55,10 +96,6 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     const playMode = isRandom ? 'multi' as const : data.playMode;
     const maxPlayers = isRandom ? game.maxPlayers : data.maxPlayers;
-
-    if (!data.title || data.title.length < 1 || data.title.length > 30) {
-      return callback({ success: false, error: '방 제목은 1~30자로 입력해 주세요.' });
-    }
 
     if (playMode === 'multi' && data.roomType === 'private') {
       if (!data.password || data.password.length < 4 || data.password.length > 8) {
@@ -90,6 +127,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       host,
     });
 
+    socket.leave(LOBBY_ROOM);
     socket.join(socketRoom(room.id));
     sessions.setRoom(socket.id, room.id);
     broadcastRoomCreated(io, room.id);
@@ -121,9 +159,10 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     // 세션 복원 후 재입장: 이미 room.players에 있는 토큰이면 소켓만 재입장 (관전자 폴백 방지)
     const token = sessions.getToken(socket.id);
     if (token && room.players.find((p) => p.id === token)) {
+      socket.leave(LOBBY_ROOM);
       socket.join(socketRoom(data.roomId));
       sessions.setRoom(socket.id, data.roomId);
-      const clientRoom = roomStore.getClientRoom(data.roomId);
+      const clientRoom = maskedClientRoomForSocket(data.roomId, socket);
       if (clientRoom) socket.emit('room:state', clientRoom);
       return callback({ success: true, room: clientRoom ?? undefined });
     }
@@ -158,6 +197,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const added = roomStore.addPlayer(data.roomId, player);
     if (!added) return callback({ success: false, error: '입장에 실패했습니다.' });
 
+    socket.leave(LOBBY_ROOM);
     socket.join(socketRoom(data.roomId));
     sessions.setRoom(socket.id, data.roomId);
 
@@ -165,7 +205,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     broadcastRoomUpdated(io, data.roomId);
     sendRoomState(io, data.roomId);
 
-    const clientRoom = roomStore.getClientRoom(data.roomId);
+    const clientRoom = maskedClientRoomForSocket(data.roomId, socket);
     callback({ success: true, room: clientRoom });
   });
 
@@ -181,12 +221,13 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       const player = makePlayer(socket, false);
       const added = roomStore.addPlayer(found.id, player);
       if (!added) return callback({ success: false, error: '입장에 실패했습니다.' });
+      socket.leave(LOBBY_ROOM);
       socket.join(socketRoom(found.id));
       sessions.setRoom(socket.id, found.id);
       io.to(socketRoom(found.id)).emit('room:player:joined', player);
       broadcastRoomUpdated(io, found.id);
       sendRoomState(io, found.id);
-      const clientRoom = roomStore.getClientRoom(found.id);
+      const clientRoom = maskedClientRoomForSocket(found.id, socket);
       if (!clientRoom) {
         return callback({ success: false, error: '입장에 실패했습니다.' });
       }
@@ -236,6 +277,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     sessions.clearRoom(targetSocketId);
     if (targetSocket) {
       targetSocket.leave(socketRoom(roomId));
+      // 강퇴된 소켓을 LOBBY_ROOM으로 복귀
+      targetSocket.join(LOBBY_ROOM);
+      targetSocket.emit('lobby:rooms', roomStore.getAllSummaries());
       targetSocket.emit('kicked', { reason: '방장에 의해 퇴장되었습니다.' });
     }
 
@@ -477,13 +521,31 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       }
     }
 
+    // 관전 잠금: 한 명이라도 관전 잠금을 사용한 방이면 일반 사용자는 관전 불가.
+    // (단, 본인이 그 방의 player 인 경우 — 위에서 currentRoom 검사로 차단됨)
+    if (isRoomSpectatorLocked(roomId)) {
+      const myToken = sessions.getToken(socket.id);
+      const isPlayerInRoom = myToken
+        ? room.players.some((p) => p.id === myToken)
+        : false;
+      if (!isPlayerInRoom) {
+        return callback({ success: false, error: '이 방은 관전이 잠긴 방입니다.' });
+      }
+    }
+
     const spectator = makePlayer(socket, false);
     roomStore.addSpectator(roomId, spectator);
+    socket.leave(LOBBY_ROOM);
     socket.join(socketRoom(roomId));
     sessions.setRoom(socket.id, roomId);
 
+    const myToken = sessions.getToken(socket.id) ?? null;
     const clientRoom = roomStore.getClientRoom(roomId);
-    callback({ success: true, room: clientRoom });
+    const stateForSender =
+      clientRoom && getRoomShopState(roomId)?.anonymizedTokens.size
+        ? maskRoomForViewer(clientRoom, myToken)
+        : clientRoom;
+    callback({ success: true, room: stateForSender });
     sendRoomState(io, roomId);
     broadcastRoomUpdated(io, roomId);
   });
@@ -560,15 +622,28 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   sessions.clearRoom(socket.id);
   socket.leave(socketRoom(roomId));
 
+  // 로비로 복귀: LOBBY_ROOM 재가입 + 초기 데이터 즉시 전송
+  socket.join(LOBBY_ROOM);
+  const currentRooms = roomStore.getAllSummaries();
+  socket.emit('lobby:rooms', currentRooms);
+  broadcastOnlineUsers(io);
+
   if (result.destroyed) {
     clearAutoEnd(roomId);
     clearGameStartTime(roomId);
     io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+    // 관전자들도 LOBBY_ROOM으로 복귀
     spectatorsBefore.forEach((s) => {
       const specSocketId = sessions.getSocketByToken(s.id) ?? s.id;
       sessions.clearRoom(specSocketId);
+      const specSocket = io.sockets.sockets.get(specSocketId);
+      if (specSocket) {
+        specSocket.join(LOBBY_ROOM);
+        specSocket.emit('lobby:rooms', currentRooms);
+      }
     });
     sessions.clearRoomFromAllKicks(roomId);
+    cleanupRoomShopState(roomId);
     broadcastRoomRemoved(io, roomId);
     return;
   }

@@ -25,6 +25,17 @@ const RANDOM_GAME: Game = {
   supportsSolo: false,
 };
 
+const BAN_PICK_GAME: Game = {
+  id: GAME_IDS.BAN_PICK,
+  name: '밴픽',
+  description: '게임 선택 전 밴',
+  minPlayers: 2,
+  maxPlayers: 2,
+  supportsMulti: true,
+  supportsCom: true,
+  supportsSolo: false,
+};
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -46,6 +57,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitMin, setTimeLimitMin] = useState(1);
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
+  const [banCount, setBanCount] = useState(3);
   const [gameSearch, setGameSearch] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,6 +82,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitMin(1);
     setTimeLimitSec(0);
     setInitialChips(25);
+    setBanCount(3);
     fetchGames()
       .then(setGames)
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
@@ -88,6 +101,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   }, [open, onClose]);
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
+  const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
   const computedTimeLimit = (timeLimitEnabled && playMode === 'multi' && !isRandom)
     ? timeLimitMin * 60 + timeLimitSec
     : null;
@@ -95,7 +109,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   // 상세 설정 탭에 표시할 항목이 하나라도 있는지
   const hasDetailOptions =
     playMode === 'multi' ||
-    selectedGame?.id === GAME_IDS.INDIAN_POKER;
+    selectedGame?.id === GAME_IDS.INDIAN_POKER ||
+    isBanPick;
 
   const selectGame = (g: Game) => {
     setSelectedGame(g);
@@ -110,6 +125,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setSelectedGame(RANDOM_GAME);
     setPlayMode('multi');
     setTimeLimitEnabled(false);
+    setError('');
+  };
+
+  const selectBanPick = () => {
+    setSelectedGame(BAN_PICK_GAME);
+    setPlayMode('multi');
+    setMaxPlayers(2);
     setError('');
   };
 
@@ -133,6 +155,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       const gameOptions: Record<string, unknown> = {};
       if (selectedGame.id === GAME_IDS.INDIAN_POKER) {
         gameOptions.initialChips = initialChips;
+      }
+      if (selectedGame.id === GAME_IDS.BAN_PICK) {
+        gameOptions.banCount = banCount;
       }
       socket.emit(
         'room:create',
@@ -315,6 +340,22 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                             <div className="font-medium">🎲 랜덤</div>
                             <div className="text-xs text-gray-500">무작위 배정</div>
                           </button>
+
+                          {/* 밴픽 */}
+                          {!gameSearch.trim() && (
+                            <button
+                              onClick={selectBanPick}
+                              className={cn(
+                                'flex h-16 flex-col justify-center rounded-lg border px-3 text-left text-sm transition-colors',
+                                isBanPick
+                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                              )}
+                            >
+                              <div className="font-medium">🎯 밴픽</div>
+                              <div className="text-xs text-gray-500">게임 선택 전 밴</div>
+                            </button>
+                          )}
 
                           {filteredGames.map((g) => (
                             <button
@@ -506,6 +547,35 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   {v}개
                                 </button>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 밴 개수 (밴픽 모드) */}
+                        {isBanPick && (
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">
+                              밴 개수{' '}
+                              <span className="font-normal text-gray-400">(1인당, 기본 1)</span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => setBanCount(Math.max(1, banCount - 1))}
+                                disabled={banCount <= 1}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                              >
+                                −
+                              </button>
+                              <span className="w-8 text-center text-base font-bold text-gray-900">
+                                {banCount}
+                              </span>
+                              <button
+                                onClick={() => setBanCount(Math.min(6, banCount + 1))}
+                                disabled={banCount >= 6}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                              >
+                                +
+                              </button>
                             </div>
                           </div>
                         )}

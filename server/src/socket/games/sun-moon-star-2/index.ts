@@ -1,4 +1,4 @@
-import type { Player, PlayMode } from '@shared/types/room.js';
+﻿import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { SMS2Action, SMS2Side } from '@shared/types/sun-moon-star-2.js';
@@ -162,3 +162,5 @@ export function canSunMoonStar2Undo(roomId: string): boolean {
   if (!s.options.enableUndo) return false;
   return s.undoSnapshots.length >= 1;
 }
+
+export { getSunMoonStar2ResultData } from './state.js';

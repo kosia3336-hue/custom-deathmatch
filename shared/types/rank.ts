@@ -1,0 +1,198 @@
+/**
+ * 랭크게임 공통 타입·RP 산정 (기획 02·03·04).
+ * DB 저장 티어는 챌린저 없음 — 표시만 상위 3 다이아.
+ */
+
+export type RankTier = 'unranked' | 'bronze' | 'silver' | 'gold' | 'diamond';
+
+/** UI 표시용 (챌린저 = 다이아 상위 3명) */
+export type DisplayRankTier = RankTier | 'challenger';
+
+/** 매칭·RP 티어 수치: 언랭(배치 중)=브론즈(1) 취급 */
+export function rankTierNumericForRp(tier: RankTier, placementDone: boolean): number {
+  if (tier === 'unranked' && !placementDone) return 1;
+  switch (tier) {
+    case 'unranked':
+      return 0;
+    case 'bronze':
+      return 1;
+    case 'silver':
+      return 2;
+    case 'gold':
+      return 3;
+    case 'diamond':
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * 단판 RP 변동 (배치 완료 플레이어 간만).
+ * @returns winnerGain / loserLoss 모두 양수 — 패배 차감은 caller 가 음수로 적용
+ */
+
+/** RP 테이블·스트릭 분해 (결과 화면 세부 내역용) */
+export interface RankRpParts {
+  winnerGain: number;
+  loserLoss: number;
+  winnerBaseTable: number;
+  winnerStreakBonus: number;
+  loserBaseTable: number;
+  loserStreakPenalty: number;
+}
+
+export function calcRankRpParts(
+  winnerTierVal: number,
+  loserTierVal: number,
+  winnerWinStreak: number,
+  loserLossStreak: number,
+): RankRpParts {
+  const tierDiff = winnerTierVal - loserTierVal;
+  const gainTable = [32, 27, 23, 20, 17, 14, 11];
+  const idx = Math.max(0, Math.min(6, tierDiff + 3));
+  const winnerBaseTable = gainTable[idx];
+  const loserBaseTable = gainTable[idx];
+
+  const winnerStreakBonus =
+    winnerWinStreak >= 6 ? 9
+    : winnerWinStreak === 5 ? 7
+    : winnerWinStreak === 4 ? 5
+    : winnerWinStreak === 3 ? 3
+    : 0;
+
+  const loserStreakPenalty =
+    loserLossStreak >= 6 ? 8
+    : loserLossStreak === 5 ? 6
+    : loserLossStreak === 4 ? 4
+    : loserLossStreak === 3 ? 2
+    : 0;
+
+  const winnerTierBonus = winnerTierVal === 1 ? 2 : winnerTierVal === 2 ? 1 : 0;
+
+  return {
+    winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus + winnerTierBonus),
+    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty),
+    winnerBaseTable,
+    winnerStreakBonus,
+    loserBaseTable,
+    loserStreakPenalty,
+  };
+}
+
+export function calcRankRpChange(
+  winnerTierVal: number,
+  loserTierVal: number,
+  winnerWinStreak: number,
+  loserLossStreak: number,
+): { winnerGain: number; loserLoss: number } {
+  const p = calcRankRpParts(winnerTierVal, loserTierVal, winnerWinStreak, loserLossStreak);
+  return { winnerGain: p.winnerGain, loserLoss: p.loserLoss };
+}
+
+/** 배치전 5판 완료 후 최종 티어·RP (기획 04) */
+export function placementTierAndRp(placementWins: number): {
+  tier: Exclude<RankTier, 'unranked' | 'diamond'>;
+  rp: number;
+} {
+  const w = Math.max(0, Math.min(5, placementWins));
+  if (w >= 5) return { tier: 'gold', rp: 50 };
+  if (w === 4) return { tier: 'gold', rp: 0 };
+  if (w === 3) return { tier: 'silver', rp: 50 };
+  if (w === 2) return { tier: 'silver', rp: 0 };
+  if (w === 1) return { tier: 'bronze', rp: 50 };
+  return { tier: 'bronze', rp: 0 };
+}
+
+/**
+ * 매칭용 누적 RP — 티어를 100 단위로 환산해 단일 수치로 비교
+ * unranked(배치 중) = 브론즈 취급
+ */
+export function matchRp(tier: RankTier, rp: number, placementDone: boolean): number {
+  if (tier === 'unranked' && !placementDone) return rp;
+  const base: Record<RankTier, number> = {
+    unranked: 0,
+    bronze: 0,
+    silver: 100,
+    gold: 200,
+    diamond: 300,
+  };
+  return base[tier] + rp;
+}
+
+export function tierOrder(t: RankTier): number {
+  const o: Record<RankTier, number> = {
+    unranked: 0,
+    bronze: 1,
+    silver: 2,
+    gold: 3,
+    diamond: 4,
+  };
+  return o[t];
+}
+
+export function peakTierMax(a: RankTier, b: RankTier): RankTier {
+  return tierOrder(a) >= tierOrder(b) ? a : b;
+}
+
+/** 정식 랭크 구간 승리 후 RP·승급 (다이아는 상한 없음) */
+export function applyRankWin(
+  currentTier: RankTier,
+  currentRp: number,
+  gain: number,
+): { tier: RankTier; rp: number; promoted: boolean } {
+  if (currentTier === 'unranked') {
+    return { tier: 'unranked', rp: currentRp, promoted: false };
+  }
+  if (currentTier === 'diamond') {
+    return { tier: 'diamond', rp: currentRp + gain, promoted: false };
+  }
+
+  const up: Record<'bronze' | 'silver' | 'gold', RankTier> = {
+    bronze: 'silver',
+    silver: 'gold',
+    gold: 'diamond',
+  };
+
+  let tier: RankTier = currentTier;
+  let rp = currentRp + gain;
+  let promoted = false;
+
+  while (tier === 'bronze' || tier === 'silver' || tier === 'gold') {
+    if (rp < 100) break;
+    rp -= 100;
+    tier = up[tier];
+    promoted = true;
+    if (tier === 'diamond') break;
+  }
+
+  return { tier, rp, promoted };
+}
+
+/** 정식 랭크 구간 패배 후 RP·강등 (브론즈 0은 고정) */
+export function applyRankLoss(
+  currentTier: RankTier,
+  currentRp: number,
+  loss: number,
+): { tier: RankTier; rp: number; demoted: boolean } {
+  if (currentTier === 'unranked') {
+    return { tier: 'unranked', rp: currentRp, demoted: false };
+  }
+  if (currentTier === 'bronze' && currentRp === 0) {
+    return { tier: 'bronze', rp: 0, demoted: false };
+  }
+  if (currentRp > 0) {
+    const next = currentRp - loss;
+    if (next < 0) return { tier: currentTier, rp: 0, demoted: false };
+    return { tier: currentTier, rp: next, demoted: false };
+  }
+
+  const demoteMap: Partial<Record<RankTier, RankTier>> = {
+    diamond: 'gold',
+    gold: 'silver',
+    silver: 'bronze',
+  };
+  const prev = demoteMap[currentTier];
+  if (!prev) return { tier: currentTier, rp: 0, demoted: false };
+  return { tier: prev, rp: 75, demoted: true };
+}

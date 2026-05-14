@@ -171,7 +171,7 @@ export default async function TitleOwnersPage({
           {title.description && (
             <p className="mt-2 text-sm text-cdm-fg-muted">{title.description}</p>
           )}
-          {title.condition_text && (
+          {title.condition_text && (!title.is_system || totalOwners > 0) && (
             <p className="mt-1 text-xs text-cdm-fg-subtle">
               달성 조건(공개): {title.condition_text}
             </p>

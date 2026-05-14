@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
-import type { Room, Player, ChatMessage, GameState, GameResult } from '@/shared/types';
+import { useLobbyChatStore } from '@/stores/lobbyChat';
+import type { Room, Player, ChatMessage, GameState, GameResult, RankGameEndedPayload } from '@/shared/types';
 
 export function useRoom(roomId: string) {
   const mountedRef = useRef(false);
@@ -15,12 +16,16 @@ export function useRoom(roomId: string) {
     mountedRef.current = true;
 
     useRoomStore.getState().clearMessages();
+    // 방 진입 시 로비 채팅도 초기화 (방어적 — useLobby/RankVsOverlay에서 이미 처리되지만,
+    // 새로고침으로 직접 /room/[id] 진입한 경우를 커버)
+    useLobbyChatStore.getState().clearAll();
   }, []);
 
   useEffect(() => {
     const socket = getSocket();
 
     const onRoomState = (room: Room) => {
+      if (room.id !== roomId) return;
       const myId = getOrCreateSessionToken();
       const isSpectator = room.spectators.some((s) => s.id === myId);
       useRoomStore.getState().setRoom(room);
@@ -40,9 +45,18 @@ export function useRoom(roomId: string) {
     const onGameStarted = () => { useRoomStore.getState().setCountdown(null); };
     const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
     const onDisbanded = () => { useRoomStore.getState().reset(); };
-    const onChatMessage = (msg: ChatMessage) => useRoomStore.getState().addMessage(msg);
-    const onGameState = (state: GameState) => { useRoomStore.getState().setGameState(state); };
+    const onChatMessage = (msg: ChatMessage) => {
+      if (msg.scope === 'lobby') return;
+      useRoomStore.getState().addMessage(msg);
+    };
+    const onGameState = (state: GameState) => {
+      if (state.roomId !== roomId) return;
+      useRoomStore.getState().setGameState(state);
+    };
     const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
+    const onRankGameEnded = (payload: RankGameEndedPayload) => {
+      useRoomStore.getState().setRankGameEnded(payload);
+    };
     const onSocketError = (data: { message?: string }) => {
       if (data?.message) toast.error(data.message);
     };
@@ -75,6 +89,7 @@ export function useRoom(roomId: string) {
     socket.on('chat:message', onChatMessage);
     socket.on('game:state', onGameState);
     socket.on('game:ended', onGameEnded);
+    socket.on('rank:game:ended', onRankGameEnded);
     socket.on('error', onSocketError);
     socket.on('player:reconnecting', onPlayerReconnecting);
     socket.on('player:reconnected', onPlayerReconnected);
@@ -95,13 +110,13 @@ export function useRoom(roomId: string) {
       socket.off('chat:message', onChatMessage);
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
+      socket.off('rank:game:ended', onRankGameEnded);
       socket.off('error', onSocketError);
       socket.off('player:reconnecting', onPlayerReconnecting);
       socket.off('player:reconnected', onPlayerReconnected);
       socket.off('session:restored', onSessionRestored);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roomId]);
 
   return {
     room: useRoomStore((s) => s.room),

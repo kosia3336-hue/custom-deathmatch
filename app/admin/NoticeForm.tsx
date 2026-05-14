@@ -30,8 +30,19 @@ interface NoticeFormProps {
   onCancel?: () => void;
 }
 
-export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCancel }: NoticeFormProps) {
-  const router = useRouter();
+async function notifyNoticePublished(noticeId: string, title: string, category: string) {
+  try {
+    await fetch('/api/admin/notify-notice-published', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noticeId, title, category }),
+    });
+  } catch {
+    // 소켓 서버 다운 등 — 무시
+  }
+}
+
+export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCancel }: NoticeFormProps) {  const router = useRouter();
   const [title, setTitle] = React.useState(initial?.title ?? '');
   const [body, setBody] = React.useState(initial?.body ?? '');
   const [category, setCategory] = React.useState<NoticeCategory>(
@@ -66,7 +77,7 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
       try {
         const sb = getBrowserSupabase();
         if (mode === 'create') {
-          await callRpc(sb, 'admin_create_notice', {
+          const noticeId = await callRpc(sb, 'admin_create_notice', {
             p_title: tt,
             p_body: body,
             p_category: category,
@@ -74,6 +85,10 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
             p_is_published: isPublished,
           });
           toast.success('공지가 등록되었습니다');
+          // 공개 발행된 경우 실시간 알림 전송
+          if (isPublished && noticeId) {
+            void notifyNoticePublished(noticeId, tt, category);
+          }
           reset();
         } else if (initial) {
           // 1) 본문/제목/카테고리 변경
@@ -96,6 +111,10 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
               p_id: initial.id,
               p_published: isPublished,
             });
+            // 비공개 → 공개 전환 시 실시간 알림 전송
+            if (isPublished) {
+              void notifyNoticePublished(initial.id, tt, category);
+            }
           }
           toast.success('공지가 수정되었습니다');
         }

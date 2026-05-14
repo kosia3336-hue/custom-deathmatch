@@ -35,6 +35,10 @@ interface ListRow {
   created_by: string | null;
 }
 
+interface NoticeReadRow {
+  notice_id: string;
+}
+
 interface AuthorRow {
   id: string;
   nickname: string;
@@ -78,6 +82,18 @@ export default async function NoticeListPage({ searchParams }: Props) {
   const rows = (res.data ?? []) as unknown as ListRow[];
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
+
+  // 현재 페이지 공지 읽음 여부 조회 (로그인 사용자만)
+  let readIds = new Set<string>();
+  if (member && rows.length > 0) {
+    const noticeIds = rows.map((r) => r.id);
+    const { data: reads } = await sb
+      .from('notice_reads')
+      .select('notice_id')
+      .eq('member_id', member.id)
+      .in('notice_id', noticeIds);
+    readIds = new Set((reads ?? []).map((r) => (r as unknown as NoticeReadRow).notice_id));
+  }
 
   // 작성자 닉네임 조회
   const authorIds = Array.from(
@@ -130,6 +146,7 @@ export default async function NoticeListPage({ searchParams }: Props) {
                 const authorName = row.created_by
                   ? (authorMap.get(row.created_by) ?? '운영진')
                   : '운영진';
+                const isUnread = member ? !readIds.has(row.id) : false;
                 return (
                   <li key={row.id}>
                     <Link
@@ -151,6 +168,11 @@ export default async function NoticeListPage({ searchParams }: Props) {
                               </span>
                             )}
                             <NoticeCategoryChip category={row.category} size="sm" />
+                            {isUnread && (
+                              <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                                NEW
+                              </span>
+                            )}
                           </div>
                           <p className="flex-1 truncate text-[15px] font-semibold text-cdm-fg">
                             {row.title}

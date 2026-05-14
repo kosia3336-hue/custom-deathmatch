@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs } from '@/components/cdm/Tabs';
 
 interface Props {
@@ -17,13 +17,15 @@ const PERIODS = [
 
 export default function RankingTabs({ games, activeGame, activePeriod }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   function update(next: { game?: string; period?: string }) {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
     const game = next.game !== undefined ? next.game : (activeGame ?? '');
     if (game) params.set('game', game);
+    else params.delete('game');
     params.set('period', next.period ?? activePeriod);
-    // 게임/기간 변경 시 page 자동 리셋 (page 자체를 안 넣어 1페이지로)
+    params.delete('page');
     router.replace(`/ranking?${params.toString()}`);
   }
 

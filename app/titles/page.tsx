@@ -23,6 +23,10 @@ interface PublicTitleRow {
   first_granted_at: string | null;
 }
 
+interface ShopTitleRow {
+  payload: Record<string, unknown> | null;
+}
+
 export default async function TitlesPage() {
   const authState = await getAuthState();
   const member = authState.kind === 'ACTIVE' ? authState.member : null;
@@ -31,6 +35,22 @@ export default async function TitlesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb.rpc as any)('list_public_titles');
   const titles = (error ? [] : (data ?? [])) as PublicTitleRow[];
+
+  // 상점에서 현재 구매 가능한 칭호의 title_id 집합
+  const nowIso = new Date().toISOString();
+  const purchasableRes = await sb
+    .from('shop_items')
+    .select('payload')
+    .eq('type', 'title')
+    .eq('is_active', true)
+    .or(`available_from.is.null,available_from.lte.${nowIso}`)
+    .or(`available_until.is.null,available_until.gt.${nowIso}`);
+
+  const purchasableTitleIds = new Set<string>();
+  for (const r of (purchasableRes.data ?? []) as unknown as ShopTitleRow[]) {
+    const tid = (r.payload as { title_id?: string } | null)?.title_id;
+    if (typeof tid === 'string' && tid) purchasableTitleIds.add(tid);
+  }
 
   return (
     <>
@@ -46,7 +66,7 @@ export default async function TitlesPage() {
             description="첫 번째 보유자가 나타나면 여기에 표시됩니다."
           />
         ) : (
-          <TitlesClient titles={titles} />
+          <TitlesClient titles={titles} purchasableIds={Array.from(purchasableTitleIds)} />
         )}
       </main>
     </>

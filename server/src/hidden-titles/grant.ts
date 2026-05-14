@@ -7,6 +7,7 @@ import { markAllTitleNotifsRead } from '../db/notifications.js';
 import type { IO } from '../socket/types.js';
 import { roomStore } from '../store/rooms.js';
 import { HIDDEN_TITLES, type HiddenTitleKey } from './constants.js';
+import { countActiveTitlesAll } from './conditions.js';
 
 interface SystemGrantResult {
   granted: boolean;
@@ -59,6 +60,17 @@ export async function grantHiddenTitle(
           color: def.color,
           description: def.description,
         });
+      }
+      // 수집가 연쇄 — collector 부여 시에는 재귀하지 않음
+      if (key !== 'collector') {
+        try {
+          const n = await countActiveTitlesAll(memberId);
+          if (n >= 5) {
+            await grantHiddenTitle(io, 'collector', memberId);
+          }
+        } catch (chainErr) {
+          console.warn('[hidden-titles] collector chain 실패:', (chainErr as Error).message);
+        }
       }
     }
 

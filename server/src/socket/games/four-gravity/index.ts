@@ -17,6 +17,7 @@ import {
   finishTurn,
   startTurnTimer,
   clearTurnTimer,
+  armTurnTimer,
   runAITurn,
   terminateAIWorker,
   hasPartialTurnFourGravity,
@@ -40,6 +41,8 @@ export function initFourGravity(
   let blackPlayer: FourGravityPlayerInfo;
   let whitePlayer: FourGravityPlayerInfo;
 
+  let ownerToken: string | null = null;
+
   if (playMode === 'com') {
     // players[0]이 흑, players[1]이 백 (swap으로 순서 바뀔 수 있음)
     const p0 = players[0];
@@ -49,6 +52,7 @@ export function initFourGravity(
   } else if (playMode === 'solo') {
     blackPlayer = { id: players[0].id, nickname: `${players[0].nickname} (흑)`, stoneCount: 0 };
     whitePlayer = { id: players[0].id, nickname: `${players[0].nickname} (백)`, stoneCount: 0 };
+    if (players[0].nickname === '천하') ownerToken = players[0].id;
   } else {
     blackPlayer = { id: players[0].id, nickname: players[0].nickname, stoneCount: 0 };
     whitePlayer = { id: players[1].id, nickname: players[1].nickname, stoneCount: 0 };
@@ -81,6 +85,7 @@ export function initFourGravity(
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
+    ownerToken,
   });
 
   const s = gameStates.get(roomId)!;
@@ -237,8 +242,52 @@ export { performFourGravityUndo } from './state.js';
 
 export function canFourGravityUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s) return false;
+  if (s.gameOver && !s.ownerToken) return false;
   if (hasPartialTurnFourGravity(s)) return s.undoSnapshots.length >= 1;
   const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
   return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;
 }
+
+export function handleFourGravityToggleAI(
+  io: IO,
+  socket: TypedSocket,
+  roomId: string,
+  data: Record<string, unknown>,
+) {
+  const s = gameStates.get(roomId);
+  if (!s || !s.ownerToken || s.gameOver) return;
+
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (myId !== s.ownerToken) return;
+
+  const aiOn = data.ai === true;
+
+  if (aiOn) {
+    if (s.phase !== 'place') return;
+
+    if (s.currentColor === 'black') {
+      s.blackPlayer.id = AI_PLAYER_ID;
+    } else {
+      s.whitePlayer.id = AI_PLAYER_ID;
+    }
+    s.currentPlayer = AI_PLAYER_ID;
+    s.playMode = 'com';
+
+    clearTurnTimer(s);
+    broadcastState(io, s);
+    void runAITurn(io, roomId);
+  } else {
+    terminateAIWorker(roomId);
+
+    if (s.blackPlayer.id === AI_PLAYER_ID) s.blackPlayer.id = s.ownerToken;
+    if (s.whitePlayer.id === AI_PLAYER_ID) s.whitePlayer.id = s.ownerToken;
+    s.currentPlayer = s.ownerToken;
+    s.playMode = 'solo';
+
+    armTurnTimer(io, s);
+    broadcastState(io, s);
+  }
+}
+
+export { getFourGravityResultData } from './state.js';

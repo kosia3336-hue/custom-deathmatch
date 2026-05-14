@@ -13,6 +13,7 @@ import type {
 } from './types.js';
 import { judgeMultiple } from './judge.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -83,9 +84,12 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
   };
 
   // 잔여 타일은 본인에게만 전달, 상대/관전자에게는 빈 배열
+  const purin = !!myPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
   if (myPlayer) {
     const opponentId = myPlayer.id === s.player1.id ? s.player2.id : s.player1.id;
-    players[opponentId].remainingTiles = [];
+    if (!purin) {
+      players[opponentId].remainingTiles = [];
+    }
   } else {
     players[s.player1.id].remainingTiles = [];
     players[s.player2.id].remainingTiles = [];
@@ -137,7 +141,7 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
     myTile = myPlayer.currentTile;
   }
 
-  return {
+  const base: MultipleBnwGameData = {
     round: s.round,
     phase: s.phase,
     firstPlayerId: s.firstPlayerId,
@@ -150,6 +154,18 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
     winType: s.winType,
     myTile,
   };
+
+  if (purin && myPlayer && (s.phase === 'tileRespond' || s.phase === 'suspectFirst' || s.phase === 'suspectSecond')) {
+    const opp = myPlayer.id === s.player1.id ? s.player2 : s.player1;
+    if (opp.currentTile != null) {
+      return {
+        ...base,
+        _purin: { opponentMyTile: opp.currentTile },
+      } as MultipleBnwGameData;
+    }
+  }
+
+  return base;
 }
 
 function buildGameState(s: InternalState, gameData: MultipleBnwGameData): GameState {
@@ -170,6 +186,9 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = buildGameDataForPlayer(s, pid);
+    const raw = gameData as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -177,6 +196,9 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = buildGameDataForPlayer(s, pid);
+  const raw = gameData as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -298,7 +320,7 @@ function handleTimeout(io: IO, s: InternalState) {
   switch (s.phase) {
     case 'tileSubmit': {
       trackTimeout(s, fp.id);
-      if (shouldForceEnd(s, fp.id)) { resolveGame(io, s, sp.id, sp.nickname, fp.id, fp.nickname, 'timeout'); return; }
+      if (shouldForceEnd(s, fp.id)) { resolveGame(io, s, sp.id, sp.nickname, 'timeout', fp.id, fp.nickname); return; }
       const tile = fp.remainingTiles[Math.floor(Math.random() * fp.remainingTiles.length)];
       fp.currentTile = tile;
       fp.submitted = true;
@@ -311,7 +333,7 @@ function handleTimeout(io: IO, s: InternalState) {
     }
     case 'tileRespond': {
       trackTimeout(s, sp.id);
-      if (shouldForceEnd(s, sp.id)) { resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'timeout'); return; }
+      if (shouldForceEnd(s, sp.id)) { resolveGame(io, s, fp.id, fp.nickname, 'timeout', sp.id, sp.nickname); return; }
       const tile = sp.remainingTiles[Math.floor(Math.random() * sp.remainingTiles.length)];
       sp.currentTile = tile;
       sp.submitted = true;
@@ -324,7 +346,7 @@ function handleTimeout(io: IO, s: InternalState) {
     }
     case 'suspectFirst': {
       trackTimeout(s, fp.id);
-      if (shouldForceEnd(s, fp.id)) { resolveGame(io, s, sp.id, sp.nickname, fp.id, fp.nickname, 'timeout'); return; }
+      if (shouldForceEnd(s, fp.id)) { resolveGame(io, s, sp.id, sp.nickname, 'timeout', fp.id, fp.nickname); return; }
       s.suspectResult = { firstSuspected: false, firstSuccess: null, secondSkipped: false, secondSuspected: null, secondSuccess: null };
       s.phase = 'suspectSecond';
       startPhaseTimer(io, s);
@@ -334,7 +356,7 @@ function handleTimeout(io: IO, s: InternalState) {
     }
     case 'suspectSecond': {
       trackTimeout(s, sp.id);
-      if (shouldForceEnd(s, sp.id)) { resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'timeout'); return; }
+      if (shouldForceEnd(s, sp.id)) { resolveGame(io, s, fp.id, fp.nickname, 'timeout', sp.id, sp.nickname); return; }
       s.suspectResult!.secondSuspected = false;
       processRound(io, s);
       break;
@@ -494,7 +516,7 @@ function endByScore(io: IO, s: InternalState) {
     const loserId = winnerId === p1.id ? p2.id : p1.id;
     const w = winnerId === p1.id ? p1 : p2;
     const l = loserId === p1.id ? p1 : p2;
-    resolveGame(io, s, winnerId, w.nickname, loserId, l.nickname, 'score');
+    resolveGame(io, s, winnerId, w.nickname, 'score', loserId, l.nickname);
     return;
   }
 
@@ -505,35 +527,21 @@ function endByScore(io: IO, s: InternalState) {
     const loserId = winnerId === p1.id ? p2.id : p1.id;
     const w = winnerId === p1.id ? p1 : p2;
     const l = loserId === p1.id ? p1 : p2;
-    resolveGame(io, s, winnerId, w.nickname, loserId, l.nickname, 'suspectCount');
+    resolveGame(io, s, winnerId, w.nickname, 'suspectCount', loserId, l.nickname);
     return;
   }
 
-  const f1 = s.firstPlayerRounds[p1.id] ?? 0;
-  const f2 = s.firstPlayerRounds[p2.id] ?? 0;
-  if (f1 !== f2) {
-    const winnerId = f1 < f2 ? p1.id : p2.id;
-    const loserId = winnerId === p1.id ? p2.id : p1.id;
-    const w = winnerId === p1.id ? p1 : p2;
-    const l = loserId === p1.id ? p1 : p2;
-    resolveGame(io, s, winnerId, w.nickname, loserId, l.nickname, 'tiebreaker');
-    return;
-  }
-
-  const winnerId = s.initialFirstPlayerId;
-  const loserId = winnerId === p1.id ? p2.id : p1.id;
-  const w = winnerId === p1.id ? p1 : p2;
-  const l = loserId === p1.id ? p1 : p2;
-  resolveGame(io, s, winnerId, w.nickname, loserId, l.nickname, 'tiebreaker');
+  resolveGame(io, s, null, null, 'draw');
 }
 
 /* ────────── game resolution ────────── */
 
 function resolveGame(
   io: IO, s: InternalState,
-  winnerId: string, winnerNick: string,
-  loserId: string, loserNick: string,
+  winnerId: string | null, winnerNick: string | null,
   winType: Exclude<InternalState['winType'], null>,
+  loserId?: string,
+  loserNick?: string,
 ) {
   s.winner = winnerId;
   s.winType = winType;
@@ -541,20 +549,29 @@ function resolveGame(
   s.phase = 'finished';
   broadcastState(io, s);
 
+  const p1 = s.player1;
+  const p2 = s.player2;
+  const rankings = winnerId
+    ? [
+        { playerId: winnerId, nickname: winnerNick!, rank: 1, score: (winnerId === p1.id ? p1 : p2).score },
+        { playerId: loserId!, nickname: loserNick!, rank: 2, score: (loserId === p1.id ? p1 : p2).score },
+      ]
+    : [
+        { playerId: p1.id, nickname: p1.nickname, rank: 1, score: p1.score },
+        { playerId: p2.id, nickname: p2.nickname, rank: 1, score: p2.score },
+      ];
+
   const payload = {
-    rankings: [
-      { playerId: winnerId, nickname: winnerNick, rank: 1, score: (winnerId === s.player1.id ? s.player1 : s.player2).score },
-      { playerId: loserId, nickname: loserNick, rank: 2, score: (loserId === s.player1.id ? s.player1 : s.player2).score },
-    ],
+    rankings,
     totalTurns: s.round,
     gameResultData: {
       winType: s.winType,
-      finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+      finalScores: { [p1.id]: p1.score, [p2.id]: p2.score },
       roundHistory: s.roundHistory,
       actions: s.actionLog,
       players: {
-        [s.player1.id]: { nickname: s.player1.nickname },
-        [s.player2.id]: { nickname: s.player2.nickname },
+        [p1.id]: { nickname: p1.nickname },
+        [p2.id]: { nickname: p2.nickname },
       },
     },
   };
@@ -602,3 +619,18 @@ function handleAiPhase(io: IO, s: InternalState) {
 }
 
 export { getFirstPlayer, getSecondPlayer };
+
+export function getMultipleBnwResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return {
+    winType: s.winType,
+    finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+    roundHistory: s.roundHistory,
+    actions: s.actionLog,
+    players: {
+      [s.player1.id]: { nickname: s.player1.nickname },
+      [s.player2.id]: { nickname: s.player2.nickname },
+    },
+  };
+}

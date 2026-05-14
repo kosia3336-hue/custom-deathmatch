@@ -26,6 +26,14 @@ interface AuthorRow {
   nickname: string;
 }
 
+const CATEGORY_LABEL: Record<string, string> = {
+  bug: '버그',
+  account: '계정',
+  rules: '규정',
+  report_followup: '신고 후속',
+  etc: '기타',
+};
+
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export default async function InquiriesTab({ page: pageParam }: { page: string | undefined }) {
@@ -66,6 +74,9 @@ export default async function InquiriesTab({ page: pageParam }: { page: string |
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <InquiryStatusChip status={q.status} />
+              <span className="text-[11px] rounded px-1.5 py-0.5 bg-cdm-bg-elev-2 text-cdm-fg-muted font-medium shrink-0">
+                {CATEGORY_LABEL[q.category] ?? q.category}
+              </span>
               <span className="text-sm font-semibold text-cdm-fg truncate">{q.title}</span>
               {q.reason_tag && (
                 <span className="text-[11px] text-cdm-accent">[{q.reason_tag}]</span>

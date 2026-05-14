@@ -6,6 +6,7 @@ import ToastProvider from '@/components/providers/ToastProvider';
 import NicknameModal from '@/components/lobby/NicknameModal';
 import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 import TitleGrantedModal from '@/components/TitleGrantedModal';
+import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import BgmProvider from '@/components/providers/BgmProvider';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { getSiteUrl } from '@/lib/site';
@@ -124,6 +125,7 @@ export default async function RootLayout({
             <NicknameModal />
             <SessionTakeoverModal />
             <TitleGrantedModal />
+            <NoticePublishedListener />
             <ToastProvider />
           </BgmProvider>
         </SocketProvider>

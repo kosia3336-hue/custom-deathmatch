@@ -8,6 +8,7 @@ import config from './config.js';
 import { registerGameRoutes, initGames, getGames } from './routes/games.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { setupSocketHandlers } from './socket/index.js';
+import { preloadBiasTitlesCache } from './shop/biasTitlesCache.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -33,6 +34,14 @@ async function main() {
 
   await initGames();
   app.log.info(`[games] ${getGames().length}개 게임 로드 완료`);
+
+  // bias 칭호 캐시 미리 로드 (실패해도 앱은 계속 기동)
+  try {
+    await preloadBiasTitlesCache();
+    app.log.info('[shop] bias titles cache preloaded');
+  } catch (err) {
+    app.log.warn({ err }, '[shop] bias titles cache preload failed');
+  }
 
   app.log.info(`listening on http://${config.host}:${config.port}`);
 }

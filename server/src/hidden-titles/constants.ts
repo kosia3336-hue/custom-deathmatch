@@ -1,5 +1,5 @@
 /**
- * 히든 칭호 정의 (v2.11).
+ * 히든 칭호 정의 (v2.11 + v2 신규 7종).
  *
  * 본 파일은 **서버 코드 안에서만** 살아야 한다.
  *  - DB 에는 조건 로직을 절대 저장하지 않는다 (다른 관리자 노출 방지).
@@ -10,6 +10,7 @@
  * 카운팅 기준:
  *   - 'all'       : 서비스 런칭 이후 전체 이력 대상 (기존 데이터 포함)
  *   - 'post_update': v2.11 배포 이후(HIDDEN_TITLES_POST_UPDATE_START_AT)만 대상
+ *   - 'post_v2'    : 신규 히든 배포 이후(HIDDEN_TITLES_V2_START_AT)만 대상
  *
  * 정책 문서: docs/v2/11_titles.md §11.5
  */
@@ -27,6 +28,12 @@ export type TitleColor =
  */
 export const HIDDEN_TITLES_POST_UPDATE_START_AT = '2026-05-04T00:33:00.000Z';
 
+/**
+ * 신규 히든 7종(v2) 집계 시작 시각.
+ * ⚠️ 배포 시점에 맞게 한 번 설정 후 변경 금지.
+ */
+export const HIDDEN_TITLES_V2_START_AT = '2026-05-06T06:00:00.000Z';
+
 export type HiddenTitleKey =
   | 'unbreakable_warrior'
   | 'field_conqueror'
@@ -34,9 +41,16 @@ export type HiddenTitleKey =
   | 'complainant'
   | 'thousand_fate'
   | 'big_dipper'
-  | 'collector';
+  | 'collector'
+  | 'strategist'
+  | 'hope_of_humanity'
+  | 'eureka'
+  | 'one_strike_master'
+  | 'trial_of_patience'
+  | 'blitz_victor'
+  | 'name_changer';
 
-export type HiddenTitleCountScope = 'all' | 'post_update';
+export type HiddenTitleCountScope = 'all' | 'post_update' | 'post_v2';
 
 export interface HiddenTitleDef {
   key: HiddenTitleKey;
@@ -48,7 +62,7 @@ export interface HiddenTitleDef {
 }
 
 /**
- * 7종 히든 칭호.
+ * 히든 칭호 정의.
  *
  * name / color / description / conditionText 는 조건 만족 시
  * `system_grant_hidden_title` RPC 로 넘겨져 titles 행에 기록되며,
@@ -110,5 +124,62 @@ export const HIDDEN_TITLES: Record<HiddenTitleKey, HiddenTitleDef> = {
     description: '흩어진 칭호들을 하나로 모으기 시작한 자.',
     conditionText: '최초로 서로 다른 칭호 5개를 획득한 플레이어',
     scope: 'all',
+  },
+  strategist: {
+    key: 'strategist',
+    name: '전략가',
+    color: 'indigo',
+    description: '밴픽과 게임을 모두 섭렵했다.',
+    conditionText: '최초로 밴픽 모드에서 5승을 달성한 플레이어',
+    scope: 'post_v2',
+  },
+  hope_of_humanity: {
+    key: 'hope_of_humanity',
+    name: '인류의 희망',
+    color: 'yellow',
+    description: '아직 인간은 AI에게 굴복하지 않았다.',
+    conditionText: '최초로 AI에게 15번 승리한 플레이어',
+    scope: 'post_v2',
+  },
+  eureka: {
+    key: 'eureka',
+    name: '유레카',
+    color: 'gold',
+    description: '공지사항에서 칭호를 발견했다.',
+    conditionText: '최초로 해당 칭호가 안내된 공지사항을 확인한 플레이어',
+    scope: 'post_v2',
+  },
+  one_strike_master: {
+    key: 'one_strike_master',
+    name: '일격필살',
+    color: 'slate',
+    description:
+      '만 가지 발차기를 할 줄 아는 사람보다 한 가지 발차기를 만 번 연습한 사람이 더 무서운 법.',
+    conditionText: '최초로 같은 게임을 30번 플레이한 플레이어',
+    scope: 'post_v2',
+  },
+  trial_of_patience: {
+    key: 'trial_of_patience',
+    name: '인고의 시간',
+    color: 'rose',
+    description: '시계 바늘이 한 바퀴를 돌 때까지, 당신의 투지는 꺾이지 않았다.',
+    conditionText: '최초로 1시간 이상 진행된 게임에서 승리한 플레이어',
+    scope: 'post_v2',
+  },
+  blitz_victor: {
+    key: 'blitz_victor',
+    name: '전광석화',
+    color: 'yellow',
+    description: '긴 대화는 필요 없다. 이미 승부는 결정되었으니까.',
+    conditionText: '최초로 3분 이내에 진행된 게임에서 승리한 플레이어',
+    scope: 'post_v2',
+  },
+  name_changer: {
+    key: 'name_changer',
+    name: '둔갑술',
+    color: 'slate',
+    description: '당신의 정체는 아무도 모를 것이다. 아마도.',
+    conditionText: '최초로 닉네임을 변경한 플레이어',
+    scope: 'post_v2',
   },
 };

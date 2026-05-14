@@ -5,6 +5,7 @@ import { useLobbyStore, type TabFilter as TF } from '@/stores/lobby';
 
 const TABS: { key: TF; label: string }[] = [
   { key: 'all', label: '전체' },
+  { key: 'rank', label: '🏆 랭크' },
   { key: 'public', label: '🔓 공개방' },
   { key: 'private', label: '🔑 비밀방' },
   { key: 'waiting', label: '대기 중' },
@@ -19,6 +20,7 @@ export default function TabFilter() {
   const getCounts = (key: TF) => {
     switch (key) {
       case 'all': return rooms.length;
+      case 'rank': return rooms.filter((r) => r.isRanked === true).length;
       case 'public': return rooms.filter((r) => r.roomType === 'public').length;
       case 'private': return rooms.filter((r) => r.roomType === 'private').length;
       case 'waiting': return rooms.filter((r) => r.status === 'waiting').length;

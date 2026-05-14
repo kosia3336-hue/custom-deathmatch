@@ -6,6 +6,7 @@ export const WIN_TYPE_LABELS: Record<IDWinType, string> = {
   tiebreaker: '코인 타이브레이커',
   timeout: '시간 초과',
   leave: '상대 이탈',
+  draw: '무승부',
 };
 
 export const COIN_DENOMINATIONS = [

@@ -50,22 +50,25 @@ export default function MultipleBnwGame() {
   const prevRoundRef = useRef<number | null>(null);
   const prevFirstIdRef = useRef<string | null>(null);
 
-  // Winner toast
+  // Winner/draw toast
   const shownWinnerRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!gameData?.winner || !gameData?.winType) return;
-    if (shownWinnerRef.current === gameData.winner) return;
-    shownWinnerRef.current = gameData.winner;
+    if (!gameData?.winType) return;
+    const key = gameData.winner ?? 'draw';
+    if (shownWinnerRef.current === key) return;
+    shownWinnerRef.current = key;
 
-    const winnerNick = gameData.players[gameData.winner]?.nickname ?? '???';
-    const reason = gameData.winType ? (WIN_TYPE_LABELS[gameData.winType] ?? '') : '';
-    const isMe = gameData.winner === myId;
-    const message = `${winnerNick} 승리! ${reason}`;
-
-    if (isMe) toast.success(message, { duration: 5000 });
-    else toast.error(message, { duration: 5000 });
-  }, [gameData, myId]);
+    if (gameData.winType === 'draw') {
+      toast.info('무승부!', { duration: 5000 });
+    } else if (gameData.winner) {
+      const winnerNick = gameData.players[gameData.winner]?.nickname ?? '???';
+      const reason = WIN_TYPE_LABELS[gameData.winType] ?? '';
+      const isMe = gameData.winner === myId;
+      if (isMe) toast.success(`${winnerNick} 승리! ${reason}`, { duration: 5000 });
+      else toast.error(`${winnerNick} 승리! ${reason}`, { duration: 5000 });
+    }
+  }, [gameData?.winner, gameData?.winType, myId, gameData?.players]);
 
   // Color reveal animations
   useEffect(() => {

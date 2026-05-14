@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useLobbyStore } from '@/stores/lobby';
 import { useNicknameStore } from '@/stores/nickname';
+import { useRankMatchStore } from '@/stores/rankMatch';
+import { useLobbyChatStore } from '@/stores/lobbyChat';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Game, JoinRoomResult } from '@/shared/types';
+import RankLobbyControls from '@/components/lobby/RankLobbyControls';
 
 interface Props {
   onCreateRoom: () => void;
@@ -20,6 +22,7 @@ export default function ActionBar({ onCreateRoom }: Props) {
   const router = useRouter();
   const { searchQuery, setSearchQuery, gameFilter, setGameFilter } = useLobbyStore();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
+  const queuing = useRankMatchStore((s) => s.queuing);
   const [games, setGames] = useState<Game[]>([]);
   const [quickJoining, setQuickJoining] = useState(false);
 
@@ -28,12 +31,17 @@ export default function ActionBar({ onCreateRoom }: Props) {
   }, []);
 
   const handleQuickJoin = () => {
+    if (queuing) {
+      toast.error('랭크 큐 대기 중에는 게임에 참가할 수 없습니다.');
+      return;
+    }
     requireNickname(() => {
       setQuickJoining(true);
       const socket = getSocket();
       socket.emit('room:quickjoin', (res: JoinRoomResult) => {
         setQuickJoining(false);
         if (res.success && res.roomId) {
+          useLobbyChatStore.getState().clearAll();
           router.push(`/room/${res.roomId}`);
         } else {
           toast.error(res.error ?? '빠른 입장에 실패했습니다.');
@@ -63,17 +71,20 @@ export default function ActionBar({ onCreateRoom }: Props) {
           ))}
         </select>
       </div>
-      <div className="flex gap-2">
-        <Link
-          href="/ranking"
-          className="sm:hidden inline-flex items-center rounded-cdm-md border border-cdm-border bg-cdm-bg px-4 py-2 text-sm font-medium text-cdm-fg hover:bg-cdm-bg-elev-1"
-        >
-          랭킹
-        </Link>
+      <div className="flex flex-wrap items-end gap-2">
+        <RankLobbyControls />
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장
         </Button>
-        <Button onClick={() => requireNickname(onCreateRoom)}>
+        <Button
+          onClick={() => {
+            if (queuing) {
+              toast.error('랭크 큐 대기 중에는 방을 만들 수 없습니다.');
+              return;
+            }
+            requireNickname(onCreateRoom);
+          }}
+        >
           방 만들기
         </Button>
       </div>

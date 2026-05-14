@@ -145,3 +145,5 @@ export function emitWinningStreakStateToSocket(socket: TypedSocket, roomId: stri
   if (!s) return;
   emitStateToSocket(socket, s);
 }
+
+export { getWinningStreakResultData } from './state.js';

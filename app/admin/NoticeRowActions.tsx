@@ -65,6 +65,18 @@ export default function NoticeRowActions({ notice, pinnedCount }: RowProps) {
           p_published: next,
         });
         toast.success(next ? '공개되었습니다' : '비공개로 변경되었습니다');
+        // 비공개 → 공개 전환 시 실시간 알림 전송
+        if (next) {
+          void fetch('/api/admin/notify-notice-published', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              noticeId: notice.id,
+              title: notice.title,
+              category: notice.category,
+            }),
+          }).catch(() => {});
+        }
         router.refresh();
       } catch (e) {
         toast.error(`실패: ${(e as Error).message}`);

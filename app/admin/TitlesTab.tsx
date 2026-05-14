@@ -41,6 +41,19 @@ export default async function TitlesTab({ page: pageParam }: { page: string | un
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
+  const titleIds = titles.map((t) => t.id);
+  const holderCountMap = new Map<string, number>();
+  if (titleIds.length > 0) {
+    const hr = await sb
+      .from('member_titles')
+      .select('title_id')
+      .in('title_id', titleIds)
+      .is('revoked_at', null);
+    for (const row of (hr.data ?? []) as { title_id: string }[]) {
+      holderCountMap.set(row.title_id, (holderCountMap.get(row.title_id) ?? 0) + 1);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -81,7 +94,8 @@ export default async function TitlesTab({ page: pageParam }: { page: string | un
                 {t.description && (
                   <p className="mt-1 text-xs text-cdm-fg-muted">{t.description}</p>
                 )}
-                {t.condition_text && (
+                {t.condition_text &&
+                  (!t.is_system || (holderCountMap.get(t.id) ?? 0) > 0) && (
                   <p className="mt-0.5 text-xs text-cdm-fg-subtle">
                     조건: {t.condition_text}
                   </p>

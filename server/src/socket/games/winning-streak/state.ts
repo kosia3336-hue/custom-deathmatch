@@ -13,6 +13,7 @@ import type {
 } from './types.js';
 import { judgeMatch } from './judge.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -62,7 +63,8 @@ function phaseMessage(s: InternalState): string {
   }
 }
 
-function buildGameDataForPlayer(s: InternalState, _pid: string): WinningStreakGameData {
+function buildGameDataForPlayer(s: InternalState, socketId: string): WinningStreakGameData {
+  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
   const players: Record<string, WSPlayerInfo> = {
     [s.player1.id]: playerToInfo(s.player1),
     [s.player2.id]: playerToInfo(s.player2),
@@ -112,7 +114,7 @@ function buildGameDataForPlayer(s: InternalState, _pid: string): WinningStreakGa
     ),
   }));
 
-  return {
+  const base: WinningStreakGameData = {
     round: s.round,
     phase: s.phase,
     players,
@@ -121,6 +123,16 @@ function buildGameDataForPlayer(s: InternalState, _pid: string): WinningStreakGa
     winner: s.winner,
     winType: s.winType,
   };
+
+  if (purin && s.phase === 'cardSelect') {
+    const opp = socketId === s.player1.id ? s.player2 : s.player1;
+    return {
+      ...base,
+      _purin: { opponentSelectedCard: opp.selectedCard },
+    } as WinningStreakGameData;
+  }
+
+  return base;
 }
 
 function buildGameState(s: InternalState, gameData: WinningStreakGameData): GameState {
@@ -141,6 +153,9 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = buildGameDataForPlayer(s, pid);
+    const raw = gameData as Record<string, unknown>;
+    const ext = raw['_purin'];
+    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -148,6 +163,9 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = buildGameDataForPlayer(s, pid);
+  const raw = gameData as Record<string, unknown>;
+  const ext = raw['_purin'];
+  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -566,4 +584,10 @@ export function trySubmitCard(
   }
 
   return null;
+}
+
+export function getWinningStreakResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  return buildGameResultData(s);
 }

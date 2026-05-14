@@ -11,6 +11,7 @@ import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import { useRouter } from 'next/navigation';
 import { useBgm } from '@/components/providers/BgmProvider';
+import { useInventoryStore } from '@/stores/inventory';
 
 export default function SettingsTab() {
   const router = useRouter();
@@ -146,27 +147,58 @@ function NicknameModal({
   onDone: () => void;
 }) {
   const [nick, setNick] = useState('');
+  const [useTicket, setUseTicket] = useState(false);
   const [submitting, startTransition] = useTransition();
+  const ticketCount = useInventoryStore((s) => s.items?.nickname_change ?? 0);
+  const setOne = useInventoryStore((s) => s.setOne);
 
   function handleSubmit() {
     startTransition(async () => {
       try {
-        const supabase = getBrowserSupabase();
-        try {
-          await callRpc(supabase, 'change_nickname', { p_new_nick: nick.trim() });
-        } catch (rpcErr) {
-          const code = (rpcErr as { code?: string }).code;
-          if (code === '22023') {
-            toast.error('닉네임은 30일에 한 번만 변경할 수 있습니다');
+        const res = await fetch('/api/me/nickname/change', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newNick: nick.trim(), useTicket }),
+        });
+        const json = (await res.json()) as
+          | {
+              ok: true;
+              newNickname: string;
+              usedTicket: boolean;
+              ticketCountAfter: number;
+            }
+          | { error: string; code: string };
+
+        if (!res.ok || !('ok' in json)) {
+          const e = json as { error: string; code: string };
+          if (e.code === 'cooldown') {
+            toast.error(
+              ticketCount > 0
+                ? '쿨다운이 남아있어요. "변경권 사용"을 체크하면 우회할 수 있어요.'
+                : '닉네임은 30일에 한 번만 변경할 수 있어요.',
+            );
             return;
           }
-          if (code === '23505') {
-            toast.error('사용할 수 없는 닉네임입니다');
+          if (e.code === 'no_ticket') {
+            toast.error('닉네임 변경권이 없어요.');
             return;
           }
-          throw rpcErr;
+          if (e.code === 'invalid_nickname') {
+            toast.error('사용할 수 없는 닉네임이에요.');
+            return;
+          }
+          toast.error(e.error ?? '변경에 실패했어요.');
+          return;
         }
-        toast.success('닉네임이 변경되었습니다');
+
+        if (json.usedTicket) {
+          setOne('nickname_change', json.ticketCountAfter);
+          toast.success(
+            `닉네임이 변경됐어요. (변경권 사용, 잔여 ${json.ticketCountAfter}개)`,
+          );
+        } else {
+          toast.success('닉네임이 변경됐어요.');
+        }
         onClose();
         onDone();
       } catch (e) {
@@ -185,7 +217,7 @@ function NicknameModal({
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
             취소
           </Button>
-          <Button onClick={handleSubmit} loading={submitting}>
+          <Button onClick={handleSubmit} loading={submitting} disabled={!nick.trim()}>
             변경
           </Button>
         </>
@@ -199,6 +231,26 @@ function NicknameModal({
         maxLength={16}
         autoFocus
       />
+      <label
+        className={`mt-3 flex items-start gap-2 text-sm ${
+          ticketCount > 0 ? 'text-cdm-fg' : 'text-cdm-fg-muted'
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={useTicket}
+          onChange={(e) => setUseTicket(e.target.checked)}
+          disabled={ticketCount <= 0}
+          className="mt-0.5 h-4 w-4 accent-cdm-primary"
+        />
+        <span>
+          닉네임 변경권 사용 (쿨다운 우회) — <b className="tabular-nums">{ticketCount}</b>개 보유
+          {ticketCount <= 0 && <> · <a href="/shop" className="underline">상점에서 구매</a></>}
+        </span>
+      </label>
+      <p className="mt-2 text-xs text-cdm-fg-muted">
+        ※ 가입 후 1분 이내, 또는 마지막 변경 후 30일이 지났다면 변경권 없이 변경할 수 있어요.
+      </p>
     </Modal>
   );
 }

@@ -2,13 +2,16 @@ import type { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
 import { roomStore } from '../store/rooms.js';
-import { registerLobbyHandlers } from './lobby.js';
+import { registerLobbyHandlers, broadcastOnlineUsers } from './lobby.js';
+import { LOBBY_ROOM } from './types.js';
 import { registerRoomHandlers, handleLeaveRoom } from './room.js';
 import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
+import { registerRankQueueHandlers } from './rankQueue.js';
 import { socketRoom } from './utils.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
+import { rankQueueStore } from '../store/rankQueue.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -110,6 +113,8 @@ export function setupSocketHandlers(io: IO) {
         // isInGame = true 면 game:ended 시 emit (sessions.pendingTitles는 그대로 유지)
       }
 
+      if (member) broadcastOnlineUsers(io);
+
       if (result === 'restored') {
         const nickname = sessions.getNickname(socket.id);
         const roomId = sessions.getRoom(socket.id);
@@ -126,7 +131,8 @@ export function setupSocketHandlers(io: IO) {
         if (roomId) {
           const room = roomStore.get(roomId);
           if (room) {
-            // socket.io room 재입장
+            // socket.io room 재입장 (LOBBY_ROOM에서 제거)
+            socket.leave(LOBBY_ROOM);
             socket.join(socketRoom(roomId));
 
             // room:state + game:state 재전송
@@ -163,9 +169,13 @@ export function setupSocketHandlers(io: IO) {
     registerRoomHandlers(io, socket);
     registerGameHandlers(io, socket);
     registerChatHandlers(io, socket);
+    registerRankQueueHandlers(io, socket);
 
     // ── 연결 끊김 ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
+      const wasMember = !!sessions.getMemberIdBySocket(socket.id);
+      rankQueueStore.removeBySocket(socket.id);
+
       const token = sessions.getToken(socket.id);
       const roomId = sessions.getRoom(socket.id);
 
@@ -187,9 +197,11 @@ export function setupSocketHandlers(io: IO) {
           const timer = setTimeout(() => {
             handleLeaveRoom(io, socket);
             sessions.removeSession(socket.id);
+            if (wasMember) broadcastOnlineUsers(io);
           }, RECONNECT_GRACE_PLAYING);
 
           sessions.setPendingDisconnect(token, timer);
+          if (wasMember) broadcastOnlineUsers(io);
           return;
         }
         // 대기실 포함 그 외: 즉시 퇴장
@@ -197,6 +209,7 @@ export function setupSocketHandlers(io: IO) {
 
       handleLeaveRoom(io, socket);
       sessions.removeSession(socket.id);
+      if (wasMember) broadcastOnlineUsers(io);
     });
   });
 }

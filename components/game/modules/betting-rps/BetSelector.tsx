@@ -117,7 +117,7 @@ export default function BetSelector({ myChips, disabled }: Props) {
 
       <button
         onClick={submit}
-        disabled={!prediction || submitted || disabled}
+        disabled={!prediction || submitted || disabled || (myChips > 0 && betChips === 0)}
         className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitted ? '제출 완료' : '제출'}

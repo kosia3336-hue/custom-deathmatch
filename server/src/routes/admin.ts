@@ -11,8 +11,13 @@ import { markAllTitleNotifsRead } from '../db/notifications.js';
 import {
   onInquirySubmit as hiddenOnInquirySubmit,
   onTitleGranted as hiddenOnTitleGranted,
+  onNicknameChanged as hiddenOnNicknameChanged,
+  onNoticeReadForHidden as hiddenOnNoticeReadForHidden,
 } from '../hidden-titles/hooks.js';
 import config from '../config.js';
+import { invalidateBiasTitlesCache } from '../shop/biasTitlesCache.js';
+import { invalidateOwnedTitles } from '../shop/playerOwnedTitles.js';
+import { rankQueueStore } from '../store/rankQueue.js';
 
 interface NotifyTitleGrantedBody {
   secret: string;
@@ -21,6 +26,29 @@ interface NotifyTitleGrantedBody {
   name: string;
   color: string;
   description: string | null;
+}
+
+interface NotifyNoticePublishedBody {
+  secret: string;
+  noticeId: string;
+  title: string;
+  category: string;
+}
+
+interface NotifyCdpAdjustedBody {
+  secret: string;
+  memberId: string;
+  newBalance: number;
+  delta: number;
+  reason: 'shop_purchase' | 'admin_adjust';
+  ref?: { kind: string; id: string };
+}
+
+interface NotifyShopItemChangedBody {
+  secret: string;
+  itemId: string;
+  stock: number | null;
+  isActive: boolean;
 }
 
 export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null) {
@@ -78,15 +106,40 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     },
   );
 
+  // ── 공지 발행 브로드캐스트 ──────────────────────────────────────────────
+  app.post<{ Body: NotifyNoticePublishedBody }>(
+    '/internal/notify-notice-published',
+    async (req, reply) => {
+      const { secret, noticeId, title, category } = req.body;
+
+      if (secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+
+      const io = getIO();
+      if (!io) {
+        return reply.status(503).send({ status: 'not_ready' });
+      }
+
+      io.emit('notice:published', { noticeId, title, category });
+      return reply.send({ status: 'emitted' });
+    },
+  );
+
   // ── 히든 칭호 훅 트리거 (Next.js /api/hidden-titles/* 에서 호출) ─────
-  //
-  // 본 엔드포인트는 "이 회원에 대해 지정된 종류의 히든 칭호 판정을 수행하라"는
   // 요청만 받는다. 구체적 조건 로직은 서버 코드(hidden-titles/) 에 숨겨진다.
 
-  app.post<{ Body: { secret: string; kind: 'inquiry' | 'title_granted'; memberId: string } }>(
+  app.post<{
+    Body: {
+      secret: string;
+      kind: 'inquiry' | 'title_granted' | 'nickname_changed' | 'eureka_notice';
+      memberId: string;
+      noticeId?: string;
+    };
+  }>(
     '/internal/hidden-titles/check',
     async (req, reply) => {
-      const { secret, kind, memberId } = req.body;
+      const { secret, kind, memberId, noticeId } = req.body;
       if (secret !== config.internalSecret) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
@@ -105,6 +158,17 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
         hiddenOnTitleGranted(io, memberId).catch((err) => {
           console.warn('[hidden-titles] title_granted hook 실패:', (err as Error).message);
         });
+      } else if (kind === 'nickname_changed') {
+        hiddenOnNicknameChanged(io, memberId).catch((err) => {
+          console.warn('[hidden-titles] nickname_changed hook 실패:', (err as Error).message);
+        });
+      } else if (kind === 'eureka_notice') {
+        if (!noticeId || typeof noticeId !== 'string') {
+          return reply.status(400).send({ error: 'noticeId required' });
+        }
+        hiddenOnNoticeReadForHidden(io, memberId, noticeId).catch((err) => {
+          console.warn('[hidden-titles] eureka_notice hook 실패:', (err as Error).message);
+        });
       } else {
         return reply.status(400).send({ error: 'unknown kind' });
       }
@@ -112,4 +176,137 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
       return reply.send({ ok: true });
     },
   );
+
+  // ── CDP 잔액 변동 통보 (구매 / 어드민 조정) ───────────────────────────
+  app.post<{ Body: NotifyCdpAdjustedBody }>(
+    '/internal/notify-cdp-adjusted',
+    async (req, reply) => {
+      const { secret, memberId, newBalance, delta, reason, ref } = req.body;
+      if (secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      const io = getIO();
+      if (!io) {
+        return reply.status(503).send({ status: 'not_ready' });
+      }
+
+      const token = sessions.getTokenByMemberId(memberId);
+      const sid = token ? sessions.getSocketByToken(token) : null;
+      const sock = sid ? io.sockets.sockets.get(sid) : null;
+      if (sock) {
+        sock.emit('cdp:adjusted', { newBalance, delta, reason, ...(ref ? { ref } : {}) });
+        return reply.send({ status: 'emitted' });
+      }
+      return reply.send({ status: 'no_session' });
+    },
+  );
+
+  // ── 상점 아이템 변경 broadcast (재고 / 활성) ───────────────────────────
+  app.post<{ Body: NotifyShopItemChangedBody }>(
+    '/internal/notify-shop-item-changed',
+    async (req, reply) => {
+      const { secret, itemId, stock, isActive } = req.body;
+      if (secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      const io = getIO();
+      if (!io) {
+        return reply.status(503).send({ status: 'not_ready' });
+      }
+      io.emit('shop:item_changed', { itemId, stock, isActive });
+      return reply.send({ status: 'emitted' });
+    },
+  );
+
+  // ── bias 칭호 캐시 무효화 (상점 아이템 추가/수정 시) ───────────────────
+  app.post<{ Body: { secret: string } }>(
+    '/internal/invalidate-bias-titles',
+    async (req, reply) => {
+      if (req.body.secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      invalidateBiasTitlesCache();
+      return reply.send({ ok: true });
+    },
+  );
+
+  // ── 회원 보유 칭호 캐시 무효화 (구매/회수 후) ───────────────────────────
+  app.post<{ Body: { secret: string; memberId: string } }>(
+    '/internal/invalidate-owned-titles',
+    async (req, reply) => {
+      const { secret, memberId } = req.body;
+      if (secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      if (typeof memberId !== 'string' || !memberId) {
+        return reply.status(400).send({ error: 'memberId required' });
+      }
+      invalidateOwnedTitles(memberId);
+      return reply.send({ ok: true });
+    },
+  );
+
+  // ── 인벤토리 변동 통보 (구매 / 어드민 조정) ──────────────────────────
+  app.post<{
+    Body: {
+      secret: string;
+      memberId: string;
+      kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity';
+      countAfter: number;
+      reason: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
+      ref?: { kind: string; id: string };
+    };
+  }>('/internal/notify-inventory-updated', async (req, reply) => {
+    const { secret, memberId, kind, countAfter, reason, ref } = req.body;
+    if (secret !== config.internalSecret) {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+    const io = getIO();
+    if (!io) return reply.status(503).send({ status: 'not_ready' });
+
+    const token = sessions.getTokenByMemberId(memberId);
+    const sid = token ? sessions.getSocketByToken(token) : null;
+    const sock = sid ? io.sockets.sockets.get(sid) : null;
+    if (sock) {
+      sock.emit('inventory:updated', {
+        kind,
+        countAfter,
+        reason,
+        ...(ref ? { ref } : {}),
+      });
+      return reply.send({ status: 'emitted' });
+    }
+    return reply.send({ status: 'no_session' });
+  });
+
+  // ── 랭크 통계 초기화 통보 (랭크 초기화권 사용 후) ────────────────────
+  app.post<{
+    Body: {
+      secret: string;
+      memberId: string;
+      seasonId: number;
+      ticketCountAfter: number;
+    };
+  }>('/internal/notify-rank-stats-reset', async (req, reply) => {
+    const { secret, memberId, seasonId, ticketCountAfter } = req.body;
+    if (secret !== config.internalSecret) {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+    const io = getIO();
+    if (!io) return reply.status(503).send({ status: 'not_ready' });
+
+    const token = sessions.getTokenByMemberId(memberId);
+
+    // 큐에 들어가 있으면 즉시 빠지게 한다 (오래된 entry.tier/rp 무효화).
+    rankQueueStore.removeByMemberId(memberId);
+
+    const sid = token ? sessions.getSocketByToken(token) : null;
+    const sock = sid ? io.sockets.sockets.get(sid) : null;
+    if (sock) {
+      sock.emit('rank:stats:reset', { seasonId, ticketCountAfter });
+      sock.emit('rank:queue:status', { inQueue: false, waitSeconds: 0 });
+      return reply.send({ status: 'emitted' });
+    }
+    return reply.send({ status: 'no_session' });
+  });
 }

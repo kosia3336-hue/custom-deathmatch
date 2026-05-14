@@ -10,7 +10,7 @@ export type MBNWPhase =
   | 'suspectSecond'
   | 'result'
   | 'finished';
-export type MBNWWinType = 'score' | 'suspectCount' | 'tiebreaker' | 'timeout' | 'abandon' | null;
+export type MBNWWinType = 'score' | 'suspectCount' | 'draw' | 'timeout' | 'abandon' | null;
 
 export const MBNW_TILE_COLOR: Record<MBNWTile, MBNWTileColor> = {
   3: 'white', 5: 'white', 7: 'white', 9: 'white',

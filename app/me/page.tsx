@@ -11,6 +11,7 @@ import LogsTab from './LogsTab';
 import StatsTab from './StatsTab';
 import TitlesTab from './TitlesTab';
 import SupportTab from './SupportTab';
+import ShopTab from './ShopTab';
 
 export const metadata: Metadata = { title: '마이페이지' };
 
@@ -20,6 +21,8 @@ interface Props {
     page?: string;
     inquiriesPage?: string;
     reportsPage?: string;
+    ledgerPage?: string;
+    purchasesPage?: string;
   }>;
 }
 
@@ -61,6 +64,13 @@ export default async function MyPage({ searchParams }: Props) {
           {tab === 'stats' && <StatsTab memberId={member.id} />}
           {tab === 'titles' && (
             <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
+          )}
+          {tab === 'shop' && (
+            <ShopTab
+              memberId={member.id}
+              ledgerPage={sp.ledgerPage}
+              purchasesPage={sp.purchasesPage}
+            />
           )}
           {tab === 'support' && (
             <SupportTab

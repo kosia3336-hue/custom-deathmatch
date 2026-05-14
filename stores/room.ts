@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import type { Room, Player, GameState, GameResult, ChatMessage } from '@/shared/types';
+import type {
+  Room,
+  Player,
+  GameState,
+  GameResult,
+  ChatMessage,
+  RankGameEndedPayload,
+} from '@/shared/types';
 
 interface ReconnectingPlayer {
   playerId: string;
@@ -11,6 +18,8 @@ interface RoomState {
   room: Room | null;
   gameState: GameState | null;
   gameResult: GameResult | null;
+  /** 랭크 매치 종료 시 본인 전용 `rank:game:ended` (티어 배지·RP 세부 등 기획 페이로드) */
+  rankGameEnded: RankGameEndedPayload | null;
   messages: ChatMessage[];
   lastSeenMsgCount: number;
   countdown: number | null;
@@ -21,6 +30,7 @@ interface RoomState {
   setRoom: (room: Room | null) => void;
   setGameState: (state: GameState | null) => void;
   setGameResult: (result: GameResult | null) => void;
+  setRankGameEnded: (payload: RankGameEndedPayload | null) => void;
   addMessage: (msg: ChatMessage) => void;
   clearMessages: () => void;
   clearChatUnread: () => void;
@@ -41,6 +51,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   room: null,
   gameState: null,
   gameResult: null,
+  rankGameEnded: null,
   messages: [],
   lastSeenMsgCount: 0,
   countdown: null,
@@ -49,7 +60,17 @@ export const useRoomStore = create<RoomState>((set) => ({
 
   setRoom: (room) => set({ room }),
   setGameState: (state) => set({ gameState: state }),
-  setGameResult: (result) => set({ gameResult: result }),
+  setGameResult: (result) =>
+    set((s) => ({
+      gameResult: result,
+      rankGameEnded:
+        result == null || result.isRanked !== true
+          ? null
+          : s.rankGameEnded != null && s.rankGameEnded.roomId === result.roomId
+            ? s.rankGameEnded
+            : null,
+    })),
+  setRankGameEnded: (payload) => set({ rankGameEnded: payload }),
   addMessage: (msg) => set((s) => ({ messages: [...s.messages.slice(-199), msg] })),
   clearMessages: () => set({ messages: [], lastSeenMsgCount: 0 }),
   clearChatUnread: () => set((s) => ({ lastSeenMsgCount: s.messages.length })),
@@ -121,6 +142,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       room: null,
       gameState: null,
       gameResult: null,
+      rankGameEnded: null,
       messages: [],
       lastSeenMsgCount: 0,
       countdown: null,

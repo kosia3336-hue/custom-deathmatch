@@ -7,9 +7,11 @@ import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { useTurnTimer } from '@/hooks/useTurnTimer';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ChatButton from '@/components/room/ChatButton';
+import { BgmButton } from '@/components/cdm/BgmButton';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { formatTime, cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
@@ -22,6 +24,36 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
     return () => clearInterval(id);
   }, [startedAt]);
   return <span className="text-sm tabular-nums text-cdm-fg-muted">{formatTime(elapsed)}</span>;
+}
+
+function CountdownTimer() {
+  const { remaining, timeLimitSeconds } = useTurnTimer();
+  if (remaining === null || timeLimitSeconds === null) return null;
+
+  const min = Math.floor(remaining / 60);
+  const sec = Math.floor(remaining % 60);
+  const display =
+    remaining <= 10 && remaining > 0
+      ? remaining.toFixed(1)
+      : `${min}:${sec.toString().padStart(2, '0')}`;
+
+  const isCritical = remaining <= 5;
+  const isDanger = remaining <= 10 && remaining > 5;
+  const isWarning = remaining <= 30 && remaining > 10;
+
+  return (
+    <span
+      className={cn(
+        'font-mono font-bold tabular-nums text-sm',
+        isWarning && 'text-amber-500',
+        isDanger && 'text-red-500 animate-pulse',
+        isCritical && 'text-red-600 animate-[pulse_0.5s_ease-in-out_infinite]',
+        !isWarning && !isDanger && !isCritical && 'text-cdm-fg-muted',
+      )}
+    >
+      ⏱ {display}
+    </span>
+  );
 }
 
 interface Props {
@@ -41,6 +73,7 @@ export default function GameShell({ children }: Props) {
   const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
   const [undoWaiting, setUndoWaiting] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
+  const isRankedRoom = room?.isRanked === true;
   const gameStateSigRef = useRef<string | null>(null);
   const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
 
@@ -50,6 +83,12 @@ export default function GameShell({ children }: Props) {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
     router.push('/');
+  };
+
+  const handleResign = () => {
+    getSocket().emit('game:resign');
+    setShowLeave(false);
+    // 서버가 game:ended를 방송하면 PlayPage가 결과화면으로 자동 이동
   };
 
   /* ── 브라우저 뒤로가기 가로채기 ── */
@@ -69,7 +108,14 @@ export default function GameShell({ children }: Props) {
   useEffect(() => {
     setHeaderRight(
       <>
+        {isRankedRoom && (
+          <span className="rounded-cdm-md bg-cdm-highlight/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-cdm-highlight">
+            🏆 랭크
+          </span>
+        )}
+        <CountdownTimer />
         {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
+        <BgmButton />
         <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button size="sm" variant="ghost" onClick={() => setShowLeave(true)}>
           나가기
@@ -77,7 +123,7 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, startedAt]);
+  }, [setHeaderRight, startedAt, isRankedRoom]);
 
   useEffect(() => {
     const s = getSocket();
@@ -154,7 +200,7 @@ export default function GameShell({ children }: Props) {
 
   /* ── 푸터 슬롯: 닉네임 + 무르기 + 관전자 수 ── */
   useEffect(() => {
-    const showUndo = !isSpectator && !!room;
+    const showUndo = !isSpectator && !!room && !isRankedRoom;
 
     setFooter(
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">
@@ -178,6 +224,17 @@ export default function GameShell({ children }: Props) {
               무르기
             </Button>
           )}
+          {isRankedRoom && !isSpectator && (
+            <Button
+              type="button"
+              size="sm"
+              variant="danger"
+              className={cn('min-h-11 min-w-18 sm:min-h-8')}
+              onClick={() => setShowLeave(true)}
+            >
+              항복
+            </Button>
+          )}
           {room && (
             <button
               type="button"
@@ -191,7 +248,7 @@ export default function GameShell({ children }: Props) {
       </div>,
     );
     return () => setFooter(null);
-  }, [setFooter, nickname, room, isSpectator, undoWaiting]);
+  }, [setFooter, nickname, room, isSpectator, undoWaiting, isRankedRoom]);
 
   return (
     <>
@@ -293,11 +350,17 @@ export default function GameShell({ children }: Props) {
         contextData={{ roomId: room?.id }}
       />
 
-      <Modal open={showLeave} onClose={() => setShowLeave(false)} title="정말 나가시겠습니까?" closable={false}>
-        <p className="mb-6 text-sm text-cdm-fg-muted">게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.</p>
+      <Modal open={showLeave} onClose={() => setShowLeave(false)} title={isRankedRoom ? '항복 (패배 처리)' : '정말 나가시겠습니까?'} closable={false}>
+        <p className="mb-6 text-sm text-cdm-fg-muted">
+          {isRankedRoom
+            ? '항복하면 패배로 처리되고 결과 화면으로 이동합니다.'
+            : '게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.'}
+        </p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowLeave(false)}>계속하기</Button>
-          <Button variant="danger" onClick={handleLeave}>나가기</Button>
+          <Button variant="danger" onClick={isRankedRoom ? handleResign : handleLeave}>
+            {isRankedRoom ? '항복' : '나가기'}
+          </Button>
         </div>
       </Modal>
 

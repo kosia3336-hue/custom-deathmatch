@@ -9,6 +9,7 @@ import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, BRPSPlayerInternal, BRPSRoundActionLog, BRPSPlayerSnapshot, BRPSUndoSnapshot } from './types.js';
 import { judgeBet, settleChips } from './judge.js';
 import { socketRoom } from '../../utils.js';
+import { isPurinInsightViewer } from '../../purin-insight.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -80,9 +81,10 @@ function buildRevealData(s: InternalState): BRPSRevealData | null {
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): BettingRpsGameData {
   const reveal = isRevealPhase(s);
+  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
   const players: Record<string, BRPSPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, reveal || socketId === s.player1.id),
-    [s.player2.id]: playerToInfo(s.player2, reveal || socketId === s.player2.id),
+    [s.player1.id]: playerToInfo(s.player1, reveal || socketId === s.player1.id || (purin && socketId === s.player2.id)),
+    [s.player2.id]: playerToInfo(s.player2, reveal || socketId === s.player2.id || (purin && socketId === s.player1.id)),
   };
   return {
     phase: s.phase,
@@ -160,6 +162,16 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
+    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+      const opp = pid === s.player1.id ? s.player2 : s.player1;
+      if (isRevealPhase(s)) {
+        const last = s.actionLog[s.actionLog.length - 1];
+        const d = last?.players[opp.id];
+        if (d) sock.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: opp.nickname, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
+      } else if (s.phase === 'submit' && opp.submitted) {
+        sock.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: opp.nickname, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
+      }
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -170,6 +182,16 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
+  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+    const opp = pid === s.player1.id ? s.player2 : s.player1;
+    if (isRevealPhase(s)) {
+      const last = s.actionLog[s.actionLog.length - 1];
+      const d = last?.players[opp.id];
+      if (d) socket.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: opp.nickname, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
+    } else if (s.phase === 'submit' && opp.submitted) {
+      socket.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: opp.nickname, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
+    }
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -524,3 +546,20 @@ export function makePlayer(id: string, nickname: string, round: number): BRPSPla
 }
 
 export { assignRoles, getChoiceRightId };
+
+export function getBettingRpsResultData(roomId: string): unknown {
+  const s = gameStates.get(roomId);
+  if (!s) return undefined;
+  const p1 = s.player1;
+  const p2 = s.player2;
+  return {
+    winType: s.winType,
+    finalChips: { [p1.id]: p1.chips, [p2.id]: p2.chips },
+    totalRounds: s.round,
+    actions: s.actionLog,
+    players: {
+      [p1.id]: { nickname: p1.nickname },
+      [p2.id]: { nickname: p2.nickname },
+    },
+  };
+}

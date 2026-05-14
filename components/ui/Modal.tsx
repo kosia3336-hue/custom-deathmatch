@@ -7,13 +7,15 @@ import { cn } from '@/lib/utils';
 interface ModalProps {
   open: boolean;
   onClose?: () => void;
+  /** backdrop 클릭 시 onClose 대신 호출. 제공되지 않으면 onClose 사용 (closable일 때만) */
+  onBackdropClick?: () => void;
   title?: string;
   closable?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
-export default function Modal({ open, onClose, title, closable = true, children, className }: ModalProps) {
+export default function Modal({ open, onClose, onBackdropClick, title, closable = true, children, className }: ModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function Modal({ open, onClose, title, closable = true, children,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={closable ? onClose : undefined}
+            onClick={onBackdropClick ?? (closable ? onClose : undefined)}
           />
           <motion.div
             ref={contentRef}

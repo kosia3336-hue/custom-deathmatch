@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
 import { GNB as CdmGNB } from '@/components/cdm/GNB';
 import type { TitleColor } from '@/lib/supabase/database.types';
@@ -17,6 +18,31 @@ interface GNBProps {
  */
 export default function GNB({ minimal: _minimal }: GNBProps) {
   const { member, loading } = useCurrentMember();
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+
+  useEffect(() => {
+    if (!member) {
+      setUnreadNoticeCount(0);
+      return;
+    }
+    fetch('/api/notices/unread-count')
+      .then((r) => r.json())
+      .then((d: { count?: number }) => setUnreadNoticeCount(d.count ?? 0))
+      .catch(() => {});
+  }, [member?.id]);
+
+  // 공지 읽음 처리 시 카운트 갱신 (NoticeReadTracker가 커스텀 이벤트 발행)
+  useEffect(() => {
+    function onNoticeRead() {
+      if (!member) return;
+      fetch('/api/notices/unread-count')
+        .then((r) => r.json())
+        .then((d: { count?: number }) => setUnreadNoticeCount(d.count ?? 0))
+        .catch(() => {});
+    }
+    window.addEventListener('notice:read', onNoticeRead);
+    return () => window.removeEventListener('notice:read', onNoticeRead);
+  }, [member?.id]);
 
   const cdmMember = member
     ? {
@@ -42,5 +68,5 @@ export default function GNB({ minimal: _minimal }: GNBProps) {
     );
   }
 
-  return <CdmGNB member={cdmMember} />;
+  return <CdmGNB member={cdmMember} unreadNoticeCount={unreadNoticeCount} />;
 }

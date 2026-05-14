@@ -3,7 +3,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 
 async function loadCounts() {
   const sb = await getServerSupabase();
-  const [members, suspended, banned, pendingReports, pendingInquiries, totalLogs] =
+  const [members, suspended, banned, pendingReports, pendingInquiries, totalLogs, todayLogs] =
     await Promise.all([
       sb.from('members').select('id', { count: 'exact', head: true }).is('withdrawn_at', null),
       sb.from('members_private').select('member_id', { count: 'exact', head: true }).eq('status', 'suspended'),
@@ -11,6 +11,7 @@ async function loadCounts() {
       sb.from('reports').select('id', { count: 'exact', head: true }).in('status', ['pending', 'processing']),
       sb.from('inquiries').select('id', { count: 'exact', head: true }).in('status', ['pending', 'processing', 'replied']),
       sb.from('game_logs').select('id', { count: 'exact', head: true }),
+      sb.from('game_logs').select('id', { count: 'exact', head: true }).gte('played_at', (() => { const n = new Date(Date.now() + 9 * 3600_000); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) - 9 * 3600_000).toISOString(); })()),
     ]);
   return {
     members: members.count ?? 0,
@@ -19,6 +20,7 @@ async function loadCounts() {
     pendingReports: pendingReports.count ?? 0,
     pendingInquiries: pendingInquiries.count ?? 0,
     totalLogs: totalLogs.count ?? 0,
+    todayLogs: todayLogs.count ?? 0,
   };
 }
 
@@ -31,6 +33,7 @@ export default async function DashboardTab() {
     { label: '미처리 신고', value: c.pendingReports, accent: 'accent' as const },
     { label: '미처리 문의', value: c.pendingInquiries, accent: 'highlight' as const },
     { label: '게임 로그 누적', value: c.totalLogs },
+    { label: '오늘 게임', value: c.todayLogs },
   ];
 
   return (

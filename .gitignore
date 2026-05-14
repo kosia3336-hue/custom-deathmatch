@@ -52,6 +52,7 @@ next-env.d.ts
 # docs
 docs/choen
 docs/v2
+docs/bypass-login-plan.md
 
 # supabase
 supabase

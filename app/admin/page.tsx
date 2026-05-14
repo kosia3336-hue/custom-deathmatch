@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
 import AdminTabs from './AdminTabs';
@@ -9,7 +8,10 @@ import TitlesTab from './TitlesTab';
 import ReportsTab from './ReportsTab';
 import InquiriesTab from './InquiriesTab';
 import NoticesTab from './NoticesTab';
+import AdminRankTab from './AdminRankTab';
+import GameStatsTab from './GameStatsTab';
 import AuditTab from './AuditTab';
+import AdminShopTab from './AdminShopTab';
 
 export const metadata: Metadata = { title: '관리자', robots: { index: false } };
 
@@ -18,16 +20,15 @@ interface Props {
     tab?: string;
     q?: string;
     page?: string;
+    sort?: string;
     actionKind?: string;
     actor?: string;
+    shopSubTab?: string;
   }>;
 }
 
 export default async function AdminPage({ searchParams }: Props) {
   const member = await getActiveMember();
-  if (!member) redirect('/login');
-  if (member.role !== 'admin') redirect('/');
-
   const sp = await searchParams;
   const tab = sp.tab ?? 'dashboard';
 
@@ -43,8 +44,11 @@ export default async function AdminPage({ searchParams }: Props) {
 
         <section className="mt-4">
           {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'members' && <MembersTab query={sp.q ?? ''} page={sp.page} />}
+          {tab === 'members' && <MembersTab query={sp.q ?? ''} page={sp.page} sort={sp.sort} />}
           {tab === 'titles' && <TitlesTab page={sp.page} />}
+          {tab === 'rank' && <AdminRankTab />}
+          {tab === 'shop' && <AdminShopTab subTab={sp.shopSubTab} />}
+          {tab === 'game-stats' && <GameStatsTab />}
           {tab === 'reports' && <ReportsTab page={sp.page} />}
           {tab === 'inquiries' && <InquiriesTab page={sp.page} />}
           {tab === 'notices' && <NoticesTab page={sp.page} />}
