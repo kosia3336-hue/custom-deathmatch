@@ -116,6 +116,8 @@ export const CONSUMABLE_LABELS: Record<ConsumableKind, string> = {
   rank_reset: '랭크 초기화권',
   spectator_lock: '관전 잠금',
   anonymity: '익명물약',
+  magnifier: '돋보기',
+  ban_eraser: '밴 삭제',
 };
 
 export function labelForConsumable(kind: ConsumableKind | string): string {

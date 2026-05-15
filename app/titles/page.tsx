@@ -19,6 +19,7 @@ interface PublicTitleRow {
   description: string | null;
   condition_text: string | null;
   is_system: boolean;
+  is_legend: boolean;
   holder_count: number;
   first_granted_at: string | null;
 }
@@ -66,7 +67,10 @@ export default async function TitlesPage() {
             description="첫 번째 보유자가 나타나면 여기에 표시됩니다."
           />
         ) : (
-          <TitlesClient titles={titles} purchasableIds={Array.from(purchasableTitleIds)} />
+          <TitlesClient
+            titles={titles}
+            purchasableIds={Array.from(purchasableTitleIds)}
+          />
         )}
       </main>
     </>

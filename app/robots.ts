@@ -21,8 +21,6 @@ export default function robots(): MetadataRoute.Robots {
           '/banned',
           '/disconnected',
           '/withdrawn',
-          '/titles',
-          '/support',
         ],
       },
     ],

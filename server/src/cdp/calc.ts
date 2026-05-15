@@ -4,7 +4,7 @@
  *  - 패: 5
  *  - 무: 8
  *  - 몰수: 승 15 + tierBonus, 패 0 (적립 없음)
- *  - tierBonus: unranked 0 / bronze 1 / silver 2 / gold 3 / diamond 4 (챌린저 5)
+ *  - tierBonus: unranked 0 / bronze 1 / silver 2 / gold 3 / diamond 4 / challenger 5
  */
 import type { RankTier } from '@shared/types/rank.js';
 
@@ -16,7 +16,7 @@ export const CDP_BASE = {
   forfeit_win: 15,
 } as const;
 
-export function tierBonus(tier: RankTier, isChallenger: boolean): number {
+export function tierBonus(tier: RankTier): number {
   switch (tier) {
     case 'bronze':
       return 1;
@@ -25,7 +25,9 @@ export function tierBonus(tier: RankTier, isChallenger: boolean): number {
     case 'gold':
       return 3;
     case 'diamond':
-      return isChallenger ? 5 : 4;
+      return 4;
+    case 'challenger':
+      return 5;
     case 'unranked':
     default:
       return 0;
@@ -41,7 +43,6 @@ export interface CdpGrantInput {
     base: number;
     tierBonus: number;
     tierAtGrant: RankTier;
-    isChallenger: boolean;
   };
 }
 
@@ -51,15 +52,13 @@ interface WinLossArgs {
   winnerTierAfter: RankTier;
   loserTierAfter: RankTier;
   isForfeit: boolean;
-  challengerIds: Set<string>;
   rankMatchId: string;
 }
 
 export function computeWinLossInputs(a: WinLossArgs): CdpGrantInput[] {
-  const winnerIsChallenger = a.challengerIds.has(a.winnerId);
   const winBase = a.isForfeit ? CDP_BASE.forfeit_win : CDP_BASE.win;
   const loseBase = a.isForfeit ? CDP_BASE.forfeit_loss : CDP_BASE.loss;
-  const winnerTb = tierBonus(a.winnerTierAfter, winnerIsChallenger);
+  const winnerTb = tierBonus(a.winnerTierAfter);
 
   return [
     {
@@ -71,7 +70,6 @@ export function computeWinLossInputs(a: WinLossArgs): CdpGrantInput[] {
         base: winBase,
         tierBonus: winnerTb,
         tierAtGrant: a.winnerTierAfter,
-        isChallenger: winnerIsChallenger,
       },
     },
     {
@@ -83,7 +81,6 @@ export function computeWinLossInputs(a: WinLossArgs): CdpGrantInput[] {
         base: loseBase,
         tierBonus: 0,
         tierAtGrant: a.loserTierAfter,
-        isChallenger: false,
       },
     },
   ];
@@ -99,7 +96,6 @@ export function makeDrawInput(memberId: string, rankMatchId: string, tier: RankT
       base: CDP_BASE.draw,
       tierBonus: 0,
       tierAtGrant: tier,
-      isChallenger: false,
     },
   };
 }

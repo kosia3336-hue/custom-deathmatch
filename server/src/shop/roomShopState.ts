@@ -20,6 +20,8 @@ export interface RoomShopState {
    *  value = Set<titleId>
    */
   biasTitlesByToken: Map<string, Set<string>>;
+  /** 돋보기를 사용한 회원의 token Set */
+  magnifierTokens: Set<string>;
 }
 
 const states = new Map<string, RoomShopState>();
@@ -32,6 +34,7 @@ export function ensureRoomShopState(roomId: string): RoomShopState {
       anonymizedTokens: new Set(),
       anonymizedMemberIds: new Set(),
       biasTitlesByToken: new Map(),
+      magnifierTokens: new Set(),
     };
     states.set(roomId, s);
   }

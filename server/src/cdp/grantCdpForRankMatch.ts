@@ -60,7 +60,6 @@ export async function grantCdpForRankMatch(
           base: inp.breakdown.base,
           tier_bonus: inp.breakdown.tierBonus,
           tier: inp.breakdown.tierAtGrant,
-          is_challenger: inp.breakdown.isChallenger,
         },
       });
       if (error) throw error;

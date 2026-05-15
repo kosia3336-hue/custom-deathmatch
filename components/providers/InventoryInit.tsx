@@ -33,7 +33,7 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
             acc[it.kind] = Number(it.count);
             return acc;
           },
-          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0 },
+          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0 },
         );
         setAll(map);
       })

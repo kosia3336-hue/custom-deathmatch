@@ -25,6 +25,7 @@ interface LogParticipant {
   member_id: string | null;
   nickname_snapshot: string;
   title_snapshot: { id: string; name: string; color: TitleColor } | null;
+  anonymized: boolean;
 }
 
 interface LogRow {
@@ -72,7 +73,7 @@ async function loadLogs(
   const participantsRes = await sb
     .from('game_log_participants')
     .select(
-      'game_log_id, position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot',
+      'game_log_id, position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot, anonymized',
     )
     .in('game_log_id', ids);
   const partAll = (participantsRes.data ?? []) as unknown as (LogParticipant & { game_log_id: string })[];
@@ -148,7 +149,7 @@ export default async function LogsTab({
                 </div>
                 <span className="text-cdm-fg-subtle">vs</span>
                 <div className="flex items-center gap-1.5">
-                  {opponent?.title_snapshot && (
+                  {opponent?.title_snapshot && !opponent.anonymized && (
                     <TitleBadge
                       name={opponent.title_snapshot.name}
                       color={opponent.title_snapshot.color}
@@ -156,7 +157,7 @@ export default async function LogsTab({
                     />
                   )}
                   <span className="text-sm font-semibold text-cdm-fg">
-                    {opponent?.nickname_snapshot ?? '탈퇴 회원'}
+                    {opponent?.anonymized ? '???' : (opponent?.nickname_snapshot ?? '탈퇴 회원')}
                   </span>
                   {opponent && <TurnBadge turn={opponent.position} size="sm" />}
                 </div>

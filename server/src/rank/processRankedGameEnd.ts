@@ -42,6 +42,7 @@ function asTier(v: string): RankTier {
     || v === 'silver'
     || v === 'gold'
     || v === 'diamond'
+    || v === 'challenger'
   ) {
     return v;
   }
@@ -119,50 +120,25 @@ function tierOrderNumeric(t: RankTier): number {
     silver: 2,
     gold: 3,
     diamond: 4,
+    challenger: 5,
   };
   return o[t];
-}
-
-/** 리더보드 UI와 동일: 티어 우선, RP, 동RP는 시즌 승수 내림차순 */
-function compareRankRowsServer(
-  a: { tier: RankTier; rp: number; wins: number },
-  b: { tier: RankTier; rp: number; wins: number },
-): number {
-  const td = tierOrderNumeric(b.tier) - tierOrderNumeric(a.tier);
-  if (td !== 0) return td;
-  const rd = b.rp - a.rp;
-  if (rd !== 0) return rd;
-  return b.wins - a.wins;
 }
 
 async function fetchChallengerMemberIds(seasonId: number): Promise<Set<string>> {
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from('rank_stats')
-    .select('member_id, tier, rp, season_wins')
+    .select('member_id')
     .eq('season_id', seasonId)
-    .limit(5000);
+    .eq('tier', 'challenger');
   if (error || !data?.length) return new Set();
-  const rows = data as Array<{ member_id: string; tier: string; rp: number; season_wins: number }>;
-  rows.sort((x, y) =>
-    compareRankRowsServer(
-      { tier: asTier(x.tier), rp: Number(x.rp ?? 0), wins: Number(x.season_wins ?? 0) },
-      { tier: asTier(y.tier), rp: Number(y.rp ?? 0), wins: Number(y.season_wins ?? 0) },
-    ),
-  );
-  const CHALLENGER_RP_MIN = 150;
-  const ids = new Set<string>();
-  for (let i = 0; i < Math.min(3, rows.length); i++) {
-    const r = rows[i]!;
-    if (asTier(String(r.tier)) === 'diamond' && Number(r.rp ?? 0) >= CHALLENGER_RP_MIN) ids.add(r.member_id);
-  }
-  return ids;
+  return new Set((data as Array<{ member_id: string }>).map((r) => r.member_id));
 }
 
 function rankGameEndedPayload(
   roomId: string,
   o: RankPlayerOutcome,
-  challengerIds: Set<string>,
 ): RankGameEndedPayload {
   const br = o.rpBreakdown;
   const detail: RankGameEndedPayload['detail'] =
@@ -186,11 +162,10 @@ function rankGameEndedPayload(
     demoted: o.demoted,
     placementJustFinished: o.placementJustFinished,
     placementMatch: o.placementMatch,
-    isChallenger: challengerIds.has(o.memberId),
   };
 }
 
-function emitRankGameEnded(io: IO, roomId: string, outcome: GameRankOutcome, challengerIds: Set<string>): void {
+function emitRankGameEnded(io: IO, roomId: string, outcome: GameRankOutcome): void {
   for (const o of outcome.players) {
     const token = sessions.getTokenByMemberId(o.memberId);
     if (!token) continue;
@@ -198,7 +173,7 @@ function emitRankGameEnded(io: IO, roomId: string, outcome: GameRankOutcome, cha
     if (!sid) continue;
     const sock = io.sockets.sockets.get(sid);
     if (!sock) continue;
-    sock.emit('rank:game:ended', rankGameEndedPayload(roomId, o, challengerIds));
+    sock.emit('rank:game:ended', rankGameEndedPayload(roomId, o));
   }
 }
 
@@ -369,7 +344,7 @@ export async function finalizeRankedMultiGameEnd(
     };
     const loseBr = {
       parityReference: -20,
-      tierVersusParity: -(parts.loserBaseTable - 20),
+      tierVersusParity: -(parts.loserBaseTable - 20) - parts.loserTierPenalty,
       streakVersusParity: -parts.loserStreakPenalty,
     };
 
@@ -477,7 +452,6 @@ export async function finalizeRankedMultiGameEnd(
   );
 
   const rankOutcome: GameRankOutcome = { players: [oa, ob] };
-  const challengerIds = await fetchChallengerMemberIds(seasonId);
 
   // ── CDP 적립 ──────────────────────────────────────────────
   // 멱등키:
@@ -498,7 +472,6 @@ export async function finalizeRankedMultiGameEnd(
           winnerTierAfter: cdpWinnerTierAfter,
           loserTierAfter: cdpLoserTierAfter,
           isForfeit: result.endedByForfeit === true,
-          challengerIds,
           rankMatchId: cdpRefId,
         });
         await grantCdpForRankMatch(io, inputs);
@@ -510,7 +483,7 @@ export async function finalizeRankedMultiGameEnd(
     console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
   }
 
-  emitRankGameEnded(io, room.id, rankOutcome, challengerIds);
+  emitRankGameEnded(io, room.id, rankOutcome);
 
   return {
     ...result,

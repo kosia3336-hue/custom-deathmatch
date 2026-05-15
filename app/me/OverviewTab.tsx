@@ -20,10 +20,19 @@ interface GameRow {
   name: string;
 }
 
+interface ToughOpponent {
+  opponent_id: string;
+  nickname: string;
+  total_games: number;
+  my_wins: number;
+  my_losses: number;
+  my_win_pct: number;
+}
+
 export default async function OverviewTab({ member }: { member: CurrentMember }) {
   const sb = await getServerSupabase();
 
-  const [statsRes, metaRes, reportsPendingRes, inquiriesPendingRes] = await Promise.all([
+  const [statsRes, metaRes, reportsPendingRes, inquiriesPendingRes, toughRes] = await Promise.all([
     sb
       .from('member_game_stats')
       .select('game_id, total_games, wins, losses, draws')
@@ -39,10 +48,13 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
       .select('id', { count: 'exact', head: true })
       .eq('author_id', member.id)
       .in('status', ['pending', 'processing', 'answered', 'replied']),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (sb.rpc as any)('get_tough_opponents', { p_member_id: member.id }),
   ]);
 
   const stats = (statsRes.data ?? []) as unknown as StatsRow[];
   const meta = (metaRes.data ?? []) as unknown as GameRow[];
+  const toughOpponents = (toughRes.data ?? []) as unknown as ToughOpponent[];
   const nameOf = (id: string) => meta.find((m) => m.id === id)?.name ?? id;
 
   const totalGames = stats.reduce((acc, s) => acc + s.total_games, 0);
@@ -50,7 +62,7 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
   const totalLosses = stats.reduce((acc, s) => acc + s.losses, 0);
   const totalDraws = stats.reduce((acc, s) => acc + s.draws, 0);
   const winRate = totalGames > 0 ? Math.round(((totalWins + totalDraws * 0.5) / totalGames) * 1000) / 10 : 0;
-  const topGames = [...stats].sort((a, b) => b.total_games - a.total_games).slice(0, 3);
+  const topGames = [...stats].filter((s) => s.losses > 0).sort((a, b) => b.losses - a.losses).slice(0, 3);
   const pendingCount = (reportsPendingRes.count ?? 0) + (inquiriesPendingRes.count ?? 0);
 
   return (
@@ -95,7 +107,23 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-cdm-fg-muted">즐겨 한 게임 Top 3</h2>
+        <h2 className="text-sm font-semibold text-cdm-fg-muted">처리 중 신고/문의</h2>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-cdm-fg">
+            {pendingCount === 0 ? (
+              <span className="text-sm text-cdm-fg-muted">없음</span>
+            ) : (
+              <span className="text-2xl font-bold">{pendingCount}건</span>
+            )}
+          </p>
+          <Link href="/me?tab=support">
+            <Button variant="tertiary" size="sm">내역 보기 →</Button>
+          </Link>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-sm font-semibold text-cdm-fg-muted">약점 게임 Top 3</h2>
         {topGames.length === 0 ? (
           <p className="mt-2 text-sm text-cdm-fg-muted">아직 데이터가 없습니다.</p>
         ) : (
@@ -120,19 +148,21 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-cdm-fg-muted">처리 중 신고/문의</h2>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-cdm-fg">
-            {pendingCount === 0 ? (
-              <span className="text-sm text-cdm-fg-muted">없음</span>
-            ) : (
-              <span className="text-2xl font-bold">{pendingCount}건</span>
-            )}
-          </p>
-          <Link href="/me?tab=support">
-            <Button variant="tertiary" size="sm">내역 보기 →</Button>
-          </Link>
-        </div>
+        <h2 className="text-sm font-semibold text-cdm-fg-muted">힘든 상대 Top 3</h2>
+        {toughOpponents.length === 0 ? (
+          <p className="mt-2 text-sm text-cdm-fg-muted">아직 데이터가 없습니다.</p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {toughOpponents.map((opp, i) => (
+              <li key={opp.opponent_id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-cdm-fg">{i + 1}. {opp.nickname}</span>
+                <span className="shrink-0 text-cdm-fg-muted">
+                  {opp.total_games}전 {opp.my_wins}승 {opp.my_losses}패 {opp.my_win_pct}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );

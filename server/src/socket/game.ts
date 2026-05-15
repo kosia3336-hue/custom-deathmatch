@@ -164,7 +164,10 @@ import {
 import {
   initBanPick,
   handleBanPickBan,
+  handleBanPickNoBan,
   handleBanPickReady,
+  handleBanPickUnban,
+  handleBanPickUnbanSkip,
   cleanupBanPick,
   getBanPickState,
   emitBanPickStateToSocket,
@@ -411,7 +414,7 @@ const gameModules: Record<string, GameModuleHandlers> = {
   },
   [GAME_IDS.BAN_PICK]: {
     init: (io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions) => {
-      initBanPick(io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions,
+      void initBanPick(io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions,
         (pickedGameId, pickedGameName) => {
           launchPickedGame(io, roomId, pickedGameId, pickedGameName, players, playMode, endGameCallback);
         },
@@ -630,12 +633,38 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     handleBanPickBan(io, socket, roomId, data.gameId);
   });
 
+  socket.on('banpick:noban', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleBanPickNoBan(io, socket, roomId);
+  });
+
   socket.on('banpick:ready', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
     handleBanPickReady(io, roomId, getPlayerId(socket));
+  });
+
+  socket.on('banpick:unban', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    const gameId = typeof data?.gameId === 'string' ? data.gameId : null;
+    if (!gameId) return;
+    handleBanPickUnban(io, socket, roomId, gameId);
+  });
+
+  socket.on('banpick:unban_skip', () => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleBanPickUnbanSkip(socket, roomId, io);
   });
 
   socket.on('game:four-gravity:toggle-ai', (data) => {

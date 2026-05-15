@@ -7,6 +7,7 @@ export function rankTierSortScore(tier: RankTier): number {
     silver: 2,
     gold: 3,
     diamond: 4,
+    challenger: 5,
   };
   return m[tier] ?? 0;
 }
@@ -23,9 +24,7 @@ export function compareRankRows(
   return b.wins - a.wins;
 }
 
-export const CHALLENGER_RP_MIN = 150;
-
-/** 리더보드 순번 기준 챌린저 조건: 상위 3명 · 다이아 · RP 150 이상 */
-export function isChallengerSlot(rank: number, tier: RankTier, rp: number): boolean {
-  return rank <= 3 && tier === 'diamond' && rp >= CHALLENGER_RP_MIN;
+/** DB에 챌린저 티어로 저장된 플레이어 판별 */
+export function isChallengerSlot(_rank: number, tier: RankTier, _rp: number): boolean {
+  return tier === 'challenger';
 }

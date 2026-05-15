@@ -51,7 +51,9 @@ export type ConsumableKind =
   | 'nickname_change'
   | 'rank_reset'
   | 'spectator_lock'
-  | 'anonymity';
+  | 'anonymity'
+  | 'magnifier'
+  | 'ban_eraser';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입

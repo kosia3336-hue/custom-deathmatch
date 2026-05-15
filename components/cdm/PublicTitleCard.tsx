@@ -10,6 +10,7 @@ interface PublicTitleCardProps {
   description: string | null;
   holderCount: number;
   isSystem: boolean;
+  isLegend?: boolean;
   /** 상점에서 현재 구매 가능한 칭호 */
   purchasable?: boolean;
   onClick: () => void;
@@ -25,6 +26,7 @@ export function PublicTitleCard({
   description,
   holderCount,
   isSystem,
+  isLegend = false,
   purchasable = false,
   onClick,
 }: PublicTitleCardProps) {
@@ -39,6 +41,15 @@ export function PublicTitleCard({
         <div className="flex items-start justify-between gap-2">
           <TitleBadge name={name} color={color} size="md" />
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            {isLegend && (
+              <span
+                className="inline-flex items-center rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-px text-[10px] font-bold text-amber-500 dark:text-amber-400"
+                aria-label="레전드 칭호"
+                title="레전드 칭호"
+              >
+                레전드
+              </span>
+            )}
             {purchasable && (
               <span
                 className="inline-flex items-center gap-0.5 rounded-full border border-cdm-primary/40 bg-cdm-primary/10 px-2 py-px text-[10px] font-bold text-cdm-primary"
@@ -48,7 +59,7 @@ export function PublicTitleCard({
                 🛒 구매 가능
               </span>
             )}
-            {isSystem && (
+            {isSystem && !isLegend && (
               <span
                 className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"
                 aria-label="히든 시스템 칭호"

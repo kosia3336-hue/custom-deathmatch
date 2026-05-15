@@ -8,7 +8,10 @@ import type {
   TurnOrderMode,
 } from './room';
 import type { RankTier } from './rank';
-import type { BanPickStartPayload, BanPickUpdatePayload, BanPickLotteryPayload } from './ban-pick';
+import type {
+  BanPickStartPayload, BanPickUpdatePayload, BanPickLotteryPayload,
+  BanPickUnbanTurnPayload, BanPickUnbanUpdatePayload,
+} from './ban-pick';
 
 export interface CreateRoomData {
   gameId: string;
@@ -139,7 +142,6 @@ export interface RankGameEndedPayload {
   demoted: boolean;
   placementJustFinished?: boolean;
   placementMatch?: boolean;
-  isChallenger: boolean;
 }
 
 export interface GameUndoProposal {
@@ -218,6 +220,9 @@ export interface ClientToServerEvents {
   'game:undo:request': () => void;
   'banpick:ban': (data: { gameId: string }) => void;
   'banpick:ready': () => void;
+  'banpick:noban': () => void;
+  'banpick:unban': (data: { gameId: string }) => void;
+  'banpick:unban_skip': () => void;
   'game:undo:accept': (data: { requestId: string }) => void;
   'game:undo:decline': (data: { requestId: string }) => void;
   'game:four-gravity:toggle-ai': (data: { ai: boolean }) => void;
@@ -256,7 +261,6 @@ export interface CdpGrantedPayload {
     base: number;
     tierBonus: number;
     tierAtGrant: RankTier;
-    isChallenger: boolean;
   };
 }
 
@@ -277,9 +281,9 @@ export interface ShopItemChangedPayload {
 
 /** 인벤토리(소모성) 변동 — 본인 전용 emit */
 export interface InventoryUpdatedPayload {
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser';
   countAfter: number;
-  reason: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
+  reason?: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
   ref?: { kind: string; id: string };
 }
 
@@ -325,6 +329,8 @@ export interface ServerToClientEvents {
   'banpick:start': (payload: BanPickStartPayload) => void;
   'banpick:update': (payload: BanPickUpdatePayload) => void;
   'banpick:lottery': (payload: BanPickLotteryPayload) => void;
+  'banpick:unban_turn': (payload: BanPickUnbanTurnPayload) => void;
+  'banpick:unban_update': (payload: BanPickUnbanUpdatePayload) => void;
   'game:undo:declined': () => void;
   'game:ended': (result: GameResult) => void;
   /** 랭크 멀티 종료 시 참가자에게만 (RP 분해·챌린저 여부 등 본인 전용) */

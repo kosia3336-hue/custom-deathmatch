@@ -7,7 +7,7 @@ import { useRoomStore } from '@/stores/room';
 import { useRankMatchStore } from '@/stores/rankMatch';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { cn } from '@/lib/utils';
-import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx } from '@/lib/sfx';
+import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx, playUnbanSfx, playUnbanTurnStartSfx } from '@/lib/sfx';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import type { Game } from '@/shared/types/game';
 import type { RankTier } from '@/shared/types/rank';
@@ -15,8 +15,11 @@ import type {
   BanPickStartPayload,
   BanPickUpdatePayload,
   BanPickLotteryPayload,
+  BanPickUnbanTurnPayload,
+  BanPickUnbanUpdatePayload,
   BannedGame,
   BanTurn,
+  GameWinRate,
 } from '@/shared/types/ban-pick';
 
 // ── 로컬 상태 타입 ────────────────────────────────────────────────────────────
@@ -33,7 +36,15 @@ interface BanPickData {
   bannedGames: BannedGame[];
   banCounts: [number, number];
   players: [{ id: string; nickname: string }, { id: string; nickname: string }];
-  phase: 'banning' | 'lottery';
+  phase: 'banning' | 'lottery' | 'unban';
+  opponentStatsMap: Map<string, GameWinRate>;
+}
+
+interface UnbanState {
+  queue: Array<'first' | 'second'>;
+  currentTurn: 'first' | 'second';
+  erasableGameIds: Set<string>;
+  turnDeadline: number;
 }
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -179,19 +190,33 @@ function GameCard({
   isPickedByLottery,
   isMyTurn,
   onBan,
+  opponentStat,
+  isErasable,
+  isUnbanMyTurn,
+  onUnban,
+  justRestored,
 }: {
   game: Game;
   ban?: BannedGame;
   isPickedByLottery?: boolean;
   isMyTurn: boolean;
   onBan: (gameId: string) => void;
+  opponentStat?: GameWinRate;
+  isErasable?: boolean;
+  isUnbanMyTurn?: boolean;
+  onUnban?: (gameId: string) => void;
+  justRestored?: boolean;
 }) {
   const isBanned = !!ban;
+  const isClickableForUnban = !!isErasable && !!isUnbanMyTurn;
+  const isClickableForBan = !isBanned && isMyTurn;
+  const isClickable = isClickableForBan || isClickableForUnban;
+
   const bannedByLabel = ban
     ? ban.bannedBy === 'first' ? '선플' : ban.bannedBy === 'second' ? '후플' : 'COM'
     : null;
 
-  // 새로 밴됐을 때만 이펙트 (마운트 시 이미 밴 상태면 스킵)
+  // 새로 밴됐을 때만 이펙트
   const [slashPhase, setSlashPhase] = useState<'idle' | 'active' | 'done'>(
     isBanned ? 'done' : 'idle',
   );
@@ -202,44 +227,78 @@ function GameCard({
     if (ban && !wasBannedRef.current) {
       wasBannedRef.current = true;
       playBanSfx();
-      // 카드 흔들기
       shakeControls.start({
         x: [0, -6, 6, -4, 4, -2, 2, 0],
         transition: { duration: 0.3, ease: 'easeOut' },
       });
-      // 슬래시 라인 표시 후 페이드아웃
       setSlashPhase('active');
       const t = setTimeout(() => setSlashPhase('done'), 700);
       return () => clearTimeout(t);
     }
   }, [ban, shakeControls]);
 
+  // 복원 이펙트
+  const [restorePhase, setRestorePhase] = useState<'idle' | 'active' | 'done'>('idle');
+  const prevBanRef = useRef(ban);
+
+  useEffect(() => {
+    const wasRestored = !!prevBanRef.current && !ban && !!justRestored;
+    prevBanRef.current = ban;
+    if (wasRestored) {
+      shakeControls.start({
+        y: [0, -8, 0],
+        transition: { duration: 0.3, ease: 'easeOut' },
+      });
+      setRestorePhase('active');
+      const t = setTimeout(() => setRestorePhase('done'), 700);
+      return () => clearTimeout(t);
+    }
+  }, [ban, justRestored, shakeControls]);
+
+  const winRateColor =
+    opponentStat && opponentStat.totalGames > 0
+      ? opponentStat.winRate >= 60 ? 'text-red-500'
+      : opponentStat.winRate < 40 ? 'text-green-600'
+      : 'text-gray-400'
+      : 'text-gray-400';
+
   return (
     <motion.button
       animate={shakeControls}
-      onClick={() => !isBanned && isMyTurn && onBan(game.id)}
-      disabled={isBanned || !isMyTurn}
+      onClick={() => {
+        if (isClickableForUnban) { onUnban?.(game.id); return; }
+        if (isClickableForBan) { onBan(game.id); }
+      }}
+      disabled={!isClickable}
       className={cn(
-        'relative flex h-16 w-full flex-col items-start justify-center overflow-hidden rounded-xl border px-3 text-left text-sm transition-colors lg:h-14',
+        'relative flex w-full flex-col items-start justify-center overflow-hidden rounded-xl border px-3 text-left text-sm transition-colors',
+        opponentStat ? 'h-[4.5rem] lg:h-16' : 'h-16 lg:h-14',
         isPickedByLottery && 'border-yellow-400 bg-yellow-50 ring-2 ring-yellow-300 shadow-md',
-        isBanned && 'border-gray-200 bg-gray-50 opacity-40',
-        !isBanned && isMyTurn && !isPickedByLottery &&
-          'cursor-pointer border-indigo-300 bg-white shadow-sm hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md active:scale-95',
-        !isBanned && !isMyTurn && !isPickedByLottery &&
-          'border-gray-200 bg-white cursor-default',
+        // 밴 상태
+        isBanned && !isClickableForUnban && 'border-gray-200 bg-gray-50 opacity-40',
+        // 밴 삭제 가능 강조
+        isBanned && isClickableForUnban && [
+          'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-300 cursor-pointer',
+          'hover:border-emerald-500 hover:bg-emerald-100',
+        ],
+        // 일반 밴 차례 (내 턴)
+        !isBanned && isMyTurn && !isPickedByLottery && [
+          'cursor-pointer border-indigo-300 bg-white shadow-sm',
+          'hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md active:scale-95',
+        ],
+        // 비활성 (내 턴 아님)
+        !isBanned && !isMyTurn && !isPickedByLottery && 'border-gray-200 bg-white cursor-default',
       )}
     >
-      {/* 슬래시 이펙트 오버레이 */}
+      {/* 밴 슬래시 이펙트 */}
       {slashPhase === 'active' && (
         <>
-          {/* 임팩트 플래시 */}
           <motion.div
             className="pointer-events-none absolute inset-0 z-20 bg-white"
             initial={{ opacity: 0.6 }}
             animate={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           />
-          {/* 슬래시 라인 */}
           <motion.div
             className="pointer-events-none absolute z-20"
             style={{
@@ -259,21 +318,60 @@ function GameCard({
         </>
       )}
 
+      {/* 복원 이펙트 */}
+      {restorePhase === 'active' && (
+        <>
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-20 bg-emerald-400"
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+          <motion.div
+            className="pointer-events-none absolute z-20"
+            style={{
+              height: '2px',
+              width: '140%',
+              left: '-20%',
+              top: '46%',
+              rotate: '-10deg',
+              transformOrigin: 'right center',
+              background: 'linear-gradient(90deg, transparent, #10b981 20%, #10b981 80%, transparent)',
+              boxShadow: '0 0 8px 2px rgba(16,185,129,0.6)',
+            }}
+            initial={{ scaleX: 1, opacity: 1 }}
+            animate={{ scaleX: 0, opacity: [1, 1, 0] }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0.1, 1], times: [0, 0.5, 1] }}
+          />
+        </>
+      )}
+
       <span
         className={cn(
           'font-medium leading-tight',
-          isBanned ? 'text-gray-400 line-through' : isPickedByLottery ? 'text-yellow-700' : 'text-gray-800',
+          isBanned && !isClickableForUnban ? 'text-gray-400 line-through'
+          : isBanned && isClickableForUnban ? 'text-emerald-700 line-through'
+          : isPickedByLottery ? 'text-yellow-700'
+          : 'text-gray-800',
         )}
       >
         {game.name}
       </span>
       {ban && (
-        <span className="mt-0.5 text-xs text-gray-400">
+        <span className={cn('mt-0.5 text-xs', isClickableForUnban ? 'text-emerald-600' : 'text-gray-400')}>
           {ban.isTimeout ? '⏱ 자동 · ' : ''}{bannedByLabel} 밴
+          {isClickableForUnban && ' · 클릭하여 취소'}
         </span>
       )}
       {isPickedByLottery && (
         <span className="mt-0.5 text-xs font-semibold text-yellow-600">⭐ 선택됨</span>
+      )}
+      {opponentStat && !ban && !isPickedByLottery && (
+        <span className={cn('mt-0.5 text-[10px] font-medium', winRateColor)}>
+          {opponentStat.totalGames === 0
+            ? '전적 없음'
+            : `${opponentStat.totalGames}전 ${opponentStat.wins}승 ${opponentStat.losses}패 ${opponentStat.winRate}%`}
+        </span>
       )}
     </motion.button>
   );
@@ -287,28 +385,50 @@ export default function BanPickGame() {
   const [readySent, setReadySent] = useState(false);
   const [lotteryReveal, setLotteryReveal] = useState(false);
   const [lotteryHighlight, setLotteryHighlight] = useState<string | null>(null);
+  const [unbanState, setUnbanState] = useState<UnbanState | null>(null);
+  const [restoredGameIds, setRestoredGameIds] = useState<Set<string>>(new Set());
+  const [nobanFeedback, setNobanFeedback] = useState<'first' | 'second' | null>(null);
 
   const room = useRoomStore((s) => s.room);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const myId = useMySocketId();
   const rankMatchTiers = useRankMatchStore((s) => s.rankMatchTiers);
   const lotteryTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const restoredTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const nobanFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
 
     const onStart = (payload: BanPickStartPayload) => {
-      setData({ ...payload, phase: 'banning' });
+      const opponentStatsMap = new Map<string, GameWinRate>(
+        (payload.opponentGameStats ?? []).map((s) => [s.gameId, s]),
+      );
+      setData({ ...payload, phase: 'banning', opponentStatsMap });
       setLottery(null);
       setLotteryReveal(false);
       setLotteryHighlight(null);
       setReadySent(false);
+      setUnbanState(null);
+      setRestoredGameIds(new Set());
+      setNobanFeedback(null);
+      if (nobanFeedbackTimerRef.current) { clearTimeout(nobanFeedbackTimerRef.current); nobanFeedbackTimerRef.current = null; }
+      restoredTimersRef.current.forEach((t) => clearTimeout(t));
+      restoredTimersRef.current.clear();
       lotteryTimersRef.current.forEach((t) => clearTimeout(t));
       lotteryTimersRef.current = [];
     };
 
     const onUpdate = (payload: BanPickUpdatePayload) => {
       setData((prev) => (prev ? { ...prev, ...payload } : null));
+      if (payload.lastNobanBy) {
+        setNobanFeedback(payload.lastNobanBy);
+        if (nobanFeedbackTimerRef.current) clearTimeout(nobanFeedbackTimerRef.current);
+        nobanFeedbackTimerRef.current = setTimeout(() => {
+          setNobanFeedback(null);
+          nobanFeedbackTimerRef.current = null;
+        }, 2000);
+      }
     };
 
     const onLottery = (payload: BanPickLotteryPayload) => {
@@ -334,17 +454,83 @@ export default function BanPickGame() {
       });
     };
 
+    const onUnbanTurn = (payload: BanPickUnbanTurnPayload) => {
+      setData((prev) => {
+        if (!prev) return null;
+        const myPos =
+          prev.players[0].id === myId ? 'first'
+          : prev.players[1].id === myId ? 'second'
+          : null;
+        if (!isSpectator && myPos === payload.currentTurn) {
+          playUnbanTurnStartSfx();
+        }
+        return { ...prev, phase: 'unban' };
+      });
+      setUnbanState({
+        queue: payload.queue,
+        currentTurn: payload.currentTurn,
+        erasableGameIds: new Set(payload.erasableGames.map((g) => g.gameId)),
+        turnDeadline: payload.turnDeadline,
+      });
+    };
+
+    const onUnbanUpdate = (payload: BanPickUnbanUpdatePayload) => {
+      if (payload.erasedGameId) {
+        const id = payload.erasedGameId;
+        playUnbanSfx();
+        setRestoredGameIds((prev) => new Set([...prev, id]));
+        setData((prev) =>
+          prev ? { ...prev, bannedGames: prev.bannedGames.filter((b) => b.gameId !== id) } : null,
+        );
+        const prev = restoredTimersRef.current.get(id);
+        if (prev) clearTimeout(prev);
+        const t = setTimeout(() => {
+          setRestoredGameIds((s) => {
+            const next = new Set(s);
+            next.delete(id);
+            return next;
+          });
+          restoredTimersRef.current.delete(id);
+        }, 800);
+        restoredTimersRef.current.set(id, t);
+      }
+
+      if (payload.currentTurn === null) {
+        setUnbanState(null);
+        setData((prev) => (prev ? { ...prev, phase: 'lottery' } : null));
+      } else {
+        setUnbanState((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentTurn: payload.currentTurn!,
+                erasableGameIds: new Set(),
+                turnDeadline: payload.turnDeadline ?? Date.now() + 15_000,
+              }
+            : null,
+        );
+      }
+    };
+
     socket.on('banpick:start', onStart);
     socket.on('banpick:update', onUpdate);
     socket.on('banpick:lottery', onLottery);
+    socket.on('banpick:unban_turn', onUnbanTurn);
+    socket.on('banpick:unban_update', onUnbanUpdate);
 
     return () => {
       socket.off('banpick:start', onStart);
       socket.off('banpick:update', onUpdate);
       socket.off('banpick:lottery', onLottery);
+      socket.off('banpick:unban_turn', onUnbanTurn);
+      socket.off('banpick:unban_update', onUnbanUpdate);
       lotteryTimersRef.current.forEach((t) => clearTimeout(t));
       lotteryTimersRef.current = [];
+      restoredTimersRef.current.forEach((t) => clearTimeout(t));
+      restoredTimersRef.current.clear();
+      if (nobanFeedbackTimerRef.current) { clearTimeout(nobanFeedbackTimerRef.current); nobanFeedbackTimerRef.current = null; }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const myPosition: 'first' | 'second' | null = data
@@ -359,9 +545,30 @@ export default function BanPickGame() {
     data?.phase === 'banning' &&
     data.currentPlayer === myPosition;
 
+  const isMyUnbanTurn =
+    !isSpectator &&
+    myPosition !== null &&
+    data?.phase === 'unban' &&
+    unbanState?.currentTurn === myPosition;
+
   const handleBan = (gameId: string) => {
     if (!isMyTurn) return;
     getSocket().emit('banpick:ban', { gameId });
+  };
+
+  const handleNoBan = () => {
+    if (!isMyTurn) return;
+    getSocket().emit('banpick:noban');
+  };
+
+  const handleUnban = (gameId: string) => {
+    if (!isMyUnbanTurn) return;
+    getSocket().emit('banpick:unban', { gameId });
+  };
+
+  const handleUnbanSkip = () => {
+    if (!isMyUnbanTurn) return;
+    getSocket().emit('banpick:unban_skip');
   };
 
   const handleReady = () => {
@@ -403,7 +610,7 @@ export default function BanPickGame() {
       </div>
     ) : null;
 
-  // ── 공통 상단 상태 바 (모바일 + 데스크탑) ──────────────────────────────────
+  // ── 공통 상단 상태 바 ──────────────────────────────────────────────────────
 
   const StatusBar = () => {
     if (lotteryReveal && pickedGame) {
@@ -423,6 +630,50 @@ export default function BanPickGame() {
       );
     }
 
+    if (data.phase === 'unban' && unbanState) {
+      const turnLabel = unbanState.currentTurn === 'first' ? firstName : secondName;
+      return (
+        <div
+          className={cn(
+            'rounded-xl px-4 py-2.5',
+            isMyUnbanTurn
+              ? 'bg-emerald-50 border border-emerald-200'
+              : 'bg-gray-50 border border-gray-200',
+          )}
+        >
+          {isMyUnbanTurn ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-semibold text-emerald-700">
+                🧹 밴 삭제 — 상대 밴을 1개 취소할 수 있어요
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <BanTimer deadline={unbanState.turnDeadline} timeLimit={15} />
+                  <span>초</span>
+                </div>
+                <button
+                  onClick={handleUnbanSkip}
+                  className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 active:scale-95 transition-transform"
+                >
+                  스킵
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-semibold text-gray-500">
+                {turnLabel}의 밴 삭제 선택 중...
+              </span>
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                <BanTimer deadline={unbanState.turnDeadline} timeLimit={15} />
+                <span>초</span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(
@@ -436,17 +687,34 @@ export default function BanPickGame() {
       >
         {data.phase === 'banning' ? (
           <>
-            <span className={cn('text-sm font-semibold', isMyTurn ? 'text-indigo-700' : 'text-gray-600')}>
-              {isMyTurn
+            <span className={cn(
+              'text-sm font-semibold min-w-0 truncate',
+              nobanFeedback ? 'text-gray-500'
+              : isMyTurn ? 'text-indigo-700'
+              : 'text-gray-600',
+            )}>
+              {nobanFeedback
+                ? `${nobanFeedback === 'first' ? firstName : secondName} 노밴`
+                : isMyTurn
                 ? `내 차례${data.bansRemainingInTurn > 1 ? ` (${data.bansRemainingInTurn}개 연속)` : ''}`
                 : currentTurnLabel}
             </span>
-            {data.timeLimit > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                <BanTimer deadline={data.turnDeadline} timeLimit={data.timeLimit} />
-                <span>초</span>
-              </div>
-            )}
+            <div className="flex shrink-0 items-center gap-2">
+              {data.timeLimit > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <BanTimer deadline={data.turnDeadline} timeLimit={data.timeLimit} />
+                  <span>초</span>
+                </div>
+              )}
+              {isMyTurn && (
+                <button
+                  onClick={handleNoBan}
+                  className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 active:scale-95 transition-transform shrink-0"
+                >
+                  노밴
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <span className="text-sm font-semibold text-gray-500 w-full text-center">추첨 중...</span>
@@ -509,23 +777,34 @@ export default function BanPickGame() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {data.games.map((game) => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  ban={bannedSet.get(game.id)}
-                  isPickedByLottery={
-                    lotteryReveal
-                      ? lottery?.pickedGameId === game.id
-                      : lotteryHighlight === game.id
-                  }
-                  isMyTurn={isMyTurn && !bannedSet.has(game.id)}
-                  onBan={handleBan}
-                />
-              ))}
+              {data.games.map((game) => {
+                const isErasable =
+                  data.phase === 'unban' && unbanState != null
+                    ? unbanState.erasableGameIds.has(game.id)
+                    : false;
+                return (
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    ban={bannedSet.get(game.id)}
+                    isPickedByLottery={
+                      lotteryReveal
+                        ? lottery?.pickedGameId === game.id
+                        : lotteryHighlight === game.id
+                    }
+                    isMyTurn={isMyTurn && !bannedSet.has(game.id)}
+                    onBan={handleBan}
+                    opponentStat={data.opponentStatsMap.get(game.id)}
+                    isErasable={isErasable}
+                    isUnbanMyTurn={isMyUnbanTurn}
+                    onUnban={handleUnban}
+                    justRestored={restoredGameIds.has(game.id)}
+                  />
+                );
+              })}
             </div>
 
-            {/* 추첨 결과 (모바일: 그리드 하단, 데스크탑: 사이드바) */}
+            {/* 추첨 결과 (모바일: 그리드 하단) */}
             {data.phase === 'lottery' && (
               <div className="mt-4 lg:hidden">
                 {lotteryReveal && pickedGame ? (
@@ -594,11 +873,32 @@ export default function BanPickGame() {
           />
         </div>
 
-        {/* 타이머 (시간제한 있을 때만) */}
+        {/* 타이머 (시간제한 있을 때만, 밴 단계) */}
         {data.timeLimit > 0 && data.phase === 'banning' && (
           <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
             <p className="mb-1 text-xs text-gray-400">남은 시간</p>
             <BanTimer deadline={data.turnDeadline} timeLimit={data.timeLimit} />
+          </div>
+        )}
+
+        {/* 밴 삭제 타이머 (데스크탑 사이드바) */}
+        {data.phase === 'unban' && unbanState && (
+          <div className={cn(
+            'rounded-xl border p-4 text-center',
+            isMyUnbanTurn ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-white',
+          )}>
+            <p className={cn('mb-1 text-xs', isMyUnbanTurn ? 'text-emerald-600' : 'text-gray-400')}>
+              {isMyUnbanTurn ? '밴 삭제 선택 시간' : '밴 삭제 대기 중'}
+            </p>
+            <BanTimer deadline={unbanState.turnDeadline} timeLimit={15} />
+            {isMyUnbanTurn && (
+              <button
+                onClick={handleUnbanSkip}
+                className="mt-3 w-full rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                스킵 (아이템 유지)
+              </button>
+            )}
           </div>
         )}
 

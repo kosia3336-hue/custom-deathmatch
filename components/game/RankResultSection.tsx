@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { RankGameEndedPayload, RankPlayerOutcome } from '@/shared/types/events';
-import type { DisplayRankTier, RankTier } from '@/shared/types/rank';
+import type { RankTier } from '@/shared/types/rank';
 import { Card } from '@/components/cdm/Card';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { Button } from '@/components/cdm/Button';
@@ -15,6 +15,7 @@ const TIER_KO: Record<RankTier, string> = {
   silver: '실버',
   gold: '골드',
   diamond: '다이아',
+  challenger: '챌린저',
 };
 
 function formatRpDelta(delta: number): string {
@@ -48,11 +49,8 @@ function PromoteBurst() {
   );
 }
 
-function tierAfterForBadge(
-  tierAfter: RankTier,
-  rankEnded?: RankGameEndedPayload | null,
-): DisplayRankTier {
-  return rankEnded?.isChallenger === true && tierAfter === 'diamond' ? 'challenger' : tierAfter;
+function tierAfterForBadge(tierAfter: RankTier): RankTier {
+  return tierAfter;
 }
 
 function TierOutcomeModal({
@@ -261,7 +259,7 @@ function TierOutcomeModal({
                 />
               ) : null}
               <RankBadge
-                tier={tierAfterForBadge(outcome.tierAfter, rankEnded)}
+                tier={tierAfterForBadge(outcome.tierAfter)}
                 size="lg"
                 rp={outcome.rpAfter}
                 showRp
@@ -276,9 +274,7 @@ function TierOutcomeModal({
             }}
             className="text-sm text-cdm-fg-muted"
           >
-            {tierAfterForBadge(outcome.tierAfter, rankEnded) === 'challenger'
-              ? '챌린저'
-              : TIER_KO[outcome.tierAfter]}{' '}
+            {TIER_KO[outcome.tierAfter]}{' '}
             {outcome.rpAfter} RP
           </motion.p>
 
@@ -310,7 +306,7 @@ interface Props {
 /** 랭크 멀티 종료 시 본인 행만 표시 (관전자·비로그인 제외) */
 export function RankResultSection({ outcome, rankEnded = null }: Props) {
   const tierChanged = outcome.tierBefore !== outcome.tierAfter;
-  const tierAfterBadge = tierAfterForBadge(outcome.tierAfter, rankEnded);
+  const tierAfterBadge = tierAfterForBadge(outcome.tierAfter);
 
   const showTierRp =
     outcome.placementMatch !== true || outcome.placementJustFinished === true;
@@ -347,9 +343,9 @@ export function RankResultSection({ outcome, rankEnded = null }: Props) {
             )}
           </div>
 
-          {rankEnded?.isChallenger === true ? (
+          {outcome.tierAfter === 'challenger' ? (
             <p className="text-xs text-purple-600 dark:text-purple-400">
-              이번 시즌 리더보드 상위 다이아 구간 — 챌린저로 표시됩니다.
+              챌린저 구간에 진입했습니다.
             </p>
           ) : null}
 

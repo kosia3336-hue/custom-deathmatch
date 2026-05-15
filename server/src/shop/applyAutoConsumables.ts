@@ -20,7 +20,7 @@ import type { ConsumableKind } from '../../../lib/supabase/database.types.js';
 import { ensureRoomShopState } from './roomShopState.js';
 import { getBiasTitleInfo } from './biasTitlesCache.js';
 
-const AUTO_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity'];
+const AUTO_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity', 'magnifier'];
 
 interface UseRpcRow {
   used: boolean;
@@ -124,6 +124,8 @@ export async function applyAutoConsumablesForRankRoom(
       } else if (kind === 'anonymity') {
         state.anonymizedTokens.add(p.id);
         state.anonymizedMemberIds.add(p.memberId!);
+      } else if (kind === 'magnifier') {
+        state.magnifierTokens.add(p.id);
       }
 
       emitInventoryUpdated(io, p.memberId!, kind, r.countAfter, { roomId });

@@ -167,3 +167,70 @@ export function playRankMatchBellSfx() {
     /* ignore */
   }
 }
+
+/** 밴 삭제 복원음 — 뽁+띵 (ban의 역방향, 상승 톤) */
+export function playUnbanSfx() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+
+    // Layer 1: 팝 (사인파 200Hz→80Hz, 0.15s)
+    const osc1 = c.createOscillator();
+    const g1 = c.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(200, now);
+    osc1.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+    g1.gain.setValueAtTime(0.35, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc1.connect(g1); g1.connect(c.destination);
+    osc1.start(now); osc1.stop(now + 0.15);
+
+    // Layer 2: 상승 링 (삼각파 600Hz→1200Hz, 0.2s)
+    const osc2 = c.createOscillator();
+    const g2 = c.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(600, now);
+    osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+    g2.gain.setValueAtTime(0, now);
+    g2.gain.linearRampToValueAtTime(0.18, now + 0.02);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc2.connect(g2); g2.connect(c.destination);
+    osc2.start(now); osc2.stop(now + 0.2);
+
+    // Layer 3: 잔향 (사인파 1800Hz, gain 0.06, 0.3s)
+    const osc3 = c.createOscillator();
+    const g3 = c.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(1800, now);
+    g3.gain.setValueAtTime(0.06, now);
+    g3.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc3.connect(g3); g3.connect(c.destination);
+    osc3.start(now); osc3.stop(now + 0.3);
+  } catch {}
+}
+
+/** 밴 삭제 내 차례 알림음 — 부드러운 2음 상승 */
+export function playUnbanTurnStartSfx() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+
+    const playTone = (freq: number, delay: number, dur: number, vol: number) => {
+      const t0 = now + delay;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(gain); gain.connect(c.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.02);
+    };
+
+    playTone(659, 0, 0.2, 0.07);
+    playTone(880, 0.14, 0.25, 0.06);
+  } catch {}
+}

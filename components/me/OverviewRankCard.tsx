@@ -12,6 +12,7 @@ const TIER_KO: Record<RankTier, string> = {
   silver: '실버',
   gold: '골드',
   diamond: '다이아',
+  challenger: '챌린저',
 };
 
 export function OverviewRankCard() {

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getSiteUrl } from '@/lib/site';
-import { getServerSupabase } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 interface NoticeRow {
   id: string;
@@ -33,7 +34,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let noticeEntries: MetadataRoute.Sitemap = [];
   try {
-    const sb = await getServerSupabase();
+    const sb = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
     const res = await sb
       .from('notices')
       .select('id, updated_at')

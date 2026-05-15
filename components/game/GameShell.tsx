@@ -68,6 +68,7 @@ export default function GameShell({ children }: Props) {
   const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
   const { setHeaderRight, setFooter } = useRoomLayout();
   const [showLeave, setShowLeave] = useState(false);
+  const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const [showPlayers, setShowPlayers] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
   const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
@@ -97,6 +98,7 @@ export default function GameShell({ children }: Props) {
 
     const handlePopState = () => {
       window.history.pushState(null, '', window.location.href);
+      setLeaveMode('leave');
       setShowLeave(true);
     };
 
@@ -117,7 +119,7 @@ export default function GameShell({ children }: Props) {
         {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
         <BgmButton />
         <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
-        <Button size="sm" variant="ghost" onClick={() => setShowLeave(true)}>
+        <Button size="sm" variant="ghost" onClick={() => { setLeaveMode('leave'); setShowLeave(true); }}>
           나가기
         </Button>
       </>,
@@ -230,7 +232,7 @@ export default function GameShell({ children }: Props) {
               size="sm"
               variant="danger"
               className={cn('min-h-11 min-w-18 sm:min-h-8')}
-              onClick={() => setShowLeave(true)}
+              onClick={() => { setLeaveMode('resign'); setShowLeave(true); }}
             >
               항복
             </Button>
@@ -350,16 +352,23 @@ export default function GameShell({ children }: Props) {
         contextData={{ roomId: room?.id }}
       />
 
-      <Modal open={showLeave} onClose={() => setShowLeave(false)} title={isRankedRoom ? '항복 (패배 처리)' : '정말 나가시겠습니까?'} closable={false}>
+      <Modal
+        open={showLeave}
+        onClose={() => setShowLeave(false)}
+        title={leaveMode === 'resign' ? '항복 (패배 처리)' : '나가기'}
+        closable={false}
+      >
         <p className="mb-6 text-sm text-cdm-fg-muted">
-          {isRankedRoom
+          {leaveMode === 'resign'
             ? '항복하면 패배로 처리되고 결과 화면으로 이동합니다.'
-            : '게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.'}
+            : isRankedRoom && !isSpectator
+              ? '나가면 패배로 처리됩니다. 로비로 이동합니다.'
+              : '게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.'}
         </p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowLeave(false)}>계속하기</Button>
-          <Button variant="danger" onClick={isRankedRoom ? handleResign : handleLeave}>
-            {isRankedRoom ? '항복' : '나가기'}
+          <Button variant="danger" onClick={leaveMode === 'resign' ? handleResign : handleLeave}>
+            {leaveMode === 'resign' ? '항복' : '나가기'}
           </Button>
         </div>
       </Modal>

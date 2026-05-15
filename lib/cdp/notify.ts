@@ -20,7 +20,7 @@ interface NotifyShopItemChangedArgs {
 
 interface NotifyInventoryUpdatedArgs {
   memberId: string;
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser';
   countAfter: number;
   reason: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
   ref?: { kind: string; id: string };

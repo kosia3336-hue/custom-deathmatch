@@ -1,12 +1,11 @@
 /**
  * 랭크게임 공통 타입·RP 산정 (기획 02·03·04).
- * DB 저장 티어는 챌린저 없음 — 표시만 상위 3 다이아.
  */
 
-export type RankTier = 'unranked' | 'bronze' | 'silver' | 'gold' | 'diamond';
+export type RankTier = 'unranked' | 'bronze' | 'silver' | 'gold' | 'diamond' | 'challenger';
 
-/** UI 표시용 (챌린저 = 다이아 상위 3명) */
-export type DisplayRankTier = RankTier | 'challenger';
+/** @deprecated challenger가 RankTier에 포함되어 동일한 타입. 호환성 유지용 alias. */
+export type DisplayRankTier = RankTier;
 
 /** 매칭·RP 티어 수치: 언랭(배치 중)=브론즈(1) 취급 */
 export function rankTierNumericForRp(tier: RankTier, placementDone: boolean): number {
@@ -22,6 +21,8 @@ export function rankTierNumericForRp(tier: RankTier, placementDone: boolean): nu
       return 3;
     case 'diamond':
       return 4;
+    case 'challenger':
+      return 5;
     default:
       return 0;
   }
@@ -40,6 +41,7 @@ export interface RankRpParts {
   winnerStreakBonus: number;
   loserBaseTable: number;
   loserStreakPenalty: number;
+  loserTierPenalty: number;
 }
 
 export function calcRankRpParts(
@@ -70,13 +72,17 @@ export function calcRankRpParts(
 
   const winnerTierBonus = winnerTierVal === 1 ? 2 : winnerTierVal === 2 ? 1 : 0;
 
+  // 다이아·챌린저 패배 시 추가 loss 패널티 (비대칭 디플레이션)
+  const loserTierPenalty = loserTierVal >= 5 ? 8 : loserTierVal >= 4 ? 5 : 0;
+
   return {
     winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus + winnerTierBonus),
-    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty),
+    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty + loserTierPenalty),
     winnerBaseTable,
     winnerStreakBonus,
     loserBaseTable,
     loserStreakPenalty,
+    loserTierPenalty,
   };
 }
 
@@ -92,7 +98,7 @@ export function calcRankRpChange(
 
 /** 배치전 5판 완료 후 최종 티어·RP (기획 04) */
 export function placementTierAndRp(placementWins: number): {
-  tier: Exclude<RankTier, 'unranked' | 'diamond'>;
+  tier: Exclude<RankTier, 'unranked' | 'diamond' | 'challenger'>;
   rp: number;
 } {
   const w = Math.max(0, Math.min(5, placementWins));
@@ -116,6 +122,7 @@ export function matchRp(tier: RankTier, rp: number, placementDone: boolean): num
     silver: 100,
     gold: 200,
     diamond: 300,
+    challenger: 300,
   };
   return base[tier] + rp;
 }
@@ -127,6 +134,7 @@ export function tierOrder(t: RankTier): number {
     silver: 2,
     gold: 3,
     diamond: 4,
+    challenger: 5,
   };
   return o[t];
 }
@@ -135,7 +143,7 @@ export function peakTierMax(a: RankTier, b: RankTier): RankTier {
   return tierOrder(a) >= tierOrder(b) ? a : b;
 }
 
-/** 정식 랭크 구간 승리 후 RP·승급 (다이아는 상한 없음) */
+/** 정식 랭크 구간 승리 후 RP·승급 (챌린저는 상한 없음) */
 export function applyRankWin(
   currentTier: RankTier,
   currentRp: number,
@@ -144,8 +152,13 @@ export function applyRankWin(
   if (currentTier === 'unranked') {
     return { tier: 'unranked', rp: currentRp, promoted: false };
   }
+  if (currentTier === 'challenger') {
+    return { tier: 'challenger', rp: currentRp + gain, promoted: false };
+  }
   if (currentTier === 'diamond') {
-    return { tier: 'diamond', rp: currentRp + gain, promoted: false };
+    const newRp = currentRp + gain;
+    if (newRp >= 150) return { tier: 'challenger', rp: newRp, promoted: true };
+    return { tier: 'diamond', rp: newRp, promoted: false };
   }
 
   const up: Record<'bronze' | 'silver' | 'gold', RankTier> = {
@@ -188,6 +201,7 @@ export function applyRankLoss(
   }
 
   const demoteMap: Partial<Record<RankTier, RankTier>> = {
+    challenger: 'diamond',
     diamond: 'gold',
     gold: 'silver',
     silver: 'bronze',

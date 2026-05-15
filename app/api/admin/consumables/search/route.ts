@@ -36,6 +36,8 @@ const ALL_KINDS: ConsumableKind[] = [
   'rank_reset',
   'spectator_lock',
   'anonymity',
+  'magnifier',
+  'ban_eraser',
 ];
 
 function err(msg: string, status = 400) {
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
       const inventory = ALL_KINDS.reduce<Record<ConsumableKind, number>>((acc, k) => {
         acc[k] = counts?.get(k) ?? 0;
         return acc;
-      }, { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0 });
+      }, { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0 });
       return { memberId: m.id, nickname: m.nickname, inventory };
     });
 

@@ -24,6 +24,7 @@ interface ParticipantRow {
   member_id: string | null;
   nickname_snapshot: string;
   title_snapshot: { id: string; name: string; color: TitleColor } | null;
+  anonymized: boolean;
 }
 
 interface LogRow {
@@ -55,7 +56,7 @@ export default async function MeLogPage({ params }: Props) {
       .maybeSingle(),
     sb
       .from('game_log_participants')
-      .select('position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot')
+      .select('position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot, anonymized')
       .eq('game_log_id', logId)
       .order('position'),
   ]);
@@ -69,15 +70,18 @@ export default async function MeLogPage({ params }: Props) {
   const isParticipant = participants.some((p) => p.member_id === member.id);
   if (!isParticipant) notFound();
 
-  // GameLogView props 변환
-  const players: GameLogPlayer[] = participants.map((p) => ({
-    nickname: p.nickname_snapshot,
-    title: p.title_snapshot,
-    turn: p.position,
-    isWinner: p.is_winner === true,
-    isDraw: p.is_draw,
-    isResign: p.is_resign,
-  }));
+  // GameLogView props 변환 — 본인 아닌 익명 참가자는 마스킹
+  const players: GameLogPlayer[] = participants.map((p) => {
+    const masked = p.anonymized && p.member_id !== member.id;
+    return {
+      nickname: masked ? '???' : p.nickname_snapshot,
+      title: masked ? null : p.title_snapshot,
+      turn: p.position,
+      isWinner: p.is_winner === true,
+      isDraw: p.is_draw,
+      isResign: p.is_resign,
+    };
+  });
 
   const meta: GameLogMeta = {
     gameId: log.game_id,
@@ -96,12 +100,14 @@ export default async function MeLogPage({ params }: Props) {
     playedAt: log.played_at,
     playMode: (log.room_snapshot?.playMode ?? log.mode) as 'multi' | 'com' | 'solo',
     players: participants.reduce<Record<string, { nickname: string }>>((acc, p) => {
-      acc[p.member_id ?? p.nickname_snapshot] = { nickname: p.nickname_snapshot };
+      const masked = p.anonymized && p.member_id !== member.id;
+      const nick = masked ? '???' : p.nickname_snapshot;
+      acc[p.member_id ?? p.nickname_snapshot] = { nickname: nick };
       return acc;
     }, {}),
     result: {
       rankings: participants.map((p) => ({
-        nickname: p.nickname_snapshot,
+        nickname: p.anonymized && p.member_id !== member.id ? '???' : p.nickname_snapshot,
         rank: p.is_winner ? 1 : p.is_draw ? 1 : 2,
         score: 0,
       })),

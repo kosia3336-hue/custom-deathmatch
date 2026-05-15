@@ -2,6 +2,15 @@ import type { Game } from './game';
 
 export type { Game };
 
+export interface GameWinRate {
+  gameId: string;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number;
+}
+
 export interface BanTurn {
   playerIdx: number;
   count: number;
@@ -26,6 +35,7 @@ export interface BanPickStartPayload {
   bannedGames: BannedGame[];
   banCounts: [number, number];
   players: [{ id: string; nickname: string }, { id: string; nickname: string }];
+  opponentGameStats?: GameWinRate[];
 }
 
 export interface BanPickUpdatePayload {
@@ -36,9 +46,24 @@ export interface BanPickUpdatePayload {
   banCounts: [number, number];
   turnDeadline: number | null;
   phase: 'banning' | 'lottery';
+  lastNobanBy?: 'first' | 'second';
 }
 
 export interface BanPickLotteryPayload {
   remainingGameIds: string[];
   pickedGameId: string;
+}
+
+export interface BanPickUnbanTurnPayload {
+  queue: Array<'first' | 'second'>;
+  currentTurn: 'first' | 'second';
+  erasableGames: Array<{ gameId: string; bannedBy: 'first' | 'second' }>;
+  turnDeadline: number;
+}
+
+export interface BanPickUnbanUpdatePayload {
+  currentTurn: 'first' | 'second' | null;
+  erasedGameId: string | null;
+  erasedBy: 'first' | 'second' | null;
+  turnDeadline: number | null;
 }

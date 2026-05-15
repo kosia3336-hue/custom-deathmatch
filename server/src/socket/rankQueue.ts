@@ -52,9 +52,8 @@ export async function createRankMatchedRoom(
   const guestPlayer = buildPlayer(guestEntry.socketId, false);
   if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
 
-  const title = `[랭크] ${hostPlayer.nickname} vs ${guestPlayer.nickname}`;
   const room = roomStore.create({
-    title,
+    title: `[랭크] ${hostPlayer.nickname} vs ${guestPlayer.nickname}`,
     gameId: 'ban-pick',
     gameName: '밴픽',
     playMode: 'multi',
@@ -111,6 +110,13 @@ export async function createRankMatchedRoom(
   } catch (err) {
     console.warn('[rankQueue] applyAutoConsumablesForRankRoom 실패:', (err as Error).message);
   }
+
+  // 익명 물약 적용 후 방 제목에 닉네임 마스킹 반영
+  const shopStateForTitle = getRoomShopState(room.id);
+  const anonForTitle = shopStateForTitle?.anonymizedTokens ?? new Set<string>();
+  const hostNickForTitle = anonForTitle.has(hostPlayer.id) ? ANONYMOUS_NICKNAME : hostPlayer.nickname;
+  const guestNickForTitle = anonForTitle.has(guestPlayer.id) ? ANONYMOUS_NICKNAME : guestPlayer.nickname;
+  roomStore.updateSettings(room.id, { title: `[랭크] ${hostNickForTitle} vs ${guestNickForTitle}` });
 
   // 마스킹은 emitRoomStateToRoom 헬퍼에서 player 별로 처리.
   emitRoomStateToRoom(io, room.id);

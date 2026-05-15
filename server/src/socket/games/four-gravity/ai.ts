@@ -115,6 +115,8 @@ export interface AIWorkerData {
   currentColor: 'black' | 'white';
   lastGravityBlack: Direction | null;
   lastGravityWhite: Direction | null;
+  /** 천하 솔로 모드 토글 AI 전용. true 면 ai-strong.ts 의 강화 탐색을 사용한다. */
+  useStrong?: boolean;
 }
 
 // 모듈 레벨 타임아웃 플래그 (워커 인스턴스당 하나이므로 동시성 안전)

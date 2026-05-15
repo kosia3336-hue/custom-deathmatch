@@ -42,9 +42,21 @@ const META: Record<ConsumableKind, ConsumableMeta> = {
     manual: false,
     trigger: '랭크 게임 매칭 시 자동으로 1개 사용',
   },
+  magnifier: {
+    emoji: '🔍',
+    description: '밴픽 화면에서 각 게임 카드에 상대방의 해당 게임 승률을 표시한다. 익명물약 사용 중에도 확인 가능. 자동사용되며, 1게임 당 1개씩 사용된다.',
+    manual: false,
+    trigger: '랭크 게임 매칭 시 자동으로 1개 사용',
+  },
+  ban_eraser: {
+    emoji: '🧹',
+    description: '밴픽 단계 완료 직후, 상대방이 밴한 게임 1개를 취소하여 추첨 풀에 복귀시킬 수 있다. 스킵 시 아이템이 소모되지 않는다.',
+    manual: true,
+    trigger: '밴픽 완료 후 선택 화면에서 수동 사용',
+  },
 };
 
-const ORDER: ConsumableKind[] = ['rank_reset', 'nickname_change', 'spectator_lock', 'anonymity'];
+const ORDER: ConsumableKind[] = ['rank_reset', 'nickname_change', 'spectator_lock', 'anonymity', 'magnifier', 'ban_eraser'];
 
 interface RankResetState {
   open: boolean;

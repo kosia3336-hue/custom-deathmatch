@@ -15,6 +15,8 @@ const EMPTY: InventoryMap = {
   rank_reset: 0,
   spectator_lock: 0,
   anonymity: 0,
+  magnifier: 0,
+  ban_eraser: 0,
 };
 
 interface InventoryState {
