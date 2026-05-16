@@ -125,15 +125,17 @@ function tierOrderNumeric(t: RankTier): number {
   return o[t];
 }
 
-async function fetchChallengerMemberIds(seasonId: number): Promise<Set<string>> {
+/** 챌린저 선수 전체를 RP 내림차순으로 반환 — 강등 순위 판정용 */
+async function fetchChallengerRanking(seasonId: number): Promise<Array<{ member_id: string; rp: number }>> {
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from('rank_stats')
-    .select('member_id')
+    .select('member_id, rp')
     .eq('season_id', seasonId)
-    .eq('tier', 'challenger');
-  if (error || !data?.length) return new Set();
-  return new Set((data as Array<{ member_id: string }>).map((r) => r.member_id));
+    .eq('tier', 'challenger')
+    .order('rp', { ascending: false });
+  if (error || !data?.length) return [];
+  return data as Array<{ member_id: string; rp: number }>;
 }
 
 function rankGameEndedPayload(
@@ -373,6 +375,7 @@ export async function finalizeRankedMultiGameEnd(
       loserStats.season_losses += 1;
       maybeFinalizePlacement(loserStats);
     } else {
+      const loserBeforeTier = (loserPl.memberId === idA ? beforeA : beforeB).tier;
       const lr = applyRankLoss(loserStats.tier, loserStats.rp, loserLoss);
       loserStats.tier = lr.tier;
       loserStats.rp = lr.rp;
@@ -380,6 +383,25 @@ export async function finalizeRankedMultiGameEnd(
       loserStats.win_streak = 0;
       loserStats.season_losses += 1;
       loserStats.season_peak_tier = peakTierMax(loserStats.season_peak_tier, loserStats.tier);
+
+      // 챌린저 강등 판정: 150 RP 미만이고 3위 밖이면 다이아로 강등 (RP 이월)
+      if (loserBeforeTier === 'challenger' && loserStats.rp < 150) {
+        try {
+          const ranking = await fetchChallengerRanking(seasonId);
+          // DB는 아직 갱신 전이므로 패배자 RP를 현재 값으로 교체해 순위 계산
+          const updated = ranking.map((r) =>
+            r.member_id === loserPl.memberId ? { ...r, rp: loserStats.rp } : r,
+          );
+          updated.sort((a, b) => b.rp - a.rp);
+          const pos = updated.findIndex((r) => r.member_id === loserPl.memberId);
+          // 0-indexed: 0~2 = 1~3위 보호, 3이상 = 강등
+          if (pos < 0 || pos >= 3) {
+            loserStats.tier = 'diamond';
+          }
+        } catch (err) {
+          console.warn('[rank:finalize] challenger demotion check 실패:', (err as Error).message);
+        }
+      }
     }
 
     const wBefore = winnerPl.memberId === idA ? beforeA : beforeB;

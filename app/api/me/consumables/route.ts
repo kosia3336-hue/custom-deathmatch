@@ -16,6 +16,8 @@ const ALL_KINDS: ConsumableKind[] = [
   'rank_reset',
   'spectator_lock',
   'anonymity',
+  'magnifier',
+  'ban_eraser',
 ];
 
 export async function GET() {

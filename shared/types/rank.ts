@@ -122,7 +122,8 @@ export function matchRp(tier: RankTier, rp: number, placementDone: boolean): num
     silver: 100,
     gold: 200,
     diamond: 300,
-    challenger: 300,
+    // 챌린저 base = 300 + 150(진입 임계값) — 다이아 최고점(449)보다 항상 높음
+    challenger: 450,
   };
   return base[tier] + rp;
 }
@@ -182,7 +183,8 @@ export function applyRankWin(
   return { tier, rp, promoted };
 }
 
-/** 정식 랭크 구간 패배 후 RP·강등 (브론즈 0은 고정) */
+/** 정식 랭크 구간 패배 후 RP·강등 (브론즈 0은 고정)
+ *  챌린저는 RP 차감만 수행 — 강등 판정(150 미만 + 3위 밖)은 processRankedGameEnd 에서 처리 */
 export function applyRankLoss(
   currentTier: RankTier,
   currentRp: number,
@@ -190,6 +192,9 @@ export function applyRankLoss(
 ): { tier: RankTier; rp: number; demoted: boolean } {
   if (currentTier === 'unranked') {
     return { tier: 'unranked', rp: currentRp, demoted: false };
+  }
+  if (currentTier === 'challenger') {
+    return { tier: 'challenger', rp: Math.max(0, currentRp - loss), demoted: false };
   }
   if (currentTier === 'bronze' && currentRp === 0) {
     return { tier: 'bronze', rp: 0, demoted: false };
@@ -201,7 +206,6 @@ export function applyRankLoss(
   }
 
   const demoteMap: Partial<Record<RankTier, RankTier>> = {
-    challenger: 'diamond',
     diamond: 'gold',
     gold: 'silver',
     silver: 'bronze',

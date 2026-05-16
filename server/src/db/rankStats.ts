@@ -18,6 +18,7 @@ function asTier(v: string): RankTier {
     || v === 'silver'
     || v === 'gold'
     || v === 'diamond'
+    || v === 'challenger'
   ) {
     return v;
   }

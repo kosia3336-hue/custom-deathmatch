@@ -36,14 +36,12 @@ interface SearchRow {
 interface Props {
   seasons: AdminSeasonRow[];
   tierBins: TierBin[];
-  challengerSlots: number;
   activeSeasonId: number | null;
 }
 
 export default function AdminRankTools({
   seasons,
   tierBins,
-  challengerSlots,
   activeSeasonId,
 }: Props) {
   const active = useMemo(() => seasons.find((s) => s.is_active), [seasons]);
@@ -171,11 +169,7 @@ export default function AdminRankTools({
     }
   }
 
-  const allBins = [
-    ...tierBins,
-    { tier: 'challenger', label: '챌린저', count: challengerSlots },
-  ];
-  const maxTier = Math.max(1, ...allBins.map((b) => b.count));
+  const maxTier = Math.max(1, ...tierBins.map((b) => b.count));
 
   return (
     <div className="flex flex-col gap-6">
@@ -227,7 +221,7 @@ export default function AdminRankTools({
           <p className="text-xs text-cdm-fg-muted">활성 시즌이 없습니다.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {allBins.map((b) => (
+            {tierBins.map((b) => (
               <div key={b.tier} className="flex items-center gap-2 text-sm">
                 <span className={`w-24 shrink-0 ${b.tier === 'challenger' ? 'text-purple-600 dark:text-purple-400' : 'text-cdm-fg-muted'}`}>
                   {b.label}

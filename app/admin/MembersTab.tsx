@@ -39,7 +39,7 @@ interface GameStatsRow {
 export type SortKey = 'created_at' | 'games' | 'tier' | 'cdp';
 
 const TIER_NUM: Record<string, number> = {
-  diamond: 4, gold: 3, silver: 2, bronze: 1, unranked: 0,
+  challenger: 5, diamond: 4, gold: 3, silver: 2, bronze: 1, unranked: 0,
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;

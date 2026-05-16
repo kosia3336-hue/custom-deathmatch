@@ -10,6 +10,7 @@ const TIER_KO: Record<string, string> = {
   silver: '실버',
   gold: '골드',
   diamond: '다이아',
+  challenger: '챌린저',
 };
 
 interface Props {
@@ -76,7 +77,7 @@ export default function MemberRankTab({ memberId }: Props) {
         {st ? (
           <div className="mt-3 flex flex-col gap-2">
             <RankBadge
-              tier={tier as 'unranked' | 'bronze' | 'silver' | 'gold' | 'diamond'}
+              tier={tier as 'unranked' | 'bronze' | 'silver' | 'gold' | 'diamond' | 'challenger'}
               rp={placementDone ? rp : undefined}
               size="lg"
               showRp={placementDone}

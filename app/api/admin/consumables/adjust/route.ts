@@ -25,6 +25,8 @@ const VALID_KINDS = new Set<ConsumableKind>([
   'rank_reset',
   'spectator_lock',
   'anonymity',
+  'magnifier',
+  'ban_eraser',
 ]);
 
 interface AdjustBody {

@@ -7,6 +7,7 @@ const TABS: TabItem[] = [
   { id: 'items', label: '아이템' },
   { id: 'cdp', label: 'CDP 조정' },
   { id: 'consumables', label: '소모성 조정' },
+  { id: 'logs', label: '로그' },
 ];
 
 export default function AdminShopSubTabs({ current }: { current: string }) {

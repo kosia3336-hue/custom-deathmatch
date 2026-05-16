@@ -2,13 +2,14 @@ import { EmptyState } from '@/components/cdm/EmptyState';
 import { getServerSupabase } from '@/lib/supabase/server';
 import AdminRankTools from '@/app/admin/AdminRankTools';
 
-const TIER_ORDER = ['unranked', 'bronze', 'silver', 'gold', 'diamond'] as const;
+const TIER_ORDER = ['unranked', 'bronze', 'silver', 'gold', 'diamond', 'challenger'] as const;
 const TIER_LABEL: Record<string, string> = {
   unranked: '언랭',
   bronze: '브론즈',
   silver: '실버',
   gold: '골드',
   diamond: '다이아',
+  challenger: '챌린저',
 };
 
 export default async function AdminRankTab() {
@@ -46,7 +47,6 @@ export default async function AdminRankTab() {
             label: TIER_LABEL[tier] ?? tier,
             count: 0,
           }))}
-          challengerSlots={0}
           activeSeasonId={null}
         />
       </>
@@ -59,10 +59,6 @@ export default async function AdminRankTab() {
     label: TIER_LABEL[tier] ?? tier,
     count: 0,
   }));
-  let challengerSlots = 0;
-
-  const CHALLENGER_RP_MIN = 150;
-
   if (active) {
     const { data: rsRows } = await db
       .from('rank_stats')
@@ -75,15 +71,6 @@ export default async function AdminRankTab() {
       counts[t] = (counts[t] ?? 0) + 1;
     }
 
-    const diamondSorted = ((rsRows ?? []) as Array<{ tier: string; rp: number; placement_done: boolean; season_wins: number }>)
-      .filter((r) => r.tier === 'diamond' && r.placement_done)
-      .sort((a, b) => Number(b.rp) - Number(a.rp) || Number(b.season_wins) - Number(a.season_wins));
-
-    challengerSlots = diamondSorted
-      .slice(0, 3)
-      .filter((r) => Number(r.rp) >= CHALLENGER_RP_MIN)
-      .length;
-
     tierBins = TIER_ORDER.map((tier) => ({
       tier,
       label: TIER_LABEL[tier] ?? tier,
@@ -95,7 +82,6 @@ export default async function AdminRankTab() {
     <AdminRankTools
       seasons={rows}
       tierBins={tierBins}
-      challengerSlots={challengerSlots}
       activeSeasonId={active?.id ?? null}
     />
   );

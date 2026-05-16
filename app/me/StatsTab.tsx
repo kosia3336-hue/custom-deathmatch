@@ -51,6 +51,7 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
           silver: '실버',
           gold: '골드',
           diamond: '다이아',
+          challenger: '챌린저',
         };
         const tier = String(row.tier ?? 'unranked');
         const peak = String(row.season_peak_tier ?? 'unranked');

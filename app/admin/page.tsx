@@ -24,6 +24,7 @@ interface Props {
     actionKind?: string;
     actor?: string;
     shopSubTab?: string;
+    shopLogsPage?: string;
   }>;
 }
 
@@ -47,7 +48,7 @@ export default async function AdminPage({ searchParams }: Props) {
           {tab === 'members' && <MembersTab query={sp.q ?? ''} page={sp.page} sort={sp.sort} />}
           {tab === 'titles' && <TitlesTab page={sp.page} />}
           {tab === 'rank' && <AdminRankTab />}
-          {tab === 'shop' && <AdminShopTab subTab={sp.shopSubTab} />}
+          {tab === 'shop' && <AdminShopTab subTab={sp.shopSubTab} shopLogsPage={sp.shopLogsPage} />}
           {tab === 'game-stats' && <GameStatsTab />}
           {tab === 'reports' && <ReportsTab page={sp.page} />}
           {tab === 'inquiries' && <InquiriesTab page={sp.page} />}

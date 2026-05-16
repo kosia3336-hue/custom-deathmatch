@@ -19,6 +19,8 @@ const KINDS: ConsumableKind[] = [
   'rank_reset',
   'spectator_lock',
   'anonymity',
+  'magnifier',
+  'ban_eraser',
 ];
 
 export default function AdminShopConsumablesTools() {

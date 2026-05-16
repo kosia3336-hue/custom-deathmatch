@@ -21,8 +21,6 @@ interface Props {
     page?: string;
     inquiriesPage?: string;
     reportsPage?: string;
-    ledgerPage?: string;
-    purchasesPage?: string;
   }>;
 }
 
@@ -65,13 +63,7 @@ export default async function MyPage({ searchParams }: Props) {
           {tab === 'titles' && (
             <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
           )}
-          {tab === 'shop' && (
-            <ShopTab
-              memberId={member.id}
-              ledgerPage={sp.ledgerPage}
-              purchasesPage={sp.purchasesPage}
-            />
-          )}
+          {tab === 'shop' && <ShopTab memberId={member.id} />}
           {tab === 'support' && (
             <SupportTab
               memberId={member.id}

@@ -1,20 +1,21 @@
-import { Tabs } from '@/components/cdm/Tabs';
 import AdminShopItems from './AdminShopItems';
 import AdminShopCdpTools from './AdminShopCdpTools';
 import AdminShopConsumablesTools from './AdminShopConsumablesTools';
+import AdminShopLogsTab from './AdminShopLogsTab';
 import AdminShopSubTabs from './AdminShopSubTabs';
 
 interface Props {
   subTab?: string;
+  shopLogsPage?: string;
 }
 
-type Active = 'items' | 'cdp' | 'consumables';
+type Active = 'items' | 'cdp' | 'consumables' | 'logs';
 
-export default async function AdminShopTab({ subTab }: Props) {
+export default async function AdminShopTab({ subTab, shopLogsPage }: Props) {
   let active: Active = 'items';
   if (subTab === 'cdp') active = 'cdp';
   else if (subTab === 'consumables') active = 'consumables';
-  void Tabs; // 타입 import 보존용 — 실제 탭 UI 는 client 컴포넌트.
+  else if (subTab === 'logs') active = 'logs';
 
   return (
     <div className="flex flex-col gap-4">
@@ -23,6 +24,7 @@ export default async function AdminShopTab({ subTab }: Props) {
         {active === 'items' && <AdminShopItems />}
         {active === 'cdp' && <AdminShopCdpTools />}
         {active === 'consumables' && <AdminShopConsumablesTools />}
+        {active === 'logs' && <AdminShopLogsTab page={shopLogsPage} />}
       </section>
     </div>
   );
