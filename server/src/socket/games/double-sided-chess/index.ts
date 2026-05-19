@@ -36,9 +36,12 @@ export function initDoubleSidedChess(
   let firstPlayer: DSCPlayerInfo;
   let secondPlayer: DSCPlayerInfo;
 
+  let ownerToken: string | null = null;
+
   if (playMode === 'solo') {
     firstPlayer = { id: players[0].id, nickname: `${players[0].nickname} (선)` };
     secondPlayer = { id: players[0].id, nickname: `${players[0].nickname} (후)` };
+    if (players[0].nickname === '천하') ownerToken = players[0].id;
   } else if (playMode === 'com') {
     firstPlayer = { id: players[0].id, nickname: players[0].nickname };
     secondPlayer = { id: players[1].id, nickname: players[1].nickname };
@@ -68,6 +71,7 @@ export function initDoubleSidedChess(
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
+    ownerToken,
   });
 
   const s = gameStates.get(roomId)!;
@@ -218,9 +222,51 @@ export { performDoubleSidedChessUndo } from './state.js';
 
 export function canDoubleSidedChessUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s) return false;
+  // 천하 솔로 모드는 게임 종료 후에도 무르기 허용
+  if (s.gameOver && !s.ownerToken) return false;
   const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
   return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;
+}
+
+export function handleDoubleSidedChessToggleAI(
+  io: IO,
+  socket: TypedSocket,
+  roomId: string,
+  data: Record<string, unknown>,
+) {
+  const s = gameStates.get(roomId);
+  if (!s || !s.ownerToken || s.gameOver) return;
+
+  const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (myId !== s.ownerToken) return;
+
+  const aiOn = data.ai === true;
+
+  if (aiOn) {
+    // 현재 owner의 id를 AI로 교체
+    if (s.currentOwner === 'first') {
+      s.firstPlayer.id = AI_PLAYER_ID;
+    } else {
+      s.secondPlayer.id = AI_PLAYER_ID;
+    }
+    s.currentPlayer = AI_PLAYER_ID;
+    s.playMode = 'com';
+
+    clearTurnTimer(s);
+    broadcastState(io, s);
+    void runAITurn(io, roomId);
+  } else {
+    terminateAIWorker(roomId);
+
+    if (s.firstPlayer.id === AI_PLAYER_ID) s.firstPlayer.id = s.ownerToken;
+    if (s.secondPlayer.id === AI_PLAYER_ID) s.secondPlayer.id = s.ownerToken;
+    s.currentPlayer = s.ownerToken;
+    s.playMode = 'solo';
+
+    startTurnTimer(io, s);
+    broadcastState(io, s);
+  }
 }
 
 export { getDoubleSidedChessResultData } from './state.js';

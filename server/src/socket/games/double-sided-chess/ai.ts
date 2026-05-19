@@ -8,11 +8,12 @@ export interface AIWorkerData {
   board: Cell[][];
   prisoners: { first: PieceType[]; second: PieceType[] };
   currentOwner: Owner;
+  useStrong?: boolean;
 }
 
 /* ── 기물 가치 ── */
 
-const BASE_VALUE: Record<PieceType, number> = {
+export const BASE_VALUE: Record<PieceType, number> = {
   king: 100_000,
   infantry: 400,
   copper: 450,
@@ -20,7 +21,7 @@ const BASE_VALUE: Record<PieceType, number> = {
   gold: 600,
 };
 
-const PROMOTED_VALUE: Record<PieceType, number> = {
+export const PROMOTED_VALUE: Record<PieceType, number> = {
   king: 100_000,
   infantry: 900,   // 비차 (룩)
   gold: 750,       // 계마 (나이트)
@@ -28,23 +29,23 @@ const PROMOTED_VALUE: Record<PieceType, number> = {
   copper: 550,     // 향차 (랜스)
 };
 
-function pieceValue(piece: PieceType, isPromoted: boolean): number {
+export function pieceValue(piece: PieceType, isPromoted: boolean): number {
   return isPromoted ? PROMOTED_VALUE[piece] : BASE_VALUE[piece];
 }
 
 /* ── 보드 복사 ── */
 
-function cloneBoard(board: Cell[][]): Cell[][] {
+export function cloneBoard(board: Cell[][]): Cell[][] {
   return board.map(row => row.map(c => (c ? { ...c } : null)));
 }
 
-function clonePrisoners(p: { first: PieceType[]; second: PieceType[] }) {
+export function clonePrisoners(p: { first: PieceType[]; second: PieceType[] }) {
   return { first: [...p.first], second: [...p.second] };
 }
 
 /* ── 수 생성 ── */
 
-function generateAllMoves(board: Cell[][], prisoners: { first: PieceType[]; second: PieceType[] }, owner: Owner): AIMove[] {
+export function generateAllMoves(board: Cell[][], prisoners: { first: PieceType[]; second: PieceType[] }, owner: Owner): AIMove[] {
   const moves: AIMove[] = [];
 
   for (let r = 0; r < DSC_BOARD_SIZE; r++) {
@@ -75,13 +76,13 @@ function generateAllMoves(board: Cell[][], prisoners: { first: PieceType[]; seco
 
 /* ── 수 시뮬레이션 ── */
 
-interface ApplyResult {
+export interface ApplyResult {
   board: Cell[][];
   prisoners: { first: PieceType[]; second: PieceType[] };
   captured: PieceType | null;
 }
 
-function applyMove(board: Cell[][], prisoners: { first: PieceType[]; second: PieceType[] }, move: AIMove, owner: Owner): ApplyResult {
+export function applyMove(board: Cell[][], prisoners: { first: PieceType[]; second: PieceType[] }, move: AIMove, owner: Owner): ApplyResult {
   const b = cloneBoard(board);
   const p = clonePrisoners(prisoners);
 
@@ -115,9 +116,9 @@ function applyMove(board: Cell[][], prisoners: { first: PieceType[]; second: Pie
 
 /* ── 종료 판정 ── */
 
-type TerminalResult = { score: number } | null;
+export type TerminalResult = { score: number } | null;
 
-function checkTerminal(
+export function checkTerminal(
   board: Cell[][],
   prisoners: { first: PieceType[]; second: PieceType[] },
   justMovedOwner: Owner,

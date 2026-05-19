@@ -82,4 +82,5 @@ export interface InternalState {
   gameOver: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: DSCUndoSnapshot[];
+  ownerToken: string | null;
 }

@@ -247,3 +247,141 @@ export async function isNicknameChangedSinceV2Cutoff(memberId: string): Promise<
   return t >= HIDDEN_TITLES_V2_START_AT;
 }
 
+// ── v3 신규 6종 조건 함수 ──────────────────────────────────────────────
+
+/**
+ * 멤버의 최근 랭크 게임 N건을 조회해 모두 동일 티어인지 확인한다.
+ * 중간에 다른 티어 행이 끼어 있으면 그 이후 연속 구간만 계산한다.
+ *
+ * @returns 현재 동일 티어 연속 판수
+ */
+export async function countConsecutiveRankGamesInTier(
+  memberId: string,
+  tier: string,
+  limit: number,
+): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from('rank_match_history')
+    .select('winner_id, loser_id, winner_tier, loser_tier')
+    .or(`winner_id.eq.${memberId},loser_id.eq.${memberId}`)
+    .order('played_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.warn('[hidden-titles] countConsecutiveRankGamesInTier:', error.message);
+    return 0;
+  }
+  let streak = 0;
+  for (const row of (data ?? []) as Array<{
+    winner_id: string; loser_id: string;
+    winner_tier: string; loser_tier: string;
+  }>) {
+    const memberTier = row.winner_id === memberId ? row.winner_tier : row.loser_tier;
+    if (memberTier !== tier) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/**
+ * 멤버의 직전 멀티 게임(이번 게임 제외)에서 패배했고,
+ * 그 상대가 currentOpponentId 인지 확인 (결자해지).
+ *
+ * @param memberId 이번 게임의 승자
+ * @param currentOpponentId 이번 게임의 패자
+ */
+export async function wasDefeatedByOpponentLastGame(
+  memberId: string,
+  currentOpponentId: string,
+  sinceIso: string,
+): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  // 멤버의 최근 멀티 게임 2건(이번 + 직전)
+  const { data, error } = await sb
+    .from('game_log_participants')
+    .select('game_log_id, is_winner, is_draw, game_logs!inner(mode, played_at, counts_for_stats)')
+    .eq('member_id', memberId)
+    .eq('game_logs.counts_for_stats', true)
+    .gte('game_logs.played_at', sinceIso)
+    .order('played_at', { referencedTable: 'game_logs', ascending: false })
+    .limit(2);
+  if (error) {
+    console.warn('[hidden-titles] wasDefeatedByOpponentLastGame (self):', error.message);
+    return false;
+  }
+  const rows = data as Array<{
+    game_log_id: string;
+    is_winner: boolean | null;
+    is_draw: boolean;
+    game_logs: { mode: string; played_at: string; counts_for_stats: boolean } | Array<{ mode: string; played_at: string; counts_for_stats: boolean }>;
+  }>;
+  // 최신이 이번 게임 → 직전 게임이 [1]
+  if (rows.length < 2) return false;
+  const prev = rows[1];
+  if (prev.is_winner !== false || prev.is_draw) return false; // 직전 게임을 이겼으면 조건 불충족
+
+  // 직전 게임에서 상대가 누구였는지 확인
+  const { data: others, error: e2 } = await sb
+    .from('game_log_participants')
+    .select('member_id')
+    .eq('game_log_id', prev.game_log_id)
+    .neq('member_id', memberId)
+    .not('member_id', 'is', null)
+    .eq('is_winner', true);
+  if (e2) {
+    console.warn('[hidden-titles] wasDefeatedByOpponentLastGame (others):', e2.message);
+    return false;
+  }
+  const opponentIds = (others ?? []).map((r) => (r as { member_id: string }).member_id);
+  return opponentIds.includes(currentOpponentId);
+}
+
+/**
+ * 멤버의 누적 CDP 소비액 (shop_purchases.price_paid 합계).
+ */
+export async function getTotalCdpSpent(memberId: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from('shop_purchases')
+    .select('price_paid')
+    .eq('member_id', memberId);
+  if (error) {
+    console.warn('[hidden-titles] getTotalCdpSpent:', error.message);
+    return 0;
+  }
+  return (data ?? []).reduce((sum, r) => sum + Number((r as { price_paid: number }).price_paid ?? 0), 0);
+}
+
+/**
+ * sinceIso 이후 멤버의 최근 멀티 게임 N건에서 모두 승리/패배했는지 확인.
+ *
+ * @param checkWin true = 연승 확인, false = 연패 확인
+ * @returns 해당 결과로 연속인지 여부
+ */
+export async function isStreakInMulti(
+  memberId: string,
+  streakCount: number,
+  checkWin: boolean,
+  sinceIso: string,
+): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from('game_log_participants')
+    .select('is_winner, is_draw, game_logs!inner(mode, played_at, counts_for_stats)')
+    .eq('member_id', memberId)
+    .eq('game_logs.counts_for_stats', true)
+    .gte('game_logs.played_at', sinceIso)
+    .order('played_at', { referencedTable: 'game_logs', ascending: false })
+    .limit(streakCount);
+  if (error) {
+    console.warn('[hidden-titles] isStreakInMulti:', error.message);
+    return false;
+  }
+  const rows = data as Array<{ is_winner: boolean | null; is_draw: boolean }>;
+  if (rows.length < streakCount) return false;
+  if (checkWin) {
+    return rows.every((r) => r.is_winner === true);
+  }
+  return rows.every((r) => r.is_winner === false && !r.is_draw);
+}
+

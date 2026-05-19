@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -44,6 +45,7 @@ interface Props {
 export default function CreateRoomModal({ open, onClose }: Props) {
   const router = useRouter();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
+  const [mounted, setMounted] = useState(false);
 
   const [step, setStep] = useState<Step>('main');
   const [games, setGames] = useState<Game[]>([]);
@@ -66,6 +68,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const CHIPS_MAX = 200;
   const CHIPS_STEP = 5;
   const CHIPS_PRESETS = [10, 25, 50, 100];
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -212,11 +216,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     </svg>
   );
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         /* 배경 + 정렬 컨테이너 */
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+        <motion.div className="fixed inset-0 z-(--cdm-z-modal) flex items-end sm:items-center justify-center sm:p-4">
           {/* 백드롭 */}
           <motion.div
             className="fixed inset-0 bg-black/50"
@@ -670,8 +676,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

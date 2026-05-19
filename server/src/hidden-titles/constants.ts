@@ -14,11 +14,9 @@
  *
  * 정책 문서: docs/v2/11_titles.md §11.5
  */
-// DB enum public.title_color 와 동일. 변경 시 동기화 필요.
-export type TitleColor =
-  | 'coral' | 'amber' | 'emerald' | 'sky' | 'violet' | 'pink'
-  | 'lime' | 'rose' | 'cyan' | 'orange' | 'fuchsia' | 'teal'
-  | 'yellow' | 'indigo' | 'slate' | 'gold';
+// DB enum public.title_color — shared/titles/colors.ts 와 동기화
+import type { TitleColor } from '@shared/titles/colors';
+export type { TitleColor };
 
 /**
  * v2.11 배포 기준 시각 (KST 기준 2026-05-04 09:33).
@@ -34,6 +32,12 @@ export const HIDDEN_TITLES_POST_UPDATE_START_AT = '2026-05-04T00:33:00.000Z';
  */
 export const HIDDEN_TITLES_V2_START_AT = '2026-05-06T06:00:00.000Z';
 
+/**
+ * 신규 히든 6종(v3) 집계 시작 시각 (KST 기준 2026-05-19 16:00).
+ * ⚠️ 한 번 설정하면 절대 바꾸지 말 것.
+ */
+export const HIDDEN_TITLES_V3_START_AT = '2026-05-19T07:00:00.000Z';
+
 export type HiddenTitleKey =
   | 'unbreakable_warrior'
   | 'field_conqueror'
@@ -48,7 +52,14 @@ export type HiddenTitleKey =
   | 'one_strike_master'
   | 'trial_of_patience'
   | 'blitz_victor'
-  | 'name_changer';
+  | 'name_changer'
+  // v3 신규 6종
+  | 'lord_of_sky'
+  | 'sentinel_of_abyss'
+  | 'karmic_resolve'
+  | 'flex'
+  | 'winning_spree'
+  | 'iron_will';
 
 export type HiddenTitleCountScope = 'all' | 'post_update' | 'post_v2';
 
@@ -180,6 +191,55 @@ export const HIDDEN_TITLES: Record<HiddenTitleKey, HiddenTitleDef> = {
     color: 'slate',
     description: '당신의 정체는 아무도 모를 것이다. 아마도.',
     conditionText: '최초로 닉네임을 변경한 플레이어',
+    scope: 'post_v2',
+  },
+  // ── v3 신규 6종 ────────────────────────────────────────────────────
+  lord_of_sky: {
+    key: 'lord_of_sky',
+    name: '천공의 주인',
+    color: 'sky',
+    description: '하늘 위에서 고고하게 빛나는 존재.',
+    conditionText: '최초로 챌린저에서 70판 연속 플레이',
+    scope: 'post_v2',
+  },
+  sentinel_of_abyss: {
+    key: 'sentinel_of_abyss',
+    name: '심연의 수문장',
+    color: 'bronze',
+    description: '위로 올라가려는 자들이여, 나를 넘어서라.',
+    conditionText: '최초로 브론즈에서 30판 연속 플레이',
+    scope: 'post_v2',
+  },
+  karmic_resolve: {
+    key: 'karmic_resolve',
+    name: '결자해지',
+    color: 'ruby',
+    description: '전장에서 맺은 악연을 내 손으로 끊어냈다.',
+    conditionText: '직전 판에서 나에게 패배를 안긴 플레이어를 다음 판에 적으로 만나 승리',
+    scope: 'post_v2',
+  },
+  flex: {
+    key: 'flex',
+    name: '플렉스',
+    color: 'emerald',
+    description: '가격표는 보지 않는다. 바로 구매해버려.',
+    conditionText: '최초로 상점에서 3,500 CDP 소비',
+    scope: 'post_v2',
+  },
+  winning_spree: {
+    key: 'winning_spree',
+    name: '파죽지세',
+    color: 'sunset',
+    description: '패배라는 단어는 내 사전에 없다.',
+    conditionText: '최초로 멀티에서 8연승 달성',
+    scope: 'post_v2',
+  },
+  iron_will: {
+    key: 'iron_will',
+    name: '강철의 투지',
+    color: 'charcoal',
+    description: '잇따른 패배가 칼날을 더 단단하게 벼른다.',
+    conditionText: '최초로 멀티에서 8연패 달성',
     scope: 'post_v2',
   },
 };

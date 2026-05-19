@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types';
 import type { Game, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
@@ -19,6 +21,8 @@ interface Props {
 }
 
 export default function RoomSettingsModal({ open, room, onClose }: Props) {
+  const { setFooterHidden } = useRoomLayout();
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>('main');
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -38,6 +42,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const CHIPS_MAX = 200;
   const CHIPS_STEP = 5;
   const CHIPS_PRESETS = [10, 25, 50, 100];
+
+  useEffect(() => setMounted(true), []);
+
+  // paint 전에 sticky 푸터 바 제거 (게임 시작 버튼 클릭 가로채기 방지)
+  useLayoutEffect(() => {
+    if (!open) return;
+    setFooterHidden(true);
+    return () => setFooterHidden(false);
+  }, [open, setFooterHidden]);
 
   // 모달 열릴 때 현재 방 설정으로 초기화
   useEffect(() => {
@@ -179,10 +192,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     </svg>
   );
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+        <motion.div
+          className="fixed inset-0 z-(--cdm-z-modal) flex items-end sm:items-center justify-center sm:p-4"
+          style={{ zIndex: 'var(--cdm-z-modal)' }}
+        >
           {/* 백드롭 */}
           <motion.div
             className="fixed inset-0 bg-black/50"
@@ -542,7 +560,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             </div>
 
             {/* ── 푸터 (고정) ── */}
-            <div className="shrink-0 border-t border-gray-100 px-5 py-4">
+            <div className="shrink-0 border-t border-gray-100 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
               <div className="flex justify-end gap-3">
                 <Button variant="secondary" onClick={onClose}>취소</Button>
@@ -550,8 +568,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

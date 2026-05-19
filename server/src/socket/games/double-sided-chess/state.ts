@@ -110,9 +110,12 @@ function scheduleGameEnd(
 ) {
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
+    if (!s.gameOver) return;
     const roomId = s.roomId;
-    gameStates.delete(roomId);
-    terminateAIWorker(roomId);
+    if (!s.ownerToken) {
+      gameStates.delete(roomId);
+      terminateAIWorker(roomId);
+    }
     s.endGameCallback(io, roomId, payload);
   }, WIN_DISPLAY_MS);
 }
@@ -288,7 +291,9 @@ export function finishTurn(io: IO, s: InternalState) {
 
 export function performDoubleSidedChessUndo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s) return false;
+  // 천하 솔로 모드는 게임 종료 후에도 무르기 허용 (ownerToken으로 식별)
+  if (s.gameOver && !s.ownerToken) return false;
   terminateAIWorker(roomId);
 
   const wantDouble =
@@ -307,6 +312,12 @@ export function performDoubleSidedChessUndo(io: IO, roomId: string): boolean {
   const top = s.undoSnapshots[s.undoSnapshots.length - 1];
   if (!top) return false;
   applyUndoSnapshot(s, top);
+
+  // 게임 종료 상태에서 무르기 시 종료 플래그 해제
+  s.gameOver = false;
+  s.winner = null;
+  s.winType = null;
+
   armTurnTimer(io, s);
   broadcastState(io, s);
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
@@ -359,6 +370,8 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     board: s.board,
     prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
     currentOwner: s.currentOwner,
+    // 천하 솔로 모드에서 AI 토글로 켠 경우만 강화 AI 사용. 일반 COM 모드는 기존 AI 유지.
+    useStrong: s.ownerToken !== null,
   };
 
   return new Promise((resolve) => {

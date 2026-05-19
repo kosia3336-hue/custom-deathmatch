@@ -6,9 +6,9 @@ export interface RankMatchedPayload {
   roomId: string;
   opponentNickname: string;
   opponentDisplayedTitle: DisplayedTitle | null;
-  opponentTier: RankTier;
-  opponentRp: number;
-  opponentIsPlacement: boolean;
+  opponentTier: RankTier | null;
+  opponentRp: number | null;
+  opponentIsPlacement: boolean | null;
   selfTier: RankTier;
   selfRp: number;
   selfIsPlacement: boolean;
@@ -18,9 +18,9 @@ export interface RankMatchTiers {
   selfTier: RankTier;
   selfRp: number;
   selfIsPlacement: boolean;
-  opponentTier: RankTier;
-  opponentRp: number;
-  opponentIsPlacement: boolean;
+  opponentTier: RankTier | null;
+  opponentRp: number | null;
+  opponentIsPlacement: boolean | null;
 }
 
 interface RankMatchState {

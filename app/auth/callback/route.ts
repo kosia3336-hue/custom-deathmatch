@@ -18,35 +18,25 @@ export async function GET(request: NextRequest) {
   const errorDescription = url.searchParams.get('error_description');
 
   if (errorParam) {
-    const failed = url.clone();
-    failed.pathname = '/login';
-    failed.search = '';
-    failed.searchParams.set('error', errorDescription ?? errorParam);
-    return NextResponse.redirect(failed);
+    const params = new URLSearchParams({
+      error: errorDescription ?? errorParam,
+    });
+    return NextResponse.redirect(`/login?${params}`);
   }
 
   if (!code) {
-    const failed = url.clone();
-    failed.pathname = '/login';
-    failed.search = '';
-    failed.searchParams.set('error', 'missing_code');
-    return NextResponse.redirect(failed);
+    const params = new URLSearchParams({ error: 'missing_code' });
+    return NextResponse.redirect(`/login?${params}`);
   }
 
   const supabase = await getServerSupabase();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    const failed = url.clone();
-    failed.pathname = '/login';
-    failed.search = '';
-    failed.searchParams.set('error', error.message);
-    return NextResponse.redirect(failed);
+    const params = new URLSearchParams({ error: error.message });
+    return NextResponse.redirect(`/login?${params}`);
   }
 
-  // 회원 상태 분기는 proxy.ts 가 처리. 여기선 next 로만 보낸다.
-  // (proxy 가 가입 미완료/정지 등을 자동 리다이렉트한다)
-  const redirect = url.clone();
-  redirect.pathname = next.startsWith('/') ? next : '/';
-  redirect.search = '';
-  return NextResponse.redirect(redirect);
+  // 회원 상태 분기는 middleware 가 처리. 여기선 next 로만 보낸다.
+  const target = next.startsWith('/') ? next : '/';
+  return NextResponse.redirect(target);
 }

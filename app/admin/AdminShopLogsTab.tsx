@@ -1,4 +1,4 @@
-import { getServerSupabase } from '@/lib/supabase/server';
+import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
 import { getRange, getTotalPages, parsePageParam } from '@/lib/pagination';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -27,7 +27,7 @@ function formatDateTime(iso: string): { date: string; time: string } {
 }
 
 export default async function AdminShopLogsTab({ page: pageParam }: { page?: string }) {
-  const sb = await getServerSupabase();
+  const sb = getSupabaseServiceRole();
   const page = parsePageParam(pageParam);
   const { from, to } = getRange(page, PAGE_SIZE);
 

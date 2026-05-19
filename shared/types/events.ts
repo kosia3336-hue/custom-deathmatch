@@ -226,6 +226,7 @@ export interface ClientToServerEvents {
   'game:undo:accept': (data: { requestId: string }) => void;
   'game:undo:decline': (data: { requestId: string }) => void;
   'game:four-gravity:toggle-ai': (data: { ai: boolean }) => void;
+  'game:double-sided-chess:toggle-ai': (data: { ai: boolean }) => void;
   'game:sync': () => void;
   'game:leave': () => void;
   'game:resign': () => void;
@@ -379,9 +380,10 @@ export interface ServerToClientEvents {
     roomId: string;
     opponentNickname: string;
     opponentDisplayedTitle: DisplayedTitle | null;
-    opponentTier: RankTier;
-    opponentRp: number;
-    opponentIsPlacement: boolean;
+    /** 익명 물약 적용 시 null */
+    opponentTier: RankTier | null;
+    opponentRp: number | null;
+    opponentIsPlacement: boolean | null;
     selfTier: RankTier;
     selfRp: number;
     selfIsPlacement: boolean;

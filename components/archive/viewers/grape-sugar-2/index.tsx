@@ -371,7 +371,7 @@ function ResolveStepLine({
       break;
     case 'breathNoEffect':
       icon = '🚫';
-      text = `숨고르기 무효 (${step.reason === 'alreadyExtended' ? '이미 연장됨' : '우주뿌셔!로 무효화'})`;
+      text = `${nick(step.actor)}의 숨고르기 무효 (${step.reason === 'alreadyExtended' ? '이미 연장됨' : '우주뿌셔!로 무효화'})`;
       break;
     case 'instantWin':
       icon = '💥';

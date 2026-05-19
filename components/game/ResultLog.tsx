@@ -52,7 +52,7 @@ export default function ResultLog() {
 
   const isSpecialSolo =
     nickname === '천하' &&
-    room?.gameId === GAME_IDS.FOUR_GRAVITY &&
+    (room?.gameId === GAME_IDS.FOUR_GRAVITY || room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) &&
     room?.playMode === 'solo';
 
   const handleLobby = useCallback(() => {

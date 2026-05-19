@@ -125,22 +125,23 @@ export async function createRankMatchedRoom(
   const shopState = getRoomShopState(room.id);
   const anon = shopState?.anonymizedTokens ?? new Set<string>();
 
-  const guestForHost =
-    anon.has(guestPlayer.id)
-      ? { nickname: ANONYMOUS_NICKNAME, title: null as Player['displayedTitle'] }
-      : { nickname: guestPlayer.nickname, title: guestPlayer.displayedTitle ?? null };
-  const hostForGuest =
-    anon.has(hostPlayer.id)
-      ? { nickname: ANONYMOUS_NICKNAME, title: null as Player['displayedTitle'] }
-      : { nickname: hostPlayer.nickname, title: hostPlayer.displayedTitle ?? null };
+  const guestForHost = anon.has(guestPlayer.id)
+    ? { nickname: ANONYMOUS_NICKNAME, title: null as null }
+    : { nickname: guestPlayer.nickname, title: guestPlayer.displayedTitle ?? null };
+  const hostForGuest = anon.has(hostPlayer.id)
+    ? { nickname: ANONYMOUS_NICKNAME, title: null as null }
+    : { nickname: hostPlayer.nickname, title: hostPlayer.displayedTitle ?? null };
+
+  const guestIsAnon = anon.has(guestPlayer.id);
+  const hostIsAnon = anon.has(hostPlayer.id);
 
   hostSock.emit('rank:queue:matched', {
     roomId: room.id,
     opponentNickname: guestForHost.nickname,
     opponentDisplayedTitle: guestForHost.title,
-    opponentTier: guestEntry.tier,
-    opponentRp: guestEntry.rp,
-    opponentIsPlacement: !guestEntry.placementDone,
+    opponentTier: guestIsAnon ? null : guestEntry.tier,
+    opponentRp: guestIsAnon ? null : guestEntry.rp,
+    opponentIsPlacement: guestIsAnon ? null : !guestEntry.placementDone,
     selfTier: hostEntry.tier,
     selfRp: hostEntry.rp,
     selfIsPlacement: !hostEntry.placementDone,
@@ -149,9 +150,9 @@ export async function createRankMatchedRoom(
     roomId: room.id,
     opponentNickname: hostForGuest.nickname,
     opponentDisplayedTitle: hostForGuest.title,
-    opponentTier: hostEntry.tier,
-    opponentRp: hostEntry.rp,
-    opponentIsPlacement: !hostEntry.placementDone,
+    opponentTier: hostIsAnon ? null : hostEntry.tier,
+    opponentRp: hostIsAnon ? null : hostEntry.rp,
+    opponentIsPlacement: hostIsAnon ? null : !hostEntry.placementDone,
     selfTier: guestEntry.tier,
     selfRp: guestEntry.rp,
     selfIsPlacement: !guestEntry.placementDone,

@@ -53,10 +53,8 @@ export async function middleware(request: NextRequest) {
 
     if (isPublic) return response;
 
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+    const login = new URLSearchParams({ next: pathname });
+    return NextResponse.redirect(`/login?${login}`);
   }
 
   // ── 로그인 됨. members/members_private 읽어서 상태 분기 ──────
@@ -105,9 +103,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    const url = request.nextUrl.clone();
-    url.pathname = '/signup/agreement';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/signup/agreement');
   }
 
   // 탈퇴 회원: /withdrawn 화면으로. 문의/로그아웃/약관만 허용
@@ -120,9 +116,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    const url = request.nextUrl.clone();
-    url.pathname = '/withdrawn';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/withdrawn');
   }
 
   // 영구정지
@@ -135,9 +129,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    const url = request.nextUrl.clone();
-    url.pathname = '/banned';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/banned');
   }
 
   // 일시정지 — /suspended, 문의, 로그아웃, 약관만 허용
@@ -150,16 +142,12 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    const url = request.nextUrl.clone();
-    url.pathname = '/suspended';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/suspended');
   }
 
   // ── /admin 은 관리자만 ──
   if (pathname.startsWith('/admin') && role !== 'admin') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/');
   }
 
   // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 홈으로 ──
@@ -169,9 +157,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/banned' ||
     pathname === '/suspended'
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect('/');
   }
 
   return response;

@@ -1,5 +1,13 @@
 /**
  * 랭크 멀티 실게임 종료: DB 반영 + game:ended 확장 페이로드
+ *
+ * ── 2-phase 구조 ─────────────────────────────────────────────
+ * Phase 1 (await): loadStats + 인메모리 RP 계산 + recalcChallengerZone
+ *   → 계산 완료 즉시 rank:game:ended 전송 → endGame이 game:ended 전송
+ *   (화면 멈춤 방지: DB 저장을 기다리지 않음)
+ * Phase 2 (background): persistGameEndLog + rank_match_history + saveStats + CDP
+ *   → 실패 시 경고 로그만 남기고 무시 (결과 화면엔 이미 올바른 값 표시됨)
+ * ─────────────────────────────────────────────────────────────
  */
 import type { GameRankOutcome, GameResult, RankGameEndedPayload, RankPlayerOutcome } from '@shared/types/events.js';
 import type { Player, Room } from '@shared/types/room.js';
@@ -15,6 +23,7 @@ import {
 } from '@shared/types/rank.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import { recordRankPairCooldown } from '../store/rankQueue.js';
+import { onRankedGameEnd as hiddenOnRankedGameEnd } from '../hidden-titles/hooks.js';
 import { persistGameEndLog } from '../socket/gameEndPersistence.js';
 import type { IO } from '../socket/types.js';
 import { sessions } from '../store/sessions.js';
@@ -33,6 +42,31 @@ interface MutableStats {
   season_losses: number;
   season_draws: number;
   season_peak_tier: RankTier;
+}
+
+interface DbPersistContext {
+  room: Room;
+  result: GameResult;
+  seasonId: number;
+  idA: string;
+  statsA: MutableStats;
+  idB: string;
+  statsB: MutableStats;
+  isDraw: boolean;
+  winnerMemberId: string | null;
+  loserMemberId: string | null;
+  wBefore: MutableStats | null;
+  lBefore: MutableStats | null;
+  beforeWinnerPlacementDone: boolean;
+  beforeLoserPlacementDone: boolean;
+  winnerGain: number;
+  loserLoss: number;
+  promoted: boolean;
+  demoted: boolean;
+  cdpWinnerId: string | null;
+  cdpLoserId: string | null;
+  cdpWinnerTierAfter: RankTier;
+  cdpLoserTierAfter: RankTier;
 }
 
 function asTier(v: string): RankTier {
@@ -125,17 +159,85 @@ function tierOrderNumeric(t: RankTier): number {
   return o[t];
 }
 
-/** 챌린저 선수 전체를 RP 내림차순으로 반환 — 강등 순위 판정용 */
-async function fetchChallengerRanking(seasonId: number): Promise<Array<{ member_id: string; rp: number }>> {
+/**
+ * 게임 종료 후 챌린저 구역(150 RP 이상 + 상위 3명) 재계산.
+ * - DB는 아직 갱신 전이므로 참가자 RP는 인메모리 값으로 덮어씌워 계산
+ * - 참가자: 인메모리 stats 직접 변경
+ * - 비참가자: DB 직접 갱신 (순위 밀려 강등/승격된 경우)
+ * - 강등 시 RP 유지, 승격 시 season_peak_tier = 'challenger'
+ */
+async function recalcChallengerZone(
+  seasonId: number,
+  idA: string,
+  statsA: MutableStats,
+  idB: string,
+  statsB: MutableStats,
+): Promise<void> {
   const sb = getSupabaseAdmin();
+
   const { data, error } = await sb
     .from('rank_stats')
-    .select('member_id, rp')
+    .select('member_id, tier, rp')
     .eq('season_id', seasonId)
-    .eq('tier', 'challenger')
-    .order('rp', { ascending: false });
-  if (error || !data?.length) return [];
-  return data as Array<{ member_id: string; rp: number }>;
+    .in('tier', ['challenger', 'diamond'])
+    .eq('placement_done', true)
+    .gte('rp', 150);
+
+  if (error) {
+    console.warn('[rank] recalcChallengerZone 조회 실패:', error.message);
+    return;
+  }
+
+  type Entry = { member_id: string; tier: string; rp: number };
+  const dbRows = (data ?? []) as Entry[];
+
+  // 참가자는 인메모리 값으로 덮어씌우기 (DB가 아직 반영 전)
+  const zoneMap = new Map<string, number>(dbRows.map((r) => [r.member_id, r.rp]));
+  for (const [id, stats] of [[idA, statsA], [idB, statsB]] as [string, MutableStats][]) {
+    if (!stats.placement_done) continue;
+    if (stats.rp >= 150) {
+      zoneMap.set(id, stats.rp);
+    } else {
+      zoneMap.delete(id); // 150 미만 → 챌린저 구역 제외
+    }
+  }
+
+  // RP 내림차순 정렬 → 상위 3명이 챌린저
+  const sorted = [...zoneMap.entries()].sort((a, b) => b[1] - a[1]);
+  const challengerSet = new Set(sorted.slice(0, 3).map(([id]) => id));
+
+  // 참가자 인메모리 티어 갱신
+  for (const [id, stats] of [[idA, statsA], [idB, statsB]] as [string, MutableStats][]) {
+    if (!stats.placement_done) continue;
+    if (stats.tier === 'challenger' && !challengerSet.has(id)) {
+      stats.tier = 'diamond'; // 강등 (RP 이월)
+    } else if (stats.tier === 'diamond' && challengerSet.has(id)) {
+      stats.tier = 'challenger'; // 승격
+      stats.season_peak_tier = peakTierMax(stats.season_peak_tier, 'challenger');
+    }
+  }
+
+  // 비참가자 DB 갱신
+  const nonParticipants = dbRows.filter((r) => r.member_id !== idA && r.member_id !== idB);
+  for (const row of nonParticipants) {
+    const shouldChallenger = challengerSet.has(row.member_id);
+    const wasChallenger = row.tier === 'challenger';
+    if (shouldChallenger === wasChallenger) continue;
+
+    if (shouldChallenger) {
+      await sb.from('rank_stats')
+        .update({ tier: 'challenger', season_peak_tier: 'challenger' })
+        .eq('season_id', seasonId)
+        .eq('member_id', row.member_id);
+      console.log(`[rank] challenger zone: ${row.member_id} → challenger`);
+    } else {
+      await sb.from('rank_stats')
+        .update({ tier: 'diamond' })
+        .eq('season_id', seasonId)
+        .eq('member_id', row.member_id);
+      console.log(`[rank] challenger zone: ${row.member_id} → diamond`);
+    }
+  }
 }
 
 function rankGameEndedPayload(
@@ -228,6 +330,99 @@ async function saveStats(seasonId: number, memberId: string, s: MutableStats): P
   if (error) throw new Error(error.message);
 }
 
+/** Phase 2: 게임 로그·랭크 히스토리·RP·CDP를 백그라운드로 DB에 저장 */
+async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<void> {
+  const sb = getSupabaseAdmin();
+
+  // 게임 로그 저장 (실패해도 계속 진행)
+  let gameLogId: string | null = null;
+  try {
+    gameLogId = await persistGameEndLog(io, ctx.room, ctx.result);
+    console.log(`[rank:persist] persistGameEndLog ok gameLogId=${gameLogId}`);
+  } catch (err) {
+    console.warn('[rank:persist] persistGameEndLog 실패:', (err as Error).message);
+  }
+
+  // rank_stats 저장 (병렬)
+  await Promise.all([
+    saveStats(ctx.seasonId, ctx.idA, ctx.statsA),
+    saveStats(ctx.seasonId, ctx.idB, ctx.statsB),
+  ]);
+  console.log(`[rank:persist] saveStats done idA=${ctx.idA} idB=${ctx.idB}`);
+
+  // rank_match_history 저장 (승/패 케이스)
+  let rankMatchId: string | null = null;
+  if (!ctx.isDraw && ctx.winnerMemberId && ctx.loserMemberId && ctx.wBefore && ctx.lBefore) {
+    const wAfter = ctx.winnerMemberId === ctx.idA ? ctx.statsA : ctx.statsB;
+    const lAfter = ctx.loserMemberId === ctx.idA ? ctx.statsA : ctx.statsB;
+
+    const { data: rmhRow, error: insErr } = await sb
+      .from('rank_match_history')
+      .insert({
+        season_id: ctx.seasonId,
+        game_log_id: gameLogId,
+        winner_id: ctx.winnerMemberId,
+        winner_tier: wAfter.tier,
+        winner_rp_before: ctx.wBefore.rp,
+        winner_rp_gain: ctx.beforeWinnerPlacementDone ? ctx.winnerGain : 0,
+        winner_rp_after: wAfter.rp,
+        winner_promoted: ctx.promoted,
+        loser_id: ctx.loserMemberId,
+        loser_tier: lAfter.tier,
+        loser_rp_before: ctx.lBefore.rp,
+        loser_rp_loss: ctx.beforeLoserPlacementDone ? ctx.loserLoss : 0,
+        loser_rp_after: lAfter.rp,
+        loser_demoted: ctx.demoted,
+        game_id: ctx.room.gameId,
+        is_forfeit: ctx.result.endedByForfeit === true,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (insErr) console.warn('[rank:persist] rank_match_history insert 실패:', insErr.message);
+    rankMatchId = (rmhRow as { id?: string } | null)?.id ?? null;
+  }
+
+  // CDP 적립
+  const cdpRefId = !ctx.isDraw ? rankMatchId : gameLogId;
+  if (cdpRefId) {
+    try {
+      if (ctx.isDraw) {
+        await grantCdpForRankMatch(io, [
+          makeDrawInput(ctx.idA, cdpRefId, ctx.statsA.tier),
+          makeDrawInput(ctx.idB, cdpRefId, ctx.statsB.tier),
+        ]);
+      } else if (ctx.cdpWinnerId && ctx.cdpLoserId) {
+        const inputs = computeWinLossInputs({
+          winnerId: ctx.cdpWinnerId,
+          loserId: ctx.cdpLoserId,
+          winnerTierAfter: ctx.cdpWinnerTierAfter,
+          loserTierAfter: ctx.cdpLoserTierAfter,
+          isForfeit: ctx.result.endedByForfeit === true,
+          rankMatchId: cdpRefId,
+        });
+        await grantCdpForRankMatch(io, inputs);
+      }
+    } catch (err) {
+      console.warn('[cdp:grant] 적립 호출 실패(무시):', (err as Error).message);
+    }
+  } else {
+    console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
+  }
+
+  // ── 히든 칭호 훅 (천공의 주인 · 심연의 수문장) ────────────────────────
+  // rank_match_history 저장 완료 후 호출하므로 이번 판도 포함된다.
+  // 승패/무승부 무관하게 두 참가자 모두 체크한다.
+  void hiddenOnRankedGameEnd(io, {
+    winnerId: ctx.winnerMemberId ?? ctx.idA,
+    loserId: ctx.loserMemberId ?? ctx.idB,
+    winnerTierAfter: (ctx.winnerMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
+    loserTierAfter: (ctx.loserMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
+  }).catch((err) => {
+    console.warn('[hidden-titles] onRankedGameEnd 실패:', (err as Error).message);
+  });
+}
+
 export async function finalizeRankedMultiGameEnd(
   io: IO,
   room: Room,
@@ -245,15 +440,6 @@ export async function finalizeRankedMultiGameEnd(
   if (!isSupabaseConfigured()) {
     console.log('[rank:finalize] skip — supabase not configured');
     return { ...result, isRanked: true };
-  }
-
-  let gameLogId: string | null = null;
-  try {
-    gameLogId = await persistGameEndLog(io, room, result);
-    console.log(`[rank:finalize] persistGameEndLog ok gameLogId=${gameLogId}`);
-  } catch (err) {
-    console.warn('[rank] persistGameEndLog 실패:', (err as Error).message);
-    throw err;
   }
 
   const seasonId = room.rankSeasonId;
@@ -276,14 +462,19 @@ export async function finalizeRankedMultiGameEnd(
   const nonAiRankings = result.rankings.filter((r) => r.playerId !== AI_PLAYER_ID);
   const isDraw = nonAiRankings.length > 1 && nonAiRankings.every((r) => r.rank === 1);
 
-  let statsA = await loadStats(seasonId, idA);
-  let statsB = await loadStats(seasonId, idB);
-  console.log(`[rank:finalize] loadStats idA=${idA} ok=${!!statsA} idB=${idB} ok=${!!statsB} isDraw=${isDraw} nonAiRankings=${nonAiRankings.length}`);
-  if (!statsA || !statsB) {
+  // ── PHASE 1: loadStats + 인메모리 계산 (await) ─────────────────
+  const [statsAOrNull, statsBOrNull] = await Promise.all([
+    loadStats(seasonId, idA),
+    loadStats(seasonId, idB),
+  ]);
+  console.log(`[rank:finalize] loadStats idA=${idA} ok=${!!statsAOrNull} idB=${idB} ok=${!!statsBOrNull} isDraw=${isDraw}`);
+  if (!statsAOrNull || !statsBOrNull) {
     console.log('[rank:finalize] skip — loadStats returned null');
     return { ...result, isRanked: true };
   }
 
+  const statsA = statsAOrNull;
+  const statsB = statsBOrNull;
   const beforeA = snapshot(statsA);
   const beforeB = snapshot(statsB);
 
@@ -292,8 +483,17 @@ export async function finalizeRankedMultiGameEnd(
   let rpDeltaA = 0;
   let rpDeltaB = 0;
 
-  // CDP 적립용 (블록 내부에서 채워진 뒤 아래 emit 전에 사용)
-  let rankMatchId: string | null = null;
+  // persist context 용 (Phase 2 에 전달)
+  let winnerMemberId: string | null = null;
+  let loserMemberId: string | null = null;
+  let wBefore: MutableStats | null = null;
+  let lBefore: MutableStats | null = null;
+  let beforeWinnerPlacementDone = false;
+  let beforeLoserPlacementDone = false;
+  let winnerGain = 0;
+  let loserLoss = 0;
+  let promoted = false;
+  let demoted = false;
   let cdpWinnerId: string | null = null;
   let cdpLoserId: string | null = null;
   let cdpWinnerTierAfter: RankTier = 'unranked';
@@ -323,13 +523,16 @@ export async function finalizeRankedMultiGameEnd(
       return { ...result, isRanked: true };
     }
 
+    winnerMemberId = winnerPl.memberId;
+    loserMemberId = loserPl.memberId;
+
     const winnerStats = winnerPl.memberId === idA ? statsA : statsB;
     const loserStats = loserPl.memberId === idA ? statsA : statsB;
 
     const wTierVal = tierValForRp(winnerStats);
     const lTierVal = tierValForRp(loserStats);
-    const beforeWinnerPlacementDone = winnerStats.placement_done;
-    const beforeLoserPlacementDone = loserStats.placement_done;
+    beforeWinnerPlacementDone = winnerStats.placement_done;
+    beforeLoserPlacementDone = loserStats.placement_done;
 
     const parts = calcRankRpParts(
       wTierVal,
@@ -337,7 +540,8 @@ export async function finalizeRankedMultiGameEnd(
       winnerStats.win_streak,
       loserStats.loss_streak,
     );
-    const { winnerGain, loserLoss } = parts;
+    winnerGain = parts.winnerGain;
+    loserLoss = parts.loserLoss;
 
     const winBr = {
       parityReference: 20,
@@ -375,7 +579,6 @@ export async function finalizeRankedMultiGameEnd(
       loserStats.season_losses += 1;
       maybeFinalizePlacement(loserStats);
     } else {
-      const loserBeforeTier = (loserPl.memberId === idA ? beforeA : beforeB).tier;
       const lr = applyRankLoss(loserStats.tier, loserStats.rp, loserLoss);
       loserStats.tier = lr.tier;
       loserStats.rp = lr.rp;
@@ -383,38 +586,21 @@ export async function finalizeRankedMultiGameEnd(
       loserStats.win_streak = 0;
       loserStats.season_losses += 1;
       loserStats.season_peak_tier = peakTierMax(loserStats.season_peak_tier, loserStats.tier);
-
-      // 챌린저 강등 판정: 150 RP 미만이고 3위 밖이면 다이아로 강등 (RP 이월)
-      if (loserBeforeTier === 'challenger' && loserStats.rp < 150) {
-        try {
-          const ranking = await fetchChallengerRanking(seasonId);
-          // DB는 아직 갱신 전이므로 패배자 RP를 현재 값으로 교체해 순위 계산
-          const updated = ranking.map((r) =>
-            r.member_id === loserPl.memberId ? { ...r, rp: loserStats.rp } : r,
-          );
-          updated.sort((a, b) => b.rp - a.rp);
-          const pos = updated.findIndex((r) => r.member_id === loserPl.memberId);
-          // 0-indexed: 0~2 = 1~3위 보호, 3이상 = 강등
-          if (pos < 0 || pos >= 3) {
-            loserStats.tier = 'diamond';
-          }
-        } catch (err) {
-          console.warn('[rank:finalize] challenger demotion check 실패:', (err as Error).message);
-        }
-      }
     }
 
-    const wBefore = winnerPl.memberId === idA ? beforeA : beforeB;
-    const lBefore = loserPl.memberId === idA ? beforeA : beforeB;
+    // 챌린저 구역 재계산 (티어 결정에 필요하므로 Phase 1에서 처리)
+    await recalcChallengerZone(seasonId, idA, statsA, idB, statsB);
+
+    wBefore = winnerPl.memberId === idA ? beforeA : beforeB;
+    lBefore = loserPl.memberId === idA ? beforeA : beforeB;
     const wAfter = winnerPl.memberId === idA ? statsA : statsB;
     const lAfter = loserPl.memberId === idA ? statsA : statsB;
 
-    const promoted =
+    promoted =
       tierOrderNumeric(wAfter.tier) > tierOrderNumeric(wBefore.tier)
       || (!wBefore.placement_done && wAfter.placement_done && wAfter.tier !== 'unranked');
-    const demoted = tierOrderNumeric(lAfter.tier) < tierOrderNumeric(lBefore.tier);
+    demoted = tierOrderNumeric(lAfter.tier) < tierOrderNumeric(lBefore.tier);
 
-    // rpDelta: 실제 획득/차감 RP (티어 경계를 넘어도 올바른 값 유지)
     if (beforeWinnerPlacementDone) {
       if (winnerPl.memberId === idA) { rpDeltaA = winnerGain; } else { rpDeltaB = winnerGain; }
     }
@@ -422,45 +608,14 @@ export async function finalizeRankedMultiGameEnd(
       if (loserPl.memberId === idA) { rpDeltaA = -loserLoss; } else { rpDeltaB = -loserLoss; }
     }
 
-    const sb = getSupabaseAdmin();
-    const { data: rmhRow, error: insErr } = await sb
-      .from('rank_match_history')
-      .insert({
-        season_id: seasonId,
-        game_log_id: gameLogId,
-        winner_id: winnerPl.memberId,
-        winner_tier: wAfter.tier,
-        winner_rp_before: wBefore.rp,
-        winner_rp_gain: beforeWinnerPlacementDone ? winnerGain : 0,
-        winner_rp_after: wAfter.rp,
-        winner_promoted: promoted,
-        loser_id: loserPl.memberId,
-        loser_tier: lAfter.tier,
-        loser_rp_before: lBefore.rp,
-        loser_rp_loss: beforeLoserPlacementDone ? loserLoss : 0,
-        loser_rp_after: lAfter.rp,
-        loser_demoted: demoted,
-        game_id: room.gameId,
-        is_forfeit: result.endedByForfeit === true,
-      })
-      .select('id')
-      .maybeSingle();
-
-    if (insErr) console.warn('[rank] rank_match_history insert 실패:', insErr.message);
-    rankMatchId = (rmhRow as { id?: string } | null)?.id ?? null;
-
+    // 쿨다운은 인메모리 처리이므로 즉시 기록
     recordRankPairCooldown(winnerPl.memberId, loserPl.memberId, Date.now());
 
-    // CDP 적립용 (승/패 케이스)
     cdpWinnerId = winnerPl.memberId;
     cdpLoserId = loserPl.memberId;
     cdpWinnerTierAfter = wAfter.tier;
     cdpLoserTierAfter = lAfter.tier;
   }
-
-  await saveStats(seasonId, idA, statsA);
-  await saveStats(seasonId, idB, statsB);
-  console.log(`[rank:finalize] saveStats done idA=${idA} placement_games=${statsA.placement_games} idB=${idB} placement_games=${statsB.placement_games}`);
 
   const oa = fixPromotedDemoted(
     buildOutcome(idA, pa.nickname, beforeA, statsA, rpDeltaA, rpBreakdownA),
@@ -475,37 +630,36 @@ export async function finalizeRankedMultiGameEnd(
 
   const rankOutcome: GameRankOutcome = { players: [oa, ob] };
 
-  // ── CDP 적립 ──────────────────────────────────────────────
-  // 멱등키:
-  //   - 승/패: rank_match_history.id (rankMatchId)
-  //   - 무: rank_match_history 가 없으므로 game_logs.id 를 사용
-  const cdpRefId = !isDraw ? rankMatchId : gameLogId;
-  if (cdpRefId) {
-    try {
-      if (isDraw) {
-        await grantCdpForRankMatch(io, [
-          makeDrawInput(idA, cdpRefId, statsA.tier),
-          makeDrawInput(idB, cdpRefId, statsB.tier),
-        ]);
-      } else if (cdpWinnerId && cdpLoserId) {
-        const inputs = computeWinLossInputs({
-          winnerId: cdpWinnerId,
-          loserId: cdpLoserId,
-          winnerTierAfter: cdpWinnerTierAfter,
-          loserTierAfter: cdpLoserTierAfter,
-          isForfeit: result.endedByForfeit === true,
-          rankMatchId: cdpRefId,
-        });
-        await grantCdpForRankMatch(io, inputs);
-      }
-    } catch (err) {
-      console.warn('[cdp:grant] 적립 호출 실패(무시):', (err as Error).message);
-    }
-  } else {
-    console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
-  }
-
+  // rank:game:ended 즉시 전송 (game:ended 전에 먼저 도착하도록)
   emitRankGameEnded(io, room.id, rankOutcome);
+
+  // ── PHASE 2: DB 저장 (백그라운드) ──────────────────────────────
+  persistRankedGameEndToDb(io, {
+    room,
+    result,
+    seasonId,
+    idA,
+    statsA,
+    idB,
+    statsB,
+    isDraw,
+    winnerMemberId,
+    loserMemberId,
+    wBefore,
+    lBefore,
+    beforeWinnerPlacementDone,
+    beforeLoserPlacementDone,
+    winnerGain,
+    loserLoss,
+    promoted,
+    demoted,
+    cdpWinnerId,
+    cdpLoserId,
+    cdpWinnerTierAfter,
+    cdpLoserTierAfter,
+  }).catch((err) => {
+    console.error(`[rank:persist] 백그라운드 저장 실패 roomId=${room.id}:`, (err as Error).message);
+  });
 
   return {
     ...result,

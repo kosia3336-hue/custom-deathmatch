@@ -6,6 +6,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { DEFAULT_PAGE_SIZE, getRange, getTotalPages, parsePageParam } from '@/lib/pagination';
 import type { InquiryStatus, InquiryCategory } from '@/lib/supabase/database.types';
 import InquiryAnswerForm from './InquiryAnswerForm';
+import InquiriesFilterClient, { type InquiryStatusFilter } from './InquiriesFilterClient';
 
 interface Row {
   id: string;
@@ -36,26 +37,39 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
-export default async function InquiriesTab({ page: pageParam }: { page: string | undefined }) {
+const PENDING_STATUSES: InquiryStatus[] = ['pending', 'processing'];
+const DONE_STATUSES: InquiryStatus[] = ['answered', 'replied', 'closed'];
+
+function parseStatusFilter(raw: string | undefined): InquiryStatusFilter {
+  if (raw === 'pending' || raw === 'done') return raw;
+  return 'all';
+}
+
+export default async function InquiriesTab({
+  page: pageParam,
+  statusFilter: statusFilterRaw,
+}: {
+  page: string | undefined;
+  statusFilter: string | undefined;
+}) {
   const sb = await getServerSupabase();
   const page = parsePageParam(pageParam);
   const { from, to } = getRange(page, PAGE_SIZE);
+  const statusFilter = parseStatusFilter(statusFilterRaw);
 
-  const res = await sb
+  let q = sb
     .from('inquiries')
     .select(
       'id, author_id, category, title, body, status, reason_tag, answer_body, reply_body, created_at, answered_at',
       { count: 'exact' },
-    )
-    .order('created_at', { ascending: false })
-    .range(from, to);
+    );
+  if (statusFilter === 'pending') q = q.in('status', PENDING_STATUSES);
+  else if (statusFilter === 'done') q = q.in('status', DONE_STATUSES);
+
+  const res = await q.order('created_at', { ascending: false }).range(from, to);
   const rows = (res.data ?? []) as unknown as Row[];
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
-
-  if (totalCount === 0) {
-    return <EmptyState title="문의가 없습니다" />;
-  }
 
   const authorIds = Array.from(new Set(rows.map((r) => r.author_id)));
   const authorsRes = authorIds.length
@@ -66,9 +80,13 @@ export default async function InquiriesTab({ page: pageParam }: { page: string |
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-cdm-fg-muted">
-        총 {totalCount}건 · {page} / {totalPages} 페이지
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <InquiriesFilterClient current={statusFilter} />
+        <p className="text-xs text-cdm-fg-muted">
+          총 {totalCount}건 · {page} / {totalPages} 페이지
+        </p>
+      </div>
+      {totalCount === 0 && <EmptyState title="문의가 없습니다" />}
       {rows.map((q) => (
         <Card key={q.id} className="!p-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">

@@ -8,7 +8,9 @@ import { registerRoomHandlers, handleLeaveRoom } from './room.js';
 import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { registerRankQueueHandlers } from './rankQueue.js';
-import { socketRoom } from './utils.js';
+import { socketRoom, maskedClientRoomFor } from './utils.js';
+import { isTokenAnonymized } from '../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
 import { rankQueueStore } from '../store/rankQueue.js';
@@ -136,14 +138,17 @@ export function setupSocketHandlers(io: IO) {
             socket.join(socketRoom(roomId));
 
             // room:state + game:state 재전송
-            const clientRoom = roomStore.getClientRoom(roomId);
+            const clientRoom = maskedClientRoomFor(roomId, token);
             if (clientRoom) socket.emit('room:state', clientRoom);
             if (room.status === 'playing') emitGameStateToSocket(socket, roomId, room.gameId);
 
             // 방 전체에 재연결 성공 알림 (playerId = token = Player.id)
+            const reconnectedNickname = isTokenAnonymized(roomId, token)
+              ? ANONYMOUS_NICKNAME
+              : nickname;
             io.to(socketRoom(roomId)).emit('player:reconnected', {
               playerId: token,
-              nickname,
+              nickname: reconnectedNickname,
             });
           }
         }
@@ -186,7 +191,10 @@ export function setupSocketHandlers(io: IO) {
 
         if (isPlayer && room?.status === 'playing') {
           // ─── 인게임: 30초 유예 ─────────────────────────────────────────
-          const nickname = sessions.getNickname(socket.id) ?? '알 수 없음';
+          const realNickname = sessions.getNickname(socket.id) ?? '알 수 없음';
+          const nickname = isTokenAnonymized(roomId, token)
+            ? ANONYMOUS_NICKNAME
+            : realNickname;
 
           socket.to(socketRoom(roomId)).emit('player:reconnecting', {
             playerId: token,

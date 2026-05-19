@@ -8,12 +8,7 @@ import { Modal } from '@/components/cdm/Modal';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import type { TitleColor } from '@/lib/supabase/database.types';
-
-const COLORS: TitleColor[] = [
-  'coral', 'amber', 'emerald', 'sky', 'violet', 'pink',
-  'lime', 'rose', 'cyan', 'orange', 'fuchsia', 'teal',
-  'yellow', 'indigo', 'slate', 'gold',
-];
+import { TITLE_COLORS } from '@shared/titles/colors';
 
 interface Props {
   titleId: string;
@@ -110,7 +105,7 @@ export default function TitleEditButton({
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-cdm-fg">색</label>
             <div className="flex flex-wrap gap-1.5">
-              {COLORS.map((c) => (
+              {TITLE_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"

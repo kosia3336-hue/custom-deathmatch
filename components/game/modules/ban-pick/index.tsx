@@ -739,13 +739,13 @@ export default function BanPickGame() {
                 active: (data.currentPlayer === 'second' || data.currentPlayer === 'com') && data.phase === 'banning' },
             ] as const).map(({ name, isMe, banCount: bc, pos, active }) => {
               const t = rankMatchTiers
-                ? (myPosition === pos ? rankMatchTiers.selfTier : myPosition !== null ? rankMatchTiers.opponentTier : undefined)
+                ? (myPosition === pos ? rankMatchTiers.selfTier : myPosition !== null ? (rankMatchTiers.opponentTier ?? undefined) : undefined)
                 : undefined;
               const r = rankMatchTiers
-                ? (myPosition === pos ? rankMatchTiers.selfRp : myPosition !== null ? rankMatchTiers.opponentRp : undefined)
+                ? (myPosition === pos ? rankMatchTiers.selfRp : myPosition !== null ? (rankMatchTiers.opponentRp ?? undefined) : undefined)
                 : undefined;
               const isPl = rankMatchTiers
-                ? (myPosition === pos ? rankMatchTiers.selfIsPlacement : myPosition !== null ? rankMatchTiers.opponentIsPlacement : undefined)
+                ? (myPosition === pos ? rankMatchTiers.selfIsPlacement : myPosition !== null ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined)
                 : undefined;
               return (
                 <div key={pos} className={cn('flex flex-1 flex-col rounded-lg border px-3 py-1.5 text-xs',
@@ -857,9 +857,9 @@ export default function BanPickGame() {
             maxBan={data.banCount}
             isCurrentTurn={data.currentPlayer === 'first' && data.phase === 'banning'}
             isMe={firstIsMe}
-            tier={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfTier : myPosition === 'second' ? rankMatchTiers.opponentTier : undefined) : undefined}
-            rp={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfRp : myPosition === 'second' ? rankMatchTiers.opponentRp : undefined) : undefined}
-            placement={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfIsPlacement : myPosition === 'second' ? rankMatchTiers.opponentIsPlacement : undefined) : undefined}
+            tier={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfTier : myPosition === 'second' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
+            rp={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfRp : myPosition === 'second' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
+            placement={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfIsPlacement : myPosition === 'second' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
           />
           <PlayerPanel
             name={secondName}
@@ -867,9 +867,9 @@ export default function BanPickGame() {
             maxBan={data.banCount}
             isCurrentTurn={(data.currentPlayer === 'second' || data.currentPlayer === 'com') && data.phase === 'banning'}
             isMe={secondIsMe}
-            tier={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfTier : myPosition === 'first' ? rankMatchTiers.opponentTier : undefined) : undefined}
-            rp={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfRp : myPosition === 'first' ? rankMatchTiers.opponentRp : undefined) : undefined}
-            placement={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfIsPlacement : myPosition === 'first' ? rankMatchTiers.opponentIsPlacement : undefined) : undefined}
+            tier={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfTier : myPosition === 'first' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
+            rp={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfRp : myPosition === 'first' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
+            placement={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfIsPlacement : myPosition === 'first' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
           />
         </div>
 

@@ -3,7 +3,7 @@
  * 8라운드 동안 카드 + 설탕을 동시 제출해 승점을 겨루는 2인 카드 베팅 심리전.
  * - 양측 동시 제출 / 제출 정보는 모두 공개 (제출 전 본인 입력만 비공개)
  * - 점수는 음수 가능, 설탕은 0 미만 불가
- * - 동점 시 N차 연장전 (자원 리셋, 추가 1라운드씩)
+ * - 동점 시 무승부 종료
  * ════════════════════════════════════════════════════════════════ */
 
 export const GS2_TOTAL_ROUNDS = 8;
@@ -97,7 +97,7 @@ export type GS2ResolveStep =
   | { type: 'diceScore'; actor: GS2Side; loserBonusTo: GS2Side; amount: 2 }
   | { type: 'hrPenaltyScheduled'; actor: GS2Side; amount: number }
   | { type: 'breathExtended'; nowMaxRound: 9 }
-  | { type: 'breathNoEffect'; reason: 'alreadyExtended' | 'cancelled' };
+  | { type: 'breathNoEffect'; actor: GS2Side; reason: 'alreadyExtended' | 'cancelled' };
 
 /* ───────── 플레이어 공개 상태 ───────── */
 

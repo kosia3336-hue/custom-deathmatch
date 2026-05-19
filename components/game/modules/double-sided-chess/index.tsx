@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
+import { useNicknameStore } from '@/stores/nickname';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -12,6 +13,8 @@ import type {
   Owner,
   Position,
 } from '@/shared/types/double-sided-chess';
+import { GAME_IDS } from '@/shared/types/game';
+import Button from '@/components/ui/Button';
 import Board from './Board';
 import PrisonerBar from './PrisonerBar';
 import InfoPanel from './InfoPanel';
@@ -21,10 +24,21 @@ import { getValidMoves, getValidPrisonerPlacements } from './boardUtils';
 
 export default function DoubleSidedChessGame() {
   const gameState = useRoomStore((s) => s.gameState);
+  const room = useRoomStore((s) => s.room);
   const isSpectator = useRoomStore((s) => s.isSpectator);
+  const nickname = useNicknameStore((s) => s.nickname);
 
   const gameData = gameState?.gameData as DoubleSidedChessGameData | undefined;
   const turnNumber = gameState?.turnNumber ?? 1;
+
+  const isSpecialSolo =
+    nickname === '천하' &&
+    room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS &&
+    room?.playMode === 'solo';
+
+  const isAIMode = isSpecialSolo && !!gameData && (
+    gameData.players.first.id === 'AI' || gameData.players.second.id === 'AI'
+  );
 
   const myId = useMySocketId();
   const { remaining: timerRemaining } = useTurnTimer();
@@ -214,6 +228,19 @@ export default function DoubleSidedChessGame() {
           {/* 상태 메시지 */}
           {!gameData.winner && (
             <p className="shrink-0 text-sm text-gray-500">{message}</p>
+          )}
+
+          {/* 천하 솔로: AI 토글 */}
+          {isSpecialSolo && !gameData.winner && (
+            <Button
+              size="sm"
+              variant={isAIMode ? 'secondary' : 'ghost'}
+              onClick={() => {
+                getSocket().emit('game:double-sided-chess:toggle-ai', { ai: !isAIMode });
+              }}
+            >
+              {isAIMode ? '직접하기' : 'AI 쓰기'}
+            </Button>
           )}
         </div>
 

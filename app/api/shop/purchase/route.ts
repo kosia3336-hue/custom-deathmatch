@@ -6,6 +6,7 @@ import {
 } from '@/lib/supabase/service-role';
 import {
   notifyCdpAdjusted,
+  notifyHiddenTitleCheck,
   notifyInvalidateBiasTitles,
   notifyInvalidateOwnedTitles,
   notifyInventoryUpdated,
@@ -176,6 +177,9 @@ export async function POST(req: NextRequest) {
     void notifyInvalidateBiasTitles();
     void notifyInvalidateOwnedTitles(member.id);
   }
+
+  // 히든 칭호 판정 (플렉스) — fire-and-forget
+  void notifyHiddenTitleCheck('shop_purchase', member.id);
 
   return NextResponse.json({
     ok: true,

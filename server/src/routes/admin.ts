@@ -13,6 +13,7 @@ import {
   onTitleGranted as hiddenOnTitleGranted,
   onNicknameChanged as hiddenOnNicknameChanged,
   onNoticeReadForHidden as hiddenOnNoticeReadForHidden,
+  onShopPurchase as hiddenOnShopPurchase,
 } from '../hidden-titles/hooks.js';
 import config from '../config.js';
 import { invalidateBiasTitlesCache } from '../shop/biasTitlesCache.js';
@@ -132,7 +133,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
   app.post<{
     Body: {
       secret: string;
-      kind: 'inquiry' | 'title_granted' | 'nickname_changed' | 'eureka_notice';
+      kind: 'inquiry' | 'title_granted' | 'nickname_changed' | 'eureka_notice' | 'shop_purchase';
       memberId: string;
       noticeId?: string;
     };
@@ -168,6 +169,10 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
         }
         hiddenOnNoticeReadForHidden(io, memberId, noticeId).catch((err) => {
           console.warn('[hidden-titles] eureka_notice hook 실패:', (err as Error).message);
+        });
+      } else if (kind === 'shop_purchase') {
+        hiddenOnShopPurchase(io, memberId).catch((err) => {
+          console.warn('[hidden-titles] shop_purchase hook 실패:', (err as Error).message);
         });
       } else {
         return reply.status(400).send({ error: 'unknown kind' });

@@ -9,7 +9,7 @@ import {
 } from '@shared/types/grape-sugar-2.js';
 import type { GrapeSugar2ArchiveRecord, GrapeSugar2Stage } from '@shared/types/archive.js';
 import {
-  EXTENSION_INTRO_MS, FINAL_RESULT_HOLD_MS, NEXT_ROUND_AUTO_DELAY_MS,
+  FINAL_RESULT_HOLD_MS, NEXT_ROUND_AUTO_DELAY_MS,
   RESOLVE_STEP_DELAY_MS, REVEAL_BASE_DELAY_MS, ROUND_END_HOLD_MS,
 } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -302,14 +302,11 @@ function proceedToResolve(io: IO, s: GS2InternalState) {
 
   const result = resolveRound(actA, actB, { breathAvailable, isFinalRound });
 
-  // breath 적용 시 maxRound 변경 + breathUsed 표시
+  // breath 연장이 실제 적용됐을 때만 maxRound·breathUsed 갱신 (우주뿌셔! 무효 등은 소모 처리 안 함)
   if (result.breathExtended) {
     s.maxRound = 9;
     s.player1.breathUsed = true;
     s.player2.breathUsed = true;
-  } else {
-    if (actA.card === 'breath') s.player1.breathUsed = true;
-    if (actB.card === 'breath') s.player2.breathUsed = true;
   }
 
   // 점수 변동 적용
@@ -426,34 +423,8 @@ function finalizeStage(io: IO, s: GS2InternalState) {
     return;
   }
 
-  // 동점 → 연장전 시작
-  startExtension(io, s);
-}
-
-function startExtension(io: IO, s: GS2InternalState) {
-  s.extension += 1;
-  s.phase = 'extensionIntro';
-  s.stageStartScores = { p1: s.player1.score, p2: s.player2.score };
-
-  // 자원 리셋
-  s.player1.sugarRemain = GS2_INITIAL_SUGAR;
-  s.player2.sugarRemain = GS2_INITIAL_SUGAR;
-  s.player1.hand = [...CARD_IDS];
-  s.player2.hand = [...CARD_IDS];
-  s.player1.hrPenaltyPending = 0;
-  s.player2.hrPenaltyPending = 0;
-  s.player1.breathUsed = false;
-  s.player2.breathUsed = false;
-  s.maxRound = GS2_TOTAL_ROUNDS;
-  s.round = 1;
-
-  void broadcastState(io, s);
-
-  const gen = s.aiGeneration;
-  s.nextRoundTimer = setTimeout(() => {
-    if (!gameStates.has(s.roomId) || s.aiGeneration !== gen) return;
-    startRound(io, s);
-  }, EXTENSION_INTRO_MS);
+  // 동점 → 무승부 종료
+  finalizeGame(io, s, 'tie', 'draw');
 }
 
 function finalizeGame(

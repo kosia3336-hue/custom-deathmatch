@@ -121,3 +121,20 @@ export async function notifyInvalidateOwnedTitles(memberId: string): Promise<voi
     // 무시
   }
 }
+
+export async function notifyHiddenTitleCheck(
+  kind: 'inquiry' | 'title_granted' | 'nickname_changed' | 'eureka_notice' | 'shop_purchase',
+  memberId: string,
+  extra?: { noticeId?: string },
+): Promise<void> {
+  const url = `${getSocketBaseUrl()}/internal/hidden-titles/check`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: getInternalSecret(), kind, memberId, ...extra }),
+    });
+  } catch {
+    // 무시
+  }
+}

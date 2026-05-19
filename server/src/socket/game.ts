@@ -39,6 +39,7 @@ import {
   emitDoubleSidedChessStateToSocket,
   performDoubleSidedChessUndo,
   canDoubleSidedChessUndo,
+  handleDoubleSidedChessToggleAI,
   getDoubleSidedChessResultData,
 } from './games/double-sided-chess/index.js';
 import {
@@ -572,7 +573,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     const isSpecialPostGame =
       room.status === 'finished' &&
-      room.gameId === 'game-001' &&
+      (room.gameId === 'game-001' || room.gameId === 'game-002') &&
       room.playMode === 'solo' &&
       room.players.some((p: Player) => p.nickname === '천하');
 
@@ -673,6 +674,14 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
     handleFourGravityToggleAI(io, socket, roomId, data as Record<string, unknown>);
+  });
+
+  socket.on('game:double-sided-chess:toggle-ai', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    handleDoubleSidedChessToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
   socket.on('game:undo:accept', (data) => {
@@ -856,6 +865,10 @@ export function endGame(
       .catch((err) => {
         console.warn('[rank] finalizeRankedMultiGameEnd 실패:', (err as Error).message);
         emitEndedAndGrants(result);
+        // Phase 1 실패 시에도 게임 로그는 저장 시도
+        recordGameEndAsync(io, room, result).catch((e) => {
+          console.warn('[rank:fallback] 게임로그 저장 실패:', (e as Error).message);
+        });
       });
   } else {
     emitEndedAndGrants(result);

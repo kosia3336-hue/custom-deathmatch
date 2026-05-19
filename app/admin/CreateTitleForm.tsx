@@ -9,12 +9,7 @@ import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { TitleColor } from '@/lib/supabase/database.types';
-
-const COLORS: TitleColor[] = [
-  'coral', 'amber', 'emerald', 'sky', 'violet', 'pink',
-  'lime', 'rose', 'cyan', 'orange', 'fuchsia', 'teal',
-  'yellow', 'indigo', 'slate', 'gold',
-];
+import { TITLE_COLORS } from '@shared/titles/colors';
 
 export default function CreateTitleForm() {
   const router = useRouter();
@@ -65,7 +60,7 @@ export default function CreateTitleForm() {
       <div>
         <label className="mb-1 block text-sm font-medium text-cdm-fg">색</label>
         <div className="flex flex-wrap gap-1.5">
-          {COLORS.map((c) => (
+          {TITLE_COLORS.map((c) => (
             <button
               key={c}
               type="button"

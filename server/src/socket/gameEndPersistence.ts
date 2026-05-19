@@ -18,7 +18,7 @@ export async function persistGameEndLog(io: IO, room: Room, result: GameResult):
   if (room.players.some((p: Player) => p.nickname === 'Faker')) return null;
 
   if (
-    room.gameId === 'game-001'
+    (room.gameId === 'game-001' || room.gameId === 'game-002')
     && room.playMode === 'solo'
     && room.players.some((p: Player) => p.nickname === '천하')
   ) {

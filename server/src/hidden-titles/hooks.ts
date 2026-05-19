@@ -18,8 +18,16 @@ import {
   countComWinsSince,
   maxMultiPlaysSingleGameSince,
   isNicknameChangedSinceV2Cutoff,
+  countConsecutiveRankGamesInTier,
+  wasDefeatedByOpponentLastGame,
+  isStreakInMulti,
+  getTotalCdpSpent,
 } from './conditions.js';
-import { HIDDEN_TITLES_POST_UPDATE_START_AT, HIDDEN_TITLES_V2_START_AT } from './constants.js';
+import {
+  HIDDEN_TITLES_POST_UPDATE_START_AT,
+  HIDDEN_TITLES_V2_START_AT,
+  HIDDEN_TITLES_V3_START_AT,
+} from './constants.js';
 
 const EUREKA_NOTICE_ID = process.env.HIDDEN_EUREKA_NOTICE_ID?.trim() ?? '';
 
@@ -73,7 +81,7 @@ export async function onGameEnd(io: IO | null, input: GameEndHookInput): Promise
 
     if (input.mode !== 'multi') return;
 
-    // 패자 — 불굴의 전사 (scope: all)
+    // 패자 — 불굴의 전사 (scope: all) + 강철의 투지 (scope: v3)
     for (const mid of input.losers) {
       try {
         const n = await countMultiLossesAll(mid);
@@ -82,6 +90,18 @@ export async function onGameEnd(io: IO | null, input: GameEndHookInput): Promise
         }
       } catch (err) {
         console.warn('[hidden-titles] unbreakable_warrior check 실패:', (err as Error).message);
+      }
+
+      // 강철의 투지 — v3 이후 멀티 8연패
+      if (input.playedAt >= HIDDEN_TITLES_V3_START_AT) {
+        try {
+          const streak = await isStreakInMulti(mid, 8, false, HIDDEN_TITLES_V3_START_AT);
+          if (streak) {
+            await grantHiddenTitle(io, 'iron_will', mid);
+          }
+        } catch (err) {
+          console.warn('[hidden-titles] iron_will check 실패:', (err as Error).message);
+        }
       }
     }
 
@@ -101,6 +121,38 @@ export async function onGameEnd(io: IO | null, input: GameEndHookInput): Promise
           }
         } catch (err) {
           console.warn('[hidden-titles] one_strike_master check 실패:', (err as Error).message);
+        }
+      }
+    }
+
+    // 승자 전용 — 파죽지세·결자해지 (scope: v3)
+    if (input.playedAt >= HIDDEN_TITLES_V3_START_AT) {
+      for (const mid of input.winners) {
+        // 파죽지세 — v3 이후 멀티 8연승
+        try {
+          const streak = await isStreakInMulti(mid, 8, true, HIDDEN_TITLES_V3_START_AT);
+          if (streak) {
+            await grantHiddenTitle(io, 'winning_spree', mid);
+          }
+        } catch (err) {
+          console.warn('[hidden-titles] winning_spree check 실패:', (err as Error).message);
+        }
+
+        // 결자해지 — 직전 게임에서 나에게 패배를 안긴 상대를 이번 게임에서 꺾음
+        const losers = input.losers.filter((l) => l !== mid);
+        for (const opponentId of losers) {
+          try {
+            const isRevenge = await wasDefeatedByOpponentLastGame(
+              mid,
+              opponentId,
+              HIDDEN_TITLES_V3_START_AT,
+            );
+            if (isRevenge) {
+              await grantHiddenTitle(io, 'karmic_resolve', mid);
+            }
+          } catch (err) {
+            console.warn('[hidden-titles] karmic_resolve check 실패:', (err as Error).message);
+          }
         }
       }
     }
@@ -227,6 +279,65 @@ export async function onNicknameChanged(io: IO | null, memberId: string): Promis
     await grantHiddenTitle(io, 'name_changer', memberId);
   } catch (err) {
     console.warn('[hidden-titles] onNicknameChanged 실패:', (err as Error).message);
+  }
+}
+
+/** shop purchase 후 — 플렉스 (Next.js API → 소켓 서버 내부 라우트 경유) */
+export async function onShopPurchase(io: IO | null, memberId: string): Promise<void> {
+  try {
+    const spent = await getTotalCdpSpent(memberId);
+    if (spent >= 3500) {
+      await grantHiddenTitle(io, 'flex', memberId);
+    }
+  } catch (err) {
+    console.warn('[hidden-titles] onShopPurchase 실패:', (err as Error).message);
+  }
+}
+
+export interface RankedGameEndHookInput {
+  /** 이번 게임에서 승리한 회원 ID (무승부이면 비어 있음) */
+  winnerId: string | null;
+  /** 이번 게임에서 패배한 회원 ID (무승부이면 비어 있음) */
+  loserId: string | null;
+  /** rank_match_history 저장 완료 후 호출되므로 이번 판도 포함됨 */
+  winnerTierAfter: string;
+  loserTierAfter: string;
+}
+
+/**
+ * rank_match_history 저장 완료 직후 호출 (processRankedGameEnd Phase 2 끝).
+ * 천공의 주인 · 심연의 수문장 판정.
+ */
+export async function onRankedGameEnd(
+  io: IO | null,
+  input: RankedGameEndHookInput,
+): Promise<void> {
+  try {
+    const { winnerId, loserId, winnerTierAfter, loserTierAfter } = input;
+
+    const pairs: Array<{ memberId: string; tier: string; targetKey: 'lord_of_sky' | 'sentinel_of_abyss'; needed: number }> = [];
+
+    if (winnerId) {
+      if (winnerTierAfter === 'challenger') pairs.push({ memberId: winnerId, tier: 'challenger', targetKey: 'lord_of_sky', needed: 70 });
+      if (winnerTierAfter === 'bronze')     pairs.push({ memberId: winnerId, tier: 'bronze',     targetKey: 'sentinel_of_abyss', needed: 30 });
+    }
+    if (loserId) {
+      if (loserTierAfter === 'challenger') pairs.push({ memberId: loserId, tier: 'challenger', targetKey: 'lord_of_sky', needed: 70 });
+      if (loserTierAfter === 'bronze')     pairs.push({ memberId: loserId, tier: 'bronze',     targetKey: 'sentinel_of_abyss', needed: 30 });
+    }
+
+    for (const { memberId, tier, targetKey, needed } of pairs) {
+      try {
+        const streak = await countConsecutiveRankGamesInTier(memberId, tier, needed);
+        if (streak >= needed) {
+          await grantHiddenTitle(io, targetKey, memberId);
+        }
+      } catch (err) {
+        console.warn(`[hidden-titles] ${targetKey} check 실패:`, (err as Error).message);
+      }
+    }
+  } catch (err) {
+    console.warn('[hidden-titles] onRankedGameEnd 전체 실패:', (err as Error).message);
   }
 }
 

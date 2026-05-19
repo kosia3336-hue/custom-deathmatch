@@ -10,12 +10,14 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
 
   const [headerRight, setHeaderRightState] = useState<ReactNode>(null);
   const [footer, setFooterState] = useState<ReactNode>(null);
+  const [footerHidden, setFooterHiddenState] = useState(false);
 
   const setHeaderRight = useCallback((content: ReactNode) => setHeaderRightState(content), []);
   const setFooter = useCallback((content: ReactNode) => setFooterState(content), []);
+  const setFooterHidden = useCallback((hidden: boolean) => setFooterHiddenState(hidden), []);
 
   return (
-    <RoomLayoutContext.Provider value={{ setHeaderRight, setFooter }}>
+    <RoomLayoutContext.Provider value={{ setHeaderRight, setFooter, setFooterHidden }}>
       <div className="flex min-h-screen flex-col bg-cdm-bg">
         {/* 공통 헤더 */}
         <div className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-border bg-cdm-bg/90 px-4 py-3 backdrop-blur md:px-6">
@@ -50,7 +52,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-1 flex-col">{children}</div>
 
         {/* 공통 푸터 */}
-        {footer && (
+        {footer && !footerHidden && (
           <div className="sticky bottom-0 z-(--cdm-z-sticky) border-t border-cdm-border bg-cdm-bg/90 px-4 py-3 backdrop-blur md:px-6">
             <div className="mx-auto flex w-full max-w-2xl items-center gap-2 md:gap-3">
               {footer}

@@ -31,7 +31,7 @@ export default function WaitingRoomPage() {
   const { room, countdown } = useRoom(roomId);
   const myId = useMySocketId();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
-  const { setHeaderRight, setFooter } = useRoomLayout();
+  const { setHeaderRight, setFooter, setFooterHidden } = useRoomLayout();
 
   const [joined, setJoined] = useState(false);
   const [showKick, setShowKick] = useState<string | null>(null);
@@ -127,12 +127,22 @@ export default function WaitingRoomPage() {
     }
   }, [room?.status, roomId, router]);
 
+  const openRoomSettings = useCallback(() => {
+    setFooterHidden(true);
+    setShowRoomSettings(true);
+  }, [setFooterHidden]);
+
+  const closeRoomSettings = useCallback(() => {
+    setShowRoomSettings(false);
+    setFooterHidden(false);
+  }, [setFooterHidden]);
+
   // 카운트다운 시작 시 설정 모달 닫기
   useEffect(() => {
     if (countdown !== null && countdown > 0) {
-      setShowRoomSettings(false);
+      closeRoomSettings();
     }
-  }, [countdown]);
+  }, [countdown, closeRoomSettings]);
 
   const handleLeave = useCallback(() => {
     socket.emit('room:leave');
@@ -188,7 +198,7 @@ export default function WaitingRoomPage() {
         </button>
         {isHost && (
           <button
-            onClick={() => setShowRoomSettings(true)}
+            onClick={openRoomSettings}
             className="flex items-center gap-1.5 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-1 transition-colors md:px-3"
             title="설정 변경"
           >
@@ -206,7 +216,7 @@ export default function WaitingRoomPage() {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, isHost]);
+  }, [setHeaderRight, isHost, openRoomSettings]);
 
   /* ── 푸터 슬롯 ── */
   useEffect(() => {
@@ -417,7 +427,7 @@ export default function WaitingRoomPage() {
             <Button
               variant="secondary"
               className="w-full"
-              onClick={() => { setShowRoomInfo(false); setShowRoomSettings(true); }}
+              onClick={() => { setShowRoomInfo(false); openRoomSettings(); }}
             >
               <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -434,7 +444,7 @@ export default function WaitingRoomPage() {
         <RoomSettingsModal
           open={showRoomSettings}
           room={room}
-          onClose={() => setShowRoomSettings(false)}
+          onClose={closeRoomSettings}
         />
       )}
 

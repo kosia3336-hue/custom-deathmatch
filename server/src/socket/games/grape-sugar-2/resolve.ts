@@ -170,7 +170,7 @@ export function resolveRound(
           breathExtended = true;
           steps.push({ type: 'breathExtended', nowMaxRound: 9 });
         } else {
-          steps.push({ type: 'breathNoEffect', reason: 'alreadyExtended' });
+          steps.push({ type: 'breathNoEffect', actor: side, reason: 'alreadyExtended' });
         }
         break;
       }
@@ -181,7 +181,7 @@ export function resolveRound(
   // 우주뿌셔!로 cancel된 breath 표시
   for (const side of SIDES) {
     if (cards[side] === 'breath' && !cardEffective[side]) {
-      steps.push({ type: 'breathNoEffect', reason: 'cancelled' });
+      steps.push({ type: 'breathNoEffect', actor: side, reason: 'cancelled' });
     }
   }
 

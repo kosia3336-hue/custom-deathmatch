@@ -98,9 +98,9 @@ function PlayerCard({
   side,
 }: {
   nickname: string;
-  tier: RankTier;
-  rp: number;
-  placement: boolean;
+  tier: RankTier | null;
+  rp: number | null;
+  placement: boolean | null;
   title?: { name: string; color: string } | null;
   side: 'left' | 'right';
 }) {
@@ -122,10 +122,16 @@ function PlayerCard({
         </div>
       ) : null}
       <div className={`mt-3 flex flex-col gap-1 ${side === 'left' ? 'md:items-end' : 'md:items-start'}`}>
-        <RankBadge tier={tier} rp={placement ? undefined : rp} size="lg" showRp={!placement} />
-        {placement ? (
-          <span className="text-xs text-cdm-fg-muted">배치전 진행 중</span>
-        ) : null}
+        {tier !== null ? (
+          <>
+            <RankBadge tier={tier} rp={placement ? undefined : (rp ?? undefined)} size="lg" showRp={!placement} />
+            {placement ? (
+              <span className="text-xs text-cdm-fg-muted">배치전 진행 중</span>
+            ) : null}
+          </>
+        ) : (
+          <span className="text-xs text-cdm-fg-muted">정보 비공개</span>
+        )}
       </div>
     </div>
   );

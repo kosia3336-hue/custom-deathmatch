@@ -10,8 +10,8 @@ import { clearRoomStartCountdown, setRoomStartCountdown, hasRoomStartCountdown }
 import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
-import { isRoomSpectatorLocked, getRoomShopState, cleanupRoomShopState } from '../shop/roomShopState.js';
-import { maskRoomForViewer } from '../shop/maskNicknames.js';
+import { isRoomSpectatorLocked, getRoomShopState, cleanupRoomShopState, isTokenAnonymized } from '../shop/roomShopState.js';
+import { maskRoomForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
@@ -146,9 +146,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) {
       if (currentRoom === data.roomId) {
-        const clientRoom = roomStore.getClientRoom(data.roomId);
+        const clientRoom = maskedClientRoomForSocket(data.roomId, socket);
         if (clientRoom) socket.emit('room:state', clientRoom);
-        return callback({ success: true, room: clientRoom });
+        return callback({ success: true, room: clientRoom ?? undefined });
       }
       return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
     }
@@ -605,11 +605,14 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   const playerId = getPlayerId(socket);
   const roomBefore = roomStore.get(roomId);
   const leavingWasHost = roomBefore?.hostId === playerId;
-  const leavingNickname =
+  const leavingNicknameRaw =
     roomBefore?.players.find((p: Player) => p.id === playerId)?.nickname ??
     roomBefore?.spectators.find((p: Player) => p.id === playerId)?.nickname ??
     sessions.getNickname(socket.id) ??
     '알 수 없음';
+  const leavingNickname = isTokenAnonymized(roomId, playerId)
+    ? ANONYMOUS_NICKNAME
+    : leavingNicknameRaw;
   const spectatorsBefore: Player[] = roomBefore?.spectators ?? [];
 
   if (leavingWasHost) {

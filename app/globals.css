@@ -46,7 +46,7 @@
   --cdm-fg-subtle: #94a3b8;
   --cdm-fg-inverse: #ffffff;
 
-  /* 칭호 색 (16색 토큰) — title_color enum 과 1:1 매핑 */
+  /* 칭호 색 (42색) — title_color enum · shared/titles/colors.ts 와 1:1 */
   --title-coral:    #f43f5e;
   --title-amber:    #f59e0b;
   --title-emerald:  #10b981;
@@ -54,15 +54,43 @@
   --title-violet:   #8b5cf6;
   --title-pink:     #ec4899;
   --title-lime:     #84cc16;
-  --title-rose:     #f43f5e;
+  --title-rose:     #fb7185;
   --title-cyan:     #06b6d4;
   --title-orange:   #f97316;
   --title-fuchsia:  #d946ef;
   --title-teal:     #14b8a6;
-  --title-yellow:   #eab308;
+  --title-yellow:   #ca8a04;
   --title-indigo:   #4f46e5;
   --title-slate:    #475569;
   --title-gold:     #b8860b;
+  --title-red:      #dc2626;
+  --title-blue:     #2563eb;
+  --title-purple:   #9333ea;
+  --title-mint:     #2dd4bf;
+  --title-lavender: #a78bfa;
+  --title-bronze:   #a16207;
+  --title-silver:   #64748b;
+  --title-navy:     #1e3a8a;
+  --title-maroon:   #991b1b;
+  --title-crimson:  #be123c;
+  --title-ruby:     #e11d48;
+  --title-sapphire: #1d4ed8;
+  --title-azure:    #0284c7;
+  --title-jade:     #059669;
+  --title-forest:   #166534;
+  --title-olive:    #65a30d;
+  --title-peach:    #ea580c;
+  --title-magenta:  #c026d3;
+  --title-plum:     #86198f;
+  --title-wine:     #7f1d1d;
+  --title-copper:   #b45309;
+  --title-charcoal: #374151;
+  --title-midnight: #312e81;
+  --title-ocean:    #0369a1;
+  --title-spring:   #16a34a;
+  --title-sunset:   #c2410c;
+  --title-honey:    #d97706;
+  --title-grape:    #6b21a8;
 
   /* 간격 */
   --cdm-space-1: 4px;

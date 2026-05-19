@@ -19,10 +19,8 @@ export type MemberStatus = 'active' | 'suspended' | 'banned' | 'withdrawn';
 export type MemberRole = 'user' | 'admin';
 export type PlayMode = 'multi' | 'com' | 'solo';
 export type TurnPosition = 'first' | 'second';
-export type TitleColor =
-  | 'coral' | 'amber' | 'emerald' | 'sky' | 'violet' | 'pink'
-  | 'lime' | 'rose' | 'cyan' | 'orange' | 'fuchsia' | 'teal'
-  | 'yellow' | 'indigo' | 'slate' | 'gold';
+import type { TitleColor } from '@shared/titles/colors';
+export type { TitleColor };
 export type AgreementKind = 'terms' | 'privacy' | 'marketing';
 export type ReportCategory = 'abuse' | 'spam' | 'cheat' | 'bad_manner' | 'improper_nickname' | 'etc';
 export type ReportStatus = 'pending' | 'processing' | 'resolved' | 'rejected';

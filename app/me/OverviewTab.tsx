@@ -29,6 +29,11 @@ interface ToughOpponent {
   my_win_pct: number;
 }
 
+function gameWinRate(s: StatsRow): number {
+  if (s.total_games <= 0) return 1;
+  return (s.wins + s.draws * 0.5) / s.total_games;
+}
+
 export default async function OverviewTab({ member }: { member: CurrentMember }) {
   const sb = await getServerSupabase();
 
@@ -62,7 +67,14 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
   const totalLosses = stats.reduce((acc, s) => acc + s.losses, 0);
   const totalDraws = stats.reduce((acc, s) => acc + s.draws, 0);
   const winRate = totalGames > 0 ? Math.round(((totalWins + totalDraws * 0.5) / totalGames) * 1000) / 10 : 0;
-  const topGames = [...stats].filter((s) => s.losses > 0).sort((a, b) => b.losses - a.losses).slice(0, 3);
+  const topGames = [...stats]
+    .filter((s) => s.losses > 0)
+    .sort((a, b) => {
+      const rateDiff = gameWinRate(a) - gameWinRate(b);
+      if (rateDiff !== 0) return rateDiff;
+      return b.losses - a.losses;
+    })
+    .slice(0, 3);
   const pendingCount = (reportsPendingRes.count ?? 0) + (inquiriesPendingRes.count ?? 0);
 
   return (
