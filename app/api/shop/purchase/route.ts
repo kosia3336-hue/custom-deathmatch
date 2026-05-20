@@ -176,6 +176,8 @@ export async function POST(req: NextRequest) {
   if (row.granted_title_id) {
     void notifyInvalidateBiasTitles();
     void notifyInvalidateOwnedTitles(member.id);
+    // 수집가 연쇄 체크 — 상점 칭호 구매로 5개 이상이 됐을 수 있음
+    void notifyHiddenTitleCheck('title_granted', member.id);
   }
 
   // 히든 칭호 판정 (플렉스) — fire-and-forget

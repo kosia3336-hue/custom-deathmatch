@@ -88,3 +88,26 @@ export function maskRankingForViewer<T extends { playerId: string; nickname: str
     return { ...r, nickname: ANONYMOUS_NICKNAME, memberId: null };
   });
 }
+
+/**
+ * gameResultData.players[token].nickname 마스킹.
+ *  - 익명화된 플레이어의 닉네임을 '???' 로 교체.
+ *  - gameResultData 구조가 없으면 원본 반환.
+ */
+export function maskGameResultDataForViewer(roomId: string, gameResultData: unknown): unknown {
+  if (!gameResultData || typeof gameResultData !== 'object') return gameResultData;
+  const data = gameResultData as Record<string, unknown>;
+  if (!data.players || typeof data.players !== 'object') return gameResultData;
+  const state = getRoomShopState(roomId);
+  if (!state || state.anonymizedTokens.size === 0) return gameResultData;
+  const players = data.players as Record<string, unknown>;
+  const maskedPlayers: Record<string, unknown> = {};
+  for (const [token, playerData] of Object.entries(players)) {
+    if (!playerData || typeof playerData !== 'object' || !state.anonymizedTokens.has(token)) {
+      maskedPlayers[token] = playerData;
+      continue;
+    }
+    maskedPlayers[token] = { ...(playerData as Record<string, unknown>), nickname: ANONYMOUS_NICKNAME };
+  }
+  return { ...data, players: maskedPlayers };
+}

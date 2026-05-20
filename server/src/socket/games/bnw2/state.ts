@@ -3,6 +3,8 @@ import type { BNW2GameData, BNW2PlayerInfo, BNW2RevealData } from '@shared/types
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import { BNW2_INITIAL_POINTS, BNW2_MAX_SCORE, REVEAL_DELAY_MS, WIN_DISPLAY_MS, calcBNW2Stage, calcBNW2Color } from './constants.js';
 import { judgeRound, autoSubmitPoints } from './judge.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -151,10 +153,14 @@ export async function broadcastState(io: IO, s: InternalState) {
       if (s.phase === 'reveal' || s.phase === 'finished') {
         const last = s.actionLog[s.actionLog.length - 1];
         const d = last?.players[oppId];
-        if (d) sock.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: d.nickname, color: d.color, points: d.points });
+        if (d) {
+          const oppNick = isTokenAnonymized(s.roomId, oppId) ? ANONYMOUS_NICKNAME : d.nickname;
+          sock.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: oppNick, color: d.color, points: d.points });
+        }
       } else if (s.phase === 'secondSubmit' && s.firstPoints !== null && pid !== s.firstPlayerId) {
         const fp = getFirstPlayer(s);
-        sock.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fp.nickname, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
+        const fpNick = isTokenAnonymized(s.roomId, fp.id) ? ANONYMOUS_NICKNAME : fp.nickname;
+        sock.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fpNick, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
       }
     }
     sock.emit('game:state', buildGameState(s, gameData));
@@ -172,10 +178,14 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
     if (s.phase === 'reveal' || s.phase === 'finished') {
       const last = s.actionLog[s.actionLog.length - 1];
       const d = last?.players[oppId];
-      if (d) socket.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: d.nickname, color: d.color, points: d.points });
+      if (d) {
+        const oppNick = isTokenAnonymized(s.roomId, oppId) ? ANONYMOUS_NICKNAME : d.nickname;
+        socket.emit('ext:data', { game: 'bnw2', round: last!.round, opponent: oppNick, color: d.color, points: d.points });
+      }
     } else if (s.phase === 'secondSubmit' && s.firstPoints !== null && pid !== s.firstPlayerId) {
       const fp = getFirstPlayer(s);
-      socket.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fp.nickname, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
+      const fpNick = isTokenAnonymized(s.roomId, fp.id) ? ANONYMOUS_NICKNAME : fp.nickname;
+      socket.emit('ext:data', { game: 'bnw2', round: s.round, opponent: fpNick, color: calcBNW2Color(s.firstPoints), points: s.firstPoints });
     }
   }
   socket.emit('game:state', buildGameState(s, gameData));

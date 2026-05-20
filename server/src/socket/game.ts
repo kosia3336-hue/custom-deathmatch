@@ -9,8 +9,8 @@ import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
 import { socketRoom, maskedClientRoomForSocket, emitRoomStateToRoom } from './utils.js';
-import { getRoomShopState, cleanupRoomShopState } from '../shop/roomShopState.js';
-import { maskRankingForViewer } from '../shop/maskNicknames.js';
+import { getRoomShopState, isTokenAnonymized, cleanupRoomShopState } from '../shop/roomShopState.js';
+import { maskRankingForViewer, maskGameResultDataForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import type { IO, TypedSocket } from './types.js';
 import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
 import { persistGameEndLog } from './gameEndPersistence.js';
@@ -606,10 +606,11 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       });
       // opponent.id = token → 실제 소켓으로 라우팅
       const opponentSocketId = sessions.getSocketByToken(opponent.id) ?? opponent.id;
+      const isRequesterAnon = isTokenAnonymized(roomId, myId);
       io.to(opponentSocketId).emit('game:undo:proposal', {
         requestId,
         requesterId: myId,
-        requesterNickname: sessions.getNickname(socket.id) ?? '플레이어',
+        requesterNickname: isRequesterAnon ? ANONYMOUS_NICKNAME : (sessions.getNickname(socket.id) ?? '플레이어'),
       });
       return;
     }
@@ -826,6 +827,7 @@ export function endGame(
           const masked: GameResult = {
             ...payload,
             rankings: maskRankingForViewer(roomId, payload.rankings, viewerToken),
+            ...(payload.gameResultData != null ? { gameResultData: maskGameResultDataForViewer(roomId, payload.gameResultData) } : {}),
           };
           io.sockets.sockets.get(sid)?.emit('game:ended', masked);
         }

@@ -13,6 +13,8 @@ import type {
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import {
   REMATCH_INTRO_MS,
   REVEAL_DELAY_MS,
@@ -283,10 +285,14 @@ export async function broadcastState(io: IO, s: InternalState) {
         const opp = pid === s.player1.id ? s.player2 : s.player1;
         const last = s.actionLog[s.actionLog.length - 1];
         const d = last?.players[opp.id];
-        if (d) sock.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: opp.nickname, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+        if (d) {
+          const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+          sock.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: oppNick, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+        }
       } else if (s.phase === 'secondSubmit' && s.firstTiles && pid !== s.firstPlayerId) {
         const fp = getFirstPlayer(s);
-        sock.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fp.nickname, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
+        const fpNick = isTokenAnonymized(s.roomId, fp.id) ? ANONYMOUS_NICKNAME : fp.nickname;
+        sock.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fpNick, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
       }
     }
     sock.emit('game:state', buildGameState(s, gameData));
@@ -303,10 +309,14 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
       const opp = pid === s.player1.id ? s.player2 : s.player1;
       const last = s.actionLog[s.actionLog.length - 1];
       const d = last?.players[opp.id];
-      if (d) socket.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: opp.nickname, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+      if (d) {
+        const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+        socket.emit('ext:data', { game: 'silper-bnw', round: last!.round, opponent: oppNick, tilesUsed: d.tilesUsed, digits: d.digits, valueStr: d.valueStr });
+      }
     } else if (s.phase === 'secondSubmit' && s.firstTiles && pid !== s.firstPlayerId) {
       const fp = getFirstPlayer(s);
-      socket.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fp.nickname, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
+      const fpNick = isTokenAnonymized(s.roomId, fp.id) ? ANONYMOUS_NICKNAME : fp.nickname;
+      socket.emit('ext:data', { game: 'silper-bnw', round: s.round, opponent: fpNick, tilesUsed: s.firstTiles, digits: s.firstTiles.length, valueStr: tilesToValueStr(s.firstTiles) });
     }
   }
   socket.emit('game:state', buildGameState(s, gameData));

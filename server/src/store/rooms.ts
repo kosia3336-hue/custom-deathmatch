@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus, TurnOrderMode } from '@shared/types/room.js';
+import { isTokenAnonymized } from '../shop/roomShopState.js';
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number; _fromBanPick?: boolean };
 
@@ -20,7 +21,7 @@ function toSummary(room: RoomInternal): RoomSummary {
     currentPlayers: room.players.length,
     spectatorCount: room.spectators.length,
     status: room.status,
-    hostNickname: host?.nickname ?? '',
+    hostNickname: host ? (isTokenAnonymized(room.id, host.id) ? '???' : host.nickname) : '',
     timeLimitSeconds: room.timeLimitSeconds,
     gameOptions: room.gameOptions,
     createdAt: room.createdAt,

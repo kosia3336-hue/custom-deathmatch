@@ -3,6 +3,8 @@ import { sessions } from '../store/sessions.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 import type { OnlineUser } from '@shared/types/events.js';
+import { isTokenAnonymized } from '../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 
 function getOnlineUsers(io: IO): OnlineUser[] {
   const users: OnlineUser[] = [];
@@ -14,6 +16,7 @@ function getOnlineUsers(io: IO): OnlineUser[] {
     const nickname = sessions.getNickname(socketId);
     if (!nickname) continue;
 
+    const token = sessions.getToken(socketId);
     const roomId = sessions.getRoom(socketId);
     let status: OnlineUser['status'] = 'lobby';
     if (roomId) {
@@ -21,7 +24,8 @@ function getOnlineUsers(io: IO): OnlineUser[] {
       status = room?.status === 'playing' ? 'playing' : 'waiting';
     }
 
-    users.push({ memberId, nickname, status });
+    const isAnon = !!(roomId && token && isTokenAnonymized(roomId, token));
+    users.push({ memberId, nickname: isAnon ? ANONYMOUS_NICKNAME : nickname, status });
   }
 
   users.sort((a, b) => {
