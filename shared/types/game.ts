@@ -24,6 +24,7 @@ export const GAME_IDS = {
   GRAPE_SUGAR_2: 'game-012',
   SUN_MOON_STAR_2: 'game-013',
   BANK_GAME: 'game-014',
+  INDIAN_POKER_EVENT: 'game-015',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

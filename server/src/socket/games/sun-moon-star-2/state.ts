@@ -48,6 +48,8 @@ import type {
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, SMS2InternalState>();
 
@@ -104,10 +106,13 @@ function getSecondPlayer(s: SMS2InternalState): SMS2PlayerInternal {
 
 /* ────────── broadcasting ────────── */
 
-function phaseMessage(s: SMS2InternalState): string {
+function phaseMessage(s: SMS2InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   const ext = s.suddenDeath ? '서든데스 ' : '';
-  const firstNick = getFirstPlayer(s).nickname;
+  const first = getFirstPlayer(s);
+  const firstNick = isTokenAnonymized(s.roomId, first.id) && first.id !== viewerToken
+    ? ANONYMOUS_NICKNAME
+    : first.nickname;
   switch (s.phase) {
     case 'powder': {
       const p1 = !!s.player1.pendingPowder;
@@ -188,10 +193,15 @@ function sanitizeRoundForView(
 function buildGameDataForViewer(
   s: SMS2InternalState,
   viewerSide: SMS2Side | 'spectator',
+  viewerToken: string,
 ): SMS2GameData {
+  const maskNick = (p: SMS2PlayerInternal) => {
+    const isMe = (viewerSide === 'p1' && p.side === 'p1') || (viewerSide === 'p2' && p.side === 'p2');
+    return isTokenAnonymized(s.roomId, p.id) && !isMe ? ANONYMOUS_NICKNAME : p.nickname;
+  };
   const players = {
-    p1: playerToPublic(s.player1),
-    p2: playerToPublic(s.player2),
+    p1: { ...playerToPublic(s.player1), nickname: maskNick(s.player1) },
+    p2: { ...playerToPublic(s.player2), nickname: maskNick(s.player2) },
   };
 
   const data: SMS2GameData = {
@@ -245,11 +255,11 @@ function applyPurinSms2(
   return out;
 }
 
-function buildGameState(s: SMS2InternalState, gameData: SMS2GameData): GameState {
+function buildGameState(s: SMS2InternalState, gameData: SMS2GameData, viewerToken: string): GameState {
   const isInputPhase = s.phase === 'powder' || s.phase === 'betFirst' || s.phase === 'betSecond';
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerToken),
     currentTurn: resolveCurrentTurn(s),
     turnNumber: s.round,
     startedAt: s.startedAt,
@@ -276,24 +286,24 @@ export async function broadcastState(io: IO, s: SMS2InternalState) {
   for (const sock of sockets) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
-    let data = buildGameDataForViewer(s, viewerSide);
+    let data = buildGameDataForViewer(s, viewerSide, token);
     data = applyPurinSms2(s, token, viewerSide, data);
     const raw = data as Record<string, unknown>;
     const ext = raw['_purin'];
     if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
-    sock.emit('game:state', buildGameState(s, data));
+    sock.emit('game:state', buildGameState(s, data, token));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: SMS2InternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
-  let data = buildGameDataForViewer(s, viewerSide);
+  let data = buildGameDataForViewer(s, viewerSide, token);
   data = applyPurinSms2(s, token, viewerSide, data);
   const raw = data as Record<string, unknown>;
   const ext = raw['_purin'];
   if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
-  socket.emit('game:state', buildGameState(s, data));
+  socket.emit('game:state', buildGameState(s, data, token));
 }
 
 /* ────────── timers ────────── */

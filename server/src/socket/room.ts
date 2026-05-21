@@ -12,6 +12,7 @@ import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 import { isRoomSpectatorLocked, getRoomShopState, cleanupRoomShopState, isTokenAnonymized } from '../shop/roomShopState.js';
 import { maskRoomForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { eventRoom } from './eventRoom.js';
 
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
@@ -601,6 +602,18 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   const roomId = sessions.getRoom(socket.id);
   if (!roomId) return;
+
+  // 시스템 룸(이벤트 룸 등)은 일반 leave 흐름을 타지 않는다.
+  // - 방 자체는 해체되지 않음 (영구 룸).
+  // - 좌석/관전자 제거 및 핸드 중 자동 다이 처리는 eventRoom 매니저에 위임.
+  if (roomStore.isSystemRoom(roomId)) {
+    eventRoom.leave(socket); // 내부에서 socket.leave + sessions.clearRoom 처리
+    socket.join(LOBBY_ROOM);
+    const currentRooms = roomStore.getAllSummaries();
+    socket.emit('lobby:rooms', currentRooms);
+    broadcastOnlineUsers(io);
+    return;
+  }
 
   const playerId = getPlayerId(socket);
   const roomBefore = roomStore.get(roomId);

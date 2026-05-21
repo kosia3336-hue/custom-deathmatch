@@ -67,9 +67,11 @@ function buildRevealData(s: InternalState): BNW2RevealData | null {
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameData {
   const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, BNW2PlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, socketId === s.player1.id || (purin && socketId === s.player2.id)),
-    [s.player2.id]: playerToInfo(s.player2, socketId === s.player2.id || (purin && socketId === s.player1.id)),
+    [s.player1.id]: { ...playerToInfo(s.player1, socketId === s.player1.id || (purin && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, socketId === s.player2.id || (purin && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   return {
     phase: s.phase,
@@ -86,9 +88,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
 }
 
 function buildSpectatorGameData(s: InternalState): BNW2GameData {
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, BNW2PlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, false),
-    [s.player2.id]: playerToInfo(s.player2, false),
+    [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   return {
     phase: s.phase,

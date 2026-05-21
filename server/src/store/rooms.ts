@@ -122,7 +122,8 @@ export const roomStore = {
   },
 
   getAllSummaries(): RoomSummary[] {
-    return Array.from(rooms.values()).map(toSummary);
+    // 시스템 룸(hostId === '')은 로비에 노출하지 않는다.
+    return Array.from(rooms.values()).filter((r) => r.hostId !== '').map(toSummary);
   },
 
   getSummary(roomId: string): RoomSummary | undefined {
@@ -393,6 +394,94 @@ export const roomStore = {
     room.players.forEach((p) => {
       p.isReady = false;
     });
+  },
+
+  /* ──────────────────────────────────────────────────────────────────
+   * 시스템 영구 룸 헬퍼 (인디언홀덤 이벤트 전용)
+   *
+   * 일반 방과 달리:
+   * - 호스트가 없다 (hostId = ''). 호스트 위임/방장 강퇴 흐름은 타지 않는다.
+   * - 항상 status='playing' 으로 유지된다. (대기실 진입 X, 곧장 /play 로 이동)
+   * - addPlayer/removePlayer 의 'waiting' 가드와 빈 방 자동 삭제 로직을 우회한다.
+   * ──────────────────────────────────────────────────────────────── */
+
+  /** 시스템 룸 생성. 이미 존재하면 그대로 반환. */
+  createSystemRoom(opts: {
+    id: string;
+    title: string;
+    gameId: string;
+    gameName: string;
+    maxPlayers: number;
+    spectatorAllowed?: boolean;
+  }): Room {
+    const existing = rooms.get(opts.id);
+    if (existing) return existing;
+
+    const room: RoomInternal = {
+      id: opts.id,
+      title: opts.title,
+      gameId: opts.gameId,
+      gameName: opts.gameName,
+      playMode: 'multi',
+      roomType: 'public',
+      maxPlayers: opts.maxPlayers,
+      players: [],
+      spectators: [],
+      status: 'playing',
+      hostId: '',
+      inviteToken: null,
+      timeLimitSeconds: null,
+      gameOptions: {},
+      turnOrderMode: 'random',
+      createdAt: Date.now(),
+      _minPlayers: 0,
+      ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
+    };
+    rooms.set(opts.id, room);
+    return room;
+  },
+
+  /** 시스템 룸에 좌석 추가 (status/min 가드 우회). 이미 있으면 false. */
+  systemRoomAddPlayer(roomId: string, player: Player): boolean {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    if (room.players.some((p) => p.id === player.id)) return false;
+    if (room.players.length >= room.maxPlayers) return false;
+    room.players.push(player);
+    return true;
+  },
+
+  /** 시스템 룸에서 좌석 제거. 빈 방이어도 절대 삭제하지 않음. */
+  systemRoomRemovePlayer(roomId: string, playerId: string): boolean {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    const before = room.players.length;
+    room.players = room.players.filter((p) => p.id !== playerId);
+    return room.players.length !== before;
+  },
+
+  /** 시스템 룸에 관전자 추가. 이미 있으면 false. */
+  systemRoomAddSpectator(roomId: string, spectator: Player): boolean {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    if (room.spectators.some((p) => p.id === spectator.id)) return false;
+    room.spectators.push(spectator);
+    return true;
+  },
+
+  /** 시스템 룸에서 관전자 제거. */
+  systemRoomRemoveSpectator(roomId: string, spectatorId: string): boolean {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    const before = room.spectators.length;
+    room.spectators = room.spectators.filter((p) => p.id !== spectatorId);
+    return room.spectators.length !== before;
+  },
+
+  /** 시스템 룸 여부 (hostId 가 빈 문자열이면 시스템 룸). */
+  isSystemRoom(roomId: string): boolean {
+    const room = rooms.get(roomId);
+    return !!room && room.hostId === '';
   },
 
   toSummary,

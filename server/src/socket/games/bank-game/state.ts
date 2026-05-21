@@ -48,6 +48,8 @@ import type {
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, BankInternalState>();
 
@@ -98,10 +100,12 @@ function cloneBet(b: BankBet): BankBet {
 
 /* ────────── broadcasting ────────── */
 
-function phaseMessage(s: BankInternalState): string {
+function phaseMessage(s: BankInternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
-  const firstNick = getFirst(s).nickname;
-  const secondNick = getSecond(s).nickname;
+  const maskNick = (p: BankPlayerInternal) =>
+    isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname;
+  const firstNick = maskNick(getFirst(s));
+  const secondNick = maskNick(getSecond(s));
   switch (s.phase) {
     case 'firstSubmit': return `R${s.round}/${s.maxRound} — ${firstNick} (선) 베팅 중...`;
     case 'firstReveal': return `R${s.round} — 선의 장수 공개`;
@@ -149,10 +153,11 @@ function buildPlayerInfo(
   const publicBetCount = exposeCount && p.pendingBet
     ? sumBetCount(p.pendingBet)
     : null;
+  const nickname = isTokenAnonymized(s.roomId, p.id) && !isMe ? ANONYMOUS_NICKNAME : p.nickname;
 
   return {
     id: p.id,
-    nickname: p.nickname,
+    nickname,
     side: p.side,
     score: p.score,
     inventoryCount: sumInventoryCount(p.inventory),
@@ -345,11 +350,11 @@ function buildGameDataForViewer(
   return data;
 }
 
-function buildGameState(s: BankInternalState, gameData: BankGameData): GameState {
+function buildGameState(s: BankInternalState, gameData: BankGameData, viewerToken: string): GameState {
   const isInputPhase = s.phase === 'firstSubmit' || s.phase === 'secondSubmit';
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerToken),
     currentTurn: resolveCurrentTurn(s),
     turnNumber: s.round,
     startedAt: s.startedAt,
@@ -384,11 +389,12 @@ export async function broadcastState(io: IO, s: BankInternalState) {
       } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
         const first = getFirst(s);
         if (first.id !== token && first.pendingBet) {
-          sock.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: first.nickname, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
+          const firstNick = isTokenAnonymized(s.roomId, first.id) ? ANONYMOUS_NICKNAME : first.nickname;
+          sock.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: firstNick, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
         }
       }
     }
-    sock.emit('game:state', buildGameState(s, data));
+    sock.emit('game:state', buildGameState(s, data, token));
   }
 }
 
@@ -403,11 +409,12 @@ export function emitStateToSocket(socket: TypedSocket, s: BankInternalState) {
     } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
       const first = getFirst(s);
       if (first.id !== token && first.pendingBet) {
-        socket.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: first.nickname, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
+        const firstNick = isTokenAnonymized(s.roomId, first.id) ? ANONYMOUS_NICKNAME : first.nickname;
+        socket.emit('ext:data', { game: 'bank-game', round: s.round, phase: s.phase, opponent: firstNick, bet: first.pendingBet, amount: sumBetAmount(first.pendingBet), count: sumBetCount(first.pendingBet) });
       }
     }
   }
-  socket.emit('game:state', buildGameState(s, data));
+  socket.emit('game:state', buildGameState(s, data, token));
 }
 
 /* ────────── timers ────────── */

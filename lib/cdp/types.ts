@@ -55,7 +55,9 @@ export interface ShopPurchaseEntry {
 
 export interface PurchaseSuccess {
   ok: true;
-  purchaseId: string;
+  /** 'event_chip_pack' 이면 칩 구매 분기, 그 외엔 일반 shop_purchase */
+  kind?: string;
+  purchaseId?: string;
   newBalance: number;
   pricePaid: number;
   priceOriginal: number;
@@ -64,6 +66,9 @@ export interface PurchaseSuccess {
   grantedTitleId: string | null;
   consumableKind: ConsumableKind | null;
   consumableAdded: number;
+  /** event_chip_pack 분기에서만 채워짐 */
+  grantedChips?: number;
+  newChipBalance?: number;
 }
 
 export type PurchaseErrorCode =
@@ -104,6 +109,8 @@ export const TYPE_LABELS: Record<string, string> = {
   frame: '프레임',
   effect: '효과',
   consumable: '소모성',
+  event_chip_pack: '🪙 이벤트 칩',
+  event_chip_exchange: '🔄 칩 환전',
 };
 
 export function labelForType(type: string): string {

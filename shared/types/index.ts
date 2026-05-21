@@ -158,6 +158,29 @@ export type {
   IndianPokerAction,
 } from './indian-poker';
 export {
+  IPE_MAX_SEATS,
+  IPE_MIN_PLAYERS,
+  IPE_ANTE,
+  IPE_TURN_TIME_LIMIT_SECONDS,
+  IPE_DIE_PENALTY,
+} from './indian-poker-event';
+export type {
+  IPEPhase,
+  IPEParticipantRole,
+  IPEPlayerInfo,
+  IPEHandResultEntry,
+  IPEHandResult,
+  IPEBettingActionRecord,
+  IPEGameData,
+  IPEActionPayload,
+  IPEMetaPayload,
+  IPEStatePayload,
+  IPEChipChangedPayload,
+  IPEPromotedPayload,
+  IPEKickedPayload,
+  IPEHandResultPayload,
+} from './indian-poker-event';
+export {
   BRPS_TOTAL_ROUNDS,
   BRPS_INITIAL_CHIPS,
   BRPS_BET_MULTIPLIER,

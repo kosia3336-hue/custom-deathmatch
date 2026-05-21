@@ -46,6 +46,8 @@ import type {
   FTUndoSnapshot,
   InternalState,
 } from './types.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -101,10 +103,13 @@ export function getOpponent(s: InternalState, id: string): FTPlayerInternal | nu
   return null;
 }
 
-function phaseMessage(s: InternalState): string {
+function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.phase === 'finished') return '게임이 종료되었습니다.';
   const p = getPlayer(s, s.currentPlayerId);
-  return `${s.turn}턴 — ${p?.nickname ?? '플레이어'} 차례`;
+  const nick = p
+    ? (isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname)
+    : '플레이어';
+  return `${s.turn}턴 — ${nick} 차례`;
 }
 
 /* ────────── game data builders ────────── */
@@ -151,9 +156,11 @@ function buildUnresolvedSecrets(s: InternalState, viewerId: string | null): FTUn
 }
 
 function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData {
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, FTPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, viewerId === s.player1.id),
-    [s.player2.id]: playerToInfo(s.player2, viewerId === s.player2.id),
+    [s.player1.id]: { ...playerToInfo(s.player1, viewerId === s.player1.id), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, viewerId === s.player2.id), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   const towers = FT_TOWERS.reduce((acc, t) => {
     acc[t] = towerToPublic(s.towers[t]);
@@ -174,8 +181,14 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData 
     myInfoResults: [...myInfoResults],
     mySecretLog: [...mySecretLog],
     unresolvedSecrets: buildUnresolvedSecrets(s, viewerId),
-    actionLog,
-    milestoneLog: [...s.milestoneLog],
+    actionLog: actionLog.map(e => ({
+      ...e,
+      actorNickname: maskNick(e.actorId, e.actorNickname),
+    })),
+    milestoneLog: s.milestoneLog.map(m => ({
+      ...m,
+      actorNickname: maskNick(m.actorId, m.actorNickname),
+    })),
     winner: s.winner,
     winType: s.winType,
     finishReason: s.finishReason,
@@ -183,9 +196,11 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData 
 }
 
 function buildSpectatorGameData(s: InternalState): FTGameData {
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, FTPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, false),
-    [s.player2.id]: playerToInfo(s.player2, false),
+    [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   const towers = FT_TOWERS.reduce((acc, t) => {
     acc[t] = towerToPublic(s.towers[t]);
@@ -204,8 +219,14 @@ function buildSpectatorGameData(s: InternalState): FTGameData {
     myInfoResults: [],
     mySecretLog: [],
     unresolvedSecrets: buildUnresolvedSecrets(s, null),
-    actionLog,
-    milestoneLog: [...s.milestoneLog],
+    actionLog: actionLog.map(e => ({
+      ...e,
+      actorNickname: maskNick(e.actorId, e.actorNickname),
+    })),
+    milestoneLog: s.milestoneLog.map(m => ({
+      ...m,
+      actorNickname: maskNick(m.actorId, m.actorNickname),
+    })),
     winner: s.winner,
     winType: s.winType,
     finishReason: s.finishReason,
@@ -281,10 +302,10 @@ function buildActionLogForSpectator(s: InternalState): FTActionLogEntry[] {
   return out;
 }
 
-function buildGameState(s: InternalState, gameData: FTGameData): GameState {
+function buildGameState(s: InternalState, gameData: FTGameData, viewerToken: string): GameState {
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerToken),
     currentTurn: s.phase === 'turn' ? s.currentPlayerId : null,
     turnNumber: s.turn,
     startedAt: s.startedAt,
@@ -297,17 +318,20 @@ function applyPurinFiveTowers(s: InternalState, viewerId: string, data: FTGameDa
   const oppId = viewerId === s.player1.id ? s.player2.id : s.player1.id;
   const opp = getPlayer(s, oppId)!;
   const lastOppAction = s.actionLog.slice().reverse().find(e => e.actorId === oppId);
+  const oppNick = isTokenAnonymized(s.roomId, oppId) ? ANONYMOUS_NICKNAME : opp.nickname;
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
   return {
     ...data,
     players: {
       ...data.players,
-      [oppId]: playerToInfo(opp, true),
+      [oppId]: { ...playerToInfo(opp, true), nickname: oppNick },
     },
     unresolvedSecrets: [
       ...buildUnresolvedSecrets(s, viewerId),
       ...buildUnresolvedSecrets(s, oppId),
     ],
-    actionLog: s.actionLog.map((e) => ({ ...e })),
+    actionLog: s.actionLog.map(e => ({ ...e, actorNickname: maskNick(e.actorId, e.actorNickname) })),
     _purin: {
       latestOppAction: lastOppAction ? { ...lastOppAction } : null,
       opponentInfoResults: [...(s.infoResults[oppId] ?? [])],
@@ -333,7 +357,7 @@ export async function broadcastState(io: IO, s: InternalState) {
     const raw = gameData as Record<string, unknown>;
     const ext = raw['_purin'];
     if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
-    sock.emit('game:state', buildGameState(s, gameData));
+    sock.emit('game:state', buildGameState(s, gameData, pid));
   }
 }
 
@@ -349,7 +373,7 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const raw = gameData as Record<string, unknown>;
   const ext = raw['_purin'];
   if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
-  socket.emit('game:state', buildGameState(s, gameData));
+  socket.emit('game:state', buildGameState(s, gameData, pid));
 }
 
 /* ────────── timer ────────── */

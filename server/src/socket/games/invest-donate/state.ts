@@ -13,6 +13,8 @@ import type {
 import { judgeInvest, judgeDonate, coinValue, coinAdd, coinSubtract, stockTotal } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -79,10 +81,12 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): InvestDonat
   const isP2 = socketId === s.player2.id;
   const isReveal = s.phase === 'reveal' || s.phase === 'finished';
   const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
 
   const players: Record<string, IDPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, isReveal || isP1 || (purin && isP2)),
-    [s.player2.id]: playerToInfo(s.player2, isReveal || isP2 || (purin && isP1)),
+    [s.player1.id]: { ...playerToInfo(s.player1, isReveal || isP1 || (purin && isP2)), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, isReveal || isP2 || (purin && isP1)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
 
   return {
@@ -100,9 +104,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): InvestDonat
 
 function buildSpectatorGameData(s: InternalState): InvestDonateGameData {
   const isReveal = s.phase === 'reveal' || s.phase === 'finished';
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, IDPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, isReveal),
-    [s.player2.id]: playerToInfo(s.player2, isReveal),
+    [s.player1.id]: { ...playerToInfo(s.player1, isReveal), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, isReveal), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
 
   return {
@@ -145,9 +151,11 @@ export async function broadcastState(io: IO, s: InternalState) {
       if ((s.phase === 'reveal' || s.phase === 'finished') && s.roundHistory.length > 0) {
         const last = s.roundHistory[s.roundHistory.length - 1];
         const d = last.players[opp.id];
-        if (d) sock.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: opp.nickname, investCoins: d.investCoins, donateCoins: d.donateCoins });
+        const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+        if (d) sock.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: oppNick, investCoins: d.investCoins, donateCoins: d.donateCoins });
       } else if (s.phase === 'submit' && opp.submitted && opp.investCoins && opp.donateCoins) {
-        sock.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: opp.nickname, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
+        const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+        sock.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: oppNick, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
       }
     }
     sock.emit('game:state', buildGameState(s, gameData));
@@ -165,9 +173,11 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
     if ((s.phase === 'reveal' || s.phase === 'finished') && s.roundHistory.length > 0) {
       const last = s.roundHistory[s.roundHistory.length - 1];
       const d = last.players[opp.id];
-      if (d) socket.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: opp.nickname, investCoins: d.investCoins, donateCoins: d.donateCoins });
+      const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+      if (d) socket.emit('ext:data', { game: 'invest-donate', round: last.round, opponent: oppNick, investCoins: d.investCoins, donateCoins: d.donateCoins });
     } else if (s.phase === 'submit' && opp.submitted && opp.investCoins && opp.donateCoins) {
-      socket.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: opp.nickname, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
+      const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+      socket.emit('ext:data', { game: 'invest-donate', round: s.round, opponent: oppNick, investCoins: opp.investCoins, donateCoins: opp.donateCoins });
     }
   }
   socket.emit('game:state', buildGameState(s, gameData));

@@ -250,6 +250,17 @@ export interface ClientToServerEvents {
   /** 랭크 큐 진입 (회원 전용, 운영 시간·시즌 검증은 서버) */
   'rank:queue:join': (callback: (res: { success: boolean; error?: string }) => void) => void;
   'rank:queue:leave': () => void;
+
+  /** 인디언홀덤 (이벤트) — 입장. 칩 1개 이상 보유 시 좌석/관전, 칩 0 또는 게임 중이면 대기열. */
+  'event:join': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 인디언홀덤 (이벤트) — 퇴장 (자발적). */
+  'event:leave': () => void;
+  /** 인디언홀덤 (이벤트) — 메타 정보 조회 (로비에서 호출). */
+  'event:meta:get': (
+    callback: (res: import('./indian-poker-event').IPEMetaPayload) => void,
+  ) => void;
 }
 
 /** CDP 적립 — 랭크 게임 종료 시 본인에게만 emit */
@@ -390,4 +401,25 @@ export interface ServerToClientEvents {
   }) => void;
   /** 큐 상태 (재연결 시 등) */
   'rank:queue:status': (data: { inQueue: boolean; waitSeconds: number }) => void;
+
+  /** 인디언홀덤 (이벤트) 상태 — 본인 전용. role/좌석/게임데이터 포함. */
+  'event:state': (
+    payload: import('./indian-poker-event').IPEStatePayload,
+  ) => void;
+  /** 메타 변동 — 로비 등 connected 전체 broadcast. */
+  'event:meta:changed': (
+    payload: import('./indian-poker-event').IPEMetaPayload,
+  ) => void;
+  /** 칩 잔액 변동 — 본인 전용 emit. */
+  'event:chip:changed': (
+    payload: import('./indian-poker-event').IPEChipChangedPayload,
+  ) => void;
+  /** 대기열 → 좌석으로 승격됨. */
+  'event:promoted': (payload: import('./indian-poker-event').IPEPromotedPayload) => void;
+  /** 강퇴 (칩 0 등). */
+  'event:kicked': (payload: import('./indian-poker-event').IPEKickedPayload) => void;
+  /** 핸드 종료 결과 (참여자/관전자 모두 수신). */
+  'event:hand:result': (
+    payload: import('./indian-poker-event').IPEHandResultPayload,
+  ) => void;
 }

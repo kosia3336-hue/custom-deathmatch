@@ -188,7 +188,7 @@ function cloneSegmentSummaryFull(seg: SBNWSegmentSummary): SBNWSegmentSummary {
  * 라운드 기록을 뷰어 기준으로 복제한다.
  * 상대 플레이어의 tilesUsed / valueStr 는 숨긴다 (digits는 공개).
  */
-function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null, seeBothSides = false): SBNWRoundRecord[] {
+function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null, seeBothSides = false, roomId?: string): SBNWRoundRecord[] {
   return actionLog.map((log) => ({
     round: log.round,
     rematchIndex: log.rematchIndex,
@@ -200,7 +200,7 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
         return [
           pid,
           {
-            nickname: pd.nickname,
+            nickname: roomId && isTokenAnonymized(roomId, pid) && pid !== viewerId ? ANONYMOUS_NICKNAME : pd.nickname,
             tilesUsed: isSelf ? [...pd.tilesUsed] : [],
             digits: pd.digits,
             valueStr: isSelf ? pd.valueStr : '',
@@ -220,18 +220,20 @@ function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsigh
   const isP1 = viewerId === s.player1.id;
   const isP2 = viewerId === s.player2.id;
   const seeBothTiles = purinInsight && (isP1 || isP2);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
   return {
     phase: s.phase,
     round: s.round,
     firstPlayerId: s.firstPlayerId,
     players: {
-      [s.player1.id]: playerToInfo(s.player1, isP1 || seeBothTiles),
-      [s.player2.id]: playerToInfo(s.player2, isP2 || seeBothTiles),
+      [s.player1.id]: { ...playerToInfo(s.player1, isP1 || seeBothTiles), nickname: maskNick(s.player1.id, s.player1.nickname) },
+      [s.player2.id]: { ...playerToInfo(s.player2, isP2 || seeBothTiles), nickname: maskNick(s.player2.id, s.player2.nickname) },
     },
     firstHint: s.firstDigits != null ? { digits: s.firstDigits } : null,
     revealData: buildRevealData(s, viewerId, seeBothTiles),
-    roundHistory: cloneRoundHistory(s.actionLog, viewerId, seeBothTiles),
-    segmentsHistory: s.segmentsHistory.map((seg) => cloneSegmentSummary(seg, viewerId, seeBothTiles)),
+    roundHistory: cloneRoundHistory(s.actionLog, viewerId, seeBothTiles, s.roomId),
+    segmentsHistory: s.segmentsHistory.map((seg) => cloneSegmentSummary(seg, viewerId, seeBothTiles, s.roomId)),
     rematchIndex: s.rematchIndex,
     finishReason: s.finishReason,
     winner: s.winner,
@@ -239,7 +241,7 @@ function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsigh
   };
 }
 
-function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null, seeBothSides = false): SBNWSegmentSummary {
+function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null, seeBothSides = false, roomId?: string): SBNWSegmentSummary {
   return {
     rematchIndex: seg.rematchIndex,
     firstPlayerIdAtStart: seg.firstPlayerIdAtStart,
@@ -249,7 +251,7 @@ function cloneSegmentSummary(seg: SBNWSegmentSummary, viewerId: string | null, s
     ) as Record<string, Record<SBNWTile, number>>,
     resolution: seg.resolution,
     winnerId: seg.winnerId,
-    rounds: cloneRoundHistory(seg.rounds, viewerId, seeBothSides),
+    rounds: cloneRoundHistory(seg.rounds, viewerId, seeBothSides, roomId),
   };
 }
 

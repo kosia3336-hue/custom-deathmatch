@@ -79,7 +79,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     setInitialChips(chips);
 
     fetchGames()
-      .then((gs) => {
+      .then((gsAll) => {
+        const gs = gsAll.filter((g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT);
         setGames(gs);
         const current = gs.find((g) => g.id === room.gameId) ?? null;
         setSelectedGame(current);

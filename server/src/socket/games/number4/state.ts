@@ -8,6 +8,8 @@ import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnap
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -62,6 +64,8 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   const isPlayer2 = socketId === s.player2.id;
   const isSolo = s.playMode === 'solo';
   const purin = !isSolo && isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
 
   const players: Record<string, NF4PlayerInfo> = {};
 
@@ -69,11 +73,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     players[s.player1.id] = playerToInfo(s.player1, true);
     players[s.player2.id] = playerToInfo(s.player2, true);
   } else {
-    players[s.player1.id] = playerToInfo(s.player1, isPlayer1);
-    players[s.player2.id] = playerToInfo(s.player2, isPlayer2);
+    players[s.player1.id] = { ...playerToInfo(s.player1, isPlayer1), nickname: maskNick(s.player1.id, s.player1.nickname) };
+    players[s.player2.id] = { ...playerToInfo(s.player2, isPlayer2), nickname: maskNick(s.player2.id, s.player2.nickname) };
     if (purin && (isPlayer1 || isPlayer2)) {
       const opp = isPlayer1 ? s.player2 : s.player1;
-      players[opp.id] = playerToInfo(opp, true);
+      players[opp.id] = { ...playerToInfo(opp, true), nickname: maskNick(opp.id, opp.nickname) };
     }
   }
 

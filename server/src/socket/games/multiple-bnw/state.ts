@@ -14,6 +14,8 @@ import type {
 import { judgeMultiple } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -60,15 +62,17 @@ function toClientRoundHistory(history: MBNWRoundActionLog[]): MBNWRoundRecord[] 
 
 /* ────────── broadcasting ────────── */
 
-function phaseMessage(s: InternalState): string {
+function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
+  const maskNick = (p: MBNWPlayerInternal) =>
+    isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname;
   const fp = getFirstPlayer(s);
   const sp = getSecondPlayer(s);
   switch (s.phase) {
-    case 'tileSubmit': return `라운드 ${s.round} — ${fp.nickname}(선플)이 타일을 선택 중...`;
-    case 'tileRespond': return `라운드 ${s.round} — ${sp.nickname}(후플)이 응답 중...`;
-    case 'suspectFirst': return `라운드 ${s.round} — ${fp.nickname}(선플)이 배수의심 여부를 결정 중...`;
-    case 'suspectSecond': return `라운드 ${s.round} — ${sp.nickname}(후플)이 배수의심 여부를 결정 중...`;
+    case 'tileSubmit': return `라운드 ${s.round} — ${maskNick(fp)}(선플)이 타일을 선택 중...`;
+    case 'tileRespond': return `라운드 ${s.round} — ${maskNick(sp)}(후플)이 응답 중...`;
+    case 'suspectFirst': return `라운드 ${s.round} — ${maskNick(fp)}(선플)이 배수의심 여부를 결정 중...`;
+    case 'suspectSecond': return `라운드 ${s.round} — ${maskNick(sp)}(후플)이 배수의심 여부를 결정 중...`;
     case 'result': return `라운드 ${s.round} — 결과`;
     default: return '';
   }
@@ -77,10 +81,12 @@ function phaseMessage(s: InternalState): string {
 function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameData {
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
   const myPlayer = pid === s.player1.id ? s.player1 : pid === s.player2.id ? s.player2 : null;
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== pid ? ANONYMOUS_NICKNAME : nick;
 
   const players: Record<string, MBNWPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1),
-    [s.player2.id]: playerToInfo(s.player2),
+    [s.player1.id]: { ...playerToInfo(s.player1), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
 
   // 잔여 타일은 본인에게만 전달, 상대/관전자에게는 빈 배열
@@ -168,10 +174,10 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
   return base;
 }
 
-function buildGameState(s: InternalState, gameData: MultipleBnwGameData): GameState {
+function buildGameState(s: InternalState, gameData: MultipleBnwGameData, viewerToken: string): GameState {
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerToken),
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
@@ -189,7 +195,7 @@ export async function broadcastState(io: IO, s: InternalState) {
     const raw = gameData as Record<string, unknown>;
     const ext = raw['_purin'];
     if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
-    sock.emit('game:state', buildGameState(s, gameData));
+    sock.emit('game:state', buildGameState(s, gameData, pid));
   }
 }
 
@@ -199,7 +205,7 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const raw = gameData as Record<string, unknown>;
   const ext = raw['_purin'];
   if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
-  socket.emit('game:state', buildGameState(s, gameData));
+  socket.emit('game:state', buildGameState(s, gameData, pid));
 }
 
 /* ────────── timer ────────── */

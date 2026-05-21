@@ -548,8 +548,12 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
 
+    // room:state는 시스템 룸도 전송해야 클라이언트의 gameId가 세팅되어 게임 모듈이 렌더됨
     const clientRoom = maskedClientRoomForSocket(roomId, socket);
     if (clientRoom) socket.emit('room:state', clientRoom);
+
+    // 시스템 룸의 game:state는 event:join 시점에 eventRoomHandlers 가 전송한다.
+    if (roomStore.isSystemRoom(roomId)) return;
 
     gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
   });
@@ -559,6 +563,8 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    // 시스템 룸은 eventRoomHandlers 의 'game:action' 핸들러가 처리
+    if (roomStore.isSystemRoom(roomId)) return;
 
     gameModules[room.gameId]?.handleAction(io, socket, roomId, data);
   });
@@ -568,6 +574,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room) return;
+    if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 무르기 미지원
 
     const myId = getPlayerId(socket);
 
@@ -632,6 +639,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickBan(io, socket, roomId, data.gameId);
   });
 
@@ -640,6 +648,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickNoBan(io, socket, roomId);
   });
 
@@ -648,6 +657,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickReady(io, roomId, getPlayerId(socket));
   });
 
@@ -656,6 +666,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
     const gameId = typeof data?.gameId === 'string' ? data.gameId : null;
     if (!gameId) return;
     handleBanPickUnban(io, socket, roomId, gameId);
@@ -666,6 +677,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickUnbanSkip(socket, roomId, io);
   });
 
@@ -692,6 +704,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
 
     const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
@@ -718,6 +731,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
 
     const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
@@ -741,6 +755,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     const myId = getPlayerId(socket);
     if (!room || room.hostId !== myId) return;
+    if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 종료 미지원
 
     clearPendingUndo(roomId);
     gameModules[room.gameId]?.cleanup(roomId);
@@ -752,6 +767,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing' || !room.isRanked) return;
+    if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 항복 미지원
     const myId = getPlayerId(socket);
     if (!room.players.some((p: Player) => p.id === myId)) return;
     // forfeit 처리(game:ended 방송)만 하고 소켓 방은 유지 — 결과화면을 보여주기 위함
@@ -763,6 +779,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room) return;
+    if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 재시작 미지원
 
     clearAutoEnd(roomId);
 

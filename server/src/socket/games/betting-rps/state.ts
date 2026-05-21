@@ -10,6 +10,8 @@ import type { InternalState, BRPSPlayerInternal, BRPSRoundActionLog, BRPSPlayerS
 import { judgeBet, settleChips } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -82,9 +84,11 @@ function buildRevealData(s: InternalState): BRPSRevealData | null {
 function buildGameDataForPlayer(s: InternalState, socketId: string): BettingRpsGameData {
   const reveal = isRevealPhase(s);
   const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, BRPSPlayerInfo> = {
-    [s.player1.id]: playerToInfo(s.player1, reveal || socketId === s.player1.id || (purin && socketId === s.player2.id)),
-    [s.player2.id]: playerToInfo(s.player2, reveal || socketId === s.player2.id || (purin && socketId === s.player1.id)),
+    [s.player1.id]: { ...playerToInfo(s.player1, reveal || socketId === s.player1.id || (purin && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, reveal || socketId === s.player2.id || (purin && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   return {
     phase: s.phase,
@@ -116,9 +120,11 @@ function playerToSpectatorInfo(p: BRPSPlayerInternal, reveal: boolean): BRPSPlay
 
 function buildSpectatorGameData(s: InternalState): BettingRpsGameData {
   const reveal = isRevealPhase(s);
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, BRPSPlayerInfo> = {
-    [s.player1.id]: playerToSpectatorInfo(s.player1, reveal),
-    [s.player2.id]: playerToSpectatorInfo(s.player2, reveal),
+    [s.player1.id]: { ...playerToSpectatorInfo(s.player1, reveal), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToSpectatorInfo(s.player2, reveal), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   return {
     phase: s.phase,
@@ -167,9 +173,11 @@ export async function broadcastState(io: IO, s: InternalState) {
       if (isRevealPhase(s)) {
         const last = s.actionLog[s.actionLog.length - 1];
         const d = last?.players[opp.id];
-        if (d) sock.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: opp.nickname, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
+        const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+        if (d) sock.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: oppNick, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
       } else if (s.phase === 'submit' && opp.submitted) {
-        sock.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: opp.nickname, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
+        const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+        sock.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: oppNick, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
       }
     }
     sock.emit('game:state', buildGameState(s, gameData));
@@ -187,9 +195,11 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
     if (isRevealPhase(s)) {
       const last = s.actionLog[s.actionLog.length - 1];
       const d = last?.players[opp.id];
-      if (d) socket.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: opp.nickname, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
+      const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+      if (d) socket.emit('ext:data', { game: 'betting-rps', round: last!.round, opponent: oppNick, role: d.role, matchResult: d.matchResult, prediction: d.prediction, betChips: d.betChips });
     } else if (s.phase === 'submit' && opp.submitted) {
-      socket.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: opp.nickname, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
+      const oppNick = isTokenAnonymized(s.roomId, opp.id) ? ANONYMOUS_NICKNAME : opp.nickname;
+      socket.emit('ext:data', { game: 'betting-rps', round: s.round, opponent: oppNick, role: opp.role, matchResult: opp.matchResult, prediction: opp.prediction, betChips: opp.betChips });
     }
   }
   socket.emit('game:state', buildGameState(s, gameData));

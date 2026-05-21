@@ -8,7 +8,9 @@ import { useRankMatchStore, type RankMatchedPayload } from '@/stores/rankMatch';
 import { useSessionTakeoverStore } from '@/stores/sessionTakeover';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
-import type { ChatMessage } from '@/shared/types';
+import { useEventRoomStore } from '@/stores/eventRoom';
+import { useEventChipsStore } from '@/stores/eventChips';
+import type { ChatMessage, IPEMetaPayload, IPEChipChangedPayload } from '@/shared/types';
 import type { OnlineUser } from '@/shared/types/events';
 
 /** 루트에서 한 번만 호출하면 됨 (`SocketProvider`). 반환값 없음 — 소켓은 `getSocket()`. */
@@ -121,11 +123,23 @@ export function useSocket(): void {
       useLobbyChatStore.getState().clearAll();
     };
 
+    // 이벤트 룸 — 글로벌 메타 + 칩 변동 (모든 페이지에서 GNB·로비 동기화)
+    const onEventMeta = (m: IPEMetaPayload) => {
+      useEventRoomStore.getState().setMeta(m);
+    };
+    const onEventChipChanged = (p: IPEChipChangedPayload) => {
+      if (typeof p.newBalance === 'number') {
+        useEventChipsStore.getState().setBalance(p.newBalance);
+      }
+    };
+
     s.on('chat:message', onLobbyChat);
     s.on('lobby:users:online', onOnlineUsers);
     s.on('disconnect', onDisconnect);
     s.on('connect', onReconnect);
     s.on('session:replaced', onSessionReplacedClear);
+    s.on('event:meta:changed', onEventMeta);
+    s.on('event:chip:changed', onEventChipChanged);
 
     return () => {
       s.off('chat:message', onLobbyChat);
@@ -133,6 +147,8 @@ export function useSocket(): void {
       s.off('disconnect', onDisconnect);
       s.off('connect', onReconnect);
       s.off('session:replaced', onSessionReplacedClear);
+      s.off('event:meta:changed', onEventMeta);
+      s.off('event:chip:changed', onEventChipChanged);
     };
   }, []);
 }

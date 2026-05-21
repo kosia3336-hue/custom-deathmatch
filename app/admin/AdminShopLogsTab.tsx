@@ -116,11 +116,13 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
                       <td className="px-3 py-2.5 align-top text-cdm-fg-muted whitespace-nowrap">
                         {labelForType(r.type_snapshot)}
                       </td>
-                      <td className="px-3 py-2.5 align-top text-right tabular-nums text-cdm-fg whitespace-nowrap">
-                        {CDP_ICON} {formatCdp(r.price_paid)}
+                      <td className="px-3 py-2.5 align-top text-right tabular-nums whitespace-nowrap">
+                        <span className={r.price_paid < 0 ? 'text-cdm-primary' : 'text-cdm-fg'}>
+                          {r.price_paid < 0 ? '+' : ''}{CDP_ICON} {formatCdp(Math.abs(r.price_paid))}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 align-top text-right tabular-nums text-cdm-fg-muted whitespace-nowrap">
-                        {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(balanceBefore)}` : '—'}
+                        {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(Math.abs(balanceBefore))}` : '—'}
                       </td>
                       <td className="px-3 py-2.5 align-top text-right tabular-nums text-cdm-fg-muted whitespace-nowrap">
                         {balanceAfter !== null ? `${CDP_ICON} ${formatCdp(balanceAfter)}` : '—'}
@@ -158,9 +160,11 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
                     </span>
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-cdm-fg-muted tabular-nums">
-                    <span>가격 {CDP_ICON} {formatCdp(r.price_paid)}</span>
-                    <span>구매 전 {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(balanceBefore)}` : '—'}</span>
-                    <span>구매 후 {balanceAfter !== null ? `${CDP_ICON} ${formatCdp(balanceAfter)}` : '—'}</span>
+                    <span className={r.price_paid < 0 ? 'text-cdm-primary' : ''}>
+                      {r.price_paid < 0 ? '획득' : '가격'} {r.price_paid < 0 ? '+' : ''}{CDP_ICON} {formatCdp(Math.abs(r.price_paid))}
+                    </span>
+                    <span>전 {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(Math.abs(balanceBefore))}` : '—'}</span>
+                    <span>후 {balanceAfter !== null ? `${CDP_ICON} ${formatCdp(balanceAfter)}` : '—'}</span>
                   </div>
                 </div>
               );

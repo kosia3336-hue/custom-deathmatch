@@ -6,11 +6,13 @@ import { toast } from 'sonner';
 import { Tabs, type TabItem } from '@/components/cdm/Tabs';
 import { EmptyState } from '@/components/cdm/EmptyState';
 import { useCdpStore } from '@/stores/cdp';
+import { useEventChipsStore } from '@/stores/eventChips';
 import { getSocket } from '@/lib/socket';
 import type { ShopItem, PurchaseSuccess, PurchaseError } from '@/lib/cdp/types';
 import { formatCdp } from '@/lib/cdp/format';
 import ShopItemCard from './ShopItemCard';
 import ShopPurchaseModal from './ShopPurchaseModal';
+import ShopEventChipExchange from './ShopEventChipExchange';
 
 interface Props {
   items: ShopItem[];
@@ -27,11 +29,12 @@ interface ItemChangedPayload {
   isActive: boolean;
 }
 
-type TabId = 'all' | 'consumable' | 'title';
+type TabId = 'all' | 'consumable' | 'title' | 'event_chip_pack';
 
 const TAB_FOR_TYPE: Record<string, TabId> = {
   consumable: 'consumable',
   title: 'title',
+  event_chip_pack: 'event_chip_pack',
 };
 
 function effectivePrice(price: number, discount: boolean): number {
@@ -50,11 +53,18 @@ export default function ShopClient({
   const sp = useSearchParams();
   const setBalance = useCdpStore((s) => s.setBalance);
   const balance = useCdpStore((s) => s.balance) ?? initialBalance;
+  const setEventChipBalance = useEventChipsStore((s) => s.setBalance);
 
   const [items, setItems] = useState<ShopItem[]>(initialItems);
   const [owned, setOwned] = useState<Set<string>>(() => new Set(ownedIds));
   const [activeTab, setActiveTab] = useState<TabId>(() => {
-    if (initialType === 'consumable' || initialType === 'title') return initialType;
+    if (
+      initialType === 'consumable' ||
+      initialType === 'title' ||
+      initialType === 'event_chip_pack'
+    ) {
+      return initialType;
+    }
     return 'all';
   });
   const [openItem, setOpenItem] = useState<ShopItem | null>(null);
@@ -90,10 +100,12 @@ export default function ShopClient({
   const tabs: TabItem[] = useMemo(() => {
     const cConsumable = items.filter((i) => TAB_FOR_TYPE[i.type] === 'consumable').length;
     const cTitle = items.filter((i) => TAB_FOR_TYPE[i.type] === 'title').length;
+    const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length;
     return [
       { id: 'all', label: '전체', count: items.length },
       { id: 'consumable', label: '🎟 소모성', count: cConsumable },
       { id: 'title', label: '🏆 칭호', count: cTitle },
+      { id: 'event_chip_pack', label: '🪙 이벤트', count: cChip },
     ];
   }, [items]);
 
@@ -152,19 +164,25 @@ export default function ShopClient({
 
       const ok = json as PurchaseSuccess;
       setBalance(ok.newBalance);
-      setOwned((prev) => {
-        const n = new Set(prev);
-        n.add(item.id);
-        return n;
-      });
+
+      // 이벤트 칩 팩이면 보유 갱신은 스킵 (반복 구매 허용), 칩 잔액만 갱신
+      const payload = (item.payload ?? {}) as { kind?: string };
+      const isEventChipPack = payload.kind === 'event_chip_pack' || ok.kind === 'event_chip_pack';
+
+      if (!isEventChipPack) {
+        setOwned((prev) => {
+          const n = new Set(prev);
+          n.add(item.id);
+          return n;
+        });
+      }
       setItems((prev) =>
         prev.map((it) =>
           it.id === item.id ? { ...it, stock: ok.stockAfter ?? it.stock } : it,
         ),
       );
 
-      // 거상 칭호 신규 부여 시 즉시 할인 적용 ON (GNB 칩에도 broadcast)
-      const payload = (item.payload ?? {}) as { kind?: string };
+      // 거상 칭호 신규 부여 시 즉시 할인 적용 ON
       if (payload.kind === 'first_merchant') {
         setHasMerchantDiscount(true);
         if (typeof window !== 'undefined') {
@@ -174,6 +192,14 @@ export default function ShopClient({
         }
       }
 
+      if (isEventChipPack && typeof ok.newChipBalance === 'number') {
+        setEventChipBalance(ok.newChipBalance);
+        toast.success(
+          `🪙 이벤트 칩 +${ok.grantedChips ?? 0}개! 보유 ${ok.newChipBalance}칩 / CDP ${formatCdp(ok.newBalance)}`,
+        );
+        return true;
+      }
+
       const dispPrice = ok.pricePaid ?? expected;
       const discounted = ok.discountApplied && ok.discountApplied > 0;
       toast.success(
@@ -181,7 +207,6 @@ export default function ShopClient({
           ? `${item.name} 구매 완료! (할인 -${formatCdp(ok.discountApplied!)}) 잔액 ${formatCdp(ok.newBalance)} CDP`
           : `${item.name} 구매 완료! 잔액 ${formatCdp(ok.newBalance)} CDP`,
       );
-      // dispPrice 자체는 토스트에 별도 표시하지 않음 (간결).
       void dispPrice;
       return true;
     } catch {
@@ -200,6 +225,8 @@ export default function ShopClient({
       )}
 
       <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
+
+      {activeTab === 'event_chip_pack' && <ShopEventChipExchange />}
 
       {visibleItems.length === 0 ? (
         <EmptyState

@@ -202,7 +202,8 @@ export default function GameShell({ children }: Props) {
 
   /* ── 푸터 슬롯: 닉네임 + 무르기 + 관전자 수 ── */
   useEffect(() => {
-    const showUndo = !isSpectator && !!room && !isRankedRoom;
+    const isEventRoom = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT;
+    const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom;
 
     setFooter(
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">
@@ -226,7 +227,7 @@ export default function GameShell({ children }: Props) {
               무르기
             </Button>
           )}
-          {isRankedRoom && !isSpectator && (
+          {isRankedRoom && !isSpectator && !isEventRoom && (
             <Button
               type="button"
               size="sm"

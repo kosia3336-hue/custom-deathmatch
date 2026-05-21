@@ -11,6 +11,9 @@ import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
 import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
+import { sessions } from '../../../store/sessions.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -24,7 +27,9 @@ function randDelay(): number {
 
 /* ────────────────────── broadcasting ─────────────────── */
 
-function toGameData(s: InternalState): FourGravityGameData {
+function toGameData(s: InternalState, viewerToken: string): FourGravityGameData {
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
   return {
     board: s.board,
     currentPlayer: s.currentPlayer,
@@ -35,8 +40,8 @@ function toGameData(s: InternalState): FourGravityGameData {
     movedPosition: s.movedPosition,
     neutralCandidates: s.neutralCandidates,
     players: {
-      black: { ...s.blackPlayer },
-      white: { ...s.whitePlayer },
+      black: { ...s.blackPlayer, nickname: maskNick(s.blackPlayer.id, s.blackPlayer.nickname) },
+      white: { ...s.whitePlayer, nickname: maskNick(s.whitePlayer.id, s.whitePlayer.nickname) },
     },
     neutralCount: s.neutralCount,
     winner: s.winner,
@@ -69,7 +74,7 @@ function phaseMessage(s: InternalState): string {
   }
 }
 
-function buildGameState(s: InternalState): GameState {
+function buildGameState(s: InternalState, viewerToken: string): GameState {
   return {
     roomId: s.roomId,
     message: phaseMessage(s),
@@ -77,16 +82,22 @@ function buildGameState(s: InternalState): GameState {
     turnNumber: s.turnNumber,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
-    gameData: toGameData(s),
+    gameData: toGameData(s, viewerToken),
   };
 }
 
-export function broadcastState(io: IO, s: InternalState) {
-  io.to(socketRoom(s.roomId)).emit('game:state', buildGameState(s));
+export async function broadcastState(io: IO, s: InternalState) {
+  const room = socketRoom(s.roomId);
+  const sockets = await io.in(room).fetchSockets();
+  for (const sock of sockets) {
+    const pid = sessions.getToken(sock.id) ?? sock.id;
+    sock.emit('game:state', buildGameState(s, pid));
+  }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
-  socket.emit('game:state', buildGameState(s));
+  const pid = sessions.getToken(socket.id) ?? socket.id;
+  socket.emit('game:state', buildGameState(s, pid));
 }
 
 /* ────────────────────── game-over handlers ───────────── */

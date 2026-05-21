@@ -88,7 +88,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setInitialChips(25);
     setBanCount(3);
     fetchGames()
-      .then(setGames)
+      .then((all) => setGames(all.filter((g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT)))
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
   }, [open]);
 

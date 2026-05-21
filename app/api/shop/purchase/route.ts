@@ -105,6 +105,79 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = getSupabaseServiceRole();
+
+  // ── 이벤트 칩 팩 분기: purchase_event_chip_pack RPC 호출 ─────────────
+  // shop_items.payload.kind === 'event_chip_pack' 이면 별도 처리 (이중 거래 ledger 기록)
+  try {
+    const { data: itemRow } = await sb
+      .from('shop_items')
+      .select('id, type, payload')
+      .eq('id', itemId)
+      .maybeSingle();
+    const payload = (itemRow as { payload?: { kind?: string } } | null)?.payload ?? {};
+    if (payload.kind === 'event_chip_pack') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: epData, error: epErr } = await (sb.rpc as any)('purchase_event_chip_pack', {
+        p_member_id: member.id,
+        p_shop_item_id: itemId,
+      });
+      if (epErr) {
+        const msg = (epErr as { message?: string }).message ?? '';
+        let code: PurchaseErrorCode = 'internal_error';
+        let userMsg = '구매 중 오류가 발생했어요.';
+        let status = 500;
+        if (msg.includes('insufficient_balance')) {
+          code = 'insufficient_balance';
+          userMsg = 'CDP가 부족해요.';
+          status = 402;
+        } else if (msg.includes('item_not_found')) {
+          code = 'item_not_found';
+          userMsg = '아이템을 찾을 수 없어요.';
+          status = 404;
+        }
+        console.warn(
+          `[shop:purchase:event_chip] 실패 ${code} member=${member.id} item=${itemId} msg=${msg}`,
+        );
+        return NextResponse.json({ error: userMsg, code }, { status });
+      }
+      const epRow = (Array.isArray(epData) ? epData[0] : epData) as {
+        new_cdp_balance: number;
+        new_chip_balance: number;
+        granted_chips: number;
+        price_paid: number;
+      };
+      console.log(
+        `[shop:purchase:event_chip] member=${member.id} chips=+${epRow.granted_chips} cdp=-${epRow.price_paid} newCdp=${epRow.new_cdp_balance} newChip=${epRow.new_chip_balance}`,
+      );
+
+      void notifyCdpAdjusted({
+        memberId: member.id,
+        newBalance: Number(epRow.new_cdp_balance),
+        delta: -Number(epRow.price_paid),
+        reason: 'shop_purchase',
+        ref: { kind: 'event_chip_pack', id: itemId },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        kind: 'event_chip_pack',
+        newBalance: Number(epRow.new_cdp_balance),
+        pricePaid: Number(epRow.price_paid),
+        priceOriginal: Number(epRow.price_paid),
+        discountApplied: 0,
+        stockAfter: null,
+        grantedChips: Number(epRow.granted_chips),
+        newChipBalance: Number(epRow.new_chip_balance),
+        grantedTitleId: null,
+        consumableKind: null,
+        consumableAdded: 0,
+      });
+    }
+  } catch (err) {
+    console.warn('[shop:purchase] event chip 분기 검사 실패:', (err as Error).message);
+    // 실패해도 기본 흐름으로 진행
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb.rpc as any)('purchase_shop_item', {
     p_member_id: member.id,

@@ -11,8 +11,10 @@ import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { GAME_IDS } from '@/shared/types';
 import type { Game, JoinRoomResult } from '@/shared/types';
 import RankLobbyControls from '@/components/lobby/RankLobbyControls';
+import EventLobbyControls from '@/components/lobby/EventLobbyControls';
 
 interface Props {
   onCreateRoom: () => void;
@@ -27,7 +29,9 @@ export default function ActionBar({ onCreateRoom }: Props) {
   const [quickJoining, setQuickJoining] = useState(false);
 
   useEffect(() => {
-    fetchGames().then(setGames).catch(() => {});
+    fetchGames()
+      .then((all) => setGames(all.filter((g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT)))
+      .catch(() => {});
   }, []);
 
   const handleQuickJoin = () => {
@@ -73,6 +77,7 @@ export default function ActionBar({ onCreateRoom }: Props) {
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <RankLobbyControls />
+        <EventLobbyControls />
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장
         </Button>

@@ -13,6 +13,8 @@ import { deal, checkDeckReset } from './deck.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
 import { aiTakeTurn } from './ai.js';
+import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -57,6 +59,8 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
   const p2 = s.players[s.player2Id];
   const purin = p1 && p2 && isPurinInsightViewer(s.playMode, viewerId, p1, p2);
 
+  const maskNick = (id: string, nick: string) =>
+    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, IPPlayerInfo> = {};
   for (const [pid, p] of Object.entries(s.players)) {
     let canSeeCard: boolean;
@@ -67,7 +71,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
     } else {
       canSeeCard = pid !== viewerId || !!purin;
     }
-    players[pid] = playerToInfo(p, canSeeCard);
+    players[pid] = { ...playerToInfo(p, canSeeCard), nickname: maskNick(pid, p.nickname) };
   }
 
   return {
@@ -95,22 +99,25 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
   };
 }
 
-function phaseMessage(s: InternalState): string {
+function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   if (s.phase === 'dealing') return `라운드 ${s.round} — 딜링 중...`;
   if (s.phase === 'betting') {
     const current = s.players[s.currentTurnId!];
-    return `라운드 ${s.round} — ${current?.nickname ?? ''}의 베팅 차례`;
+    const nick = current
+      ? (isTokenAnonymized(s.roomId, current.id) && current.id !== viewerToken ? ANONYMOUS_NICKNAME : current.nickname)
+      : '';
+    return `라운드 ${s.round} — ${nick}의 베팅 차례`;
   }
   if (s.phase === 'showdown') return `라운드 ${s.round} — 쇼다운!`;
   if (s.phase === 'dieResult') return `라운드 ${s.round} — 다이`;
   return '';
 }
 
-function buildGameState(s: InternalState, gameData: IndianPokerGameData): GameState {
+function buildGameState(s: InternalState, gameData: IndianPokerGameData, viewerToken: string): GameState {
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerToken),
     currentTurn: s.currentTurnId,
     turnNumber: s.totalBettingActions,
     startedAt: s.startedAt,
@@ -139,7 +146,7 @@ export async function broadcastState(io: IO, s: InternalState) {
         sock.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'dieResult', dieData: s.dieData });
       }
     }
-    sock.emit('game:state', buildGameState(s, gameData));
+    sock.emit('game:state', buildGameState(s, gameData, pid));
   }
 }
 
@@ -158,7 +165,7 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
       socket.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'dieResult', dieData: s.dieData });
     }
   }
-  socket.emit('game:state', buildGameState(s, gameData));
+  socket.emit('game:state', buildGameState(s, gameData, pid));
 }
 
 /* ────────────────────── turn timer ──────────────────── */

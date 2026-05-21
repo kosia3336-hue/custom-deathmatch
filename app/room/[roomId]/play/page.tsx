@@ -9,6 +9,7 @@ import FourGravityGame from '@/components/game/modules/four-gravity';
 import DoubleSidedChessGame from '@/components/game/modules/double-sided-chess';
 import NumberFourGame from '@/components/game/modules/number4';
 import IndianPokerGame from '@/components/game/modules/indian-poker';
+import IndianPokerEventGame from '@/components/game/modules/indian-poker-event';
 import InvestDonateGame from '@/components/game/modules/invest-donate';
 import BettingRpsGame from '@/components/game/modules/betting-rps';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
@@ -31,6 +32,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.DOUBLE_SIDED_CHESS]: DoubleSidedChessGame,
   [GAME_IDS.NUMBER_FOUR]: NumberFourGame,
   [GAME_IDS.INDIAN_POKER]: IndianPokerGame,
+  [GAME_IDS.INDIAN_POKER_EVENT]: IndianPokerEventGame,
   [GAME_IDS.INVEST_DONATE]: InvestDonateGame,
   [GAME_IDS.BETTING_RPS]: BettingRpsGame,
   [GAME_IDS.MULTIPLE_BNW]: MultipleBnwGame,

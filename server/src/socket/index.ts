@@ -8,6 +8,7 @@ import { registerRoomHandlers, handleLeaveRoom } from './room.js';
 import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { registerRankQueueHandlers } from './rankQueue.js';
+import { registerEventRoomHandlers, eventRoom, EVENT_ROOM_KEY, EVENT_SOCKET_CHANNEL } from './eventRoomHandlers.js';
 import { socketRoom, maskedClientRoomFor } from './utils.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
@@ -21,6 +22,8 @@ type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 const RECONNECT_GRACE_PLAYING = 30_000;
 
 export function setupSocketHandlers(io: IO) {
+  // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
+  eventRoom.init(io);
   // ── v2 — connect 핸드셰이크에서 Supabase access_token 검증 ──────────────
   // accessToken 있으면 회원 검증 후 socket.data.member 세팅.
   // 없거나 실패하면 게스트로 연결 허용 (로비 관전 전용 — 방 생성/입장은 닉네임 체크로 차단).
@@ -130,6 +133,17 @@ export function setupSocketHandlers(io: IO) {
         // 재연결 유예 타이머 취소
         sessions.clearPendingDisconnect(token);
 
+        // ── 이벤트 룸 재연결 ────────────────────────────────────────────
+        if (roomId === EVENT_ROOM_KEY) {
+          socket.leave(LOBBY_ROOM);
+          socket.join(EVENT_SOCKET_CHANNEL);
+          // room:state + event:state 재전송 (fire-and-forget)
+          void eventRoom.rejoinSocket(socket, token);
+          // roomId 전달해 클라이언트가 /room/{id}/play 로 복원 가능
+          socket.emit('session:restored', { nickname, roomId });
+          return;
+        }
+
         if (roomId) {
           const room = roomStore.get(roomId);
           if (room) {
@@ -175,6 +189,7 @@ export function setupSocketHandlers(io: IO) {
     registerGameHandlers(io, socket);
     registerChatHandlers(io, socket);
     registerRankQueueHandlers(io, socket);
+    registerEventRoomHandlers(io, socket);
 
     // ── 연결 끊김 ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
@@ -184,6 +199,26 @@ export function setupSocketHandlers(io: IO) {
       const token = sessions.getToken(socket.id);
       const roomId = sessions.getRoom(socket.id);
 
+      // ── 이벤트 룸 처리 ──────────────────────────────────────────────────
+      if (token && roomId === EVENT_ROOM_KEY) {
+        if (eventRoom.isSeatedAndInGame(token)) {
+          // 게임 진행 중 좌석 플레이어: 30초 재연결 유예
+          const timer = setTimeout(() => {
+            eventRoom.forceLeaveByToken(token);
+            sessions.removeSession(socket.id);
+            if (wasMember) broadcastOnlineUsers(io);
+          }, RECONNECT_GRACE_PLAYING);
+          sessions.setPendingDisconnect(token, timer);
+        } else {
+          // 관전/대기 중: 즉시 퇴장 (leave() 내부에서 sessions.clearRoom 처리)
+          eventRoom.handleDisconnect(socket);
+          sessions.removeSession(socket.id);
+        }
+        if (wasMember) broadcastOnlineUsers(io);
+        return;
+      }
+
+      // ── 일반 게임 룸 처리 ─────────────────────────────────────────────
       if (token && roomId) {
         const room = roomStore.get(roomId);
         // token = Player.id 이므로 직접 비교
