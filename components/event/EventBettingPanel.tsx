@@ -14,12 +14,10 @@ interface Props {
 }
 
 export default function EventBettingPanel({ mySeat, gameData, isMyTurn }: Props) {
+  const [showRaise, setShowRaise] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState<number>(gameData.currentBet + 1);
 
-  // 라운드 베팅 변경 시 raise 최소값을 따라가게
-  // (간단히 currentBet+1 을 기본으로)
   const minRaise = Math.max(gameData.currentBet + 1, 1);
-  // 생존 플레이어 중 최소 칩 기준 (올인 방지)
   const minChipsAlive = Math.min(
     ...gameData.seats.filter((s) => s?.isAlive).map((s) => s!.chips + (s!.roundBet ?? 0)),
     mySeat.roundBet + mySeat.chips,
@@ -29,12 +27,14 @@ export default function EventBettingPanel({ mySeat, gameData, isMyTurn }: Props)
   const canCheck = !gameData.bettingStarted && mySeat.roundBet >= gameData.currentBet;
   const canCall = !canCheck && callCost > 0 && mySeat.chips >= callCost;
   const canRaise = mySeat.chips > callCost && minRaise <= maxRaise;
-  const canDie = true;
+  const isAllIn = canRaise && maxRaise === mySeat.roundBet + mySeat.chips;
 
   const safeRaise = Math.max(minRaise, Math.min(maxRaise, raiseAmount));
 
   const send = (data: Record<string, unknown>) => {
     getSocket().emit('game:action', data);
+    setShowRaise(false);
+    setRaiseAmount(minRaise);
   };
 
   if (!isMyTurn) {
@@ -42,9 +42,7 @@ export default function EventBettingPanel({ mySeat, gameData, isMyTurn }: Props)
       <div className="flex h-full flex-col items-center justify-center gap-2 rounded-cdm-md border border-cdm-border bg-cdm-bg p-4 text-sm text-cdm-fg-muted">
         <div>상대 차례를 기다리는 중...</div>
         {gameData.phase === 'betting' && gameData.currentTurnSeatIdx !== null && (
-          <div className="text-xs">
-            좌석 {gameData.currentTurnSeatIdx + 1} 의 베팅 중
-          </div>
+          <div className="text-xs">좌석 {gameData.currentTurnSeatIdx + 1} 베팅 중</div>
         )}
       </div>
     );
@@ -54,68 +52,92 @@ export default function EventBettingPanel({ mySeat, gameData, isMyTurn }: Props)
     <div className="flex h-full flex-col gap-3 rounded-cdm-md border border-cdm-primary bg-cdm-primary/5 p-3 sm:p-4">
       <div className="text-xs font-bold uppercase tracking-wider text-cdm-primary">내 차례</div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          variant="secondary"
-          disabled={!canCheck}
-          onClick={() => { sfxCall(); send({ type: 'check' }); }}
-          className={cn(!canCheck && 'opacity-40')}
-        >
-          체크
-        </Button>
-        <Button
-          variant="primary"
-          disabled={!canCall}
-          onClick={() => { sfxCall(); send({ type: 'call' }); }}
-          className={cn(!canCall && 'opacity-40')}
-        >
-          콜 {callCost > 0 ? `(${callCost})` : ''}
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs text-cdm-fg-muted">
-          <span>레이즈 (최소 {minRaise} / 최대 {maxRaise})</span>
-          <span className="tabular-nums">총 {safeRaise}</span>
+      {showRaise ? (
+        <div className="flex flex-col gap-2 rounded-lg border border-cdm-border bg-cdm-bg/60 p-3">
+          <div className="flex items-center justify-between text-xs text-cdm-fg-muted">
+            <span>레이즈 금액</span>
+            <span className="tabular-nums">최소 {minRaise} · 최대 {maxRaise}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={minRaise}
+              max={Math.max(maxRaise, minRaise)}
+              value={safeRaise}
+              onChange={(e) => setRaiseAmount(Number(e.target.value))}
+              className="flex-1 accent-cdm-primary"
+            />
+            <input
+              type="number"
+              min={minRaise}
+              max={maxRaise}
+              value={safeRaise}
+              onChange={(e) => setRaiseAmount(Math.trunc(Number(e.target.value) || minRaise))}
+              className="h-8 w-16 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 text-sm tabular-nums"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              onClick={() => { sfxRaise(); send({ type: 'raise', amount: safeRaise }); }}
+              className="flex-1"
+            >
+              레이즈 ({safeRaise})
+            </Button>
+            {isAllIn && (
+              <Button
+                variant="secondary"
+                onClick={() => { sfxRaise(); send({ type: 'raise', amount: maxRaise }); }}
+                className="whitespace-nowrap font-semibold"
+              >
+                올인
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setShowRaise(false)}>
+              취소
+            </Button>
+          </div>
         </div>
-        <input
-          type="range"
-          min={minRaise}
-          max={Math.max(maxRaise, minRaise)}
-          value={safeRaise}
-          disabled={!canRaise}
-          onChange={(e) => setRaiseAmount(Number(e.target.value))}
-          className="w-full accent-cdm-primary"
-        />
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={minRaise}
-            max={maxRaise}
-            value={safeRaise}
-            disabled={!canRaise}
-            onChange={(e) => setRaiseAmount(Math.trunc(Number(e.target.value) || minRaise))}
-            className="h-9 w-20 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 text-sm tabular-nums"
-          />
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {canCheck ? (
+            <Button variant="secondary" onClick={() => { sfxCall(); send({ type: 'check' }); }}>
+              체크
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              disabled={!canCall}
+              onClick={() => { sfxCall(); send({ type: 'call' }); }}
+              className={cn(!canCall && 'opacity-40')}
+            >
+              {callCost > 0 ? `콜 (${callCost})` : '콜'}
+            </Button>
+          )}
           <Button
-            variant="primary"
+            variant="secondary"
             disabled={!canRaise}
-            onClick={() => { sfxRaise(); send({ type: 'raise', amount: safeRaise }); }}
-            className={cn('flex-1', !canRaise && 'opacity-40')}
+            onClick={() => { setRaiseAmount(minRaise); setShowRaise(true); }}
+            className={cn(!canRaise && 'opacity-40')}
           >
             레이즈
           </Button>
+          <Button
+            variant="secondary"
+            disabled={!canRaise}
+            onClick={() => { sfxRaise(); send({ type: 'raise', amount: maxRaise }); }}
+            className={cn(
+              'font-semibold text-amber-700 ring-1 ring-amber-300 hover:bg-amber-50 disabled:ring-0',
+              !canRaise && 'opacity-40',
+            )}
+          >
+            {isAllIn ? '올인' : `올인 (${maxRaise})`}
+          </Button>
+          <Button variant="danger" onClick={() => { sfxDie(); send({ type: 'die' }); }}>
+            다이
+          </Button>
         </div>
-      </div>
-
-      <Button
-        variant="danger"
-        disabled={!canDie}
-        onClick={() => { sfxDie(); send({ type: 'die' }); }}
-      >
-        다이
-      </Button>
-
+      )}
     </div>
   );
 }

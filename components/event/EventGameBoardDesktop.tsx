@@ -13,6 +13,7 @@ import {
   type IPEPlayerInfo,
   type IPEGameData,
   type IPEPhase,
+  type IPEBettingActionRecord,
 } from '@/shared/types';
 import Button from '@/components/ui/Button';
 import EventHandResultBanner from './EventHandResultBanner';
@@ -68,13 +69,14 @@ function TurnTimer({ turnStartedAt }: { turnStartedAt: number | null }) {
 
 // ─── 상대 좌석 카드 ────────────────────────────────────────────────
 function OpponentCard({
-  seatIdx, seat, isCurrentTurn, isFirstActor, showChipHint,
+  seatIdx, seat, isCurrentTurn, isFirstActor, showChipHint, bettingActions,
 }: {
   seatIdx: number;
   seat: IPEPlayerInfo | null;
   isCurrentTurn: boolean;
   isFirstActor: boolean;
   showChipHint: boolean;
+  bettingActions: IPEBettingActionRecord[];
 }) {
   // 카드 딜 SFX
   const prevCardRef = useRef<number | null | undefined>(undefined);
@@ -98,6 +100,19 @@ function OpponentCard({
     }
     prevRoundBetRef.current = cur;
   }, [seat?.roundBet]);
+
+  // 체크 플로팅 텍스트
+  const [checkKey, setCheckKey] = useState(0);
+  const prevActionsLenRef = useRef(0);
+  useEffect(() => {
+    if (bettingActions.length > prevActionsLenRef.current) {
+      const latest = bettingActions[bettingActions.length - 1];
+      if (latest?.seatIdx === seatIdx && latest.action === 'check') {
+        setCheckKey((k) => k + 1);
+      }
+    }
+    prevActionsLenRef.current = bettingActions.length;
+  }, [bettingActions, seatIdx]);
 
   if (!seat) {
     return (
@@ -142,12 +157,27 @@ function OpponentCard({
         )}
       </AnimatePresence>
 
+      {/* 체크 플로팅 텍스트 */}
+      <AnimatePresence>
+        {checkKey > 0 && (
+          <motion.div
+            key={`check-${checkKey}`}
+            initial={{ y: 0, opacity: 1, scale: 1 }}
+            animate={{ y: -28, opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2 rounded-full bg-cdm-fg-muted/80 px-2 py-0.5 text-[9px] font-bold text-white"
+          >
+            체크
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex w-full items-center justify-between text-[10px] text-cdm-fg-muted">
         <span>좌석 {seatIdx + 1}</span>
         {isFirstActor && <span className="font-bold text-cdm-highlight">선</span>}
       </div>
 
-      {/* 카드 — 애니메이션 적용 */}
+      {/* 카드 */}
       <div
         className={cn(
           'relative flex h-16 w-11 items-center justify-center rounded-lg border-2 bg-cdm-bg-elev-1 font-bold',
@@ -288,9 +318,10 @@ function DesktopBettingPanel({
   gameData: IPEGameData;
   isMyTurn: boolean;
 }) {
+  const [showRaise, setShowRaise] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState<number>(gameData.currentBet + 1);
+
   const minRaise = Math.max(gameData.currentBet + 1, 1);
-  // 생존 플레이어 중 최소 칩 기준 (올인 방지)
   const minChipsAlive = Math.min(
     ...gameData.seats.filter((s) => s?.isAlive).map((s) => s!.chips + (s!.roundBet ?? 0)),
     mySeat.roundBet + mySeat.chips,
@@ -300,9 +331,14 @@ function DesktopBettingPanel({
   const canCheck = !gameData.bettingStarted && mySeat.roundBet >= gameData.currentBet;
   const canCall = !canCheck && callCost > 0 && mySeat.chips >= callCost;
   const canRaise = mySeat.chips > callCost && minRaise <= maxRaise;
+  const isAllIn = canRaise && maxRaise === mySeat.roundBet + mySeat.chips;
   const safeRaise = Math.max(minRaise, Math.min(maxRaise, raiseAmount));
 
-  const send = (data: Record<string, unknown>) => getSocket().emit('game:action', data);
+  const send = (data: Record<string, unknown>) => {
+    getSocket().emit('game:action', data);
+    setShowRaise(false);
+    setRaiseAmount(minRaise);
+  };
 
   if (!isMyTurn) {
     return (
@@ -325,52 +361,72 @@ function DesktopBettingPanel({
         <span className="text-sm font-bold uppercase tracking-wider text-cdm-primary">내 차례</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="secondary" size="md" disabled={!canCheck} onClick={() => { sfxCall(); send({ type: 'check' }); }} className={cn(!canCheck && 'opacity-40')}>
-          체크
-        </Button>
-        <Button variant="primary" size="md" disabled={!canCall} onClick={() => { sfxCall(); send({ type: 'call' }); }} className={cn(!canCall && 'opacity-40')}>
-          콜 {callCost > 0 ? `(${callCost})` : ''}
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-1.5 rounded-lg bg-cdm-bg/60 p-2.5">
-        <div className="flex items-center justify-between text-xs text-cdm-fg-muted">
-          <span>레이즈</span>
-          <span className="tabular-nums">최소 {minRaise} · 최대 {maxRaise}</span>
+      {showRaise ? (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-cdm-bg/60 p-2.5">
+          <div className="flex items-center justify-between text-xs text-cdm-fg-muted">
+            <span>레이즈</span>
+            <span className="tabular-nums">최소 {minRaise} · 최대 {maxRaise}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={minRaise}
+              max={Math.max(maxRaise, minRaise)}
+              value={safeRaise}
+              onChange={(e) => setRaiseAmount(Number(e.target.value))}
+              className="flex-1 accent-cdm-primary"
+            />
+            <input
+              type="number"
+              min={minRaise}
+              max={maxRaise}
+              value={safeRaise}
+              onChange={(e) => setRaiseAmount(Math.trunc(Number(e.target.value) || minRaise))}
+              className="h-8 w-20 rounded-lg border border-cdm-border bg-cdm-bg px-2 text-sm tabular-nums"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="primary" size="md" onClick={() => { sfxRaise(); send({ type: 'raise', amount: safeRaise }); }} className="flex-1">
+              레이즈 ({safeRaise})
+            </Button>
+            {isAllIn && (
+              <Button variant="secondary" size="md" onClick={() => { sfxRaise(); send({ type: 'raise', amount: maxRaise }); }} className="whitespace-nowrap font-semibold">
+                올인
+              </Button>
+            )}
+            <Button variant="secondary" size="md" onClick={() => setShowRaise(false)}>
+              취소
+            </Button>
+          </div>
         </div>
-        <input
-          type="range"
-          min={minRaise}
-          max={Math.max(maxRaise, minRaise)}
-          value={safeRaise}
-          disabled={!canRaise}
-          onChange={(e) => setRaiseAmount(Number(e.target.value))}
-          className="w-full accent-cdm-primary disabled:opacity-40"
-        />
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={minRaise}
-            max={maxRaise}
-            value={safeRaise}
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {canCheck ? (
+            <Button variant="secondary" size="md" onClick={() => { sfxCall(); send({ type: 'check' }); }}>
+              체크
+            </Button>
+          ) : (
+            <Button variant="primary" size="md" disabled={!canCall} onClick={() => { sfxCall(); send({ type: 'call' }); }} className={cn(!canCall && 'opacity-40')}>
+              {callCost > 0 ? `콜 (${callCost})` : '콜'}
+            </Button>
+          )}
+          <Button variant="secondary" size="md" disabled={!canRaise} onClick={() => { setRaiseAmount(minRaise); setShowRaise(true); }} className={cn(!canRaise && 'opacity-40')}>
+            레이즈
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
             disabled={!canRaise}
-            onChange={(e) => setRaiseAmount(Math.trunc(Number(e.target.value) || minRaise))}
-            className="h-8 w-20 rounded-lg border border-cdm-border bg-cdm-bg px-2 text-sm tabular-nums disabled:opacity-40"
-          />
-          <Button variant="primary" size="md" disabled={!canRaise} onClick={() => { sfxRaise(); send({ type: 'raise', amount: safeRaise }); }} className={cn('flex-1', !canRaise && 'opacity-40')}>
-            레이즈 ({safeRaise})
+            onClick={() => { sfxRaise(); send({ type: 'raise', amount: maxRaise }); }}
+            className={cn('font-semibold text-amber-700 ring-1 ring-amber-300 hover:bg-amber-50 disabled:ring-0', !canRaise && 'opacity-40')}
+          >
+            {isAllIn ? '올인' : `올인 (${maxRaise})`}
+          </Button>
+          <Button variant="danger" size="md" onClick={() => { sfxDie(); send({ type: 'die' }); }}>
+            다이
           </Button>
         </div>
-      </div>
-
-      <Button
-        variant="danger"
-        size="md"
-        onClick={() => { sfxDie(); send({ type: 'die' }); }}
-      >
-        다이
-      </Button>
+      )}
     </div>
   );
 }
@@ -449,8 +505,16 @@ export default function EventGameBoardDesktop({ state }: Props) {
         </div>
       </div>
 
-      {/* 본문 — 상대/팟/내자리 순으로 세로 쌓기, 남는 공간은 justify-evenly 로 균등 배분 */}
+      {/* 본문 */}
       <div className="flex min-h-0 flex-1 flex-col items-center justify-evenly gap-3 px-5 py-3">
+
+        {/* 딜링 중 안내 */}
+        {gameData.phase === 'dealing' && (
+          <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-cdm-border bg-cdm-bg py-4">
+            <span className="animate-pulse text-cdm-fg-muted">● ● ●</span>
+            <span className="text-sm text-cdm-fg-muted">카드를 배분하는 중...</span>
+          </div>
+        )}
 
         {/* 상대 좌석 */}
         <div className="flex flex-wrap justify-center gap-2">
@@ -462,6 +526,7 @@ export default function EventGameBoardDesktop({ state }: Props) {
               isCurrentTurn={gameData.currentTurnSeatIdx === seatIdx}
               isFirstActor={gameData.firstActorSeatIdx === seatIdx}
               showChipHint={chipHint}
+              bettingActions={gameData.bettingActions}
             />
           ))}
         </div>
@@ -469,7 +534,7 @@ export default function EventGameBoardDesktop({ state }: Props) {
         {/* 팟 (한 줄) */}
         <DesktopPot pot={gameData.pot} communityCards={gameData.communityCards} phase={gameData.phase} />
 
-        {/* 내 자리 + 베팅 패널 — 자연 높이(컨텐츠 크기)만큼만 */}
+        {/* 내 자리 + 베팅 패널 */}
         {isPlayer && mySeat ? (
           <div className="flex w-full max-w-2xl items-start gap-3">
             <MyCard

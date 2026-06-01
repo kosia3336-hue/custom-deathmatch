@@ -1,4 +1,5 @@
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { GAME_IDS } from '@shared/types/game.js';
 import { getGames } from '../../../routes/games.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
@@ -459,7 +460,8 @@ export async function initBanPick(
   if (prev) cleanupBanPick(roomId);
 
   const allGames = getGames().filter((g) =>
-    playMode === 'com' ? g.supportsCom : g.supportsMulti,
+    (playMode === 'com' ? g.supportsCom : g.supportsMulti)
+    && g.id !== GAME_IDS.INDIAN_POKER_EVENT,
   );
   const maxBanCount = Math.floor((allGames.length - 1) / 2);
   const rawBanCount = typeof gameOptions?.banCount === 'number' ? gameOptions.banCount : 3;

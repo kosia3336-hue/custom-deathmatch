@@ -109,7 +109,6 @@ export default function EventGameBoard({ state }: Props) {
     } else {
       setSheetOpen(false);
     }
-  // gameData.currentTurnSeatIdx 변화마다 재평가
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyTurn, gameData.currentTurnSeatIdx]);
 
@@ -153,6 +152,14 @@ export default function EventGameBoard({ state }: Props) {
             </div>
           </div>
 
+          {/* 딜링 중 안내 */}
+          {gameData.phase === 'dealing' && (
+            <div className="flex shrink-0 items-center justify-center gap-2 rounded-cdm-md border border-cdm-border bg-cdm-bg py-3">
+              <span className="animate-pulse text-cdm-fg-muted">● ● ●</span>
+              <span className="text-sm text-cdm-fg-muted">카드를 배분하는 중...</span>
+            </div>
+          )}
+
           {/* 상대 좌석 2열 그리드 */}
           <div className="grid shrink-0 grid-cols-2 gap-2">
             {opponents.map(({ seatIdx, seat }) => (
@@ -164,6 +171,7 @@ export default function EventGameBoard({ state }: Props) {
                 isCurrentTurn={gameData.currentTurnSeatIdx === seatIdx}
                 isFirstActor={gameData.firstActorSeatIdx === seatIdx}
                 showChipHint={chipHint}
+                bettingActions={gameData.bettingActions}
               />
             ))}
           </div>
@@ -177,7 +185,7 @@ export default function EventGameBoard({ state }: Props) {
             />
           </div>
 
-          {/* 내 카드 (베팅 패널은 바텀시트로 이동) */}
+          {/* 내 카드 */}
           {isPlayer && mySeat && (
             <div className="shrink-0">
               <EventPlayerSeat
@@ -186,6 +194,7 @@ export default function EventGameBoard({ state }: Props) {
                 isMe
                 isCurrentTurn={gameData.currentTurnSeatIdx === mySeatIdx}
                 isFirstActor={gameData.firstActorSeatIdx === mySeatIdx}
+                bettingActions={gameData.bettingActions}
               />
             </div>
           )}

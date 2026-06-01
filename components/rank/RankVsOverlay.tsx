@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRankMatchStore } from '@/stores/rankMatch';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { useRoomStore } from '@/stores/room';
 import { playRankMatchBellSfx } from '@/lib/sfx';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
@@ -30,6 +31,7 @@ export function RankVsOverlay() {
     const i = setInterval(() => setLeftSec((x) => Math.max(0, x - 1)), 1000);
     const go = setTimeout(() => {
       useLobbyChatStore.getState().clearAll();
+      useRoomStore.getState().reset();
       router.push(`/room/${matched.roomId}/play`);
       useRankMatchStore.getState().clearMatched();
     }, VS_SEC * 1000);

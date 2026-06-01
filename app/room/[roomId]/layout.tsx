@@ -42,7 +42,9 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-              <RankQueueDesktopChip />
+              <span className="hidden md:flex items-center">
+                <RankQueueDesktopChip />
+              </span>
               {headerRight}
             </div>
           </div>

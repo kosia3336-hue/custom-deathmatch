@@ -53,6 +53,7 @@ export default function PlayPage() {
 
   const { gameResult } = useRoom(roomId);
   const gameId = useRoomStore((s) => s.room?.gameId);
+  const roomId_ = useRoomStore((s) => s.room?.id);
 
   /** 플레이 라우트 진입마다(대기실→플레이는 roomId 동일) 이전 판 gameResult 제거 */
   useEffect(() => {
@@ -84,7 +85,7 @@ export default function PlayPage() {
   return (
     <GameShell>
       {(() => {
-        const GameModule = gameId ? GAME_MODULES[gameId] : null;
+        const GameModule = (gameId && roomId_ === roomId) ? GAME_MODULES[gameId] : null;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>

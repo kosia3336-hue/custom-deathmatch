@@ -449,7 +449,7 @@ function resolveHandLastStanding(s: InternalState): void {
     for (let i = 0; i < IPE_MAX_SEATS; i++) {
       const seat = s.seats[i];
       if (!seat) continue;
-      entries.push(buildResultEntry(s, seat, i, new Set(), false));
+      entries.push(buildResultEntry(s, seat, i, new Set(), true));
     }
     s.handResult = {
       handId: s.handId!,
@@ -478,8 +478,7 @@ function resolveHandLastStanding(s: InternalState): void {
   for (let i = 0; i < IPE_MAX_SEATS; i++) {
     const seat = s.seats[i];
     if (!seat) continue;
-    // 다이한 사람 카드는 가림 (블러프 보호), 승자(라스트 스탠딩)도 카드 공개 X (이미 결정난 상황)
-    entries.push(buildResultEntry(s, seat, i, winnerSet, false));
+    entries.push(buildResultEntry(s, seat, i, winnerSet, true));
   }
 
   s.handResult = {
@@ -541,8 +540,7 @@ function resolveHandShowdown(s: InternalState): void {
   for (let i = 0; i < IPE_MAX_SEATS; i++) {
     const seat = s.seats[i];
     if (!seat) continue;
-    // showdown 도달 = 다이 안 한 사람만 카드 공개. 다이한 사람은 가림.
-    const exposeCard = seat.isAlive;
+    const exposeCard = true;
     entries.push(buildResultEntry(s, seat, i, winnerSet, exposeCard));
   }
 
@@ -594,10 +592,7 @@ export function buildGameDataFor(
     if (!seat) return null;
     let exposeCard: boolean;
     if (reveal) {
-      // 살아있는 사람만 카드 공개 (다이한 사람은 가림 — 블러프 보호)
-      exposeCard = seat.isAlive || seat === s.seats[s.currentTurnSeatIdx ?? -1];
-      // 단, 라스트 스탠딩일 땐 카드 안 보임 (entries.exposeCard 와 일관)
-      if (s.handResult?.kind === 'last-standing') exposeCard = false;
+      exposeCard = true;
     } else {
       // betting 단계 — 인디언 룰: 본인 카드 가림, 타인은 보임
       exposeCard = viewerPlayerId === null ? true : seat.playerId !== viewerPlayerId;

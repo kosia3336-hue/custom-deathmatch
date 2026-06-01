@@ -12,6 +12,7 @@ import StatsTab from './StatsTab';
 import TitlesTab from './TitlesTab';
 import SupportTab from './SupportTab';
 import ShopTab from './ShopTab';
+import RankTab from './RankTab';
 
 export const metadata: Metadata = { title: '마이페이지' };
 
@@ -19,6 +20,7 @@ interface Props {
   searchParams: Promise<{
     tab?: string;
     page?: string;
+    rankSeason?: string;
     inquiriesPage?: string;
     reportsPage?: string;
   }>;
@@ -60,6 +62,7 @@ export default async function MyPage({ searchParams }: Props) {
           {tab === 'overview' && <OverviewTab member={member} />}
           {tab === 'logs' && <LogsTab memberId={member.id} page={sp.page} />}
           {tab === 'stats' && <StatsTab memberId={member.id} />}
+          {tab === 'rank' && <RankTab memberId={member.id} seasonId={sp.rankSeason} />}
           {tab === 'titles' && (
             <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
           )}

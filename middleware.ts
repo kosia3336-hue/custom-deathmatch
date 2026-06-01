@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     if (isPublic) return response;
 
     const login = new URLSearchParams({ next: pathname });
-    return NextResponse.redirect(`/login?${login}`);
+    return NextResponse.redirect(new URL(`/login?${login}`, request.url));
   }
 
   // ── 로그인 됨. members/members_private 읽어서 상태 분기 ──────
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    return NextResponse.redirect('/signup/agreement');
+    return NextResponse.redirect(new URL('/signup/agreement', request.url));
   }
 
   // 탈퇴 회원: /withdrawn 화면으로. 문의/로그아웃/약관만 허용
@@ -116,7 +116,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    return NextResponse.redirect('/withdrawn');
+    return NextResponse.redirect(new URL('/withdrawn', request.url));
   }
 
   // 영구정지
@@ -129,7 +129,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    return NextResponse.redirect('/banned');
+    return NextResponse.redirect(new URL('/banned', request.url));
   }
 
   // 일시정지 — /suspended, 문의, 로그아웃, 약관만 허용
@@ -142,12 +142,12 @@ export async function middleware(request: NextRequest) {
     ) {
       return response;
     }
-    return NextResponse.redirect('/suspended');
+    return NextResponse.redirect(new URL('/suspended', request.url));
   }
 
   // ── /admin 은 관리자만 ──
   if (pathname.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect('/');
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 홈으로 ──
@@ -157,7 +157,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/banned' ||
     pathname === '/suspended'
   ) {
-    return NextResponse.redirect('/');
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return response;

@@ -399,6 +399,7 @@ export default function BanPickGame() {
 
   useEffect(() => {
     const socket = getSocket();
+    socket.emit('game:sync');
 
     const onStart = (payload: BanPickStartPayload) => {
       const opponentStatsMap = new Map<string, GameWinRate>(

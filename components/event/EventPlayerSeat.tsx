@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type { IPEPlayerInfo } from '@/shared/types';
+import type { IPEPlayerInfo, IPEBettingActionRecord } from '@/shared/types';
 import { sfxDeal, sfxMyTurn, sfxCall, sfxRaise } from '@/lib/eventSfx';
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
   isFirstActor: boolean;
   showChipHint?: boolean;
   desktop?: boolean;
+  bettingActions?: IPEBettingActionRecord[];
 }
 
 export default function EventPlayerSeat({
@@ -25,6 +26,7 @@ export default function EventPlayerSeat({
   isFirstActor,
   showChipHint = false,
   desktop = false,
+  bettingActions,
 }: Props) {
   // 카드가 새로 나타날 때(null→숫자) 딜 SFX
   const prevCardRef = useRef<number | null | undefined>(undefined);
@@ -55,12 +57,25 @@ export default function EventPlayerSeat({
       const delta = cur - prev;
       setFloatDelta(delta);
       setFloatKey((k) => k + 1);
-      // 처음 베팅이면 콜, 증가면 레이즈
       if (prev === 0) sfxCall();
       else sfxRaise();
     }
     prevRoundBetRef.current = cur;
   }, [seat?.roundBet]);
+
+  // 체크 액션 감지 → "체크" 플로팅 텍스트
+  const [checkKey, setCheckKey] = useState(0);
+  const prevActionsLenRef = useRef(0);
+  useEffect(() => {
+    const actions = bettingActions ?? [];
+    if (actions.length > prevActionsLenRef.current) {
+      const latest = actions[actions.length - 1];
+      if (latest?.seatIdx === seatIdx && latest.action === 'check') {
+        setCheckKey((k) => k + 1);
+      }
+    }
+    prevActionsLenRef.current = actions.length;
+  }, [bettingActions, seatIdx]);
 
   if (!seat) {
     return (
@@ -125,6 +140,21 @@ export default function EventPlayerSeat({
             className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2 rounded-full bg-cdm-highlight/90 px-2 py-0.5 text-[10px] font-bold text-black"
           >
             +{floatDelta}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 체크 플로팅 텍스트 */}
+      <AnimatePresence>
+        {checkKey > 0 && (
+          <motion.div
+            key={`check-${checkKey}`}
+            initial={{ y: 0, opacity: 1, scale: 1 }}
+            animate={{ y: -32, opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="pointer-events-none absolute top-8 left-1/2 z-20 -translate-x-1/2 rounded-full bg-cdm-fg-muted/80 px-2 py-0.5 text-[10px] font-bold text-white"
+          >
+            체크
           </motion.div>
         )}
       </AnimatePresence>

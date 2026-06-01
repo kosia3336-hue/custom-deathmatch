@@ -258,7 +258,9 @@ class EventRoomManager {
     const token = sessions.getToken(socket.id);
     if (!token) return;
     socket.leave(EVENT_SOCKET_CHANNEL);
-    sessions.clearRoom(socket.id);
+    if (sessions.getRoom(socket.id) === EVENT_ROOM_KEY) {
+      sessions.clearRoom(socket.id);
+    }
 
     const seatIdx = findSeatIdxByPlayer(this.state, token);
     if (seatIdx >= 0) {
