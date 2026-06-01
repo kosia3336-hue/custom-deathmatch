@@ -8,6 +8,7 @@ export interface DisplayedTitle {
   id: string;
   name: string;
   color: TitleColor;
+  effect?: string | null;
 }
 
 interface PlayerIdentityProps {
@@ -53,7 +54,7 @@ export function PlayerIdentity({
   className,
 }: PlayerIdentityProps) {
   const titleEl = title ? (
-    <TitleBadge name={title.name} color={title.color} size={TITLE_SIZE[size]} />
+    <TitleBadge name={title.name} color={title.color} effect={title.effect as 'legend' | null} size={TITLE_SIZE[size]} />
   ) : null;
 
   const turnEl = turn ? <TurnBadge turn={turn} size="sm" /> : null;

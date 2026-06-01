@@ -20,6 +20,7 @@ interface Props {
   titleName: string;
   titleColor: TitleColor;
   titleDescription: string | null;
+  titleEffect?: string | null;
   activeOwnerIds: string[];
 }
 
@@ -28,6 +29,7 @@ export default function TitleGrantButton({
   titleName,
   titleColor,
   titleDescription,
+  titleEffect,
   activeOwnerIds,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -113,6 +115,7 @@ export default function TitleGrantButton({
             name: titleName,
             color: titleColor,
             description: titleDescription,
+            effect: titleEffect ?? null,
           }),
         }).catch(() => {});
 

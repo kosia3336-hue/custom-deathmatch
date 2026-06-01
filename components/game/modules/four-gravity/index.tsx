@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
 import { GAME_IDS } from '@/shared/types/game';
+import { getSkinTheme } from '@/lib/skins/registry';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
@@ -27,6 +28,7 @@ export default function FourGravityGame() {
 
   const gameData = gameState?.gameData as FourGravityGameData | undefined;
   const turnNumber = gameState?.turnNumber ?? 1;
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.FOUR_GRAVITY);
 
   const myId = useMySocketId();
 
@@ -168,6 +170,7 @@ export default function FourGravityGame() {
               placedPosition={gameData.placedPosition}
               winLine={gameData.winLine}
               winner={gameData.winner}
+              skin={skin}
               onCellClick={handleCellClick}
             />
 

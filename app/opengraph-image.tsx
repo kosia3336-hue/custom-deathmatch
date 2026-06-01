@@ -5,7 +5,48 @@ export const alt = '커스텀 데스매치 — 1:1 보드/카드 게임 플랫�
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OgImage() {
+// satori(Edge)는 시스템 한글 폰트가 없어 한글이 비어 렌더링된다.
+// Google Fonts 에서 이미지에 사용된 글자만 서브셋으로 받아 폰트로 넘긴다.
+const OG_TEXT =
+  'Custom Deathmatch 커스텀 데스매치 브라우저에서 바로 즐기는 1:1 보드·카드 게임 · 카카오 로그인 칭호 게임 로그 랭킹';
+
+async function loadKoreanFont(weight: number, text: string): Promise<ArrayBuffer | null> {
+  try {
+    const cssUrl = `https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@${weight}&text=${encodeURIComponent(text)}`;
+    const css = await (
+      await fetch(cssUrl, {
+        // IE11 UA 를 보내면 woff2 대신 satori 가 읽을 수 있는 truetype 을 반환한다.
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
+        },
+      })
+    ).text();
+    const match = css.match(/src: url\((.+?)\) format\('(?:opentype|truetype)'\)/);
+    if (!match) return null;
+    return await (await fetch(match[1])).arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+type OgFont = {
+  name: string;
+  data: ArrayBuffer;
+  weight: 500 | 800;
+  style: 'normal';
+};
+
+export default async function OgImage() {
+  const [regular, bold] = await Promise.all([
+    loadKoreanFont(500, OG_TEXT),
+    loadKoreanFont(800, OG_TEXT),
+  ]);
+
+  const fonts: OgFont[] = [];
+  if (regular) fonts.push({ name: 'Noto Sans KR', data: regular, weight: 500, style: 'normal' });
+  if (bold) fonts.push({ name: 'Noto Sans KR', data: bold, weight: 800, style: 'normal' });
+
   return new ImageResponse(
     (
       <div
@@ -20,8 +61,7 @@ export default function OgImage() {
             'linear-gradient(135deg, #4F46E5 0%, #6366F1 45%, #FB7185 100%)',
           color: '#FFFFFF',
           padding: 80,
-          fontFamily:
-            'system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif',
+          fontFamily: '"Noto Sans KR", sans-serif',
         }}
       >
         <div
@@ -96,6 +136,6 @@ export default function OgImage() {
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, fonts: fonts.length ? fonts : undefined },
   );
 }

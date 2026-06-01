@@ -90,24 +90,54 @@ export function maskRankingForViewer<T extends { playerId: string; nickname: str
 }
 
 /**
- * gameResultData.players[token].nickname 마스킹.
- *  - 익명화된 플레이어의 닉네임을 '???' 로 교체.
+ * gameResultData.players[token].nickname 및 finishReason 문자열 마스킹.
+ *  - viewerToken: 본인 토큰 (본인은 마스킹하지 않음)
+ *  - anonNicknames: viewer 기준으로 마스킹해야 할 실제 닉네임 목록
+ *    (호출자가 room.players에서 필터링해 전달)
  *  - gameResultData 구조가 없으면 원본 반환.
  */
-export function maskGameResultDataForViewer(roomId: string, gameResultData: unknown): unknown {
+export function maskGameResultDataForViewer(
+  roomId: string,
+  gameResultData: unknown,
+  viewerToken?: string | null,
+  anonNicknames?: string[],
+): unknown {
   if (!gameResultData || typeof gameResultData !== 'object') return gameResultData;
   const data = gameResultData as Record<string, unknown>;
-  if (!data.players || typeof data.players !== 'object') return gameResultData;
   const state = getRoomShopState(roomId);
   if (!state || state.anonymizedTokens.size === 0) return gameResultData;
-  const players = data.players as Record<string, unknown>;
-  const maskedPlayers: Record<string, unknown> = {};
-  for (const [token, playerData] of Object.entries(players)) {
-    if (!playerData || typeof playerData !== 'object' || !state.anonymizedTokens.has(token)) {
-      maskedPlayers[token] = playerData;
-      continue;
+
+  let result: Record<string, unknown> = data;
+
+  // players[token].nickname 마스킹 (token 키 구조인 경우)
+  if (data.players && typeof data.players === 'object') {
+    const players = data.players as Record<string, unknown>;
+    const maskedPlayers: Record<string, unknown> = {};
+    for (const [token, playerData] of Object.entries(players)) {
+      if (
+        !playerData
+        || typeof playerData !== 'object'
+        || !state.anonymizedTokens.has(token)
+        || token === viewerToken
+      ) {
+        maskedPlayers[token] = playerData;
+        continue;
+      }
+      maskedPlayers[token] = { ...(playerData as Record<string, unknown>), nickname: ANONYMOUS_NICKNAME };
     }
-    maskedPlayers[token] = { ...(playerData as Record<string, unknown>), nickname: ANONYMOUS_NICKNAME };
+    result = { ...result, players: maskedPlayers };
   }
-  return { ...data, players: maskedPlayers };
+
+  // finishReason 문자열 내 실명 마스킹
+  if (anonNicknames && anonNicknames.length > 0 && typeof data.finishReason === 'string') {
+    let reason = data.finishReason as string;
+    for (const nick of anonNicknames) {
+      reason = reason.replaceAll(nick, ANONYMOUS_NICKNAME);
+    }
+    if (reason !== data.finishReason) {
+      result = { ...result, finishReason: reason };
+    }
+  }
+
+  return result === data ? gameResultData : result;
 }

@@ -56,6 +56,7 @@ export default function GNB({ minimal: _minimal }: GNBProps) {
               id: member.displayedTitle.id,
               name: member.displayedTitle.name,
               color: member.displayedTitle.color as TitleColor,
+              effect: member.displayedTitle.effect ?? null,
             }
           : null,
       }

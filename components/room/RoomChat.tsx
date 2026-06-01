@@ -123,7 +123,7 @@ export function ChatBubble({
       <div className="text-sm">
         {isSpec && <SpectatorMark className="mr-1" />}
         {title && (
-          <TitleBadge name={title.name} color={title.color as TitleColor} size="sm" className="mr-1.5" />
+          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" className="mr-1.5" />
         )}
         <span className="font-semibold text-cdm-fg">{m.senderNickname}</span>
         <span className="text-cdm-fg-muted">: {m.message}</span>

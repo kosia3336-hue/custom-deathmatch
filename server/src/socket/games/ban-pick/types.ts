@@ -60,4 +60,7 @@ export interface BanPickState {
   unbanQueueIdx: number;
   unbanTimerHandle: NodeJS.Timeout | null;
   unbanTurnDeadline: number | null;
+
+  /** 밴 삭제로 복귀된 게임 ID — 추첨 시 가중치 보너스 적용 */
+  unbanBoostGameIds: Set<string>;
 }

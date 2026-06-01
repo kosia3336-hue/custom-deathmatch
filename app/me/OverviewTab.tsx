@@ -106,6 +106,7 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
               <TitleBadge
                 name={member.displayedTitle.name}
                 color={member.displayedTitle.color as TitleColor}
+                effect={member.displayedTitle.effect as 'legend' | null}
                 size="md"
               />
             ) : (

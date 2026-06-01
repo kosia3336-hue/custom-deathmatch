@@ -29,6 +29,7 @@ function makePlayer(socket: TypedSocket, isHost: boolean): Player {
     // v2: 회원 정보 자동 첨부
     memberId: sessions.getMemberIdBySocket(socket.id),
     displayedTitle: sessions.getDisplayedTitleBySocket(socket.id),
+    equippedSkins: sessions.getEquippedSkinsBySocket(socket.id),
   };
 }
 

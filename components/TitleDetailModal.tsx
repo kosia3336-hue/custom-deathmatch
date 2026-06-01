@@ -20,6 +20,7 @@ interface TitleDetailModalProps {
   titleId: string | null;
   titleName: string;
   titleColor: TitleColor;
+  titleEffect?: string | null;
   description: string | null;
   conditionText: string | null;
   isSystem: boolean;
@@ -40,6 +41,7 @@ export function TitleDetailModal({
   titleId,
   titleName,
   titleColor,
+  titleEffect,
   description,
   conditionText,
   isSystem,
@@ -81,7 +83,7 @@ export function TitleDetailModal({
       size="md"
       title={
         <span className="flex items-center gap-2">
-          <TitleBadge name={titleName} color={titleColor} size="md" />
+          <TitleBadge name={titleName} color={titleColor} effect={titleEffect as 'legend' | null} size="md" />
           {isSystem && (
             <span
               className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"

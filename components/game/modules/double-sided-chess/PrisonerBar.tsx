@@ -1,6 +1,7 @@
 'use client';
 
 import type { PieceType, Owner } from '@/shared/types/double-sided-chess';
+import type { SkinTheme } from '@/lib/skins/registry';
 import Piece from './Piece';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ interface Props {
   selectedPrisoner: PieceType | null;
   onSelect: (piece: PieceType) => void;
   winner: string | null;
+  skin?: SkinTheme | null;
 }
 
 export default function PrisonerBar({
@@ -22,6 +24,7 @@ export default function PrisonerBar({
   selectedPrisoner,
   onSelect,
   winner,
+  skin,
 }: Props) {
   const canInteract = isMine && isMyTurn && !winner;
 
@@ -52,7 +55,7 @@ export default function PrisonerBar({
                   : 'cursor-default border-gray-100 bg-gray-50 opacity-60',
             )}
           >
-            <Piece piece={piece} owner={owner} isPromoted={false} size="sm" />
+            <Piece piece={piece} owner={owner} isPromoted={false} size="sm" skin={skin} />
           </button>
         );
       })}

@@ -1,6 +1,11 @@
+import type { Metadata } from 'next';
 import GNB from '@/components/layout/GNB';
 import LobbyClient from './LobbyClient';
 import { getSiteUrl } from '@/lib/site';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 export default function LobbyPage() {
   const siteUrl = getSiteUrl();

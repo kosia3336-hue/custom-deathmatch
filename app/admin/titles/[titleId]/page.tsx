@@ -29,6 +29,7 @@ interface TitleRow {
   condition_text: string | null;
   is_system: boolean;
   is_active: boolean;
+  effect: string | null;
 }
 
 interface OwnerRow {
@@ -63,7 +64,7 @@ export default async function TitleOwnersPage({
 
   const { data: titleData } = await sb
     .from('titles')
-    .select('id, name, color, description, condition_text, is_system, is_active')
+    .select('id, name, color, description, condition_text, is_system, is_active, effect')
     .eq('id', titleId)
     .maybeSingle();
 
@@ -128,7 +129,7 @@ export default async function TitleOwnersPage({
           </Link>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
-              <TitleBadge name={title.name} color={title.color} size="lg" />
+              <TitleBadge name={title.name} color={title.color} effect={title.effect as 'legend' | null} size="lg" />
               {title.is_system && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-cdm-border px-2 py-px text-[11px] font-semibold text-cdm-fg-muted"
@@ -148,6 +149,7 @@ export default async function TitleOwnersPage({
                 titleName={title.name}
                 titleColor={title.color}
                 titleDescription={title.description}
+                titleEffect={title.effect}
                 activeOwnerIds={activeOwnerIds}
               />
               {!title.is_system && (

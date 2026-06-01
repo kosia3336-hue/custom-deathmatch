@@ -27,6 +27,7 @@ interface NotifyTitleGrantedBody {
   name: string;
   color: string;
   description: string | null;
+  effect?: string | null;
 }
 
 interface NotifyNoticePublishedBody {
@@ -56,7 +57,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
   app.post<{ Body: NotifyTitleGrantedBody }>(
     '/internal/notify-title-granted',
     async (req, reply) => {
-      const { secret, memberId, titleId, name, color, description } = req.body;
+      const { secret, memberId, titleId, name, color, description, effect } = req.body;
 
       if (secret !== config.internalSecret) {
         return reply.status(403).send({ error: 'Forbidden' });
@@ -67,7 +68,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
         return reply.status(503).send({ status: 'not_ready' });
       }
 
-      const payload = { titleId, name, color, description };
+      const payload = { titleId, name, color, description, effect: effect ?? null };
 
       const token = sessions.getTokenByMemberId(memberId);
       if (!token) {

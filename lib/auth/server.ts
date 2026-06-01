@@ -31,7 +31,7 @@ export interface CurrentMember {
   status: MemberStatus;
   role: 'user' | 'admin';
   createdAt: string;
-  displayedTitle: { id: string; name: string; color: TitleColor } | null;
+  displayedTitle: { id: string; name: string; color: TitleColor; effect: string | null } | null;
 }
 
 interface MemberRowSel {
@@ -54,6 +54,7 @@ interface TitleRowSel {
   id: string;
   name: string;
   color: TitleColor;
+  effect: string | null;
 }
 
 export async function getAuthState(): Promise<AuthState> {
@@ -91,12 +92,12 @@ export async function getAuthState(): Promise<AuthState> {
   if (memberRow.displayed_title_id) {
     const titleRes = await supabase
       .from('titles')
-      .select('id, name, color')
+      .select('id, name, color, effect')
       .eq('id', memberRow.displayed_title_id)
       .maybeSingle();
     const titleRow = (titleRes.data as unknown as TitleRowSel) ?? null;
     if (titleRow) {
-      displayedTitle = { id: titleRow.id, name: titleRow.name, color: titleRow.color };
+      displayedTitle = { id: titleRow.id, name: titleRow.name, color: titleRow.color, effect: titleRow.effect ?? null };
     }
   }
 

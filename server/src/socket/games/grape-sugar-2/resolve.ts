@@ -252,14 +252,18 @@ export function resolveRound(
     }
   }
 
-  /* ───── 8. 주사위 5·6 보너스: actor가 미승리(패배 or tie)이면 상대 +2점 ───── */
+  /* ───── 8. 주사위 5·6 보너스: actor가 미승리(패배 or tie)이면 상대 총 2점 ─────
+   * 패배 시 상대가 라운드 승리 +1을 이미 받으므로 +1만 추가 (합산 2점)
+   * 무승부 시 라운드 점수가 0이므로 +2 전체 지급 (합산 2점)
+   */
   if (diceLoserBonusTo) {
     const actor = diceLoserBonusTo;
     if (winner !== actor) {
       const beneficiary = other(actor);
-      scoreDelta[beneficiary] += 2;
+      const amount = winner === 'tie' ? 2 : 1;
+      scoreDelta[beneficiary] += amount;
       steps.push({
-        type: 'diceScore', actor, loserBonusTo: beneficiary, amount: 2,
+        type: 'diceScore', actor, loserBonusTo: beneficiary, amount,
       });
     }
   }

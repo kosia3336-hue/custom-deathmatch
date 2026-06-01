@@ -110,9 +110,26 @@ export async function applyAutoConsumablesForRankRoom(
     }
   }
 
-  // (2) 자동 사용 (관전 잠금 / 익명)
+  // (2) 자동 사용 (관전 잠금 / 익명 / 돋보기) — auto_use=false 이면 skip
+  // 플레이어별 auto_use 설정 일괄 조회
+  const memberIds = humans.map((p) => p.memberId!);
+  const sb = getSupabaseAdmin();
+  const { data: autoUseRows } = await (sb as any)
+    .from('shop_consumable_inventory')
+    .select('member_id, kind, auto_use')
+    .in('member_id', memberIds)
+    .in('kind', AUTO_KINDS);
+  const autoUseMap = new Map<string, boolean>();
+  for (const row of (autoUseRows ?? []) as Array<{ member_id: string; kind: string; auto_use: boolean }>) {
+    autoUseMap.set(`${row.member_id}:${row.kind}`, row.auto_use);
+  }
+
   for (const p of humans) {
     for (const kind of AUTO_KINDS) {
+      // 행이 없으면 기본값 true (보유한 적 없어도 자동사용 on)
+      const autoUse = autoUseMap.get(`${p.memberId!}:${kind}`) ?? true;
+      if (!autoUse) continue;
+
       const r = await tryUseConsumable(p.memberId!, kind, roomId, {
         token: p.id,
         nickname: p.nickname,

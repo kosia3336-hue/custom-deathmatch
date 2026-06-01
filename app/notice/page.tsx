@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: '공지사항',
   description: '운영진의 공식 안내를 확인하세요.',
+  alternates: { canonical: '/notice' },
   robots: { index: true, follow: true },
 };
 

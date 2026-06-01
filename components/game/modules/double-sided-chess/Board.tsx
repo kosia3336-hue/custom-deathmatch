@@ -1,19 +1,21 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Cell as CellType, Owner, Position } from '@/shared/types/double-sided-chess';
+import type { Cell as CellType, Owner, Position, PieceType } from '@/shared/types/double-sided-chess';
 import { DSC_BOARD_SIZE } from '@/shared/types/double-sided-chess';
+import type { SkinTheme } from '@/lib/skins/registry';
 import Cell from './Cell';
 
 interface Props {
   board: CellType[][];
-  lastMove: { from: Position | null; to: Position } | null;
+  lastMove: { from: Position | null; to: Position; captured?: PieceType | null } | null;
   /** 미지정 시 readonly 모드 (클릭 불가, 어둡게 처리 없음) */
   myOwner?: Owner | null;
   selectedPiece?: Position | null;
   validMoves?: Position[];
   isMyTurn?: boolean;
   winner?: string | null;
+  skin?: SkinTheme | null;
   onCellClick?: (row: number, col: number) => void;
 }
 
@@ -33,9 +35,11 @@ export default function Board({
   lastMove,
   isMyTurn = false,
   winner = null,
+  skin,
   onCellClick,
 }: Props) {
   const readonly = !onCellClick;
+  const isImperial = skin === 'imperial';
 
   const validSet = useMemo(
     () => new Set(validMoves.map((p) => `${p.row},${p.col}`)),
@@ -47,7 +51,11 @@ export default function Board({
 
   return (
     <div
-      className="rounded-lg border border-[#8b6914]/50 bg-[#d4a574] shadow-md"
+      className={
+        isImperial
+          ? `rounded-lg border border-transparent shadow-md skin-imperial-board${winner ? ' skin-imperial-win' : ''}`
+          : 'rounded-lg border border-[#8b6914]/50 bg-[#d4a574] shadow-md'
+      }
       style={BOARD_STYLE}
     >
       {board.map((row, r) =>
@@ -71,14 +79,18 @@ export default function Board({
             <Cell
               key={key}
               cell={cell}
+              row={r}
+              col={c}
               isSelected={isSelected}
               isValidMove={isValid && !cell}
               isCaptureTarget={isCaptureTarget}
               isLastMoveFrom={key === lastFromKey}
               isLastMoveTo={key === lastToKey}
+              isCaptureDest={key === lastToKey && !!lastMove?.captured}
               clickable={clickable}
               isDimmed={!readonly && !!winner}
               isTerritory={territory}
+              skin={skin}
               onClick={() => onCellClick?.(r, c)}
             />
           );

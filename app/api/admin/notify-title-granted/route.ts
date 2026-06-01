@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     name: string;
     color: string;
     description: string | null;
+    effect?: string | null;
   };
 
   const socketServerUrl =

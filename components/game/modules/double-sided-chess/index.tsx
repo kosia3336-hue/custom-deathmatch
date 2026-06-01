@@ -14,6 +14,7 @@ import type {
   Position,
 } from '@/shared/types/double-sided-chess';
 import { GAME_IDS } from '@/shared/types/game';
+import { getSkinTheme } from '@/lib/skins/registry';
 import Button from '@/components/ui/Button';
 import Board from './Board';
 import PrisonerBar from './PrisonerBar';
@@ -30,6 +31,7 @@ export default function DoubleSidedChessGame() {
 
   const gameData = gameState?.gameData as DoubleSidedChessGameData | undefined;
   const turnNumber = gameState?.turnNumber ?? 1;
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.DOUBLE_SIDED_CHESS);
 
   const isSpecialSolo =
     nickname === '천하' &&
@@ -195,6 +197,7 @@ export default function DoubleSidedChessGame() {
               selectedPrisoner={myOwner === 'second' ? selectedPrisoner : null}
               onSelect={myOwner === 'second' ? handlePrisonerSelect : () => {}}
               winner={gameData.winner}
+              skin={skin}
             />
           </div>
 
@@ -208,6 +211,7 @@ export default function DoubleSidedChessGame() {
               lastMove={gameData.lastMove}
               isMyTurn={isMyTurn}
               winner={gameData.winner}
+              skin={skin}
               onCellClick={handleCellClick}
             />
           </div>
@@ -222,6 +226,7 @@ export default function DoubleSidedChessGame() {
               selectedPrisoner={myOwner === 'first' ? selectedPrisoner : null}
               onSelect={myOwner === 'first' ? handlePrisonerSelect : () => {}}
               winner={gameData.winner}
+              skin={skin}
             />
           </div>
 

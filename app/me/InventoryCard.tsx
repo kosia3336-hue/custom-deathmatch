@@ -50,7 +50,7 @@ const META: Record<ConsumableKind, ConsumableMeta> = {
   },
   ban_eraser: {
     emoji: '🧹',
-    description: '밴픽 단계 완료 직후, 상대방이 밴한 게임 1개를 취소하여 추첨 풀에 복귀시킬 수 있다. 스킵 시 아이템이 소모되지 않는다.',
+    description: '밴픽 단계 완료 직후, 상대방이 밴한 게임 1개를 취소하여 추첨 풀에 복귀시킬 수 있다. 복귀된 게임은 추첨 확률이 높아진다. 스킵 시 아이템이 소모되지 않는다.',
     manual: true,
     trigger: '밴픽 완료 후 선택 화면에서 수동 사용',
   },
@@ -63,9 +63,13 @@ interface RankResetState {
   busy: boolean;
 }
 
+const AUTO_USE_KINDS = new Set<ConsumableKind>(['spectator_lock', 'anonymity', 'magnifier']);
+
 export default function InventoryCard() {
   const items = useInventoryStore((s) => s.items);
+  const autoUse = useInventoryStore((s) => s.autoUse);
   const setOne = useInventoryStore((s) => s.setOne);
+  const setAutoUse = useInventoryStore((s) => s.setAutoUse);
   const router = useRouter();
   const [rankReset, setRankReset] = useState<RankResetState>({ open: false, busy: false });
 
@@ -74,16 +78,32 @@ export default function InventoryCard() {
     if (items !== null) return;
     let aborted = false;
     fetch('/api/me/consumables', { cache: 'no-store' })
-      .then((r) => r.json() as Promise<{ items: Array<{ kind: ConsumableKind; count: number }> }>)
+      .then((r) => r.json() as Promise<{ items: Array<{ kind: ConsumableKind; count: number; autoUse: boolean }> }>)
       .then((j) => {
         if (aborted) return;
-        for (const it of j.items) setOne(it.kind, Number(it.count));
+        for (const it of j.items) {
+          setOne(it.kind, Number(it.count));
+          setAutoUse(it.kind, it.autoUse ?? true);
+        }
       })
       .catch(() => {});
     return () => {
       aborted = true;
     };
-  }, [items, setOne]);
+  }, [items, setOne, setAutoUse]);
+
+  async function toggleAutoUse(kind: ConsumableKind, next: boolean) {
+    setAutoUse(kind, next);
+    try {
+      await fetch('/api/me/consumables/auto-use', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, autoUse: next }),
+      });
+    } catch {
+      setAutoUse(kind, !next);
+    }
+  }
 
   const total = useMemo(() => {
     if (!items) return 0;
@@ -129,7 +149,9 @@ export default function InventoryCard() {
           const meta = META[kind];
           const label = CONSUMABLE_LABELS[kind];
           const isRankReset = kind === 'rank_reset';
-          const disabled = !isRankReset || count <= 0;
+          const isAutoKind = AUTO_USE_KINDS.has(kind);
+          const currentAutoUse = autoUse?.[kind] ?? true;
+          const toggleDisabled = count <= 0;
           return (
             <li
               key={kind}
@@ -148,16 +170,49 @@ export default function InventoryCard() {
                     </p>
                   )}
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xl font-bold tabular-nums text-cdm-fg">{count}</p>
-                  <p className="text-[10px] text-cdm-fg-subtle">보유</p>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="text-right">
+                    <p className="text-xl font-bold tabular-nums text-cdm-fg">{count}</p>
+                    <p className="text-[10px] text-cdm-fg-subtle">보유</p>
+                  </div>
+                  {isAutoKind && autoUse !== null && (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={currentAutoUse}
+                      aria-label={`${label} 자동사용 ${currentAutoUse ? 'ON' : 'OFF'}`}
+                      onClick={() => {
+                        if (toggleDisabled) {
+                          toast.info('보유한 아이템이 없어요.');
+                          return;
+                        }
+                        toggleAutoUse(kind, !currentAutoUse);
+                      }}
+                      className={[
+                        'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer',
+                        toggleDisabled
+                          ? 'bg-cdm-bg-elev-2 text-cdm-fg-muted'
+                          : currentAutoUse
+                            ? 'bg-cdm-accent text-white'
+                            : 'bg-cdm-bg-elev-2 text-cdm-fg-muted',
+                      ].join(' ')}
+                    >
+                      <span
+                        className={[
+                          'inline-block w-2.5 h-2.5 rounded-full transition-colors',
+                          currentAutoUse && !toggleDisabled ? 'bg-white' : 'bg-cdm-fg-subtle',
+                        ].join(' ')}
+                      />
+                      {!toggleDisabled && currentAutoUse ? 'ON' : 'OFF'}
+                    </button>
+                  )}
                 </div>
               </div>
               {isRankReset && (
                 <Button
                   size="sm"
                   variant={count > 0 ? 'primary' : 'secondary'}
-                  disabled={disabled}
+                  disabled={count <= 0}
                   onClick={() => setRankReset({ open: true, busy: false })}
                   fullWidth
                 >

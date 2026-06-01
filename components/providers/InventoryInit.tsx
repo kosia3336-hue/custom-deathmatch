@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useInventoryStore, type InventoryMap } from '@/stores/inventory';
+import { useInventoryStore, type InventoryMap, type AutoUseMap } from '@/stores/inventory';
 import { getSocket } from '@/lib/socket';
 import type { ConsumableKind } from '@/lib/cdp/types';
 
@@ -25,17 +25,18 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
     let aborted = false;
 
     fetch('/api/me/consumables', { cache: 'no-store' })
-      .then((r) => r.json() as Promise<{ items: Array<{ kind: ConsumableKind; count: number }> }>)
+      .then((r) => r.json() as Promise<{ items: Array<{ kind: ConsumableKind; count: number; autoUse: boolean }> }>)
       .then((json) => {
         if (aborted) return;
         const map = json.items.reduce<InventoryMap>(
-          (acc, it) => {
-            acc[it.kind] = Number(it.count);
-            return acc;
-          },
+          (acc, it) => { acc[it.kind] = Number(it.count); return acc; },
           { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0 },
         );
-        setAll(map);
+        const autoUseMap = json.items.reduce<AutoUseMap>(
+          (acc, it) => { acc[it.kind] = it.autoUse ?? true; return acc; },
+          { nickname_change: true, rank_reset: true, spectator_lock: true, anonymity: true, magnifier: true, ban_eraser: true },
+        );
+        setAll(map, autoUseMap);
       })
       .catch(() => {
         // 무시 (서버 오류) — store 는 null 인 채로 유지.

@@ -4,13 +4,15 @@
  * socket 인증 시 Supabase access_token 으로 회원 정보 (id, nickname, displayed_title) 를 한 번에 가져온다.
  */
 
+import type { EquippedSkin } from '@shared/types/skin.js';
 import { getSupabaseAdmin, getMemberIdFromToken } from './supabase.js';
 
 export interface MemberInfo {
   id: string;
   nickname: string;
   status: 'active' | 'suspended' | 'banned' | 'withdrawn';
-  displayedTitle: { id: string; name: string; color: string } | null;
+  displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+  equippedSkins: EquippedSkin[];
 }
 
 /** access_token → 회원 정보 (모두 미설정/실패 시 null) */
@@ -41,13 +43,30 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
   if (member.displayed_title_id) {
     const { data: titleRow } = await sb
       .from('titles')
-      .select('id, name, color')
+      .select('id, name, color, effect')
       .eq('id', member.displayed_title_id)
       .maybeSingle();
-    const title = titleRow as { id: string; name: string; color: string } | null;
+    const title = titleRow as { id: string; name: string; color: string; effect: string | null } | null;
     if (title) {
-      displayedTitle = { id: title.id, name: title.name, color: title.color };
+      displayedTitle = { id: title.id, name: title.name, color: title.color, effect: title.effect ?? null };
     }
+  }
+
+  // 착용 중인 스킨 (게임 ID 포함)
+  let equippedSkins: EquippedSkin[] = [];
+  const { data: skinRows } = await sb
+    .from('member_skins')
+    .select('skin_id, skins!inner(game_id)')
+    .eq('member_id', memberId)
+    .eq('equipped', true)
+    .is('revoked_at', null);
+  if (Array.isArray(skinRows)) {
+    equippedSkins = (skinRows as Array<{ skin_id: string; skins: { game_id: string } | { game_id: string }[] }>)
+      .map((r) => {
+        const game = Array.isArray(r.skins) ? r.skins[0] : r.skins;
+        return game ? { skinId: r.skin_id, gameId: game.game_id } : null;
+      })
+      .filter((s): s is EquippedSkin => s !== null);
   }
 
   return {
@@ -55,5 +74,6 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     nickname: member.nickname,
     status: status ?? 'active',
     displayedTitle,
+    equippedSkins,
   };
 }

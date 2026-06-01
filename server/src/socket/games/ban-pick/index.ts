@@ -269,6 +269,15 @@ async function executeLottery(io: IO, roomId: string, s: BanPickState) {
     }
   }
 
+  // 밴 삭제로 복귀된 게임에 추첨 확률 보너스 적용 (+1.0, cap 3.0 공유)
+  if (s.unbanBoostGameIds.size > 0) {
+    for (let i = 0; i < remaining.length; i++) {
+      if (s.unbanBoostGameIds.has(remaining[i]!.id)) {
+        weights[i] = Math.min(3.0, (weights[i] ?? 1) + 1.0);
+      }
+    }
+  }
+
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
   let pickIdx = remaining.length - 1;
@@ -288,12 +297,12 @@ async function executeLottery(io: IO, roomId: string, s: BanPickState) {
   if (s.playMode === 'com') {
     setTimeout(() => {
       const cur = states.get(roomId);
-      if (cur && cur.pickedGameId && cur.phase === 'lottery') finalizeBanPick(cur, picked);
+      if (cur && cur.pickedGameId === picked.id && cur.phase === 'lottery') finalizeBanPick(cur, picked);
     }, 10_000);
   } else {
     setTimeout(() => {
       const cur = states.get(roomId);
-      if (cur && cur.pickedGameId && cur.phase === 'lottery') finalizeBanPick(cur, picked);
+      if (cur && cur.pickedGameId === picked.id && cur.phase === 'lottery') finalizeBanPick(cur, picked);
     }, 12_000);
   }
 }
@@ -350,9 +359,9 @@ async function checkAndStartUnbanPhase(io: IO, roomId: string): Promise<void> {
     }
   }
 
-  // await 후 상태 재확인 — 1.5초 타이머가 먼저 터졌다면 이미 lottery 진행 중
+  // await 후 상태 재확인 — 1.5초 타이머가 먼저 터졌다면 이미 추첨 완료
   const cur = states.get(roomId);
-  if (!cur || cur.phase !== 'lottery') return;
+  if (!cur || cur.phase !== 'lottery' || cur.pickedGameId !== null) return;
 
   if (queue.length === 0) return; // 보유자 없음 → lottery 타이머가 자연스럽게 진행
 
@@ -421,6 +430,7 @@ function advanceUnbanQueue(
 
   if (erasedGameId) {
     s.bannedGames = s.bannedGames.filter((b) => b.gameId !== erasedGameId);
+    s.unbanBoostGameIds.add(erasedGameId);
   }
 
   s.unbanQueueIdx++;
@@ -497,6 +507,7 @@ export async function initBanPick(
     unbanQueueIdx: 0,
     unbanTimerHandle: null,
     unbanTurnDeadline: null,
+    unbanBoostGameIds: new Set(),
   };
 
   s.bansRemainingInTurn = s.sequence[0]?.count ?? 1;

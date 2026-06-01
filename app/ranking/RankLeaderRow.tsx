@@ -9,7 +9,7 @@ import type { TitleColor } from '@/lib/supabase/database.types';
 interface Props {
   rank: number;
   nickname: string;
-  title?: { name: string; color: TitleColor } | null;
+  title?: { name: string; color: TitleColor; effect?: string | null } | null;
   tier: RankTier;
   rp: number;
   placementDone: boolean;
@@ -55,7 +55,7 @@ export default function RankLeaderRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate font-semibold text-cdm-fg">{nickname}</p>
-          {title ? <TitleBadge name={title.name} color={title.color} size="sm" /> : null}
+          {title ? <TitleBadge name={title.name} color={title.color} effect={title.effect as 'legend' | null} size="sm" /> : null}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           <RankBadge

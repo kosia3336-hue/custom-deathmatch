@@ -12,6 +12,7 @@ interface TitleGrantedPayload {
   name: string;
   color: string;
   description: string | null;
+  effect?: string | null;
 }
 
 /**
@@ -58,6 +59,7 @@ export default function TitleGrantedModal() {
         <TitleBadge
           name={current.name}
           color={current.color as TitleColor}
+          effect={current.effect as 'legend' | null}
           size="lg"
         />
         {current.description && (

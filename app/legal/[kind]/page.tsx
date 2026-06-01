@@ -16,7 +16,11 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { kind } = await params;
-  return { title: KIND_LABEL[kind] ?? '약관' };
+  if (!(kind in KIND_LABEL)) return { title: '약관' };
+  return {
+    title: KIND_LABEL[kind],
+    alternates: { canonical: `/legal/${kind}` },
+  };
 }
 
 export default async function LegalPage({ params }: Props) {

@@ -54,6 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: notice.title,
     description: description || '운영진의 공식 안내',
+    alternates: { canonical: `/notice/${notice.id}` },
     robots: { index: true, follow: true },
     openGraph: {
       title: `${notice.title} — 공지사항`,

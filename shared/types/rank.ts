@@ -51,32 +51,30 @@ export function calcRankRpParts(
   loserLossStreak: number,
 ): RankRpParts {
   const tierDiff = winnerTierVal - loserTierVal;
-  const gainTable = [32, 27, 23, 20, 17, 14, 11];
+  const gainTable = [20, 17, 14, 12, 10, 8, 6];
   const idx = Math.max(0, Math.min(6, tierDiff + 3));
   const winnerBaseTable = gainTable[idx];
   const loserBaseTable = gainTable[idx];
 
   const winnerStreakBonus =
-    winnerWinStreak >= 6 ? 9
-    : winnerWinStreak === 5 ? 7
-    : winnerWinStreak === 4 ? 5
-    : winnerWinStreak === 3 ? 3
+    winnerWinStreak >= 6 ? 20
+    : winnerWinStreak === 5 ? 15
+    : winnerWinStreak === 4 ? 10
+    : winnerWinStreak === 3 ? 6
     : 0;
 
   const loserStreakPenalty =
-    loserLossStreak >= 6 ? 8
-    : loserLossStreak === 5 ? 6
-    : loserLossStreak === 4 ? 4
-    : loserLossStreak === 3 ? 2
+    loserLossStreak >= 6 ? 20
+    : loserLossStreak === 5 ? 15
+    : loserLossStreak === 4 ? 10
+    : loserLossStreak === 3 ? 6
     : 0;
-
-  const winnerTierBonus = winnerTierVal === 1 ? 2 : winnerTierVal === 2 ? 1 : 0;
 
   // 다이아·챌린저 패배 시 추가 loss 패널티 (비대칭 디플레이션)
   const loserTierPenalty = loserTierVal >= 5 ? 8 : loserTierVal >= 4 ? 5 : 0;
 
   return {
-    winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus + winnerTierBonus),
+    winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus),
     loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty + loserTierPenalty),
     winnerBaseTable,
     winnerStreakBonus,
@@ -196,21 +194,20 @@ export function applyRankLoss(
   if (currentTier === 'challenger') {
     return { tier: 'challenger', rp: Math.max(0, currentRp - loss), demoted: false };
   }
-  if (currentTier === 'bronze' && currentRp === 0) {
-    return { tier: 'bronze', rp: 0, demoted: false };
-  }
-  if (currentRp > 0) {
-    const next = currentRp - loss;
-    if (next < 0) return { tier: currentTier, rp: 0, demoted: false };
-    return { tier: currentTier, rp: next, demoted: false };
-  }
-
   const demoteMap: Partial<Record<RankTier, RankTier>> = {
     diamond: 'gold',
     gold: 'silver',
     silver: 'bronze',
   };
+
+  const next = currentRp - loss;
+  if (next >= 0) return { tier: currentTier, rp: next, demoted: false };
+
+  // RP가 음수 → 즉시 강등, 잔여 RP 이월
+  if (currentTier === 'bronze') {
+    return { tier: 'bronze', rp: 0, demoted: false };
+  }
   const prev = demoteMap[currentTier];
   if (!prev) return { tier: currentTier, rp: 0, demoted: false };
-  return { tier: prev, rp: 75, demoted: true };
+  return { tier: prev, rp: 100 + next, demoted: true };
 }

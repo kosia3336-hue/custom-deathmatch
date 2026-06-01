@@ -365,7 +365,9 @@ function checkGameOver(io: IO, s: InternalState): boolean {
     } else if (p2.score > p1.score) {
       resolveGame(io, s, p2.id, p2.nickname, p1.id, p1.nickname, 'exhaustion');
     } else {
-      resolveGame(io, s, null, '', null, '', 'draw');
+      const fp = getFirstPlayer(s);
+      const sp = getSecondPlayer(s);
+      resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
     }
     return true;
   }
@@ -494,7 +496,9 @@ export function handleBNW2Timeout(io: IO, s: InternalState) {
     const loser = winner.id === p1.id ? p2 : p1;
     resolveGame(io, s, winner.id, winner.nickname, loser.id, loser.nickname, 'timeout');
   } else {
-    resolveGame(io, s, null, '', null, '', 'draw');
+    const fp = getFirstPlayer(s);
+    const sp = getSecondPlayer(s);
+    resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
   }
 }
 

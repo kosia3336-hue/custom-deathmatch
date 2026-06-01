@@ -39,6 +39,7 @@ function buildPlayer(socketId: string, isHost: boolean): Player | null {
     joinedAt: Date.now(),
     memberId: sessions.getMemberId(token),
     displayedTitle: sessions.getDisplayedTitle(token),
+    equippedSkins: sessions.getEquippedSkins(token),
   };
 }
 

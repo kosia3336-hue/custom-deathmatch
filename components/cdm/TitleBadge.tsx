@@ -1,9 +1,12 @@
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
+export type TitleEffect = 'legend';
+
 interface TitleBadgeProps {
   name: string;
   color: TitleColor;
+  effect?: TitleEffect | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -16,19 +19,21 @@ const SIZE_CLASS = {
 
 /**
  * 칭호 뱃지. 아웃라인(테두리+글자 동색, 배경 투명) 스타일.
- * 닉네임 앞 인라인에 배치된다.
+ * effect='legend' 시 황금 shimmer 애니메이션 적용.
  *
  * docs/v2/15_common_ui.md §15.9.2
  */
-export function TitleBadge({ name, color, size = 'md', className }: TitleBadgeProps) {
+export function TitleBadge({ name, color, effect, size = 'md', className }: TitleBadgeProps) {
+  const isLegend = effect === 'legend';
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full font-semibold leading-none whitespace-nowrap border-[1.5px]',
         SIZE_CLASS[size],
+        isLegend && 'title-legend',
         className,
       )}
-      style={{
+      style={isLegend ? undefined : {
         borderColor: `var(--title-${color})`,
         color: `var(--title-${color})`,
       }}

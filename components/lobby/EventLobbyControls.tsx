@@ -18,6 +18,11 @@ export default function EventLobbyControls() {
   const open = isEventRoomOpen();
 
   const handleClick = () => {
+    // ── 이벤트 기간 종료 — 준비중 처리 ──
+    toast.info('현재 진행중인 이벤트가 없습니다.');
+    return;
+
+    /* 이벤트 재개 시 아래 주석 해제
     if (!member) {
       toast.error('이벤트 게임은 로그인 후 이용할 수 있습니다.');
       return;
@@ -37,9 +42,9 @@ export default function EventLobbyControls() {
         toast.error(res.error ?? '이벤트 입장에 실패했습니다.');
         return;
       }
-      // 기존 게임룸 인프라로 진입 (서버 부팅 시 roomStore 에 등록된 고정 ID)
       router.push('/room/evt-indpkr/play');
     });
+    */
   };
 
   return (

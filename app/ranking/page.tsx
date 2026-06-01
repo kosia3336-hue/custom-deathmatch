@@ -45,7 +45,7 @@ interface RankRow {
   rank: number;
   member_id: string;
   nickname: string;
-  title: { id: string; name: string; color: TitleColor } | null;
+  title: { id: string; name: string; color: TitleColor; effect?: string | null } | null;
   total_games: number;
   wins: number;
   draws: number;
@@ -216,7 +216,7 @@ export default async function RankingPage({ searchParams }: Props) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {r.title && (
-                            <TitleBadge name={r.title.name} color={r.title.color} size="sm" />
+                            <TitleBadge name={r.title.name} color={r.title.color} effect={r.title.effect as 'legend' | null} size="sm" />
                           )}
                           <span className="truncate font-semibold text-cdm-fg">
                             {r.nickname}

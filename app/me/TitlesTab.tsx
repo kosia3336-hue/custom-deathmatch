@@ -15,6 +15,7 @@ interface TitleRow {
   id: string;
   name: string;
   color: TitleColor;
+  effect: string | null;
   description: string | null;
 }
 
@@ -44,7 +45,7 @@ export default async function TitlesTab({
   const titleIds = owned.map((o) => o.title_id);
   const titlesRes = await sb
     .from('titles')
-    .select('id, name, color, description')
+    .select('id, name, color, effect, description')
     .in('id', titleIds);
   const titlesMap = ((titlesRes.data ?? []) as unknown as TitleRow[]).reduce<Record<string, TitleRow>>(
     (acc, t) => {
@@ -62,7 +63,7 @@ export default async function TitlesTab({
         <Card variant="highlight" accent="highlight">
           <h2 className="text-xs font-semibold text-cdm-fg-muted">표시 칭호</h2>
           <div className="mt-2 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <TitleBadge name={displayed.name} color={displayed.color} size="lg" />
+            <TitleBadge name={displayed.name} color={displayed.color} effect={displayed.effect as 'legend' | null} size="lg" />
             <TitleActions kind="unset" />
           </div>
           {displayed.description && (
@@ -83,7 +84,7 @@ export default async function TitlesTab({
             return (
               <Card key={o.id} className="!p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <TitleBadge name={t.name} color={t.color} size="md" />
+                  <TitleBadge name={t.name} color={t.color} effect={t.effect as 'legend' | null} size="md" />
                   {isDisplayed && (
                     <span className="text-xs font-semibold text-cdm-primary">표시 중</span>
                   )}

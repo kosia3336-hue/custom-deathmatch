@@ -9,6 +9,7 @@ import TitlesClient from './TitlesClient';
 export const metadata: Metadata = {
   title: '칭호',
   description: '현재 보유자가 있는 공개 칭호 목록이에요.',
+  alternates: { canonical: '/titles' },
   robots: { index: true, follow: true },
 };
 
@@ -20,6 +21,7 @@ interface PublicTitleRow {
   condition_text: string | null;
   is_system: boolean;
   is_legend: boolean;
+  effect: string | null;
   holder_count: number;
   first_granted_at: string | null;
 }
@@ -37,20 +39,16 @@ export default async function TitlesPage() {
   const { data, error } = await (sb.rpc as any)('list_public_titles');
   const titles = (error ? [] : (data ?? [])) as PublicTitleRow[];
 
-  // 상점에서 현재 구매 가능한 칭호의 title_id 집합
-  const nowIso = new Date().toISOString();
-  const purchasableRes = await sb
+  // 상점 칭호 title_id 집합 (is_active 무관 — 비활성화돼도 상점 탭에 표시)
+  const shopRes = await sb
     .from('shop_items')
     .select('payload')
-    .eq('type', 'title')
-    .eq('is_active', true)
-    .or(`available_from.is.null,available_from.lte.${nowIso}`)
-    .or(`available_until.is.null,available_until.gt.${nowIso}`);
+    .eq('type', 'title');
 
-  const purchasableTitleIds = new Set<string>();
-  for (const r of (purchasableRes.data ?? []) as unknown as ShopTitleRow[]) {
+  const shopTitleIds = new Set<string>();
+  for (const r of (shopRes.data ?? []) as unknown as ShopTitleRow[]) {
     const tid = (r.payload as { title_id?: string } | null)?.title_id;
-    if (typeof tid === 'string' && tid) purchasableTitleIds.add(tid);
+    if (typeof tid === 'string' && tid) shopTitleIds.add(tid);
   }
 
   return (
@@ -69,7 +67,7 @@ export default async function TitlesPage() {
         ) : (
           <TitlesClient
             titles={titles}
-            purchasableIds={Array.from(purchasableTitleIds)}
+            shopTitleIds={Array.from(shopTitleIds)}
           />
         )}
       </main>

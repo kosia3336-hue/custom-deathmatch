@@ -1,3 +1,5 @@
+import type { EquippedSkin } from './skin';
+
 export const AI_PLAYER_ID = 'AI' as const;
 
 export type PlayMode = 'multi' | 'com' | 'solo';
@@ -9,6 +11,7 @@ export interface DisplayedTitle {
   id: string;
   name: string;
   color: string; // title_color enum 값. 클라이언트 TitleColor 타입과 동일
+  effect?: string | null;
 }
 
 /** v2 — 선공/후공 (모든 2인 게임 통일) */
@@ -32,6 +35,8 @@ export interface Player {
    * 게임 모듈 정책 + 방장 토글로 결정. 게임 시작 후 확정.
    */
   turnPosition?: TurnPosition | null;
+  /** v3 — 이 플레이어가 착용 중인 게임 스킨 목록 (보유·착용자만) */
+  equippedSkins?: EquippedSkin[];
 }
 
 export interface Room {

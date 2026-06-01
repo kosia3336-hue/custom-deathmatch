@@ -29,12 +29,13 @@ interface ItemChangedPayload {
   isActive: boolean;
 }
 
-type TabId = 'all' | 'consumable' | 'title' | 'event_chip_pack';
+// 이벤트 기간 종료 — 재개 시 | 'event_chip_pack' 추가
+type TabId = 'all' | 'consumable' | 'title';
 
 const TAB_FOR_TYPE: Record<string, TabId> = {
   consumable: 'consumable',
   title: 'title',
-  event_chip_pack: 'event_chip_pack',
+  // event_chip_pack: 'event_chip_pack', // 이벤트 기간 종료
 };
 
 function effectivePrice(price: number, discount: boolean): number {
@@ -60,10 +61,10 @@ export default function ShopClient({
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     if (
       initialType === 'consumable' ||
-      initialType === 'title' ||
-      initialType === 'event_chip_pack'
+      initialType === 'title'
+      // || initialType === 'event_chip_pack' // 이벤트 기간 종료
     ) {
-      return initialType;
+      return initialType as TabId;
     }
     return 'all';
   });
@@ -100,12 +101,12 @@ export default function ShopClient({
   const tabs: TabItem[] = useMemo(() => {
     const cConsumable = items.filter((i) => TAB_FOR_TYPE[i.type] === 'consumable').length;
     const cTitle = items.filter((i) => TAB_FOR_TYPE[i.type] === 'title').length;
-    const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length;
+    // const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length; // 이벤트 기간 종료
     return [
       { id: 'all', label: '전체', count: items.length },
       { id: 'consumable', label: '🎟 소모성', count: cConsumable },
       { id: 'title', label: '🏆 칭호', count: cTitle },
-      { id: 'event_chip_pack', label: '🪙 이벤트', count: cChip },
+      // { id: 'event_chip_pack', label: '🪙 이벤트', count: cChip }, // 이벤트 기간 종료
     ];
   }, [items]);
 
@@ -226,7 +227,9 @@ export default function ShopClient({
 
       <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
 
+      {/* 이벤트 기간 종료 — 재개 시 주석 해제
       {activeTab === 'event_chip_pack' && <ShopEventChipExchange />}
+      */}
 
       {visibleItems.length === 0 ? (
         <EmptyState

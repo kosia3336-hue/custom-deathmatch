@@ -26,17 +26,18 @@ interface PublicTitle {
   condition_text: string | null;
   is_system: boolean;
   is_legend: boolean;
+  effect: string | null;
   holder_count: number;
   first_granted_at: string | null;
 }
 
 interface Props {
   titles: PublicTitle[];
-  purchasableIds: string[];
+  shopTitleIds: string[];
 }
 
-export default function TitlesClient({ titles, purchasableIds }: Props) {
-  const purchasableSet = new Set(purchasableIds);
+export default function TitlesClient({ titles, shopTitleIds }: Props) {
+  const shopSet = new Set(shopTitleIds);
   const [selected, setSelected] = useState<PublicTitle | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<FilterKind>('all');
@@ -45,9 +46,9 @@ export default function TitlesClient({ titles, purchasableIds }: Props) {
     if (filter === 'all') return true;
     if (filter === 'legend') return t.is_legend;
     if (filter === 'hidden') return t.is_system && !t.is_legend;
-    if (filter === 'shop') return purchasableSet.has(t.id) && !t.is_legend;
+    if (filter === 'shop') return shopSet.has(t.id) && !t.is_legend;
     // normal: not hidden, not shop, not legend
-    return !t.is_system && !t.is_legend && !purchasableSet.has(t.id);
+    return !t.is_system && !t.is_legend && !shopSet.has(t.id);
   }
 
   const filtered = titles.filter(applyFilter);
@@ -98,11 +99,12 @@ export default function TitlesClient({ titles, purchasableIds }: Props) {
               key={t.id}
               name={t.name}
               color={t.color}
+              effect={t.effect}
               description={t.description}
               holderCount={t.holder_count}
               isSystem={t.is_system}
               isLegend={t.is_legend}
-              purchasable={purchasableSet.has(t.id)}
+              purchasable={shopSet.has(t.id)}
               onClick={() => setSelected(t)}
             />
           ))}
@@ -122,6 +124,7 @@ export default function TitlesClient({ titles, purchasableIds }: Props) {
         titleId={selected?.id ?? null}
         titleName={selected?.name ?? ''}
         titleColor={selected?.color ?? 'indigo'}
+        titleEffect={selected?.effect ?? null}
         description={selected?.description ?? null}
         conditionText={selected?.condition_text ?? null}
         isSystem={selected?.is_system ?? false}

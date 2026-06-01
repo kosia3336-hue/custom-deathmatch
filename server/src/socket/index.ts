@@ -84,13 +84,14 @@ export function setupSocketHandlers(io: IO) {
           member?: {
             id: string;
             nickname: string;
-            displayedTitle: { id: string; name: string; color: string } | null;
+            displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+            equippedSkins?: { skinId: string; gameId: string }[];
           };
         }
       ).member;
       if (member) {
         sessions.setNickname(socket.id, member.nickname, true);
-        sessions.setMemberInfo(token, member.id, member.displayedTitle);
+        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? []);
       }
 
       // ── 칭호 획득 모달 pending 처리 ──────────────────────────────────────
@@ -181,6 +182,26 @@ export function setupSocketHandlers(io: IO) {
         callback({ success: true, nickname: current });
       } else {
         callback({ success: false, error: '회원 닉네임이 설정되지 않았습니다.' });
+      }
+    });
+
+    // ── 스킨 세션 즉시 갱신 ───────────────────────────────────────────────
+    socket.on('skin:sync', async (callback) => {
+      try {
+        const token = sessions.getToken(socket.id);
+        if (!token) return callback({ ok: false });
+
+        const accessToken = (socket.handshake.auth as { accessToken?: string } | undefined)?.accessToken;
+        if (!accessToken) return callback({ ok: false });
+
+        const member = await getMemberFromAccessToken(accessToken);
+        if (!member) return callback({ ok: false });
+
+        const memberId = sessions.getMemberId(token);
+        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins);
+        callback({ ok: true });
+      } catch {
+        callback({ ok: false });
       }
     });
 

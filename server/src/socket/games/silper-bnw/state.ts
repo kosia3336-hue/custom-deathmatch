@@ -13,7 +13,7 @@ import type {
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { isTokenAnonymized, getRoomShopState } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import {
   REMATCH_INTRO_MS,
@@ -216,6 +216,19 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
   }));
 }
 
+function maskFinishReasonForViewer(reason: string | null, viewerId: string | null, s: InternalState): string | null {
+  if (!reason || !viewerId) return reason;
+  const shopState = getRoomShopState(s.roomId);
+  if (!shopState || shopState.anonymizedTokens.size === 0) return reason;
+  let result = reason;
+  for (const p of [s.player1, s.player2]) {
+    if (shopState.anonymizedTokens.has(p.id) && p.id !== viewerId) {
+      result = result.replaceAll(p.nickname, ANONYMOUS_NICKNAME);
+    }
+  }
+  return result;
+}
+
 function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsight = false): SBNWGameData {
   const isP1 = viewerId === s.player1.id;
   const isP2 = viewerId === s.player2.id;
@@ -235,7 +248,7 @@ function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsigh
     roundHistory: cloneRoundHistory(s.actionLog, viewerId, seeBothTiles, s.roomId),
     segmentsHistory: s.segmentsHistory.map((seg) => cloneSegmentSummary(seg, viewerId, seeBothTiles, s.roomId)),
     rematchIndex: s.rematchIndex,
-    finishReason: s.finishReason,
+    finishReason: maskFinishReasonForViewer(s.finishReason, viewerId, s),
     winner: s.winner,
     winType: s.winType,
   };

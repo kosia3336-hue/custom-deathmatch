@@ -103,7 +103,7 @@ function PlayerCard({
   tier: RankTier | null;
   rp: number | null;
   placement: boolean | null;
-  title?: { name: string; color: string } | null;
+  title?: { name: string; color: string; effect?: string | null } | null;
   side: 'left' | 'right';
 }) {
   const boxAlign =
@@ -120,7 +120,7 @@ function PlayerCard({
         <div
           className={`mt-2 flex justify-center ${side === 'left' ? 'md:justify-end' : 'md:justify-start'}`}
         >
-          <TitleBadge name={title.name} color={title.color as TitleColor} size="sm" />
+          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" />
         </div>
       ) : null}
       <div className={`mt-3 flex flex-col gap-1 ${side === 'left' ? 'md:items-end' : 'md:items-start'}`}>

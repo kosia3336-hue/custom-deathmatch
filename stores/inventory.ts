@@ -9,6 +9,7 @@ import type { ConsumableKind } from '@/lib/cdp/types';
  *  - 초기 fetch 는 useInitInventory 훅이 담당.
  */
 export type InventoryMap = Record<ConsumableKind, number>;
+export type AutoUseMap = Record<ConsumableKind, boolean>;
 
 const EMPTY: InventoryMap = {
   nickname_change: 0,
@@ -19,19 +20,36 @@ const EMPTY: InventoryMap = {
   ban_eraser: 0,
 };
 
+const EMPTY_AUTO_USE: AutoUseMap = {
+  nickname_change: true,
+  rank_reset: true,
+  spectator_lock: true,
+  anonymity: true,
+  magnifier: true,
+  ban_eraser: true,
+};
+
 interface InventoryState {
   items: InventoryMap | null;
-  setAll: (next: InventoryMap) => void;
+  autoUse: AutoUseMap | null;
+  setAll: (next: InventoryMap, nextAutoUse: AutoUseMap) => void;
   setOne: (kind: ConsumableKind, count: number) => void;
+  setAutoUse: (kind: ConsumableKind, value: boolean) => void;
   reset: () => void;
 }
 
 export const useInventoryStore = create<InventoryState>((set) => ({
   items: null,
-  setAll: (next) => set({ items: { ...EMPTY, ...next } }),
+  autoUse: null,
+  setAll: (next, nextAutoUse) =>
+    set({ items: { ...EMPTY, ...next }, autoUse: { ...EMPTY_AUTO_USE, ...nextAutoUse } }),
   setOne: (kind, count) =>
     set((state) => ({
       items: { ...(state.items ?? EMPTY), [kind]: Math.max(0, Math.trunc(count)) },
     })),
-  reset: () => set({ items: null }),
+  setAutoUse: (kind, value) =>
+    set((state) => ({
+      autoUse: { ...(state.autoUse ?? EMPTY_AUTO_USE), [kind]: value },
+    })),
+  reset: () => set({ items: null, autoUse: null }),
 }));

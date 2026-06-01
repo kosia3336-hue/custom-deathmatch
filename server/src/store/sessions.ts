@@ -1,4 +1,5 @@
 import type { DisplayedTitle } from '@shared/types/room.js';
+import type { EquippedSkin } from '@shared/types/skin.js';
 
 // ── 소켓 ↔ 닉네임 (임시, 현재 연결된 소켓 기준) ─────────────────────────────
 const socketToNickname = new Map<string, string>();
@@ -20,6 +21,8 @@ const tokenToNickname = new Map<string, string>();
 const tokenToMemberId = new Map<string, string | null>();
 // token → 표시 칭호 (없으면 null)
 const tokenToDisplayedTitle = new Map<string, DisplayedTitle | null>();
+// token → 착용 스킨 목록 (없으면 [])
+const tokenToEquippedSkins = new Map<string, EquippedSkin[]>();
 
 // ── 재연결 유예 타이머 ────────────────────────────────────────────────────────
 const pendingDisconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -188,10 +191,16 @@ export const sessions = {
 
   // ── v2 — 회원 정보 ─────────────────────────────────────────────────────
 
-  /** 토큰에 회원 정보(id, displayedTitle) 를 바인딩 */
-  setMemberInfo(token: string, memberId: string | null, displayedTitle: DisplayedTitle | null) {
+  /** 토큰에 회원 정보(id, displayedTitle, equippedSkins) 를 바인딩 */
+  setMemberInfo(
+    token: string,
+    memberId: string | null,
+    displayedTitle: DisplayedTitle | null,
+    equippedSkins: EquippedSkin[] = [],
+  ) {
     tokenToMemberId.set(token, memberId);
     tokenToDisplayedTitle.set(token, displayedTitle);
+    tokenToEquippedSkins.set(token, equippedSkins);
     if (memberId) memberIdToToken.set(memberId, token);
   },
 
@@ -203,6 +212,10 @@ export const sessions = {
     return tokenToDisplayedTitle.get(token) ?? null;
   },
 
+  getEquippedSkins(token: string): EquippedSkin[] {
+    return tokenToEquippedSkins.get(token) ?? [];
+  },
+
   getMemberIdBySocket(socketId: string): string | null {
     const t = socketToToken.get(socketId);
     return t ? tokenToMemberId.get(t) ?? null : null;
@@ -211,6 +224,11 @@ export const sessions = {
   getDisplayedTitleBySocket(socketId: string): DisplayedTitle | null {
     const t = socketToToken.get(socketId);
     return t ? tokenToDisplayedTitle.get(t) ?? null : null;
+  },
+
+  getEquippedSkinsBySocket(socketId: string): EquippedSkin[] {
+    const t = socketToToken.get(socketId);
+    return t ? tokenToEquippedSkins.get(t) ?? [] : [];
   },
 
   // ── 재연결 유예 타이머 ────────────────────────────────────────────────────

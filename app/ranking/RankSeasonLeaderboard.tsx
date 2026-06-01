@@ -95,13 +95,13 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
     ...new Set(memberRows.map((m) => m.displayed_title_id).filter(Boolean)),
   ] as string[];
 
-  let titleMap = new Map<string, { name: string; color: TitleColor }>();
+  let titleMap = new Map<string, { name: string; color: TitleColor; effect: string | null }>();
   if (titleIds.length > 0) {
-    const { data: titles } = await db.from('titles').select('id, name, color').in('id', titleIds);
+    const { data: titles } = await db.from('titles').select('id, name, color, effect').in('id', titleIds);
     titleMap = new Map(
-      (titles ?? []).map((t: { id: string; name: string; color: TitleColor }) => [
+      (titles ?? []).map((t: { id: string; name: string; color: TitleColor; effect: string | null }) => [
         t.id,
-        { name: t.name, color: t.color },
+        { name: t.name, color: t.color, effect: t.effect ?? null },
       ]),
     );
   }

@@ -10,6 +10,7 @@ import SettingsTab from './SettingsTab';
 import LogsTab from './LogsTab';
 import StatsTab from './StatsTab';
 import TitlesTab from './TitlesTab';
+import SkinsTab from './SkinsTab';
 import SupportTab from './SupportTab';
 import ShopTab from './ShopTab';
 import RankTab from './RankTab';
@@ -47,6 +48,7 @@ export default async function MyPage({ searchParams }: Props) {
                 <TitleBadge
                   name={member.displayedTitle.name}
                   color={member.displayedTitle.color}
+                  effect={member.displayedTitle.effect as 'legend' | null}
                   size="md"
                 />
               )}
@@ -66,6 +68,7 @@ export default async function MyPage({ searchParams }: Props) {
           {tab === 'titles' && (
             <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
           )}
+          {tab === 'skins' && <SkinsTab memberId={member.id} />}
           {tab === 'shop' && <ShopTab memberId={member.id} />}
           {tab === 'support' && (
             <SupportTab

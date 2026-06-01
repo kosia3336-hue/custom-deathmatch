@@ -94,7 +94,7 @@ export type GS2ResolveStep =
   | { type: 'final'; roundSugar: { p1: number; p2: number } }
   | { type: 'winner'; winner: GS2Side | 'tie'; scoreDelta: { p1: number; p2: number } }
   | { type: 'bless'; actor: GS2Side; outcome: 'win' | 'loss' | 'tie'; scoreDelta: number }
-  | { type: 'diceScore'; actor: GS2Side; loserBonusTo: GS2Side; amount: 2 }
+  | { type: 'diceScore'; actor: GS2Side; loserBonusTo: GS2Side; amount: 1 | 2 }
   | { type: 'hrPenaltyScheduled'; actor: GS2Side; amount: number }
   | { type: 'breathExtended'; nowMaxRound: 9 }
   | { type: 'breathNoEffect'; actor: GS2Side; reason: 'alreadyExtended' | 'cancelled' };

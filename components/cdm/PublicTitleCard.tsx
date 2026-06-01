@@ -7,6 +7,7 @@ import type { TitleColor } from '@/lib/supabase/database.types';
 interface PublicTitleCardProps {
   name: string;
   color: TitleColor;
+  effect?: string | null;
   description: string | null;
   holderCount: number;
   isSystem: boolean;
@@ -23,6 +24,7 @@ interface PublicTitleCardProps {
 export function PublicTitleCard({
   name,
   color,
+  effect,
   description,
   holderCount,
   isSystem,
@@ -39,7 +41,7 @@ export function PublicTitleCard({
     >
       <Card variant="interactive" className="p-4! h-full flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <TitleBadge name={name} color={color} size="md" />
+          <TitleBadge name={name} color={color} effect={effect as 'legend' | null} size="md" />
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {isLegend && (
               <span
@@ -53,10 +55,10 @@ export function PublicTitleCard({
             {purchasable && (
               <span
                 className="inline-flex items-center gap-0.5 rounded-full border border-cdm-primary/40 bg-cdm-primary/10 px-2 py-px text-[10px] font-bold text-cdm-primary"
-                aria-label="상점에서 구매 가능"
-                title="상점에서 구매 가능"
+                aria-label="상점 칭호"
+                title="상점 칭호"
               >
-                🛒 구매 가능
+                🛒 상점
               </span>
             )}
             {isSystem && !isLegend && (

@@ -9,6 +9,7 @@ const TABS: TabItem[] = [
   { id: 'stats', label: '전적' },
   { id: 'rank', label: '랭크' },
   { id: 'titles', label: '보유 칭호' },
+  { id: 'skins', label: '스킨' },
   { id: 'shop', label: '인벤토리' },
   { id: 'support', label: '문의' },
   { id: 'settings', label: '설정' },

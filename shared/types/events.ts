@@ -72,6 +72,8 @@ export interface GameState {
   startedAt: number;
   turnStartedAt: number | null;
   gameData?: unknown;
+  /** v3 — 이 게임 인스턴스에 적용된 스킨 ID (없으면 null/미정의). 게임 시작 시 1회 확정 */
+  activeSkin?: string | null;
 }
 
 export interface GameResult {
@@ -234,6 +236,9 @@ export interface ClientToServerEvents {
   'game:end': () => void;
 
   'session:restore': (data: { token: string; confirmed?: boolean }) => void;
+
+  /** 스킨 착용/해제 후 서버 세션의 equippedSkins 를 즉시 갱신한다 */
+  'skin:sync': (callback: (res: { ok: boolean }) => void) => void;
 
   'spectate:join': (
     data: { roomId: string; password?: string },

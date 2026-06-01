@@ -57,7 +57,7 @@ export default function PlayerSlot({
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             {title && (
-              <TitleBadge name={title.name} color={title.color as TitleColor} size="sm" />
+              <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" />
             )}
             <span className="font-semibold text-cdm-fg truncate">{player.nickname}</span>
             {isAI && (

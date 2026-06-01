@@ -24,23 +24,50 @@ export async function GET() {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { items: ALL_KINDS.map((kind) => ({ kind, count: 0 })) },
+      { items: ALL_KINDS.map((kind) => ({ kind, count: 0, autoUse: true })) },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );
   }
 
   try {
     const sb = await getServerSupabase();
+
+    // auto_use 컬럼 포함해서 시도, 없으면 컬럼 없이 재시도 (마이그레이션 미적용 대비)
+    type RowWithAutoUse = { kind: string; count: number; auto_use: boolean; updated_at: string };
+    type RowBase = { kind: string; count: number; updated_at: string };
+
+    let rows: RowWithAutoUse[];
+    let hasAutoUseColumn = true;
+
     const { data, error } = await sb
       .from('shop_consumable_inventory')
-      .select('kind, count, updated_at')
+      .select('kind, count, auto_use, updated_at')
       .eq('member_id', member.id);
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42703') {
+        // auto_use 컬럼 미존재 → 컬럼 없이 재조회
+        hasAutoUseColumn = false;
+        const { data: data2, error: error2 } = await sb
+          .from('shop_consumable_inventory')
+          .select('kind, count, updated_at')
+          .eq('member_id', member.id);
+        if (error2) throw error2;
+        rows = ((data2 ?? []) as RowBase[]).map((r) => ({ ...r, auto_use: true }));
+      } else {
+        throw error;
+      }
+    } else {
+      rows = (data ?? []) as RowWithAutoUse[];
+    }
 
-    const map = new Map<string, { count: number; updatedAt: string | null }>();
-    for (const r of (data ?? []) as Array<{ kind: string; count: number; updated_at: string }>) {
-      map.set(r.kind, { count: Number(r.count), updatedAt: r.updated_at });
+    const map = new Map<string, { count: number; autoUse: boolean; updatedAt: string | null }>();
+    for (const r of rows) {
+      map.set(r.kind, {
+        count: Number(r.count),
+        autoUse: hasAutoUseColumn ? (r.auto_use ?? true) : true,
+        updatedAt: r.updated_at,
+      });
     }
 
     const items = ALL_KINDS.map((kind) => {
@@ -48,6 +75,7 @@ export async function GET() {
       return {
         kind,
         count: v?.count ?? 0,
+        autoUse: v?.autoUse ?? true,
         updatedAt: v?.updatedAt ?? null,
       };
     });
@@ -59,7 +87,7 @@ export async function GET() {
   } catch (err) {
     console.warn('[me/consumables] fetch 실패:', (err as Error).message);
     return NextResponse.json(
-      { items: ALL_KINDS.map((kind) => ({ kind, count: 0 })) },
+      { items: ALL_KINDS.map((kind) => ({ kind, count: 0, autoUse: true })) },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );
   }

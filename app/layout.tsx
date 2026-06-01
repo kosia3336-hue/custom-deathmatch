@@ -29,7 +29,6 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: 'Custom Deathmatch',
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: '/' },
   keywords: [
     '커스텀 데스매치',
     'Custom Deathmatch',

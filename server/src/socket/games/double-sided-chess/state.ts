@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 import { sessions } from '../../../store/sessions.js';
+import { getActiveSkin } from '../../skins.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -69,6 +70,7 @@ function buildGameState(s: InternalState, viewerToken: string): GameState {
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
     gameData: toGameData(s, viewerToken),
+    activeSkin: getActiveSkin(s.roomId),
   };
 }
 

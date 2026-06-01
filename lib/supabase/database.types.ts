@@ -423,6 +423,28 @@ export interface ShopConsumableInventoryLogRow {
   applied_at: string;
 }
 
+// 게임 스킨
+export interface SkinRow {
+  id: string;
+  game_id: string;
+  name: string;
+  description: string;
+  price: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemberSkinRow {
+  id: number;
+  member_id: string;
+  skin_id: string;
+  equipped: boolean;
+  granted_at: string;
+  revoked_at: string | null;
+}
+
 // ──────────────────────────────────────────────
 // Database 타입 (Supabase 클라이언트 제네릭)
 // ──────────────────────────────────────────────
@@ -497,6 +519,16 @@ export interface Database {
         Row: ShopConsumableInventoryLogRow;
         Insert: Omit<ShopConsumableInventoryLogRow, 'applied_at'> & { applied_at?: string };
         Update: Partial<ShopConsumableInventoryLogRow>;
+      };
+      skins: {
+        Row: SkinRow;
+        Insert: Partial<SkinRow> & { id: string; game_id: string; name: string };
+        Update: Partial<SkinRow>;
+      };
+      member_skins: {
+        Row: MemberSkinRow;
+        Insert: Omit<MemberSkinRow, 'id' | 'granted_at'> & { granted_at?: string };
+        Update: Partial<MemberSkinRow>;
       };
     };
     Views: {
@@ -833,6 +865,12 @@ export interface Database {
         };
         Returns: Array<{ count_after: number; applied_delta: number; clamped: boolean }>;
       };
+
+      // 게임 스킨
+      equip_skin: { Args: { p_skin_id: string }; Returns: void };
+      unequip_skin: { Args: { p_skin_id: string }; Returns: void };
+      admin_grant_skin: { Args: { p_member_id: string; p_skin_id: string; p_reason?: string }; Returns: void };
+      admin_revoke_skin: { Args: { p_member_id: string; p_skin_id: string; p_reason?: string }; Returns: void };
     };
     Enums: {
       member_status: MemberStatus;

@@ -176,6 +176,7 @@ import {
   performBanPickUndo,
 } from './games/ban-pick/index.js';
 import { saveRankBanPickLog } from '../db/rankBanLog.js';
+import { setActiveSkinForRoom, clearActiveSkin } from './skins.js';
 
 function launchPickedGame(
   io: IO,
@@ -191,6 +192,9 @@ function launchPickedGame(
 
   roomStore.setGameId(roomId, pickedGameId, pickedGameName);
   roomStore.markFromBanPick(roomId);
+
+  // 스킨 확정 (OR 규칙) — 게임 모듈 init 이전에 세팅해야 첫 game:state 에 반영됨
+  setActiveSkinForRoom(roomId, players, pickedGameId);
 
   // Initialise the real game first so game:state arrives before room:state
   const gameModule = gameModules[pickedGameId];
@@ -476,6 +480,8 @@ export function startGame(io: IO, roomId: string) {
         room.turnOrderMode === 'random' && room.players.length === 2 && Math.random() < 0.5
           ? [room.players[1], room.players[0]]
           : room.players;
+      // 스킨 확정 (OR 규칙) — init 이전에 세팅해야 첫 game:state 에 반영됨
+      setActiveSkinForRoom(roomId, playersForGame, room.gameId);
       gameModule.init(io, roomId, playersForGame, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
         endGame(cbIo, cbRoomId, data);
       }, room.gameOptions);
@@ -841,10 +847,15 @@ export function endGame(
       if (sockets) {
         for (const sid of sockets) {
           const viewerToken = sessions.getToken(sid) ?? null;
+          const anonNicknames = room.players
+            .filter((p) => shopState.anonymizedTokens.has(p.id) && p.id !== viewerToken)
+            .map((p) => p.nickname);
           const masked: GameResult = {
             ...payload,
             rankings: maskRankingForViewer(roomId, payload.rankings, viewerToken),
-            ...(payload.gameResultData != null ? { gameResultData: maskGameResultDataForViewer(roomId, payload.gameResultData) } : {}),
+            ...(payload.gameResultData != null
+              ? { gameResultData: maskGameResultDataForViewer(roomId, payload.gameResultData, viewerToken, anonNicknames) }
+              : {}),
           };
           io.sockets.sockets.get(sid)?.emit('game:ended', masked);
         }
@@ -912,6 +923,7 @@ export function endGame(
       clearRoomStartCountdown(roomId);
       sessions.clearRoomFromAllKicks(roomId);
       cleanupRoomShopState(roomId);
+      clearActiveSkin(roomId);
       roomStore.delete(roomId);
       broadcastRoomRemoved(io, roomId);
     }
