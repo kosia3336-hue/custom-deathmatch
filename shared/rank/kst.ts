@@ -22,7 +22,22 @@ function isKstWeekend(d = new Date()): boolean {
     timeZone: 'Asia/Seoul',
     weekday: 'long',
   }).format(d);
-  return weekday === 'Saturday' || weekday === 'Sunday';
+  if (weekday === 'Saturday' || weekday === 'Sunday') return true;
+
+  // 2026-06-03 공휴일 한정 24시간 운영
+  const dateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(d);
+  let year = 0, month = 0, day = 0;
+  for (const p of dateParts) {
+    if (p.type === 'year') year = Number(p.value);
+    if (p.type === 'month') month = Number(p.value);
+    if (p.type === 'day') day = Number(p.value);
+  }
+  return year === 2026 && month === 6 && day === 3;
 }
 
 export function isRankQueueOpen(d = new Date()): boolean {

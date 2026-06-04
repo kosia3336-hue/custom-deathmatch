@@ -88,7 +88,7 @@ export async function getAuthState(): Promise<AuthState> {
 
   const privRow = (privRes.data as unknown as PrivRowSel) ?? null;
 
-  let displayedTitle: { id: string; name: string; color: TitleColor } | null = null;
+  let displayedTitle: CurrentMember['displayedTitle'] = null;
   if (memberRow.displayed_title_id) {
     const titleRes = await supabase
       .from('titles')

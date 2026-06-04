@@ -9,7 +9,7 @@ export interface CurrentMemberClient {
   id: string;
   nickname: string;
   role: 'user' | 'admin';
-  displayedTitle: { id: string; name: string; color: string } | null;
+  displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
 }
 
 interface State {
@@ -60,12 +60,12 @@ export function useCurrentMember(): State {
         if (member.displayed_title_id) {
           const { data: titleRow } = await sb
             .from('titles')
-            .select('id, name, color')
+            .select('id, name, color, effect')
             .eq('id', member.displayed_title_id)
             .maybeSingle();
-          const title = titleRow as { id: string; name: string; color: string } | null;
+          const title = titleRow as { id: string; name: string; color: string; effect: string | null } | null;
           if (title) {
-            displayedTitle = title;
+            displayedTitle = { ...title, effect: title.effect ?? null };
           }
         }
 
