@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { getSocket } from '@/lib/socket';
 import type { IPBettingAction, IPPlayerInfo } from '@/shared/types/indian-poker';
 import Button from '@/components/ui/Button';
+import type { SkinTheme } from '@/lib/skins/registry';
+import { sfxNocturneCall, sfxNocturneDie, sfxNocturneRaise } from '@/lib/indianPokerSfx';
 import {
   formatBettingVerb,
   getLastActionByPlayer,
@@ -20,6 +22,7 @@ interface BettingPanelProps {
   players: Record<string, IPPlayerInfo>;
   opponentId: string | undefined;
   myId: string | undefined;
+  skin?: SkinTheme | null;
 }
 
 function BettingInfoRow({
@@ -83,7 +86,9 @@ export default function BettingPanel({
   players,
   opponentId,
   myId,
+  skin,
 }: BettingPanelProps) {
+  const nocturne = skin === 'nocturne';
   const [raiseAmount, setRaiseAmount] = useState<number | null>(null);
   const [showRaise, setShowRaise] = useState(false);
 
@@ -159,6 +164,11 @@ export default function BettingPanel({
   }
 
   const handleAction = (type: string, amount?: number) => {
+    if (nocturne) {
+      if (type === 'die') sfxNocturneDie();
+      else if (type === 'raise') sfxNocturneRaise();
+      else sfxNocturneCall();
+    }
     const data: Record<string, unknown> = { type };
     if (amount !== undefined) data.amount = amount;
     getSocket().emit('game:action', data);

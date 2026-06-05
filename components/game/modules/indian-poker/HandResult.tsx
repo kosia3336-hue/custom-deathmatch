@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import type { IPShowdownData, IPDieData, IPPlayerInfo, IPWinType } from '@/shared/types/indian-poker';
+import type { SkinTheme } from '@/lib/skins/registry';
 import { HAND_LABELS, HAND_COLORS, WIN_TYPE_LABELS } from './constants';
+import MoonlitCard from './skins/MoonlitCard';
 
 interface HandResultProps {
   showdownData: IPShowdownData | null;
@@ -11,9 +13,21 @@ interface HandResultProps {
   winner: string | null;
   winType: IPWinType | null;
   communityCards?: [number, number] | null;
+  skin?: SkinTheme | null;
 }
 
-function CardChip({ value, label }: { value: number; label?: string }) {
+function CardChip({
+  value,
+  label,
+  nocturne,
+}: {
+  value: number;
+  label?: string;
+  nocturne?: boolean;
+}) {
+  if (nocturne) {
+    return <MoonlitCard value={value} label={label} size="sm" />;
+  }
   return (
     <div className="flex flex-col items-center gap-1">
       {label && <span className="text-[10px] text-gray-400">{label}</span>}
@@ -24,7 +38,9 @@ function CardChip({ value, label }: { value: number; label?: string }) {
   );
 }
 
-export default function HandResult({ showdownData, dieData, players, winner, winType, communityCards }: HandResultProps) {
+export default function HandResult({
+  showdownData, dieData, players, winner, winType, communityCards, skin,
+}: HandResultProps) {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -34,6 +50,8 @@ export default function HandResult({ showdownData, dieData, players, winner, win
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [showdownData, dieData]);
 
+  const nocturne = skin === 'nocturne';
+
   if (showdownData) {
     const entries = Object.entries(showdownData.players);
     return (
@@ -42,11 +60,10 @@ export default function HandResult({ showdownData, dieData, players, winner, win
           {showdownData.isDraw ? '무승부!' : '쇼다운 결과'}
         </div>
 
-        {/* 공유 카드 */}
         {communityCards && (
           <div className="flex justify-center gap-3">
-            <CardChip value={communityCards[0]} label="공유" />
-            <CardChip value={communityCards[1]} label="공유" />
+            <CardChip value={communityCards[0]} label="공유" nocturne={nocturne} />
+            <CardChip value={communityCards[1]} label="공유" nocturne={nocturne} />
           </div>
         )}
 
@@ -55,6 +72,8 @@ export default function HandResult({ showdownData, dieData, players, winner, win
             const p = players[pid];
             const isWinner = pid === showdownData.winnerId;
             const visible = step >= idx + 1;
+            const winFx = nocturne && step >= 2 && isWinner && !showdownData.isDraw;
+            const loseFx = nocturne && step >= 2 && !isWinner && !showdownData.isDraw;
             return (
               <div
                 key={pid}
@@ -62,10 +81,10 @@ export default function HandResult({ showdownData, dieData, players, winner, win
                   visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 } ${
                   isWinner ? 'border-green-300 bg-green-50' : showdownData.isDraw ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50'
-                }`}
+                } ${winFx ? 'skin-nocturne-showdown-win' : ''} ${loseFx ? 'skin-nocturne-showdown-lose' : ''}`}
               >
                 <span className="text-xs text-gray-500 truncate">{p?.nickname}</span>
-                <CardChip value={data.card} />
+                <CardChip value={data.card} nocturne={nocturne} />
                 <span className="text-sm font-semibold" style={{ color: HAND_COLORS[data.hand] }}>
                   {HAND_LABELS[data.hand]}
                 </span>
@@ -88,16 +107,15 @@ export default function HandResult({ showdownData, dieData, players, winner, win
           {diedP?.nickname} 다이!
         </div>
 
-        {/* 공유 카드 + 다이한 카드 */}
         <div className="flex justify-center items-end gap-3">
           {communityCards && (
             <>
-              <CardChip value={communityCards[0]} label="공유" />
-              <CardChip value={communityCards[1]} label="공유" />
+              <CardChip value={communityCards[0]} label="공유" nocturne={nocturne} />
+              <CardChip value={communityCards[1]} label="공유" nocturne={nocturne} />
               <span className="mb-1 text-gray-300 text-lg">+</span>
             </>
           )}
-          <CardChip value={dieData.diedCard} label="내 카드" />
+          <CardChip value={dieData.diedCard} label="내 카드" nocturne={nocturne} />
         </div>
 
         <div className="flex flex-col items-center gap-1 text-sm">

@@ -443,6 +443,7 @@ export interface MemberSkinRow {
   equipped: boolean;
   granted_at: string;
   revoked_at: string | null;
+  expires_at: string | null;
 }
 
 // ──────────────────────────────────────────────
@@ -869,7 +870,7 @@ export interface Database {
       // 게임 스킨
       equip_skin: { Args: { p_skin_id: string }; Returns: void };
       unequip_skin: { Args: { p_skin_id: string }; Returns: void };
-      admin_grant_skin: { Args: { p_member_id: string; p_skin_id: string; p_reason?: string }; Returns: void };
+      admin_grant_skin: { Args: { p_member_id: string; p_skin_id: string; p_reason?: string; p_expires_at?: string | null }; Returns: void };
       admin_revoke_skin: { Args: { p_member_id: string; p_skin_id: string; p_reason?: string }; Returns: void };
     };
     Enums: {

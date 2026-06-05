@@ -1,8 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { SkinTheme } from '@/lib/skins/registry';
 import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
 import { FT_TOWER_MAX_HEIGHT, FT_HALF_MILESTONE, FT_TOWERS } from '@/shared/types';
+import CitadelFieldShell from './skins/CitadelFieldShell';
+import CitadelTower from './skins/CitadelTower';
 
 const TOWER_COLORS: Record<FTTower, { bg: string; border: string; text: string }> = {
   A: { bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700' },
@@ -17,6 +20,7 @@ const EMPTY_COUNTS: Record<FTTower, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
 interface InferenceFieldProps {
   towers: Record<FTTower, FTTowerPublicInfo>;
   gameKey: string;
+  skin?: SkinTheme | null;
 }
 
 function loadCounts(key: string): Record<FTTower, number> {
@@ -39,7 +43,7 @@ function saveCounts(key: string, c: Record<FTTower, number>) {
   }
 }
 
-export default function InferenceField({ towers, gameKey }: InferenceFieldProps) {
+export default function InferenceField({ towers, gameKey, skin }: InferenceFieldProps) {
   const [counts, setCounts] = useState<Record<FTTower, number>>(() => loadCounts(gameKey));
 
   // 게임이 바뀌면 해당 게임의 저장값으로 교체 (새 게임 시 0으로 초기화)
@@ -63,6 +67,26 @@ export default function InferenceField({ towers, gameKey }: InferenceFieldProps)
   const resetTower = useCallback((tower: FTTower) => {
     setCounts((prev) => ({ ...prev, [tower]: 0 }));
   }, []);
+
+  if (skin === 'citadel') {
+    return (
+      <CitadelFieldShell>
+        <div className="skin-citadel-towers grid grid-cols-5 gap-2 sm:gap-3">
+          {FT_TOWERS.map((id) => (
+            <CitadelTower
+              key={id}
+              id={id}
+              tower={towers[id]}
+              userCount={counts[id] ?? 0}
+              gameKey={gameKey}
+              onSetCell={setCell}
+              onResetTower={resetTower}
+            />
+          ))}
+        </div>
+      </CitadelFieldShell>
+    );
+  }
 
   return (
     <div className="grid grid-cols-5 gap-2 sm:gap-3">

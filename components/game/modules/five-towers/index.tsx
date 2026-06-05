@@ -13,6 +13,8 @@ import type {
   FTTower,
 } from '@/shared/types/five-towers';
 import { FT_MAX_SCORE } from '@/shared/types';
+import { GAME_IDS } from '@/shared/types/game';
+import { getSkinTheme } from '@/lib/skins/registry';
 import InferenceField, { TOWER_COLORS } from './InferenceField';
 import ActionPanel from './ActionPanel';
 
@@ -36,20 +38,17 @@ function BottomSheet({
 }) {
   return (
     <>
-      {/* 오버레이 */}
       <div
         className={`fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={onClose}
       />
-      {/* 시트 */}
       <div
         className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[85vh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        {/* 드래그 핸들 */}
         <div className="flex shrink-0 flex-col items-center pt-3 pb-2">
           <div className="h-1 w-10 rounded-full bg-gray-300" />
           {title && (
@@ -195,9 +194,11 @@ function TimerDisplay({ remaining }: { remaining: number | null }) {
 function MilestoneOverlay({
   entry,
   visible,
+  citadel,
 }: {
   entry: FTMilestoneEntry | null;
   visible: boolean;
+  citadel?: boolean;
 }) {
   const isComplete = entry?.kind === 'complete';
   return (
@@ -208,19 +209,43 @@ function MilestoneOverlay({
     >
       {entry && (
         isComplete ? (
-          /* 완성: 화면 중앙 큰 오버레이 */
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-amber-900/80 px-14 py-10 text-center text-white shadow-2xl backdrop-blur-sm">
-            <span className="text-sm font-semibold tracking-widest uppercase opacity-70">
-              탑 완성
+          citadel ? (
+            <div className="skin-citadel-milestone-complete flex flex-col items-center gap-3 px-14 py-10 text-center shadow-2xl">
+              <span className="skin-citadel-milestone-kicker text-sm font-semibold tracking-widest uppercase">
+                탑 완성
+              </span>
+              <span className="text-6xl font-black">{entry.tower}</span>
+              <span className="text-xl font-bold">{entry.actorNickname}</span>
+              <span className="skin-citadel-milestone-score rounded-full px-5 py-1.5 text-base font-black">
+                +1 점
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-3xl bg-amber-900/80 px-14 py-10 text-center text-white shadow-2xl backdrop-blur-sm">
+              <span className="text-sm font-semibold tracking-widest uppercase opacity-70">
+                탑 완성
+              </span>
+              <span className="text-6xl font-black">{entry.tower}</span>
+              <span className="text-xl font-bold">{entry.actorNickname}</span>
+              <span className="rounded-full bg-amber-400 px-5 py-1.5 text-base font-black text-amber-900">
+                +1 점
+              </span>
+            </div>
+          )
+        ) : citadel ? (
+          <div
+            className="skin-citadel-milestone-half px-10 py-5 text-center shadow-2xl"
+            style={{ marginTop: '-30vh' }}
+          >
+            <span className="skin-citadel-milestone-kicker block text-xs font-semibold tracking-widest uppercase">
+              6칸 공개
             </span>
-            <span className="text-6xl font-black">{entry.tower}</span>
-            <span className="text-xl font-bold">{entry.actorNickname}</span>
-            <span className="rounded-full bg-amber-400 px-5 py-1.5 text-base font-black text-amber-900">
-              +1 점
+            <span className="mt-1 block text-3xl font-black">{entry.tower}탑</span>
+            <span className="mt-0.5 block text-sm font-medium opacity-90">
+              {entry.actorNickname}
             </span>
           </div>
         ) : (
-          /* 6칸: 상단 배너 스타일 */
           <div
             className="rounded-2xl border-2 border-yellow-400 bg-yellow-50 px-10 py-5 text-center shadow-2xl"
             style={{ marginTop: '-30vh' }}
@@ -318,6 +343,7 @@ function renderActionDesc(e: FTActionLogEntry, myId: string): React.ReactNode {
 ══════════════════════════════════════ */
 export default function FiveTowersGame() {
   const gameState = useRoomStore((s) => s.gameState);
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.FIVE_TOWERS);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const roomId = useRoomStore((s) => s.room?.id ?? '');
   const gameData = gameState?.gameData as FTGameData | undefined;
@@ -462,9 +488,12 @@ export default function FiveTowersGame() {
 
   return (
     <>
-      <MilestoneOverlay entry={milestoneEntry} visible={milestoneVisible} />
+      <MilestoneOverlay
+        entry={milestoneEntry}
+        visible={milestoneVisible}
+        citadel={skin === 'citadel'}
+      />
 
-      {/* ── 전체 wrapper ── */}
       <div className="flex h-full">
         <div className="flex flex-1 flex-col lg:flex-row">
 
@@ -479,7 +508,6 @@ export default function FiveTowersGame() {
               phase={gameData.phase}
             />
 
-            {/* 헤더: 턴 / 차례 / 타이머 */}
             <div className="flex w-full max-w-3xl items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5">
               <div className="flex items-baseline gap-2">
                 <span className="text-xs text-gray-400">턴</span>
@@ -509,6 +537,7 @@ export default function FiveTowersGame() {
               <InferenceField
                 towers={gameData.towers}
                 gameKey={`${roomId}.${gameData.firstPlayerId}`}
+                skin={skin}
               />
             </div>
 
@@ -555,7 +584,6 @@ export default function FiveTowersGame() {
 
           {/* ── 데스크톱 사이드 패널 ── */}
           <div className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:gap-3 lg:border-l lg:border-gray-200 lg:p-4">
-            {/* 점수 카드 */}
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                 점수
@@ -580,7 +608,6 @@ export default function FiveTowersGame() {
               )}
             </div>
 
-            {/* 행동 로그 */}
             <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
               <p className="shrink-0 border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                 행동 로그

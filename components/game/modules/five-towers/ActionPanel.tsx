@@ -26,7 +26,6 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
   const me = gameData.players[myId];
   const itemUsed = me?.itemUsed ?? false;
 
-  // 차례가 바뀌면 선택 리셋
   useEffect(() => {
     if (!isMyTurn) {
       setTower(null);
@@ -37,7 +36,6 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
     }
   }, [isMyTurn, gameData.turn]);
 
-  // 정보 아이템 결과가 돌아오면 제출 잠금 해제 후 쌓기 탭으로 전환
   useEffect(() => {
     const len = gameData.myInfoResults?.length ?? 0;
     if (len > 0) {

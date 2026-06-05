@@ -59,7 +59,8 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     .select('skin_id, skins!inner(game_id)')
     .eq('member_id', memberId)
     .eq('equipped', true)
-    .is('revoked_at', null);
+    .is('revoked_at', null)
+    .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
   if (Array.isArray(skinRows)) {
     equippedSkins = (skinRows as Array<{ skin_id: string; skins: { game_id: string } | { game_id: string }[] }>)
       .map((r) => {

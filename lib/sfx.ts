@@ -210,6 +210,114 @@ export function playUnbanSfx() {
   } catch {}
 }
 
+/** 고성 스킨 — 탑 무너지는 소리 (흔들림→돌 충격×7→최후 붕괴) */
+export function sfxCitadelCollapse() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+
+    // 저음 진동 (1.5s 내내 깔리는 룸블)
+    const rumbleLen = Math.ceil(c.sampleRate * 1.5);
+    const rBuf = c.createBuffer(1, rumbleLen, c.sampleRate);
+    const rData = rBuf.getChannelData(0);
+    for (let i = 0; i < rumbleLen; i++) rData[i] = Math.random() * 2 - 1;
+    const rSrc = c.createBufferSource();
+    rSrc.buffer = rBuf;
+    const rLp = c.createBiquadFilter();
+    rLp.type = 'lowpass'; rLp.frequency.value = 160;
+    const rGain = c.createGain();
+    rGain.gain.setValueAtTime(0, now);
+    rGain.gain.linearRampToValueAtTime(0.35, now + 0.3);
+    rGain.gain.linearRampToValueAtTime(0.60, now + 0.9);
+    rGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+    rSrc.connect(rLp); rLp.connect(rGain); rGain.connect(c.destination);
+    rSrc.start(now); rSrc.stop(now + 1.5);
+
+    // 돌 충격음 — 점점 크고 잦아짐
+    const hits = [
+      { t: 0.04, freq: 440, q: 7, vol: 0.30, dur: 0.07 },
+      { t: 0.20, freq: 290, q: 6, vol: 0.36, dur: 0.08 },
+      { t: 0.36, freq: 360, q: 8, vol: 0.40, dur: 0.07 },
+      { t: 0.52, freq: 220, q: 5, vol: 0.48, dur: 0.09 },
+      { t: 0.68, freq: 310, q: 7, vol: 0.54, dur: 0.08 },
+      { t: 0.84, freq: 180, q: 6, vol: 0.62, dur: 0.10 },
+      { t: 1.00, freq: 260, q: 7, vol: 0.70, dur: 0.09 },
+    ];
+    const hBufLen = Math.ceil(c.sampleRate * 0.12);
+    const hBuf = c.createBuffer(1, hBufLen, c.sampleRate);
+    const hData = hBuf.getChannelData(0);
+    for (let i = 0; i < hBufLen; i++) hData[i] = Math.random() * 2 - 1;
+    for (const h of hits) {
+      const t = now + h.t;
+      const s = c.createBufferSource(); s.buffer = hBuf;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = h.freq; bp.Q.value = h.q;
+      const g = c.createGain();
+      g.gain.setValueAtTime(h.vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + h.dur);
+      s.connect(bp); bp.connect(g); g.connect(c.destination);
+      s.start(t); s.stop(t + h.dur);
+    }
+
+    // 최후 붕괴 (1.2s) — 저음 타격 + 노이즈 충격
+    const ct = now + 1.2;
+    const co = c.createOscillator();
+    co.type = 'sine';
+    co.frequency.setValueAtTime(110, ct);
+    co.frequency.exponentialRampToValueAtTime(28, ct + 0.28);
+    const cg = c.createGain();
+    cg.gain.setValueAtTime(0.95, ct); cg.gain.exponentialRampToValueAtTime(0.001, ct + 0.32);
+    co.connect(cg); cg.connect(c.destination); co.start(ct); co.stop(ct + 0.32);
+
+    const cnLen = Math.ceil(c.sampleRate * 0.2);
+    const cnBuf = c.createBuffer(1, cnLen, c.sampleRate);
+    const cnData = cnBuf.getChannelData(0);
+    for (let i = 0; i < cnLen; i++) cnData[i] = Math.random() * 2 - 1;
+    const cnSrc = c.createBufferSource(); cnSrc.buffer = cnBuf;
+    const cnLp = c.createBiquadFilter(); cnLp.type = 'lowpass'; cnLp.frequency.value = 700;
+    const cnG = c.createGain();
+    cnG.gain.setValueAtTime(0.85, ct); cnG.gain.exponentialRampToValueAtTime(0.001, ct + 0.2);
+    cnSrc.connect(cnLp); cnLp.connect(cnG); cnG.connect(c.destination);
+    cnSrc.start(ct); cnSrc.stop(ct + 0.2);
+  } catch {}
+}
+
+/** 고성 스킨 — 탑 완성 종소리 (G장조 4화음 상승) */
+export function sfxCitadelComplete() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+    const tones = [
+      { freq: 392, delay: 0,    dur: 0.9,  vol: 0.14 },
+      { freq: 523, delay: 0.09, dur: 0.85, vol: 0.12 },
+      { freq: 659, delay: 0.18, dur: 0.80, vol: 0.10 },
+      { freq: 784, delay: 0.30, dur: 1.00, vol: 0.09 },
+    ];
+    for (const { freq, delay, dur, vol } of tones) {
+      const t = now + delay;
+      const osc = c.createOscillator();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.014);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(t); osc.stop(t + dur + 0.02);
+      // 배음
+      const osc2 = c.createOscillator();
+      osc2.type = 'triangle'; osc2.frequency.setValueAtTime(freq * 2, t);
+      const g2 = c.createGain();
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(vol * 0.28, t + 0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.55);
+      osc2.connect(g2); g2.connect(c.destination);
+      osc2.start(t); osc2.stop(t + dur * 0.55 + 0.01);
+    }
+  } catch {}
+}
+
 /** 밴 삭제 내 차례 알림음 — 부드러운 2음 상승 */
 export function playUnbanTurnStartSfx() {
   try {

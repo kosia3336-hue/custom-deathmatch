@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -31,7 +31,7 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
   'skin-g001-01': {
     id: 'skin-g001-01',
     gameId: GAME_IDS.FOUR_GRAVITY,
-    name: '사중력 사목 스킨',
+    name: '우주',
     theme: 'cosmos',
     description: '심연의 우주를 담은 보드. 별빛 돌과 초신성 승리 연출.',
     swatch: 'radial-gradient(circle at 30% 30%, #a855f7, #1e1b4b 70%)',
@@ -39,10 +39,26 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
   'skin-g002-01': {
     id: 'skin-g002-01',
     gameId: GAME_IDS.DOUBLE_SIDED_CHESS,
-    name: '양면장기 스킨',
+    name: '황실',
     theme: 'imperial',
     description: '흑칠 옻판 위 황금 기물. 격동의 황실 연출.',
     swatch: 'linear-gradient(135deg, #f5d27a, #1a1407 70%)',
+  },
+  'skin-g004-01': {
+    id: 'skin-g004-01',
+    gameId: GAME_IDS.INDIAN_POKER,
+    name: '무월',
+    theme: 'nocturne',
+    description: '달빛이 내리는 밤의 테이블. 발광 숫자 카드, 순차 딜, 이마의 비밀.',
+    swatch: 'radial-gradient(ellipse 80% 60% at 50% 20%, #1e3a5f, #0b1220 70%)',
+  },
+  'skin-g011-01': {
+    id: 'skin-g011-01',
+    gameId: GAME_IDS.FIVE_TOWERS,
+    name: '고성',
+    theme: 'citadel',
+    description: '풍화된 성채의 다섯 돌기둥. 횃불과 석재 층, 탑 완성 연출.',
+    swatch: 'radial-gradient(ellipse 70% 55% at 50% 30%, #6b5d4f, #2a2520 72%)',
   },
 };
 

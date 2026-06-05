@@ -1,30 +1,30 @@
-/* Pretendard 본문 폰트 — 경량 동적 subset (CSS spec 상 @import 는 모든 룰보다 먼저 와야 함) */
+﻿/* Pretendard 蹂몃Ц ?고듃 ??寃쎈웾 ?숈쟻 subset (CSS spec ??@import ??紐⑤뱺 猷곕낫??癒쇱? ????? */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 @import 'tailwindcss';
 
-/* ──────────────────────────────────────────────
-   Custom Deathmatch — v2 디자인 토큰 (단일 라이트 테마)
+/* ??????????????????????????????????????????????
+   Custom Deathmatch ??v2 ?붿옄???좏겙 (?⑥씪 ?쇱씠???뚮쭏)
    docs/v2/2_branding.md, docs/v2/15_common_ui.md
-   ────────────────────────────────────────────── */
+   ?????????????????????????????????????????????? */
 
 :root {
   color-scheme: light;
 
-  /* 메인 3색 */
-  --cdm-primary: #4f46e5;          /* 인디고 — 메인/선공/링크 */
+  /* 硫붿씤 3??*/
+  --cdm-primary: #4f46e5;          /* ?몃뵒怨???硫붿씤/?좉났/留곹겕 */
   --cdm-primary-strong: #4338ca;
   --cdm-primary-soft: #eef2ff;
 
-  --cdm-accent: #f43f5e;           /* 코랄 — 강조/후공/위험/승리 */
+  --cdm-accent: #f43f5e;           /* 肄붾엫 ??媛뺤“/?꾧났/?꾪뿕/?밸━ */
   --cdm-accent-strong: #e11d48;
   --cdm-accent-soft: #ffe4e6;
 
-  --cdm-highlight: #f59e0b;        /* 앰버 — 1위/하이라이트 */
+  --cdm-highlight: #f59e0b;        /* ?곕쾭 ??1???섏씠?쇱씠??*/
   --cdm-highlight-strong: #d97706;
   --cdm-highlight-soft: #fef3c7;
 
-  /* 시맨틱 */
+  /* ?쒕㎤??*/
   --cdm-success: #22c55e;
   --cdm-success-soft: #dcfce7;
   --cdm-info: #3b82f6;
@@ -32,7 +32,7 @@
   --cdm-warning: var(--cdm-highlight);
   --cdm-danger: var(--cdm-accent);
 
-  /* 회색 톤 */
+  /* ?뚯깋 ??*/
   --cdm-bg: #ffffff;
   --cdm-bg-elev-1: #f8fafc;
   --cdm-bg-elev-2: #f1f5f9;
@@ -46,7 +46,7 @@
   --cdm-fg-subtle: #94a3b8;
   --cdm-fg-inverse: #ffffff;
 
-  /* 칭호 색 (42색) — title_color enum · shared/titles/colors.ts 와 1:1 */
+  /* 移?샇 ??(42?? ??title_color enum 쨌 shared/titles/colors.ts ? 1:1 */
   --title-coral:    #f43f5e;
   --title-amber:    #f59e0b;
   --title-emerald:  #10b981;
@@ -92,7 +92,7 @@
   --title-honey:    #d97706;
   --title-grape:    #6b21a8;
 
-  /* 간격 */
+  /* 媛꾧꺽 */
   --cdm-space-1: 4px;
   --cdm-space-2: 8px;
   --cdm-space-3: 12px;
@@ -102,21 +102,21 @@
   --cdm-space-7: 48px;
   --cdm-space-8: 64px;
 
-  /* 라운딩 */
+  /* ?쇱슫??*/
   --cdm-radius-sm: 4px;
   --cdm-radius-md: 8px;
   --cdm-radius-lg: 12px;
   --cdm-radius-xl: 16px;
   --cdm-radius-full: 9999px;
 
-  /* 그림자 / 링 */
+  /* 洹몃┝??/ 留?*/
   --cdm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --cdm-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --cdm-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
   --cdm-ring-primary: 0 0 0 3px rgba(79, 70, 229, 0.20);
   --cdm-ring-accent:  0 0 0 3px rgba(244, 63, 94, 0.20);
 
-  /* 모션 */
+  /* 紐⑥뀡 */
   --cdm-duration-fast: 120ms;
   --cdm-duration-base: 200ms;
   --cdm-duration-slow: 360ms;
@@ -131,7 +131,7 @@
   --cdm-z-tooltip: 1000;
 }
 
-/* Tailwind v4 — @theme inline 으로 색 팔레트 노출 */
+/* Tailwind v4 ??@theme inline ?쇰줈 ???붾젅???몄텧 */
 @theme inline {
   --color-cdm-primary: var(--cdm-primary);
   --color-cdm-primary-strong: var(--cdm-primary-strong);
@@ -173,8 +173,8 @@ body {
 }
 
 html {
-  /* 모바일 15px → 태블릿 16px → 데스크탑 17px
-     rem 기반 Tailwind 유틸(text-sm, text-base 등)이 자동으로 비례 조정됩니다. */
+  /* 紐⑤컮??15px ???쒕툝由?16px ???곗뒪?ы깙 17px
+     rem 湲곕컲 Tailwind ?좏떥(text-sm, text-base ?????먮룞?쇰줈 鍮꾨? 議곗젙?⑸땲?? */
   font-size: 15px;
 }
 @media (min-width: 768px) {
@@ -193,14 +193,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* 포커스 가시성 */
+/* ?ъ빱??媛?쒖꽦 */
 :focus-visible {
   outline: none;
   box-shadow: var(--cdm-ring-primary);
   border-radius: var(--cdm-radius-md);
 }
 
-/* 모션 감소 환경 */
+/* 紐⑥뀡 媛먯냼 ?섍꼍 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -212,7 +212,7 @@ body {
   }
 }
 
-/* 스크롤바 숨김 유틸 (v1 호환) */
+/* ?ㅽ겕濡ㅻ컮 ?④? ?좏떥 (v1 ?명솚) */
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -221,7 +221,7 @@ body {
   display: none;
 }
 
-/* 카운트다운 펄스 — 마지막 10초 강조 */
+/* 移댁슫?몃떎???꾩뒪 ??留덉?留?10珥?媛뺤“ */
 @keyframes cdm-countdown-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
@@ -231,9 +231,9 @@ body {
   animation: cdm-countdown-pulse 1s var(--cdm-ease-out) infinite;
 }
 
-/* ──────────────────────────────────────────────
-   게임 스킨 — 코스모스 (사중력 사목 / skin-g001-01)
-   ────────────────────────────────────────────── */
+/* ??????????????????????????????????????????????
+   寃뚯엫 ?ㅽ궓 ??肄붿뒪紐⑥뒪 (?ъ쨷???щぉ / skin-g001-01)
+   ?????????????????????????????????????????????? */
 
 @keyframes cosmos-drift {
   from { transform: translate3d(0, 0, 0); }
@@ -325,9 +325,9 @@ body {
   animation: cosmos-supernova 1.1s ease-out infinite !important;
 }
 
-/* ──────────────────────────────────────────────
-   게임 스킨 — 황실 (양면장기 / skin-g002-01)
-   ────────────────────────────────────────────── */
+/* ??????????????????????????????????????????????
+   寃뚯엫 ?ㅽ궓 ???⑹떎 (?묐㈃?κ린 / skin-g002-01)
+   ?????????????????????????????????????????????? */
 
 @keyframes imperial-aura {
   0%, 100% { box-shadow: 0 0 0 0 rgba(245, 210, 122, 0.0), 0 0 12px 3px rgba(245, 210, 122, 0.7); }
@@ -350,7 +350,7 @@ body {
   100% { opacity: 0; }
 }
 
-/* ── 레전드 칭호: 불멸의 정점 ── */
+/* ?? ?덉쟾??移?샇: 遺덈㈇???뺤젏 ?? */
 @keyframes title-legend-shimmer {
   0%   { background-position: 350% center; }
   100% { background-position: -350% center; }
@@ -488,4 +488,882 @@ body {
 }
 .skin-imperial-win {
   animation: imperial-throne 1.2s ease-in-out infinite !important;
+}
+
+/* ??????????????????????????????????????????????
+   寃뚯엫 ?ㅽ궓 ??臾댁썡 Nocturne (?몃뵒?명??짷 / skin-g004-01)
+   ?????????????????????????????????????????????? */
+
+.skin-nocturne-table {
+  --nc-felt-deep: #0b1220;
+  --nc-felt-mid: #132337;
+  --nc-felt-light: #1e3a5f;
+  --nc-moon-core: #e8eef7;
+  --nc-moon-glow: #93c5fd;
+  --nc-moon-glow-soft: rgba(147, 197, 253, 0.35);
+  --nc-moon-dim: #94a3b8;
+  --nc-rail: rgba(186, 210, 255, 0.35);
+  --nc-card-back: #0c1528;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 85% 70% at 50% 38%, var(--nc-felt-light) 0%, var(--nc-felt-mid) 45%, var(--nc-felt-deep) 100%);
+  border: 1px solid var(--nc-rail);
+  box-shadow:
+    0 0 28px rgba(147, 197, 253, 0.12),
+    inset 0 0 48px rgba(0, 0, 0, 0.55),
+    0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.skin-nocturne-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.skin-nocturne-spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 35% at 50% 42%,
+    rgba(232, 238, 247, 0.14) 0%,
+    transparent 70%
+  );
+}
+.skin-nocturne-moon-pool {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 8%;
+  height: 18%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    rgba(147, 197, 253, 0.12) 0%,
+    transparent 70%
+  );
+  filter: blur(6px);
+}
+.skin-nocturne-stars {
+  position: absolute;
+  inset: -20px;
+  opacity: 0.9;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, #e2e8f0 50%, transparent),
+    radial-gradient(1px 1px at 78% 14%, #cbd5e1 50%, transparent),
+    radial-gradient(1.5px 1.5px at 88% 62%, #f1f5f9 50%, transparent),
+    radial-gradient(1px 1px at 22% 72%, #94a3b8 50%, transparent),
+    radial-gradient(1px 1px at 48% 8%, #e2e8f0 50%, transparent),
+    radial-gradient(1px 1px at 65% 38%, #cbd5e1 50%, transparent);
+  animation: nocturne-twinkle 4s ease-in-out infinite;
+}
+.skin-nocturne-dust {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 40% 30% at 20% 60%, rgba(147, 197, 253, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 25% at 80% 30%, rgba(148, 163, 184, 0.06) 0%, transparent 70%);
+}
+
+@keyframes nocturne-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes nocturne-shuffle-wiggle {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  25%      { transform: rotate(6deg) translateY(-3px); }
+  75%      { transform: rotate(-4deg) translateY(2px); }
+}
+@keyframes nocturne-card-flip {
+  from { transform: rotateY(90deg); }
+  to   { transform: rotateY(0deg); }
+}
+@keyframes nocturne-luminance {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow:
+      inset 0 0 12px rgba(255, 255, 255, 0.5),
+      0 0 10px 2px var(--nc-moon-glow-soft);
+  }
+  50% {
+    filter: brightness(1.16);
+    box-shadow:
+      inset 0 0 14px rgba(255, 255, 255, 0.7),
+      0 0 16px 4px rgba(147, 197, 253, 0.45);
+  }
+}
+@keyframes nocturne-card-land-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(232, 238, 247, 0.9), 0 4px 14px rgba(0, 0, 0, 0.45); }
+  40%  { box-shadow: 0 0 20px 5px rgba(147, 197, 253, 0.65), 0 4px 14px rgba(0, 0, 0, 0.45); }
+  100% { box-shadow: 0 0 14px 3px rgba(147, 197, 253, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4); }
+}
+@keyframes nocturne-secret-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.35); }
+  50%      { box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.6), 0 0 14px rgba(147, 197, 253, 0.2); }
+}
+@keyframes nocturne-showdown-win {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(186, 230, 253, 0.4); }
+  50%      { box-shadow: 0 0 0 3px rgba(186, 230, 253, 0.7), 0 0 20px rgba(147, 197, 253, 0.35); }
+}
+
+.skin-nocturne-card-wrap {
+  position: relative;
+  border-radius: 0.55rem;
+  overflow: hidden;
+}
+.skin-nocturne-card-wrap--face {
+  box-shadow:
+    0 0 12px 2px rgba(147, 197, 253, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.skin-nocturne-card-wrap--back {
+  box-shadow:
+    0 0 8px 2px rgba(148, 163, 184, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.skin-nocturne-card-landed.skin-nocturne-card-wrap--face {
+  animation: nocturne-card-land-flash 0.45s ease-out forwards;
+}
+
+.skin-nocturne-card-face-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 32% 28%,
+    #f8fafc 0%,
+    #e2e8f0 32%,
+    #93c5fd 68%,
+    #475569 100%
+  );
+  border: 1px solid rgba(186, 210, 255, 0.5);
+  animation: nocturne-luminance 3.2s ease-in-out infinite;
+}
+.skin-nocturne-card-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    125deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.4) 48%,
+    transparent 62%
+  );
+  opacity: 0.3;
+  pointer-events: none;
+  animation: nocturne-shimmer 4.5s ease-in-out infinite;
+}
+@keyframes nocturne-shimmer {
+  0%, 100% { transform: translateX(-8%); opacity: 0.2; }
+  50%      { transform: translateX(8%); opacity: 0.35; }
+}
+.skin-nocturne-card-value {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 16px rgba(186, 230, 253, 0.8),
+    0 1px 2px rgba(15, 23, 42, 0.35);
+}
+.skin-nocturne-card--sm .skin-nocturne-card-value {
+  font-size: 1.1rem;
+}
+.skin-nocturne-card--md .skin-nocturne-card-value {
+  font-size: 1.4rem;
+}
+@media (min-width: 1024px) {
+  .skin-nocturne-card--md .skin-nocturne-card-value {
+    font-size: 1.9rem;
+  }
+}
+
+.skin-nocturne-card-back-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 90% 80% at 50% 40%, #132337 0%, var(--nc-card-back) 55%, #020617 100%);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+.skin-nocturne-back-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.85;
+  background-image:
+    radial-gradient(1px 1px at 18% 22%, #e2e8f0 50%, transparent),
+    radial-gradient(1px 1px at 72% 18%, #cbd5e1 50%, transparent),
+    radial-gradient(1px 1px at 82% 68%, #f1f5f9 50%, transparent),
+    radial-gradient(1px 1px at 28% 78%, #94a3b8 50%, transparent),
+    radial-gradient(1.5px 1.5px at 55% 12%, #e2e8f0 50%, transparent);
+}
+.skin-nocturne-moon {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 50%;
+  height: 50%;
+  transform: translate(-50%, -50%);
+}
+.skin-nocturne-moon-disc {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #f8fafc 0%, #e2e8f0 45%, #94a3b8 100%);
+  box-shadow:
+    0 0 12px rgba(191, 219, 254, 0.55),
+    0 0 20px rgba(147, 197, 253, 0.2);
+}
+.skin-nocturne-moon-shade {
+  position: absolute;
+  top: -6%;
+  right: -20%;
+  width: 82%;
+  height: 82%;
+  border-radius: 50%;
+  background: var(--nc-card-back);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+}
+.skin-nocturne-card--sm .skin-nocturne-moon {
+  width: 46%;
+  height: 46%;
+}
+
+.skin-nocturne-card-flip {
+  animation: nocturne-card-flip 0.4s ease-out;
+}
+
+.skin-nocturne-forehead-slot {
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  animation: nocturne-secret-pulse 2.8s ease-in-out infinite;
+}
+
+.skin-nocturne-shuffle-panel {
+  background: rgba(11, 18, 32, 0.92);
+  border: 1px solid rgba(186, 210, 255, 0.35);
+  color: #e8eef7;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
+}
+.skin-nocturne-shuffle-panel .text-slate-400 {
+  color: #94a3b8;
+}
+.skin-nocturne-shuffle-cards .skin-nocturne-card-wrap {
+  animation: nocturne-shuffle-wiggle 0.5s ease-in-out infinite;
+}
+.skin-nocturne-shuffle-cards .skin-nocturne-card-wrap:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.skin-nocturne-shuffle-cards .skin-nocturne-card-wrap:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.skin-nocturne-showdown-win {
+  animation: nocturne-showdown-win 1.2s ease-in-out 1;
+}
+.skin-nocturne-showdown-lose {
+  filter: saturate(0.75);
+  opacity: 0.88;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-nocturne-shuffle-cards .skin-nocturne-card-wrap,
+  .skin-nocturne-card-landed,
+  .skin-nocturne-card-face-inner,
+  .skin-nocturne-card-shimmer,
+  .skin-nocturne-stars,
+  .skin-nocturne-forehead-slot {
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   게임 스킨 · 고성 Citadel (5개의 탑 / skin-g011-01)
+   ───────────────────────────────────────────────────────────── */
+
+.skin-citadel-field {
+  --ct-stone-deep: #2a2520;
+  --ct-stone-mid: #4a4238;
+  --ct-stone-light: #6b5d4f;
+  --ct-mortar: #3d3832;
+  --ct-moss: #3f4f3a;
+  --ct-torch: #e8a54b;
+  --ct-torch-glow: rgba(232, 165, 75, 0.45);
+  --ct-complete: #fcd34d;
+  --ct-half: #d97706;
+  --ct-ink: #f5f5f4;
+  --ct-cell-fill: #78716c;
+  --ct-cell-empty: #292524;
+  position: relative;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 40%, var(--ct-stone-mid) 0%, var(--ct-stone-deep) 75%),
+    linear-gradient(180deg, #1f1b17 0%, var(--ct-stone-deep) 100%);
+  border: 1px solid var(--ct-mortar);
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.55),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* ③ 횃불 빛이 필드 전체에 물드는 오버레이 */
+.skin-citadel-field::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 15;
+  background:
+    radial-gradient(ellipse 35% 50% at 4% 92%, rgba(232, 165, 75, 0.17) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 50% at 96% 92%, rgba(232, 165, 75, 0.17) 0%, transparent 70%);
+  animation: citadel-torch-light 2.4s ease-in-out infinite;
+}
+@keyframes citadel-torch-light {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+.skin-citadel-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.skin-citadel-crack {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, rgba(180, 155, 130, 0.45) 40%, rgba(200, 175, 148, 0.55) 55%, transparent 95%);
+  opacity: 0.85;
+}
+.skin-citadel-crack--a {
+  left: 8%;
+  right: 48%;
+  bottom: 22%;
+  transform: rotate(-5deg);
+}
+.skin-citadel-crack--b {
+  left: 45%;
+  right: 10%;
+  bottom: 28%;
+  transform: rotate(4deg);
+}
+/* ⑤ 추가 균열 */
+.skin-citadel-crack--c {
+  left: 20%;
+  right: 55%;
+  top: 38%;
+  transform: rotate(78deg);
+  opacity: 0.6;
+}
+.skin-citadel-crack--d {
+  left: 52%;
+  right: 14%;
+  top: 30%;
+  transform: rotate(-74deg);
+  opacity: 0.6;
+}
+
+/* ⑤ 이끼 패치 */
+.skin-citadel-moss {
+  position: absolute;
+  border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%;
+  filter: blur(7px);
+  opacity: 0.14;
+  background: var(--ct-moss);
+  pointer-events: none;
+}
+.skin-citadel-moss--tl { width: 55px; height: 34px; top: 4%; left: 2%; }
+.skin-citadel-moss--tr { width: 44px; height: 28px; top: 7%; right: 3%; }
+.skin-citadel-moss--bl { width: 66px; height: 40px; bottom: 6%; left: 5%; }
+.skin-citadel-moss--br { width: 50px; height: 32px; bottom: 10%; right: 4%; }
+
+.skin-citadel-torch {
+  position: absolute;
+  bottom: 12%;
+  width: 10px;
+  height: 18px;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, var(--ct-torch) 0%, transparent 70%);
+  filter: blur(0.5px);
+  animation: citadel-torch-flicker 2.4s ease-in-out infinite;
+}
+.skin-citadel-torch--left { left: 4%; }
+.skin-citadel-torch--right { right: 4%; animation-delay: 0.6s; }
+.skin-citadel-torch--static { animation: none; opacity: 0.85; }
+
+@keyframes citadel-torch-flicker {
+  0%, 100% { opacity: 0.65; transform: scaleY(0.92); }
+  50%      { opacity: 1; transform: scaleY(1.05); }
+}
+/* ④ 타워 완성 버스트 — 더 극적으로 */
+@keyframes citadel-torch-burst {
+  0%   { box-shadow: 0 0 0 0 rgba(252, 211, 77, 0); filter: brightness(1); }
+  15%  { box-shadow: 0 0 36px 12px rgba(252, 211, 77, 0.58), inset 0 0 30px rgba(252, 211, 77, 0.35); filter: brightness(1.65); }
+  55%  { box-shadow: 0 0 20px 5px rgba(252, 211, 77, 0.28), inset 0 0 18px rgba(252, 211, 77, 0.15); filter: brightness(1.2); }
+  100% { box-shadow: 0 0 12px rgba(252, 211, 77, 0.25), inset 0 0 16px rgba(252, 211, 77, 0.08); filter: brightness(1); }
+}
+
+.skin-citadel-towers {
+  align-items: stretch;
+}
+
+.skin-citadel-tower {
+  position: relative;
+  border-color: var(--ct-mortar);
+  background: linear-gradient(180deg, var(--ct-stone-mid) 0%, var(--ct-stone-deep) 100%);
+  box-shadow:
+    inset 2px 0 8px rgba(0, 0, 0, 0.35),
+    inset -2px 0 8px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.skin-citadel-cap {
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 6px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, var(--ct-stone-light), var(--ct-mortar));
+  z-index: 2;
+  pointer-events: none;
+}
+.skin-citadel-tower--a { --ct-tower-tint: rgba(180, 120, 110, 0.12); }
+.skin-citadel-tower--b { --ct-tower-tint: rgba(200, 150, 90, 0.12); }
+.skin-citadel-tower--c { --ct-tower-tint: rgba(120, 150, 110, 0.12); }
+.skin-citadel-tower--d { --ct-tower-tint: rgba(110, 140, 170, 0.1); }
+.skin-citadel-tower--e { --ct-tower-tint: rgba(140, 120, 160, 0.1); }
+
+/* 탑 무너짐 → 완성 등장 */
+@keyframes citadel-tower-collapse {
+  0%   { transform: none; }
+  8%   { transform: translateX(-5px) rotate(-2deg); }
+  18%  { transform: translateX(6px) rotate(2deg); }
+  28%  { transform: translateX(-7px) rotate(-2.5deg); }
+  38%  { transform: translateX(7px) rotate(2.5deg); }
+  50%  { transform: translateX(-5px) rotate(-2deg) translateY(4px); }
+  60%  { transform: translateX(3px) rotate(1.5deg) translateY(10px); opacity: 0.85; }
+  74%  { transform: translateX(-1px) rotate(-0.5deg) translateY(24px); opacity: 0.4; }
+  88%  { transform: translateY(40px); opacity: 0.1; }
+  100% { transform: translateY(48px); opacity: 0; }
+}
+@keyframes citadel-tower-appear {
+  0%   { transform: translateY(-10px) scale(0.95); opacity: 0; }
+  55%  { transform: translateY(3px) scale(1.02); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+.skin-citadel-tower-collapsing {
+  animation: citadel-tower-collapse 1.5s ease-in forwards;
+  position: relative;
+  z-index: 10;
+}
+.skin-citadel-tower-appeared {
+  animation: citadel-tower-appear 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+.skin-citadel-tower-complete {
+  border-color: var(--ct-complete);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ct-stone-light) 80%, var(--ct-complete) 20%) 0%,
+    var(--ct-stone-deep) 100%
+  );
+  box-shadow:
+    0 0 12px rgba(252, 211, 77, 0.25),
+    inset 0 0 16px rgba(252, 211, 77, 0.08);
+}
+.skin-citadel-tower-burst {
+  animation: citadel-torch-burst 0.9s ease-out 1;
+}
+
+.skin-citadel-pillar {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ct-stone-light) 70%, var(--ct-tower-tint, transparent) 30%) 0%,
+    var(--ct-stone-mid) 55%,
+    var(--ct-stone-deep) 100%
+  );
+  border-bottom: 1px solid var(--ct-mortar);
+  color: var(--ct-ink);
+}
+.skin-citadel-pillar-label {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.skin-citadel-pillar-count {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+.skin-citadel-pillar--lit .skin-citadel-pillar-count {
+  color: var(--ct-complete);
+}
+
+.skin-citadel-flame {
+  display: block;
+  width: 8px;
+  height: 10px;
+  margin-top: 2px;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, var(--ct-torch) 0%, transparent 72%);
+}
+.skin-citadel-flame--on {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px var(--ct-torch-glow));
+}
+.skin-citadel-flame--dim { opacity: 0.3; }
+.skin-citadel-flame--low { opacity: 0.55; filter: drop-shadow(0 0 2px var(--ct-torch-glow)); }
+.skin-citadel-flame--mid { opacity: 0.8; filter: drop-shadow(0 0 4px var(--ct-torch-glow)); }
+.skin-citadel-flame--high { opacity: 1; filter: drop-shadow(0 0 6px var(--ct-torch-glow)); }
+
+.skin-citadel-pillar--pulse {
+  animation: citadel-pillar-pulse 0.38s ease-out 1;
+}
+@keyframes citadel-pillar-pulse {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
+.skin-citadel-stack {
+  isolation: isolate;
+}
+.skin-citadel-waterline {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 0;
+  z-index: 0;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(
+    0deg,
+    rgba(232, 165, 75, 0.22) 0%,
+    rgba(232, 165, 75, 0.06) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  transition: height 0.28s ease-out;
+}
+
+.skin-citadel-cell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5rem;
+  padding: 0 0.25rem;
+  border: none;
+  border-top: 1px solid var(--ct-mortar);
+  background: transparent;
+  cursor: pointer;
+}
+.skin-citadel-cell--empty .skin-citadel-block {
+  background: linear-gradient(180deg, #35302c 0%, var(--ct-cell-empty) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.skin-citadel-cell--empty .skin-citadel-block-engrave {
+  color: rgba(245, 245, 244, 0.2);
+}
+/* ① 채워진 블록 — 낡은 돌 질감 */
+.skin-citadel-cell--filled .skin-citadel-block {
+  background:
+    radial-gradient(ellipse 55% 65% at 8% 88%, rgba(8,18,4,0.28) 0%, transparent 80%),
+    radial-gradient(ellipse 38% 46% at 88% 10%, rgba(0,0,0,0.20) 0%, transparent 80%),
+    linear-gradient(148deg, rgba(0,0,0,0.10) 0%, transparent 40%, rgba(0,0,0,0.07) 75%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 28%),
+    linear-gradient(175deg, #706660 0%, #54504a 45%, #3c3830 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.18),
+    inset 0 -2px 0 rgba(0,0,0,0.50),
+    inset 2px 0 0 rgba(255,255,255,0.05),
+    inset -2px 0 0 rgba(0,0,0,0.30),
+    0 1px 2px rgba(0,0,0,0.40);
+}
+.skin-citadel-cell:nth-child(even).skin-citadel-cell--filled .skin-citadel-block {
+  background:
+    radial-gradient(ellipse 48% 58% at 90% 82%, rgba(5,15,2,0.25) 0%, transparent 80%),
+    radial-gradient(ellipse 35% 42% at 12% 8%, rgba(0,0,0,0.18) 0%, transparent 80%),
+    linear-gradient(118deg, rgba(0,0,0,0.09) 0%, transparent 45%, rgba(0,0,0,0.06) 78%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 28%),
+    linear-gradient(175deg, #706660 0%, #54504a 45%, #3c3830 100%);
+}
+.skin-citadel-cell:nth-child(3n).skin-citadel-cell--filled .skin-citadel-block {
+  background:
+    radial-gradient(ellipse 65% 38% at 50% 100%, rgba(0,0,0,0.32) 0%, transparent 80%),
+    radial-gradient(ellipse 28% 52% at 4% 42%, rgba(10,20,5,0.22) 0%, transparent 80%),
+    linear-gradient(170deg, rgba(0,0,0,0.11) 0%, transparent 38%, rgba(0,0,0,0.08) 72%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 28%),
+    linear-gradient(175deg, #706660 0%, #54504a 45%, #3c3830 100%);
+}
+.skin-citadel-cell:nth-child(5n).skin-citadel-cell--filled .skin-citadel-block {
+  background:
+    radial-gradient(ellipse 40% 55% at 3% 45%, rgba(12,22,6,0.24) 0%, transparent 80%),
+    radial-gradient(ellipse 32% 44% at 85% 58%, rgba(0,0,0,0.18) 0%, transparent 80%),
+    linear-gradient(135deg, rgba(0,0,0,0.08) 0%, transparent 50%, rgba(0,0,0,0.10) 82%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 28%),
+    linear-gradient(175deg, #706660 0%, #54504a 45%, #3c3830 100%);
+}
+
+/* ⑤ 균열 공통 설정 */
+.skin-citadel-cell--filled .skin-citadel-block::before,
+.skin-citadel-cell--filled .skin-citadel-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.skin-citadel-cell--filled .skin-citadel-block::before { background: rgba(4,1,0,0.65); }
+.skin-citadel-cell--filled .skin-citadel-block::after  { background: rgba(4,1,0,0.42); }
+
+/* 칸마다 다른 균열 — nth-child(1)=레벨10 ~ nth-child(10)=레벨1 */
+/* nth-child(1)은 waterline div — 실제 레벨10 칸은 nth-child(2) */
+/* 레벨1 칸(bottom)은 nth-child(11) */
+.skin-citadel-cell:nth-child(11).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(25% 0%, 28% 0%, 32% 35%, 24% 65%, 29% 100%, 26% 100%, 21% 65%, 29% 35%);
+}
+.skin-citadel-cell:nth-child(11).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(27% 28%, 30% 26%, 48% 54%, 46% 57%);
+}
+.skin-citadel-cell:nth-child(2).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(54% 0%, 57% 0%, 50% 32%, 58% 62%, 52% 100%, 49% 100%, 55% 62%, 47% 32%);
+}
+.skin-citadel-cell:nth-child(2).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(53% 30%, 56% 32%, 35% 58%, 32% 56%);
+}
+.skin-citadel-cell:nth-child(3).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(20% 0%, 23% 0%, 44% 30%, 26% 60%, 46% 100%, 43% 100%, 23% 60%, 41% 30%);
+}
+.skin-citadel-cell:nth-child(3).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(33% 25%, 36% 25%, 52% 55%, 50% 58%);
+}
+.skin-citadel-cell:nth-child(4).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(38% 0%, 41% 0%, 35% 32%, 43% 62%, 38% 100%, 35% 100%, 40% 62%, 32% 32%);
+}
+.skin-citadel-cell:nth-child(4).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(38% 26%, 40% 24%, 22% 55%, 19% 53%);
+}
+.skin-citadel-cell:nth-child(5).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(60% 0%, 63% 0%, 38% 28%, 54% 60%, 32% 100%, 29% 100%, 51% 60%, 35% 28%);
+}
+.skin-citadel-cell:nth-child(5).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(50% 24%, 53% 24%, 66% 52%, 63% 55%);
+}
+.skin-citadel-cell:nth-child(6).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(44% 0%, 47% 0%, 44% 30%, 51% 62%, 46% 100%, 43% 100%, 48% 62%, 41% 30%);
+}
+.skin-citadel-cell:nth-child(6).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(45% 27%, 48% 29%, 28% 56%, 25% 53%);
+}
+.skin-citadel-cell:nth-child(7).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(28% 0%, 31% 0%, 50% 30%, 32% 62%, 50% 100%, 47% 100%, 29% 62%, 47% 30%);
+}
+.skin-citadel-cell:nth-child(7).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(40% 26%, 42% 24%, 58% 54%, 56% 57%);
+}
+.skin-citadel-cell:nth-child(8).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(15% 0%, 18% 0%, 35% 32%, 17% 64%, 30% 100%, 27% 100%, 14% 64%, 32% 32%);
+}
+.skin-citadel-cell:nth-child(8).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(24% 28%, 27% 26%, 44% 56%, 42% 59%);
+}
+.skin-citadel-cell:nth-child(9).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(58% 0%, 61% 0%, 40% 30%, 56% 62%, 36% 100%, 33% 100%, 53% 62%, 37% 30%);
+}
+.skin-citadel-cell:nth-child(9).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(49% 26%, 52% 28%, 34% 54%, 31% 52%);
+}
+.skin-citadel-cell:nth-child(10).skin-citadel-cell--filled .skin-citadel-block::before {
+  clip-path: polygon(32% 0%, 35% 0%, 28% 30%, 36% 62%, 30% 100%, 27% 100%, 33% 62%, 25% 30%);
+}
+.skin-citadel-cell:nth-child(10).skin-citadel-cell--filled .skin-citadel-block::after {
+  clip-path: polygon(31% 27%, 34% 29%, 52% 56%, 50% 59%);
+}
+.skin-citadel-cell--filled .skin-citadel-block-top {
+  opacity: 1;
+  height: 4px;
+  background: linear-gradient(90deg, transparent 3%, rgba(255, 255, 255, 0.42) 30%, rgba(255, 255, 255, 0.45) 70%, transparent 97%);
+}
+
+/* ⑤ 블록 균열 SVG */
+.skin-citadel-block-crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.skin-citadel-block-engrave {
+  position: relative;
+  z-index: 1;
+}
+.skin-citadel-cell--filled .skin-citadel-block-engrave {
+  color: var(--ct-ink);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+.skin-citadel-cell--crest .skin-citadel-block {
+  outline: 1px solid var(--ct-torch);
+  box-shadow:
+    0 0 8px var(--ct-torch-glow),
+    inset 0 2px 0 rgba(255, 255, 255, 0.15);
+}
+.skin-citadel-cell--done .skin-citadel-block {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ct-complete) 40%, #78716c), var(--ct-cell-fill));
+}
+.skin-citadel-cell--done .skin-citadel-block-engrave {
+  color: var(--ct-complete);
+}
+.skin-citadel-cell--half {
+  border-top: 2px dashed rgba(120, 113, 108, 0.55) !important;
+}
+.skin-citadel-cell--half-reached {
+  border-top: 2px solid var(--ct-half) !important;
+}
+.skin-citadel-cell--place-up .skin-citadel-block {
+  animation: citadel-block-place 0.38s ease-out 1;
+}
+.skin-citadel-cell--place-down .skin-citadel-block {
+  animation: citadel-block-drop 0.32s ease-in 1;
+}
+/* ② 먼지 파편 — 블록 쌓일 때 */
+.skin-citadel-cell--place-up::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 20%; bottom: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(140, 115, 90, 0.55) 0%, transparent 70%);
+  animation: citadel-dust-puff 0.42s ease-out 1;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes citadel-block-place {
+  0%   { transform: scaleY(0.3); opacity: 0.5; }
+  70%  { transform: scaleY(1.06); }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes citadel-block-drop {
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(4px); opacity: 0.35; }
+}
+@keyframes citadel-dust-puff {
+  0%   { transform: scaleX(0.4) scaleY(0.3); opacity: 0.8; }
+  55%  { transform: scaleX(1.5) scaleY(0.9); opacity: 0.35; }
+  100% { transform: scaleX(2.2) scaleY(1.3); opacity: 0; }
+}
+
+.skin-citadel-block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 1.35rem;
+  border-radius: 2px;
+  transition: background 0.15s ease;
+}
+.skin-citadel-block-top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 2px 2px 0 0;
+  pointer-events: none;
+}
+.skin-citadel-block-engrave {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.skin-citadel-gate-mark {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 6px;
+  height: 8px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(232, 165, 75, 0.45);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  pointer-events: none;
+}
+.skin-citadel-half-badge {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: var(--ct-half);
+}
+
+.skin-citadel-milestone-complete,
+.skin-citadel-milestone-half {
+  --ct-stone-deep: #2a2520;
+  --ct-stone-mid: #4a4238;
+  --ct-mortar: #3d3832;
+  --ct-torch: #e8a54b;
+  --ct-torch-glow: rgba(232, 165, 75, 0.45);
+  --ct-half: #d97706;
+  --ct-ink: #f5f5f4;
+}
+.skin-citadel-milestone-complete {
+  border-radius: 1.5rem;
+  background: rgba(42, 37, 32, 0.92);
+  border: 2px solid var(--ct-mortar);
+  color: var(--ct-ink);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 0 40px var(--ct-torch-glow),
+    inset 0 0 24px rgba(0, 0, 0, 0.4);
+}
+.skin-citadel-milestone-half {
+  border-radius: 1rem;
+  background: linear-gradient(180deg, var(--ct-stone-mid) 0%, var(--ct-stone-deep) 100%);
+  border: 2px solid var(--ct-half);
+  color: var(--ct-ink);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.skin-citadel-milestone-kicker {
+  color: var(--ct-torch);
+  letter-spacing: 0.12em;
+}
+.skin-citadel-milestone-score {
+  background: var(--ct-torch);
+  color: var(--ct-stone-deep);
+}
+
+.skin-citadel-preview .skin-citadel-preview-tower {
+  min-height: 0;
+  max-height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-citadel-torch,
+  .skin-citadel-tower-burst,
+  .skin-citadel-pillar--pulse,
+  .skin-citadel-cell--place-up .skin-citadel-block,
+  .skin-citadel-cell--place-down .skin-citadel-block,
+  .skin-citadel-cell--place-up::after,
+  .skin-citadel-tower-collapsing,
+  .skin-citadel-tower-appeared {
+    animation: none !important;
+  }
+  .skin-citadel-waterline {
+    transition: none;
+  }
+  .skin-citadel-field::after {
+    animation: none;
+    opacity: 0.8;
+  }
 }

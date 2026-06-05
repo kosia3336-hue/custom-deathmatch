@@ -10,6 +10,7 @@ interface OwnedSkinRow {
   skin_id: string;
   equipped: boolean;
   granted_at: string;
+  expires_at: string | null;
 }
 
 interface SkinMasterRow {
@@ -27,11 +28,13 @@ interface GameRow {
 export default async function SkinsTab({ memberId }: { memberId: string }) {
   const sb = await getServerSupabase();
 
+  const now = new Date().toISOString();
   const ownedRes = await sb
     .from('member_skins')
-    .select('id, skin_id, equipped, granted_at')
+    .select('id, skin_id, equipped, granted_at, expires_at')
     .eq('member_id', memberId)
     .is('revoked_at', null)
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order('granted_at', { ascending: false });
   const owned = (ownedRes.data ?? []) as unknown as OwnedSkinRow[];
 
@@ -99,7 +102,7 @@ export default async function SkinsTab({ memberId }: { memberId: string }) {
                     </div>
                   )}
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-bold text-cdm-fg">{skin.name}</h3>
+                    <h3 className="text-sm font-bold text-cdm-fg">{meta?.name ?? skin.name}</h3>
                     {o.equipped && (
                       <span className="shrink-0 rounded-full bg-cdm-highlight-soft px-2 py-0.5 text-xs font-semibold text-cdm-highlight-strong">
                         착용 중
@@ -108,6 +111,13 @@ export default async function SkinsTab({ memberId }: { memberId: string }) {
                   </div>
                   <p className="mt-2 text-[11px] text-cdm-fg-subtle">
                     획득 {new Date(o.granted_at).toLocaleDateString('ko-KR')}
+                    {o.expires_at ? (
+                      <span className="ml-2 text-cdm-fg-muted">
+                        · {new Date(o.expires_at).toLocaleDateString('ko-KR')} 까지
+                      </span>
+                    ) : (
+                      <span className="ml-2 text-cdm-fg-muted">· 영구</span>
+                    )}
                   </p>
                   <div className="mt-3">
                     <SkinActions skinId={skin.id} equipped={o.equipped} />
