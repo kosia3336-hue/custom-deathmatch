@@ -5,6 +5,54 @@ const CLIP_SECOND = 'polygon(15% 0%, 0% 70%, 50% 100%, 100% 70%, 85% 0%)';
 
 /** 마이페이지 스킨 카드용 정적 비주얼 프리뷰 (게임 데이터 불필요) */
 export default function SkinPreview({ theme }: { theme: SkinTheme }) {
+  if (theme === 'duality') {
+    return (
+      <div className="skin-duality-field relative flex h-24 w-full items-center overflow-hidden rounded-lg">
+        <div className="skin-duality-fx" aria-hidden>
+          <div className="skin-duality-split-line" />
+          <div className="skin-duality-frost-glow" />
+          <div className="skin-duality-ember-glow" />
+        </div>
+        <div className="relative z-10 flex w-full items-center justify-between px-5">
+          {/* 빙결 타일 */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skin-duality-tile skin-duality-tile--frost skin-duality-tile--xs" />
+              ))}
+            </div>
+            <span style={{ fontSize: '0.6rem', color: '#7dd3fc', letterSpacing: '0.05em', fontWeight: 600 }}>FROST</span>
+          </div>
+
+          {/* 중앙 넘버 카드 샘플 */}
+          <div
+            className="flex flex-col items-center gap-0.5 rounded-lg px-2.5 py-1.5"
+            style={{
+              background: 'rgba(9,14,28,0.92)',
+              border: '1.5px solid rgba(96,165,250,0.65)',
+              boxShadow: '0 0 14px rgba(96,165,250,0.4)',
+            }}
+          >
+            <span className="text-xl font-bold leading-none" style={{ color: '#60a5fa', textShadow: '0 0 10px #60a5fa' }}>
+              2
+            </span>
+            <span className="text-[10px] font-bold" style={{ color: '#60a5fa' }}>+2</span>
+          </div>
+
+          {/* 흑요석 타일 */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skin-duality-tile skin-duality-tile--obsidian skin-duality-tile--xs" />
+              ))}
+            </div>
+            <span style={{ fontSize: '0.6rem', color: '#fb923c', letterSpacing: '0.05em', fontWeight: 600 }}>VOID</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (theme === 'citadel') {
     return (
       <div className="skin-citadel-field skin-citadel-preview relative flex h-24 w-full items-end justify-center gap-1 overflow-hidden rounded-lg p-2">

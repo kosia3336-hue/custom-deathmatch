@@ -10,6 +10,7 @@ import { socketRoom } from '../../utils.js';
 import { isPurinInsightViewer } from '../../purin-insight.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -144,6 +145,7 @@ function buildGameState(s: InternalState, gameData: NumberFourGameData): GameSta
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
     gameData,
+    activeSkin: getActiveSkin(s.roomId),
   };
 }
 

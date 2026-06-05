@@ -114,6 +114,8 @@ export interface TitleRow {
   description: string | null;
   condition_text: string | null;
   is_system: boolean;
+  is_legend: boolean;
+  effect: string | null;
   is_active: boolean;
   created_at: string;
   created_by: string | null;

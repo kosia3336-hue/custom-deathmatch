@@ -7,6 +7,8 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { NumberFourGameData } from '@/shared/types/number4';
 import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
 import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
@@ -20,6 +22,8 @@ export default function NumberFourGame() {
   const gameData = gameState?.gameData as NumberFourGameData | undefined;
   const myId = useMySocketId();
   const { remaining: timerRemaining } = useTurnTimer();
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.NUMBER_FOUR);
+  const isDuality = skin === 'duality';
 
   const shownWinnerRef = useRef<string | null>(null);
 
@@ -105,7 +109,7 @@ export default function NumberFourGame() {
           </div>
 
           {/* 상태 메시지 */}
-          <div className="text-center text-sm text-gray-500">
+          <div className={isDuality ? 'skin-duality-status-msg' : 'text-center text-sm text-gray-500'}>
             {gameState?.message}
           </div>
 
@@ -116,17 +120,45 @@ export default function NumberFourGame() {
                 player={myPlayer}
                 currentSide={gameData.currentSide}
                 isSpectator={isSpectator}
+                skin={skin}
               />
             )}
 
             {isSubmitPhase && (isSpectator || myPlayer?.submitted) && !gameData.currentSide && (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
-                <div className="animate-pulse text-gray-400">●  ●  ●</div>
-                <p className="text-sm text-gray-500">
-                  <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span>
-                  {' '}선택 중...
-                </p>
-              </div>
+              isDuality ? (
+                <div className="skin-duality-field skin-duality-waiting">
+                  <div className="skin-duality-fx" aria-hidden>
+                    <div className="skin-duality-split-line" />
+                    <div className="skin-duality-frost-glow" />
+                    <div className="skin-duality-ember-glow" />
+                  </div>
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="skin-duality-tile skin-duality-tile--frost skin-duality-tile--sm" style={{ animationDelay: '0s' }} />
+                      <div className="skin-duality-tile skin-duality-tile--obsidian skin-duality-tile--sm" style={{ animationDelay: '0.3s' }} />
+                    </div>
+                    <div className="skin-duality-waiting-dots" aria-hidden>
+                      <div className="skin-duality-waiting-dot" />
+                      <div className="skin-duality-waiting-dot" />
+                      <div className="skin-duality-waiting-dot" />
+                    </div>
+                    <p className="text-sm" style={{ color: 'var(--dl-ink-dim)' }}>
+                      <span className="font-medium" style={{ color: 'var(--dl-frost)' }}>
+                        {opponent?.nickname ?? '상대'}
+                      </span>
+                      {' '}선택 중...
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
+                  <div className="animate-pulse text-gray-400">●  ●  ●</div>
+                  <p className="text-sm text-gray-500">
+                    <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span>
+                    {' '}선택 중...
+                  </p>
+                </div>
+              )
             )}
 
             {(gameData.phase === 'reveal' || gameData.phase === 'finished') && gameData.revealData && (
@@ -137,6 +169,7 @@ export default function NumberFourGame() {
                 winner={gameData.winner}
                 winType={gameData.winType}
                 tiebreakerReason={gameData.tiebreakerReason}
+                skin={skin}
               />
             )}
 
@@ -153,6 +186,7 @@ export default function NumberFourGame() {
                         white={tracker.white}
                         black={tracker.black}
                         onAdjust={(color, delta) => handleSpectatorAdjust(id, color, delta)}
+                        skin={skin}
                       />
                     );
                   })}
@@ -162,6 +196,7 @@ export default function NumberFourGame() {
                   white={trackerWhite}
                   black={trackerBlack}
                   onAdjust={handleAdjust}
+                  skin={skin}
                 />
               )
             )}

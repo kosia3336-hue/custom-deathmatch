@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -28,6 +28,14 @@ export interface SkinMeta {
 }
 
 export const SKIN_REGISTRY: Record<string, SkinMeta> = {
+  'skin-g003-01': {
+    id: 'skin-g003-01',
+    gameId: GAME_IDS.NUMBER_FOUR,
+    name: '균열',
+    theme: 'duality',
+    description: '빙결(백)과 흑요석(흑)의 충돌. 7개 파편 배분이 에너지 전쟁이 된다.',
+    swatch: 'linear-gradient(135deg, #2d6a9f 0%, #080b14 45%, #3d1f3d 100%)',
+  },
   'skin-g001-01': {
     id: 'skin-g001-01',
     gameId: GAME_IDS.FOUR_GRAVITY,
