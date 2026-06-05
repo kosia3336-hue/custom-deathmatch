@@ -13,6 +13,8 @@ export interface MemberInfo {
   status: 'active' | 'suspended' | 'banned' | 'withdrawn';
   displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
   equippedSkins: EquippedSkin[];
+  /** expires_at 이 있는 착용 스킨의 만료 시각 목록 (무기한 스킨은 제외) */
+  skinExpiries: Array<{ skinId: string; expiresAt: Date }>;
 }
 
 /** access_token → 회원 정보 (모두 미설정/실패 시 null) */
@@ -52,20 +54,23 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     }
   }
 
-  // 착용 중인 스킨 (게임 ID 포함)
+  // 착용 중인 스킨 (게임 ID + 만료 시각 포함)
   let equippedSkins: EquippedSkin[] = [];
+  const skinExpiries: Array<{ skinId: string; expiresAt: Date }> = [];
   const { data: skinRows } = await sb
     .from('member_skins')
-    .select('skin_id, skins!inner(game_id)')
+    .select('skin_id, expires_at, skins!inner(game_id)')
     .eq('member_id', memberId)
     .eq('equipped', true)
     .is('revoked_at', null)
     .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
   if (Array.isArray(skinRows)) {
-    equippedSkins = (skinRows as Array<{ skin_id: string; skins: { game_id: string } | { game_id: string }[] }>)
+    equippedSkins = (skinRows as Array<{ skin_id: string; expires_at: string | null; skins: { game_id: string } | { game_id: string }[] }>)
       .map((r) => {
         const game = Array.isArray(r.skins) ? r.skins[0] : r.skins;
-        return game ? { skinId: r.skin_id, gameId: game.game_id } : null;
+        if (!game) return null;
+        if (r.expires_at) skinExpiries.push({ skinId: r.skin_id, expiresAt: new Date(r.expires_at) });
+        return { skinId: r.skin_id, gameId: game.game_id };
       })
       .filter((s): s is EquippedSkin => s !== null);
   }
@@ -76,5 +81,6 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     status: status ?? 'active',
     displayedTitle,
     equippedSkins,
+    skinExpiries,
   };
 }

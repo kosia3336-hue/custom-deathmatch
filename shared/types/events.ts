@@ -266,6 +266,17 @@ export interface ClientToServerEvents {
   'event:meta:get': (
     callback: (res: import('./indian-poker-event').IPEMetaPayload) => void,
   ) => void;
+
+  /** 해달별 (이벤트) — 입장 */
+  'smsEvent:join': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 해달별 (이벤트) — 퇴장 */
+  'smsEvent:leave': () => void;
+  /** 해달별 (이벤트) — 메타 조회 */
+  'smsEvent:meta:get': (
+    callback: (res: import('./sun-moon-star-event').SmsMetaPayload) => void,
+  ) => void;
 }
 
 /** CDP 적립 — 랭크 게임 종료 시 본인에게만 emit */
@@ -427,4 +438,11 @@ export interface ServerToClientEvents {
   'event:hand:result': (
     payload: import('./indian-poker-event').IPEHandResultPayload,
   ) => void;
+
+  /** 해달별 (이벤트) 상태 */
+  'smsEvent:state': (payload: import('./sun-moon-star-event').SmsStatePayload) => void;
+  'smsEvent:meta:changed': (payload: import('./sun-moon-star-event').SmsMetaPayload) => void;
+  'smsEvent:promoted': (payload: import('./sun-moon-star-event').SmsPromotedPayload) => void;
+  'smsEvent:kicked': (payload: import('./sun-moon-star-event').SmsKickedPayload) => void;
+  'smsEvent:round:result': (payload: { result: import('./sun-moon-star-event').SmsRoundResultPayload }) => void;
 }

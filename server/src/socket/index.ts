@@ -9,11 +9,18 @@ import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { registerRankQueueHandlers } from './rankQueue.js';
 import { registerEventRoomHandlers, eventRoom, EVENT_ROOM_KEY, EVENT_SOCKET_CHANNEL } from './eventRoomHandlers.js';
+import {
+  registerSmsEventRoomHandlers,
+  smsEventRoom,
+  EVENT_SMS_ROOM_KEY,
+  EVENT_SMS_SOCKET_CHANNEL,
+} from './smsEventRoomHandlers.js';
 import { socketRoom, maskedClientRoomFor } from './utils.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
+import { scheduleSkinExpiries, cancelSkinExpiries } from './skinExpiry.js';
 import { rankQueueStore } from '../store/rankQueue.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -24,6 +31,7 @@ const RECONNECT_GRACE_PLAYING = 30_000;
 export function setupSocketHandlers(io: IO) {
   // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
   eventRoom.init(io);
+  smsEventRoom.init(io);
   // ── v2 — connect 핸드셰이크에서 Supabase access_token 검증 ──────────────
   // accessToken 있으면 회원 검증 후 socket.data.member 세팅.
   // 없거나 실패하면 게스트로 연결 허용 (로비 관전 전용 — 방 생성/입장은 닉네임 체크로 차단).
@@ -86,12 +94,14 @@ export function setupSocketHandlers(io: IO) {
             nickname: string;
             displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
             equippedSkins?: { skinId: string; gameId: string }[];
+            skinExpiries?: { skinId: string; expiresAt: Date }[];
           };
         }
       ).member;
       if (member) {
         sessions.setNickname(socket.id, member.nickname, true);
         sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? []);
+        scheduleSkinExpiries(token, member.skinExpiries ?? []);
       }
 
       // ── 칭호 획득 모달 pending 처리 ──────────────────────────────────────
@@ -138,9 +148,15 @@ export function setupSocketHandlers(io: IO) {
         if (roomId === EVENT_ROOM_KEY) {
           socket.leave(LOBBY_ROOM);
           socket.join(EVENT_SOCKET_CHANNEL);
-          // room:state + event:state 재전송 (fire-and-forget)
           void eventRoom.rejoinSocket(socket, token);
-          // roomId 전달해 클라이언트가 /room/{id}/play 로 복원 가능
+          socket.emit('session:restored', { nickname, roomId });
+          return;
+        }
+
+        if (roomId === EVENT_SMS_ROOM_KEY) {
+          socket.leave(LOBBY_ROOM);
+          socket.join(EVENT_SMS_SOCKET_CHANNEL);
+          smsEventRoom.rejoinSocket(socket, token);
           socket.emit('session:restored', { nickname, roomId });
           return;
         }
@@ -199,6 +215,7 @@ export function setupSocketHandlers(io: IO) {
 
         const memberId = sessions.getMemberId(token);
         sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins);
+        scheduleSkinExpiries(token, member.skinExpiries);
         callback({ ok: true });
       } catch {
         callback({ ok: false });
@@ -211,6 +228,7 @@ export function setupSocketHandlers(io: IO) {
     registerChatHandlers(io, socket);
     registerRankQueueHandlers(io, socket);
     registerEventRoomHandlers(io, socket);
+    registerSmsEventRoomHandlers(io, socket);
 
     // ── 연결 끊김 ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
@@ -218,9 +236,27 @@ export function setupSocketHandlers(io: IO) {
       rankQueueStore.removeBySocket(socket.id);
 
       const token = sessions.getToken(socket.id);
+      if (token) cancelSkinExpiries(token);
+
       const roomId = sessions.getRoom(socket.id);
 
       // ── 이벤트 룸 처리 ──────────────────────────────────────────────────
+      if (token && roomId === EVENT_SMS_ROOM_KEY) {
+        if (smsEventRoom.isSeatedAndInRound(token)) {
+          const timer = setTimeout(() => {
+            smsEventRoom.forceLeaveByToken(token);
+            sessions.removeSession(socket.id);
+            if (wasMember) broadcastOnlineUsers(io);
+          }, RECONNECT_GRACE_PLAYING);
+          sessions.setPendingDisconnect(token, timer);
+        } else {
+          smsEventRoom.handleDisconnect(socket);
+          sessions.removeSession(socket.id);
+        }
+        if (wasMember) broadcastOnlineUsers(io);
+        return;
+      }
+
       if (token && roomId === EVENT_ROOM_KEY) {
         if (eventRoom.isSeatedAndInGame(token)) {
           // 게임 진행 중 좌석 플레이어: 30초 재연결 유예

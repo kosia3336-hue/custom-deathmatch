@@ -19,6 +19,7 @@ import SilperBnwGame from '@/components/game/modules/silper-bnw';
 import FiveTowersGame from '@/components/game/modules/five-towers';
 import GrapeSugar2Game from '@/components/game/modules/grape-sugar-2';
 import SunMoonStar2Game from '@/components/game/modules/sun-moon-star-2';
+import SunMoonStarEventGame from '@/components/game/modules/sun-moon-star-event';
 import BankGame from '@/components/game/modules/bank-game';
 import BanPickGame from '@/components/game/modules/ban-pick';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
@@ -42,6 +43,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.FIVE_TOWERS]: FiveTowersGame,
   [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Game,
   [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Game,
+  [GAME_IDS.SUN_MOON_STAR_EVENT]: SunMoonStarEventGame,
   [GAME_IDS.BANK_GAME]: BankGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };

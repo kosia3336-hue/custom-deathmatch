@@ -202,7 +202,9 @@ export default function GameShell({ children }: Props) {
 
   /* ── 푸터 슬롯: 닉네임 + 무르기 + 관전자 수 ── */
   useEffect(() => {
-    const isEventRoom = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT;
+    const isEventRoom =
+      room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
+      room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT;
     const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom;
 
     setFooter(

@@ -30,7 +30,13 @@ export default function ActionBar({ onCreateRoom }: Props) {
 
   useEffect(() => {
     fetchGames()
-      .then((all) => setGames(all.filter((g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT)))
+      .then((all) =>
+        setGames(
+          all.filter(
+            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+          ),
+        ),
+      )
       .catch(() => {});
   }, []);
 

@@ -12,6 +12,8 @@ import type { ShopItem, PurchaseSuccess, PurchaseError } from '@/lib/cdp/types';
 import { formatCdp } from '@/lib/cdp/format';
 import ShopItemCard from './ShopItemCard';
 import ShopPurchaseModal from './ShopPurchaseModal';
+import ShopGachaTab from './ShopGachaTab';
+import ShopGachaModal from './ShopGachaModal';
 import ShopEventChipExchange from './ShopEventChipExchange';
 
 interface Props {
@@ -30,7 +32,7 @@ interface ItemChangedPayload {
 }
 
 // 이벤트 기간 종료 — 재개 시 | 'event_chip_pack' 추가
-type TabId = 'all' | 'consumable' | 'title';
+type TabId = 'all' | 'consumable' | 'title' | 'gacha';
 
 const TAB_FOR_TYPE: Record<string, TabId> = {
   consumable: 'consumable',
@@ -61,7 +63,8 @@ export default function ShopClient({
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     if (
       initialType === 'consumable' ||
-      initialType === 'title'
+      initialType === 'title' ||
+      initialType === 'gacha'
       // || initialType === 'event_chip_pack' // 이벤트 기간 종료
     ) {
       return initialType as TabId;
@@ -69,6 +72,7 @@ export default function ShopClient({
     return 'all';
   });
   const [openItem, setOpenItem] = useState<ShopItem | null>(null);
+  const [gachaOpen, setGachaOpen] = useState(false);
   const [hasMerchantDiscount, setHasMerchantDiscount] = useState(merchantDiscount);
 
   useEffect(() => {
@@ -106,6 +110,7 @@ export default function ShopClient({
       { id: 'all', label: '전체', count: items.length },
       { id: 'consumable', label: '🎟 소모성', count: cConsumable },
       { id: 'title', label: '🏆 칭호', count: cTitle },
+      { id: 'gacha', label: '🎲 뽑기' },
       // { id: 'event_chip_pack', label: '🪙 이벤트', count: cChip }, // 이벤트 기간 종료
     ];
   }, [items]);
@@ -117,6 +122,7 @@ export default function ShopClient({
 
   function handleTabChange(id: string) {
     const next = id as TabId;
+    if (next !== 'gacha') setGachaOpen(false);
     setActiveTab(next);
     const qs = new URLSearchParams(sp?.toString() ?? '');
     if (next === 'all') qs.delete('type');
@@ -231,7 +237,9 @@ export default function ShopClient({
       {activeTab === 'event_chip_pack' && <ShopEventChipExchange />}
       */}
 
-      {visibleItems.length === 0 ? (
+      {activeTab === 'gacha' ? (
+        <ShopGachaTab balance={balance} onOpen={() => setGachaOpen(true)} />
+      ) : visibleItems.length === 0 ? (
         <EmptyState
           title={activeTab === 'all' ? '아직 판매 중인 아이템이 없어요' : '이 카테고리에는 아이템이 없어요'}
           description={activeTab === 'all' ? '곧 첫 아이템이 등록될 예정이에요!' : undefined}
@@ -258,6 +266,13 @@ export default function ShopClient({
         merchantDiscount={hasMerchantDiscount}
         onClose={() => setOpenItem(null)}
         onConfirm={handleConfirmPurchase}
+      />
+
+      <ShopGachaModal
+        open={gachaOpen}
+        onClose={() => setGachaOpen(false)}
+        balance={balance}
+        onBalanceChange={setBalance}
       />
     </section>
   );

@@ -6,6 +6,7 @@ import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { Button } from '@/components/cdm/Button';
 import { Modal } from '@/components/cdm/Modal';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { gachaTitleGrantedSuppress } from '@/lib/gacha/suppress-title-granted';
 
 interface TitleGrantedPayload {
   titleId: string;
@@ -28,6 +29,7 @@ export default function TitleGrantedModal() {
     const socket = getSocket();
 
     const onTitleGranted = (payload: TitleGrantedPayload) => {
+      if (gachaTitleGrantedSuppress.active) return;
       setQueue((prev) => [...prev, payload]);
     };
 
@@ -59,7 +61,7 @@ export default function TitleGrantedModal() {
         <TitleBadge
           name={current.name}
           color={current.color as TitleColor}
-          effect={current.effect as 'legend' | null}
+          effect={current.effect as 'legend' | 'xuanwu' | null}
           size="lg"
         />
         {current.description && (

@@ -16,6 +16,7 @@ import {
 import RankingTabs from './RankingTabs';
 import RankingBoardTabs from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
+import EventSeasonLeaderboard from './EventSeasonLeaderboard';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = {
@@ -32,7 +33,14 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ game?: string; period?: string; page?: string; board?: string; season?: string; tier?: string }>;
+  searchParams: Promise<{
+    game?: string;
+    period?: string;
+    page?: string;
+    board?: string;
+    season?: string;
+    tier?: string;
+  }>;
 }
 
 interface GameRow {
@@ -96,7 +104,8 @@ export default async function RankingPage({ searchParams }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = sb as any;
 
-  const board = sp.board === 'game' ? 'game' : 'rank';
+  const board =
+    sp.board === 'game' ? 'game' : sp.board === 'event' ? 'event' : 'rank';
 
   let seasons: { id: number; name: string; is_active: boolean | null }[] = [];
   if (board === 'rank') {
@@ -250,6 +259,10 @@ export default async function RankingPage({ searchParams }: Props) {
               />
             )}
           </>
+        )}
+
+        {board === 'event' && (
+          <EventSeasonLeaderboard page={page} memberId={member?.id ?? null} />
         )}
       </main>
     </>

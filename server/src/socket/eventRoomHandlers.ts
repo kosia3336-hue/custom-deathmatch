@@ -12,6 +12,8 @@ import { sessions } from '../store/sessions.js';
 import type { IO, TypedSocket } from './types.js';
 import type { IPEActionPayload } from '@shared/types/indian-poker-event.js';
 
+import { EVENT_ROOM_KEY } from './eventRoom.js';
+
 export { eventRoom, EVENT_ROOM_KEY, EVENT_SOCKET_CHANNEL } from './eventRoom.js';
 
 export function registerEventRoomHandlers(_io: IO, socket: TypedSocket): void {
@@ -53,6 +55,7 @@ export function registerEventRoomHandlers(_io: IO, socket: TypedSocket): void {
   socket.on('game:action', (data: Record<string, unknown>) => {
     const token = sessions.getToken(socket.id);
     if (!token) return;
+    if (sessions.getRoom(socket.id) !== EVENT_ROOM_KEY) return;
     if (!eventRoom.hasSeatForToken(token)) return; // 좌석에 없으면 game.ts가 처리
 
     const payload: IPEActionPayload = {

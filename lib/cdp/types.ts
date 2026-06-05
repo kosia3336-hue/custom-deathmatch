@@ -111,6 +111,7 @@ export const TYPE_LABELS: Record<string, string> = {
   consumable: '소모성',
   event_chip_pack: '🪙 이벤트 칩',
   event_chip_exchange: '🔄 칩 환전',
+  gacha: '🎲 뽑기',
 };
 
 export function labelForType(type: string): string {

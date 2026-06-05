@@ -80,7 +80,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
 
     fetchGames()
       .then((gsAll) => {
-        const gs = gsAll.filter((g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT);
+        const gs = gsAll.filter(
+          (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+        );
         setGames(gs);
         const current = gs.find((g) => g.id === room.gameId) ?? null;
         setSelectedGame(current);

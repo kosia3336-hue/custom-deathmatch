@@ -10,7 +10,7 @@ export interface SeasonOption {
 }
 
 interface Props {
-  board: 'game' | 'rank';
+  board: 'game' | 'rank' | 'event';
   seasons: SeasonOption[];
   /** URL에 season 없을 때 선택값 (서버에서 진행 중 시즌 등) */
   defaultSeasonId: number | null;
@@ -21,12 +21,20 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function setBoard(next: 'game' | 'rank') {
+  function setBoard(next: 'game' | 'rank' | 'event') {
     const p = new URLSearchParams(searchParams.toString());
     p.set('board', next);
     if (next === 'game') {
       p.delete('season');
       p.delete('tier');
+    } else if (next === 'rank') {
+      p.delete('game');
+      p.delete('period');
+    } else {
+      p.delete('season');
+      p.delete('tier');
+      p.delete('game');
+      p.delete('period');
     }
     p.delete('page');
     router.replace(`${pathname}?${p.toString()}`);
@@ -54,9 +62,10 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
         tabs={[
           { id: 'rank', label: '🏆 랭크' },
           { id: 'game', label: '게임 랭킹' },
+          { id: 'event', label: '이벤트' },
         ]}
         value={board}
-        onChange={(id) => setBoard(id as 'game' | 'rank')}
+        onChange={(id) => setBoard(id as 'game' | 'rank' | 'event')}
       />
       {board === 'rank' && seasons.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">

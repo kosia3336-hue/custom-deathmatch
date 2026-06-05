@@ -364,6 +364,30 @@ export type {
   SMS2GameData,
 } from './sun-moon-star-2';
 export {
+  SMSE_MAX_SEATS,
+  SMSE_MIN_PLAYERS,
+  SMSE_PICK_TIMEOUT_SECONDS,
+  SMSE_MARK_IDS,
+  SMSE_MARK_LABELS,
+  SMSE_MARK_ICONS,
+  decideLitMarkSmsEvent,
+  scoreSeatRound,
+  tallyMarks,
+} from './sun-moon-star-event';
+export type {
+  SmsMarkId,
+  SmsPhase,
+  SmsLitResult,
+  SmsParticipantRole,
+  SmsSeatPublic,
+  SmsGameData,
+  SmsStatePayload,
+  SmsMetaPayload,
+  SmsRoundResultPayload,
+  SmsPromotedPayload,
+  SmsPickAction,
+} from './sun-moon-star-event';
+export {
   BANK_TOTAL_ROUNDS,
   BANK_DENOMINATIONS,
   BANK_INITIAL_INVENTORY,

@@ -13,7 +13,8 @@ interface RawRow {
   price_paid: number;
   name_snapshot: string;
   type_snapshot: string;
-  purchased_at: string;
+  occurred_at: string;
+  ledger_ref_kind: string;
 }
 
 function formatDateTime(iso: string): { date: string; time: string } {
@@ -32,42 +33,54 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
   const { from, to } = getRange(page, PAGE_SIZE);
 
   const res = await sb
-    .from('shop_purchases')
-    .select('id, member_id, price_paid, name_snapshot, type_snapshot, purchased_at', {
+    .from('v_admin_shop_logs')
+    .select('id, member_id, price_paid, name_snapshot, type_snapshot, occurred_at, ledger_ref_kind', {
       count: 'exact',
     })
-    .order('purchased_at', { ascending: false })
+    .order('occurred_at', { ascending: false })
     .range(from, to);
 
   const rows = (res.data ?? []) as unknown as RawRow[];
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
-  const purchaseIds = rows.map((r) => r.id);
+  const rowIds = rows.map((r) => r.id);
   const memberIds = [...new Set(rows.map((r) => r.member_id))];
 
-  const [membersRes, ledgerRes] = await Promise.all([
+  const shopPurchaseIds = rows.filter((r) => r.ledger_ref_kind === 'shop_purchase').map((r) => r.id);
+  const gachaDrawIds = rows.filter((r) => r.ledger_ref_kind === 'gacha_draw').map((r) => r.id);
+
+  const [membersRes, shopLedgerRes, gachaLedgerRes] = await Promise.all([
     memberIds.length
       ? sb.from('members').select('id, nickname').in('id', memberIds)
       : Promise.resolve({ data: [] }),
-    purchaseIds.length
+    shopPurchaseIds.length
       ? sb
           .from('cdp_ledger')
           .select('ref_id, balance_after')
           .eq('ref_kind', 'shop_purchase')
-          .in('ref_id', purchaseIds)
+          .in('ref_id', shopPurchaseIds)
+      : Promise.resolve({ data: [] }),
+    gachaDrawIds.length
+      ? sb
+          .from('cdp_ledger')
+          .select('ref_id, balance_after')
+          .eq('ref_kind', 'gacha_draw')
+          .in('ref_id', gachaDrawIds)
+          .lt('delta', 0)
       : Promise.resolve({ data: [] }),
   ]);
 
   const memberMap = new Map(
     ((membersRes.data ?? []) as { id: string; nickname: string }[]).map((m) => [m.id, m.nickname]),
   );
-  const ledgerMap = new Map(
-    ((ledgerRes.data ?? []) as { ref_id: string; balance_after: number }[]).map((l) => [
-      l.ref_id,
-      Number(l.balance_after),
-    ]),
-  );
+  const ledgerMap = new Map<string, number>();
+  for (const l of (shopLedgerRes.data ?? []) as { ref_id: string; balance_after: number }[]) {
+    ledgerMap.set(l.ref_id, Number(l.balance_after));
+  }
+  for (const l of (gachaLedgerRes.data ?? []) as { ref_id: string; balance_after: number }[]) {
+    ledgerMap.set(l.ref_id, Number(l.balance_after));
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,7 +108,7 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
               </thead>
               <tbody>
                 {rows.map((r, i) => {
-                  const { date, time } = formatDateTime(r.purchased_at);
+                  const { date, time } = formatDateTime(r.occurred_at);
                   const balanceAfter = ledgerMap.get(r.id) ?? null;
                   const balanceBefore = balanceAfter !== null ? balanceAfter + Number(r.price_paid) : null;
                   return (
@@ -137,7 +150,7 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
           {/* 모바일 카드 */}
           <div className="flex flex-col gap-2 md:hidden">
             {rows.map((r) => {
-              const { date, time } = formatDateTime(r.purchased_at);
+              const { date, time } = formatDateTime(r.occurred_at);
               const balanceAfter = ledgerMap.get(r.id) ?? null;
               const balanceBefore = balanceAfter !== null ? balanceAfter + Number(r.price_paid) : null;
               return (
