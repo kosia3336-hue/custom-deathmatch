@@ -1,15 +1,15 @@
 import type { GachaGrade } from './types';
 
 export const GACHA_ID = 'default';
-export const GACHA_PRICE_CDP = 100;
+export const GACHA_PRICE_CDP = 80;
 
 /** 가중치 합 = 10_000 (= 100%) */
 export const GRADE_WEIGHTS: Record<GachaGrade, number> = {
-  S: 10,
-  A: 100,
-  B: 200,
+  S: 80,
+  A: 150,
+  B: 400,
   C: 2800,
-  F: 6890,
+  F: 6570,
 };
 
 export const GRADE_ORDER: GachaGrade[] = ['S', 'A', 'B', 'C', 'F'];

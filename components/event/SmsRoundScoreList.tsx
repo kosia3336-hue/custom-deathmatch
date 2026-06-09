@@ -19,8 +19,8 @@ export default function SmsRoundScoreList({ scorers }: Props) {
             <li key={s.seatIdx}>
               {s.nickname}{' '}
               <strong className="text-amber-600">+{s.roundScore}</strong>
-              {s.roundScore === 2 && (
-                <span className="text-xs text-cdm-muted"> (유지 보너스)</span>
+              {s.roundScore === 3 && (
+                <span className="text-xs text-cdm-muted"> (전환 보너스)</span>
               )}
             </li>
           ))}

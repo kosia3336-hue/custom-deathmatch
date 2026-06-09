@@ -58,8 +58,8 @@ export interface SmsVoidDecision {
 
 export type SmsLitResult = SmsLitDecision | SmsVoidDecision;
 
-/** 판 점수: 바꿨는데 불 미일치 시 -1 */
-export type SmsRoundScore = -1 | 0 | 1 | 2;
+/** 판 점수: 바꿔서 적중 시 3, 유지 적중 1, 바꿨는데 불 미일치 시 -1 */
+export type SmsRoundScore = -1 | 0 | 1 | 3;
 
 export interface SmsSeatPublic {
   seatIdx: number;
@@ -174,7 +174,7 @@ export function scoreSeatRound(
 ): SmsRoundScore {
   if (lit.kind === 'void' || !firstPick || !secondPick) return 0;
   if (secondPick === lit.mark) {
-    return firstPick === secondPick ? 2 : 1;
+    return firstPick !== secondPick ? 3 : 1;
   }
   if (firstPick !== secondPick) return -1;
   return 0;

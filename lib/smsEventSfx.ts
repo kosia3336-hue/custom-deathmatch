@@ -75,10 +75,10 @@ export function sfxSmsVoid() {
 }
 
 /** 점수 획득 */
-export function sfxSmsScore(roundScore: 1 | 2) {
+export function sfxSmsScore(roundScore: 1 | 3) {
   const ctx = getCtx();
   if (!ctx) return;
-  if (roundScore === 2) {
+  if (roundScore === 3) {
     tone(ctx, 523, 784, 0.15, 0.25, 'sine');
     tone(ctx, 659, 988, 0.2, 0.22, 'sine', 0.12);
     tone(ctx, 784, 1175, 0.25, 0.2, 'sine', 0.24);

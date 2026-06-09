@@ -72,7 +72,7 @@ export default function SmsGameBoard({ state, roundOverlay, mySeatIdx }: Props) 
     if (!roundOverlay || mySeatIdx == null) return;
     const me = roundOverlay.scorers.find((s) => s.seatIdx === mySeatIdx);
     if (!me) return;
-    if (me.roundScore === 1 || me.roundScore === 2) sfxSmsScore(me.roundScore);
+    if (me.roundScore === 1 || me.roundScore === 3) sfxSmsScore(me.roundScore);
     else if (me.roundScore === -1) sfxSmsPenalty();
   }, [roundOverlay, mySeatIdx]);
 

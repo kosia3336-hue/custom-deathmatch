@@ -26,12 +26,12 @@ describe('decideLitMarkSmsEvent', () => {
 describe('scoreSeatRound', () => {
   const litSun = { kind: 'lit' as const, mark: 'sun' as const, reason: 'unique_min' as const };
 
-  it('maintain bonus', () => {
-    expect(scoreSeatRound('sun', 'sun', litSun)).toBe(2);
+  it('maintain no bonus', () => {
+    expect(scoreSeatRound('sun', 'sun', litSun)).toBe(1);
   });
 
-  it('changed win', () => {
-    expect(scoreSeatRound('moon', 'sun', litSun)).toBe(1);
+  it('changed win bonus', () => {
+    expect(scoreSeatRound('moon', 'sun', litSun)).toBe(3);
   });
 
   it('maintained wrong mark', () => {

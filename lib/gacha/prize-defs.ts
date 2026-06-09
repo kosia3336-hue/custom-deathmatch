@@ -13,6 +13,7 @@ export const PRIZE_DEFS: PrizeDef[] = [
   { id: 'b_spectator_lock', grade: 'B', displayName: '관전 잠금권 5개입', kind: 'consumable', consumableKind: 'spectator_lock', qty: 5 },
   { id: 'b_anonymity', grade: 'B', displayName: '익명물약 5개입', kind: 'consumable', consumableKind: 'anonymity', qty: 5 },
   { id: 'b_nickname_change', grade: 'B', displayName: '닉네임 변경권', kind: 'consumable', consumableKind: 'nickname_change', qty: 1 },
+  { id: 'b_cdp_500', grade: 'B', displayName: '500 CDP', kind: 'cdp', cdpAmount: 500 },
   { id: 'a_rank_reset', grade: 'A', displayName: '랭크 초기화권', kind: 'consumable', consumableKind: 'rank_reset', qty: 1 },
   { id: 'a_random_skin_7d', grade: 'A', displayName: '랜덤 스킨 7일 이용권', kind: 'random_skin' },
   { id: 'a_random_shop_title', grade: 'A', displayName: '상점 칭호', kind: 'random_shop_title' },

@@ -148,9 +148,14 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
             </Button>
           </>
         ) : (
-          <Button fullWidth className="sm:max-w-xs" onClick={onConfirm}>
-            확인
-          </Button>
+          <>
+            <Button fullWidth onClick={onConfirm}>
+              확인
+            </Button>
+            <Button fullWidth variant="secondary" onClick={onDrawAgain}>
+              다시 뽑기
+            </Button>
+          </>
         )}
       </div>
     </div>

@@ -11,11 +11,11 @@ interface Props {
 }
 
 const SUMMARY_CHIPS = [
-  { label: 'S', rate: '0.1%' },
-  { label: 'A', rate: '1%' },
-  { label: 'B', rate: '2%' },
+  { label: 'S', rate: '0.8%' },
+  { label: 'A', rate: '1.5%' },
+  { label: 'B', rate: '4%' },
   { label: 'C', rate: '28%' },
-  { label: 'F', rate: '68.9%' },
+  { label: 'F', rate: '65.7%' },
 ];
 
 export default function ShopGachaTab({ balance, onOpen }: Props) {
