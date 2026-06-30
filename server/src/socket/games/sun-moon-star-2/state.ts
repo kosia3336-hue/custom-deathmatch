@@ -47,7 +47,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -233,19 +233,19 @@ function buildGameDataForViewer(
   return data;
 }
 
-function applyPurinSms2(
+function _applyDbgView(
   s: SMS2InternalState,
   token: string,
   viewerSide: SMS2Side | 'spectator',
   data: SMS2GameData,
 ): SMS2GameData {
   if (viewerSide !== 'p1' && viewerSide !== 'p2') return data;
-  if (!isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) return data;
+  if (!isDbgViewer(s.playMode, sessions.getMemberId(token))) return data;
   const oppSide = viewerSide === 'p1' ? 'p2' : 'p1';
-  const out: SMS2GameData & { _purin?: { opponentPrivate: SMS2SelfPrivate } } = {
+  const out: SMS2GameData & { _x?: { opponentPrivate: SMS2SelfPrivate } } = {
     ...data,
     history: s.history.map((r) => sanitizeRoundForView(r, viewerSide, true)),
-    _purin: {
+    _x: {
       opponentPrivate: buildSelfPrivate(getPlayerBySide(s, oppSide)),
     },
   };
@@ -287,10 +287,10 @@ export async function broadcastState(io: IO, s: SMS2InternalState) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
     let data = buildGameDataForViewer(s, viewerSide, token);
-    data = applyPurinSms2(s, token, viewerSide, data);
+    data = _applyDbgView(s, token, viewerSide, data);
     const raw = data as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, data, token));
   }
 }
@@ -299,10 +299,10 @@ export function emitStateToSocket(socket: TypedSocket, s: SMS2InternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
   let data = buildGameDataForViewer(s, viewerSide, token);
-  data = applyPurinSms2(s, token, viewerSide, data);
+  data = _applyDbgView(s, token, viewerSide, data);
   const raw = data as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, data, token));
 }
 

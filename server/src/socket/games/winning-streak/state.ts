@@ -13,7 +13,7 @@ import type {
 } from './types.js';
 import { judgeMatch } from './judge.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -66,7 +66,7 @@ function phaseMessage(s: InternalState): string {
 }
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): WinningStreakGameData {
-  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, WSPlayerInfo> = {
@@ -128,11 +128,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): WinningStre
     winType: s.winType,
   };
 
-  if (purin && s.phase === 'cardSelect') {
+  if (_dbg && s.phase === 'cardSelect') {
     const opp = socketId === s.player1.id ? s.player2 : s.player1;
     return {
       ...base,
-      _purin: { opponentSelectedCard: opp.selectedCard },
+      _x: { opponentSelectedCard: opp.selectedCard },
     } as WinningStreakGameData;
   }
 
@@ -158,8 +158,8 @@ export async function broadcastState(io: IO, s: InternalState) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = buildGameDataForPlayer(s, pid);
     const raw = gameData as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -168,8 +168,8 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = buildGameDataForPlayer(s, pid);
   const raw = gameData as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 

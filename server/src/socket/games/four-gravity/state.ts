@@ -423,7 +423,6 @@ function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMo
     currentColor: s.currentColor,
     lastGravityBlack: s.lastGravityBlack,
     lastGravityWhite: s.lastGravityWhite,
-    // 천하 솔로 모드에서 AI 토글로 켠 경우만 강화 AI 사용. 일반 COM 모드는 기존 AI 유지.
     useStrong: s.ownerToken !== null,
   };
 

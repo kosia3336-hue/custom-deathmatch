@@ -22,7 +22,7 @@ import type {
 } from '@shared/types/archive.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import {
   FT_HALF_MILESTONE,
   FT_MAX_SCORE,
@@ -316,7 +316,7 @@ function buildGameState(s: InternalState, gameData: FTGameData, viewerToken: str
   };
 }
 
-function applyPurinFiveTowers(s: InternalState, viewerId: string, data: FTGameData): FTGameData {
+function _applyDbgView(s: InternalState, viewerId: string, data: FTGameData): FTGameData {
   const oppId = viewerId === s.player1.id ? s.player2.id : s.player1.id;
   const opp = getPlayer(s, oppId)!;
   const lastOppAction = s.actionLog.slice().reverse().find(e => e.actorId === oppId);
@@ -334,7 +334,7 @@ function applyPurinFiveTowers(s: InternalState, viewerId: string, data: FTGameDa
       ...buildUnresolvedSecrets(s, oppId),
     ],
     actionLog: s.actionLog.map(e => ({ ...e, actorNickname: maskNick(e.actorId, e.actorNickname) })),
-    _purin: {
+    _x: {
       latestOppAction: lastOppAction ? { ...lastOppAction } : null,
       opponentInfoResults: [...(s.infoResults[oppId] ?? [])],
       opponentSecretLog: [...(s.secretLog[oppId] ?? [])],
@@ -353,12 +353,12 @@ export async function broadcastState(io: IO, s: InternalState) {
     let gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
-    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
-      gameData = applyPurinFiveTowers(s, pid, gameData);
+    if (isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
+      gameData = _applyDbgView(s, pid, gameData);
     }
     const raw = gameData as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData, pid));
   }
 }
@@ -369,12 +369,12 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   let gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
-  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
-    gameData = applyPurinFiveTowers(s, pid, gameData);
+  if (isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
+    gameData = _applyDbgView(s, pid, gameData);
   }
   const raw = gameData as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData, pid));
 }
 

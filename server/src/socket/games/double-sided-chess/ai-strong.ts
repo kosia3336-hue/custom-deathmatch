@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────
-   Strong AI v2 (천하 솔로 모드 토글 전용; ownerToken !== null)
+   Strong AI v2
 
    기존 ai.ts의 minimax + alpha-beta + iterative deepening 골격을
    그대로 유지하면서 안전하게 검증된 강화 기법만 추가:

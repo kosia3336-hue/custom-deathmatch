@@ -305,7 +305,6 @@ export function finishTurn(io: IO, s: InternalState) {
 export function performDoubleSidedChessUndo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s) return false;
-  // 천하 솔로 모드는 게임 종료 후에도 무르기 허용 (ownerToken으로 식별)
   if (s.gameOver && !s.ownerToken) return false;
   terminateAIWorker(roomId);
 
@@ -383,7 +382,6 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     board: s.board,
     prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
     currentOwner: s.currentOwner,
-    // 천하 솔로 모드에서 AI 토글로 켠 경우만 강화 AI 사용. 일반 COM 모드는 기존 AI 유지.
     useStrong: s.ownerToken !== null,
   };
 

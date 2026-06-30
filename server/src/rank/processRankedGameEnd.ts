@@ -550,7 +550,7 @@ export async function finalizeRankedMultiGameEnd(
     };
     const loseBr = {
       parityReference: -20,
-      tierVersusParity: -(parts.loserBaseTable - 20) - parts.loserTierPenalty,
+      tierVersusParity: -(parts.loserBaseTable - 20),
       streakVersusParity: -parts.loserStreakPenalty,
     };
 

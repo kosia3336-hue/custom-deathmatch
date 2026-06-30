@@ -47,7 +47,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -229,7 +229,7 @@ function maskResolveStepsForViewer(
   });
 }
 
-function maskRoundResultPurin(full: BankRoundFullRecord): BankRoundResult {
+function _maskResultFull(full: BankRoundFullRecord): BankRoundResult {
   const winnerSide = full.outcome === 'draw' ? null
     : full.outcome === 'first_win' ? full.firstSide
     : full.firstSide === 'p1' ? 'p2' : 'p1';
@@ -260,7 +260,7 @@ function maskRoundResultPurin(full: BankRoundFullRecord): BankRoundResult {
   };
 }
 
-function maskResolveStepsPurin(steps: BankResolveStep[]): BankResolveStep[] {
+function _maskStepsFull(steps: BankResolveStep[]): BankResolveStep[] {
   return steps.map((step) => {
     if (step.type === 'crownWinner') {
       return {
@@ -274,14 +274,14 @@ function maskResolveStepsPurin(steps: BankResolveStep[]): BankResolveStep[] {
   });
 }
 
-function applyPurinBank(
+function _applyDbgView(
   s: BankInternalState,
   token: string,
   viewerSide: BankSide | 'spectator',
   data: BankGameData,
 ): BankGameData {
   if (viewerSide === 'spectator') return data;
-  if (!isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) return data;
+  if (!isDbgViewer(s.playMode, sessions.getMemberId(token))) return data;
   const opp = viewerSide === 'p1' ? s.player2 : s.player1;
   const next: BankGameData = {
     ...data,
@@ -289,13 +289,13 @@ function applyPurinBank(
       ...data.players,
       [opp.id]: buildPlayerInfo(s, opp, opp.side),
     },
-    history: s.history.map((full) => maskRoundResultPurin(full)),
+    history: s.history.map((full) => _maskResultFull(full)),
   };
   if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
-    next.roundResult = maskRoundResultPurin(s.lastRoundFull);
+    next.roundResult = _maskResultFull(s.lastRoundFull);
   }
   if (s.phase === 'reveal' && s.resolveSteps.length > 0) {
-    next.resolveSteps = maskResolveStepsPurin(s.resolveSteps);
+    next.resolveSteps = _maskStepsFull(s.resolveSteps);
   }
   return next;
 }
@@ -382,10 +382,10 @@ export async function broadcastState(io: IO, s: BankInternalState) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
     let data = buildGameDataForViewer(s, viewerSide);
-    data = applyPurinBank(s, token, viewerSide, data);
-    if (viewerSide !== 'spectator' && isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) {
+    data = _applyDbgView(s, token, viewerSide, data);
+    if (viewerSide !== 'spectator' && isDbgViewer(s.playMode, sessions.getMemberId(token))) {
       if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
-        sock.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: maskRoundResultPurin(s.lastRoundFull) });
+        sock.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: _maskResultFull(s.lastRoundFull) });
       } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
         const first = getFirst(s);
         if (first.id !== token && first.pendingBet) {
@@ -402,10 +402,10 @@ export function emitStateToSocket(socket: TypedSocket, s: BankInternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
   let data = buildGameDataForViewer(s, viewerSide);
-  data = applyPurinBank(s, token, viewerSide, data);
-  if (viewerSide !== 'spectator' && isPurinInsightViewer(s.playMode, token, s.player1, s.player2)) {
+  data = _applyDbgView(s, token, viewerSide, data);
+  if (viewerSide !== 'spectator' && isDbgViewer(s.playMode, sessions.getMemberId(token))) {
     if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
-      socket.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: maskRoundResultPurin(s.lastRoundFull) });
+      socket.emit('ext:data', { game: 'bank-game', round: s.round, roundResult: _maskResultFull(s.lastRoundFull) });
     } else if (s.phase === 'firstReveal' || s.phase === 'secondSubmit') {
       const first = getFirst(s);
       if (first.id !== token && first.pendingBet) {

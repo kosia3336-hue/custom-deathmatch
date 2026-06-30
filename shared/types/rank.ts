@@ -41,7 +41,6 @@ export interface RankRpParts {
   winnerStreakBonus: number;
   loserBaseTable: number;
   loserStreakPenalty: number;
-  loserTierPenalty: number;
 }
 
 export function calcRankRpParts(
@@ -70,17 +69,13 @@ export function calcRankRpParts(
     : loserLossStreak === 3 ? 6
     : 0;
 
-  // 다이아·챌린저 패배 시 추가 loss 패널티 (비대칭 디플레이션)
-  const loserTierPenalty = loserTierVal >= 5 ? 8 : loserTierVal >= 4 ? 5 : 0;
-
   return {
     winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus),
-    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty + loserTierPenalty),
+    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty),
     winnerBaseTable,
     winnerStreakBonus,
     loserBaseTable,
     loserStreakPenalty,
-    loserTierPenalty,
   };
 }
 

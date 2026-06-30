@@ -7,7 +7,7 @@ import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnapshot } from './types.js';
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import { getActiveSkin } from '../../skins.js';
@@ -64,7 +64,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   const isPlayer1 = socketId === s.player1.id;
   const isPlayer2 = socketId === s.player2.id;
   const isSolo = s.playMode === 'solo';
-  const purin = !isSolo && isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const _dbg = !isSolo && isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
 
@@ -76,7 +76,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   } else {
     players[s.player1.id] = { ...playerToInfo(s.player1, isPlayer1), nickname: maskNick(s.player1.id, s.player1.nickname) };
     players[s.player2.id] = { ...playerToInfo(s.player2, isPlayer2), nickname: maskNick(s.player2.id, s.player2.nickname) };
-    if (purin && (isPlayer1 || isPlayer2)) {
+    if (_dbg && (isPlayer1 || isPlayer2)) {
       const opp = isPlayer1 ? s.player2 : s.player1;
       players[opp.id] = { ...playerToInfo(opp, true), nickname: maskNick(opp.id, opp.nickname) };
     }
@@ -94,12 +94,12 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     currentSide: s.currentSide,
   };
 
-  if (purin && (isPlayer1 || isPlayer2) && s.phase === 'submit') {
+  if (_dbg && (isPlayer1 || isPlayer2) && s.phase === 'submit') {
     const opp = isPlayer1 ? s.player2 : s.player1;
     if (opp.submitted) {
       return {
         ...base,
-        _purin: {
+        _x: {
           opponentSubmitted: {
             number: opp.submittedNumber,
             white: opp.submittedWhite,
@@ -159,8 +159,8 @@ export async function broadcastState(io: IO, s: InternalState) {
       ? buildRevealGameData(s, pid)
       : buildGameDataForPlayer(s, pid);
     const raw = gameData as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
@@ -171,8 +171,8 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
     ? buildRevealGameData(s, pid)
     : buildGameDataForPlayer(s, pid);
   const raw = gameData as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 

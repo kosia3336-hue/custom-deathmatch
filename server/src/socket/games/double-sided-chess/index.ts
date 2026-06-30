@@ -223,7 +223,6 @@ export { performDoubleSidedChessUndo } from './state.js';
 export function canDoubleSidedChessUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s) return false;
-  // 천하 솔로 모드는 게임 종료 후에도 무르기 허용
   if (s.gameOver && !s.ownerToken) return false;
   const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
   return wantDouble ? s.undoSnapshots.length >= 3 : s.undoSnapshots.length >= 2;

@@ -115,7 +115,6 @@ export interface AIWorkerData {
   currentColor: 'black' | 'white';
   lastGravityBlack: Direction | null;
   lastGravityWhite: Direction | null;
-  /** 천하 솔로 모드 토글 AI 전용. true 면 ai-strong.ts 의 강화 탐색을 사용한다. */
   useStrong?: boolean;
 }
 

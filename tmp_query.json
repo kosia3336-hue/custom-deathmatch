@@ -1,0 +1,1 @@
+{"query": "SELECT gl.played_at, gl.game_record FROM game_logs gl JOIN game_log_participants glp ON glp.game_log_id = gl.id WHERE gl.game_id = 'game-003' AND glp.nickname_snapshot = '아이큐' ORDER BY gl.played_at DESC LIMIT 20"}

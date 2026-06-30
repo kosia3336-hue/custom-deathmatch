@@ -11,7 +11,7 @@ import type {
 import { evaluateHand, judgeShowdown, getDiePenalty } from './judge.js';
 import { deal, checkDeckReset } from './deck.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { aiTakeTurn } from './ai.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
@@ -58,7 +58,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
   const isShowingCards = s.phase === 'showdown' || s.phase === 'dieResult' || s.phase === 'finished';
   const p1 = s.players[s.player1Id];
   const p2 = s.players[s.player2Id];
-  const purin = p1 && p2 && isPurinInsightViewer(s.playMode, viewerId, p1, p2);
+  const _dbg = p1 && p2 && isDbgViewer(s.playMode, sessions.getMemberId(viewerId));
 
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
@@ -70,7 +70,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
     } else if (isSpectator) {
       canSeeCard = isShowingCards; // showdown/dieResult/finished 때만 카드 공개
     } else {
-      canSeeCard = pid !== viewerId || !!purin;
+      canSeeCard = pid !== viewerId || !!_dbg;
     }
     players[pid] = { ...playerToInfo(p, canSeeCard), nickname: maskNick(pid, p.nickname) };
   }
@@ -138,7 +138,7 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = buildGameDataForPlayer(s, pid);
     const p1 = s.players[s.player1Id];
     const p2 = s.players[s.player2Id];
-    if (p1 && p2 && isPurinInsightViewer(s.playMode, pid, p1, p2)) {
+    if (p1 && p2 && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
       const self = s.players[pid];
       if (self && s.phase === 'betting' && self.card != null) {
         sock.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'ownCard', card: self.card });
@@ -157,7 +157,7 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = buildGameDataForPlayer(s, pid);
   const p1 = s.players[s.player1Id];
   const p2 = s.players[s.player2Id];
-  if (p1 && p2 && isPurinInsightViewer(s.playMode, pid, p1, p2)) {
+  if (p1 && p2 && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
     const self = s.players[pid];
     if (self && s.phase === 'betting' && self.card != null) {
       socket.emit('ext:data', { game: 'indian-poker', round: s.round, type: 'ownCard', card: self.card });

@@ -13,7 +13,7 @@ import type {
 } from './types.js';
 import { judgeMultiple } from './judge.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -90,10 +90,10 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
   };
 
   // 잔여 타일은 본인에게만 전달, 상대/관전자에게는 빈 배열
-  const purin = !!myPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
+  const _dbg = !!myPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid));
   if (myPlayer) {
     const opponentId = myPlayer.id === s.player1.id ? s.player2.id : s.player1.id;
-    if (!purin) {
+    if (!_dbg) {
       players[opponentId].remainingTiles = [];
     }
   } else {
@@ -161,12 +161,12 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
     myTile,
   };
 
-  if (purin && myPlayer && (s.phase === 'tileRespond' || s.phase === 'suspectFirst' || s.phase === 'suspectSecond')) {
+  if (_dbg && myPlayer && (s.phase === 'tileRespond' || s.phase === 'suspectFirst' || s.phase === 'suspectSecond')) {
     const opp = myPlayer.id === s.player1.id ? s.player2 : s.player1;
     if (opp.currentTile != null) {
       return {
         ...base,
-        _purin: { opponentMyTile: opp.currentTile },
+        _x: { opponentMyTile: opp.currentTile },
       } as MultipleBnwGameData;
     }
   }
@@ -193,8 +193,8 @@ export async function broadcastState(io: IO, s: InternalState) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const gameData = buildGameDataForPlayer(s, pid);
     const raw = gameData as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, gameData, pid));
   }
 }
@@ -203,8 +203,8 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const gameData = buildGameDataForPlayer(s, pid);
   const raw = gameData as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, gameData, pid));
 }
 

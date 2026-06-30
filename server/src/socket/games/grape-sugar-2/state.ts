@@ -18,7 +18,7 @@ import type {
 } from './types.js';
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -103,7 +103,7 @@ function buildGameDataForPlayer(s: GS2InternalState, pid: string): GS2GameData {
   const isPlayer1 = s.player1.id === pid;
   const isPlayer2 = s.player2.id === pid;
   const me = isPlayer1 ? s.player1 : isPlayer2 ? s.player2 : null;
-  const purin = !!me && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
+  const _dbg = !!me && isDbgViewer(s.playMode, sessions.getMemberId(pid));
 
   const data: GS2GameData = {
     phase: s.phase,
@@ -124,9 +124,9 @@ function buildGameDataForPlayer(s: GS2InternalState, pid: string): GS2GameData {
     };
   }
 
-  if (purin && me && s.phase === 'input') {
+  if (_dbg && me && s.phase === 'input') {
     const opp = me.id === s.player1.id ? s.player2 : s.player1;
-    (data as GS2GameData & { _purin?: { opponentPending: { card: typeof opp.pendingCard; sugar: number } } })._purin = {
+    (data as GS2GameData & { _x?: { opponentPending: { card: typeof opp.pendingCard; sugar: number } } })._x = {
       opponentPending: { card: opp.pendingCard, sugar: opp.pendingSugar },
     };
   }
@@ -163,8 +163,8 @@ export async function broadcastState(io: IO, s: GS2InternalState) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const data = buildGameDataForPlayer(s, pid);
     const raw = data as Record<string, unknown>;
-    const ext = raw['_purin'];
-    if (ext !== undefined) { delete raw['_purin']; sock.emit('ext:data', ext); }
+    const ext = raw['_x'];
+    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
     sock.emit('game:state', buildGameState(s, data));
   }
 }
@@ -173,8 +173,8 @@ export function emitStateToSocket(socket: TypedSocket, s: GS2InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const data = buildGameDataForPlayer(s, pid);
   const raw = data as Record<string, unknown>;
-  const ext = raw['_purin'];
-  if (ext !== undefined) { delete raw['_purin']; socket.emit('ext:data', ext); }
+  const ext = raw['_x'];
+  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
   socket.emit('game:state', buildGameState(s, data));
 }
 

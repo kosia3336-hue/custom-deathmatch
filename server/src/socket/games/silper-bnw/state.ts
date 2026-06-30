@@ -12,7 +12,7 @@ import type {
 } from '@shared/types/silper-bnw.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized, getRoomShopState } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import {
@@ -229,10 +229,10 @@ function maskFinishReasonForViewer(reason: string | null, viewerId: string | nul
   return result;
 }
 
-function buildGameDataFor(s: InternalState, viewerId: string | null, purinInsight = false): SBNWGameData {
+function buildGameDataFor(s: InternalState, viewerId: string | null, dbgView = false): SBNWGameData {
   const isP1 = viewerId === s.player1.id;
   const isP2 = viewerId === s.player2.id;
-  const seeBothTiles = purinInsight && (isP1 || isP2);
+  const seeBothTiles = dbgView && (isP1 || isP2);
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
   return {
@@ -293,9 +293,9 @@ export async function broadcastState(io: IO, s: InternalState) {
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = pid === s.player1.id || pid === s.player2.id;
-    const purin = isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
-    const gameData = buildGameDataFor(s, isPlayer ? pid : null, purin);
-    if (purin) {
+    const _dbg = isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid));
+    const gameData = buildGameDataFor(s, isPlayer ? pid : null, _dbg);
+    if (_dbg) {
       if (s.phase === 'reveal' || s.phase === 'finished') {
         const opp = pid === s.player1.id ? s.player2 : s.player1;
         const last = s.actionLog[s.actionLog.length - 1];
@@ -317,9 +317,9 @@ export async function broadcastState(io: IO, s: InternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
-  const purin = isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2);
-  const gameData = buildGameDataFor(s, isPlayer ? pid : null, purin);
-  if (purin) {
+  const _dbg = isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid));
+  const gameData = buildGameDataFor(s, isPlayer ? pid : null, _dbg);
+  if (_dbg) {
     if (s.phase === 'reveal' || s.phase === 'finished') {
       const opp = pid === s.player1.id ? s.player2 : s.player1;
       const last = s.actionLog[s.actionLog.length - 1];

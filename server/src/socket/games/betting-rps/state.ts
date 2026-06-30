@@ -9,7 +9,7 @@ import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, BRPSPlayerInternal, BRPSRoundActionLog, BRPSPlayerSnapshot, BRPSUndoSnapshot } from './types.js';
 import { judgeBet, settleChips } from './judge.js';
 import { socketRoom } from '../../utils.js';
-import { isPurinInsightViewer } from '../../purin-insight.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
@@ -83,12 +83,12 @@ function buildRevealData(s: InternalState): BRPSRevealData | null {
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): BettingRpsGameData {
   const reveal = isRevealPhase(s);
-  const purin = isPurinInsightViewer(s.playMode, socketId, s.player1, s.player2);
+  const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, BRPSPlayerInfo> = {
-    [s.player1.id]: { ...playerToInfo(s.player1, reveal || socketId === s.player1.id || (purin && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
-    [s.player2.id]: { ...playerToInfo(s.player2, reveal || socketId === s.player2.id || (purin && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
+    [s.player1.id]: { ...playerToInfo(s.player1, reveal || socketId === s.player1.id || (_dbg && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
+    [s.player2.id]: { ...playerToInfo(s.player2, reveal || socketId === s.player2.id || (_dbg && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
   return {
     phase: s.phase,
@@ -168,7 +168,7 @@ export async function broadcastState(io: IO, s: InternalState) {
     const gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
       : buildSpectatorGameData(s);
-    if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+    if (isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
       const opp = pid === s.player1.id ? s.player2 : s.player1;
       if (isRevealPhase(s)) {
         const last = s.actionLog[s.actionLog.length - 1];
@@ -190,7 +190,7 @@ export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const gameData = isPlayer
     ? buildGameDataForPlayer(s, pid)
     : buildSpectatorGameData(s);
-  if (isPlayer && isPurinInsightViewer(s.playMode, pid, s.player1, s.player2)) {
+  if (isPlayer && isDbgViewer(s.playMode, sessions.getMemberId(pid))) {
     const opp = pid === s.player1.id ? s.player2 : s.player1;
     if (isRevealPhase(s)) {
       const last = s.actionLog[s.actionLog.length - 1];
