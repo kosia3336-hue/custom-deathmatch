@@ -43,17 +43,12 @@ Dashboard → Authentication:
 - **URL Configuration** → Site URL: `https://your-domain` / Redirect URLs: `http://localhost:3001/auth/callback`, `https://your-domain/auth/callback`
 - **Providers → Kakao** ON — Kakao Developers 의 REST API Key + Client Secret 등록
 
-### 3) DB 마이그레이션 실행
+### 3) DB 스키마
 
-`supabase/migrations/` 안의 SQL 을 **순서대로** Supabase SQL Editor 에서 실행:
+기존 Supabase 프로젝트를 그대로 **이어서 사용**하므로 별도 마이그레이션 실행이 **필요 없다**. (마이그레이션 SQL은 저장소에 커밋되지 않는다 — `supabase/`는 `.gitignore` 대상.)
 
-| 순서 | 파일 | 내용 |
-|------|------|------|
-| 0 | (수동) | 17번 기획서의 ENUM/테이블/RLS (이미 사용자가 실행 완료) |
-| 1 | `01_phase2_rpc.sql` | 회원 RPC (가입/닉변/탈퇴 등 8개) |
-| 2 | `02_phase2_seed.sql` | 약관 v1 + game_meta 14개 시드 |
-| 3 | `03_phase6_rpc.sql` | 신고/문의 RPC 3개 |
-| 4 | `04_phase7_admin_rpc.sql` | 관리자 RPC 10개 |
+- 스키마·RPC의 정본(SoT)은 인수인계 문서다: 테이블 [`handover/infra/tables.md`](handover/infra/tables.md), RPC [`handover/infra/rpc.md`](handover/infra/rpc.md).
+- 새 프로젝트를 처음부터 세팅해야 한다면 위 두 문서를 보고 ENUM/테이블/RLS/RPC를 재구성한다.
 
 ### 4) 첫 관리자 지정
 
@@ -119,7 +114,7 @@ server/             Fastify + Socket.IO
   src/db/           supabase admin / member 조회
   src/socket/       소켓 핸들러 (auth middleware, chat, room, game, lobby)
   src/store/        rooms / sessions
-supabase/migrations/  Phase 별 RPC + 시드
+(supabase/migrations/  — repo에 커밋 안 됨. 스키마 정본은 handover/infra/)
 ```
 
 ## 동작 흐름 (요약)
