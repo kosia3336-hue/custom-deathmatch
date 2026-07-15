@@ -1825,6 +1825,6 @@ body {
    (탭 바를 GNB 위치(상단)에서 스페이서로 처리하면 위/아래 간격이 어긋나는 문제 방지) */
 @media (max-width: 639px) {
   body:has(nav[aria-label='하단 메뉴']) {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }
