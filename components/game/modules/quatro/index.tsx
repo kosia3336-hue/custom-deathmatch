@@ -71,7 +71,7 @@ function CardFace({
       <span className="leading-none">{info.symbol}</span>
       <span className="leading-none">{card.num}</span>
       {badge && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cdm-fg px-1.5 text-[9px] font-bold leading-4 text-white">
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cdm-fg px-1.5 text-[9px] font-bold leading-4 text-white">
           {badge}
         </span>
       )}
