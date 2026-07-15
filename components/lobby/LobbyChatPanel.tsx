@@ -10,11 +10,16 @@ import { LobbyChatList } from './LobbyChatList';
 import { LobbyChatInput } from './LobbyChatInput';
 import type { OnlineUser } from '@/shared/types/events';
 
-const STATUS_ICON: Record<OnlineUser['status'], string> = {
-  playing: '🟢',
-  waiting: '🟡',
-  lobby: '⚪',
+/** 상태별 컬러 점 (이모지 대체) */
+const STATUS_DOT: Record<OnlineUser['status'], string> = {
+  playing: 'bg-cdm-success',
+  waiting: 'bg-cdm-highlight',
+  lobby: 'bg-cdm-bg-elev-3',
 };
+
+function StatusDot({ status }: { status: OnlineUser['status'] }) {
+  return <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`} aria-hidden />;
+}
 
 function UserRow({ user, isMe }: { user: OnlineUser; isMe: boolean }) {
   return (
@@ -23,7 +28,9 @@ function UserRow({ user, isMe }: { user: OnlineUser; isMe: boolean }) {
         {user.nickname}
         {isMe && <span className="ml-1 text-cdm-fg-muted font-normal">(나)</span>}
       </span>
-      <span className="shrink-0 text-xs text-cdm-fg-muted">{STATUS_ICON[user.status]}</span>
+      <span className="flex shrink-0 items-center gap-1 text-xs text-cdm-fg-muted">
+        <StatusDot status={user.status} />
+      </span>
     </div>
   );
 }
@@ -36,17 +43,17 @@ function OnlineUsersSummary({ users }: { users: OnlineUser[] }) {
   return (
     <div className="flex items-center justify-around border-b border-cdm-border bg-cdm-bg-elev-1 px-2 py-3">
       <div className={cn('flex flex-col items-center gap-0.5', playing === 0 && 'opacity-40')}>
-        <span className="text-sm">🟢 {playing}</span>
+        <span className="flex items-center gap-1 text-sm"><StatusDot status="playing" /> {playing}</span>
         <span className="text-[10px] text-cdm-fg-muted">게임 중</span>
       </div>
       <span className="text-cdm-border">·</span>
       <div className={cn('flex flex-col items-center gap-0.5', waiting === 0 && 'opacity-40')}>
-        <span className="text-sm">🟡 {waiting}</span>
+        <span className="flex items-center gap-1 text-sm"><StatusDot status="waiting" /> {waiting}</span>
         <span className="text-[10px] text-cdm-fg-muted">대기실</span>
       </div>
       <span className="text-cdm-border">·</span>
       <div className={cn('flex flex-col items-center gap-0.5', lobby === 0 && 'opacity-40')}>
-        <span className="text-sm">⚪ {lobby}</span>
+        <span className="flex items-center gap-1 text-sm"><StatusDot status="lobby" /> {lobby}</span>
         <span className="text-[10px] text-cdm-fg-muted">로비</span>
       </div>
     </div>
@@ -104,7 +111,7 @@ function TabButton({
 
 /**
  * 로비 채팅 + 접속자 현황 통합 패널 (모달).
- * GNB 💬 버튼이 여는 큰 모달.
+ * GNB 버튼이 여는 큰 모달.
  */
 export function LobbyChatPanel() {
   const isOpen = useLobbyChatStore((s) => s.isOpen);
@@ -195,14 +202,12 @@ export function LobbyChatPanel() {
         {/* 탭바 */}
         <div className="flex border-b border-cdm-border" role="tablist">
           <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
-            <span aria-hidden>💬</span>
             <span>채팅</span>
             {messagesLen > 0 && (
               <span className="text-xs text-cdm-fg-muted">({messagesLen})</span>
             )}
           </TabButton>
           <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
-            <span aria-hidden>👥</span>
             <span>접속자</span>
             <span className="text-xs text-cdm-fg-muted">{usersLen}</span>
           </TabButton>

@@ -53,7 +53,6 @@ function RoundRow({
               </span>
               <span className="text-xs text-gray-500">□{p.white} ■{p.black}</span>
               <span className={success ? 'text-emerald-600' : 'text-red-500'}>
-                {success ? '✅' : '❌'}{' '}
                 {p.scoreChange > 0 ? `+${p.scoreChange}` : p.scoreChange}점
               </span>
             </div>

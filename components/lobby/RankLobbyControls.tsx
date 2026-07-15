@@ -73,19 +73,19 @@ export default function RankLobbyControls() {
         className={
           queuing
             ? 'cursor-not-allowed opacity-50'
-            : 'border-cdm-highlight/40 bg-cdm-highlight/10 text-cdm-fg hover:bg-cdm-highlight/20'
+            : 'border-cdm-fg bg-cdm-highlight/20 text-cdm-fg hover:bg-cdm-highlight/35'
         }
         onClick={handleRankClick}
       >
         {queuing ? (
           <>
-            <span className="hidden sm:inline">🏆 대기 중...</span>
-            <span className="sm:hidden">🏆 대기 중</span>
+            <span className="hidden sm:inline">대기 중...</span>
+            <span className="sm:hidden">대기 중</span>
           </>
         ) : (
           <>
-            <span className="hidden sm:inline">🏆 랭크 게임</span>
-            <span className="sm:hidden">🏆 랭크</span>
+            <span className="hidden sm:inline">랭크 게임</span>
+            <span className="sm:hidden">랭크</span>
           </>
         )}
       </Button>

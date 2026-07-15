@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
@@ -57,6 +58,14 @@ export default async function MyPage({ searchParams }: Props) {
             <p className="text-sm text-cdm-fg-muted">{accountAge}</p>
           </div>
         </Card>
+
+        <Link
+          href="/attendance"
+          className="flex items-center justify-between rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 px-4 py-3 transition-colors hover:bg-cdm-bg-elev-2"
+        >
+          <span className="text-sm font-semibold text-cdm-fg">출석판 — 매일 출석하고 보상 받기</span>
+          <span aria-hidden className="text-cdm-fg-muted">›</span>
+        </Link>
 
         <MyPageTabs current={tab} />
 

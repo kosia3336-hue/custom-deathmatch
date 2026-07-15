@@ -81,7 +81,7 @@ export default function BetInput({
     >
       <div className="flex items-center justify-between">
         <p className={`text-sm font-semibold ${accentText}`}>
-          💵 {turn === 'first' ? '선 베팅 👑' : '후 베팅'}
+          {turn === 'first' ? '선 베팅' : '후 베팅'}
         </p>
         <p className="text-[11px] text-gray-500">
           잔고{' '}

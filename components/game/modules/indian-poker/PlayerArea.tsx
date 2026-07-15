@@ -22,7 +22,7 @@ export default function PlayerArea({ player, isMe, isCurrentTurn, timerRemaining
           {isMe && <span className="text-[10px] font-medium text-indigo-500 lg:text-xs">(나)</span>}
         </div>
         <div className="mt-0.5 flex items-center gap-3">
-          <span className="text-sm font-bold text-gray-900 lg:text-base">🪙 {player.chips}</span>
+          <span className="text-sm font-bold text-gray-900 lg:text-base">{player.chips}</span>
           {player.roundBet > 0 && (
             <span className="text-xs text-gray-500 lg:text-sm">베팅: {player.roundBet}</span>
           )}

@@ -86,7 +86,7 @@ function TierOutcomeModal({
         ? '배치 완료!'
         : '승급!';
 
-  const emoji = variant === 'demote' ? '⬇' : '🎉';
+  const emoji = variant === 'demote' ? '' : '';
   const isPromote = variant === 'promote';
 
   return (

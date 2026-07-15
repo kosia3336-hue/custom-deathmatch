@@ -126,29 +126,33 @@ export async function executeGachaDraw(
   sb: SupabaseClient,
   memberId: string,
   gachaId = GACHA_ID,
+  payWith: 'cdp' | 'ticket' = 'cdp',
 ): Promise<GachaDrawResult> {
-  // RPC 우선 (마이그레이션 적용 시)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (sb.rpc as any)('draw_gacha', {
-      p_member_id: memberId,
-      p_gacha_id: gachaId,
-    });
-    if (!error && data) {
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row) return mapRpcDrawRow(row);
-    }
-    if (error && !isRpcMissing(error)) {
-      throw mapRpcToGachaError(error);
-    }
-  } catch (e) {
-    if (e instanceof GachaDrawError) throw e;
-    if (!isRpcMissing(e)) {
-      console.warn('[gacha] RPC draw_gacha 실패, TS 폴백:', (e as Error).message);
+  // 티켓 결제는 CDP를 차감하는 draw_gacha RPC를 우회하고 TS 경로로 처리한다.
+  if (payWith === 'cdp') {
+    // RPC 우선 (마이그레이션 적용 시)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb.rpc as any)('draw_gacha', {
+        p_member_id: memberId,
+        p_gacha_id: gachaId,
+      });
+      if (!error && data) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) return mapRpcDrawRow(row);
+      }
+      if (error && !isRpcMissing(error)) {
+        throw mapRpcToGachaError(error);
+      }
+    } catch (e) {
+      if (e instanceof GachaDrawError) throw e;
+      if (!isRpcMissing(e)) {
+        console.warn('[gacha] RPC draw_gacha 실패, TS 폴백:', (e as Error).message);
+      }
     }
   }
 
-  return executeGachaDrawTs(sb, memberId, gachaId);
+  return executeGachaDrawTs(sb, memberId, gachaId, payWith);
 }
 
 function isRpcMissing(err: unknown): boolean {
@@ -182,6 +186,7 @@ async function executeGachaDrawTs(
   sb: SupabaseClient,
   memberId: string,
   gachaId: string,
+  payWith: 'cdp' | 'ticket' = 'cdp',
   forcedCtx?: PoolContext,
   depth = 0,
 ): Promise<GachaDrawResult> {
@@ -210,18 +215,34 @@ async function executeGachaDrawTs(
   if (cdpErr) throw new GachaDrawError(cdpErr.message, 'internal_error');
 
   const balance = Number((cdpRow as { balance: number }).balance ?? 0);
-  if (balance < price) {
+
+  // ── 결제 수단 검증 ──────────────────────────────────────────
+  //  cdp   : CDP 잔액 >= price 확인 → price 만큼 차감
+  //  ticket: gacha_ticket 1장 확인 → 1장 차감 (CDP 미차감)
+  if (payWith === 'cdp' && balance < price) {
     throw new GachaDrawError('insufficient_balance', 'insufficient_balance');
   }
+  if (payWith === 'ticket') {
+    const { data: tRow } = await sb
+      .from('shop_consumable_inventory')
+      .select('count')
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .maybeSingle();
+    if (Number((tRow as { count?: number } | null)?.count ?? 0) < 1) {
+      throw new GachaDrawError('insufficient_ticket', 'insufficient_ticket');
+    }
+  }
 
-  let newBalance = balance - price;
+  const pricePaid = payWith === 'cdp' ? price : 0;
+  let newBalance = balance - pricePaid;
 
   const { data: drawRow, error: drawErr } = await sb
     .from('gacha_draws')
     .insert({
       gacha_id: gachaId,
       member_id: memberId,
-      price_paid: price,
+      price_paid: pricePaid,
       grade: pick.grade,
       prize_def_id: pick.prizeDefId,
       resolved_payload: {},
@@ -245,6 +266,7 @@ async function executeGachaDrawTs(
         sb,
         memberId,
         gachaId,
+        payWith,
         { ...ctx, legendClaimedGlobally: true },
         depth + 1,
       );
@@ -252,27 +274,45 @@ async function executeGachaDrawTs(
     legendClaimed = true;
   }
 
-  const { data: spentRow } = await sb.from('member_cdp').select('total_spent').eq('member_id', memberId).single();
-  const totalSpent = Number((spentRow as { total_spent?: number } | null)?.total_spent ?? 0);
-  const { error: deductErr } = await sb
-    .from('member_cdp')
-    .update({
-      balance: newBalance,
-      total_spent: totalSpent + price,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('member_id', memberId);
-  if (deductErr) throw new GachaDrawError(deductErr.message, 'internal_error');
+  // ── 비용 차감 ──────────────────────────────────────────────
+  if (payWith === 'cdp') {
+    const { data: spentRow } = await sb.from('member_cdp').select('total_spent').eq('member_id', memberId).single();
+    const totalSpent = Number((spentRow as { total_spent?: number } | null)?.total_spent ?? 0);
+    const { error: deductErr } = await sb
+      .from('member_cdp')
+      .update({
+        balance: newBalance,
+        total_spent: totalSpent + price,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('member_id', memberId);
+    if (deductErr) throw new GachaDrawError(deductErr.message, 'internal_error');
 
-  await sb.from('cdp_ledger').insert({
-    member_id: memberId,
-    delta: -price,
-    balance_after: newBalance,
-    reason: 'gacha_draw',
-    ref_kind: 'gacha_draw',
-    ref_id: drawId,
-    metadata: { grade: pick.grade, prizeDefId: pick.prizeDefId },
-  });
+    await sb.from('cdp_ledger').insert({
+      member_id: memberId,
+      delta: -price,
+      balance_after: newBalance,
+      reason: 'gacha_draw',
+      ref_kind: 'gacha_draw',
+      ref_id: drawId,
+      metadata: { grade: pick.grade, prizeDefId: pick.prizeDefId },
+    });
+  } else {
+    // ticket: 뽑기권 1장 차감
+    const { data: tRow } = await sb
+      .from('shop_consumable_inventory')
+      .select('count')
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .maybeSingle();
+    const ticketsNow = Number((tRow as { count?: number } | null)?.count ?? 0);
+    const { error: tErr } = await sb
+      .from('shop_consumable_inventory')
+      .update({ count: Math.max(0, ticketsNow - 1), updated_at: new Date().toISOString() })
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket');
+    if (tErr) throw new GachaDrawError(tErr.message, 'internal_error');
+  }
 
   let resolved = await applyResolved(sb, memberId, pick.resolved);
 

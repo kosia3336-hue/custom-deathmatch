@@ -195,9 +195,7 @@ export default function EventPlayerSeat({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-cdm-primary/80"
-            >
-              🂠
-            </motion.span>
+            />
           )}
         </AnimatePresence>
       </div>
@@ -210,7 +208,7 @@ export default function EventPlayerSeat({
         )}
       >
         <span className="max-w-full truncate font-semibold text-cdm-fg">{seat.nickname}</span>
-        <span className="tabular-nums text-cdm-fg-muted">🪙 {seat.chips}</span>
+        <span className="tabular-nums text-cdm-fg-muted">{seat.chips}</span>
       </div>
 
       {/* 라운드 베팅 */}

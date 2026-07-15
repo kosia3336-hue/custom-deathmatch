@@ -64,7 +64,7 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
         const rp = Number(row.rp ?? 0);
         rankBlock = (
           <Card variant="highlight" accent="accent">
-            <h2 className="text-sm font-semibold text-cdm-fg-muted">🏆 랭크 전적 ({season.name})</h2>
+            <h2 className="text-sm font-semibold text-cdm-fg-muted">랭크 전적 ({season.name})</h2>
             {!placementDone ? (
               <p className="mt-2 text-sm text-cdm-fg">
                 배치전 진행 중 ({Math.min(5, pg)}/5) · 언랭

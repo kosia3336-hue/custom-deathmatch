@@ -58,7 +58,7 @@ export function PublicTitleCard({
                 aria-label="상점 칭호"
                 title="상점 칭호"
               >
-                🛒 상점
+                상점
               </span>
             )}
             {isSystem && !isLegend && (

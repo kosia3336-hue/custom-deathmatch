@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { TextInput } from '@/components/cdm/TextInput';
 import { NoticeCategoryChip, NOTICE_CATEGORIES } from '@/components/cdm/NoticeCategoryChip';
-import { MarkdownView } from '@/lib/markdown';
+import { MarkdownWysiwyg } from '@/components/admin/MarkdownWysiwyg';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { NoticeCategory } from '@/lib/supabase/database.types';
@@ -50,7 +50,6 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
   );
   const [isPinned, setIsPinned] = React.useState(initial?.isPinned ?? false);
   const [isPublished, setIsPublished] = React.useState(initial?.isPublished ?? true);
-  const [showPreview, setShowPreview] = React.useState(false);
   const [busy, startTransition] = React.useTransition();
 
   function reset() {
@@ -59,7 +58,6 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
     setCategory('general');
     setIsPinned(false);
     setIsPublished(true);
-    setShowPreview(false);
   }
 
   function go() {
@@ -172,36 +170,19 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
       />
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-cdm-fg">
-            본문 ({bodyLen.toLocaleString()} / 10,000자)
-            <span className="ml-2 text-xs font-normal text-cdm-fg-subtle">
-              마크다운 지원 (** 굵게 **, * 기울임 *, [링크](url), ### 제목, - 리스트)
-            </span>
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowPreview((v) => !v)}
-            className="text-xs font-semibold text-cdm-primary hover:text-cdm-primary-strong"
-          >
-            {showPreview ? '편집으로 돌아가기' : '미리보기 ↗'}
-          </button>
-        </div>
-
-        {showPreview ? (
-          <div className="min-h-[200px] rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 px-4 py-3">
-            <MarkdownView source={body || '_(본문이 비어있습니다)_'} />
-          </div>
-        ) : (
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={10}
-            maxLength={10_000}
-            placeholder="공지 본문을 입력하세요. 마크다운이 지원됩니다."
-            className="min-h-[200px] resize-y rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary"
-          />
-        )}
+        <label className="text-sm font-medium text-cdm-fg">
+          본문 ({bodyLen.toLocaleString()} / 10,000자)
+          <span className="ml-2 text-xs font-normal text-cdm-fg-subtle">
+            보이는 그대로 저장돼요 — 툴바 또는 Ctrl+B/I 단축키 사용
+          </span>
+        </label>
+        <MarkdownWysiwyg
+          value={body}
+          onChange={setBody}
+          resetKey={initial?.id ?? mode}
+          minHeightClass="min-h-[280px]"
+          uploadEndpoint="/api/admin/game-rules/upload"
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -212,7 +193,7 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
             onChange={(e) => setIsPinned(e.target.checked)}
             className="h-4 w-4 accent-cdm-primary"
           />
-          📌 상단 고정
+          상단 고정
         </label>
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-cdm-fg">
           <input

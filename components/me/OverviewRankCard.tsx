@@ -88,7 +88,7 @@ export function OverviewRankCard() {
     <Card variant="highlight" accent="accent">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-cdm-fg-muted">🏆 랭크</h2>
+          <h2 className="text-sm font-semibold text-cdm-fg-muted">랭크</h2>
           {st ? (
             <div className="mt-2 flex flex-col gap-2">
               <RankBadge

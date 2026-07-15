@@ -54,7 +54,7 @@ export function RankVsOverlay() {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-cdm-bg/95 px-4 backdrop-blur-md">
       <div className="w-full max-w-3xl space-y-8 text-center">
-        <p className="text-sm font-semibold text-cdm-highlight">🏆 랭크 매칭 성사</p>
+        <p className="text-sm font-semibold text-cdm-highlight">랭크 매칭 성사</p>
 
         <div className="flex flex-col gap-6 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-6">
           <PlayerCard

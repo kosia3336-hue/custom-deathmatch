@@ -158,7 +158,6 @@ export default function IndianPokerViewer({ record }: Props) {
           const rank = record.result.rankings.find((r) => r.nickname === nicknames[pid]);
           return (
             <div key={pid} className="flex items-center gap-2">
-              <span className="text-lg">{rank?.rank === 1 ? '🥇' : '🥈'}</span>
               <span className="font-bold text-gray-900">{nicknames[pid]}</span>
               <span className="text-sm text-gray-500">
                 {gameRecord.finalChips?.[pid] !== undefined

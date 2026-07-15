@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import ActionBar from '@/components/lobby/ActionBar';
-import TabFilter from '@/components/lobby/TabFilter';
 import RoomTable from '@/components/lobby/RoomTable';
 import RoomCardList from '@/components/lobby/RoomCard';
 import EmptyState from '@/components/lobby/EmptyState';
@@ -23,7 +22,7 @@ export default function LobbyClient() {
   const [spectatePasswordRoom, setSpectatePasswordRoom] = useState<RoomSummary | null>(null);
 
   const filteredRooms = lobby.getFilteredRooms();
-  const hasFilter = lobby.searchQuery !== '' || lobby.gameFilter !== 'all' || lobby.tabFilter !== 'all';
+  const hasFilter = lobby.searchQuery !== '' || lobby.gameFilters.length > 0 || lobby.tabFilters.length > 0;
 
   const handleJoin = (room: RoomSummary) => {
     if (queuing) {
@@ -38,7 +37,6 @@ export default function LobbyClient() {
       <RankAutoRejoinListener />
       <div className="space-y-4">
         <ActionBar onCreateRoom={() => setShowCreate(true)} />
-        <TabFilter />
 
         {filteredRooms.length === 0 ? (
           <EmptyState hasFilter={hasFilter} onCreate={() => setShowCreate(true)} />

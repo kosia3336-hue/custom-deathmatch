@@ -62,7 +62,7 @@ function TurnTimer({ turnStartedAt }: { turnStartedAt: number | null }) {
         !isCrit && !isDanger && 'text-cdm-fg-muted',
       )}
     >
-      ⏱ {display}s
+      {display}s
     </span>
   );
 }
@@ -198,7 +198,7 @@ function OpponentCard({
               {seat.card}
             </motion.span>
           ) : (
-            <motion.span key="hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-2xl text-cdm-primary/60">🂠</motion.span>
+            <motion.span key="hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-2xl text-cdm-primary/60"></motion.span>
           )}
         </AnimatePresence>
         {seat.hasDied && (
@@ -208,7 +208,7 @@ function OpponentCard({
 
       <div className="flex w-full flex-col items-center gap-0.5">
         <span className="w-full truncate text-center text-[11px] font-semibold text-cdm-fg">{seat.nickname}</span>
-        <span className="text-[10px] tabular-nums text-cdm-fg-muted">🪙 {seat.chips}</span>
+        <span className="text-[10px] tabular-nums text-cdm-fg-muted">{seat.chips}</span>
       </div>
 
       <AnimatePresence>
@@ -287,7 +287,7 @@ function MyCard({
 
       <div className="flex w-full flex-col items-center gap-0.5">
         <span className="w-full truncate text-center text-xs font-bold text-cdm-fg">{seat.nickname}</span>
-        <span className="text-xs tabular-nums text-cdm-fg-muted">🪙 {seat.chips}</span>
+        <span className="text-xs tabular-nums text-cdm-fg-muted">{seat.chips}</span>
       </div>
 
       {seat.roundBet > 0 && (
@@ -343,7 +343,6 @@ function DesktopBettingPanel({
   if (!isMyTurn) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-cdm-border bg-cdm-bg p-6 text-cdm-fg-muted">
-        <div className="text-3xl">⏳</div>
         <div className="text-sm font-medium">상대 차례 대기 중</div>
         {gameData.currentTurnSeatIdx !== null && (
           <div className="rounded-full bg-cdm-bg-elev-2 px-3 py-1 text-xs">
@@ -436,7 +435,7 @@ function DesktopPot({ pot, communityCards, phase }: { pot: number; communityCard
   return (
     <div className="flex shrink-0 items-center justify-center gap-4 rounded-xl border border-cdm-border bg-cdm-bg-elev-2 px-6 py-2.5 text-sm">
       <span className="text-[10px] uppercase tracking-wider text-cdm-fg-muted">POT</span>
-      <span className="text-lg font-extrabold tabular-nums text-cdm-fg">🪙 {pot}</span>
+      <span className="text-lg font-extrabold tabular-nums text-cdm-fg">{pot}</span>
       {communityCards && (
         <>
           <span className="text-cdm-fg-muted/50">·</span>

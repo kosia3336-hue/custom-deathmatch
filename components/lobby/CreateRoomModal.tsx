@@ -248,7 +248,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {/* ── 헤더 (고정) ── */}
-            <div className="flex flex-shrink-0 items-center border-b border-gray-100 px-5 py-4">
+            <div className="flex flex-shrink-0 items-center border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
               <AnimatePresence mode="wait" initial={false}>
                 {step === 'main' ? (
                   <motion.div
@@ -259,10 +259,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.12 }}
                   >
-                    <h2 className="text-lg font-bold text-gray-900">새 방 만들기</h2>
+                    <h2 className="text-lg font-bold text-cdm-ink-fg">새 방 만들기</h2>
                     <button
                       onClick={onClose}
-                      className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
                       aria-label="닫기"
                     >
                       <CloseIcon />
@@ -284,12 +284,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                       <BackIcon />
                       돌아가기
                     </button>
-                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-gray-900">
+                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-cdm-ink-fg">
                       상세 설정
                     </h2>
                     <button
                       onClick={onClose}
-                      className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
                       aria-label="닫기"
                     >
                       <CloseIcon />
@@ -349,7 +349,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                             )}
                           >
-                            <div className="font-medium">🎲 랜덤</div>
+                            <div className="font-medium">랜덤</div>
                             <div className="text-xs text-gray-500">무작위 배정</div>
                           </button>
 
@@ -364,7 +364,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                               )}
                             >
-                              <div className="font-medium">🎯 밴픽</div>
+                              <div className="font-medium">밴픽</div>
                               <div className="text-xs text-gray-500">게임 선택 전 밴</div>
                             </button>
                           )}
@@ -457,7 +457,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     {!hasDetailOptions ? (
                       /* 표시할 항목 없음 */
                       <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-4 py-10 text-center">
-                        <span className="text-2xl">⚙️</span>
                         <p className="text-sm text-gray-500">이 모드에서는 추가 설정이 없습니다.</p>
                       </div>
                     ) : (
@@ -468,8 +467,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                             <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
                             <div className="flex gap-2">
                               {[
-                                { key: 'public' as RoomType, label: '🔓 공개' },
-                                { key: 'private' as RoomType, label: '🔑 비밀' },
+                                { key: 'public' as RoomType, label: '공개' },
+                                { key: 'private' as RoomType, label: '비밀' },
                               ].map((rt) => (
                                 <button
                                   key={rt.key}
@@ -578,7 +577,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               >
                                 −
                               </button>
-                              <span className="w-8 text-center text-base font-bold text-gray-900">
+                              <span className="w-8 text-center text-base font-bold text-cdm-ink-fg">
                                 {banCount}
                               </span>
                               <button
@@ -599,7 +598,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                             <div className="flex gap-2">
                               {[
                                 { enabled: false, label: '∞ 무제한' },
-                                { enabled: true, label: '⏱ 시간제한' },
+                                { enabled: true, label: '시간제한' },
                               ].map((opt) => (
                                 <button
                                   key={String(opt.enabled)}

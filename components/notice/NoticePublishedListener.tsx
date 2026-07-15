@@ -31,7 +31,7 @@ export function NoticePublishedListener() {
 
     const onNoticePublished = (payload: NoticePublishedPayload) => {
       const categoryLabel = CATEGORY_LABELS[payload.category] ?? payload.category;
-      toast(`📢 새 공지 [${categoryLabel}]`, {
+      toast(`새 공지 [${categoryLabel}]`, {
         description: payload.title,
         duration: 6000,
         action: {

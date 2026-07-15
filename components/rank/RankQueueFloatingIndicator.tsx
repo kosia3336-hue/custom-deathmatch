@@ -48,9 +48,8 @@ export function RankQueueDesktopChip() {
 
   return (
     <div className="flex items-center gap-2 rounded-cdm-md border border-cdm-highlight/40 bg-cdm-highlight/10 px-3 py-1">
-      <span className="text-sm">🏆</span>
-      <span className="text-xs font-medium text-cdm-fg">대기 중</span>
-      <span className="text-xs tabular-nums font-semibold text-cdm-fg">{fmtElapsed(elapsed)}</span>
+      <span className="text-xs font-medium text-cdm-ink-fg">대기 중</span>
+      <span className="text-xs tabular-nums font-semibold text-cdm-ink-fg">{fmtElapsed(elapsed)}</span>
       <button
         type="button"
         onClick={handleCancelQueue}
@@ -110,9 +109,7 @@ export function RankQueueFloatingIndicator() {
           onClick={handleIconTap}
           className="fixed bottom-6 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border-2 border-cdm-highlight/60 bg-cdm-highlight/20 text-xl shadow-lg backdrop-blur md:hidden"
           aria-label="랭크 큐 대기 중 — 탭하여 열기"
-        >
-          🏆
-        </button>
+        />
       )}
 
       {/* 모달 — 래퍼 div 없이 직접 렌더링 (fixed inset-0이 뷰포트 기준으로 정확히 배치되도록) */}

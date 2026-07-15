@@ -10,6 +10,7 @@ import InquiriesTab from './InquiriesTab';
 import NoticesTab from './NoticesTab';
 import AdminRankTab from './AdminRankTab';
 import GameStatsTab from './GameStatsTab';
+import GameRulesTab from './GameRulesTab';
 import AuditTab from './AuditTab';
 import AdminShopTab from './AdminShopTab';
 
@@ -51,6 +52,7 @@ export default async function AdminPage({ searchParams }: Props) {
           {tab === 'rank' && <AdminRankTab />}
           {tab === 'shop' && <AdminShopTab subTab={sp.shopSubTab} shopLogsPage={sp.shopLogsPage} />}
           {tab === 'game-stats' && <GameStatsTab />}
+          {tab === 'game-rules' && <GameRulesTab />}
           {tab === 'reports' && <ReportsTab page={sp.page} />}
           {tab === 'inquiries' && <InquiriesTab page={sp.page} statusFilter={sp.inquiryStatus} />}
           {tab === 'notices' && <NoticesTab page={sp.page} />}

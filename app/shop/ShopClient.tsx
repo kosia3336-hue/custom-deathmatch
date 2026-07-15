@@ -108,10 +108,10 @@ export default function ShopClient({
     // const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length; // 이벤트 기간 종료
     return [
       { id: 'all', label: '전체', count: items.length },
-      { id: 'consumable', label: '🎟 소모성', count: cConsumable },
-      { id: 'title', label: '🏆 칭호', count: cTitle },
-      { id: 'gacha', label: '🎲 뽑기' },
-      // { id: 'event_chip_pack', label: '🪙 이벤트', count: cChip }, // 이벤트 기간 종료
+      { id: 'consumable', label: '소모성', count: cConsumable },
+      { id: 'title', label: '칭호', count: cTitle },
+      { id: 'gacha', label: '뽑기' },
+      // { id: 'event_chip_pack', label: '이벤트', count: cChip }, // 이벤트 기간 종료
     ];
   }, [items]);
 
@@ -131,13 +131,13 @@ export default function ShopClient({
     router.replace(s ? `/shop?${s}` : '/shop');
   }
 
-  async function handleConfirmPurchase(item: ShopItem): Promise<boolean> {
-    const expected = effectivePrice(item.price, hasMerchantDiscount);
+  async function handleConfirmPurchase(item: ShopItem, quantity: number): Promise<boolean> {
+    const expected = effectivePrice(item.price, hasMerchantDiscount) * quantity;
     try {
       const res = await fetch('/api/shop/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id }),
+        body: JSON.stringify({ itemId: item.id, quantity }),
       });
       const json = (await res.json()) as PurchaseSuccess | PurchaseError;
       if (!res.ok || !('ok' in json)) {
@@ -202,7 +202,7 @@ export default function ShopClient({
       if (isEventChipPack && typeof ok.newChipBalance === 'number') {
         setEventChipBalance(ok.newChipBalance);
         toast.success(
-          `🪙 이벤트 칩 +${ok.grantedChips ?? 0}개! 보유 ${ok.newChipBalance}칩 / CDP ${formatCdp(ok.newBalance)}`,
+          `이벤트 칩 +${ok.grantedChips ?? 0}개! 보유 ${ok.newChipBalance}칩 / CDP ${formatCdp(ok.newBalance)}`,
         );
         return true;
       }
@@ -226,7 +226,6 @@ export default function ShopClient({
     <section className="flex flex-col gap-4">
       {hasMerchantDiscount && (
         <div className="rounded-cdm-md border border-cdm-primary/40 bg-cdm-primary/10 px-3 py-2 text-sm text-cdm-fg">
-          <span className="mr-1.5">💰</span>
           <strong>최초의 거상</strong> 효과로 모든 상점 아이템이 <b>10% 할인</b> 적용 중이에요. (시즌 종료 시까지)
         </div>
       )}

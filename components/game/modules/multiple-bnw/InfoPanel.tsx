@@ -92,7 +92,7 @@ export default function InfoPanel({ round, players, roundHistory, myId }: InfoPa
                       </span>
                       {pr.suspected && (
                         <span className={pr.suspectSuccess ? 'text-green-600' : 'text-red-500'}>
-                          의심{pr.suspectSuccess ? '✓' : '✗'}
+                          의심
                         </span>
                       )}
                       <span className={pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'}>

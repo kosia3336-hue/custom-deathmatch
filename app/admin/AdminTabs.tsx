@@ -10,6 +10,7 @@ const TABS: TabItem[] = [
   { id: 'rank', label: '랭크' },
   { id: 'shop', label: '상점' },
   { id: 'game-stats', label: '게임' },
+  { id: 'game-rules', label: '게임 룰' },
   { id: 'reports', label: '신고' },
   { id: 'inquiries', label: '문의' },
   { id: 'notices', label: '공지' },

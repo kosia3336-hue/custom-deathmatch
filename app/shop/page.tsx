@@ -5,7 +5,8 @@ import { getActiveMember } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { Card } from '@/components/cdm/Card';
 import type { ShopItem, CdpSummary } from '@/lib/cdp/types';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import ShopClient from './ShopClient';
 
 export const metadata: Metadata = {
@@ -124,7 +125,7 @@ export default async function ShopPage({ searchParams }: Props) {
       <GNB member={member} />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
         <header>
-          <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">🛒 상점</h1>
+          <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">상점</h1>
         </header>
 
         <Card variant="highlight" accent="primary" className="p-4! sm:p-5!">
@@ -133,8 +134,8 @@ export default async function ShopPage({ searchParams }: Props) {
               <p className="text-xs font-semibold uppercase tracking-wide text-cdm-fg-muted">
                 보유 CDP
               </p>
-              <p className="mt-1 text-3xl font-bold text-cdm-fg sm:text-4xl">
-                <span aria-hidden className="mr-2">{CDP_ICON}</span>
+              <p className="mt-1 flex items-center gap-2 text-3xl font-bold text-cdm-fg sm:text-4xl">
+                <CdpIcon size={30} />
                 <span className="tabular-nums">{formatCdp(cdp.balance)}</span>
               </p>
               <p className="mt-1 text-xs text-cdm-fg-muted">

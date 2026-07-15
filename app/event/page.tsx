@@ -12,7 +12,6 @@
 export default function EventRoomPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-      <p className="text-5xl">🎴</p>
       <p className="text-lg font-semibold text-cdm-fg">현재 진행중인 이벤트가 없습니다.</p>
     </main>
   );

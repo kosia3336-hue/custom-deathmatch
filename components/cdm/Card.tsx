@@ -10,10 +10,10 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const VARIANT_CLASS: Record<CardVariant, string> = {
-  default: 'bg-cdm-bg-elev-1 border border-cdm-border',
+  default: 'bg-cdm-bg border border-cdm-border shadow-(--cdm-shadow-sm)',
   interactive:
-    'bg-cdm-bg-elev-1 border border-cdm-border transition-all hover:shadow-[var(--cdm-shadow-sm)] hover:border-cdm-border-strong cursor-pointer',
-  highlight: 'bg-cdm-bg-elev-1 border border-cdm-border relative overflow-hidden',
+    'bg-cdm-bg border border-cdm-border shadow-(--cdm-shadow-sm) transition-all hover:shadow-(--cdm-shadow-md) hover:border-cdm-border-strong cursor-pointer',
+  highlight: 'bg-cdm-bg border border-cdm-border shadow-(--cdm-shadow-sm) relative overflow-hidden',
 };
 
 const ACCENT_CLASS = {

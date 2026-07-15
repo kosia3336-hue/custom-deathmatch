@@ -169,7 +169,7 @@ function RoundRow({
                 )}
                 {isWinner && (
                   <span className="ml-auto rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                    ✓ 승
+                    승
                   </span>
                 )}
               </div>
@@ -335,7 +335,7 @@ export default function SilperBnwViewer({ record }: Props) {
                 minute: '2-digit',
               })}
             </span>
-            <span>⏱ {formatTime(record.result.playTime)}</span>
+            <span>{formatTime(record.result.playTime)}</span>
           </div>
         </div>
 

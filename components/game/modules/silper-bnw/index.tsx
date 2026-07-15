@@ -188,7 +188,6 @@ function RevealPanel({
         <p className="mb-1 truncate text-xs font-medium text-gray-500">
           {isMe ? '나' : info?.nickname ?? pid}
           {isFirst && <span className="ml-1 text-xs text-amber-500">(선)</span>}
-          {winnerVisible && isWinner && <span className="ml-1">🏆</span>}
         </p>
         <TileValueDisplay
           tiles={side.tilesUsed}
@@ -645,7 +644,7 @@ export default function SilperBnwGame() {
               </div>
               {gameData.rematchIndex > 0 && (
                 <div className="mt-0.5 inline-block rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  ⚔ 재대결 {gameData.rematchIndex}회차
+                  재대결 {gameData.rematchIndex}회차
                 </div>
               )}
               {fp && (
@@ -785,7 +784,7 @@ export default function SilperBnwGame() {
 
             {gameData.rematchIndex > 0 && (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-center text-xs font-semibold text-rose-700">
-                ⚔ Rematch #{gameData.rematchIndex}
+                Rematch #{gameData.rematchIndex}
               </div>
             )}
 
@@ -868,7 +867,7 @@ export default function SilperBnwGame() {
       >
         {rematchOverlay != null && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-rose-400/50 bg-rose-900/95 px-12 py-8 text-center text-white shadow-2xl backdrop-blur-sm">
-            <p className="text-3xl font-bold">⚔ 재대결</p>
+            <p className="text-3xl font-bold">재대결</p>
             <p className="text-lg font-medium text-rose-200">#{rematchOverlay}</p>
             <p className="text-sm text-rose-200">선후 교대 · 타일 리셋</p>
           </div>
@@ -886,7 +885,7 @@ export default function SilperBnwGame() {
             style={{ animation: 'winsixIn 500ms cubic-bezier(0.175,0.885,0.32,1.275) forwards' }}
             className="flex flex-col items-center gap-3 rounded-2xl border border-yellow-400/60 bg-indigo-900/95 px-12 py-8 text-center text-white shadow-2xl backdrop-blur-sm"
           >
-            <p className="text-5xl">🏆</p>
+            <p className="text-5xl"></p>
             <p className="text-3xl font-bold text-yellow-300">6점 달성!</p>
             <p className="text-lg font-medium text-indigo-200">{winsixOverlay.winnerNick} 승리</p>
           </div>

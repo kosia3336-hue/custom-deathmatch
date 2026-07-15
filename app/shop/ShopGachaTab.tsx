@@ -2,8 +2,10 @@
 
 import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { GACHA_PRICE_CDP } from '@/lib/gacha/constants';
+import { useInventoryStore } from '@/stores/inventory';
 
 interface Props {
   balance: number;
@@ -11,33 +13,36 @@ interface Props {
 }
 
 const SUMMARY_CHIPS = [
-  { label: 'S', rate: '0.8%' },
+  { label: 'S', rate: '0.2%' },
   { label: 'A', rate: '1.5%' },
   { label: 'B', rate: '4%' },
-  { label: 'C', rate: '28%' },
+  { label: 'C', rate: '28.6%' },
   { label: 'F', rate: '65.7%' },
 ];
 
 export default function ShopGachaTab({ balance, onOpen }: Props) {
-  const insufficient = balance < GACHA_PRICE_CDP;
+  const ticketCount = useInventoryStore((st) => st.items?.gacha_ticket ?? 0);
+  // 뽑기권이 있으면 CDP 가 부족해도 모달을 열 수 있어야 한다
+  const insufficient = balance < GACHA_PRICE_CDP && ticketCount < 1;
 
   return (
     <section className="mx-auto w-full max-w-lg">
       <Card variant="highlight" accent="primary" className="flex flex-col gap-4 p-4! sm:p-6!">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div
-            className="mx-auto flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-cdm-primary/15 text-4xl sm:mx-0"
+            className="mx-auto flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-cdm-primary/15 sm:mx-0"
             aria-hidden
           >
-            🎲
+            <CdpIcon size={44} />
           </div>
           <div className="min-w-0 flex-1 text-center sm:text-left">
             <h2 className="text-lg font-bold text-cdm-fg">CDP 뽑기</h2>
             <p className="mt-1 text-sm text-cdm-fg-muted">
               운을 시험해 보세요. {formatCdp(GACHA_PRICE_CDP)} CDP로 1회 뽑기.
             </p>
-            <p className="mt-2 text-sm font-semibold text-cdm-fg">
-              {CDP_ICON} {formatCdp(GACHA_PRICE_CDP)} / 1회
+            <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-cdm-fg">
+              <CdpIcon size={16} />
+              {formatCdp(GACHA_PRICE_CDP)} / 1회
             </p>
           </div>
         </div>
@@ -55,8 +60,10 @@ export default function ShopGachaTab({ balance, onOpen }: Props) {
 
         <Button fullWidth disabled={insufficient} onClick={onOpen}>
           {insufficient
-            ? `🎲 뽑기 (${formatCdp(GACHA_PRICE_CDP - balance)} 부족)`
-            : '🎲 뽑기하기'}
+            ? `뽑기 (${formatCdp(GACHA_PRICE_CDP - balance)} 부족)`
+            : ticketCount > 0
+              ? `뽑기하기 (뽑기권 ${ticketCount}장 보유)`
+              : '뽑기하기'}
         </Button>
       </Card>
     </section>

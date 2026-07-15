@@ -4,7 +4,6 @@
  */
 
 export const CDP_LABEL = 'CDP';
-export const CDP_ICON = '🟡';
 
 export function formatCdp(n: number | null | undefined): string {
   const v = Number(n ?? 0);

@@ -14,7 +14,7 @@ export default function EventPotDisplay({ pot, communityCards, phase }: Props) {
     <div className="my-1 flex flex-col items-center justify-center gap-2 rounded-cdm-md bg-cdm-bg-elev-2 p-3 sm:p-4">
       <div className="text-[10px] uppercase tracking-wider text-cdm-fg-muted">POT</div>
       <div className="text-2xl font-bold tabular-nums text-cdm-fg sm:text-3xl">
-        🪙 {pot}
+        {pot}
       </div>
       {communityCards && (
         <div className="mt-1 flex items-center gap-2">

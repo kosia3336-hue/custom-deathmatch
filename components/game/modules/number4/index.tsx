@@ -243,7 +243,7 @@ function MobileRoundHistory({ history, players }: { history: NumberFourGameData[
             if (!pr) return null;
             return (
               <span key={pid}>
-                N{pr.number} {pr.success ? '✅' : '❌'} {pr.scoreChange > 0 ? `+${pr.scoreChange}` : pr.scoreChange}
+                N{pr.number} {pr.scoreChange > 0 ? `+${pr.scoreChange}` : pr.scoreChange}
               </span>
             );
           })}

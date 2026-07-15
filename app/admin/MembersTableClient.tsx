@@ -73,7 +73,7 @@ export function MembersTableClient({
                   <RankBadge tier={m.tier} rp={m.rp} size="sm" showRp={m.tier !== 'unranked'} />
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-cdm-fg-muted whitespace-nowrap">
-                  🟡 {formatCdp(m.cdp)}
+                  {formatCdp(m.cdp)}
                 </td>
                 <td className="hidden sm:table-cell px-3 py-2.5 text-right tabular-nums text-cdm-fg-muted">
                   {m.totalGames.toLocaleString('ko-KR')}

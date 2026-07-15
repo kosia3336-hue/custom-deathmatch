@@ -223,7 +223,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {/* ── 헤더 (고정) ── */}
-            <div className="flex shrink-0 items-center border-b border-gray-100 px-5 py-4">
+            <div className="flex shrink-0 items-center border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
               <AnimatePresence mode="wait" initial={false}>
                 {step === 'main' ? (
                   <motion.div
@@ -234,10 +234,10 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.12 }}
                   >
-                    <h2 className="text-lg font-bold text-gray-900">방 설정 변경</h2>
+                    <h2 className="text-lg font-bold text-cdm-ink-fg">방 설정 변경</h2>
                     <button
                       onClick={onClose}
-                      className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
                       aria-label="닫기"
                     >
                       <CloseIcon />
@@ -259,12 +259,12 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                       <BackIcon />
                       돌아가기
                     </button>
-                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-gray-900">
+                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-cdm-ink-fg">
                       상세 설정
                     </h2>
                     <button
                       onClick={onClose}
-                      className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
                       aria-label="닫기"
                     >
                       <CloseIcon />
@@ -371,7 +371,6 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                   >
                     {!hasDetailOptions ? (
                       <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-4 py-10 text-center">
-                        <span className="text-2xl">⚙️</span>
                         <p className="text-sm text-gray-500">추가 설정이 없습니다.</p>
                       </div>
                     ) : (
@@ -383,8 +382,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                               <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
                               <div className="flex gap-2">
                                 {[
-                                  { key: 'public' as RoomType, label: '🔓 공개' },
-                                  { key: 'private' as RoomType, label: '🔑 비밀' },
+                                  { key: 'public' as RoomType, label: '공개' },
+                                  { key: 'private' as RoomType, label: '비밀' },
                                 ].map((rt) => (
                                   <button
                                     key={rt.key}
@@ -488,8 +487,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                           <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
                           <div className="flex gap-2">
                             {[
-                              { enabled: false, label: '∞ 무제한' },
-                              { enabled: true, label: '⏱ 시간제한' },
+                              { enabled: false, label: '무제한' },
+                              { enabled: true, label: '시간제한' },
                             ].map((opt) => (
                               <button
                                 key={String(opt.enabled)}

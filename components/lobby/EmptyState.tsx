@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Button from '@/components/ui/Button';
 
 interface Props {
@@ -17,10 +18,13 @@ export default function EmptyState({ hasFilter, onCreate }: Props) {
 
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <span aria-hidden className="mb-4 inline-flex items-end gap-1">
-        <span className="block h-8 w-2 rounded-[2px] bg-cdm-primary" />
-        <span className="block h-8 w-2 rounded-[2px] bg-cdm-accent" />
-      </span>
+      <Image
+        src="/brand/logo3.webp"
+        alt="Custom Deathmatch"
+        width={160}
+        height={115}
+        className="mb-4 h-auto w-40"
+      />
       <p className="text-lg font-medium text-cdm-fg">아직 만들어진 방이 없어요!</p>
       <p className="mt-1 text-sm text-cdm-fg-muted">첫 번째 방을 만들어 보세요.</p>
       <Button className="mt-6" onClick={onCreate}>방 만들기</Button>

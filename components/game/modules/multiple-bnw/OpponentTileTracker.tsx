@@ -82,7 +82,6 @@ function TrackerTile({
         className="relative flex h-9 w-9 items-center justify-center rounded-lg border-2 border-gray-300 bg-gray-200 text-sm font-bold text-gray-400 transition-all"
       >
         <span className="line-through">{tile}</span>
-        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-400 text-[8px] text-white">✓</span>
       </button>
     );
   }

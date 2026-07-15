@@ -45,7 +45,7 @@ export default function Modal({ open, onClose, onBackdropClick, title, closable 
           <motion.div
             ref={contentRef}
             className={cn(
-              'relative z-10 w-full max-w-md rounded-cdm-xl bg-cdm-bg p-6 shadow-(--cdm-shadow-lg) max-h-[90vh] overflow-y-auto',
+              'relative z-10 w-full max-w-md rounded-cdm-xl bg-cdm-bg shadow-(--cdm-shadow-lg) max-h-[90vh] overflow-y-auto',
               className,
             )}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -54,10 +54,10 @@ export default function Modal({ open, onClose, onBackdropClick, title, closable 
             transition={{ duration: 0.15 }}
           >
             {(title || closable) && (
-              <div className="mb-4 flex items-center justify-between">
-                {title && <h2 className="text-lg font-bold text-cdm-fg">{title}</h2>}
+              <div className="flex items-center justify-between gap-3 border-b border-cdm-ink-border bg-cdm-ink px-6 py-4">
+                {title && <h2 className="text-lg font-bold text-cdm-ink-fg">{title}</h2>}
                 {closable && (
-                  <button onClick={onClose} className="ml-auto p-1 text-cdm-fg-muted hover:text-cdm-fg">
+                  <button onClick={onClose} className="ml-auto rounded-cdm-md p-1 text-cdm-ink-fg-muted hover:text-white hover:bg-white/10">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -65,7 +65,7 @@ export default function Modal({ open, onClose, onBackdropClick, title, closable 
                 )}
               </div>
             )}
-            {children}
+            <div className="p-6">{children}</div>
           </motion.div>
         </div>
       )}

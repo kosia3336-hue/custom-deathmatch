@@ -33,7 +33,7 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                 }`}
               >
                 {isMe ? '나' : p.nickname}
-                {isFirst && <span className="ml-1 text-amber-500">👑선</span>}
+                {isFirst && <span className="ml-1 text-amber-500">선</span>}
               </span>
               <span
                 className={`text-2xl font-extrabold tabular-nums ${
@@ -61,10 +61,10 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
               <span className="text-[10px] uppercase tracking-wide text-gray-500">잔여 자원</span>
               <span className="text-right">
                 <span className="block text-xs font-bold tabular-nums text-gray-700">
-                  💼 {p.inventoryCount}장
+                  {p.inventoryCount}장
                 </span>
                 <span className="block text-[10px] tabular-nums text-gray-400">
-                  {p.inventoryAmount != null ? `${formatKRW(p.inventoryAmount)}원` : '🔒 비공개'}
+                  {p.inventoryAmount != null ? `${formatKRW(p.inventoryAmount)}원` : '비공개'}
                 </span>
               </span>
             </div>

@@ -61,10 +61,10 @@ export function MemberStatusChip({
 // ──────────────────────────────────────────────
 
 const REPORT_STATUS_MAP: Record<ReportStatus, { tone: ChipTone; label: string; icon: string }> = {
-  pending: { tone: 'info', label: '접수', icon: '📥' },
-  processing: { tone: 'highlight', label: '처리 중', icon: '⏳' },
-  resolved: { tone: 'accent', label: '인정', icon: '⚖️' },
-  rejected: { tone: 'muted', label: '반려', icon: '🚫' },
+  pending: { tone: 'info', label: '접수', icon: '' },
+  processing: { tone: 'highlight', label: '처리 중', icon: '' },
+  resolved: { tone: 'accent', label: '인정', icon: '' },
+  rejected: { tone: 'muted', label: '반려', icon: '' },
 };
 
 export function ReportStatusChip({
@@ -84,10 +84,10 @@ export function ReportStatusChip({
 
 const INQUIRY_STATUS_MAP: Record<InquiryStatus, { tone: ChipTone; label: string; icon?: string }> =
   {
-    pending: { tone: 'info', label: '접수', icon: '📥' },
-    processing: { tone: 'highlight', label: '처리 중', icon: '⏳' },
-    answered: { tone: 'success', label: '답변 완료', icon: '✅' },
-    replied: { tone: 'highlight', label: '회원 회신', icon: '💬' },
+    pending: { tone: 'info', label: '접수', icon: '' },
+    processing: { tone: 'highlight', label: '처리 중', icon: '' },
+    answered: { tone: 'success', label: '답변 완료', icon: '' },
+    replied: { tone: 'highlight', label: '회원 회신', icon: '' },
     closed: { tone: 'muted', label: '종결' },
   };
 

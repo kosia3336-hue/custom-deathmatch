@@ -34,7 +34,6 @@ export default function RoundHistory({ roundHistory, players }: RoundHistoryProp
                     <span className="truncate max-w-[60px] text-gray-600">{p?.nickname}</span>
                     <span className="font-medium">{data.card}</span>
                     <span style={{ color: HAND_COLORS[data.hand] }}>{HAND_LABELS[data.hand]}</span>
-                    {pid === r.winnerId && <span className="text-green-600">👑</span>}
                   </div>
                 );
               })}

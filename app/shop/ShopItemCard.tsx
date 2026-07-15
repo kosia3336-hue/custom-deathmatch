@@ -2,7 +2,8 @@
 
 import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import type { ShopItem } from '@/lib/cdp/types';
 
 interface Props {
@@ -77,18 +78,20 @@ export default function ShopItemCard({ item, owned, balance, merchantDiscount, o
             {discounted ? (
               <div className="flex flex-col items-end gap-0.5">
                 <span className="text-[11px] text-cdm-fg-muted line-through tabular-nums leading-none">
-                  {CDP_ICON} {formatCdp(original)}
+                  {formatCdp(original)}
                 </span>
-                <span className="text-sm font-bold tabular-nums text-cdm-primary leading-none">
-                  {CDP_ICON} {formatCdp(paid)}
+                <span className="inline-flex items-center gap-1 text-sm font-bold tabular-nums text-cdm-primary leading-none">
+                  <CdpIcon size={14} />
+                  {formatCdp(paid)}
                 </span>
                 <span className="rounded-full bg-cdm-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-cdm-primary">
                   -10%
                 </span>
               </div>
             ) : (
-              <span className="text-sm font-bold tabular-nums text-cdm-fg whitespace-nowrap">
-                {CDP_ICON} {formatCdp(paid)}
+              <span className="inline-flex items-center gap-1 text-sm font-bold tabular-nums text-cdm-fg whitespace-nowrap">
+                <CdpIcon size={14} />
+                {formatCdp(paid)}
               </span>
             )}
           </div>

@@ -104,7 +104,7 @@ export default function PlayerSlot({
                         }}
                         className="block w-full px-4 py-2 text-left text-sm text-cdm-fg hover:bg-cdm-bg-elev-1"
                       >
-                        👑 방장 위임
+                        방장 위임
                       </button>
                       <button
                         type="button"
@@ -114,7 +114,7 @@ export default function PlayerSlot({
                         }}
                         className="block w-full px-4 py-2 text-left text-sm text-cdm-accent hover:bg-cdm-bg-elev-1"
                       >
-                        🚷 강퇴
+                        강퇴
                       </button>
                     </>
                   )}
@@ -127,7 +127,7 @@ export default function PlayerSlot({
                       }}
                       className="block w-full px-4 py-2 text-left text-sm text-cdm-danger hover:bg-cdm-bg-elev-1"
                     >
-                      🚨 신고
+                      신고
                     </button>
                   )}
                 </div>
@@ -145,7 +145,7 @@ export default function PlayerSlot({
             player.isReady ? 'text-cdm-success' : 'text-cdm-fg-muted',
           )}
         >
-          {player.isReady ? '✅ 준비 완료' : '⏳ 준비 대기'}
+          {player.isReady ? '준비 완료' : '준비 대기'}
         </span>
       )}
 

@@ -6,8 +6,6 @@ import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const CHIP_ICON = '🪙';
-
 function formatChips(n: number): string {
   return Intl.NumberFormat('ko-KR').format(n);
 }
@@ -48,11 +46,11 @@ export function EventChipBalanceChip({ className, variant = 'desktop' }: Props) 
       if (typeof p.delta === 'number' && p.delta !== 0) {
         if (p.reason === 'event_hand') {
           if (p.delta > 0) {
-            toast.success(`${CHIP_ICON} +${formatChips(p.delta)} 칩`, {
+            toast.success(`+${formatChips(p.delta)} 칩`, {
               description: `잔액 ${formatChips(p.newBalance)}`,
             });
           } else {
-            toast(`${CHIP_ICON} ${formatChips(p.delta)} 칩`, {
+            toast(`${formatChips(p.delta)} 칩`, {
               description: `잔액 ${formatChips(p.newBalance)}`,
             });
           }
@@ -79,7 +77,7 @@ export function EventChipBalanceChip({ className, variant = 'desktop' }: Props) 
       >
         <span>이벤트 칩</span>
         <span className="font-bold tabular-nums">
-          <span aria-hidden>{CHIP_ICON}</span> {formatChips(display)}
+          {formatChips(display)}
         </span>
       </a>
     );
@@ -96,7 +94,6 @@ export function EventChipBalanceChip({ className, variant = 'desktop' }: Props) 
         className,
       )}
     >
-      <span aria-hidden>{CHIP_ICON}</span>
       <span>{formatChips(display)}</span>
     </a>
   );

@@ -29,7 +29,7 @@ export default function RoundHistory({ roundHistory, players }: RoundHistoryProp
                 <div key={pid} className="flex items-center gap-1.5 text-[11px]">
                   <span className="truncate max-w-[60px] text-gray-600">{p?.nickname}</span>
                   <span className="font-medium">N{pr.number}</span>
-                  <span>{pr.success ? '✅' : '❌'}</span>
+                  <span>{pr.success ? '' : ''}</span>
                   <span className={pr.scoreChange > 0 ? 'text-green-600' : 'text-red-500'}>
                     {pr.scoreChange > 0 ? `+${pr.scoreChange}` : pr.scoreChange}
                   </span>

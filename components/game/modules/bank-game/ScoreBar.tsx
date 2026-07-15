@@ -65,7 +65,6 @@ function ScoreRow({
     >
       <span className={`min-w-0 max-w-20 shrink-0 truncate text-xs font-bold ${accent}`}>
         {nickname}
-        {isFirst && <span className="ml-0.5 text-[10px] text-amber-500">👑</span>}
       </span>
       <div className="grid min-w-0 flex-1 grid-cols-9 gap-0.5" aria-hidden>
         {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
@@ -79,10 +78,10 @@ function ScoreRow({
         {score}점
       </span>
       <span className="shrink-0 text-[10px] tabular-nums text-gray-500">
-        💼{inventoryCount}장
+        {inventoryCount}장
       </span>
       <span className="shrink-0 text-[10px] tabular-nums text-gray-500">
-        {inventoryAmount != null ? `${formatKRW(inventoryAmount)}원` : '🔒'}
+        {inventoryAmount != null ? `${formatKRW(inventoryAmount)}원` : ''}
       </span>
     </div>
   );

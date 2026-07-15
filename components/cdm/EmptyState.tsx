@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
@@ -19,10 +20,14 @@ export function EmptyState({ icon, title, description, action, className }: Empt
       )}
     >
       {icon ?? (
-        <span aria-hidden className="inline-flex items-end gap-[3px] opacity-60">
-          <span className="block h-6 w-[6px] rounded-[2px] bg-cdm-primary" />
-          <span className="block h-6 w-[6px] rounded-[2px] bg-cdm-accent" />
-        </span>
+        <Image
+          src="/brand/logo3.webp"
+          alt=""
+          aria-hidden
+          width={96}
+          height={69}
+          className="h-auto w-24 opacity-80"
+        />
       )}
       <p className="font-semibold text-cdm-fg">{title}</p>
       {description && <p className="text-sm text-cdm-fg-muted">{description}</p>}

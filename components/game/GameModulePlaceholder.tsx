@@ -11,7 +11,6 @@ export default function GameModulePlaceholder() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 p-8 text-center">
-      <div className="text-6xl">🎮</div>
       <div>
         <h2 className="text-xl font-bold text-gray-900">게임 모듈 영역</h2>
         <p className="mt-2 text-sm text-gray-500">

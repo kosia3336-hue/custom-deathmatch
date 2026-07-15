@@ -103,7 +103,7 @@ export default function CoinSelector({ coinStock, submitted, submittedCoins, can
     const shownDonate = submittedCoins ? coinValue(submittedCoins.donate) : null;
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-6">
-        <p className="text-sm font-semibold text-emerald-700">제출 완료 ✓</p>
+        <p className="text-sm font-semibold text-emerald-700">제출 완료</p>
         {shownInvest !== null && shownDonate !== null && (
           <p className="text-xs text-emerald-600">투자 {shownInvest}원 / 기부 {shownDonate}원</p>
         )}

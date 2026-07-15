@@ -19,7 +19,7 @@
  *
  * ── 차단 ──────────────────────────────────────────────
  *   - 원시 HTML (escape)
- *   - <img>, <iframe>, <script>
+ *   - <iframe>, <script> (이미지는 마크다운 ![alt](url) http(s) 만 허용)
  *   - H1, H2 (페이지 제목과 충돌)
  *   - 색상 인라인 스타일
  *   - data: / javascript: / vbscript: URL
@@ -32,8 +32,30 @@ interface MarkdownViewProps {
   className?: string;
 }
 
+/**
+ * 저장된 마크다운에 섞여 들어온 HTML 엔티티(&lt; &gt; &amp; 등)를 실제 문자로 복원.
+ * TipTap 에디터의 마크다운 직렬화가 `<` `>` 를 엔티티로 이스케이프해 저장하는 경우가 있어,
+ * 렌더 시 그대로 &lt; 로 보이던 문제를 해결한다. (&amp; 는 마지막에 처리)
+ */
+function decodeEntities(input: string): string {
+  return (
+    input
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#0?39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      // TipTap 마크다운 직렬화가 만든 하드브레이크(행 끝 \\) → 일반 줄바꿈
+      .replace(/\\\n/g, '\n')
+      // 이스케이프된 마크다운 특수문자(\* \_ \[ 등) → 원래 문자
+      .replace(/\\([\\`*_{}\[\]()#+\-.!>~|])/g, '$1')
+  );
+}
+
 export function MarkdownView({ source, className }: MarkdownViewProps) {
-  const blocks = React.useMemo(() => parseBlocks(source ?? ''), [source]);
+  const blocks = React.useMemo(() => parseBlocks(decodeEntities(source ?? '')), [source]);
   return (
     <div className={className}>
       {blocks.map((block, i) => (
@@ -66,7 +88,7 @@ type Block =
   | { kind: 'p'; text: string }
   | { kind: 'quote'; text: string }
   | { kind: 'ul'; items: string[] }
-  | { kind: 'ol'; items: string[] }
+  | { kind: 'ol'; items: string[]; start: number }
   | { kind: 'pre'; code: string; lang?: string }
   | { kind: 'hr' };
 
@@ -141,14 +163,15 @@ function parseBlocks(input: string): Block[] {
       continue;
     }
 
-    // 순서 있는 리스트
+    // 순서 있는 리스트 — 시작 번호 유지 (복붙 시 1./2./3. 이 각각 분리돼도 이어짐)
     if (/^\s*\d+\.\s+/.test(line)) {
+      const start = Number(/^\s*(\d+)\./.exec(line)?.[1] ?? 1) || 1;
       const items: string[] = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
         items.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
         i++;
       }
-      blocks.push({ kind: 'ol', items });
+      blocks.push({ kind: 'ol', items, start });
       continue;
     }
 
@@ -208,7 +231,7 @@ function BlockNode({ block }: { block: Block }) {
       );
     case 'ol':
       return (
-        <ol className="my-3 list-decimal pl-5 text-[15px] leading-7 text-cdm-fg">
+        <ol start={block.start} className="my-3 list-decimal pl-5 text-[15px] leading-7 text-cdm-fg">
           {block.items.map((it, i) => (
             <li key={i}><InlineNode text={it} /></li>
           ))}
@@ -241,6 +264,7 @@ type InlineToken =
   | { kind: 'text'; text: string }
   | { kind: 'code'; text: string }
   | { kind: 'link'; text: string; href: string }
+  | { kind: 'img'; alt: string; src: string }
   | { kind: 'strong'; children: InlineToken[] }
   | { kind: 'em'; children: InlineToken[] }
   | { kind: 'del'; children: InlineToken[] };
@@ -259,6 +283,16 @@ function TokenView({ token }: { token: InlineToken }) {
         <code className="rounded-[4px] bg-cdm-bg-elev-2 px-1 py-0.5 font-mono text-[0.9em] text-cdm-fg">
           {token.text}
         </code>
+      );
+    case 'img':
+      // eslint-disable-next-line @next/next/no-img-element
+      return (
+        <img
+          src={token.src}
+          alt={token.alt}
+          loading="lazy"
+          className="my-2 inline-block h-auto max-w-full rounded-cdm-md border border-cdm-border"
+        />
       );
     case 'link':
       return (
@@ -319,6 +353,24 @@ function parseInline(input: string): InlineToken[] {
         tokens.push({ kind: 'code', text: input.slice(i + 1, end) });
         i = end + 1;
         continue;
+      }
+    }
+
+    // 이미지 ![alt](url)
+    if (ch === '!' && input[i + 1] === '[') {
+      const close = input.indexOf(']', i + 2);
+      if (close > i && input[close + 1] === '(') {
+        const urlEnd = input.indexOf(')', close + 2);
+        if (urlEnd > close) {
+          const alt = input.slice(i + 2, close);
+          const src = input.slice(close + 2, urlEnd).trim();
+          if (isSafeUrl(src)) {
+            flush();
+            tokens.push({ kind: 'img', alt, src });
+            i = urlEnd + 1;
+            continue;
+          }
+        }
       }
     }
 

@@ -125,7 +125,6 @@ export default function ArchivePage() {
               : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'
           }`}
         >
-          <div className="mb-4 text-4xl text-gray-400">📁</div>
           <p className="mb-1 text-base font-medium text-gray-700">
             {dragging ? '놓으세요!' : '기록 파일을 올려주세요'}
           </p>
@@ -144,7 +143,6 @@ export default function ArchivePage() {
         />
 
         <div className="mt-6 w-full rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
-          <span className="mr-1.5 text-base">💡</span>
           기록 파일은 게임 결과 화면에서{' '}
           <span className="font-medium text-gray-700">[기록 저장]</span> 버튼을 눌러
           다운로드할 수 있습니다.

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCdpStore } from '@/stores/cdp';
 import { getSocket } from '@/lib/socket';
-import { CDP_ICON, formatCdp, formatCdpDelta } from '@/lib/cdp/format';
+import { formatCdp, formatCdpDelta } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -20,7 +21,7 @@ interface Props {
  * - 마운트 시 /api/me/cdp 로 1회 동기화 (initialBalance 가 있으면 fetch 생략)
  * - 'cdp:granted' / 'cdp:adjusted' 소켓 이벤트로 실시간 갱신
  * - 클릭 시 /shop 으로 이동
- * - 거상(first_merchant) 칭호 활성 시 💰 마크 표시
+ * - 거상(first_merchant) 칭호 활성 시 마크 표시
  */
 export function CdpBalanceChip({ initialBalance, className, variant = 'desktop' }: Props) {
   const balance = useCdpStore((s) => s.balance);
@@ -50,20 +51,24 @@ export function CdpBalanceChip({ initialBalance, className, variant = 'desktop' 
 
   useEffect(() => {
     const socket = getSocket();
-    const onGranted = (p: { newBalance: number; amount: number }) => {
+    const onGranted = (p: { newBalance: number; amount: number; reason?: string }) => {
       if (typeof p.newBalance !== 'number') return;
       setBalance(p.newBalance);
       if (typeof p.amount === 'number' && p.amount > 0) {
-        toast.success(`${CDP_ICON} ${formatCdpDelta(p.amount)} CDP`, {
-          description: `잔액 ${formatCdp(p.newBalance)}`,
-        });
+        const isDaily = p.reason === 'daily_rank_win';
+        toast.success(
+          isDaily
+            ? `오늘 첫 랭크 승리! ${formatCdpDelta(p.amount)} CDP`
+            : `${formatCdpDelta(p.amount)} CDP`,
+          { description: `잔액 ${formatCdp(p.newBalance)}` },
+        );
       }
     };
     const onAdjusted = (p: { newBalance: number; delta: number; reason: string }) => {
       if (typeof p.newBalance !== 'number') return;
       setBalance(p.newBalance);
       if (p.reason === 'admin_adjust' && typeof p.delta === 'number') {
-        toast(`${CDP_ICON} 관리자 조정 ${formatCdpDelta(p.delta)} CDP`, {
+        toast(`관리자 조정 ${formatCdpDelta(p.delta)} CDP`, {
           description: `잔액 ${formatCdp(p.newBalance)}`,
         });
       }
@@ -101,13 +106,11 @@ export function CdpBalanceChip({ initialBalance, className, variant = 'desktop' 
         role="menuitem"
       >
         <span className="flex items-center gap-1.5">
-          {merchantDiscount && (
-            <span aria-label="거상 효과 활성 (10% 할인)" title="거상 효과 활성 (10% 할인)">💰</span>
-          )}
           보유 CDP
         </span>
-        <span className="font-bold tabular-nums">
-          <span aria-hidden>{CDP_ICON}</span> {formatCdp(display)}
+        <span className="inline-flex items-center gap-1 font-bold tabular-nums">
+          <CdpIcon size={16} />
+          {formatCdp(display)}
         </span>
       </Link>
     );
@@ -120,16 +123,13 @@ export function CdpBalanceChip({ initialBalance, className, variant = 'desktop' 
       className={cn(
         'inline-flex items-center gap-1 rounded-cdm-md px-2.5 py-1.5 text-xs font-bold tabular-nums',
         merchantDiscount
-          ? 'bg-cdm-primary/10 text-cdm-fg ring-1 ring-cdm-primary/40 hover:bg-cdm-primary/15'
-          : 'bg-cdm-bg-elev-1 text-cdm-fg hover:bg-cdm-bg-elev-2',
+          ? 'bg-white/10 text-cdm-ink-fg ring-1 ring-cdm-highlight/50 hover:bg-white/15'
+          : 'bg-white/10 text-cdm-ink-fg hover:bg-white/15',
         'transition-colors',
         className,
       )}
     >
-      {merchantDiscount && (
-        <span aria-label="거상 효과 활성" className="-ml-0.5 text-[11px]">💰</span>
-      )}
-      <span aria-hidden>{CDP_ICON}</span>
+      <CdpIcon size={14} />
       <span>{formatCdp(display)}</span>
     </Link>
   );

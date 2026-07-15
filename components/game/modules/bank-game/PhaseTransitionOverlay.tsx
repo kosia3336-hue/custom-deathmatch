@@ -126,7 +126,7 @@ function buildOverlay({
           : `${firstNick} (선) 베팅 대기 중`;
       return {
         key: 'firstSubmit',
-        title: isMyTurn && !isSpectator ? '💵 내 차례 — 선 베팅' : '💵 선 베팅',
+        title: isMyTurn && !isSpectator ? '내 차례 — 선 베팅' : '선 베팅',
         subtitle,
         accent: 'indigo',
       };
@@ -134,7 +134,7 @@ function buildOverlay({
     case 'firstReveal': {
       return {
         key: 'firstReveal',
-        title: '🔓 선 장수 공개',
+        title: '선 장수 공개',
         subtitle: '금액은 비공개 — 후가 추리합니다',
         accent: 'amber',
       };
@@ -147,7 +147,7 @@ function buildOverlay({
           : '선의 장수를 보고 단가를 추리하세요';
       return {
         key: 'secondSubmit',
-        title: isMyTurn && !isSpectator ? '💵 내 차례 — 후 베팅' : '💵 후 베팅',
+        title: isMyTurn && !isSpectator ? '내 차례 — 후 베팅' : '후 베팅',
         subtitle,
         accent: 'amber',
       };
@@ -155,21 +155,21 @@ function buildOverlay({
     case 'reveal':
       return {
         key: 'reveal',
-        title: '✨ 정산',
+        title: '정산',
         subtitle: '패자 금액 공개 — 승자 금액 비공개',
         accent: 'violet',
       };
     case 'roundEnd':
       return {
         key: 'roundEnd',
-        title: '🏁 라운드 종료',
+        title: '라운드 종료',
         subtitle: '다음 라운드 준비',
         accent: 'emerald',
       };
     case 'finished':
       return {
         key: 'finished',
-        title: '🏆 게임 종료',
+        title: '게임 종료',
         subtitle: '기록실에서 모든 정보 공개',
         accent: 'emerald',
       };

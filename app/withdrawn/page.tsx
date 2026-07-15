@@ -20,9 +20,6 @@ export default async function WithdrawnPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="flex w-full max-w-xl flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-4xl" aria-hidden>
-              👤
-            </span>
             <h1 className="text-2xl font-bold text-cdm-fg">탈퇴한 계정입니다</h1>
             <p className="text-sm text-cdm-fg-muted">
               이 계정은 탈퇴 처리되어 더 이상 이용할 수 없습니다.

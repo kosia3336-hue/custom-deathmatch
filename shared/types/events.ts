@@ -284,7 +284,7 @@ export interface CdpGrantedPayload {
   rankMatchId: string;
   amount: number;
   newBalance: number;
-  reason: 'rank_win' | 'rank_loss' | 'rank_draw' | 'rank_win_forfeit';
+  reason: 'rank_win' | 'rank_loss' | 'rank_draw' | 'rank_win_forfeit' | 'daily_rank_win';
   breakdown: {
     base: number;
     tierBonus: number;
@@ -309,9 +309,9 @@ export interface ShopItemChangedPayload {
 
 /** 인벤토리(소모성) 변동 — 본인 전용 emit */
 export interface InventoryUpdatedPayload {
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter';
   countAfter: number;
-  reason?: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
+  reason?: 'purchase' | 'sell' | 'auto_use' | 'manual_use' | 'admin_adjust' | 'daily_reward' | 'gacha_box_open';
   ref?: { kind: string; id: string };
 }
 

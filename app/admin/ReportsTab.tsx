@@ -1,3 +1,4 @@
+import { fetchAttachments } from '@/lib/support/attachments';
 import { Card } from '@/components/cdm/Card';
 import { ReportStatusChip } from '@/components/cdm/StatusChip';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -37,6 +38,7 @@ export default async function ReportsTab({ page: pageParam }: { page: string | u
     .order('created_at', { ascending: false })
     .range(from, to);
   const rows = (res.data ?? []) as unknown as Row[];
+  const attachments = await fetchAttachments('report', rows.map((r) => r.id));
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
@@ -70,6 +72,16 @@ export default async function ReportsTab({ page: pageParam }: { page: string | u
             <span className="font-semibold">{r.target_snapshot?.nickname ?? '?'}</span>
           </p>
           <p className="mt-2 whitespace-pre-wrap text-sm text-cdm-fg">{r.reason}</p>
+          {(attachments[r.id]?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {attachments[r.id]!.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`첨부 ${i + 1}`} className="h-24 w-24 rounded-cdm-md border border-cdm-border object-cover hover:opacity-90" />
+                </a>
+              ))}
+            </div>
+          )}
           {(r.status === 'pending' || r.status === 'processing') && r.target_id && (
             <div className="mt-3">
               <ReportActions reportId={r.id} />

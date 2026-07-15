@@ -6,7 +6,8 @@ import { Button } from '@/components/cdm/Button';
 import { Card } from '@/components/cdm/Card';
 import { Modal } from '@/components/cdm/Modal';
 import { TextInput } from '@/components/cdm/TextInput';
-import { CDP_ICON, formatCdp, formatCdpDelta } from '@/lib/cdp/format';
+import { formatCdp, formatCdpDelta } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 
 interface MemberCdpRow {
   memberId: string;
@@ -80,7 +81,7 @@ export default function AdminShopCdpTools() {
                   <tr key={r.memberId} className="border-b border-cdm-border/50">
                     <td className="py-2 font-semibold text-cdm-fg">{r.nickname}</td>
                     <td className="py-2 text-right font-bold tabular-nums">
-                      {CDP_ICON} {formatCdp(r.balance)}
+                      {formatCdp(r.balance)}
                     </td>
                     <td className="py-2 text-right text-cdm-fg-muted tabular-nums">
                       {formatCdp(r.totalEarned)}
@@ -200,8 +201,8 @@ function AdjustModal({
       <div className="flex flex-col gap-3 text-sm">
         <div className="rounded-cdm-md bg-cdm-bg-elev-1 p-3">
           <p className="font-semibold text-cdm-fg">{target.nickname}</p>
-          <p className="text-cdm-fg-muted tabular-nums">
-            잔액 {CDP_ICON} {formatCdp(target.balance)}
+          <p className="inline-flex items-center gap-1 text-cdm-fg-muted tabular-nums">
+            잔액 <CdpIcon size={14} /> {formatCdp(target.balance)}
           </p>
         </div>
         <div>

@@ -2,7 +2,7 @@ import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
 import { getRange, getTotalPages, parsePageParam } from '@/lib/pagination';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { EmptyState } from '@/components/cdm/EmptyState';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
 import { labelForType } from '@/lib/cdp/types';
 
 const PAGE_SIZE = 50;
@@ -131,14 +131,14 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
                       </td>
                       <td className="px-3 py-2.5 align-top text-right tabular-nums whitespace-nowrap">
                         <span className={r.price_paid < 0 ? 'text-cdm-primary' : 'text-cdm-fg'}>
-                          {r.price_paid < 0 ? '+' : ''}{CDP_ICON} {formatCdp(Math.abs(r.price_paid))}
+                          {r.price_paid < 0 ? '+' : ''}{formatCdp(Math.abs(r.price_paid))}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 align-top text-right tabular-nums text-cdm-fg-muted whitespace-nowrap">
-                        {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(Math.abs(balanceBefore))}` : '—'}
+                        {balanceBefore !== null ? formatCdp(Math.abs(balanceBefore)) : '—'}
                       </td>
                       <td className="px-3 py-2.5 align-top text-right tabular-nums text-cdm-fg-muted whitespace-nowrap">
-                        {balanceAfter !== null ? `${CDP_ICON} ${formatCdp(balanceAfter)}` : '—'}
+                        {balanceAfter !== null ? formatCdp(balanceAfter) : '—'}
                       </td>
                     </tr>
                   );
@@ -174,10 +174,10 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-cdm-fg-muted tabular-nums">
                     <span className={r.price_paid < 0 ? 'text-cdm-primary' : ''}>
-                      {r.price_paid < 0 ? '획득' : '가격'} {r.price_paid < 0 ? '+' : ''}{CDP_ICON} {formatCdp(Math.abs(r.price_paid))}
+                      {r.price_paid < 0 ? '획득' : '가격'} {r.price_paid < 0 ? '+' : ''}{formatCdp(Math.abs(r.price_paid))}
                     </span>
-                    <span>전 {balanceBefore !== null ? `${CDP_ICON} ${formatCdp(Math.abs(balanceBefore))}` : '—'}</span>
-                    <span>후 {balanceAfter !== null ? `${CDP_ICON} ${formatCdp(balanceAfter)}` : '—'}</span>
+                    <span>전 {balanceBefore !== null ? formatCdp(Math.abs(balanceBefore)) : '—'}</span>
+                    <span>후 {balanceAfter !== null ? formatCdp(balanceAfter) : '—'}</span>
                   </div>
                 </div>
               );

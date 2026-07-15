@@ -115,7 +115,7 @@ function StepNode({
               : 'bg-gray-200 text-gray-400'
         }`}
       >
-        {state === 'done' ? '✓' : state === 'active' ? '●' : '○'}
+        {state === 'done' ? '' : state === 'active' ? '●' : '○'}
       </div>
       <span
         className={`text-[11px] ${

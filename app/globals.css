@@ -12,9 +12,9 @@
   color-scheme: light;
 
   /* 硫붿씤 3??*/
-  --cdm-primary: #4f46e5;          /* ?몃뵒怨???硫붿씤/?좉났/留곹겕 */
-  --cdm-primary-strong: #4338ca;
-  --cdm-primary-soft: #eef2ff;
+  --cdm-primary: #4a4fb5;          /* ?몃뵒怨???硫붿씤/?좉났/留곹겕 */
+  --cdm-primary-strong: #3a40a4;
+  --cdm-primary-soft: #e6e7fa;
 
   --cdm-accent: #f43f5e;           /* 肄붾엫 ??媛뺤“/?꾧났/?꾪뿕/?밸━ */
   --cdm-accent-strong: #e11d48;
@@ -37,6 +37,14 @@
   --cdm-bg-elev-1: #f8fafc;
   --cdm-bg-elev-2: #f1f5f9;
   --cdm-bg-elev-3: #e2e8f0;
+
+  /* dark section (ink) — GNB·히어로 밴드 등 어두운 섹션용 */
+  --cdm-page: #eef0f6;
+  --cdm-ink: #14142b;
+  --cdm-ink-strong: #0d0d1e;
+  --cdm-ink-fg: #ececf6;
+  --cdm-ink-fg-muted: #9fa3c4;
+  --cdm-ink-border: rgba(255, 255, 255, 0.1);
 
   --cdm-border: #e2e8f0;
   --cdm-border-strong: #cbd5e1;
@@ -113,7 +121,7 @@
   --cdm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --cdm-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --cdm-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
-  --cdm-ring-primary: 0 0 0 3px rgba(79, 70, 229, 0.20);
+  --cdm-ring-primary: 0 0 0 3px rgba(74, 79, 181, 0.20);
   --cdm-ring-accent:  0 0 0 3px rgba(244, 63, 94, 0.20);
 
   /* 紐⑥뀡 */
@@ -150,6 +158,12 @@
   --color-cdm-bg-elev-1: var(--cdm-bg-elev-1);
   --color-cdm-bg-elev-2: var(--cdm-bg-elev-2);
   --color-cdm-bg-elev-3: var(--cdm-bg-elev-3);
+  --color-cdm-page: var(--cdm-page);
+  --color-cdm-ink: var(--cdm-ink);
+  --color-cdm-ink-strong: var(--cdm-ink-strong);
+  --color-cdm-ink-fg: var(--cdm-ink-fg);
+  --color-cdm-ink-fg-muted: var(--cdm-ink-fg-muted);
+  --color-cdm-ink-border: var(--cdm-ink-border);
   --color-cdm-border: var(--cdm-border);
   --color-cdm-border-strong: var(--cdm-border-strong);
   --color-cdm-fg: var(--cdm-fg);
@@ -187,7 +201,7 @@ html {
 body {
   font-family: var(--font-sans);
   color: var(--cdm-fg);
-  background-color: var(--cdm-bg);
+  background-color: var(--cdm-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -1678,5 +1692,139 @@ body {
   .skin-duality-submit-btn,
   .skin-duality-number-card {
     transition: none !important;
+  }
+}
+
+/* ── 게임 룰 WYSIWYG 에디터 (TipTap) 타이포그래피 ─────────────── */
+.rule-editor h3 { margin: 1.1em 0 0.4em; font-size: 1.125rem; font-weight: 700; }
+.rule-editor h4 { margin: 0.9em 0 0.35em; font-size: 1rem; font-weight: 700; }
+.rule-editor p { margin: 0.5em 0; }
+.rule-editor ul { margin: 0.5em 0; padding-left: 1.25rem; list-style: disc; }
+.rule-editor ol { margin: 0.5em 0; padding-left: 1.25rem; list-style: decimal; }
+.rule-editor blockquote {
+  margin: 0.6em 0; padding: 0.4em 0.75rem;
+  border-left: 2px solid var(--cdm-border-strong);
+  background: var(--cdm-bg-elev-1); color: var(--cdm-fg-muted);
+}
+.rule-editor code {
+  border-radius: 4px; background: var(--cdm-bg-elev-2);
+  padding: 0.1em 0.3em; font-size: 0.9em;
+  font-family: var(--font-mono);
+}
+.rule-editor hr { margin: 1.2em 0; border-color: var(--cdm-border); }
+.rule-editor a { color: var(--cdm-primary); text-decoration: underline; text-underline-offset: 2px; }
+.rule-editor img {
+  margin: 0.5em 0; max-width: 100%; height: auto;
+  border: 1px solid var(--cdm-border); border-radius: var(--cdm-radius-md);
+}
+.rule-editor s { color: var(--cdm-fg-muted); }
+
+/* ── ink-scope: 어두운(잉크) 섹션 내부에서 공용 토큰을 다크 값으로 재정의 ──
+   로비 GNB 와 같은 테마를 방/게임 헤더 등에서 재사용할 때 사용 */
+.ink-scope {
+  --cdm-fg: var(--cdm-ink-fg);
+  --cdm-fg-muted: var(--cdm-ink-fg-muted);
+  --cdm-fg-subtle: var(--cdm-ink-fg-muted);
+  --cdm-bg: transparent;
+  --cdm-bg-elev-1: rgba(255, 255, 255, 0.08);
+  --cdm-bg-elev-2: rgba(255, 255, 255, 0.12);
+  --cdm-bg-elev-3: rgba(255, 255, 255, 0.16);
+  --cdm-border: var(--cdm-ink-border);
+  --cdm-border-strong: rgba(255, 255, 255, 0.2);
+}
+
+/* 무극의 백호: 평소엔 은빛으로 은은히 빛나고, 주기마다 한 번 청록 플라즈마가
+   전기 방전처럼 '펑' 터져 바깥으로 확산했다 사라진다. (단색 — 청록만)
+   - shimmer : 은/백색 그라데이션이 천천히 흐르는 기본 광택
+   - plasma  : 청록 글로우가 끊김(stutter) 플리커로 방전 — 전기 아크 crackle
+   - burst   : 방전 순간 배지가 살짝 튀어나오는 스케일 팝
+   - ring    : ::after 청록 링이 바깥으로 확산하며 페이드 — 플라즈마 분출 */
+@keyframes title-baekho-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes title-baekho-plasma {
+  /* 평상시 — 은빛 */
+  0%, 40%, 52%, 100% {
+    box-shadow: 0 0 4px rgba(226, 232, 240, 0.55), 0 0 9px rgba(148, 163, 184, 0.3);
+    border-color: #cbd5e1;
+  }
+  /* ── 청록 플라즈마 방전 (42~48%, 끊기며 번쩍 — 은은하게) ── */
+  42% { box-shadow: 0 0 4px rgba(94,234,212,.4); border-color: #5eead4; }        /* 예열 */
+  43% { box-shadow: 0 0 8px rgba(45,212,191,.85), 0 0 16px rgba(20,184,166,.45); border-color: #2dd4bf; } /* 방전 */
+  44% { box-shadow: 0 0 3px rgba(148,163,184,.45); border-color: #94a3b8; }       /* 순간 꺼짐 */
+  45% { box-shadow: 0 0 6px rgba(45,212,191,.75), 0 0 12px rgba(20,184,166,.35); border-color: #2dd4bf; } /* 2차 방전 */
+  47% { box-shadow: 0 0 5px rgba(94,234,212,.5); border-color: #5eead4; }         /* 잔광 */
+}
+/* 글자에도 청록 채도가 짧게 번짐 (은은하게) */
+@keyframes title-baekho-tint {
+  0%, 40%, 52%, 100% { filter: drop-shadow(0 0 1px rgba(148,163,184,.45)); }
+  43% { filter: drop-shadow(0 0 3px rgba(45,212,191,.85)) drop-shadow(0 0 5px rgba(20,184,166,.4)); }
+  45% { filter: drop-shadow(0 0 2px rgba(45,212,191,.65)); }
+  47% { filter: drop-shadow(0 0 1px rgba(94,234,212,.5)); }
+}
+/* 방전 순간 아주 살짝 튀어나오는 스케일 팝 */
+@keyframes title-baekho-burst {
+  0%, 40%, 52%, 100% { transform: scale(1); }
+  43% { transform: scale(1.02); }
+  46% { transform: scale(1.004); }
+}
+/* ::after 청록 링 — 살짝 바깥으로 확산하며 페이드 (작게) */
+@keyframes title-baekho-ring {
+  0%, 41%, 52%, 100% { opacity: 0; transform: scale(0.9); }
+  43% { opacity: 0.5; transform: scale(1.03); }
+  49% { opacity: 0; transform: scale(1.45); }
+}
+.title-baekho {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    #64748b 0%,
+    #cbd5e1 10%,
+    #f8fafc 18%,
+    #ffffff 25%,
+    #cbd5e1 34%,
+    #94a3b8 44%,
+    #e2e8f0 54%,
+    #ffffff 64%,
+    #cbd5e1 76%,
+    #94a3b8 86%,
+    #64748b 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  border-color: #cbd5e1;
+  animation:
+    title-baekho-shimmer 6s linear infinite,
+    title-baekho-plasma  5s steps(1, end) infinite,
+    title-baekho-tint    5s steps(1, end) infinite,
+    title-baekho-burst   5s cubic-bezier(0.2, 0.9, 0.25, 1) infinite;
+}
+.title-baekho::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(closest-side, rgba(45, 212, 191, 0.45), rgba(45, 212, 191, 0) 72%);
+  animation: title-baekho-ring 5s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-baekho,
+  .title-baekho::after { animation: none; }
+  .title-baekho { border-color: #94a3b8; box-shadow: 0 0 6px rgba(45,212,191,.4); }
+}
+
+
+/* 모바일 하단 탭 바가 렌더된 페이지 — 고정 바 높이만큼 본문 하단 여백 확보
+   (탭 바를 GNB 위치(상단)에서 스페이서로 처리하면 위/아래 간격이 어긋나는 문제 방지) */
+@media (max-width: 639px) {
+  body:has(nav[aria-label='하단 메뉴']) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
 }

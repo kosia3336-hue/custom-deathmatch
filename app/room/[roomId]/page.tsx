@@ -224,7 +224,7 @@ export default function WaitingRoomPage() {
       <>
         {isSpectator && (
           <span className="mr-auto rounded-full bg-cdm-bg-elev-2 px-3 py-1.5 text-xs text-cdm-fg-muted md:text-sm">
-            👁️ 관전 중
+            관전 중
           </span>
         )}
         <InviteButton roomId={roomId} />
@@ -292,7 +292,7 @@ export default function WaitingRoomPage() {
                               : 'bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
                           )}
                         >
-                          {btn === 'first' ? '내가 선공' : btn === 'random' ? '🎲 랜덤' : '내가 후공'}
+                          {btn === 'first' ? '내가 선공' : btn === 'random' ? '랜덤' : '내가 후공'}
                         </button>
                       ))}
                     </div>
@@ -320,7 +320,7 @@ export default function WaitingRoomPage() {
           <div className="mb-2 flex items-center gap-2">
             <div className="h-px flex-1 bg-cdm-border" />
             <span className="text-xs font-medium text-cdm-fg-muted">
-              👁️ 관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
+              관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
             </span>
             <div className="h-px flex-1 bg-cdm-border" />
           </div>
@@ -337,7 +337,7 @@ export default function WaitingRoomPage() {
                 )}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cdm-bg-elev-2 text-sm select-none">
-                  👁️
+                  관전
                 </span>
                 <span className="flex-1 text-sm text-cdm-fg">{s.nickname}</span>
                 {s.id === myId && (
@@ -352,7 +352,7 @@ export default function WaitingRoomPage() {
                 onClick={handleToSpectate}
                 className="flex h-14 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
               >
-                👁️ 관전하기
+                관전하기
               </button>
             )}
 

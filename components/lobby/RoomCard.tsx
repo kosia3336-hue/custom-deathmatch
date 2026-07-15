@@ -32,7 +32,6 @@ export default function RoomCardList({ rooms, onJoin, onSpectate, queuing = fals
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span>{isRanked ? '🏆' : room.roomType === 'private' ? '🔑' : '🔓'}</span>
                 <span className="font-medium text-cdm-fg">{room.gameName}</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -58,7 +57,7 @@ export default function RoomCardList({ rooms, onJoin, onSpectate, queuing = fals
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
-                  {!isWaiting && <span className="text-xs text-cdm-fg-muted">👁️ {room.spectatorCount}</span>}
+                  {!isWaiting && <span className="text-xs text-cdm-fg-muted">{room.spectatorCount}</span>}
                   <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onSpectate(room); }}>
                     관전
                   </Button>

@@ -135,7 +135,7 @@ export default async function TitleOwnersPage({
                   className="inline-flex items-center gap-1 rounded-full border border-cdm-border px-2 py-px text-[11px] font-semibold text-cdm-fg-muted"
                   title="히든 시스템 칭호 — 조건은 서버 코드에서 관리"
                 >
-                  🔒 시스템
+                  시스템
                 </span>
               )}
               {!title.is_active && (

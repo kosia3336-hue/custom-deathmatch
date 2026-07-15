@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { Modal } from '@/components/cdm/Modal';
 import { Button } from '@/components/cdm/Button';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
+import { calcConsumablePricing } from '@/lib/cdp/pricing';
 import type { ShopItem } from '@/lib/cdp/types';
 
 interface Props {
@@ -12,44 +14,43 @@ interface Props {
   merchantDiscount: boolean;
   onClose: () => void;
   /** true 반환 시 모달 닫음, false 반환 시 모달 유지 */
-  onConfirm: (item: ShopItem) => Promise<boolean>;
+  onConfirm: (item: ShopItem, quantity: number) => Promise<boolean>;
 }
 
 interface PayloadShape {
   unique?: boolean;
   kind?: string;
   subtype?: string;
-  stockPerUnit?: number;
   no_discount?: boolean;
 }
 
-function pricing(item: ShopItem, merchantDiscount: boolean) {
-  const payload = (item.payload ?? {}) as PayloadShape;
-  if (!merchantDiscount || payload.no_discount === true) {
-    return { paid: item.price, original: item.price, discount: 0, discounted: false };
-  }
-  const paid = Math.floor(item.price * 0.9);
-  return { paid, original: item.price, discount: item.price - paid, discounted: paid !== item.price };
-}
+const QTY_MAX = 99;
 
 export default function ShopPurchaseModal({ item, balance, merchantDiscount, onClose, onConfirm }: Props) {
   const [busy, setBusy] = useState(false);
+  const [qty, setQty] = useState(1);
 
   if (!item) return null;
 
-  const { paid, original, discount, discounted } = pricing(item, merchantDiscount);
-  const insufficient = balance < paid;
-  const remaining = balance - paid;
   const payload = (item.payload ?? {}) as PayloadShape;
-  const isConsumable = item.type === 'consumable';
-  const stockPerUnit = isConsumable ? Math.max(1, Number(payload.stockPerUnit ?? 1)) : 1;
+  const isConsumable = item.type === 'consumable' && payload.kind !== 'event_chip_pack';
+  const noDiscount = payload.no_discount === true;
   const isSpecialTitle = item.type === 'title' && payload.subtype === 'special';
+
+  const quantity = isConsumable ? qty : 1;
+  const p = calcConsumablePricing(item.price, quantity, merchantDiscount, noDiscount);
+  const insufficient = balance < p.paid;
+  const remaining = balance - p.paid;
+
+  function setQtyClamped(n: number) {
+    setQty(Math.max(1, Math.min(QTY_MAX, Math.floor(Number.isFinite(n) ? n : 1))));
+  }
 
   async function handleConfirm() {
     if (!item || busy) return;
     setBusy(true);
     try {
-      const closeAfter = await onConfirm(item);
+      const closeAfter = await onConfirm(item, quantity);
       if (closeAfter) onClose();
     } finally {
       setBusy(false);
@@ -80,7 +81,7 @@ export default function ShopPurchaseModal({ item, balance, merchantDiscount, onC
             loading={busy}
             disabled={insufficient || busy}
           >
-            {insufficient ? 'CDP 부족' : `${formatCdp(paid)} CDP 로 구매`}
+            {insufficient ? 'CDP 부족' : `${formatCdp(p.paid)} CDP 로 구매`}
           </Button>
         </>
       }
@@ -91,45 +92,106 @@ export default function ShopPurchaseModal({ item, balance, merchantDiscount, onC
           {item.description && (
             <p className="mt-1 text-sm text-cdm-fg-muted">{item.description}</p>
           )}
-          {isConsumable && stockPerUnit > 1 && (
-            <p className="mt-1 text-xs text-cdm-fg-muted">패키지: {stockPerUnit}개입 (인벤토리에 +{stockPerUnit})</p>
-          )}
           {isSpecialTitle && (
             <p className="mt-1 text-xs text-cdm-primary">시즌 한정 — 1명만 구매 가능</p>
           )}
         </div>
+
+        {isConsumable && (
+          <div>
+            <label className="text-xs font-semibold text-cdm-fg-muted">수량</label>
+            <div className="mt-1 flex items-center gap-2">
+              <Button size="sm" variant="secondary" disabled={busy || qty <= 1} onClick={() => setQtyClamped(qty - 1)} aria-label="수량 줄이기">
+                −
+              </Button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={QTY_MAX}
+                value={qty}
+                onChange={(e) => setQtyClamped(Number(e.target.value))}
+                className="w-20 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-center text-sm tabular-nums"
+                disabled={busy}
+              />
+              <Button size="sm" variant="secondary" disabled={busy || qty >= QTY_MAX} onClick={() => setQtyClamped(qty + 1)} aria-label="수량 늘리기">
+                +
+              </Button>
+              <div className="ml-1 flex gap-1">
+                {[5, 20].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setQtyClamped(n)}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+                      qty === n
+                        ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary'
+                        : 'border-cdm-border text-cdm-fg-muted hover:border-cdm-primary hover:text-cdm-primary'
+                    }`}
+                  >
+                    {n}개
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1.5 text-[11px] text-cdm-fg-subtle">
+              5개 이상 구매 시 10%, 20개 이상 구매 시 20% 대량 할인이 적용돼요.
+            </p>
+          </div>
+        )}
+
         <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5 rounded-cdm-md bg-cdm-bg-elev-1 p-3 text-sm">
           <dt className="text-cdm-fg-muted">정가</dt>
-          <dd className={`col-span-2 text-right tabular-nums ${discounted ? 'line-through text-cdm-fg-muted' : 'font-semibold'}`}>
-            {CDP_ICON} {formatCdp(original)}
+          <dd className={`col-span-2 inline-flex items-center justify-end gap-1 tabular-nums ${p.paid < p.original ? 'line-through text-cdm-fg-muted' : 'font-semibold'}`}>
+            <CdpIcon size={14} />
+            {formatCdp(p.original)}
+            {quantity > 1 && (
+              <span className="ml-1 text-xs text-cdm-fg-subtle">({formatCdp(item.price)} × {quantity})</span>
+            )}
           </dd>
-          {discounted && (
+          {p.bulkDiscount > 0 && (
+            <>
+              <dt className="text-cdm-primary">대량 할인</dt>
+              <dd className="col-span-2 text-right font-semibold tabular-nums text-cdm-primary">
+                -{formatCdp(p.bulkDiscount)} (-{Math.round(p.bulkRate * 100)}%)
+              </dd>
+            </>
+          )}
+          {p.merchantDiscount > 0 && (
             <>
               <dt className="text-cdm-primary">거상 할인</dt>
               <dd className="col-span-2 text-right font-semibold tabular-nums text-cdm-primary">
-                -{formatCdp(discount)} (-10%)
+                -{formatCdp(p.merchantDiscount)} (-10%)
               </dd>
+            </>
+          )}
+          {p.paid < p.original && (
+            <>
               <dt className="text-cdm-fg-muted">결제가</dt>
-              <dd className="col-span-2 text-right font-bold tabular-nums text-cdm-fg">
-                {CDP_ICON} {formatCdp(paid)}
+              <dd className="col-span-2 inline-flex items-center justify-end gap-1 font-bold tabular-nums text-cdm-fg">
+                <CdpIcon size={14} />
+                {formatCdp(p.paid)}
               </dd>
             </>
           )}
           <dt className="text-cdm-fg-muted">현재 잔액</dt>
-          <dd className="col-span-2 text-right tabular-nums">
-            {CDP_ICON} {formatCdp(balance)}
+          <dd className="col-span-2 inline-flex items-center justify-end gap-1 tabular-nums">
+            <CdpIcon size={14} />
+            {formatCdp(balance)}
           </dd>
           <dt className="text-cdm-fg-muted">구매 후 잔액</dt>
           <dd
-            className={`col-span-2 text-right font-semibold tabular-nums ${
+            className={`col-span-2 inline-flex items-center justify-end gap-1 font-semibold tabular-nums ${
               insufficient ? 'text-cdm-accent' : 'text-cdm-fg'
             }`}
           >
-            {CDP_ICON} {insufficient ? `${formatCdp(remaining)} (부족)` : formatCdp(remaining)}
+            <CdpIcon size={14} />
+            {insufficient ? `${formatCdp(remaining)} (부족)` : formatCdp(remaining)}
           </dd>
         </dl>
         <p className="text-xs text-cdm-fg-muted">
-          ※ 구매한 아이템은 환불되지 않아요.
+          ※ 구매한 아이템은 환불되지 않아요. (판매 시 구매가의 80% 환급)
         </p>
       </div>
     </Modal>

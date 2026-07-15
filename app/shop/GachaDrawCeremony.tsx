@@ -28,7 +28,6 @@ export default function GachaDrawCeremony({ reducedMotion }: Props) {
           animate={reducedMotion ? {} : { rotate: [0, 8, -8, 0] }}
           transition={{ duration: 0.8, repeat: Infinity }}
         >
-          🎲
         </motion.span>
         {!reducedMotion &&
           Array.from({ length: particleCount }).map((_, i) => (

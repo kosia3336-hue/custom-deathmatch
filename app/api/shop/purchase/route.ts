@@ -13,6 +13,7 @@ import {
   notifyShopItemChanged,
 } from '@/lib/cdp/notify';
 import type { ConsumableKind, PurchaseErrorCode } from '@/lib/cdp/types';
+import { hasMerchantDiscount } from '@/lib/cdp/merchant';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,8 @@ const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0
 
 interface PurchaseBody {
   itemId?: string;
+  /** 소모품 수량 (기본 1, 1~99) */
+  quantity?: number;
 }
 
 interface PurchaseRpcRow {
@@ -103,6 +106,13 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  const quantity = Math.floor(Number(body.quantity ?? 1));
+  if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
+    return NextResponse.json(
+      { error: '수량은 1~99개까지 가능해요.', code: 'invalid_request' as const },
+      { status: 400 },
+    );
+  }
 
   const sb = getSupabaseServiceRole();
 
@@ -115,6 +125,85 @@ export async function POST(req: NextRequest) {
       .eq('id', itemId)
       .maybeSingle();
     const payload = (itemRow as { payload?: { kind?: string } } | null)?.payload ?? {};
+
+    // 길드 창설권: 길드 가입자는 구매 불가
+    if (payload.kind === 'guild_charter') {
+      const { data: gm } = await sb
+        .from('guild_members')
+        .select('guild_id')
+        .eq('member_id', member.id)
+        .maybeSingle();
+      if (gm) {
+        return NextResponse.json(
+          {
+            error: '이미 길드에 가입되어 있어 창설권을 구매할 수 없어요.',
+            code: 'forbidden' as const,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    // ── 소모품: 수량 구매 RPC (대량 할인 5개↑10% / 20개↑20% + 거상 10%) ──
+    const itemType = (itemRow as { type?: string } | null)?.type;
+    if (itemType === 'consumable' && payload.kind !== 'event_chip_pack') {
+      const merchant = await hasMerchantDiscount(sb, member.id).catch(() => false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cqData, error: cqErr } = await (sb.rpc as any)('purchase_consumable_qty', {
+        p_member_id: member.id,
+        p_item_id: itemId,
+        p_quantity: quantity,
+        p_merchant: merchant,
+      });
+      if (cqErr) {
+        const mapped = mapRpcError((cqErr as { message?: string }).message ?? '');
+        console.warn(`[shop:purchase:qty] 실패 code=${mapped.code} member=${member.id} item=${itemId} qty=${quantity}`);
+        return NextResponse.json({ error: mapped.msg, code: mapped.code }, { status: mapped.status });
+      }
+      const cq = (Array.isArray(cqData) ? cqData[0] : cqData) as {
+        purchase_id: string;
+        new_balance: number;
+        price_paid: number;
+        price_original: number;
+        discount_applied: number;
+        consumable_kind: string;
+        consumable_added: number;
+        count_after: number;
+        stock_after: number | null;
+      };
+      console.log(
+        `[shop:purchase:qty] member=${member.id} item=${itemId} qty=${quantity} price=${cq.price_paid}/${cq.price_original} newBalance=${cq.new_balance}`,
+      );
+
+      void notifyCdpAdjusted({
+        memberId: member.id,
+        newBalance: Number(cq.new_balance),
+        delta: -Number(cq.price_paid),
+        reason: 'shop_purchase',
+        ref: { kind: 'shop_purchase', id: cq.purchase_id },
+      });
+      void notifyShopItemChanged({ itemId, stock: cq.stock_after, isActive: true });
+      void notifyInventoryUpdated({
+        memberId: member.id,
+        kind: cq.consumable_kind as ConsumableKind,
+        countAfter: Number(cq.count_after),
+        reason: 'purchase',
+        ref: { kind: 'shop_purchase', id: cq.purchase_id },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        newBalance: Number(cq.new_balance),
+        pricePaid: Number(cq.price_paid),
+        priceOriginal: Number(cq.price_original),
+        discountApplied: Number(cq.discount_applied),
+        stockAfter: cq.stock_after,
+        grantedTitleId: null,
+        consumableKind: cq.consumable_kind as ConsumableKind,
+        consumableAdded: Number(cq.consumable_added),
+      });
+    }
+
     if (payload.kind === 'event_chip_pack') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: epData, error: epErr } = await (sb.rpc as any)('purchase_event_chip_pack', {

@@ -24,19 +24,19 @@ export const CARD_STYLES: Record<GS2CardId, CardStyle> = {
   },
   grapeBless: {
     bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-400',
-    icon: '🍇',
+    icon: '',
   },
   earthCrush: {
     bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-500',
-    icon: '🌍',
+    icon: '',
   },
   dice: {
     bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-500',
-    icon: '🎲',
+    icon: '',
   },
   breath: {
     bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-400',
-    icon: '🫁',
+    icon: '',
   },
   highRisk: {
     bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-500',
@@ -44,7 +44,7 @@ export const CARD_STYLES: Record<GS2CardId, CardStyle> = {
   },
   spaceCrush: {
     bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-500',
-    icon: '🌌',
+    icon: '',
     accent: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500',
   },
   noAction: {

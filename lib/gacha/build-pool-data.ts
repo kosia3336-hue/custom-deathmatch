@@ -99,9 +99,9 @@ export async function loadPoolContext(
       ? { id: lt.id, name: lt.name, color: lt.color, effect: lt.effect, description: lt.description }
       : {
           id: LEGEND_TITLE_ID,
-          name: '영겁의 현무',
-          color: 'charcoal',
-          effect: 'xuanwu',
+          name: '무극의 백호',
+          color: 'silver',
+          effect: 'baekho',
           description: null,
         },
   };

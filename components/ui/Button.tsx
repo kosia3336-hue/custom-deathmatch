@@ -13,10 +13,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<Variant, string> = {
-  primary: 'bg-cdm-primary text-white hover:bg-cdm-primary-strong active:scale-[0.98]',
-  secondary: 'border border-cdm-primary text-cdm-primary hover:bg-cdm-primary-soft active:scale-[0.98]',
-  tertiary: 'text-cdm-primary hover:text-cdm-primary-strong hover:bg-cdm-primary-soft',
-  danger: 'bg-cdm-accent text-white hover:bg-cdm-accent-strong active:scale-[0.98]',
+  // 그래피티 무드: 청록(카지노 테이블) 채움 + 얇은 테두리 (그림자 없음)
+  primary:
+    'border border-cdm-primary bg-cdm-primary text-white hover:bg-cdm-primary-strong hover:border-cdm-primary-strong active:scale-[0.98]',
+  secondary:
+    'border border-cdm-primary bg-cdm-bg text-cdm-primary hover:bg-cdm-primary-soft active:scale-[0.98]',
+  tertiary: 'text-cdm-fg hover:text-cdm-fg hover:bg-cdm-bg-elev-1',
+  danger:
+    'border border-cdm-accent-strong bg-cdm-accent text-white hover:bg-cdm-accent-strong active:scale-[0.98]',
   ghost: 'text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg',
 };
 
@@ -31,7 +35,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:[box-shadow:var(--cdm-ring-primary)]',
+        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-medium whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cdm-fg',
         variantStyles[variant],
         sizeStyles[size],
         (disabled || loading) && 'opacity-40 cursor-not-allowed pointer-events-none',

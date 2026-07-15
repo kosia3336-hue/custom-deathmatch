@@ -82,9 +82,7 @@ function AlivePlayerCard({ entry, revealed }: { entry: IPEHandResultEntry; revea
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, rotateY: 90 }}
             className="flex h-16 w-11 items-center justify-center rounded-lg border-2 border-cdm-border bg-cdm-bg-elev-1 text-2xl text-cdm-primary/50"
-          >
-            🂠
-          </motion.div>
+          />
         )}
       </AnimatePresence>
 
@@ -236,7 +234,7 @@ export default function EventHandResultBanner({ result, mySeatIdx }: Props) {
                     {result.winnerIds.length === 0
                       ? '무승부 → 다음 핸드 이월'
                       : myWin
-                        ? '🏆 승리!'
+                        ? '승리!'
                         : `${result.winnerIds.length}명 분할 승리`}
                   </motion.div>
                   {result.potDistributed > 0 && (

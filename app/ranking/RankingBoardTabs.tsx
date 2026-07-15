@@ -60,7 +60,7 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
     <div className="mb-4 space-y-3">
       <Tabs
         tabs={[
-          { id: 'rank', label: '🏆 랭크' },
+          { id: 'rank', label: '랭크' },
           { id: 'game', label: '게임 랭킹' },
           { id: 'event', label: '이벤트' },
         ]}

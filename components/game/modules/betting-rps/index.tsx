@@ -147,7 +147,7 @@ export default function BettingRpsGame() {
                 )}
                 {waitingForOpponent && (
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
-                    <span>✓ 제출 완료</span>
+                    <span>제출 완료</span>
                     <span className="text-gray-400">—</span>
                     <span className="animate-pulse text-gray-400">{opponent?.nickname ?? '상대'} 선택 중...</span>
                   </div>

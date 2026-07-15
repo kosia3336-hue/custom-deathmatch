@@ -79,7 +79,7 @@ export function Modal({
       />
       <div
         className={cn(
-          'relative w-full bg-cdm-bg shadow-[var(--cdm-shadow-lg)]',
+          'relative w-full overflow-hidden bg-cdm-bg shadow-[var(--cdm-shadow-lg)]',
           mobileBottomSheet
             ? 'rounded-t-cdm-xl sm:rounded-cdm-xl'
             : 'rounded-cdm-xl mx-4',
@@ -89,14 +89,14 @@ export function Modal({
         )}
       >
         {(title || onClose) && (
-          <header className="flex items-center justify-between gap-3 border-b border-cdm-border px-5 py-4">
-            <h2 className="text-base font-semibold text-cdm-fg">{title}</h2>
+          <header className="flex items-center justify-between gap-3 border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
+            <h2 className="text-base font-semibold text-cdm-ink-fg">{title}</h2>
             {onClose && (
               <button
                 type="button"
                 aria-label="닫기"
                 onClick={onClose}
-                className="rounded-cdm-md p-1 text-cdm-fg-muted hover:text-cdm-fg hover:bg-cdm-bg-elev-1"
+                className="rounded-cdm-md p-1 text-cdm-ink-fg-muted hover:text-white hover:bg-white/10"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path

@@ -7,6 +7,7 @@ import { Button } from '@/components/cdm/Button';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { InquiryCategory } from '@/lib/supabase/database.types';
+import { AttachmentPicker, linkAttachments, type AttachedFile } from '@/components/support/AttachmentPicker';
 
 const CATEGORIES: { id: InquiryCategory; label: string }[] = [
   { id: 'bug', label: '버그/오류' },
@@ -29,6 +30,7 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
   );
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [files, setFiles] = useState<AttachedFile[]>([]);
   const [busy, startTransition] = useTransition();
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
       setCategory(reasonTag === 'suspension' || reasonTag === 'ban' ? 'account' : 'etc');
       setTitle('');
       setBody('');
+      setFiles([]);
     }
   }, [open, reasonTag]);
 
@@ -53,13 +56,16 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
     startTransition(async () => {
       try {
         const sb = getBrowserSupabase();
-        await callRpc(sb, 'submit_inquiry', {
+        const inquiryId = await callRpc(sb, 'submit_inquiry', {
           p_category: category,
           p_title: t,
           p_body: b,
-          p_attachments: [],
+          p_attachments: files.map((f) => f.url) as never,
           p_reason_tag: reasonTag ?? undefined,
         });
+        if (typeof inquiryId === 'string') {
+          await linkAttachments(files, 'inquiry', inquiryId);
+        }
         fetch('/api/hidden-titles/check-inquiry', { method: 'POST' }).catch(() => {});
         toast.success('문의가 접수되었습니다');
         onClose();
@@ -127,6 +133,8 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
           />
           <p className="text-right text-xs text-cdm-fg-subtle">{body.length} / 1000</p>
         </div>
+
+        <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
       </div>
     </Modal>
   );

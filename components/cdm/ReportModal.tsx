@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { ReportCategory, ReportContext } from '@/lib/supabase/database.types';
+import { AttachmentPicker, linkAttachments, type AttachedFile } from '@/components/support/AttachmentPicker';
 
 const CATEGORIES: { id: ReportCategory; label: string; desc: string }[] = [
   { id: 'abuse', label: '욕설/혐오', desc: '욕설, 혐오 발언, 차별' },
@@ -37,6 +38,7 @@ export function ReportModal({
 }: Props) {
   const [category, setCategory] = useState<ReportCategory>('abuse');
   const [reason, setReason] = useState('');
+  const [files, setFiles] = useState<AttachedFile[]>([]);
   const [busy, startTransition] = useTransition();
 
   function submit() {
@@ -52,15 +54,19 @@ export function ReportModal({
     startTransition(async () => {
       try {
         const sb = getBrowserSupabase();
-        await callRpc(sb, 'submit_report', {
+        const reportId = await callRpc(sb, 'submit_report', {
           p_target_id: targetId,
           p_category: category,
           p_reason: r,
           p_context_kind: context,
           p_context_data: (contextData ?? {}) as Record<string, unknown> as never,
         });
+        if (typeof reportId === 'string') {
+          await linkAttachments(files, 'report', reportId);
+        }
         toast.success('신고가 접수되었습니다');
         setReason('');
+        setFiles([]);
         onClose();
       } catch (e) {
         const code = (e as { code?: string }).code;
@@ -132,6 +138,8 @@ export function ReportModal({
           maxLength={500}
           className="w-full rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg outline-none placeholder:text-cdm-fg-subtle focus:border-cdm-primary focus:[box-shadow:var(--cdm-ring-primary)]"
         />
+
+        <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
         <p className="mt-1 text-xs text-cdm-fg-muted">{reason.length} / 500</p>
       </div>
     </Modal>

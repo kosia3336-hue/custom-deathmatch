@@ -20,7 +20,7 @@ import { WIN_TYPE_LABELS as WS_WIN_TYPE_LABELS } from '@/components/game/modules
 
 const PODIUM_COLORS = ['bg-cdm-primary', 'bg-cdm-primary/70', 'bg-cdm-primary/50'] as const;
 const PODIUM_HEIGHTS = ['h-28', 'h-20', 'h-16'] as const;
-const MEDALS = ['🥇', '🥈', '🥉'] as const;
+const MEDALS = ['', '', ''] as const;
 
 const AUTO_LEAVE_SEC = 120;
 
@@ -159,7 +159,7 @@ export default function ResultScreen() {
         <span>총 턴 수: {gameResult.totalTurns}턴</span>
         {winTypeLabel && <span>승리 방식: {winTypeLabel}</span>}
         {room?.timeLimitSeconds != null && (
-          <span>시간제한: ⏱ {formatTimeLimit(room.timeLimitSeconds)}</span>
+          <span>시간제한: {formatTimeLimit(room.timeLimitSeconds)}</span>
         )}
       </div>
 
