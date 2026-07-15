@@ -6,6 +6,7 @@ import {
 } from '@shared/types/quatro.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IO, TypedSocket } from '../../types.js';
+import { maybeScheduleAi } from './ai.js';
 import {
   gameStates,
   createState,
@@ -116,6 +117,72 @@ function advance(io: IO, s: QuatroState) {
   }
 
   void broadcastState(io, s);
+
+  // COM 모드 — AI 차례면 예약 실행
+  maybeScheduleAi(io, s, applyAiAction, currentMulliganIdx, currentExchangeIdx);
+}
+
+/** AI 액션 적용 — handleQuatroAction 의 검증 로직과 동일 경로 */
+function applyAiAction(
+  io: IO,
+  s: QuatroState,
+  idx: number,
+  action:
+    | { type: 'mulligan'; use: boolean }
+    | { type: 'open'; cardId: string }
+    | { type: 'exchange'; vpIndex: number; giveCardId: string }
+    | { type: 'stop' },
+) {
+  if (idx === -1 || s.gameOver) return;
+  const p = s.players[idx];
+  switch (action.type) {
+    case 'mulligan': {
+      if (s.phase !== 'mulligan' || currentMulliganIdx(s) !== idx) return;
+      applyMulligan(s, idx, action.use);
+      s.mulliganQueue.shift();
+      advance(io, s);
+      return;
+    }
+    case 'open': {
+      if (s.phase !== 'open' || p.openChoice) return;
+      const card = p.hand.find((c) => c.id === action.cardId);
+      if (!card || p.openIds.has(card.id)) return;
+      p.openChoice = card.id;
+      advance(io, s);
+      return;
+    }
+    case 'exchange': {
+      if (s.phase !== 'exchange' || currentExchangeIdx(s) !== idx) return;
+      const err = applyExchange(s, idx, action.vpIndex, action.giveCardId);
+      if (err) {
+        // 실패 시 스탑으로 폴백 (교착 방지)
+        if (!s.firstStopperId) s.firstStopperId = p.id;
+        p.stopped = true;
+      }
+      s.turnPtr++;
+      advance(io, s);
+      return;
+    }
+    case 'stop': {
+      if (s.phase !== 'exchange' || currentExchangeIdx(s) !== idx) return;
+      if (isLastExchangePhase(s) && p.usedVps.size < QUATRO_VP_COUNT) {
+        // 의무 교환 남음 — 강제 무작위 교환
+        const vpIdx = [...Array(QUATRO_VP_COUNT).keys()].find((i) => !p.usedVps.has(i));
+        const closed = p.hand.filter((c) => !p.openIds.has(c.id));
+        if (vpIdx !== undefined && closed.length > 0) {
+          applyExchange(s, idx, vpIdx, closed[0]!.id);
+        } else {
+          p.stopped = true;
+        }
+      } else {
+        if (!s.firstStopperId) s.firstStopperId = p.id;
+        p.stopped = true;
+      }
+      s.turnPtr++;
+      advance(io, s);
+      return;
+    }
+  }
 }
 
 export function handleQuatroAction(
