@@ -26,6 +26,7 @@ export const GAME_IDS = {
   BANK_GAME: 'game-014',
   INDIAN_POKER_EVENT: 'game-015',
   SUN_MOON_STAR_EVENT: 'game-016',
+  QUATRO: 'game-017',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

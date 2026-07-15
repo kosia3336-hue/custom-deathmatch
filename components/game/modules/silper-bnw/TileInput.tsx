@@ -28,9 +28,9 @@ const nextId = () => ++_uid;
 
 function compareDigitBadge(myDigits: number, firstDigits: number | null) {
   if (firstDigits == null || myDigits === 0) return null;
-  if (myDigits < firstDigits)  return { text: '⚠ 패배 확정', cls: 'text-rose-600 bg-rose-50 border-rose-200' };
-  if (myDigits === firstDigits) return { text: '⚔ 값 경쟁',   cls: 'text-amber-600 bg-amber-50 border-amber-200' };
-  return                               { text: '✓ 자릿수 우위', cls: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
+  if (myDigits < firstDigits)  return { text: '패배 확정', cls: 'text-rose-600 bg-rose-50 border-rose-200' };
+  if (myDigits === firstDigits) return { text: '값 경쟁',   cls: 'text-amber-600 bg-amber-50 border-amber-200' };
+  return                               { text: '자릿수 우위', cls: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
 }
 
 function tilesToDisplayValue(items: SlotItem[]): string {
@@ -230,7 +230,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
             <span className="text-xs font-semibold text-gray-500">제시 슬롯</span>
             {slot.length > 0 && (
               <button onClick={handleClear} className="text-xs text-gray-400 hover:text-gray-600">
-                ✕ 전체 지우기
+                전체 지우기
               </button>
             )}
           </div>
@@ -280,7 +280,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
           )}
 
           {leadingZeroError && (
-            <p className="mt-1 text-xs font-medium text-rose-600">⚠ 맨 앞 자리에 0을 둘 수 없습니다.</p>
+            <p className="mt-1 text-xs font-medium text-rose-600">맨 앞 자리에 0을 둘 수 없습니다.</p>
           )}
           {error && !leadingZeroError && (
             <p className="mt-1 text-xs font-medium text-rose-600">{error}</p>

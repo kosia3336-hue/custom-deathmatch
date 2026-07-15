@@ -19,8 +19,8 @@ const CARD_STYLE: Record<WSCardType, { icon: string; bg: string; text: string }>
   diamond: { icon: '♦', bg: 'bg-red-500', text: 'text-white' },
   heart: { icon: '♥', bg: 'bg-pink-500', text: 'text-white' },
   club: { icon: '♣', bg: 'bg-emerald-600', text: 'text-white' },
-  blackJoker: { icon: '🃏', bg: 'bg-gray-400', text: 'text-gray-800' },
-  colorJoker: { icon: '🃏', bg: 'bg-purple-500', text: 'text-white' },
+  blackJoker: { icon: 'JOKER', bg: 'bg-gray-400', text: 'text-gray-800' },
+  colorJoker: { icon: 'JOKER', bg: 'bg-purple-500', text: 'text-white' },
 };
 
 const CARD_NAMES: Record<WSCardType, string> = {
@@ -83,7 +83,6 @@ function RoundRow({
                 {RESULT_LABELS[pd.result] ?? pd.result}
               </span>
               <div className="text-xs text-gray-400">
-                {streakBefore > 0 && <span className="mr-0.5">🔥</span>}
                 {streakBefore}→{pd.streakAfter}
                 <span className="ml-1.5">최대 {pd.maxStreakAfter}</span>
               </div>

@@ -3,7 +3,7 @@
 export function DualityRevealBadge({ success }: { success: boolean }) {
   return (
     <div className={success ? 'skin-duality-success-badge' : 'skin-duality-fail-badge'}>
-      <span>{success ? '✦' : '◆'}</span>
+      <span>{success ? '' : ''}</span>
       <span>{success ? '성공' : '실패'}</span>
     </div>
   );

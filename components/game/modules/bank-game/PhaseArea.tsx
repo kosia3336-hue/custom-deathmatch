@@ -140,7 +140,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
       return (
         <div ref={ref}>
           <WaitingCard
-            text="✓ 베팅 확정"
+            text="베팅 확정"
             subtext={
               isFirstSubmit
                 ? '상대(후)가 후 베팅 페이즈를 기다리는 중...'

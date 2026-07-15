@@ -50,7 +50,7 @@ export default function RankLeaderRow({
           rank === 1 ? 'text-cdm-highlight' : rank <= 3 ? 'text-cdm-primary' : 'text-cdm-fg-muted'
         }`}
       >
-        {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+        {rank}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">

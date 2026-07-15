@@ -3,7 +3,7 @@
 import { PlayerIdentity } from '@/components/cdm/PlayerIdentity';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import type { SmsRoundScore, SmsSeatPublic } from '@/shared/types/sun-moon-star-event';
-import { SMSE_MARK_ICONS } from '@/shared/types/sun-moon-star-event';
+import { SMSE_MARK_LABELS } from '@/shared/types/sun-moon-star-event';
 
 interface Props {
   seat: SmsSeatPublic;
@@ -50,10 +50,10 @@ export default function SmsSeatChip({ seat, isMe }: Props) {
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-cdm-muted">
         {seat.firstPick && (
-          <span title="1차">{SMSE_MARK_ICONS[seat.firstPick]}</span>
+          <span title="1차">{SMSE_MARK_LABELS[seat.firstPick]}</span>
         )}
         {seat.secondPick && (
-          <span title="2차">{SMSE_MARK_ICONS[seat.secondPick]}</span>
+          <span title="2차">{SMSE_MARK_LABELS[seat.secondPick]}</span>
         )}
         {seat.roundScore !== null && <ScoreBadge score={seat.roundScore} />}
       </div>

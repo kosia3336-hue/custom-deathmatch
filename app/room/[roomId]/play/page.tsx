@@ -12,6 +12,7 @@ import IndianPokerGame from '@/components/game/modules/indian-poker';
 import IndianPokerEventGame from '@/components/game/modules/indian-poker-event';
 import InvestDonateGame from '@/components/game/modules/invest-donate';
 import BettingRpsGame from '@/components/game/modules/betting-rps';
+import QuatroGame from '@/components/game/modules/quatro';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -45,6 +46,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Game,
   [GAME_IDS.SUN_MOON_STAR_EVENT]: SunMoonStarEventGame,
   [GAME_IDS.BANK_GAME]: BankGame,
+  [GAME_IDS.QUATRO]: QuatroGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 

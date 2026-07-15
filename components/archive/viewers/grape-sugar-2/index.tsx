@@ -23,12 +23,12 @@ const CARD_STYLE: Record<GS2CardId, { bg: string; text: string; icon: string }> 
   minus3: { bg: 'bg-rose-100', text: 'text-rose-700', icon: '−3' },
   plus5: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '+5' },
   copy: { bg: 'bg-sky-100', text: 'text-sky-700', icon: '×2' },
-  grapeBless: { bg: 'bg-purple-100', text: 'text-purple-700', icon: '🍇' },
-  earthCrush: { bg: 'bg-amber-100', text: 'text-amber-700', icon: '🌍' },
-  dice: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '🎲' },
-  breath: { bg: 'bg-teal-100', text: 'text-teal-700', icon: '🫁' },
+  grapeBless: { bg: 'bg-purple-100', text: 'text-purple-700', icon: '포도' },
+  earthCrush: { bg: 'bg-amber-100', text: 'text-amber-700', icon: '지구' },
+  dice: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '주사위' },
+  breath: { bg: 'bg-teal-100', text: 'text-teal-700', icon: '숨' },
   highRisk: { bg: 'bg-orange-100', text: 'text-orange-700', icon: '×3' },
-  spaceCrush: { bg: 'bg-indigo-100', text: 'text-indigo-700', icon: '🌌' },
+  spaceCrush: { bg: 'bg-indigo-100', text: 'text-indigo-700', icon: '우주' },
   noAction: { bg: 'bg-gray-100', text: 'text-gray-600', icon: '∅' },
 };
 
@@ -98,7 +98,7 @@ export default function GrapeSugar2Viewer({ record }: Props) {
 
       {/* 카드 사용 통계 */}
       <div className="rounded-xl border border-gray-200 bg-white p-4">
-        <h3 className="mb-3 text-sm font-bold text-gray-700">🃏 카드 사용 통계</h3>
+        <h3 className="mb-3 text-sm font-bold text-gray-700">카드 사용 통계</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {(['p1', 'p2'] as const).map((side) => {
             const usage = gameRecord.cardUsage?.[side] ?? [];
@@ -156,7 +156,7 @@ export default function GrapeSugar2Viewer({ record }: Props) {
       {/* 라운드 기록 */}
       <div className="rounded-xl border border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2 text-sm font-medium text-gray-700">
-          <span>📜 라운드 기록</span>
+          <span>라운드 기록</span>
           <span className="text-xs text-gray-500">
             {activeStage?.extension === 0 ? '본 게임' : `${activeStage?.extension}차 연장`} · 총 {activeStage?.rounds.length ?? 0}R
           </span>
@@ -253,8 +253,6 @@ function RoundCard({
                   <span className={`truncate text-xs font-bold ${isWin ? 'text-emerald-600' : isTie ? 'text-gray-500' : 'text-gray-500'}`}>
                     {playerNicknames[side]}
                   </span>
-                  {isWin && <span className="shrink-0 text-xs">🏆</span>}
-                  {isTie && i === 1 && <span className="shrink-0 text-xs">🤝</span>}
                 </span>
               );
             })}
@@ -278,7 +276,7 @@ function RoundCard({
                   {style.icon}
                 </span>
                 <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                  🍬{a.sugar}→{round.finalRoundSugar[side]}
+                  {a.sugar}→{round.finalRoundSugar[side]}
                 </span>
                 <span className={`text-[10px] font-bold whitespace-nowrap ${delta > 0 ? 'text-emerald-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
                   {delta > 0 ? `+${delta}` : delta}점
@@ -315,25 +313,20 @@ function ResolveStepLine({
 }) {
   const nick = (side: GS2Side) => playerNicknames[side];
   let text = '';
-  let icon = '·';
   let cls = 'text-gray-600';
 
   switch (step.type) {
     case 'reveal':
-      icon = '🎴';
-      text = `공개: ${nick('p1')} ${CARD_NAMES[step.actions.p1.card]}+🍬${step.actions.p1.sugar} | ${nick('p2')} ${CARD_NAMES[step.actions.p2.card]}+🍬${step.actions.p2.sugar}`;
+      text = `공개: ${nick('p1')} ${CARD_NAMES[step.actions.p1.card]}+${step.actions.p1.sugar} | ${nick('p2')} ${CARD_NAMES[step.actions.p2.card]}+${step.actions.p2.sugar}`;
       break;
     case 'cancel':
-      icon = '🌌';
       cls = 'text-indigo-700 font-bold';
       text = `${nick(step.bySide)} 우주뿌셔! → ${nick(step.targetSide)} 무효`;
       break;
     case 'effect':
-      icon = '⚡';
       text = `${nick(step.actor)} ${CARD_NAMES[step.card]}: ${nick(step.targetSide)} 설탕 ${step.before}→${step.after} (${step.op})`;
       break;
     case 'dice':
-      icon = '🎲';
       cls = 'text-yellow-700';
       text = `${nick(step.actor)} 주사위: ${step.roll} (${
         step.branch === 'opp-3' ? '상대 -3'
@@ -342,39 +335,31 @@ function ResolveStepLine({
       })`;
       break;
     case 'final':
-      icon = '🏁';
       cls = 'text-purple-700 font-bold';
-      text = `최종: ${nick('p1')} 🍬${step.roundSugar.p1} vs ${nick('p2')} 🍬${step.roundSugar.p2}`;
+      text = `최종: ${nick('p1')} ${step.roundSugar.p1} vs ${nick('p2')} ${step.roundSugar.p2}`;
       break;
     case 'winner':
-      icon = step.winner === 'tie' ? '🤝' : '🏆';
       cls = 'text-emerald-700 font-bold';
       text = step.winner === 'tie' ? '라운드 무승부' : `${nick(step.winner)} 승 (+1점)`;
       break;
     case 'bless':
-      icon = '🍇';
       text = `${nick(step.actor)} 포도의가호: ${step.outcome === 'win' ? '+2점' : step.outcome === 'loss' ? '-1점' : '무효'}`;
       break;
     case 'diceScore':
-      icon = '🎯';
       text = `${nick(step.actor)} 주사위 5·6 보너스 → ${nick(step.loserBonusTo)} +${step.amount}점`;
       break;
     case 'hrPenaltyScheduled':
-      icon = '⚠️';
       cls = 'text-orange-600';
       text = `${nick(step.actor)} 하이리스크 패배 → 다음 R 시작 시 설탕 ${step.amount}개 이전 예정`;
       break;
     case 'breathExtended':
-      icon = '🫁';
       cls = 'text-teal-700 font-bold';
       text = '숨고르기! 9R로 연장';
       break;
     case 'breathNoEffect':
-      icon = '🚫';
       text = `${nick(step.actor)}의 숨고르기 무효 (${step.reason === 'alreadyExtended' ? '이미 연장됨' : '우주뿌셔!로 무효화'})`;
       break;
     case 'instantWin':
-      icon = '💥';
       cls = 'text-red-700 font-bold';
       text = `${nick(step.winner)} 즉시 승리! (무행동 vs 우주뿌셔!)`;
       break;
@@ -382,7 +367,6 @@ function ResolveStepLine({
 
   return (
     <div className={`flex items-center gap-1.5 text-[11px] ${cls}`}>
-      <span className="shrink-0">{icon}</span>
       <span className="min-w-0">{text}</span>
     </div>
   );

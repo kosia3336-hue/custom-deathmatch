@@ -24,7 +24,7 @@ export default function EventSpectatorPanel({ state }: Props) {
         {state.role === 'queued' ? (
           <>
             <div className="font-bold text-cdm-fg">
-              🎫 대기열 {state.myQueuePosition ?? '-'}번
+              대기열 {state.myQueuePosition ?? '-'}번
             </div>
             <div className="text-xs text-cdm-fg-muted">
               자리가 나면 자동으로 입장합니다. (총 대기 {state.queueLength}명)
@@ -32,14 +32,14 @@ export default function EventSpectatorPanel({ state }: Props) {
           </>
         ) : (
           <>
-            <div className="font-bold text-cdm-fg">👁️ 관전 중</div>
+            <div className="font-bold text-cdm-fg">관전 중</div>
             <div className="text-xs text-cdm-fg-muted">
               칩이 부족해 좌석에 앉지 못합니다. 상점에서 이벤트 칩을 구매하면 자동 대기열에 등록됩니다.
             </div>
           </>
         )}
         <div className="text-xs text-cdm-fg-muted">
-          내 보유 칩: <strong className="text-cdm-fg tabular-nums">🪙 {state.myChipBalance}</strong>
+          내 보유 칩: <strong className="text-cdm-fg tabular-nums">{state.myChipBalance}</strong>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

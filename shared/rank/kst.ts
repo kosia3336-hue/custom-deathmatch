@@ -40,7 +40,11 @@ function isKstWeekend(d = new Date()): boolean {
   return year === 2026 && month === 6 && day === 3;
 }
 
+/** 랭크 시즌 잠금 스위치 — true 면 요일/시간과 무관하게 랭크 큐 닫힘 */
+export const RANK_QUEUE_LOCKED = true;
+
 export function isRankQueueOpen(d = new Date()): boolean {
+  if (RANK_QUEUE_LOCKED) return false;
   if (isKstWeekend(d)) return true;
   const { hour, minute } = getKstHourMinute(d);
   const mins = hour * 60 + minute;

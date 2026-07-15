@@ -185,8 +185,9 @@ export default function TitleGrantButton({
                   type="button"
                   onClick={clearSelection}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cdm-fg-muted hover:text-cdm-fg"
+                  aria-label="지우기"
                 >
-                  ✕
+                  지우기
                 </button>
               )}
             </div>

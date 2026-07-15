@@ -25,7 +25,7 @@ export default function OpponentBox({ opponent, firstSide, showBetCount }: Props
         <div className="flex items-center justify-between gap-2">
           <span className="min-w-0 truncate text-sm font-semibold text-amber-700">
             {opponent.nickname}
-            {isFirst && <span className="ml-1 text-amber-500">👑선</span>}
+            {isFirst && <span className="ml-1 text-amber-500">선</span>}
           </span>
           <span className="text-2xl font-extrabold tabular-nums text-amber-700">
             {opponent.score}점
@@ -35,12 +35,12 @@ export default function OpponentBox({ opponent, firstSide, showBetCount }: Props
           <span className="text-gray-500">잔여</span>
           <span className="text-right">
             <span className="block font-bold tabular-nums text-gray-700">
-              💼 {opponent.inventoryCount}장
+              {opponent.inventoryCount}장
             </span>
             <span className="block text-[10px] tabular-nums text-gray-400">
               {opponent.inventoryAmount != null
                 ? `${formatKRW(opponent.inventoryAmount)}원`
-                : '🔒 비공개'}
+                : '비공개'}
             </span>
           </span>
         </div>
@@ -51,7 +51,7 @@ export default function OpponentBox({ opponent, firstSide, showBetCount }: Props
               <span className="block font-bold tabular-nums text-amber-700">
                 {opponent.publicBetCount}장
               </span>
-              <span className="block text-[10px] text-gray-400">금액 🔒</span>
+              <span className="block text-[10px] text-gray-400">금액</span>
             </span>
           </div>
         )}

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-/** 👑 방장 마크 */
+/** 방장 마크 */
 export function HostMark({ className }: { className?: string }) {
   return (
     <span
@@ -8,12 +8,12 @@ export function HostMark({ className }: { className?: string }) {
       aria-label="방장"
       title="방장"
     >
-      👑
+      방장
     </span>
   );
 }
 
-/** 👁️ 관전자 마크 */
+/** 관전자 마크 */
 export function SpectatorMark({ className }: { className?: string }) {
   return (
     <span
@@ -21,7 +21,7 @@ export function SpectatorMark({ className }: { className?: string }) {
       aria-label="관전자"
       title="관전자"
     >
-      👁️
+      관전자
     </span>
   );
 }
@@ -38,7 +38,7 @@ export function MeLabel({ className }: { className?: string }) {
   );
 }
 
-/** ⚡ 재연결 중 마크 (옵션 카운트다운) */
+/** 재연결 중 마크 (옵션 카운트다운) */
 export function ReconnectingMark({
   seconds,
   className,
@@ -52,7 +52,6 @@ export function ReconnectingMark({
       aria-live="polite"
       aria-label={`재연결 중${typeof seconds === 'number' ? ` ${seconds}초 남음` : ''}`}
     >
-      <span aria-hidden>⚡</span>
       <span>재연결 중{typeof seconds === 'number' ? ` ${seconds}s` : ''}</span>
     </span>
   );

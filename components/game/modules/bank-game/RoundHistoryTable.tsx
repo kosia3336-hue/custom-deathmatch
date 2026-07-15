@@ -132,16 +132,13 @@ function PlayerRow({
     <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 ${rowBg}`}>
       <span className={`min-w-0 flex-1 truncate font-bold ${labelColor}`}>
         {isMe ? '나' : nickname}
-        {isFirst && <span className="ml-0.5 text-amber-500">👑</span>}
-        {isWinner && <span className="ml-0.5">🏆</span>}
       </span>
       <span className="shrink-0 tabular-nums text-gray-700 font-semibold">
         {count}장
       </span>
-      {auto && <span className="shrink-0 text-amber-600">⚠</span>}
       <span className="ml-auto shrink-0 tabular-nums">
         {amount == null ? (
-          <span className="text-gray-400">🔒</span>
+          <span className="text-gray-400" />
         ) : (
           <span className="font-extrabold text-rose-700">{formatKRW(amount)}원</span>
         )}

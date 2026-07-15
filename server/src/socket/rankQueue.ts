@@ -6,7 +6,8 @@ import { ensureRankStatsRow } from '../db/rankStats.js';
 import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '../rank/kst.js';
 import { startGame } from './game.js';
 import { socketRoom, emitRoomStateToRoom } from './utils.js';
-import type { Player } from '@shared/types/room.js';
+import type { Player, DisplayedTitle } from '@shared/types/room.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import type { IO, TypedSocket } from './types.js';
 import { applyAutoConsumablesForRankRoom } from '../shop/applyAutoConsumables.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
@@ -43,6 +44,29 @@ function buildPlayer(socketId: string, isHost: boolean): Player | null {
   };
 }
 
+/** DB 에서 최신 표시 칭호를 읽는다 — 소켓 세션 캐시가 오래됐을 수 있어 매칭 시점에 갱신 */
+async function fetchFreshDisplayedTitle(memberId: string): Promise<DisplayedTitle | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const sb = getSupabaseAdmin();
+    const { data: m } = await sb
+      .from('members')
+      .select('displayed_title_id')
+      .eq('id', memberId)
+      .maybeSingle();
+    const titleId = (m as { displayed_title_id?: string | null } | null)?.displayed_title_id;
+    if (!titleId) return null;
+    const { data: t } = await sb
+      .from('titles')
+      .select('id, name, color, effect')
+      .eq('id', titleId)
+      .maybeSingle();
+    return (t as DisplayedTitle | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createRankMatchedRoom(
   io: IO,
   hostEntry: RankQueueEntry,
@@ -52,6 +76,16 @@ export async function createRankMatchedRoom(
   const hostPlayer = buildPlayer(hostEntry.socketId, true);
   const guestPlayer = buildPlayer(guestEntry.socketId, false);
   if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
+
+  // 표시 칭호를 DB 기준으로 갱신 — 웹에서 칭호 변경 후 소켓 세션이 낡은 값을 들고 있는 문제 방지
+  const [hostTitle, guestTitle] = await Promise.all([
+    fetchFreshDisplayedTitle(hostPlayer.memberId),
+    fetchFreshDisplayedTitle(guestPlayer.memberId),
+  ]);
+  hostPlayer.displayedTitle = hostTitle;
+  guestPlayer.displayedTitle = guestTitle;
+  sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id));
+  sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id));
 
   const room = roomStore.create({
     title: `[랭크] ${hostPlayer.nickname} vs ${guestPlayer.nickname}`,

@@ -101,11 +101,6 @@ export default function IndianPokerGame() {
             showShuffle ? 'scale-100' : 'scale-90'
           }`}
         >
-          <div className="flex items-end gap-1">
-            <span className="text-5xl">🃏</span>
-            <span className="mb-1 text-3xl opacity-60">🃏</span>
-            <span className="mb-2 text-xl opacity-30">🃏</span>
-          </div>
           <div>
             <p className="text-2xl font-bold tracking-wide">카드를 셔플합니다</p>
             <p className="mt-1 text-sm text-indigo-300">앤티 {shuffleAnte}개로 인상됩니다</p>
@@ -143,7 +138,7 @@ export default function IndianPokerGame() {
 
           <div className="text-center">
             <span className="rounded-full bg-amber-100 px-4 py-1 text-sm font-bold text-amber-800 lg:text-base">
-              💰 팟: {gameData.pot}
+              팟: {gameData.pot}
             </span>
           </div>
 

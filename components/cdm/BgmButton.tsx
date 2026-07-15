@@ -20,7 +20,7 @@ export function BgmButton({ className }: Props) {
       aria-pressed={!muted}
       title={muted ? '배경음악 켜기' : '배경음악 끄기'}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-cdm-md text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 hover:text-cdm-fg sm:h-8 sm:w-8',
+        'inline-flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 hover:text-cdm-fg',
         className,
       )}
     >

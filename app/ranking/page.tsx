@@ -220,7 +220,7 @@ export default async function RankingPage({ searchParams }: Props) {
                               : 'text-cdm-fg-muted'
                         }`}
                       >
-                        {r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank}
+                        {r.rank}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Card } from '@/components/cdm/Card';
 import { getServerSupabase } from '@/lib/supabase/server';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import InventoryCard from './InventoryCard';
 
 interface Props {
@@ -36,8 +37,8 @@ export default async function ShopTab({ memberId }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-cdm-fg-muted">
               보유 CDP
             </p>
-            <p className="mt-1 text-3xl font-bold text-cdm-fg sm:text-4xl">
-              <span aria-hidden className="mr-2">{CDP_ICON}</span>
+            <p className="mt-1 flex items-center gap-2 text-3xl font-bold text-cdm-fg sm:text-4xl">
+              <CdpIcon size={30} />
               <span className="tabular-nums">{formatCdp(balance)}</span>
             </p>
             <p className="mt-1 text-xs text-cdm-fg-muted">

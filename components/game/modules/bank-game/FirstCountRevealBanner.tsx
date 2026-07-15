@@ -37,7 +37,6 @@ export default function FirstCountRevealBanner({
       } ${pulse ? 'animate-[bankBannerPop_0.6s_ease-out]' : ''}`}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <span className="text-2xl">👑</span>
         <div className="min-w-0">
           <p className="truncate text-xs font-bold text-amber-700 lg:text-sm">
             {firstNick} (선) 제출 완료

@@ -53,7 +53,7 @@ export default function GameLogView({
   const resultLabel = isDraw
     ? '무승부'
     : winner
-      ? `${winner.nickname} 승리 ⭐`
+      ? `${winner.nickname} 승리`
       : '게임 종료';
 
   const accent = isDraw ? 'highlight' : winner ? 'accent' : 'primary';
@@ -138,7 +138,7 @@ function PlayerCard({
     : isDraw
       ? '무승부'
       : player.isWinner
-        ? '승리 ⭐'
+        ? '승리'
         : '패배';
 
   const resultColor = player.isResign || (!isDraw && !player.isWinner)

@@ -35,9 +35,6 @@ export default function FinalResult({
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-indigo-300 bg-linear-to-br from-indigo-50 via-violet-50 to-fuchsia-50 p-5 text-center shadow-lg">
-      <span className="text-5xl">
-        {finalWinner === 'draw' ? '🤝' : '🏆'}
-      </span>
       <p className="text-xl font-bold text-indigo-900">{winnerLabel}</p>
       <p className="text-sm tabular-nums text-indigo-700">
         최종 {players.p1.score} - {players.p2.score}
@@ -63,7 +60,6 @@ export default function FinalResult({
               <div className="flex items-center justify-between">
                 <span className="truncate text-xs font-bold text-gray-700">
                   {isMe ? '나' : p.nickname}
-                  {isWinner && <span className="ml-1">🏆</span>}
                 </span>
                 <span className="text-xl font-extrabold tabular-nums text-gray-800">
                   {p.score}점
@@ -88,7 +84,7 @@ export default function FinalResult({
       </div>
 
       <p className="mt-2 text-[11px] text-indigo-600">
-        📊 기록실에서 모든 라운드의 승자 금액·상대 인벤토리를 확인하세요
+        기록실에서 모든 라운드의 승자 금액·상대 인벤토리를 확인하세요
       </p>
     </div>
   );

@@ -78,7 +78,7 @@ export default function ResultPanel({ resultData, players, round, winner, winTyp
                   <span className={`text-xs font-bold ${
                     pr.suspectSuccess ? 'text-violet-600' : 'text-red-500'
                   }`}>
-                    {pr.suspectSuccess ? '🎯 배수의심 성공' : '✗ 배수의심 실패'}
+                    {pr.suspectSuccess ? '배수의심 성공' : '배수의심 실패'}
                   </span>
                 ) : (
                   <span className="text-xs text-gray-400">—</span>

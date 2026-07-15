@@ -35,7 +35,7 @@ export default function OpponentInventoryTracker() {
   return (
     <div className="space-y-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-600">🔍 상대 잔여 추리</p>
+        <p className="text-sm font-semibold text-gray-600">상대 잔여 추리</p>
         <button
           type="button"
           onClick={() => setSpent(buildInitial())}

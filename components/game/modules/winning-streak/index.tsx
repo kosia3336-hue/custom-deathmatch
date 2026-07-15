@@ -178,7 +178,6 @@ export default function WinningStreakGame() {
               />
             ) : isCardSelect ? (
               <div className="flex flex-col items-center gap-2 text-gray-400">
-                <span className="text-5xl">⚔️</span>
                 <span className="text-base font-semibold lg:text-lg">
                   라운드 {gameData.round} / {WS_TOTAL_ROUNDS}
                 </span>
@@ -192,7 +191,6 @@ export default function WinningStreakGame() {
               </div>
             ) : isFinished ? (
               <div className="text-center">
-                <span className="text-5xl">🏆</span>
                 <p className="mt-2 text-xl font-bold text-gray-800 lg:text-2xl">
                   {gameData.winner
                     ? `${gameData.players[gameData.winner]?.nickname} 승리!`
@@ -311,15 +309,12 @@ function PlayerBar({ player, label, isMe }: { player: WSPlayerInfo; label: strin
       <span className="text-xs text-gray-400 shrink-0">{label}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 lg:gap-4">
         <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="text-orange-500 text-sm">🔥</span>
           <span className="font-bold text-gray-800 text-xs lg:text-base">{player.currentStreak}연승</span>
         </span>
         <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="text-yellow-500 text-sm">⭐</span>
           <span className="font-bold text-gray-800 text-xs lg:text-base">최대 {player.maxStreak}</span>
         </span>
         <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="text-emerald-500 text-sm">✓</span>
           <span className="font-bold text-gray-800 text-xs lg:text-base">{player.totalWins}승</span>
         </span>
       </div>
@@ -358,7 +353,6 @@ function CardRow({
             >
               <span>{style.icon}</span>
               <span className="font-mono font-bold">×{count}</span>
-              {isLocked && !isEmpty && <span>🔒</span>}
             </div>
           );
         })}
@@ -384,7 +378,7 @@ function MyCardHand({
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3 lg:p-5">
       <p className="mb-3 text-sm font-medium text-gray-500 lg:text-base">
-        {submitted ? '✅ 제출 완료 — 상대를 기다리는 중...' : '카드를 눌러 선택하세요'}
+        {submitted ? '제출 완료 — 상대를 기다리는 중...' : '카드를 눌러 선택하세요'}
       </p>
       <div className="flex flex-wrap justify-center gap-2 lg:gap-4">
         {entries.map(({ type, count }) => {
@@ -412,9 +406,6 @@ function MyCardHand({
               <span className="mt-1 text-[10px] sm:text-xs lg:text-base font-semibold leading-tight text-center px-0.5">
                 {CARD_NAMES[type]}
               </span>
-              {isLocked && (
-                <span className="absolute top-1 right-1 text-xs">🔒</span>
-              )}
             </button>
           ));
         })}
@@ -517,10 +508,10 @@ function RevealArea({
             return (
               <div key={pid} className="flex flex-col items-center gap-0.5 text-sm">
                 {pr.streakAfter > 0
-                  ? <span className="text-orange-500 font-bold">{pr.streakAfter}연승 🔥</span>
+                  ? <span className="text-orange-500 font-bold">{pr.streakAfter}연승</span>
                   : <span className="text-gray-400 text-xs">연승 리셋</span>}
                 {pr.maxStreakUpdated && (
-                  <span className="text-yellow-500 font-bold text-xs lg:text-sm">⭐ 최대 연승 갱신!</span>
+                  <span className="text-yellow-500 font-bold text-xs lg:text-sm">최대 연승 갱신!</span>
                 )}
               </div>
             );

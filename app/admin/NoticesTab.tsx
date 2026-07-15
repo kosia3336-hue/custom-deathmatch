@@ -114,7 +114,7 @@ export default async function NoticesTab({ page: pageParam }: { page: string | u
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {row.is_pinned && (
-                      <span aria-label="상단 고정" title="상단 고정" className="text-cdm-primary">
+                      <span aria-label="상단 고정" title="상단 고정" className="text-cdm-fg">
                         📌
                       </span>
                     )}

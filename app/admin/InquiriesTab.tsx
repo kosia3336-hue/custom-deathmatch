@@ -1,3 +1,4 @@
+import { fetchAttachments } from '@/lib/support/attachments';
 import { Card } from '@/components/cdm/Card';
 import { InquiryStatusChip } from '@/components/cdm/StatusChip';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -68,6 +69,7 @@ export default async function InquiriesTab({
 
   const res = await q.order('created_at', { ascending: false }).range(from, to);
   const rows = (res.data ?? []) as unknown as Row[];
+  const attachments = await fetchAttachments('inquiry', rows.map((r) => r.id));
   const totalCount = res.count ?? 0;
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
@@ -105,6 +107,16 @@ export default async function InquiriesTab({
             </span>
           </div>
           <p className="mt-2 whitespace-pre-wrap text-sm text-cdm-fg">{q.body}</p>
+          {(attachments[q.id]?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {attachments[q.id]!.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`첨부 ${i + 1}`} className="h-24 w-24 rounded-cdm-md border border-cdm-border object-cover hover:opacity-90" />
+                </a>
+              ))}
+            </div>
+          )}
           {q.answer_body && (
             <div className="mt-2 rounded-cdm-md bg-cdm-success-soft p-2">
               <p className="text-[11px] font-bold text-[#15803d]">답변</p>

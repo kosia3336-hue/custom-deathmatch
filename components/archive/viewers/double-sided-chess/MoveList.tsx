@@ -11,8 +11,8 @@ interface Props {
 }
 
 const PLAYER_ICON: Record<'first' | 'second', string> = {
-  first: '🔴',
-  second: '🔵',
+  first: '선공',
+  second: '후공',
 };
 
 export default function MoveList({ actions, currentFrame, onSelectFrame }: Props) {

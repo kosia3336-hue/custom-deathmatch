@@ -61,13 +61,13 @@ function RoundRow({
               </span>
               {pd.suspected ? (
                 <span className={pd.suspectSuccess ? 'text-emerald-600' : 'text-red-500'}>
-                  {pd.suspectSuccess ? '✅ 의심 성공' : '❌ 의심 실패'}
+                  {pd.suspectSuccess ? '의심 성공' : '의심 실패'}
                 </span>
               ) : (
                 <span className="text-gray-300">—</span>
               )}
               {pd.bonusPoint > 0 && (
-                <span className="text-amber-500">★ +{pd.bonusPoint}보너스</span>
+                <span className="text-amber-500">+{pd.bonusPoint}보너스</span>
               )}
             </div>
 

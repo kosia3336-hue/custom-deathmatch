@@ -159,7 +159,7 @@ export default async function RankTab({
       {/* 시즌 전적 */}
       <Card variant="highlight" accent="accent">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold text-cdm-fg-muted">🏆 시즌 전적</h2>
+          <h2 className="text-sm font-semibold text-cdm-fg-muted">시즌 전적</h2>
           <RankSeasonSelect seasons={seasonList} selectedSeasonId={selectedSeasonId} />
         </div>
 

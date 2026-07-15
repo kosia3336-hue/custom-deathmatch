@@ -44,11 +44,10 @@ export default function EventLobbyControls() {
       type="button"
       variant="secondary"
       disabled={joining}
-      className="border-cdm-primary/40 bg-cdm-primary/10 text-cdm-fg hover:bg-cdm-primary/20"
       onClick={handleClick}
     >
-      <span className="hidden sm:inline">🎴 이벤트 게임</span>
-      <span className="sm:hidden">🎴 이벤트 게임</span>
+      <span className="hidden sm:inline">이벤트 게임</span>
+      <span className="sm:hidden">이벤트 게임</span>
     </Button>
   );
 }

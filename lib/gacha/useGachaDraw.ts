@@ -20,7 +20,7 @@ export function useGachaDraw() {
   const [result, setResult] = useState<GachaDrawResult | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const draw = useCallback(async (reducedMotion: boolean): Promise<GachaDrawResult | null> => {
+  const draw = useCallback(async (reducedMotion: boolean, useTicket = false): Promise<GachaDrawResult | null> => {
     if (busy) return null;
     setBusy(true);
     setPhase('drawing');
@@ -34,7 +34,7 @@ export function useGachaDraw() {
         fetch('/api/shop/gacha/draw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gachaId: 'default' }),
+          body: JSON.stringify({ gachaId: 'default', useTicket }),
         }),
         minDelay(minMs),
       ]);

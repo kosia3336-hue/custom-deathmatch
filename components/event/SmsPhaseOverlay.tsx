@@ -77,28 +77,28 @@ function buildOverlay(phase: SmsPhase, isPlayer: boolean): OverlayState | null {
     case 'pickFirst':
       return {
         key: 'pickFirst',
-        title: isPlayer ? '☀️ 1차 선택' : '1차 선택',
+        title: isPlayer ? '1차 선택' : '1차 선택',
         subtitle: isPlayer ? '해 · 달 · 별 중 하나 (점수 없음)' : '모든 플레이어가 동시에 선택합니다',
         accent: 'indigo',
       };
     case 'pickSecond':
       return {
         key: 'pickSecond',
-        title: isPlayer ? '✨ 2차 선택' : '2차 선택',
+        title: isPlayer ? '2차 선택' : '2차 선택',
         subtitle: isPlayer ? '불빛에 맞춰 점수를 획득하세요' : '2차 선택으로 불빛이 결정됩니다',
         accent: 'amber',
       };
     case 'resolveFirst':
       return {
         key: 'resolveFirst',
-        title: '☀️ 1차 집계',
+        title: '1차 집계',
         subtitle: '각 표식 선택 수 확인 (불빛·점수 없음)',
         accent: 'indigo',
       };
     case 'resolve':
       return {
         key: 'resolve',
-        title: '✨ 불빛 판정',
+        title: '불빛 판정',
         subtitle: '2차 최소 표식에 불빛이 켜집니다',
         accent: 'violet',
       };

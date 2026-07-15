@@ -32,14 +32,14 @@ export default function MobileHeader({
           </span>
         )}
         <span className="min-w-0 flex-1 truncate text-right text-[11px] text-amber-600">
-          {firstNick} 선 👑
+          {firstNick} 선
         </span>
       </div>
       {loserAmountTotal > 0 && (
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-gray-500">누적 패자 금액</span>
           <span className="text-[11px] font-bold tabular-nums text-rose-700">
-            💰 {formatKRW(loserAmountTotal)}원
+            {formatKRW(loserAmountTotal)}원
           </span>
         </div>
       )}

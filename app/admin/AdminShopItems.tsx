@@ -7,7 +7,7 @@ import { Card } from '@/components/cdm/Card';
 import { EmptyState } from '@/components/cdm/EmptyState';
 import { Modal } from '@/components/cdm/Modal';
 import { TextInput } from '@/components/cdm/TextInput';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
 import { labelForType } from '@/lib/cdp/types';
 
 interface ShopItemAdminRow {
@@ -130,13 +130,13 @@ export default function AdminShopItems() {
                       )}
                       {it.is_limited && (
                         <span className="rounded-full bg-cdm-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                          🔥 한정
+                          한정
                         </span>
                       )}
                       <span className="text-sm font-semibold text-cdm-fg">{it.name}</span>
                     </div>
                     <p className="mt-1 text-xs text-cdm-fg-subtle tabular-nums">
-                      {CDP_ICON} {formatCdp(it.price)} · 재고{' '}
+                      {formatCdp(it.price)} · 재고{' '}
                       {it.stock === null ? '무제한' : it.stock}
                     </p>
                   </div>

@@ -73,7 +73,7 @@ export default function DesktopLayout({ ctx }: Props) {
               )}
             </div>
             <div className="mt-0.5 text-sm text-amber-600">
-              {firstPlayer.nickname} 선 👑
+              {firstPlayer.nickname} 선
             </div>
           </div>
 

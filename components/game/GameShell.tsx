@@ -13,6 +13,7 @@ import Modal from '@/components/ui/Modal';
 import ChatButton from '@/components/room/ChatButton';
 import { BgmButton } from '@/components/cdm/BgmButton';
 import { ReportModal } from '@/components/cdm/ReportModal';
+import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { formatTime, cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal } from '@/shared/types/events';
@@ -51,7 +52,7 @@ function CountdownTimer() {
         !isWarning && !isDanger && !isCritical && 'text-cdm-fg-muted',
       )}
     >
-      ⏱ {display}
+      {display}
     </span>
   );
 }
@@ -73,6 +74,7 @@ export default function GameShell({ children }: Props) {
   const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
   const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
   const [undoWaiting, setUndoWaiting] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
   const gameStateSigRef = useRef<string | null>(null);
@@ -112,12 +114,15 @@ export default function GameShell({ children }: Props) {
       <>
         {isRankedRoom && (
           <span className="rounded-cdm-md bg-cdm-highlight/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-cdm-highlight">
-            🏆 랭크
+            랭크
           </span>
         )}
         <CountdownTimer />
         {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
         <BgmButton />
+        <Button size="sm" variant="ghost" onClick={() => setShowRules(true)}>
+          룰
+        </Button>
         <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
         <Button size="sm" variant="ghost" onClick={() => { setLeaveMode('leave'); setShowLeave(true); }}>
           나가기
@@ -246,7 +251,7 @@ export default function GameShell({ children }: Props) {
               onClick={() => setShowPlayers(true)}
               className="min-h-11 px-1 text-xs text-cdm-fg-muted transition-colors hover:text-cdm-fg sm:min-h-0"
             >
-              👁️ {room.spectators.length}명 관전 중
+              {room.spectators.length}명 관전 중
             </button>
           )}
         </div>
@@ -263,7 +268,6 @@ export default function GameShell({ children }: Props) {
         {reconnectingPlayers.length > 0 && (
           <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-sm rounded-cdm-xl bg-cdm-bg p-6 text-center shadow-(--cdm-shadow-lg)">
-              <div className="mb-3 text-4xl">⚡</div>
               {reconnectingPlayers.length === 1 ? (
                 <>
                   <h3 className="mb-1 text-lg font-bold text-cdm-fg">
@@ -303,13 +307,18 @@ export default function GameShell({ children }: Props) {
         )}
       </div>
 
+      <GameRulesModal
+        gameId={room?.gameId ?? null}
+        open={showRules}
+        onClose={() => setShowRules(false)}
+      />
+
       <Modal open={showPlayers} onClose={() => setShowPlayers(false)} title="참여자 목록" className="w-full max-w-xs">
         <ul className="space-y-2">
           {room?.players.map((p) => (
             <li key={p.id} className="flex items-center gap-2 text-sm text-cdm-fg">
               <span className="h-2 w-2 rounded-full bg-cdm-primary shrink-0" />
               <span className="flex-1">{p.nickname}</span>
-              {p.isHost && <span className="text-xs text-cdm-highlight">👑</span>}
               {p.memberId && p.nickname !== nickname && (
                 <button
                   type="button"

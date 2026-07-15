@@ -91,7 +91,6 @@ export function RankQueueModal({ open, onClose, onMinimize }: Props) {
           </div>
         )}
 
-        <p className="text-4xl">🏆</p>
         <p className="text-sm text-cdm-fg-muted">상대를 찾는 중입니다.</p>
         <p className="text-2xl font-bold tabular-nums text-cdm-fg">{fmtElapsed(elapsedSec)}</p>
         <p className="text-sm font-medium text-cdm-fg">{nickname}</p>

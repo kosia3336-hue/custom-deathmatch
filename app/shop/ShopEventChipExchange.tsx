@@ -61,7 +61,7 @@ export default function ShopEventChipExchange() {
       setCdpBalance(Number(j.newCdpBalance ?? 0));
       setChipsInput('10');
       toast.success(
-        `🪙 -${j.chipsExchanged}칩 → +${formatCdp(Number(j.returnedCdp ?? 0))} CDP (수수료 ${formatCdp(Number(j.feeCdp ?? 0))})`,
+        `-${j.chipsExchanged}칩 → +${formatCdp(Number(j.returnedCdp ?? 0))} CDP (수수료 ${formatCdp(Number(j.feeCdp ?? 0))})`,
       );
     } catch {
       toast.error('네트워크 오류가 발생했습니다.');
@@ -74,13 +74,13 @@ export default function ShopEventChipExchange() {
     <Card variant="default" className="flex flex-col gap-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h3 className="text-base font-bold text-cdm-fg sm:text-lg">🔄 이벤트 칩 환전</h3>
+          <h3 className="text-base font-bold text-cdm-fg sm:text-lg">이벤트 칩 환전</h3>
           <p className="text-xs text-cdm-fg-muted">
             1칩 = 5 CDP · 10% 수수료 · 최소 10칩부터
           </p>
         </div>
         <div className="text-sm tabular-nums text-cdm-fg-muted">
-          보유 칩 <strong className="text-cdm-fg">🪙 {current}</strong>
+          보유 칩 <strong className="text-cdm-fg">{current}</strong>
         </div>
       </div>
 

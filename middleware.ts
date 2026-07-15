@@ -27,7 +27,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
     pathname === '/robots.txt' ||
-    pathname === '/sitemap.xml'
+    pathname === '/sitemap.xml' ||
+    // OG/트위터 카드 이미지 — 크롤러는 쿠키가 없어 로그인 리다이렉트되면 미리보기가 깨진다
+    pathname.startsWith('/opengraph-image') ||
+    pathname.startsWith('/twitter-image') ||
+    pathname.startsWith('/icon')
   ) {
     return NextResponse.next();
   }
@@ -49,6 +53,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/ranking') ||
       pathname.startsWith('/notice') ||
       pathname.startsWith('/titles') ||
+      pathname.startsWith('/rules') ||
       pathname.startsWith('/support/inquiry');
 
     if (isPublic) return response;
@@ -165,6 +170,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|wav|ogg|ico|woff|woff2|ttf)$).*)',
   ],
 };

@@ -18,7 +18,7 @@ export default function NumberSelector({ submitted, currentSide, isSpectator }: 
   if (submitted) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8">
-        <div className="text-green-600 font-medium">넘버 선택 완료 ✓</div>
+        <div className="text-green-600 font-medium">넘버 선택 완료</div>
         <div className="animate-pulse text-gray-400">●  ●  ●</div>
         <p className="text-sm text-gray-500">상대의 넘버 선택을 기다리는 중...</p>
       </div>

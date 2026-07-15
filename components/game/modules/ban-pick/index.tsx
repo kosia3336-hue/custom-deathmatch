@@ -359,12 +359,12 @@ function GameCard({
       </span>
       {ban && (
         <span className={cn('mt-0.5 text-xs', isClickableForUnban ? 'text-emerald-600' : 'text-gray-400')}>
-          {ban.isTimeout ? '⏱ 자동 · ' : ''}{bannedByLabel} 밴
+          {ban.isTimeout ? '자동 · ' : ''}{bannedByLabel} 밴
           {isClickableForUnban && ' · 클릭하여 취소'}
         </span>
       )}
       {isPickedByLottery && (
-        <span className="mt-0.5 text-xs font-semibold text-yellow-600">⭐ 선택됨</span>
+        <span className="mt-0.5 text-xs font-semibold text-yellow-600">선택됨</span>
       )}
       {opponentStat && !ban && !isPickedByLottery && (
         <span className={cn('mt-0.5 text-[10px] font-medium', winRateColor)}>
@@ -606,7 +606,7 @@ export default function BanPickGame() {
     room?.isRanked === true ? (
       <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center">
         <span className="text-[11px] font-semibold text-amber-900">
-          🏆 랭크 게임 · {firstName} vs {secondName}
+          랭크 게임 · {firstName} vs {secondName}
         </span>
       </div>
     ) : null;
@@ -645,7 +645,7 @@ export default function BanPickGame() {
           {isMyUnbanTurn ? (
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-semibold text-emerald-700">
-                🧹 밴 삭제 — 상대 밴을 1개 취소할 수 있어요
+                밴 삭제 — 상대 밴을 1개 취소할 수 있어요
               </span>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -818,7 +818,7 @@ export default function BanPickGame() {
                     <p className="mb-1 text-xs text-yellow-600">
                       {data.games.filter((g) => !bannedSet.has(g.id)).length}개 게임 중 추첨
                     </p>
-                    <p className="text-lg font-bold text-yellow-700">⭐ {pickedGame.name}</p>
+                    <p className="text-lg font-bold text-yellow-700">{pickedGame.name}</p>
                     <p className="mt-0.5 text-xs text-yellow-600">
                       {pickedGame.name}{getKoreanSubjectParticle(pickedGame.name)} 추첨되었습니다!
                     </p>
@@ -941,7 +941,7 @@ export default function BanPickGame() {
                 <p className="mb-1 text-xs text-gray-400 text-center">
                   {data.games.filter((g) => !bannedSet.has(g.id)).length}개 중 추첨
                 </p>
-                <p className="mb-1 text-center text-base font-bold text-yellow-700">⭐ {pickedGame.name}</p>
+                <p className="mb-1 text-center text-base font-bold text-yellow-700">{pickedGame.name}</p>
                 <p className="mb-3 text-center text-xs text-yellow-600">
                   {pickedGame.name}{getKoreanSubjectParticle(pickedGame.name)} 추첨되었습니다!
                 </p>

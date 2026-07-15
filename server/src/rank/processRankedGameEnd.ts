@@ -28,6 +28,8 @@ import { persistGameEndLog } from '../socket/gameEndPersistence.js';
 import type { IO } from '../socket/types.js';
 import { sessions } from '../store/sessions.js';
 import { grantCdpForRankMatch } from '../cdp/grantCdpForRankMatch.js';
+import { grantGuildPoints, GUILD_POINTS } from '../guild/grantGuildPoints.js';
+import { claimDailyRankWin } from '../cdp/claimDailyRankWin.js';
 import { computeWinLossInputs, makeDrawInput } from '../cdp/calc.js';
 
 interface MutableStats {
@@ -410,6 +412,28 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
   }
 
+  // 길드 포인트 적립 (길드 미가입자는 RPC 내부 no-op)
+  try {
+    if (ctx.isDraw) {
+      await grantGuildPoints([
+        { memberId: ctx.idA, amount: GUILD_POINTS.rankDraw, reason: 'rank_draw', ref: gameLogId },
+        { memberId: ctx.idB, amount: GUILD_POINTS.rankDraw, reason: 'rank_draw', ref: gameLogId },
+      ]);
+    } else if (ctx.cdpWinnerId && ctx.cdpLoserId) {
+      await grantGuildPoints([
+        { memberId: ctx.cdpWinnerId, amount: GUILD_POINTS.rankWin, reason: 'rank_win', ref: rankMatchId },
+        { memberId: ctx.cdpLoserId, amount: GUILD_POINTS.rankLoss, reason: 'rank_loss', ref: rankMatchId },
+      ]);
+    }
+  } catch (err) {
+    console.warn('[guild:points] 적립 실패(무시):', (err as Error).message);
+  }
+
+  // #3 일일 랭크 승리 보너스 (하루 첫 승리 1회 100 CDP) — 승자만, 무승부 제외
+  if (!ctx.isDraw && ctx.cdpWinnerId) {
+    void claimDailyRankWin(io, ctx.cdpWinnerId);
+  }
+
   // ── 히든 칭호 훅 (천공의 주인 · 심연의 수문장) ────────────────────────
   // rank_match_history 저장 완료 후 호출하므로 이번 판도 포함된다.
   // 승패/무승부 무관하게 두 참가자 모두 체크한다.
@@ -543,16 +567,23 @@ export async function finalizeRankedMultiGameEnd(
     winnerGain = parts.winnerGain;
     loserLoss = parts.loserLoss;
 
+    // 챌린저·다이아 패배 시 RP 차감 없음 (패널티 삭제)
+    // loserLoss=0 이면 applyRankLoss 가 RP 유지 + 강등 없이 처리한다.
+    const loserNoPenalty = loserStats.tier === 'challenger' || loserStats.tier === 'diamond';
+    if (loserNoPenalty) loserLoss = 0;
+
     const winBr = {
       parityReference: 20,
       tierVersusParity: parts.winnerBaseTable - 20,
       streakVersusParity: parts.winnerStreakBonus,
     };
-    const loseBr = {
-      parityReference: -20,
-      tierVersusParity: -(parts.loserBaseTable - 20),
-      streakVersusParity: -parts.loserStreakPenalty,
-    };
+    const loseBr = loserNoPenalty
+      ? { parityReference: 0, tierVersusParity: 0, streakVersusParity: 0 }
+      : {
+          parityReference: -20,
+          tierVersusParity: -(parts.loserBaseTable - 20),
+          streakVersusParity: -parts.loserStreakPenalty,
+        };
 
     if (beforeWinnerPlacementDone && beforeLoserPlacementDone) {
       rpBreakdownA = idA === winnerPl.memberId ? winBr : loseBr;

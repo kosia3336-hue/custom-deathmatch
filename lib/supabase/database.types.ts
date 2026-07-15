@@ -51,7 +51,10 @@ export type ConsumableKind =
   | 'spectator_lock'
   | 'anonymity'
   | 'magnifier'
-  | 'ban_eraser';
+  | 'ban_eraser'
+  | 'gacha_box'
+  | 'gacha_ticket'
+  | 'guild_charter';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입
@@ -370,6 +373,65 @@ export interface CdpLedgerRow {
   created_at: string;
 }
 
+// 게임 룰 텍스트 (db/game_rule_texts.sql)
+export interface GameRuleTextRow {
+  game_id: string;
+  rules: string;
+  source: string;
+  origin_url: string;
+  original_author: string;
+  poster: string;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+// 첨부 파일 (db/attach_files.sql) — 문의/신고 스크린샷
+export interface AttachFileRow {
+  id: string;
+  member_id: string;
+  target_kind: 'inquiry' | 'report' | null;
+  target_id: string | null;
+  url: string;
+  created_at: string;
+}
+
+// 길드 시스템 (db/guilds.sql)
+export interface GuildRow {
+  id: string;
+  name: string;
+  description: string;
+  owner_id: string;
+  capacity: number;
+  points: number;
+  created_at: string;
+}
+
+export interface GuildMemberRow {
+  guild_id: string;
+  member_id: string;
+  role: 'owner' | 'member';
+  joined_at: string;
+}
+
+export interface GuildJoinRequestRow {
+  id: string;
+  guild_id: string;
+  member_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'canceled';
+  created_at: string;
+  decided_at: string | null;
+}
+
+export interface GuildPointLedgerRow {
+  id: number;
+  guild_id: string;
+  member_id: string | null;
+  delta: number;
+  reason: string;
+  ref: string | null;
+  created_at: string;
+}
+
 export interface ShopItemRow {
   id: string;
   type: string;
@@ -517,6 +579,36 @@ export interface Database {
         Row: ShopConsumableUsesRow;
         Insert: Omit<ShopConsumableUsesRow, 'id' | 'used_at'> & { id?: string; used_at?: string };
         Update: Partial<ShopConsumableUsesRow>;
+      };
+      game_rule_texts: {
+        Row: GameRuleTextRow;
+        Insert: Partial<GameRuleTextRow> & { game_id: string };
+        Update: Partial<GameRuleTextRow>;
+      };
+      attach_files: {
+        Row: AttachFileRow;
+        Insert: Partial<AttachFileRow> & { member_id: string; url: string };
+        Update: Partial<AttachFileRow>;
+      };
+      guilds: {
+        Row: GuildRow;
+        Insert: Partial<GuildRow> & { name: string; owner_id: string };
+        Update: Partial<GuildRow>;
+      };
+      guild_members: {
+        Row: GuildMemberRow;
+        Insert: Omit<GuildMemberRow, 'joined_at'> & { joined_at?: string };
+        Update: Partial<GuildMemberRow>;
+      };
+      guild_join_requests: {
+        Row: GuildJoinRequestRow;
+        Insert: Partial<GuildJoinRequestRow> & { guild_id: string; member_id: string };
+        Update: Partial<GuildJoinRequestRow>;
+      };
+      guild_point_ledger: {
+        Row: GuildPointLedgerRow;
+        Insert: Partial<GuildPointLedgerRow> & { guild_id: string; delta: number; reason: string };
+        Update: Partial<GuildPointLedgerRow>;
       };
       shop_consumable_inventory_log: {
         Row: ShopConsumableInventoryLogRow;

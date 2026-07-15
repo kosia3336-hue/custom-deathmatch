@@ -190,11 +190,11 @@ function RoundRow({
             {winLabel}
           </span>
           <span className="text-[10px] text-gray-400 lg:text-xs">
-            선 👑 {nicknames[record.firstSide]}
+            선 {nicknames[record.firstSide]}
           </span>
           {(record.auto.p1 || record.auto.p2) && (
             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 lg:text-[11px]">
-              ⚠ 자동
+              자동
             </span>
           )}
           {margin != null && margin > 0 && margin <= 1000 && (
@@ -226,7 +226,7 @@ function RoundRow({
                 }`}
               >
                 <span className="font-semibold text-gray-700">
-                  {nicknames[side]} {isWinner && '🏆'}
+                  {nicknames[side]}
                 </span>
                 <span className="text-gray-700 tabular-nums">
                   {count}장 / <b>{formatKRW(amount)}원</b>
@@ -290,8 +290,6 @@ function BetBreakdownRow({
     >
       <span className="w-24 shrink-0 font-bold text-gray-700 lg:w-32">
         {label}
-        {isFirst && <span className="ml-1 text-amber-500">👑</span>}
-        {isWinner && <span className="ml-1">🏆</span>}
       </span>
       <div className="flex shrink-0 items-center gap-1">
         {DENOM_ORDER.map((d) => {

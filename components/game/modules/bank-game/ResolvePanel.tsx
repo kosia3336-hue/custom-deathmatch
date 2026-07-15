@@ -52,12 +52,12 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
   const titleText = step < 4
     ? null
     : isDraw
-      ? '🤝 동률'
+      ? '동률'
       : winnerSide === mySide
-        ? '🎉 라운드 승리!'
+        ? '라운드 승리!'
         : winnerSide === null
           ? '결과'
-          : '😢 라운드 패배';
+          : '라운드 패배';
 
   const titleColor = isDraw
     ? 'text-gray-700'
@@ -128,15 +128,6 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                   {player.nickname}
                   {isMe && <span className="ml-0.5 text-[10px] text-indigo-500">(나)</span>}
                 </p>
-                {isFirst && <span className="text-xs">👑</span>}
-                {step >= 4 && isWinner && (
-                  <span
-                    className="ml-auto text-base"
-                    style={{ animation: 'bankResultPop 0.5s 0.1s ease-out both' }}
-                  >
-                    🏆
-                  </span>
-                )}
               </div>
 
               {/* 장수 — 카드 등장 즉시 */}
@@ -160,7 +151,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                   <p className="text-[10px] text-gray-500">금액</p>
                   {amount == null ? (
                     <p className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-[11px] font-bold text-gray-400">
-                      🔒 비공개
+                      비공개
                     </p>
                   ) : (
                     <p
@@ -175,7 +166,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
               </div>
 
               {auto && (
-                <p className="text-right text-[10px] text-amber-600">⚠ 시간초과 자동제출</p>
+                <p className="text-right text-[10px] text-amber-600">시간초과 자동제출</p>
               )}
             </div>
           );

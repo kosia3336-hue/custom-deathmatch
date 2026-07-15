@@ -21,9 +21,6 @@ export default async function BannedPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="flex w-full max-w-xl flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-4xl" aria-hidden>
-              ⛔
-            </span>
             <h1 className="text-2xl font-bold text-cdm-fg">영구정지된 계정입니다</h1>
             <p className="text-sm text-cdm-fg-muted">
               이 계정은 운영 정책 위반으로 영구정지 처분을 받았습니다.

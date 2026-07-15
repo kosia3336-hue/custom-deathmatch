@@ -8,7 +8,7 @@ interface NotifyCdpAdjustedArgs {
   memberId: string;
   newBalance: number;
   delta: number;
-  reason: 'shop_purchase' | 'admin_adjust';
+  reason: 'shop_purchase' | 'shop_sell' | 'admin_adjust' | 'attendance';
   ref?: { kind: string; id: string };
 }
 
@@ -20,9 +20,9 @@ interface NotifyShopItemChangedArgs {
 
 interface NotifyInventoryUpdatedArgs {
   memberId: string;
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter';
   countAfter: number;
-  reason: 'purchase' | 'auto_use' | 'manual_use' | 'admin_adjust';
+  reason: 'purchase' | 'sell' | 'auto_use' | 'manual_use' | 'admin_adjust';
   ref?: { kind: string; id: string };
 }
 

@@ -5,10 +5,10 @@ export const GACHA_PRICE_CDP = 80;
 
 /** 가중치 합 = 10_000 (= 100%) */
 export const GRADE_WEIGHTS: Record<GachaGrade, number> = {
-  S: 80,
+  S: 20,
   A: 150,
   B: 400,
-  C: 2800,
+  C: 2860,
   F: 6570,
 };
 
@@ -22,8 +22,7 @@ export const GRADE_LABEL: Record<GachaGrade, string> = {
   F: '꽝…',
 };
 
-/** DB titles.id — 영겁의 현무 (마이그레이션과 동일 UUID) */
-/** DB titles.id — 영겁의 현무 (기존 등록) */
-export const LEGEND_TITLE_ID = 'af357172-8af4-42b5-9d3e-fda04c3fcbc5';
+/** DB titles.id — 현재 뽑기 레전드 칭호: 무극의 백호 (이전: 영겁의 현무) */
+export const LEGEND_TITLE_ID = '579470a7-6bca-413c-a84f-d4a27ef48970';
 
 export const LEGEND_PRIZE_DEF_ID = 's_legend_mystery';

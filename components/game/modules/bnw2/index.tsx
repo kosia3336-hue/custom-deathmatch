@@ -171,8 +171,6 @@ function RevealPanel({
             >
               <p className="truncate text-xs font-medium text-gray-500">
                 {isMe ? '나' : (pInfo?.nickname ?? pid)}
-                {isFirst && <span className="ml-1 text-amber-500">👑</span>}
-                {winnerVisible && isWinner && <span className="ml-1">🏆</span>}
               </p>
               <div className="my-2 flex justify-center">
                 <ColorBadge color={pd.color} visible={colorVisible} />
@@ -238,7 +236,6 @@ function RoundHistoryTable({
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
                   <span className="text-gray-500">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
-                  {isFirst && <span className="text-amber-500 text-[10px]">👑</span>}
                   {isWinner && <span className="text-amber-500">+1</span>}
                 </span>
               );
@@ -445,7 +442,7 @@ export default function BNW2Game() {
       <PointInput
         remaining={myPlayer?.remainingPoints ?? 0}
         actionType={isFirst ? 'submitFirst' : 'submitSecond'}
-        label={isFirst ? '포인트를 제시하세요 (선플 👑)' : '포인트를 제시하세요 (후플)'}
+        label={isFirst ? '포인트를 제시하세요 (선플)' : '포인트를 제시하세요 (후플)'}
       />
     </div>
   ) : null;
@@ -493,7 +490,6 @@ export default function BNW2Game() {
                   >
                     <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
                       {isMe ? '나' : p.nickname}
-                      {id === gameData.firstPlayerId && <span className="ml-1 text-amber-500">👑</span>}
                     </span>
                     <span className="ml-1 shrink-0 font-bold tabular-nums">{p.score}점</span>
                   </div>
@@ -506,7 +502,7 @@ export default function BNW2Game() {
               <div className="text-xl font-bold text-gray-800">라운드 {gameData.round}</div>
               {fp && (
                 <div className="mt-0.5 text-sm text-amber-600">
-                  {fp.nickname} 선플 👑
+                  {fp.nickname} 선플
                 </div>
               )}
             </div>
@@ -651,7 +647,7 @@ export default function BNW2Game() {
                   <span className="min-w-0 truncate font-medium">
                     {id === myId ? '나' : p.nickname}
                     {id === gameData.firstPlayerId && (
-                      <span className="ml-1 text-xs text-amber-500">👑선플</span>
+                      <span className="ml-1 text-xs text-amber-500">선플</span>
                     )}
                   </span>
                   <span className="ml-2 shrink-0 font-bold tabular-nums">{p.score}점</span>
@@ -703,7 +699,7 @@ export default function BNW2Game() {
         {roundOverlay && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm">
             <p className="text-2xl font-bold">라운드 {roundOverlay.round} 시작</p>
-            <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플 👑</p>
+            <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플</p>
           </div>
         )}
       </div>

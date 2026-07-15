@@ -18,6 +18,9 @@ const ALL_KINDS: ConsumableKind[] = [
   'anonymity',
   'magnifier',
   'ban_eraser',
+  'gacha_box',
+  'gacha_ticket',
+  'guild_charter',
 ];
 
 export async function GET() {

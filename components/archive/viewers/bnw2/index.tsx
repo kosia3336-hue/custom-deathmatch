@@ -66,8 +66,6 @@ function RoundRow({
             <div key={pid} className="flex flex-col gap-0.5 min-w-0">
               <span className="truncate text-xs font-medium text-gray-700">
                 {nicknames[pid]}
-                {isFirst && <span className="ml-1 text-amber-500">👑</span>}
-                {isWinner && <span className="ml-1">🏆</span>}
               </span>
               <div className="flex items-center gap-1.5">
                 <ColorBadge color={pd.color} />

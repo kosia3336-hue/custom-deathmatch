@@ -16,14 +16,15 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT: Record<ButtonVariant, string> = {
+  // 그래피티 무드: 청록(카지노 테이블) 채움 + 얇은 테두리 (그림자 없음)
   primary:
-    'bg-cdm-primary text-white hover:bg-cdm-primary-strong active:scale-[0.98] focus-visible:[box-shadow:var(--cdm-ring-primary)]',
+    'border border-cdm-primary bg-cdm-primary text-white hover:bg-cdm-primary-strong hover:border-cdm-primary-strong active:scale-[0.98]',
   secondary:
-    'border border-cdm-border-strong bg-cdm-bg text-cdm-fg hover:bg-cdm-bg-elev-1 active:scale-[0.98]',
+    'border border-cdm-primary bg-cdm-bg text-cdm-primary hover:bg-cdm-primary-soft active:scale-[0.98]',
   tertiary:
     'text-cdm-fg-muted hover:text-cdm-fg hover:bg-cdm-bg-elev-1 active:scale-[0.98]',
   danger:
-    'bg-cdm-accent text-white hover:bg-cdm-accent-strong active:scale-[0.98] focus-visible:[box-shadow:var(--cdm-ring-accent)]',
+    'border border-cdm-accent-strong bg-cdm-accent text-white hover:bg-cdm-accent-strong active:scale-[0.98]',
   ghost: 'text-cdm-fg hover:bg-cdm-bg-elev-1 active:scale-[0.98]',
   kakao:
     'bg-[#FEE500] text-[#000000] hover:brightness-95 active:scale-[0.98] font-semibold',
@@ -62,7 +63,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       disabled={isDisabled}
       data-loading={loading ? 'true' : undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-semibold whitespace-nowrap transition-colors duration-(--cdm-duration-fast)',
+        'inline-flex items-center justify-center gap-2 rounded-cdm-md font-semibold whitespace-nowrap transition-all duration-(--cdm-duration-fast)',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cdm-fg',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         VARIANT[variant],
         SIZE[size],

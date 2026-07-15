@@ -14,7 +14,7 @@ export default function SmsEventSpectatorPanel({ state }: Props) {
         {state.role === 'queued' ? (
           <>
             <div className="font-bold text-cdm-fg">
-              🎫 대기열 {state.myQueuePosition ?? '-'}번
+              대기열 {state.myQueuePosition ?? '-'}번
             </div>
             <div className="text-xs text-cdm-fg-muted">
               자리가 나면 자동으로 입장합니다. (총 대기 {state.queueLength}명)
@@ -22,7 +22,7 @@ export default function SmsEventSpectatorPanel({ state }: Props) {
           </>
         ) : (
           <>
-            <div className="font-bold text-cdm-fg">👁️ 관전 중</div>
+            <div className="font-bold text-cdm-fg">관전 중</div>
             <div className="text-xs text-cdm-fg-muted">
               다음 판 시작 시 빈 자리가 있으면 자동으로 입장합니다.
             </div>

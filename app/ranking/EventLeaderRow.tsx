@@ -34,7 +34,7 @@ export default function EventLeaderRow({
           rank === 1 ? 'text-cdm-highlight' : rank <= 3 ? 'text-cdm-primary' : 'text-cdm-fg-muted'
         }`}
       >
-        {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+        {rank}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">

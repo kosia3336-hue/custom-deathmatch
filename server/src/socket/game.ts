@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid';
 import { randomUUID } from 'node:crypto';
 import type { GameState, GameResult } from '@shared/types/events.js';
 import type { Player, PlayMode, Room } from '@shared/types/room.js';
@@ -232,7 +233,28 @@ interface GameModuleHandlers {
   getResultData?: (roomId: string) => unknown;
 }
 
+import {
+  initQuatro,
+  handleQuatroAction,
+  cleanupQuatro,
+  getQuatroState,
+  emitQuatroStateToSocket,
+  performQuatroUndo,
+  canQuatroUndo,
+  getQuatroResultData,
+} from './games/quatro/index.js';
+
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.QUATRO]: {
+    init: initQuatro,
+    handleAction: handleQuatroAction,
+    cleanup: cleanupQuatro,
+    getState: getQuatroState,
+    emitStateToSocket: emitQuatroStateToSocket,
+    performUndo: performQuatroUndo,
+    canUndo: canQuatroUndo,
+    getResultData: getQuatroResultData,
+  },
   [GAME_IDS.FOUR_GRAVITY]: {
     init: initFourGravity,
     handleAction: handleFourGravityAction,
@@ -480,6 +502,19 @@ export function startGame(io: IO, roomId: string) {
         room.turnOrderMode === 'random' && room.players.length === 2 && Math.random() < 0.5
           ? [room.players[1], room.players[0]]
           : room.players;
+
+      // 랜덤 선후공: 결과를 두 플레이어 모두에게 시스템 메시지로 알림
+      if (room.turnOrderMode === 'random' && playersForGame.length === 2) {
+        io.to(socketRoom(roomId)).emit('chat:message', {
+          id: uuid(),
+          sender: 'system',
+          senderNickname: '시스템',
+          message: `선후공 랜덤 결과 — ${playersForGame[0].nickname} 님이 선공, ${playersForGame[1].nickname} 님이 후공입니다.`,
+          scope: 'game',
+          isSystem: true,
+          timestamp: Date.now(),
+        });
+      }
       // 스킨 확정 (OR 규칙) — init 이전에 세팅해야 첫 game:state 에 반영됨
       setActiveSkinForRoom(roomId, playersForGame, room.gameId);
       gameModule.init(io, roomId, playersForGame, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {

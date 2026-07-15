@@ -61,7 +61,7 @@ export default function TitleGrantedModal() {
         <TitleBadge
           name={current.name}
           color={current.color as TitleColor}
-          effect={current.effect as 'legend' | 'xuanwu' | null}
+          effect={current.effect as 'legend' | 'xuanwu' | 'baekho' | null}
           size="lg"
         />
         {current.description && (

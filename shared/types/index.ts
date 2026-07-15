@@ -181,6 +181,24 @@ export type {
   IPEHandResultPayload,
 } from './indian-poker-event';
 export {
+  QUATRO_SUIT_PRIORITY,
+  QUATRO_MAX_MULLIGANS,
+  QUATRO_VP_COUNT,
+  QUATRO_HAND_SIZE,
+  QUATRO_TURN_SECONDS,
+} from './quatro';
+export type {
+  QuatroSuit,
+  QuatroCard,
+  QuatroPhase,
+  QuatroAction,
+  QuatroVisibleCard,
+  QuatroVpView,
+  QuatroPlayerView,
+  QuatroResultSummary,
+  QuatroGameData,
+} from './quatro';
+export {
   BRPS_TOTAL_ROUNDS,
   BRPS_INITIAL_CHIPS,
   BRPS_BET_MULTIPLIER,

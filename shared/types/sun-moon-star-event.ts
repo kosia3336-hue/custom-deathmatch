@@ -26,9 +26,9 @@ export const SMSE_MARK_LABELS: Record<SmsMarkId, string> = {
 };
 
 export const SMSE_MARK_ICONS: Record<SmsMarkId, string> = {
-  sun: '☀️',
-  moon: '🌙',
-  star: '⭐',
+  sun: '',
+  moon: '',
+  star: '',
 };
 
 export type SmsPhase =

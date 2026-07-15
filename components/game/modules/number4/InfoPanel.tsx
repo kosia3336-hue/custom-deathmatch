@@ -33,7 +33,7 @@ export default function InfoPanel({ round, players, roundHistory, myId }: InfoPa
               }
             </div>
             {p.submitted && (
-              <div className="mt-1 text-xs text-green-600">제출 완료 ✓</div>
+              <div className="mt-1 text-xs text-green-600">제출 완료</div>
             )}
           </div>
         );

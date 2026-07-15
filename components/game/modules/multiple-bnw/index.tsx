@@ -186,7 +186,6 @@ export default function MultipleBnwGame() {
                   >
                     <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
                       {isMe ? '나' : p.nickname}
-                      {p.isFirst && <span className="ml-1 text-amber-500">👑</span>}
                     </span>
                     <span className="ml-1 shrink-0 tabular-nums font-bold text-gray-700">
                       {p.score}점
@@ -201,7 +200,7 @@ export default function MultipleBnwGame() {
               라운드 {gameData.round} / {MBNW_TOTAL_ROUNDS}
               {fp && (
                 <span className="ml-2 text-sm font-normal text-amber-600">
-                  {fp.nickname} 선플 👑
+                  {fp.nickname} 선플
                 </span>
               )}
             </div>
@@ -389,7 +388,6 @@ export default function MultipleBnwGame() {
               ? 'bg-violet-900/95 text-white border border-violet-400/30'
               : 'bg-red-900/95 text-white border border-red-400/30'
           }`}>
-            <span className="text-4xl">{suspectAnim.success ? '🎯' : '✗'}</span>
             <p className="text-xl font-bold">
               {suspectAnim.success ? '배수의심 성공!' : '배수의심 실패!'}
             </p>
@@ -409,7 +407,7 @@ export default function MultipleBnwGame() {
         {roundOverlay && (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm">
             <p className="text-2xl font-bold">라운드 {roundOverlay.round} 시작</p>
-            <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플 👑</p>
+            <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플</p>
           </div>
         )}
       </div>
@@ -473,7 +471,6 @@ function MobileRoundHistory({ history, players, myId }: {
                   {pr.color === 'black' ? '흑' : '백'}
                 </span>
                 <span className="text-gray-500">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
-                {pr.suspected && (pr.suspectSuccess ? ' ✓' : ' ✗')}
                 {' '}
                 <span className={pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'}>
                   +{pr.bonusPoint + pr.normalPoint}

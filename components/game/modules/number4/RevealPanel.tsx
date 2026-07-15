@@ -134,7 +134,7 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
                   <div className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold ${
                     reveal.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                   }`}>
-                    <span>{reveal.success ? '✅' : '❌'}</span>
+                    <span>{reveal.success ? '' : ''}</span>
                     <span>{reveal.success ? '성공' : '실패'}</span>
                   </div>
                 </div>

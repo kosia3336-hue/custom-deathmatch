@@ -27,9 +27,9 @@ export const MARK_LABELS: Record<SMS2MarkId, string> = {
 };
 
 export const MARK_ICONS: Record<SMS2MarkId, string> = {
-  sun: '☀️',
-  moon: '🌙',
-  star: '⭐',
+  sun: '',
+  moon: '',
+  star: '',
 };
 
 /** 동률 시 우선순위 (낮을수록 우선) */

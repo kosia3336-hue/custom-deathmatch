@@ -82,7 +82,7 @@ export default async function TitlesTab({ page: pageParam }: { page: string | un
                         className="inline-flex items-center gap-1 rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"
                         title="히든 시스템 칭호 — 조건은 서버 코드에서 관리"
                       >
-                        🔒 시스템
+                        시스템
                       </span>
                     )}
                     {!t.is_active && (

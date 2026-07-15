@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import { Button } from '@/components/cdm/Button';
-import { CDP_ICON, formatCdp } from '@/lib/cdp/format';
+import { formatCdp } from '@/lib/cdp/format';
+import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { labelForConsumable } from '@/lib/cdp/types';
 import { GRADE_LABEL } from '@/lib/gacha/constants';
 import { getSkinMeta } from '@/lib/skins/registry';
@@ -46,7 +47,6 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
             animate={{ y: 8 }}
             transition={{ duration: 0.5 }}
           >
-            💨
           </motion.span>
           <p className="text-sm text-cdm-fg-muted">아쉽게도 꽝이에요</p>
         </div>
@@ -54,15 +54,16 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
     }
     if (r.kind === 'cdp') {
       return (
-        <p className="text-2xl font-bold tabular-nums text-cdm-primary">
-          {CDP_ICON} +{formatCdp(r.amount)}
+        <p className="inline-flex items-center gap-1.5 text-2xl font-bold tabular-nums text-cdm-primary">
+          <CdpIcon size={22} />
+          +{formatCdp(r.amount)}
         </p>
       );
     }
     if (r.kind === 'consumable') {
       return (
         <div className="flex flex-col items-center gap-1 text-center">
-          <span className="text-3xl">🎟</span>
+          <span className="text-3xl"></span>
           <p className="font-semibold text-cdm-fg">{labelForConsumable(r.consumableKind)}</p>
           <p className="text-sm text-cdm-fg-muted">×{r.qty}</p>
         </div>
@@ -88,7 +89,7 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
         <TitleBadge
           name={r.name}
           color={r.color as TitleColor}
-          effect={(r.effect as 'legend' | 'xuanwu' | null) ?? null}
+          effect={(r.effect as 'legend' | 'xuanwu' | 'baekho' | null) ?? null}
           size="lg"
         />
       );
@@ -102,7 +103,7 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
           <TitleBadge
             name={r.name}
             color={r.color as TitleColor}
-            effect={(r.effect as 'legend' | 'xuanwu' | null) ?? 'xuanwu'}
+            effect={(r.effect as 'legend' | 'xuanwu' | 'baekho' | null) ?? 'xuanwu'}
             size="lg"
           />
         </div>

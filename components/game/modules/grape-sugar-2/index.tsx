@@ -275,7 +275,7 @@ function RoundIndicator({
         <span className="text-sm text-purple-500">/ {maxRound}</span>
         {maxRound === 9 && extension === 0 && (
           <span className="rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-bold text-teal-700">
-            🫁 연장
+            연장
           </span>
         )}
       </div>
@@ -305,11 +305,11 @@ function PlayerPanel({
         <span className="truncate text-sm font-bold text-gray-800">{player.nickname}</span>
         <span className="shrink-0 text-xs text-gray-400">{label}</span>
         {showSubmittedBadge && player.submitted && (
-          <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">✅</span>
+          <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">제출</span>
         )}
         {player.hrPenaltyPending > 0 && (
           <span className="shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">
-            ⚠️ -{player.hrPenaltyPending}
+            -{player.hrPenaltyPending}
           </span>
         )}
       </div>
@@ -317,10 +317,10 @@ function PlayerPanel({
       {/* 스탯 */}
       <div className="flex shrink-0 items-center gap-2 text-xs lg:gap-3">
         <span className={`font-bold ${player.score < 0 ? 'text-red-500' : 'text-purple-700'}`}>
-          🏆 {player.score}점
+          {player.score}점
         </span>
-        <span className="font-bold text-amber-700">🍬 {player.sugarRemain}</span>
-        <span className="font-bold text-sky-600">🃏 {player.hand.length}</span>
+        <span className="font-bold text-amber-700">{player.sugarRemain}</span>
+        <span className="font-bold text-sky-600">{player.hand.length}</span>
       </div>
 
       {/* 잔여 카드 미니 배지 (sm 이상) */}
@@ -394,7 +394,6 @@ function CombatArea({
   if (isFinished) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-purple-300 bg-linear-to-br from-purple-100 to-fuchsia-100 py-6">
-        <span className="text-5xl">{finalWinner === 'tie' ? '🤝' : '🏆'}</span>
         <p className="mt-2 text-xl font-bold text-purple-900 lg:text-2xl">
           {finalWinner === 'tie' ? '무승부!' : finalWinner ? `${players[finalWinner].nickname} 승리!` : '게임 종료'}
         </p>
@@ -499,7 +498,6 @@ function LiveSugarBadge({ value }: { value: number }) {
         className={`flex items-center gap-1 rounded-lg border-2 px-2 py-1
           transition-all duration-300 ${flashCls}`}
       >
-        <span className="text-amber-500">🍬</span>
         <span
           key={value}
           className="tabular-nums font-bold text-amber-800 text-sm animate-in zoom-in-50 duration-300"
@@ -579,7 +577,7 @@ function ResolutionPanel({
                 <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 ${
                   isWinner ? 'bg-emerald-500 text-white' : isTie ? 'bg-gray-300 text-gray-700' : 'bg-rose-100 text-rose-700'
                 }`}>
-                  <span className="font-bold">🍬 {sugar}</span>
+                  <span className="font-bold">{sugar}</span>
                   <span className="text-xs font-bold">{isWinner ? '승' : isTie ? '무' : '패'}</span>
                 </div>
                 {delta !== 0 && (
@@ -605,57 +603,54 @@ function ResolveStepRow({
 }) {
   const nick = (side: GS2Side) => (mySide === side ? '나' : players[side].nickname);
   let text = '';
-  let icon = '✨';
   let cls = 'text-gray-700';
 
   switch (step.type) {
     case 'cancel':
-      icon = '🌌'; cls = 'text-indigo-700 font-bold';
+      cls = 'text-indigo-700 font-bold';
       text = `${nick(step.bySide)}의 우주뿌셔! → ${nick(step.targetSide)} 무효`;
       break;
     case 'effect':
-      icon = '⚡';
       text = `${nick(step.actor)}의 ${CARD_NAMES[step.card]}: ${nick(step.targetSide)} 설탕 ${step.before} → ${step.after} (${step.op})`;
       break;
     case 'dice':
-      icon = '🎲'; cls = 'text-yellow-700 font-bold';
+      cls = 'text-yellow-700 font-bold';
       text = `${nick(step.actor)}의 주사위: ${step.roll} → ${
         step.branch === 'opp-3' ? '상대 -3' : step.branch === 'self-5' ? '본인 -5' : '미승리 시 상대 +2점 예약'
       }`;
       break;
     case 'final':
-      icon = '🏁'; cls = 'text-purple-700 font-bold';
+      cls = 'text-purple-700 font-bold';
       text = `최종 설탕: ${players.p1.nickname} ${step.roundSugar.p1} vs ${players.p2.nickname} ${step.roundSugar.p2}`;
       break;
     case 'winner':
-      icon = step.winner === 'tie' ? '🤝' : '🏆'; cls = 'text-emerald-700 font-bold';
+      cls = 'text-emerald-700 font-bold';
       text = step.winner === 'tie' ? '라운드 무승부' : `${nick(step.winner)} 라운드 승! +1점`;
       break;
     case 'bless':
-      icon = '🍇';
       cls = step.scoreDelta > 0 ? 'text-purple-700 font-bold' : step.scoreDelta < 0 ? 'text-red-600 font-bold' : 'text-gray-500';
       text = `${nick(step.actor)}의 포도의가호: ${
         step.outcome === 'win' ? `승리 → +${step.scoreDelta}점` : step.outcome === 'loss' ? `패배 → ${step.scoreDelta}점` : '무승부, 보정 없음'
       }`;
       break;
     case 'diceScore':
-      icon = '🎯'; cls = 'text-yellow-700 font-bold';
+      cls = 'text-yellow-700 font-bold';
       text = `${nick(step.actor)}의 주사위 5·6 보너스 → ${nick(step.loserBonusTo)} +${step.amount}점`;
       break;
     case 'hrPenaltyScheduled':
-      icon = '⚠️'; cls = 'text-orange-600 font-bold';
+      cls = 'text-orange-600 font-bold';
       text = `${nick(step.actor)}의 하이리스크 패배 → 다음 R 시작 시 설탕 ${step.amount}개 이전 예정`;
       break;
     case 'breathExtended':
-      icon = '🫁'; cls = 'text-teal-700 font-bold';
+      cls = 'text-teal-700 font-bold';
       text = '숨고르기! 게임이 9라운드로 연장됩니다.';
       break;
     case 'breathNoEffect':
-      icon = '🚫'; cls = 'text-gray-500';
+      cls = 'text-gray-500';
       text = `${nick(step.actor)}의 숨고르기 무효 (${step.reason === 'alreadyExtended' ? '이미 연장됨' : '우주뿌셔!로 무효화'})`;
       break;
     case 'instantWin':
-      icon = '💥'; cls = 'text-red-700 font-bold';
+      cls = 'text-red-700 font-bold';
       text = `${nick(step.winner)} 즉시 게임 승리! (무행동 vs 우주뿌셔!)`;
       break;
     default:
@@ -664,7 +659,6 @@ function ResolveStepRow({
 
   return (
     <div className={`flex items-center gap-1.5 rounded bg-white/70 px-2 py-1 text-xs lg:text-sm ${cls} animate-in fade-in slide-in-from-bottom-4 duration-700`}>
-      <span>{icon}</span>
       <span className="min-w-0">{text}</span>
     </div>
   );
@@ -694,7 +688,7 @@ function SugarBar({
   if (submitted) {
     return (
       <div className="flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2">
-        <span className="flex-1 text-sm font-bold text-emerald-700">✅ 제출 완료 — 상대 대기 중...</span>
+        <span className="flex-1 text-sm font-bold text-emerald-700">제출 완료 — 상대 대기 중...</span>
         {!oppSubmitted && (
           <button
             type="button"
@@ -713,7 +707,7 @@ function SugarBar({
       {/* 레이블 + 보유량 */}
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1 text-xs font-medium text-gray-500">
-          <span>🍬</span> 제출 설탕
+          제출 설탕
         </span>
         <span className="text-xs text-gray-400">보유 {sugarRemain}</span>
       </div>
@@ -761,7 +755,7 @@ function CardHand({
     <div className="rounded-xl border border-gray-200 bg-white p-2.5 lg:p-3">
       <div className="mb-2 flex items-center justify-between px-0.5">
         <span className="text-xs font-medium text-gray-500">
-          {submitted ? '✅ 제출 완료' : '카드를 눌러 제출'}
+          {submitted ? '제출 완료' : '카드를 눌러 제출'}
         </span>
         <span className="text-[10px] text-gray-400">잔여 {hand.length}장</span>
       </div>
@@ -839,7 +833,6 @@ function CardSubmitModal({
 
         {/* 설탕 확인 */}
         <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mb-4">
-          <span className="text-xl">🍬</span>
           <span className="text-sm text-amber-800">
             설탕 <strong>{sugar}개</strong> 함께 제출
           </span>
@@ -890,7 +883,7 @@ function RoundHistoryPanel({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-700"
       >
-        📜 라운드 기록
+        라운드 기록
         <span className="text-xs text-gray-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
       {open && (
@@ -932,7 +925,7 @@ function RoundHistoryPanel({
                             <span className="truncate text-gray-700">{CARD_NAMES[a.card]}</span>
                           </div>
                           <div className="mt-0.5 flex items-center gap-1 text-gray-500">
-                            <span>🍬{a.sugar}→{r.finalRoundSugar[side]}</span>
+                            <span>{a.sugar}→{r.finalRoundSugar[side]}</span>
                             <span className={`ml-auto font-bold ${r.scoreDelta[side] > 0 ? 'text-emerald-600' : r.scoreDelta[side] < 0 ? 'text-red-500' : ''}`}>
                               {r.scoreDelta[side] > 0 ? `+${r.scoreDelta[side]}` : r.scoreDelta[side]}점
                             </span>

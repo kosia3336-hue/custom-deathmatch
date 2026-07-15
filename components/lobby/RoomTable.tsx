@@ -45,7 +45,6 @@ export default function RoomTable({ rooms, onJoin, onSpectate, queuing = false }
               >
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
-                    <span>{isRanked ? '🏆' : room.roomType === 'private' ? '🔑' : '🔓'}</span>
                     <Badge variant={isWaiting ? 'info' : 'warning'}>
                       {isWaiting ? '대기' : '진행'}
                     </Badge>
@@ -66,7 +65,7 @@ export default function RoomTable({ rooms, onJoin, onSpectate, queuing = false }
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-cdm-fg-muted">
                   {!isWaiting && (
-                    <span className="text-xs">👁️ {room.spectatorCount}</span>
+                    <span className="text-xs">{room.spectatorCount}</span>
                   )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">

@@ -152,7 +152,7 @@ export default function MobileLayout({ ctx }: Props) {
         {gameData.history.length > 0 && !isFinished && (
           <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
             <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              📜 라운드 기록 ({gameData.history.length})
+              라운드 기록 ({gameData.history.length})
             </summary>
             <div className="border-t border-gray-100 px-3 py-2">
               <RoundHistoryTable
@@ -169,7 +169,7 @@ export default function MobileLayout({ ctx }: Props) {
         {showOpponentTracker && (
           <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
             <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              🔍 상대 잔여 추리
+              상대 잔여 추리
             </summary>
             <div className="border-t border-gray-100 p-2">
               <OpponentInventoryTracker />
@@ -230,7 +230,7 @@ export default function MobileLayout({ ctx }: Props) {
               onClick={() => setSheetOpen(true)}
               className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
             >
-              💵 베팅 입력하기 →
+              베팅 입력하기 →
             </button>
           )}
         </>

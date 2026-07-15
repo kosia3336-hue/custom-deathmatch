@@ -18,9 +18,9 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
 
   return (
     <RoomLayoutContext.Provider value={{ setHeaderRight, setFooter, setFooterHidden }}>
-      <div className="flex min-h-screen flex-col bg-cdm-bg">
+      <div className="flex min-h-screen flex-col bg-cdm-page">
         {/* 공통 헤더 */}
-        <div className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-border bg-cdm-bg/90 px-4 py-3 backdrop-blur md:px-6">
+        <div className="ink-scope sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 px-4 py-3 backdrop-blur md:px-6">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               {room ? (

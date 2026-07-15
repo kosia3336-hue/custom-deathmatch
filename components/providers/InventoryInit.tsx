@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useInventoryStore, type InventoryMap, type AutoUseMap } from '@/stores/inventory';
 import { getSocket } from '@/lib/socket';
 import type { ConsumableKind } from '@/lib/cdp/types';
@@ -30,11 +31,11 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
         if (aborted) return;
         const map = json.items.reduce<InventoryMap>(
           (acc, it) => { acc[it.kind] = Number(it.count); return acc; },
-          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0 },
+          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0, gacha_box: 0, gacha_ticket: 0, guild_charter: 0 },
         );
         const autoUseMap = json.items.reduce<AutoUseMap>(
           (acc, it) => { acc[it.kind] = it.autoUse ?? true; return acc; },
-          { nickname_change: true, rank_reset: true, spectator_lock: true, anonymity: true, magnifier: true, ban_eraser: true },
+          { nickname_change: true, rank_reset: true, spectator_lock: true, anonymity: true, magnifier: true, ban_eraser: true, gacha_box: false, gacha_ticket: false, guild_charter: false },
         );
         setAll(map, autoUseMap);
       })
@@ -43,8 +44,12 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
       });
 
     const socket = getSocket();
-    const onUpdated = (p: { kind: ConsumableKind; countAfter: number }) => {
+    const onUpdated = (p: { kind: ConsumableKind; countAfter: number; reason?: string }) => {
       setOne(p.kind, Number(p.countAfter));
+      // 하루 5승 뽑기 박스 지급 안내
+      if (p.reason === 'daily_reward' && p.kind === 'gacha_box') {
+        toast.success('오늘 랭크 5승 달성! 뽑기 박스 1개를 받았어요.');
+      }
     };
     socket.on('inventory:updated', onUpdated);
 
