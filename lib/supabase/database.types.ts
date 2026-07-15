@@ -404,6 +404,7 @@ export interface GuildRow {
   capacity: number;
   points: number;
   created_at: string;
+  disbanded_at: string | null;
 }
 
 export interface GuildMemberRow {

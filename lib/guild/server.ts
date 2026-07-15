@@ -39,6 +39,7 @@ export async function listGuilds(): Promise<GuildSummary[]> {
   const { data: guilds } = await sb
     .from('guilds')
     .select('*')
+    .is('disbanded_at', null)
     .order('points', { ascending: false })
     .limit(100);
   const rows = (guilds ?? []) as GuildRow[];
