@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = getSupabaseServiceRole();
-  const rpc = sb.rpc as unknown as (
+  // 주의: sb.rpc 를 변수로 떼어내면 this 바인딩이 끊겨 내부(this.rest) 접근에서 죽는다 — bind 필수
+  const rpc = sb.rpc.bind(sb) as unknown as (
     fn: string,
     args: Record<string, unknown>,
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -146,7 +147,8 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
     }
-  } catch {
+  } catch (err) {
+    console.error('[guild:action] 예외:', body?.action, (err as Error).message, (err as Error).stack?.split('\n')[1]);
     return NextResponse.json({ error: '처리 중 오류가 발생했어요.' }, { status: 500 });
   }
 }
