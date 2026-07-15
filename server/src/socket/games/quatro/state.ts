@@ -21,6 +21,7 @@ import {
   type QuatroVpView,
   type QuatroPlayerView,
   type QuatroResultSummary,
+  type QuatroLogEntry,
 } from '@shared/types/quatro.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
@@ -72,6 +73,7 @@ export interface QuatroState {
   turnPtr: number;
   firstStopperId: string | null;
   result: QuatroResultSummary | null;
+  log: QuatroLogEntry[];
   gameOver: boolean;
   startedAt: number;
   turnStartedAt: number;
@@ -146,6 +148,7 @@ export function createState(
     turnPtr: 0,
     firstStopperId: null,
     result: null,
+    log: [],
     gameOver: false,
     startedAt,
     turnStartedAt: Date.now(),
@@ -234,6 +237,7 @@ export function isLastExchangePhase(s: QuatroState): boolean {
 
 export function applyMulligan(s: QuatroState, idx: number, use: boolean) {
   const p = player(s, idx);
+  s.log.push({ round: 0, type: 'mulligan', actorId: p.id, used: use });
   if (!use) {
     p.mulliganDone = true; // 거부 의사 = 더 이상 멀리건 없음
     return;
@@ -280,7 +284,11 @@ export function beginExchangePhase(s: QuatroState) {
 /** 오픈 확정 처리 (둘 다 선택 완료 시) */
 export function commitOpens(s: QuatroState) {
   for (const p of s.players) {
-    if (p.openChoice) p.openIds.add(p.openChoice);
+    if (p.openChoice) {
+      p.openIds.add(p.openChoice);
+      const card = p.hand.find((c) => c.id === p.openChoice);
+      if (card) s.log.push({ round: s.round, type: 'open', actorId: p.id, card });
+    }
     p.openChoice = null;
   }
 }
@@ -347,6 +355,7 @@ export function applyExchange(s: QuatroState, pIdx: number, vpIdx: number, giveC
   vp.openIds.add(give.id); // 넘긴 카드는 공개 상태
   vp.usedBy.add(p.id);
   p.usedVps.add(vpIdx);
+  s.log.push({ round: s.round, type: 'exchange', actorId: p.id, vpIndex: vpIdx, gave: give, received: receive });
   return null;
 }
 
@@ -441,6 +450,7 @@ function playerView(s: QuatroState, p: QPlayer, viewerId: string | null, isSelf:
 }
 
 function vpViews(s: QuatroState, viewerId: string | null): QuatroVpView[] {
+  const isSpectator = viewerId === null;
   return s.vps.map((vp, i) => ({
     index: i,
     receivedOpen: vp.cards.filter((c) => vp.openIds.has(c.id)),
@@ -449,6 +459,8 @@ function vpViews(s: QuatroState, viewerId: string | null): QuatroVpView[] {
     usedByOpp: viewerId
       ? [...vp.usedBy].some((id) => id !== viewerId)
       : vp.usedBy.size > 0,
+    // 관전자는 가상 플레이어 패 전체 열람 가능
+    ...(isSpectator ? { cards: [...vp.cards] } : {}),
   }));
 }
 
@@ -575,6 +587,8 @@ export function finishGame(io: IO, s: QuatroState) {
     totalTurns: s.round,
     gameResultData: {
       result: r,
+      log: s.log,
+      vpHands: s.vps.map((vp) => vp.cards),
       players: { [a.id]: { nickname: a.nickname }, [b.id]: { nickname: b.nickname } },
     },
   };

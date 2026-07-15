@@ -58,7 +58,16 @@ export interface QuatroVpView {
   usedByMe: boolean;
   /** 상대와 교환했는지 (교환 사실만 공개) */
   usedByOpp: boolean;
+  /** 관전자 전용 — 가상 플레이어의 전체 패 (플레이어에게는 없음) */
+  cards?: QuatroCard[];
 }
+
+/** 아카이브용 진행 로그 */
+export type QuatroLogEntry =
+  | { round: number; type: 'mulligan'; actorId: string; used: boolean }
+  | { round: number; type: 'open'; actorId: string; card: QuatroCard }
+  | { round: number; type: 'exchange'; actorId: string; vpIndex: number; gave: QuatroCard; received: QuatroCard }
+  | { round: number; type: 'stop'; actorId: string };
 
 export interface QuatroPlayerView {
   id: string;

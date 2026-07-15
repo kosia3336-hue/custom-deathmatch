@@ -2,6 +2,7 @@
 
 import type { ComponentType } from 'react';
 import type { GameRecordFile } from '@/shared/types/archive';
+import QuatroViewer from './viewers/quatro';
 import { GAME_IDS } from '@/shared/types';
 
 import FourGravityViewer from '@/components/archive/viewers/four-gravity/FourGravityViewer';
@@ -34,6 +35,7 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Viewer,
   [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Viewer,
   [GAME_IDS.BANK_GAME]: BankGameViewer,
+  [GAME_IDS.QUATRO]: QuatroViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {

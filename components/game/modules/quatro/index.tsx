@@ -200,12 +200,19 @@ export default function QuatroGame() {
                   )}
                 </span>
                 <div className="flex gap-0.5">
-                  {vp.receivedOpen.map((c) => (
-                    <CardFace key={c.id} card={c} size="sm" />
-                  ))}
-                  {Array.from({ length: vp.hiddenCount }).map((_, i) => (
-                    <CardFace key={`h-${i}`} card={null} size="sm" />
-                  ))}
+                  {vp.cards ? (
+                    /* 관전자 — 가상 플레이어 패 전체 공개 */
+                    vp.cards.map((c) => <CardFace key={c.id} card={c} size="sm" />)
+                  ) : (
+                    <>
+                      {vp.receivedOpen.map((c) => (
+                        <CardFace key={c.id} card={c} size="sm" />
+                      ))}
+                      {Array.from({ length: vp.hiddenCount }).map((_, i) => (
+                        <CardFace key={`h-${i}`} card={null} size="sm" />
+                      ))}
+                    </>
+                  )}
                 </div>
               </button>
             );
