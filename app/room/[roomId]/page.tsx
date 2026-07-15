@@ -271,6 +271,32 @@ export default function WaitingRoomPage() {
                 isGameStarted={room.status !== 'waiting'}
                 onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
               />
+              {/* 선후공 표시 — 방장이 아닌 대기자에게도 현재 설정(랜덤 포함)이 보이도록 */}
+              {i === 0 && !isHost && room.players.length === 2 && room.status === 'waiting' && (() => {
+                const mode = room.turnOrderMode;
+                const label =
+                  mode === 'random'
+                    ? '랜덤 (게임 시작 시 추첨)'
+                    : room.players[0].id === myId
+                      ? '내가 선공'
+                      : '내가 후공';
+                return (
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
+                    <span
+                      className={cn(
+                        'rounded-cdm-md border px-2.5 py-1 text-xs font-medium',
+                        mode === 'random'
+                          ? 'border-cdm-primary/40 bg-cdm-primary-soft text-cdm-primary'
+                          : 'border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg',
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* 선후공 설정 토글 — 방장 전용, 2인 대기 중일 때 첫 슬롯 아래 */}
               {i === 0 && isHost && room.players.length === 2 && room.status === 'waiting' && (() => {
                 const mode = room.turnOrderMode;

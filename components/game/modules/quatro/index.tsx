@@ -71,7 +71,7 @@ function CardFace({
       <span className="leading-none">{info.symbol}</span>
       <span className="leading-none">{card.num}</span>
       {badge && (
-        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-cdm-fg px-1.5 text-[9px] font-bold leading-4 text-white">
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cdm-fg px-1.5 text-[9px] font-bold leading-4 text-white">
           {badge}
         </span>
       )}
@@ -192,7 +192,9 @@ export default function QuatroGame() {
               >
                 <span className="text-[11px] font-bold text-cdm-fg">
                   {String.fromCharCode(65 + vp.index)}
-                  {vp.usedByMe && ' ✓'}
+                  {vp.usedByMe && (
+                    <span className="text-cdm-primary"> ✓ {me?.nickname ?? '나'}</span>
+                  )}
                   {vp.usedByOpp && (
                     <span className="text-cdm-fg-subtle"> ({opp?.nickname ?? '상대'})</span>
                   )}

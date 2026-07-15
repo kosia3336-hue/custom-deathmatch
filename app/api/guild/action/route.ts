@@ -38,6 +38,7 @@ const ERROR_MSG: Record<string, { status: number; msg: string }> = {
 
 function mapError(message: string | undefined | null) {
   if (message) {
+    console.warn('[guild:action] RPC 오류:', message);
     for (const key of Object.keys(ERROR_MSG)) {
       if (message.includes(key)) return ERROR_MSG[key]!;
     }
