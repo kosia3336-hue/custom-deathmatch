@@ -1824,7 +1824,9 @@ body {
 /* 모바일 하단 탭 바가 렌더된 페이지 — 고정 바 높이만큼 본문 하단 여백 확보
    (탭 바를 GNB 위치(상단)에서 스페이서로 처리하면 위/아래 간격이 어긋나는 문제 방지) */
 @media (max-width: 639px) {
-  body:has(nav[aria-label='하단 메뉴']) {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  /* body 는 높이가 뷰포트로 고정되는 경우가 있어 padding 이 무효 —
+     실제로 콘텐츠와 함께 늘어나는 main 에 하단 여백을 준다 */
+  body:has(nav[aria-label='하단 메뉴']) main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
   }
 }
