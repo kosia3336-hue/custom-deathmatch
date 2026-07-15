@@ -450,7 +450,6 @@ function playerView(s: QuatroState, p: QPlayer, viewerId: string | null, isSelf:
 }
 
 function vpViews(s: QuatroState, viewerId: string | null): QuatroVpView[] {
-  const isSpectator = viewerId === null;
   return s.vps.map((vp, i) => ({
     index: i,
     receivedOpen: vp.cards.filter((c) => vp.openIds.has(c.id)),
@@ -459,8 +458,6 @@ function vpViews(s: QuatroState, viewerId: string | null): QuatroVpView[] {
     usedByOpp: viewerId
       ? [...vp.usedBy].some((id) => id !== viewerId)
       : vp.usedBy.size > 0,
-    // 관전자는 가상 플레이어 패 전체 열람 가능
-    ...(isSpectator ? { cards: [...vp.cards] } : {}),
   }));
 }
 
