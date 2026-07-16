@@ -41,7 +41,7 @@ function isKstWeekend(d = new Date()): boolean {
 }
 
 /** 랭크 시즌 잠금 스위치 — true 면 요일/시간과 무관하게 랭크 큐 닫힘 */
-export const RANK_QUEUE_LOCKED = true;
+export const RANK_QUEUE_LOCKED = false;
 
 export function isRankQueueOpen(d = new Date()): boolean {
   if (RANK_QUEUE_LOCKED) return false;
