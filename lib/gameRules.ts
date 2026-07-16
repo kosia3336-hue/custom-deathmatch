@@ -47,6 +47,7 @@ export const GAME_RULES: GameRule[] = [
   { id: 'game-015', name: '인디언 홀덤 (이벤트)', category: '기타', rules: '' },
   { id: 'game-016', name: '해달별 (이벤트)', category: '기타', rules: '' },
   { id: 'game-017', name: '콰트로', category: '심리', rules: '' },
+  { id: 'game-018', name: '단어 퍼즐', category: '언어', rules: '' },
 ];
 
 export function getGameRule(id: string): GameRule | undefined {

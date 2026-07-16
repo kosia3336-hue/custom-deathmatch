@@ -234,6 +234,16 @@ interface GameModuleHandlers {
 }
 
 import {
+  initWordPuzzle,
+  handleWordPuzzleAction,
+  cleanupWordPuzzle,
+  getWordPuzzleState,
+  emitWordPuzzleStateToSocket,
+  performWordPuzzleUndo,
+  canWordPuzzleUndo,
+  getWordPuzzleResultData,
+} from './games/word-puzzle/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -245,6 +255,16 @@ import {
 } from './games/quatro/index.js';
 
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.WORD_PUZZLE]: {
+    init: initWordPuzzle,
+    handleAction: handleWordPuzzleAction,
+    cleanup: cleanupWordPuzzle,
+    getState: getWordPuzzleState,
+    emitStateToSocket: emitWordPuzzleStateToSocket,
+    performUndo: performWordPuzzleUndo,
+    canUndo: canWordPuzzleUndo,
+    getResultData: getWordPuzzleResultData,
+  },
   [GAME_IDS.QUATRO]: {
     init: initQuatro,
     handleAction: handleQuatroAction,

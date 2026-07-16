@@ -181,6 +181,18 @@ export type {
   IPEHandResultPayload,
 } from './indian-poker-event';
 export {
+  WP_TOTAL_ROUNDS,
+  WP_ROUND_SECONDS,
+  WP_WRONG_LOCK_MS,
+  WP_REVEAL_MS,
+} from './word-puzzle';
+export type {
+  WordPuzzlePhase,
+  WordPuzzleAction,
+  WordPuzzleRoundResult,
+  WordPuzzleGameData,
+} from './word-puzzle';
+export {
   QUATRO_SUIT_PRIORITY,
   QUATRO_MAX_MULLIGANS,
   QUATRO_VP_COUNT,
