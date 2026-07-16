@@ -24,7 +24,7 @@ function isKstWeekend(d = new Date()): boolean {
   }).format(d);
   if (weekday === 'Saturday' || weekday === 'Sunday') return true;
 
-  // 2026-06-03 공휴일 한정 24시간 운영
+  // 공휴일 한정 24시간 운영
   const dateParts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
@@ -37,7 +37,11 @@ function isKstWeekend(d = new Date()): boolean {
     if (p.type === 'month') month = Number(p.value);
     if (p.type === 'day') day = Number(p.value);
   }
-  return year === 2026 && month === 6 && day === 3;
+  const HOLIDAY_24H_DATES = [
+    [2026, 6, 3],
+    [2026, 7, 17],
+  ];
+  return HOLIDAY_24H_DATES.some(([y, m, d]) => year === y && month === m && day === d);
 }
 
 /** 랭크 시즌 잠금 스위치 — true 면 요일/시간과 무관하게 랭크 큐 닫힘 */
