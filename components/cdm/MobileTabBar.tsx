@@ -38,9 +38,7 @@ function Icon({ d }: { d: string }) {
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
   { href: '/notice', label: '공지사항', icon: <Icon d="M3 11v3a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1zM15 8a5 5 0 0 1 0 8M18 5a9 9 0 0 1 0 14" /> },
   { href: '/guild', label: '길드', icon: <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /> },
-  { href: '/attendance', label: '출석판', icon: <Icon d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2M9 16l2 2 4-4" /> },
-  { href: '/event', label: '이벤트 쿠폰함', icon: <Icon d="M21 12v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-7M22 7H2v5h20zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z" /> },
-  { href: '/titles', label: '칭호', icon: <Icon d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM8.2 13.9 7 23l5-3 5 3-1.2-9.1" /> },
+  { href: '/attendance', label: '출석판', icon: <Icon d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2M9 16l2 2 4-4" /> },  { href: '/titles', label: '칭호', icon: <Icon d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM8.2 13.9 7 23l5-3 5 3-1.2-9.1" /> },
 ];
 
 /** 모바일 하단 탭 바 — 앱처럼 주요 메뉴를 하단에 고정. 게임/대기실에서는 숨김. */

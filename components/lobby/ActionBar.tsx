@@ -15,6 +15,7 @@ import { GAME_IDS } from '@/shared/types';
 import { GAME_CATEGORIES, getGameRule } from '@/lib/gameRules';
 import type { Game, JoinRoomResult } from '@/shared/types';
 import RankLobbyControls from '@/components/lobby/RankLobbyControls';
+import EventCouponLobbyButton from '@/components/lobby/EventCouponLobbyButton';
 import type { TabFilter } from '@/stores/lobby';
 
 interface Props {
@@ -132,8 +133,9 @@ export default function ActionBar({ onCreateRoom }: Props) {
       </div>
 
       {/* 2줄: 액션 버튼 — 모바일은 그리드로 줄바꿈 없이 정렬 */}
-      <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-2">
+      <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-2">
         <RankLobbyControls />
+        <EventCouponLobbyButton />
         <Button variant="secondary" onClick={handleQuickJoin} loading={quickJoining}>
           빠른 입장
         </Button>
