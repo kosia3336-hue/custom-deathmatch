@@ -332,6 +332,30 @@ async function saveStats(seasonId: number, memberId: string, s: MutableStats): P
   if (error) throw new Error(error.message);
 }
 
+/** 이벤트 쿠폰: 쿠폰함(event_coupon_box)이 열려 있으면 랭크 승자에게 닉네임 쿠폰 1장 지급 */
+async function grantEventCoupon(ctx: DbPersistContext, rankMatchId: string | null): Promise<void> {
+  if (ctx.isDraw || !ctx.winnerMemberId) return;
+  const sb = getSupabaseAdmin();
+
+  const { data: box } = await sb
+    .from('event_coupon_box')
+    .select('is_open')
+    .eq('id', 1)
+    .maybeSingle();
+  if (!(box as { is_open?: boolean } | null)?.is_open) return;
+
+  const nickname =
+    ctx.room.players.find((p) => p.memberId === ctx.winnerMemberId)?.nickname ?? '???';
+  const { error } = await sb.from('event_coupons').insert({
+    member_id: ctx.winnerMemberId,
+    nickname,
+    source: 'rank_win',
+    ref_id: rankMatchId,
+  });
+  if (error) console.warn('[rank:persist] event_coupons insert 실패:', error.message);
+  else console.log(`[rank:persist] event coupon granted → ${nickname} (${ctx.winnerMemberId})`);
+}
+
 /** Phase 2: 게임 로그·랭크 히스토리·RP·CDP를 백그라운드로 DB에 저장 */
 async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<void> {
   const sb = getSupabaseAdmin();
@@ -383,6 +407,13 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
 
     if (insErr) console.warn('[rank:persist] rank_match_history insert 실패:', insErr.message);
     rankMatchId = (rmhRow as { id?: string } | null)?.id ?? null;
+
+    // 이벤트 쿠폰 지급 — 쿠폰함이 열려 있는 동안 랭크 승리 1회당 1장 (실패 무시)
+    try {
+      await grantEventCoupon(ctx, rankMatchId);
+    } catch (err) {
+      console.warn('[rank:persist] event coupon 지급 실패:', (err as Error).message);
+    }
   }
 
   // CDP 적립

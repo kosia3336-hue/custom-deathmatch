@@ -35,6 +35,7 @@ const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/shop', label: '상점' },
   { href: '/guild', label: '길드' },
   { href: '/attendance', label: '출석판' },
+  { href: '/event', label: '이벤트 쿠폰함' },
 ];
 
 export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNBProps) {

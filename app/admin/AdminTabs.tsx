@@ -14,6 +14,7 @@ const TABS: TabItem[] = [
   { id: 'reports', label: '신고' },
   { id: 'inquiries', label: '문의' },
   { id: 'notices', label: '공지' },
+  { id: 'event-coupons', label: '쿠폰함' },
   { id: 'audit', label: '관리자 로그' },
 ];
 
