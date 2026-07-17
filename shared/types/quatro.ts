@@ -3,7 +3,8 @@
  *
  * 카드: 4문양(스페이드=파랑 > 다이아=노랑 > 하트=빨강 > 클로버=초록) × 1~6 (24장)
  *       + 검정 0 카드 2장 = 총 26장.
- * 콰트로 = 4장의 숫자와 문양이 모두 다른 조합 (검정0은 만능 문양·숫자로 인정).
+ * 콰트로 = 4장의 숫자와 문양이 모두 다른 조합 (검정0은 만능 문양·숫자로 인정,
+ *          단 검정0 2장을 모두 보유하면 콰트로 실패).
  */
 
 export type QuatroSuit = 'spade' | 'diamond' | 'heart' | 'club' | 'black';
@@ -103,5 +104,6 @@ export interface QuatroGameData {
   /** 마지막 교환 페이즈(3라운드)에서 남은 필수 교환 수 */
   mustExchangeRemaining: number;
   result: QuatroResultSummary | null;
+  /** 턴 제한(초). 0 = 무제한 */
   turnSeconds: number;
 }

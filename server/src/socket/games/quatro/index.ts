@@ -36,14 +36,14 @@ export function initQuatro(
   players: Player[],
   playMode: PlayMode,
   startedAt: number,
-  _timeLimitSeconds: number | null,
+  timeLimitSeconds: number | null,
   endGameCallback: EndGameFn,
 ) {
   const prev = gameStates.get(roomId);
   if (prev) clearTimer(prev);
   gameStates.delete(roomId);
 
-  const s = createState(roomId, players, playMode, startedAt, endGameCallback);
+  const s = createState(roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback);
   gameStates.set(roomId, s);
 
   advance(io, s);

@@ -13,7 +13,6 @@ import {
   QUATRO_MAX_MULLIGANS,
   QUATRO_VP_COUNT,
   QUATRO_HAND_SIZE,
-  QUATRO_TURN_SECONDS,
   type QuatroCard,
   type QuatroSuit,
   type QuatroPhase,
@@ -77,6 +76,8 @@ export interface QuatroState {
   gameOver: boolean;
   startedAt: number;
   turnStartedAt: number;
+  /** 턴 시간제한(초). null = 무제한 (자동 진행 없음) */
+  timeLimitSeconds: number | null;
   timer: ReturnType<typeof setTimeout> | null;
   endGameCallback: EndGameFn;
 }
@@ -113,6 +114,7 @@ export function createState(
   players: Player[],
   playMode: PlayMode,
   startedAt: number,
+  timeLimitSeconds: number | null,
   endGameCallback: EndGameFn,
 ): QuatroState {
   const deck = buildDeck();
@@ -152,6 +154,7 @@ export function createState(
     gameOver: false,
     startedAt,
     turnStartedAt: Date.now(),
+    timeLimitSeconds,
     timer: null,
     endGameCallback,
   };
@@ -361,8 +364,9 @@ export function applyExchange(s: QuatroState, pIdx: number, vpIdx: number, giveC
 
 /* ────────── 판정 ────────── */
 
-/** 콰트로 여부: 검정0 은 만능. 나머지는 문양·숫자 모두 중복 없어야 함 */
+/** 콰트로 여부: 검정0 은 만능. 단 검정0 2장 보유 시 콰트로 실패. 나머지는 문양·숫자 모두 중복 없어야 함 */
 export function isQuatro(hand: QuatroCard[]): boolean {
+  if (hand.filter((c) => c.suit === 'black').length >= 2) return false;
   const normal = hand.filter((c) => c.suit !== 'black');
   const suits = new Set(normal.map((c) => c.suit));
   const nums = new Set(normal.map((c) => c.num));
@@ -499,7 +503,7 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     oppOpened: Boolean(oppP?.openChoice) || false,
     mustExchangeRemaining: mustRemain,
     result: s.phase === 'reveal' || s.phase === 'finished' ? s.result : null,
-    turnSeconds: QUATRO_TURN_SECONDS,
+    turnSeconds: s.timeLimitSeconds ?? 0, // 0 = 무제한
   };
 }
 
@@ -610,8 +614,10 @@ export function clearTimer(s: QuatroState) {
 export function armTimer(io: IO, s: QuatroState, onTimeout: (io: IO, s: QuatroState) => void) {
   clearTimer(s);
   s.turnStartedAt = Date.now();
+  // 시간제한 없는 방 — 자동 진행하지 않음
+  if (s.timeLimitSeconds === null) return;
   s.timer = setTimeout(() => {
     if (!gameStates.has(s.roomId) || s.gameOver) return;
     onTimeout(io, s);
-  }, QUATRO_TURN_SECONDS * 1000);
+  }, s.timeLimitSeconds * 1000);
 }

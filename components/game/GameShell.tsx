@@ -234,7 +234,7 @@ export default function GameShell({ children }: Props) {
               무르기
             </Button>
           )}
-          {isRankedRoom && !isSpectator && !isEventRoom && (
+          {room?.playMode === 'multi' && !isSpectator && !isEventRoom && (
             <Button
               type="button"
               size="sm"

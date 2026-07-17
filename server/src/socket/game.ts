@@ -827,7 +827,8 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
-    if (!room || room.status !== 'playing' || !room.isRanked) return;
+    // 랭크방 + 일반 1:1(multi) 방 모두 항복 가능 (forfeit 처리는 multi에서만 승패 부여)
+    if (!room || room.status !== 'playing' || room.playMode !== 'multi') return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 항복 미지원
     const myId = getPlayerId(socket);
     if (!room.players.some((p: Player) => p.id === myId)) return;
