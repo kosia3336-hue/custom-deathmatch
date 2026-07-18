@@ -2,12 +2,15 @@
  * 해달별 (이벤트) — Web Audio API SFX
  */
 
+import { isSfxMuted } from '@/lib/sfxSettings';
+
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 let _ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (isSfxMuted()) return null;
   try {
     if (!_ctx || _ctx.state === 'closed') _ctx = new AudioContext();
     if (_ctx.state === 'suspended') void _ctx.resume();

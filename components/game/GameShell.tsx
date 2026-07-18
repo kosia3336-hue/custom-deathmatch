@@ -14,18 +14,9 @@ import ChatButton from '@/components/room/ChatButton';
 import { BgmButton } from '@/components/cdm/BgmButton';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
-import { formatTime, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal } from '@/shared/types/events';
-
-function ElapsedTimer({ startedAt }: { startedAt: number }) {
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setElapsed(Date.now() - startedAt), 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-  return <span className="text-sm tabular-nums text-cdm-fg-muted">{formatTime(elapsed)}</span>;
-}
 
 function CountdownTimer() {
   const { remaining, timeLimitSeconds } = useTurnTimer();
@@ -80,8 +71,6 @@ export default function GameShell({ children }: Props) {
   const gameStateSigRef = useRef<string | null>(null);
   const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
 
-  const startedAt = gameState?.startedAt;
-
   const handleLeave = () => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
@@ -118,7 +107,6 @@ export default function GameShell({ children }: Props) {
           </span>
         )}
         <CountdownTimer />
-        {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
         <BgmButton />
         <Button size="sm" variant="ghost" onClick={() => setShowRules(true)}>
           룰
@@ -130,7 +118,7 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, startedAt, isRankedRoom]);
+  }, [setHeaderRight, isRankedRoom]);
 
   useEffect(() => {
     const s = getSocket();

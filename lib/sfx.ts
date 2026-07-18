@@ -1,7 +1,10 @@
+import { isSfxMuted } from '@/lib/sfxSettings';
+
 let ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (isSfxMuted()) return null;
   if (!ctx || ctx.state === 'closed') {
     ctx = new AudioContext();
   }

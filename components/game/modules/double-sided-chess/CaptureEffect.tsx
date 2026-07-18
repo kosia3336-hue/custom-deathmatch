@@ -6,12 +6,14 @@ import type { PieceType, Owner } from '@/shared/types/double-sided-chess';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { getPieceLabel, OWNER_COLOR } from './constants';
 import { cn } from '@/lib/utils';
+import { isSfxMuted } from '@/lib/sfxSettings';
 
 /* 정오각형: first = 꼭짓점 위, second = 꼭짓점 아래 */
 const CLIP_FIRST  = 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)';
 const CLIP_SECOND = 'polygon(50% 100%, 100% 62%, 82% 0%, 18% 0%, 0% 62%)';
 
 function playSlashSound() {
+  if (isSfxMuted()) return;
   try {
     const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
 

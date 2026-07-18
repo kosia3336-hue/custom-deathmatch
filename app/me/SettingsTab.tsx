@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useSyncExternalStore, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
@@ -11,6 +11,7 @@ import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
 import { useRouter } from 'next/navigation';
 import { useBgm } from '@/components/providers/BgmProvider';
+import { isSfxMuted, setSfxMuted, subscribeSfxMuted } from '@/lib/sfxSettings';
 import { useInventoryStore } from '@/stores/inventory';
 
 export default function SettingsTab() {
@@ -48,39 +49,57 @@ export default function SettingsTab() {
 function SoundCard() {
   const { hasTracks, muted, volume, setMuted, setVolume } = useBgm();
   const volumePct = Math.round(volume * 100);
-
-  if (!hasTracks) return null;
+  // SSR에선 localStorage 접근 불가 → 서버 스냅샷은 항상 '켜짐'
+  const sfxOn = !useSyncExternalStore(subscribeSfxMuted, isSfxMuted, () => false);
 
   return (
     <Card>
       <h2 className="text-sm font-semibold text-cdm-fg-muted">소리</h2>
       <div className="mt-3 flex flex-col gap-4">
+        {hasTracks && (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium text-cdm-fg">배경음악 (BGM)</div>
+                <div className="text-xs text-cdm-fg-muted">
+                  사이트에서 흘러나오는 배경음악을 켜고 끕니다
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={!muted}
+                onChange={(on) => setMuted(!on)}
+                ariaLabel="배경음악"
+              />
+            </div>
+
+            <div>
+              <Slider
+                value={volumePct}
+                min={0}
+                max={100}
+                step={1}
+                disabled={muted}
+                ariaLabel="배경음악 음량"
+                leftAdornment={<VolumeMinIcon />}
+                rightAdornment={<VolumeMaxIcon />}
+                valueLabel={`${volumePct}%`}
+                onChange={(pct) => setVolume(pct / 100)}
+              />
+            </div>
+          </>
+        )}
+
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-medium text-cdm-fg">배경음악 (BGM)</div>
+            <div className="text-sm font-medium text-cdm-fg">효과음 (SFX)</div>
             <div className="text-xs text-cdm-fg-muted">
-              사이트에서 흘러나오는 배경음악을 켜고 끕니다
+              게임·스킨 효과음을 켜고 끕니다 (배경음악과 별개)
             </div>
           </div>
           <ToggleSwitch
-            checked={!muted}
-            onChange={(on) => setMuted(!on)}
-            ariaLabel="배경음악"
-          />
-        </div>
-
-        <div>
-          <Slider
-            value={volumePct}
-            min={0}
-            max={100}
-            step={1}
-            disabled={muted}
-            ariaLabel="배경음악 음량"
-            leftAdornment={<VolumeMinIcon />}
-            rightAdornment={<VolumeMaxIcon />}
-            valueLabel={`${volumePct}%`}
-            onChange={(pct) => setVolume(pct / 100)}
+            checked={sfxOn}
+            onChange={(on) => setSfxMuted(!on)}
+            ariaLabel="효과음"
           />
         </div>
       </div>

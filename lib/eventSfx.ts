@@ -4,12 +4,15 @@
  * 모든 함수는 브라우저 AudioContext 가 생성 가능한 환경에서만 동작한다.
  */
 
+import { isSfxMuted } from '@/lib/sfxSettings';
+
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 let _ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (isSfxMuted()) return null;
   try {
     if (!_ctx || _ctx.state === 'closed') {
       _ctx = new AudioContext();
