@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
+import { sfxMeow } from '@/lib/sfx';
 import type { SBNWTile } from '@/shared/types/silper-bnw';
 
 import type { SkinTheme } from '@/lib/skins/registry';
@@ -109,6 +110,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
     const cur = slotRef.current;
     if (cur.length === 0) { setError('타일을 1개 이상 선택해 주세요.'); return; }
     if (cur.length >= 2 && cur[0].tile === 0) { setError('맨 앞 자리에 0을 둘 수 없습니다.'); return; }
+    if (isMeow) sfxMeow();
     getSocket().emit('game:action', { type: actionType, tiles: cur.map((x) => x.tile) });
     setSlot([]);
   };
@@ -136,13 +138,14 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
         e.preventDefault();
         const cur = slotRef.current;
         if (cur.length === 0 || (cur.length >= 2 && cur[0].tile === 0)) return;
+        if (isMeow) sfxMeow();
         getSocket().emit('game:action', { type: actionType, tiles: cur.map((x) => x.tile) });
         setSlot([]);
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [actionType]);
+  }, [actionType, isMeow]);
 
   // Long-press 정리
   const stopLongPress = () => {
