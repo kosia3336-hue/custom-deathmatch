@@ -700,7 +700,7 @@ export default function SilperBnwGame() {
             {/* 라운드 헤더 */}
             <div className="relative z-10 text-center">
               <div className={`text-xl font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}>
-                {isMeow ? '🐱 ' : ''}라운드 {gameData.round} / 11{isMeow ? ' 🐾' : ''}
+                라운드 {gameData.round} / 11{isMeow ? ' 🐾' : ''}
               </div>
               {gameData.rematchIndex > 0 && (
                 <div className="mt-0.5 inline-block rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
