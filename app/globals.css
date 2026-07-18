@@ -1695,6 +1695,234 @@ body {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   게임 스킨 · 냥냥 Meow (실퍼의 흑과백 / skin-g010-01)
+   솜사탕빛 고양이 다과회 — 크림 배경, 고양이 귀 타일, 젤리 발자국
+   ───────────────────────────────────────────────────────────── */
+.skin-meow-field {
+  --mw-cream:      #fdf3e3;
+  --mw-cream-up:   #fff9ef;
+  --mw-pink:       #f9a8c0;
+  --mw-pink-deep:  #e4839f;
+  --mw-pink-soft:  #ffe4ec;
+  --mw-brown:      #7c5a4a;
+  --mw-brown-dim:  #b09383;
+  --mw-paw:        rgba(228, 131, 159, 0.14);
+
+  position: relative;
+  background:
+    radial-gradient(circle at 12% 18%, var(--mw-paw) 0 6px, transparent 7px),
+    radial-gradient(circle at 88% 32%, var(--mw-paw) 0 5px, transparent 6px),
+    radial-gradient(circle at 22% 78%, var(--mw-paw) 0 5px, transparent 6px),
+    radial-gradient(circle at 78% 88%, var(--mw-paw) 0 6px, transparent 7px),
+    linear-gradient(180deg, var(--mw-cream-up) 0%, var(--mw-cream) 100%);
+  border: 2px solid rgba(249, 168, 192, 0.6);
+  border-radius: 1.25rem;
+  box-shadow:
+    0 0 0 1px rgba(249, 168, 192, 0.2),
+    0 6px 24px rgba(228, 131, 159, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+/* ── 떠다니는 발자국 이펙트 레이어 ── */
+.skin-meow-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.skin-meow-paw {
+  position: absolute;
+  font-size: 1rem;
+  opacity: 0;
+  color: var(--mw-pink-deep);
+  animation: meow-paw-drift 9s ease-in-out infinite;
+}
+@keyframes meow-paw-drift {
+  0%   { transform: translateY(12px) rotate(-10deg) scale(0.85); opacity: 0; }
+  20%  { opacity: 0.28; }
+  60%  { opacity: 0.18; }
+  100% { transform: translateY(-26px) rotate(12deg) scale(1); opacity: 0; }
+}
+
+/* ── 패널 (카드) ── */
+.skin-meow-panel {
+  background: rgba(255, 252, 246, 0.92);
+  border: 2px dashed rgba(249, 168, 192, 0.55);
+  border-radius: 1.125rem;
+  box-shadow: 0 2px 10px rgba(228, 131, 159, 0.1);
+}
+.skin-meow-panel-title { color: var(--mw-brown, #7c5a4a); font-weight: 700; }
+
+/* ── 고양이 귀 타일 ──
+   ::before/::after 로 좌우 귀를 그린다 */
+.skin-meow-tile {
+  position: relative;
+  border-radius: 0.75rem;
+  border-width: 2px;
+  border-style: solid;
+  overflow: visible;
+}
+.skin-meow-tile::before,
+.skin-meow-tile::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  width: 34%;
+  height: 12px;
+  background: inherit;
+  background-color: inherit;
+  border: 2px solid;
+  border-color: inherit;
+  border-bottom: none;
+  z-index: -1;
+}
+.skin-meow-tile::before { left: 6%;  border-radius: 80% 20% 0 30%; transform: rotate(-6deg); }
+.skin-meow-tile::after  { right: 6%; border-radius: 20% 80% 30% 0; transform: rotate(6deg); }
+
+.skin-meow-tile--0 { background-color: #eceef1; border-color: #b9c0cb; color: #5b6472; }
+.skin-meow-tile--1 { background-color: #e3edfd; border-color: #a5c3f0; color: #3f66a8; }
+.skin-meow-tile--2 { background-color: #ddf3e8; border-color: #9cd6ba; color: #2f7d59; }
+.skin-meow-tile--3 { background-color: #fdeeda; border-color: #eebe7f; color: #ad702a; }
+.skin-meow-tile--4 { background-color: #fde2ea; border-color: #f5a9c2; color: #c1547d; }
+
+.skin-meow-tile-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.skin-meow-tile-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(228, 131, 159, 0.25);
+}
+.skin-meow-tile-btn:active:not(:disabled) { transform: scale(0.94); }
+.skin-meow-tile-btn:disabled { opacity: 0.35; filter: grayscale(0.7); }
+
+/* ── 제시 슬롯 ── */
+.skin-meow-slot {
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px dashed rgba(176, 147, 131, 0.4);
+  border-radius: 1rem;
+}
+.skin-meow-slot--error {
+  border-color: rgba(244, 114, 142, 0.75);
+  background: #fff0f4;
+}
+.skin-meow-slot-empty { color: var(--mw-brown-dim, #b09383); }
+
+/* ── 제시하기 버튼 (핑크 필) ── */
+.skin-meow-submit-btn {
+  width: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #fb9fbc 0%, #f27ea4 100%);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.7rem 0;
+  box-shadow:
+    0 4px 14px rgba(228, 131, 159, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.skin-meow-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(228, 131, 159, 0.55);
+}
+.skin-meow-submit-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.skin-meow-submit-btn:disabled {
+  background: #e8ded4;
+  color: #b3a493;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── 모바일 CTA (타일 제시하기 플로팅 버튼) ── */
+.skin-meow-cta {
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #fb9fbc 0%, #f27ea4 100%);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 14px rgba(228, 131, 159, 0.45);
+}
+
+/* ── 라운드 리본 ── */
+.skin-meow-ribbon {
+  display: inline-block;
+  background: linear-gradient(180deg, #fbaec6 0%, #f490b0 100%);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.125rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(228, 131, 159, 0.35);
+}
+.skin-meow-heading { color: var(--mw-brown, #7c5a4a); }
+.skin-meow-subtext { color: var(--mw-brown-dim, #b09383); }
+
+/* ── 대기 카드: 통통 튀는 젤리 발바닥 ── */
+.skin-meow-waiting-paw {
+  display: inline-block;
+  color: var(--mw-pink-deep, #e4839f);
+  animation: meow-paw-bounce 1.2s ease-in-out infinite;
+}
+@keyframes meow-paw-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%      { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ── 트래커 ── */
+.skin-meow-tracker {
+  background: rgba(255, 252, 246, 0.9);
+  border: 2px dashed rgba(249, 168, 192, 0.45);
+  border-radius: 1rem;
+}
+.skin-meow-tracker-btn {
+  background: #fff;
+  border: 1.5px solid rgba(249, 168, 192, 0.65);
+  color: var(--mw-pink-deep, #e4839f);
+  border-radius: 0.5rem;
+  transition: background 0.12s;
+}
+.skin-meow-tracker-btn:hover:not(:disabled) { background: #ffe4ec; }
+.skin-meow-tracker-btn:disabled {
+  border-color: rgba(176, 147, 131, 0.25);
+  color: #d8cabd;
+  cursor: not-allowed;
+}
+
+/* ── RevealPanel ── */
+.skin-meow-reveal-panel {
+  background: rgba(255, 252, 246, 0.95);
+  border: 2px solid rgba(249, 168, 192, 0.55);
+  border-radius: 1.125rem;
+}
+.skin-meow-reveal-winner {
+  border-color: rgba(249, 168, 192, 0.9) !important;
+  background: #fff0f5 !important;
+  box-shadow: 0 0 14px rgba(249, 168, 192, 0.45) !important;
+}
+
+/* ── 팝인 애니메이션 (타일 등장) ── */
+@keyframes meow-pop {
+  0%   { transform: scale(0.6) rotate(-6deg); opacity: 0; }
+  70%  { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.skin-meow-pop { animation: meow-pop 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-meow-paw,
+  .skin-meow-waiting-paw,
+  .skin-meow-pop {
+    animation: none !important;
+  }
+  .skin-meow-paw { opacity: 0.15; }
+  .skin-meow-tile-btn,
+  .skin-meow-submit-btn {
+    transition: none !important;
+  }
+}
+
 /* ── 게임 룰 WYSIWYG 에디터 (TipTap) 타이포그래피 ─────────────── */
 .rule-editor h3 { margin: 1.1em 0 0.4em; font-size: 1.125rem; font-weight: 700; }
 .rule-editor h4 { margin: 0.9em 0 0.35em; font-size: 1rem; font-weight: 700; }
