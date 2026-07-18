@@ -318,6 +318,41 @@ export function sfxCitadelComplete() {
   } catch {}
 }
 
+/** 냥냥 스킨 — 타일별 고양이 울음 (public/audio/skins/meow/tile-N.mp3, 타일 0~4) */
+const meowTileBuffers = new Map<number, Promise<AudioBuffer | null>>();
+
+function loadMeowTileBuffer(c: AudioContext, tile: number): Promise<AudioBuffer | null> {
+  const cached = meowTileBuffers.get(tile);
+  if (cached) return cached;
+  const p = fetch(`/audio/skins/meow/tile-${tile}.mp3`)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
+    .then((buf) => c.decodeAudioData(buf))
+    .catch(() => {
+      meowTileBuffers.delete(tile); // 실패 시 재시도 가능하게
+      return null;
+    });
+  meowTileBuffers.set(tile, p);
+  return p;
+}
+
+/** 냥냥 스킨 — 타일 버튼 클릭 시 해당 타일의 야옹 소리 재생 */
+export function playMeowTileSfx(tile: number) {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    void loadMeowTileBuffer(c, tile).then((buf) => {
+      if (!buf) return;
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      const gain = c.createGain();
+      gain.gain.value = 0.55;
+      src.connect(gain);
+      gain.connect(c.destination);
+      src.start();
+    });
+  } catch {}
+}
+
 /** 냥냥 스킨 — 야옹~ (2음절 '야-옹' 피치 컨투어 + 비브라토 + 비음 포먼트) */
 export function sfxMeow() {
   try {

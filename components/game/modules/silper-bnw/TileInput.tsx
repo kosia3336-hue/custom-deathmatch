@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
-import { sfxMeow } from '@/lib/sfx';
+import { sfxMeow, playMeowTileSfx } from '@/lib/sfx';
 import type { SBNWTile } from '@/shared/types/silper-bnw';
 
 import type { SkinTheme } from '@/lib/skins/registry';
@@ -118,6 +118,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
         const cur = slotRef.current;
         const usedCount = cur.filter((x) => x.tile === t).length;
         if ((myTilesRef.current[t] ?? 0) - usedCount > 0) {
+          if (isMeow) playMeowTileSfx(t);
           setSlot((prev) => [...prev, { tile: t, id: nextId() }]);
           setError(null);
         }
@@ -152,6 +153,8 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
     stopLongPress();
     lpTimerRef.current = setTimeout(() => {
       isLpRef.current = true;
+      // 롱프레스는 연속 추가되므로 시작 시 한 번만 울린다
+      if (isMeow) playMeowTileSfx(t);
       lpIntervalRef.current = setInterval(() => addTile(t), 150);
     }, 350);
   };
@@ -159,6 +162,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
   const handleTileClick = (t: SBNWTile, e: React.MouseEvent) => {
     if (isLpRef.current) { isLpRef.current = false; return; } // long-press가 이미 추가함
     if (remainingRef.current[t] <= 0) return;
+    if (isMeow) playMeowTileSfx(t); // shift 일괄 추가 시에도 한 번만
     if (e.shiftKey) {
       const rem = remainingRef.current[t];
       for (let i = 0; i < rem; i++) addTile(t);
