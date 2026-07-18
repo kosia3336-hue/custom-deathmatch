@@ -22,6 +22,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 정적 / API / 시스템 라우트 ─────────────────────────────────
+  // 로컬 전용 UI 프리뷰 (/app/dev — gitignore, 프로덕션 빌드에 포함되지 않음)
+  if (process.env.NODE_ENV === 'development' && pathname.startsWith('/dev')) {
+    return NextResponse.next();
+  }
+
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||

@@ -155,6 +155,35 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'showdown') {
+    const Bundle = ({ state }: { state: 'lit' | 'active' }) => (
+      <span className={`skin-showdown-round skin-showdown-round--law skin-showdown-round--${state}`} style={{ position: 'relative' }}>
+        <span className="skin-showdown-round-loop" />
+        <span className="skin-showdown-round-bullets">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span key={i} className="skin-showdown-round-bullet">
+              <span className="skin-showdown-cartridge-tip" />
+              <span className="skin-showdown-cartridge-case" />
+            </span>
+          ))}
+        </span>
+      </span>
+    );
+    return (
+      <div className="skin-showdown-stage-bg relative flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg px-4">
+        <Bundle state="lit" />
+        <div className="skin-showdown-wanted-poster" style={{ transform: 'rotate(-3deg)' }} aria-hidden>
+          <div className="skin-showdown-wanted-title">WANTED</div>
+          <div className="skin-showdown-wanted-photo">
+            <span className="skin-showdown-bullet-hole skin-showdown-bullet-hole--black" />
+          </div>
+          <div className="skin-showdown-wanted-sub">DEAD&nbsp;OR&nbsp;ALIVE</div>
+        </div>
+        <Bundle state="active" />
+      </div>
+    );
+  }
+
   return (
     <div className="skin-imperial-board relative flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg">
       <span

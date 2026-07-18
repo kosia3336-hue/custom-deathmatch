@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -67,6 +67,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'citadel',
     description: '풍화된 성채의 다섯 돌기둥. 횃불과 석재 층, 탑 완성 연출.',
     swatch: 'radial-gradient(ellipse 70% 55% at 50% 30%, #6b5d4f, #2a2520 72%)',
+  },
+  'skin-g009-01': {
+    id: 'skin-g009-01',
+    gameId: GAME_IDS.BNW2,
+    name: '서부',
+    theme: 'showdown',
+    description: '황혼의 결투장. 탄띠 트랙, 조준경 제시, 현상금 포스터와 총잡이 결투 연출.',
+    swatch: 'linear-gradient(160deg, #f3e6d0 0%, #d8a24a 45%, #9c5a34 100%)',
   },
 };
 

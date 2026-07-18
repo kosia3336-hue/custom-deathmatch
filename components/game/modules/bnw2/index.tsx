@@ -6,8 +6,15 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { BNW2GameData, BNW2RevealData, BNW2PlayerInfo } from '@/shared/types/bnw2';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
 import PointTrack from './PointTrack';
 import PointInput from './PointInput';
+import ShowdownPointTrack from './skins/ShowdownPointTrack';
+import ShowdownPointInput from './skins/ShowdownPointInput';
+import ShowdownColorBanner from './skins/ShowdownColorBanner';
+import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
+import { playShowdownSubmitSfx } from './skins/showdownSfx';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '10점 달성',
@@ -293,9 +300,13 @@ export default function BNW2Game() {
   const myId = useMySocketId();
   useTurnTimer();
 
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.BNW2);
+  const isShowdown = skin === 'showdown';
+
   const shownEndRef = useRef<string | null>(null);
   const prevRoundRef = useRef<number | null>(null);
   const prevPhaseRef = useRef<string | null>(null);
+  const prevPhaseSfxRef = useRef<string | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<{ round: number; firstNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -361,6 +372,24 @@ export default function BNW2Game() {
     }
   }, [gameData?.phase]);
 
+  // 서부 스킨: 누군가 포인트를 제시(발사)해 페이즈가 넘어가면 총성 재생.
+  // 내 발사는 ShowdownPointInput이 즉시 재생하므로, 여기선 상대/관전자 케이스만 울린다.
+  useEffect(() => {
+    if (!isShowdown) return;
+    const phase = gameData?.phase;
+    if (!phase) return;
+    const prev = prevPhaseSfxRef.current;
+    prevPhaseSfxRef.current = phase;
+    if (prev === null) return;
+    const firstShot = prev === 'firstSubmit' && phase === 'secondSubmit';
+    const secondShot = prev === 'secondSubmit' && phase === 'reveal';
+    if (!firstShot && !secondShot) return;
+    const iAmFirst = !!gameData && myId === gameData.firstPlayerId;
+    const iShot = !isSpectator && ((firstShot && iAmFirst) || (secondShot && !iAmFirst));
+    if (iShot) return;
+    playShowdownSubmitSfx();
+  }, [gameData?.phase, isShowdown, isSpectator, myId, gameData?.firstPlayerId]);
+
   // 상대 stage 변경 시 추리 estimate를 구간 상한으로 리셋
   const opponentStageForEffect = (() => {
     if (!gameData) return null;
@@ -416,12 +445,18 @@ export default function BNW2Game() {
   // firstSubmit·secondSubmit 동안 비관전자에게 상대 잔여 추리 트래커 표시 (상대 단계는 항상 공개)
   const showTracker = !isSpectator && inPlay;
 
+  // 서부 스킨 컴포넌트는 기본 컴포넌트와 props가 동일하므로 그대로 스왑한다.
+  const TrackCmp = isShowdown ? ShowdownPointTrack : PointTrack;
+  const InputCmp = isShowdown ? ShowdownPointInput : PointInput;
+  const ColorBannerCmp = isShowdown ? ShowdownColorBanner : ColorRevealBanner;
+  const RevealPanelCmp = isShowdown ? ShowdownRevealPanel : RevealPanel;
+
   const inputContent = isMyTurn ? (
     <div className="space-y-3">
       {/* 모바일 바텀시트 내 색 공개 배너 (후플 차례에만) */}
       {!isFirst && gameData.firstPlayerColor && (
         <div className="lg:hidden">
-          <ColorRevealBanner
+          <ColorBannerCmp
             color={gameData.firstPlayerColor}
             firstNick={fp?.nickname ?? '선플'}
             stageBefore={gameData.prevFirstStage}
@@ -439,7 +474,7 @@ export default function BNW2Game() {
           />
         </div>
       )}
-      <PointInput
+      <InputCmp
         remaining={myPlayer?.remainingPoints ?? 0}
         actionType={isFirst ? 'submitFirst' : 'submitSecond'}
         label={isFirst ? '포인트를 제시하세요 (선플)' : '포인트를 제시하세요 (후플)'}
@@ -471,8 +506,8 @@ export default function BNW2Game() {
         }
       `}</style>
 
-      <div className="flex h-full">
-        <div className="flex flex-1 flex-col lg:flex-row">
+      <div className={`flex h-full${isShowdown ? ' skin-showdown-stage-bg' : ''}`}>
+        <div className={`flex flex-1 flex-col lg:flex-row${isShowdown ? ' skin-showdown-stage-content' : ''}`}>
 
           {/* ── Main area ── */}
           <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-3 pb-24 lg:p-5 lg:pb-5">
@@ -513,7 +548,7 @@ export default function BNW2Game() {
             {/* Center track */}
             <div className="w-full max-w-sm">
               {leftPlayer && rightPlayer && (
-                <PointTrack
+                <TrackCmp
                   leftPlayer={leftPlayer}
                   rightPlayer={rightPlayer}
                   leftLabel={leftLabel}
@@ -525,7 +560,7 @@ export default function BNW2Game() {
             {/* 선플 색 공개 배너 */}
             {gameData.phase === 'secondSubmit' && gameData.firstPlayerColor && (
               <div className="w-full max-w-sm">
-                <ColorRevealBanner
+                <ColorBannerCmp
                   color={gameData.firstPlayerColor}
                   firstNick={fp?.nickname ?? '선플'}
                   stageBefore={gameData.prevFirstStage}
@@ -561,7 +596,7 @@ export default function BNW2Game() {
               {isSpectator && inPlay ? (
                 <WaitingCard text="플레이어들이 포인트를 제시 중..." />
               ) : isReveal && gameData.revealData ? (
-                <RevealPanel
+                <RevealPanelCmp
                   revealData={gameData.revealData}
                   players={gameData.players}
                   myId={myId}
@@ -584,7 +619,7 @@ export default function BNW2Game() {
             {/* Mobile reveal panel */}
             {isReveal && gameData.revealData && (
               <div className="w-full max-w-sm lg:hidden">
-                <RevealPanel
+                <RevealPanelCmp
                   revealData={gameData.revealData}
                   players={gameData.players}
                   myId={myId}
@@ -679,7 +714,11 @@ export default function BNW2Game() {
           {isMyTurn && !sheetOpen && (
             <button
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
+              className={`fixed inset-x-4 bottom-20 z-(--cdm-z-modal) lg:hidden ${
+                isShowdown
+                  ? 'skin-showdown-mobile-cta'
+                  : 'rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg'
+              }`}
             >
               포인트 제시하기 →
             </button>
@@ -697,9 +736,13 @@ export default function BNW2Game() {
         }`}
       >
         {roundOverlay && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm">
+          <div
+            className={`flex flex-col items-center gap-2 rounded-2xl border px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm ${
+              isShowdown ? 'border-amber-400/30 bg-amber-950/90' : 'border-indigo-400/30 bg-indigo-900/90'
+            }`}
+          >
             <p className="text-2xl font-bold">라운드 {roundOverlay.round} 시작</p>
-            <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플</p>
+            <p className={`text-sm ${isShowdown ? 'text-amber-300' : 'text-indigo-300'}`}>{roundOverlay.firstNick} 선플</p>
           </div>
         )}
       </div>
