@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'candy';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -59,6 +59,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'nocturne',
     description: '달빛이 내리는 밤의 테이블. 발광 숫자 카드, 순차 딜, 이마의 비밀.',
     swatch: 'radial-gradient(ellipse 80% 60% at 50% 20%, #1e3a5f, #0b1220 70%)',
+  },
+  'skin-g012-01': {
+    id: 'skin-g012-01',
+    gameId: GAME_IDS.GRAPE_SUGAR_2,
+    name: '유리설탕',
+    theme: 'candy',
+    description: '설탕서리가 앉은 유리 과자점. 파스텔 유리 카드와 얼음 결정 라운드 보드.',
+    swatch: 'linear-gradient(135deg, #e7defa 0%, #d8ecfb 45%, #fbe3f1 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',
