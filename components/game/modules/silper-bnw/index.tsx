@@ -12,7 +12,7 @@ import type {
   SBNWRoundRecord,
   SBNWTile,
 } from '@/shared/types/silper-bnw';
-import TileInput, { TILE_COLORS, MEOW_TILE_CLASS } from './TileInput';
+import TileInput, { TILE_COLORS } from './TileInput';
 import OpponentTileTracker from './OpponentTileTracker';
 import MeowFieldFx from './skins/MeowFieldFx';
 import { getSkinTheme } from '@/lib/skins/registry';
@@ -43,6 +43,7 @@ function WaitingCard({ text, meow }: { text: string; meow?: boolean }) {
   if (meow) {
     return (
       <div className="skin-meow-panel flex flex-col items-center gap-2 p-6">
+        <div className="skin-meow-cat-img skin-meow-cat-img--sleep h-14 w-20" aria-hidden />
         <span className="inline-flex items-center gap-1" aria-hidden>
           {[0, 1, 2].map((i) => (
             <span key={i} className="skin-meow-waiting-paw text-sm" style={{ animationDelay: `${i * 0.18}s` }}>
@@ -156,11 +157,12 @@ function TileValueDisplay({
               }}
               className={
                 meow
-                  ? `${MEOW_TILE_CLASS[t]} flex h-8 w-8 items-center justify-center text-sm font-bold`
+                  ? `skin-meow-tile-sprite skin-meow-tile-sprite--${t} inline-block h-9 shrink-0`
                   : `flex h-8 w-8 items-center justify-center rounded-lg border-2 text-sm font-bold ${c.bg} ${c.border} ${c.text}`
               }
             >
-              {t}
+              {/* 냥냥: 숫자는 스프라이트에 포함 */}
+              {!meow && t}
             </span>
           );
         })}
@@ -707,7 +709,7 @@ export default function SilperBnwGame() {
               )}
               {fp && (
                 isMeow ? (
-                  <div className="mt-1"><span className="skin-meow-ribbon">{fp.nickname} 선플</span></div>
+                  <div className="mt-1"><span className="skin-meow-ribbon-sprite">{fp.nickname} 선플</span></div>
                 ) : (
                   <div className="mt-0.5 text-sm text-amber-600">{fp.nickname} 선플</div>
                 )

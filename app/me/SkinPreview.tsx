@@ -62,12 +62,7 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
         </div>
         <div className="relative z-10 flex items-end gap-1.5 pt-2">
           {([0, 1, 2, 3, 4] as const).map((t) => (
-            <div
-              key={t}
-              className={`skin-meow-tile skin-meow-tile--${t} flex h-9 w-9 items-center justify-center text-sm font-bold`}
-            >
-              {t}
-            </div>
+            <div key={t} className={`skin-meow-tile-sprite skin-meow-tile-sprite--${t} h-12`} />
           ))}
         </div>
       </div>

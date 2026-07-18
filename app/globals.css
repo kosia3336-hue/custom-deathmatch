@@ -1700,8 +1700,8 @@ body {
    솜사탕빛 고양이 다과회 — 크림 배경, 고양이 귀 타일, 젤리 발자국
    ───────────────────────────────────────────────────────────── */
 .skin-meow-field {
-  --mw-cream:      #fdf3e3;
-  --mw-cream-up:   #fff9ef;
+  --mw-cream:      #fff6ec; /* 시안 배경 샘플값 (255,246,236) */
+  --mw-cream-up:   #fffaf3;
   --mw-pink:       #f9a8c0;
   --mw-pink-deep:  #e4839f;
   --mw-pink-soft:  #ffe4ec;
@@ -1901,6 +1901,74 @@ body {
   background: #fff0f5 !important;
   box-shadow: 0 0 14px rgba(249, 168, 192, 0.45) !important;
 }
+
+/* ── 시안 스프라이트 (public/skins/meow/) ──
+   원본 시안에서 잘라낸 이미지. 타일 숫자는 이미지에 포함, 잔여 수량(×N)만 오버레이 */
+.skin-meow-tile-sprite {
+  position: relative;
+  aspect-ratio: 140 / 155;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 0;
+}
+.skin-meow-tile-sprite--0 { background-image: url('/skins/meow/tile-0.png'); color: #5b6472; }
+.skin-meow-tile-sprite--1 { background-image: url('/skins/meow/tile-1.png'); color: #3f66a8; }
+.skin-meow-tile-sprite--2 { background-image: url('/skins/meow/tile-2.png'); color: #2f7d59; }
+.skin-meow-tile-sprite--3 { background-image: url('/skins/meow/tile-3.png'); color: #ad702a; }
+.skin-meow-tile-sprite--4 { background-image: url('/skins/meow/tile-4.png'); color: #c1547d; }
+.skin-meow-sprite-count {
+  position: absolute;
+  left: 0; right: 0; bottom: 15%;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.skin-meow-submit-sprite {
+  display: block;
+  width: 100%;
+  aspect-ratio: 495 / 105;
+  background: url('/skins/meow/submit.png') center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.skin-meow-submit-sprite:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+.skin-meow-submit-sprite:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+.skin-meow-submit-sprite:disabled { filter: grayscale(0.55) opacity(0.55); cursor: not-allowed; }
+
+.skin-meow-ribbon-sprite {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 9rem;
+  aspect-ratio: 210 / 55;
+  padding: 0 1.5rem 0.2rem;
+  background: url('/skins/meow/ribbon.png') center / 100% 100% no-repeat;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(193, 84, 125, 0.55);
+}
+
+.skin-meow-slot-ear-img {
+  width: 4.5rem;
+  aspect-ratio: 150 / 65;
+  margin: 0 auto;
+  background: url('/skins/meow/slot-ear.png') center / contain no-repeat;
+  opacity: 0.9;
+}
+
+.skin-meow-cat-img {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  pointer-events: none;
+}
+.skin-meow-cat-img--left  { background-image: url('/skins/meow/cat-left.png');  aspect-ratio: 125 / 130; }
+.skin-meow-cat-img--sleep { background-image: url('/skins/meow/cat-sleep.png'); aspect-ratio: 215 / 150; }
 
 /* ── 팝인 애니메이션 (타일 등장) ── */
 @keyframes meow-pop {
