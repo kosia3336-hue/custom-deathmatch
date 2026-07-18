@@ -1,6 +1,7 @@
 import type { GameState } from '@shared/types/events.js';
 import type { BNW2GameData, BNW2PlayerInfo, BNW2RevealData } from '@shared/types/bnw2.js';
 import { sessions } from '../../../store/sessions.js';
+import { getActiveSkin } from '../../skins.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
@@ -137,6 +138,7 @@ function buildGameState(s: InternalState, gameData: BNW2GameData): GameState {
     turnNumber: s.round,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
 }
