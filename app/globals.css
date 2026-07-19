@@ -1708,10 +1708,7 @@ body {
 
   position: relative;
   background:
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.5) 0 2px, transparent 3px),
-    radial-gradient(circle at 82% 28%, rgba(255, 255, 255, 0.55) 0 1.5px, transparent 2.5px),
-    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.4) 0 2px, transparent 3px),
-    radial-gradient(circle at 68% 60%, rgba(255, 255, 255, 0.45) 0 1.5px, transparent 2.5px),
+    url('/skins/candy/background.png') center / cover no-repeat,
     linear-gradient(180deg, var(--cd-lav-up) 0%, var(--cd-lav) 55%, #e3d6f4 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   border-radius: 1rem;
