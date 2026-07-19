@@ -1695,6 +1695,11 @@ body {
   }
 }
 
+/* 게임 셸 전체 배경 — 스킨 착용 시 GameShell 래퍼에 적용 */
+.skin-bg-candy {
+  background: url('/skins/candy/background.png') center / cover no-repeat;
+}
+
 /* ─────────────────────────────────────────────────────────────
    게임 스킨 · 유리설탕 Candy (포도설탕2 / skin-g012-01)
    설탕서리 유리 과자점 — 시안 스프라이트(public/skins/candy/) 기반
@@ -1707,9 +1712,9 @@ body {
   --cd-frost:    rgba(255, 255, 255, 0.78);
 
   position: relative;
-  background:
-    url('/skins/candy/background.png') center / cover no-repeat,
-    linear-gradient(180deg, var(--cd-lav-up) 0%, var(--cd-lav) 55%, #e3d6f4 100%);
+  /* 전체 배경은 GameShell(.skin-bg-candy)이 그림 — 필드는 가독성용 반투명 베일 */
+  background: rgba(240, 234, 250, 0.45);
+  backdrop-filter: blur(1.5px);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   border-radius: 1rem;
   box-shadow:
