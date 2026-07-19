@@ -1711,10 +1711,7 @@ body {
 
   position: relative;
   background:
-    radial-gradient(circle at 12% 18%, var(--mw-paw) 0 6px, transparent 7px),
-    radial-gradient(circle at 88% 32%, var(--mw-paw) 0 5px, transparent 6px),
-    radial-gradient(circle at 22% 78%, var(--mw-paw) 0 5px, transparent 6px),
-    radial-gradient(circle at 78% 88%, var(--mw-paw) 0 6px, transparent 7px),
+    url('/skins/meow/background.png') center / cover no-repeat,
     linear-gradient(180deg, var(--mw-cream-up) 0%, var(--mw-cream) 100%);
   border: 2px solid rgba(249, 168, 192, 0.6);
   border-radius: 1.25rem;
@@ -1968,7 +1965,7 @@ body {
   pointer-events: none;
 }
 .skin-meow-cat-img--left  { background-image: url('/skins/meow/cat-left.png');  aspect-ratio: 125 / 130; }
-.skin-meow-cat-img--sleep { background-image: url('/skins/meow/cat-sleep.png'); aspect-ratio: 215 / 150; }
+.skin-meow-cat-img--sleep { background-image: url('/skins/meow/cat-sleep.png'); aspect-ratio: 241 / 158; }
 
 /* ── 팝인 애니메이션 (타일 등장) ── */
 @keyframes meow-pop {
