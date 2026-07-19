@@ -1695,6 +1695,11 @@ body {
   }
 }
 
+/* 게임 셸 전체 배경 — 스킨 착용 시 GameShell 래퍼에 적용 */
+.skin-bg-meow {
+  background: url('/skins/meow/background.png') center / cover no-repeat;
+}
+
 /* ─────────────────────────────────────────────────────────────
    게임 스킨 · 냥냥 Meow (실퍼의 흑과백 / skin-g010-01)
    솜사탕빛 고양이 다과회 — 크림 배경, 고양이 귀 타일, 젤리 발자국
@@ -1710,9 +1715,9 @@ body {
   --mw-paw:        rgba(228, 131, 159, 0.14);
 
   position: relative;
-  background:
-    url('/skins/meow/background.png') center / cover no-repeat,
-    linear-gradient(180deg, var(--mw-cream-up) 0%, var(--mw-cream) 100%);
+  /* 전체 배경은 GameShell(.skin-bg-meow)이 그림 — 필드는 가독성용 반투명 베일 */
+  background: rgba(255, 248, 240, 0.5);
+  backdrop-filter: blur(1.5px);
   border: 2px solid rgba(249, 168, 192, 0.6);
   border-radius: 1.25rem;
   box-shadow:

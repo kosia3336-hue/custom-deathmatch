@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
+import { getSkinMeta } from '@/lib/skins/registry';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
@@ -70,6 +71,10 @@ export default function GameShell({ children }: Props) {
   const isRankedRoom = room?.isRanked === true;
   const gameStateSigRef = useRef<string | null>(null);
   const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
+
+  /* 전체 화면 배경 이미지가 있는 스킨 — skin-bg-<theme> 클래스로 셸 배경 적용 */
+  const skinMeta = getSkinMeta(gameState?.activeSkin);
+  const skinTheme = skinMeta && ['meow'].includes(skinMeta.theme) ? skinMeta.theme : null;
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
@@ -250,7 +255,11 @@ export default function GameShell({ children }: Props) {
 
   return (
     <>
-      <div className="relative flex-1 overflow-hidden">
+      <div
+        className={`relative flex-1 overflow-hidden ${
+          skinTheme ? `skin-bg-${skinTheme}` : ''
+        }`}
+      >
         {children}
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
