@@ -17,6 +17,7 @@ import {
   CARD_STYLES, CARD_NAMES, CARD_HINTS, WIN_TYPE_LABELS,
 } from './constants';
 import { getSkinTheme } from '@/lib/skins/registry';
+import { playCandyButtonSfx } from '@/lib/candySfx';
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 유리설탕 스킨 — 반짝임 위치 */
@@ -784,6 +785,7 @@ function SugarBar({
   }
 
   if (candy) {
+    const adjustSfx = (d: number) => { playCandyButtonSfx(); adjust(d); };
     // 시안 스프라이트 버튼: 라벨은 이미지에 포함 (sr-only로 접근성 유지)
     return (
       <div className="skin-candy-panel relative z-10 flex flex-col gap-1.5 px-3 py-2">
@@ -792,10 +794,10 @@ function SugarBar({
           <span className="skin-candy-subtext text-xs">보유 {sugarRemain}</span>
         </div>
         <div className="flex items-center justify-center gap-1">
-          <button type="button" onClick={() => adjust(-5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m5 h-9">
+          <button type="button" onClick={() => adjustSfx(-5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m5 h-9">
             <span className="sr-only">-5</span>
           </button>
-          <button type="button" onClick={() => adjust(-1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m1 h-9">
+          <button type="button" onClick={() => adjustSfx(-1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m1 h-9">
             <span className="sr-only">-1</span>
           </button>
           <input
@@ -805,13 +807,13 @@ function SugarBar({
             disabled={!canAct}
             className="skin-candy-input h-9 w-16 px-1 text-sm"
           />
-          <button type="button" onClick={() => adjust(1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p1 h-9">
+          <button type="button" onClick={() => adjustSfx(1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p1 h-9">
             <span className="sr-only">+1</span>
           </button>
-          <button type="button" onClick={() => adjust(5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p5 h-9">
+          <button type="button" onClick={() => adjustSfx(5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p5 h-9">
             <span className="sr-only">+5</span>
           </button>
-          <button type="button" onClick={() => setPendingSugar(sugarRemain)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--max h-9">
+          <button type="button" onClick={() => { playCandyButtonSfx(); setPendingSugar(sugarRemain); }} disabled={!canAct} className="skin-candy-btn skin-candy-btn--max h-9">
             <span className="sr-only">MAX</span>
           </button>
         </div>
@@ -903,7 +905,11 @@ function CardHand({
             <button
               key={c}
               type="button"
-              onClick={() => canAct && onSelectCard(c)}
+              onClick={() => {
+                if (!canAct) return;
+                if (candy) playCandyButtonSfx();
+                onSelectCard(c);
+              }}
               disabled={!canAct}
               title={CARD_HINTS[c]}
               className={
@@ -986,7 +992,10 @@ function CardSubmitModal({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={() => {
+              if (candy) playCandyButtonSfx();
+              onConfirm();
+            }}
             disabled={submitting}
             className={
               candy
