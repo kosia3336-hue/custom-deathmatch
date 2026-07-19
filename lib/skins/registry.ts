@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown' | 'meow';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -59,6 +59,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'nocturne',
     description: '달빛이 내리는 밤의 테이블. 발광 숫자 카드, 순차 딜, 이마의 비밀.',
     swatch: 'radial-gradient(ellipse 80% 60% at 50% 20%, #1e3a5f, #0b1220 70%)',
+  },
+  'skin-g010-01': {
+    id: 'skin-g010-01',
+    gameId: GAME_IDS.SILPER_BNW,
+    name: '냥냥',
+    theme: 'meow',
+    description: '솜사탕빛 고양이 다과회. 고양이 귀 타일과 젤리 발자국이 흩날린다.',
+    swatch: 'linear-gradient(135deg, #ffe4ec 0%, #fdf3e3 50%, #ffd9e4 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',

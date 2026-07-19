@@ -53,6 +53,22 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'meow') {
+    return (
+      <div className="skin-meow-field relative flex h-24 w-full items-center justify-center gap-1.5 overflow-hidden rounded-lg">
+        <div className="skin-meow-fx" aria-hidden>
+          <span className="skin-meow-paw" style={{ left: '10%', top: '20%' }}>🐾</span>
+          <span className="skin-meow-paw" style={{ left: '82%', top: '65%', animationDelay: '3s' }}>🐾</span>
+        </div>
+        <div className="relative z-10 flex items-end gap-1.5 pt-2">
+          {([0, 1, 2, 3, 4] as const).map((t) => (
+            <div key={t} className={`skin-meow-tile-sprite skin-meow-tile-sprite--${t} h-12`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (theme === 'citadel') {
     return (
       <div className="skin-citadel-field skin-citadel-preview relative flex h-24 w-full items-end justify-center gap-1 overflow-hidden rounded-lg p-2">

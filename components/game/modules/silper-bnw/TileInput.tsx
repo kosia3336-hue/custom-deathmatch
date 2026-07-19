@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
+import { sfxMeow, playMeowTileSfx } from '@/lib/sfx';
 import type { SBNWTile } from '@/shared/types/silper-bnw';
+
+import type { SkinTheme } from '@/lib/skins/registry';
 
 interface Props {
   myTiles: Record<SBNWTile, number>;
@@ -10,6 +13,7 @@ interface Props {
   label: string;
   firstDigits: number | null;
   onSlotLengthChange?: (n: number) => void;
+  skin?: SkinTheme | null;
 }
 
 const TILE_VALUES: SBNWTile[] = [0, 1, 2, 3, 4];
@@ -40,7 +44,8 @@ function tilesToDisplayValue(items: SlotItem[]): string {
   return v.toString();
 }
 
-export default function TileInput({ myTiles, actionType, label, firstDigits, onSlotLengthChange }: Props) {
+export default function TileInput({ myTiles, actionType, label, firstDigits, onSlotLengthChange, skin }: Props) {
+  const isMeow = skin === 'meow';
   const [slot, setSlot] = useState<SlotItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +101,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
     const cur = slotRef.current;
     if (cur.length === 0) { setError('타일을 1개 이상 선택해 주세요.'); return; }
     if (cur.length >= 2 && cur[0].tile === 0) { setError('맨 앞 자리에 0을 둘 수 없습니다.'); return; }
+    if (isMeow) sfxMeow();
     getSocket().emit('game:action', { type: actionType, tiles: cur.map((x) => x.tile) });
     setSlot([]);
   };
@@ -112,6 +118,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
         const cur = slotRef.current;
         const usedCount = cur.filter((x) => x.tile === t).length;
         if ((myTilesRef.current[t] ?? 0) - usedCount > 0) {
+          if (isMeow) playMeowTileSfx(t);
           setSlot((prev) => [...prev, { tile: t, id: nextId() }]);
           setError(null);
         }
@@ -123,13 +130,14 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
         e.preventDefault();
         const cur = slotRef.current;
         if (cur.length === 0 || (cur.length >= 2 && cur[0].tile === 0)) return;
+        if (isMeow) sfxMeow();
         getSocket().emit('game:action', { type: actionType, tiles: cur.map((x) => x.tile) });
         setSlot([]);
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [actionType]);
+  }, [actionType, isMeow]);
 
   // Long-press 정리
   const stopLongPress = () => {
@@ -145,6 +153,8 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
     stopLongPress();
     lpTimerRef.current = setTimeout(() => {
       isLpRef.current = true;
+      // 롱프레스는 연속 추가되므로 시작 시 한 번만 울린다
+      if (isMeow) playMeowTileSfx(t);
       lpIntervalRef.current = setInterval(() => addTile(t), 150);
     }, 350);
   };
@@ -152,6 +162,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
   const handleTileClick = (t: SBNWTile, e: React.MouseEvent) => {
     if (isLpRef.current) { isLpRef.current = false; return; } // long-press가 이미 추가함
     if (remainingRef.current[t] <= 0) return;
+    if (isMeow) playMeowTileSfx(t); // shift 일괄 추가 시에도 한 번만
     if (e.shiftKey) {
       const rem = remainingRef.current[t];
       for (let i = 0; i < rem; i++) addTile(t);
@@ -173,13 +184,37 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
         }
       `}</style>
 
-      <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-        <p className="text-center text-sm font-semibold text-indigo-700">{label}</p>
+      <div
+        className={
+          isMeow
+            ? 'skin-meow-panel space-y-3 p-4'
+            : 'space-y-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4'
+        }
+      >
+        <p
+          className={`text-center text-sm font-semibold ${
+            isMeow ? 'skin-meow-panel-title' : 'text-indigo-700'
+          }`}
+        >
+          {isMeow ? `🐾 ${label} 🐾` : label}
+        </p>
 
         {firstDigits != null && (
-          <div className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-center">
-            <span className="text-xs text-gray-500">선플 자릿수</span>{' '}
-            <span className="text-base font-bold text-indigo-700 tabular-nums">{firstDigits}자리</span>
+          <div
+            className={`px-3 py-2 text-center ${
+              isMeow
+                ? 'skin-meow-slot rounded-lg'
+                : 'rounded-lg border border-indigo-200 bg-white'
+            }`}
+          >
+            <span className={`text-xs ${isMeow ? 'skin-meow-subtext' : 'text-gray-500'}`}>선플 자릿수</span>{' '}
+            <span
+              className={`text-base font-bold tabular-nums ${
+                isMeow ? 'skin-meow-heading' : 'text-indigo-700'
+              }`}
+            >
+              {firstDigits}자리
+            </span>
           </div>
         )}
 
@@ -199,19 +234,34 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
                 disabled={disabled}
                 aria-label={`${t} 타일, ${rem}개 남음`}
                 aria-disabled={disabled}
-                className={[
-                  'flex aspect-square flex-col items-center justify-center rounded-xl border-2',
-                  'select-none text-center transition-all duration-150',
-                  disabled
-                    ? `bg-gray-100 ${c.border} opacity-40 grayscale pointer-events-none`
-                    : `${c.bg} ${c.border} hover:-translate-y-0.5 hover:shadow-md active:scale-95`,
-                  !disabled && t === 4 ? 'ring-1 ring-rose-200 ring-offset-1' : '',
-                ].join(' ')}
+                className={
+                  isMeow
+                    ? [
+                        `skin-meow-tile-sprite skin-meow-tile-sprite--${t}`,
+                        'skin-meow-tile-btn select-none',
+                        disabled ? 'pointer-events-none' : '',
+                      ].join(' ')
+                    : [
+                        'flex aspect-square flex-col items-center justify-center rounded-xl border-2',
+                        'select-none text-center transition-all duration-150',
+                        disabled
+                          ? `bg-gray-100 ${c.border} opacity-40 grayscale pointer-events-none`
+                          : `${c.bg} ${c.border} hover:-translate-y-0.5 hover:shadow-md active:scale-95`,
+                        !disabled && t === 4 ? 'ring-1 ring-rose-200 ring-offset-1' : '',
+                      ].join(' ')
+                }
               >
-                <span className={`text-xl font-bold ${disabled ? 'text-gray-400' : c.text}`}>{t}</span>
-                <span className={`text-[10px] tabular-nums ${disabled ? 'text-gray-400' : 'text-gray-500'}`}>
-                  ×{rem}
-                </span>
+                {isMeow ? (
+                  /* 숫자는 스프라이트에 포함 — 잔여 수량만 오버레이 */
+                  <span className="skin-meow-sprite-count tabular-nums">×{rem}</span>
+                ) : (
+                  <>
+                    <span className={`text-xl font-bold ${disabled ? 'text-gray-400' : c.text}`}>{t}</span>
+                    <span className={`text-[10px] tabular-nums ${disabled ? 'text-gray-400' : 'text-gray-500'}`}>
+                      ×{rem}
+                    </span>
+                  </>
+                )}
               </button>
             );
           })}
@@ -219,15 +269,23 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
 
         {/* 제시 슬롯 */}
         <div
-          className={`rounded-xl border-2 bg-white p-3 transition-colors duration-200 ${
-            leadingZeroError ? 'border-rose-400 bg-rose-50' : 'border-gray-200'
-          }`}
+          className={
+            isMeow
+              ? `skin-meow-slot p-3 transition-colors duration-200 ${
+                  leadingZeroError ? 'skin-meow-slot--error' : ''
+                }`
+              : `rounded-xl border-2 bg-white p-3 transition-colors duration-200 ${
+                  leadingZeroError ? 'border-rose-400 bg-rose-50' : 'border-gray-200'
+                }`
+          }
           role="status"
           aria-live="polite"
           aria-label={slot.length > 0 ? `${displayValue}, ${slot.length}자리` : '슬롯 비어 있음'}
         >
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500">제시 슬롯</span>
+            <span className={`text-xs font-semibold ${isMeow ? 'skin-meow-heading' : 'text-gray-500'}`}>
+              {isMeow ? '🐾 제시 슬롯' : '제시 슬롯'}
+            </span>
             {slot.length > 0 && (
               <button onClick={handleClear} className="text-xs text-gray-400 hover:text-gray-600">
                 전체 지우기
@@ -236,7 +294,14 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
           </div>
 
           {slot.length === 0 ? (
-            <p className="py-2 text-center text-xs text-gray-400">타일을 선택해 주세요</p>
+            isMeow ? (
+              <div className="py-1">
+                <div className="skin-meow-slot-ear-img" aria-hidden />
+                <p className="skin-meow-slot-empty pb-1 text-center text-xs">타일을 선택해 주세요</p>
+              </div>
+            ) : (
+              <p className="py-2 text-center text-xs text-gray-400">타일을 선택해 주세요</p>
+            )
           ) : (
             <>
               <div className={`relative flex gap-1 py-1 ${isLongSlot ? 'overflow-x-auto pb-2' : 'flex-wrap'}`}>
@@ -246,15 +311,24 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
                     <button
                       key={item.id}
                       onClick={() => handleRemoveAt(item.id)}
-                      style={{ animation: 'slotPush 200ms cubic-bezier(0.175,0.885,0.32,1.275)' }}
-                      className={[
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2',
-                        'text-base font-bold transition-all duration-100',
-                        c.bg, c.border, c.text,
-                        'hover:opacity-60 active:scale-90',
-                      ].join(' ')}
+                      style={isMeow ? undefined : { animation: 'slotPush 200ms cubic-bezier(0.175,0.885,0.32,1.275)' }}
+                      className={
+                        isMeow
+                          ? [
+                              `skin-meow-tile-sprite skin-meow-tile-sprite--${item.tile}`,
+                              'skin-meow-pop h-11 shrink-0 hover:opacity-60 active:scale-90',
+                            ].join(' ')
+                          : [
+                              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2',
+                              'text-base font-bold transition-all duration-100',
+                              c.bg, c.border, c.text,
+                              'hover:opacity-60 active:scale-90',
+                            ].join(' ')
+                      }
+                      aria-label={`${item.tile} 타일 제거`}
                     >
-                      {item.tile}
+                      {/* 냥냥: 숫자는 스프라이트에 포함 */}
+                      {!isMeow && item.tile}
                     </button>
                   );
                 })}
@@ -287,13 +361,23 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
           )}
         </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 active:bg-indigo-800 disabled:cursor-not-allowed disabled:bg-gray-300"
-        >
-          제시하기
-        </button>
+        {isMeow ? (
+          /* 냥냥: 버튼 왼쪽 빈 공간에 앉아 있는 고양이 (텍스트는 중앙, 발바닥은 우측이라 좌측이 빈다) */
+          <div className="relative">
+            <div className="skin-meow-cat-img skin-meow-cat-img--left absolute bottom-1.5 left-4 z-10 h-11 w-11" aria-hidden />
+            <button onClick={handleSubmit} disabled={!canSubmit} className="skin-meow-submit-sprite">
+              <span className="sr-only">제시하기</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 active:bg-indigo-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            제시하기
+          </button>
+        )}
       </div>
     </>
   );

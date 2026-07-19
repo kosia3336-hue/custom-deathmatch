@@ -3,12 +3,15 @@
  * eventSfx 패턴 재사용. 스킨 OFF 시 호출하지 않는다.
  */
 
+import { isSfxMuted } from '@/lib/sfxSettings';
+
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 let _ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (isSfxMuted()) return null;
   try {
     if (!_ctx || _ctx.state === 'closed') {
       _ctx = new AudioContext();

@@ -1,7 +1,10 @@
+import { isSfxMuted } from '@/lib/sfxSettings';
+
 let ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (isSfxMuted()) return null;
   if (!ctx || ctx.state === 'closed') {
     ctx = new AudioContext();
   }
@@ -315,6 +318,93 @@ export function sfxCitadelComplete() {
       osc2.connect(g2); g2.connect(c.destination);
       osc2.start(t); osc2.stop(t + dur * 0.55 + 0.01);
     }
+  } catch {}
+}
+
+/** 냥냥 스킨 — 타일별 고양이 울음 (public/audio/skins/meow/tile-N.mp3, 타일 0~4) */
+const meowTileBuffers = new Map<number, Promise<AudioBuffer | null>>();
+
+function loadMeowTileBuffer(c: AudioContext, tile: number): Promise<AudioBuffer | null> {
+  const cached = meowTileBuffers.get(tile);
+  if (cached) return cached;
+  const p = fetch(`/audio/skins/meow/tile-${tile}.mp3`)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
+    .then((buf) => c.decodeAudioData(buf))
+    .catch(() => {
+      meowTileBuffers.delete(tile); // 실패 시 재시도 가능하게
+      return null;
+    });
+  meowTileBuffers.set(tile, p);
+  return p;
+}
+
+/** 냥냥 스킨 — 타일 버튼 클릭 시 해당 타일의 야옹 소리 재생 */
+export function playMeowTileSfx(tile: number) {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    void loadMeowTileBuffer(c, tile).then((buf) => {
+      if (!buf) return;
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      const gain = c.createGain();
+      gain.gain.value = 0.55;
+      src.connect(gain);
+      gain.connect(c.destination);
+      src.start();
+    });
+  } catch {}
+}
+
+/** 냥냥 스킨 — 야옹~ (2음절 '야-옹' 피치 컨투어 + 비브라토 + 비음 포먼트) */
+export function sfxMeow() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+    const dur = 0.55;
+
+    // 성대 — 톱니파에 피치 컨투어: '야'(상승) → '옹'(하강)
+    const osc = c.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(760, now + 0.14); // 야↗
+    osc.frequency.setValueAtTime(760, now + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(340, now + dur);  // 옹↘
+
+    // 비브라토 — 고양이 특유의 떨림
+    const vib = c.createOscillator();
+    vib.frequency.value = 24;
+    const vibGain = c.createGain();
+    vibGain.gain.value = 22;
+    vib.connect(vibGain);
+    vibGain.connect(osc.frequency);
+
+    // 비음 포먼트 — 밴드패스로 '냐옹' 콧소리
+    const formant = c.createBiquadFilter();
+    formant.type = 'bandpass';
+    formant.frequency.setValueAtTime(1300, now);
+    formant.frequency.exponentialRampToValueAtTime(700, now + dur);
+    formant.Q.value = 2.2;
+
+    // 톱니파의 날카로움 제거
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2600;
+
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.05);
+    gain.gain.setValueAtTime(0.22, now + 0.16);
+    gain.gain.linearRampToValueAtTime(0.16, now + 0.24);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(formant);
+    formant.connect(lp);
+    lp.connect(gain);
+    gain.connect(c.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+    vib.start(now); vib.stop(now + dur + 0.02);
   } catch {}
 }
 

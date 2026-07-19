@@ -14,6 +14,9 @@ import type {
 } from '@/shared/types/silper-bnw';
 import TileInput, { TILE_COLORS } from './TileInput';
 import OpponentTileTracker from './OpponentTileTracker';
+import MeowFieldFx from './skins/MeowFieldFx';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '승점 6선승',
@@ -36,7 +39,22 @@ function WaitingDots() {
   );
 }
 
-function WaitingCard({ text }: { text: string }) {
+function WaitingCard({ text, meow }: { text: string; meow?: boolean }) {
+  if (meow) {
+    return (
+      <div className="skin-meow-panel flex flex-col items-center gap-2 p-6">
+        <div className="skin-meow-cat-img skin-meow-cat-img--sleep h-14 w-20" aria-hidden />
+        <span className="inline-flex items-center gap-1" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="skin-meow-waiting-paw text-sm" style={{ animationDelay: `${i * 0.18}s` }}>
+              🐾
+            </span>
+          ))}
+        </span>
+        <p className="skin-meow-subtext text-sm">{text}</p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
       <WaitingDots />
@@ -51,26 +69,32 @@ function DigitHintPanel({
   firstDigits,
   myDigitsHint,
   isFirstSelf,
+  meow,
 }: {
   firstNick: string;
   firstDigits: number | null;
   myDigitsHint: number | null;
   isFirstSelf: boolean;
+  meow?: boolean;
 }) {
   if (firstDigits == null && myDigitsHint == null) return null;
   return (
-    <div className="digit-hint-enter flex w-full flex-col gap-1 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-center">
+    <div
+      className={`digit-hint-enter flex w-full flex-col gap-1 px-4 py-3 text-center ${
+        meow ? 'skin-meow-panel' : 'rounded-xl border border-indigo-200 bg-white'
+      }`}
+    >
       {firstDigits != null && (
-        <p className="text-sm text-gray-600">
+        <p className={`text-sm ${meow ? 'skin-meow-heading' : 'text-gray-600'}`}>
           <span className="font-medium">{firstNick}</span>{' '}
-          <span className="text-xs text-gray-400">(선플)</span> :{' '}
-          <span className="text-2xl font-bold text-indigo-700 tabular-nums">{firstDigits}</span>자리
+          <span className={`text-xs ${meow ? 'skin-meow-subtext' : 'text-gray-400'}`}>(선플)</span> :{' '}
+          <span className={`text-2xl font-bold tabular-nums ${meow ? 'skin-meow-heading' : 'text-indigo-700'}`}>{firstDigits}</span>자리
         </p>
       )}
       {isFirstSelf && firstDigits == null && myDigitsHint != null && myDigitsHint > 0 && (
-        <p className="text-xs text-gray-500">
+        <p className={`text-xs ${meow ? 'skin-meow-subtext' : 'text-gray-500'}`}>
           내 제시:{' '}
-          <span className="font-bold text-indigo-700 tabular-nums">{myDigitsHint}자리</span>
+          <span className={`font-bold tabular-nums ${meow ? 'skin-meow-heading' : 'text-indigo-700'}`}>{myDigitsHint}자리</span>
         </p>
       )}
     </div>
@@ -84,6 +108,7 @@ function TileValueDisplay({
   digits,
   visible,
   masked,
+  meow,
 }: {
   tiles: SBNWTile[];
   valueStr: string;
@@ -91,6 +116,7 @@ function TileValueDisplay({
   visible: boolean;
   /** 서버가 상대 타일을 숨긴 경우 (tilesUsed:[]) */
   masked: boolean;
+  meow?: boolean;
 }) {
   if (!visible) return <div className="py-4 text-xl text-gray-300">? ? ?</div>;
 
@@ -103,7 +129,11 @@ function TileValueDisplay({
             <span
               key={i}
               style={{ animation: `slotPush 300ms cubic-bezier(0.175,0.885,0.32,1.275) ${i * 80}ms both` }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-300 bg-gray-100 text-sm font-bold text-gray-400"
+              className={
+                meow
+                  ? 'skin-meow-tile skin-meow-tile--0 flex h-8 w-8 items-center justify-center text-sm font-bold'
+                  : 'flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-300 bg-gray-100 text-sm font-bold text-gray-400'
+              }
             >
               ?
             </span>
@@ -125,9 +155,14 @@ function TileValueDisplay({
               style={{
                 animation: `slotPush 300ms cubic-bezier(0.175,0.885,0.32,1.275) ${i * 80}ms both`,
               }}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 text-sm font-bold ${c.bg} ${c.border} ${c.text}`}
+              className={
+                meow
+                  ? `skin-meow-tile-sprite skin-meow-tile-sprite--${t} inline-block h-9 shrink-0`
+                  : `flex h-8 w-8 items-center justify-center rounded-lg border-2 text-sm font-bold ${c.bg} ${c.border} ${c.text}`
+              }
             >
-              {t}
+              {/* 냥냥: 숫자는 스프라이트에 포함 */}
+              {!meow && t}
             </span>
           );
         })}
@@ -145,12 +180,14 @@ function RevealPanel({
   myId,
   firstPlayerId,
   step,
+  meow,
 }: {
   revealData: SBNWRevealData;
   players: Record<string, SBNWPlayerInfo>;
   myId: string;
   firstPlayerId: string;
   step: number;
+  meow?: boolean;
 }) {
   const firstInfo  = players[firstPlayerId];
   const secondId   = Object.keys(players).find((id) => id !== firstPlayerId) ?? '';
@@ -179,7 +216,9 @@ function RevealPanel({
           !visible
             ? 'border-gray-200 bg-gray-100 opacity-30'
             : winnerVisible && isWinner
-              ? 'border-emerald-300 bg-emerald-50 shadow-[0_0_12px_rgba(52,211,153,0.25)]'
+              ? meow
+                ? 'skin-meow-reveal-winner border'
+                : 'border-emerald-300 bg-emerald-50 shadow-[0_0_12px_rgba(52,211,153,0.25)]'
               : winnerVisible && revealData.winnerId !== null
                 ? 'border-gray-200 bg-gray-50 opacity-60'
                 : 'border-gray-200 bg-white'
@@ -195,17 +234,28 @@ function RevealPanel({
           digits={side.digits}
           visible={visible}
           masked={masked}
+          meow={meow}
         />
         {winnerVisible && isWinner && (
-          <p className="mt-1 text-xs font-bold text-emerald-600">+1점</p>
+          <p className={`mt-1 text-xs font-bold ${meow ? 'skin-meow-heading' : 'text-emerald-600'}`}>
+            {meow ? '🐾 +1점' : '+1점'}
+          </p>
         )}
       </div>
     );
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
-      <p className="text-center text-sm font-semibold text-gray-700">라운드 결과</p>
+    <div
+      className={
+        meow
+          ? 'skin-meow-reveal-panel space-y-3 p-4'
+          : 'space-y-3 rounded-xl border border-gray-200 bg-white p-4'
+      }
+    >
+      <p className={`text-center text-sm font-semibold ${meow ? 'skin-meow-panel-title' : 'text-gray-700'}`}>
+        {meow ? '🐱 라운드 결과' : '라운드 결과'}
+      </p>
       <div className="grid grid-cols-2 gap-3">
         {renderCard(firstPlayerId, firstInfo, revealData.first,  firstWinner,  true,  firstVisible)}
         {renderCard(secondId,      secondInfo, revealData.second, secondWinner, false, secondVisible)}
@@ -379,6 +429,9 @@ export default function SilperBnwGame() {
   const gameData   = gameState?.gameData as SBNWGameData | undefined;
   const myId       = useMySocketId();
   useTurnTimer();
+
+  const skin   = getSkinTheme(gameState?.activeSkin, GAME_IDS.SILPER_BNW);
+  const isMeow = skin === 'meow';
 
   /* ── 상태 ── */
   const shownEndRef   = useRef<string | null>(null);
@@ -555,6 +608,7 @@ export default function SilperBnwGame() {
               firstDigits={firstDigits}
               myDigitsHint={null}
               isFirstSelf={false}
+              meow={isMeow}
             />
           </div>
         )}
@@ -565,6 +619,7 @@ export default function SilperBnwGame() {
           label={isFirst ? '타일을 제시하세요 (선플)' : '타일을 제시하세요 (후플)'}
           firstDigits={firstDigits}
           onSlotLengthChange={setMySlotLength}
+          skin={skin}
         />
       </div>
     ) : null;
@@ -599,7 +654,12 @@ export default function SilperBnwGame() {
         <div className="flex flex-1 flex-col lg:flex-row">
 
           {/* ══ 메인 영역 ══ */}
-          <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-3 pb-24 lg:p-5 lg:pb-5">
+          <div
+            className={`flex flex-1 flex-col items-center gap-3 overflow-y-auto p-3 pb-24 lg:p-5 lg:pb-5 ${
+              isMeow ? 'skin-meow-field' : ''
+            }`}
+          >
+            {isMeow && <MeowFieldFx />}
 
             {/* 모바일 플레이어 요약 바 — 6칸 dot 포함 */}
             <div className="flex w-full max-w-sm gap-2 lg:hidden">
@@ -638,9 +698,9 @@ export default function SilperBnwGame() {
             </div>
 
             {/* 라운드 헤더 */}
-            <div className="text-center">
-              <div className="text-xl font-bold text-gray-800">
-                라운드 {gameData.round} / 11
+            <div className="relative z-10 text-center">
+              <div className={`text-xl font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}>
+                라운드 {gameData.round} / 11{isMeow ? ' 🐾' : ''}
               </div>
               {gameData.rematchIndex > 0 && (
                 <div className="mt-0.5 inline-block rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
@@ -648,12 +708,18 @@ export default function SilperBnwGame() {
                 </div>
               )}
               {fp && (
-                <div className="mt-0.5 text-sm text-amber-600">{fp.nickname} 선플</div>
+                isMeow ? (
+                  <div className="mt-1"><span className="skin-meow-ribbon-sprite">{fp.nickname} 선플</span></div>
+                ) : (
+                  <div className="mt-0.5 text-sm text-amber-600">{fp.nickname} 선플</div>
+                )
               )}
             </div>
 
             {/* 상태 메시지 */}
-            <div className="text-center text-sm text-gray-500">{gameState?.message}</div>
+            <div className={`relative z-10 text-center text-sm ${isMeow ? 'skin-meow-subtext' : 'text-gray-500'}`}>
+              {gameState?.message}
+            </div>
 
             {/* DigitHintPanel — key로 remount 시 팝인 애니메이션 */}
             {(gameData.phase === 'secondSubmit' || gameData.phase === 'firstSubmit') && (
@@ -663,6 +729,7 @@ export default function SilperBnwGame() {
                   firstDigits={firstDigits}
                   myDigitsHint={myDigitsHint}
                   isFirstSelf={isFirst}
+                  meow={isMeow}
                 />
               </div>
             )}
@@ -670,7 +737,7 @@ export default function SilperBnwGame() {
             {/* 데스크톱: 페이즈별 메인 영역 */}
             <div className="hidden w-full max-w-sm lg:block">
               {isSpectator && inPlay ? (
-                <WaitingCard text="플레이어들이 타일을 선택 중..." />
+                <WaitingCard text="플레이어들이 타일을 선택 중..." meow={isMeow} />
               ) : isReveal && gameData.revealData ? (
                 <RevealPanel
                   revealData={gameData.revealData}
@@ -678,6 +745,7 @@ export default function SilperBnwGame() {
                   myId={myId}
                   firstPlayerId={gameData.firstPlayerId}
                   step={displayRevealStep}
+                  meow={isMeow}
                 />
               ) : isMyTurn ? (
                 inputContent
@@ -688,6 +756,7 @@ export default function SilperBnwGame() {
                       ? `${fp?.nickname ?? '선플'}이 타일 선택 중...`
                       : `${sp?.nickname ?? '후플'}이 타일 선택 중...`
                   }
+                  meow={isMeow}
                 />
               ) : null}
             </div>
@@ -701,6 +770,7 @@ export default function SilperBnwGame() {
                   myId={myId}
                   firstPlayerId={gameData.firstPlayerId}
                   step={displayRevealStep}
+                  meow={isMeow}
                 />
               </div>
             )}
@@ -714,13 +784,14 @@ export default function SilperBnwGame() {
                       ? `${fp?.nickname ?? '선플'}이 타일 선택 중...`
                       : `${sp?.nickname ?? '후플'}이 타일 선택 중...`
                   }
+                  meow={isMeow}
                 />
               </div>
             )}
 
             {isSpectator && inPlay && (
               <div className="w-full max-w-sm lg:hidden">
-                <WaitingCard text="플레이어들이 타일을 선택 중..." />
+                <WaitingCard text="플레이어들이 타일을 선택 중..." meow={isMeow} />
               </div>
             )}
 
@@ -731,6 +802,7 @@ export default function SilperBnwGame() {
                 <OpponentTileTracker
                   opponentUsed={opponentUsed}
                   rematchIndex={gameData.rematchIndex}
+                  skin={skin}
                 />
               </div>
             )}
@@ -741,6 +813,7 @@ export default function SilperBnwGame() {
                 <OpponentTileTracker
                   opponentUsed={opponentUsed}
                   rematchIndex={gameData.rematchIndex}
+                  skin={skin}
                 />
               </div>
             )}
@@ -834,9 +907,11 @@ export default function SilperBnwGame() {
           {isMyTurn && !sheetOpen && (
             <button
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
+              className={`fixed inset-x-4 bottom-20 z-(--cdm-z-modal) py-3 text-sm font-bold text-white shadow-lg lg:hidden ${
+                isMeow ? 'skin-meow-cta' : 'rounded-xl bg-indigo-600'
+              }`}
             >
-              타일 제시하기 →
+              {isMeow ? '타일 제시하기 🐾' : '타일 제시하기 →'}
             </button>
           )}
           <BottomSheet open={sheetOpen && isMyTurn} onClose={() => setSheetOpen(false)}>

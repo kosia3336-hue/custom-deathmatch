@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
+import { getSkinMeta } from '@/lib/skins/registry';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
@@ -14,18 +15,9 @@ import ChatButton from '@/components/room/ChatButton';
 import { BgmButton } from '@/components/cdm/BgmButton';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
-import { formatTime, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal } from '@/shared/types/events';
-
-function ElapsedTimer({ startedAt }: { startedAt: number }) {
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setElapsed(Date.now() - startedAt), 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-  return <span className="text-sm tabular-nums text-cdm-fg-muted">{formatTime(elapsed)}</span>;
-}
 
 function CountdownTimer() {
   const { remaining, timeLimitSeconds } = useTurnTimer();
@@ -80,7 +72,9 @@ export default function GameShell({ children }: Props) {
   const gameStateSigRef = useRef<string | null>(null);
   const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
 
-  const startedAt = gameState?.startedAt;
+  /* 전체 화면 배경 이미지가 있는 스킨 — skin-bg-<theme> 클래스로 셸 배경 적용 */
+  const skinMeta = getSkinMeta(gameState?.activeSkin);
+  const skinTheme = skinMeta && ['meow'].includes(skinMeta.theme) ? skinMeta.theme : null;
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
@@ -118,7 +112,6 @@ export default function GameShell({ children }: Props) {
           </span>
         )}
         <CountdownTimer />
-        {startedAt !== undefined && <ElapsedTimer startedAt={startedAt} />}
         <BgmButton />
         <Button size="sm" variant="ghost" onClick={() => setShowRules(true)}>
           룰
@@ -130,7 +123,7 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, startedAt, isRankedRoom]);
+  }, [setHeaderRight, isRankedRoom]);
 
   useEffect(() => {
     const s = getSocket();
@@ -262,7 +255,11 @@ export default function GameShell({ children }: Props) {
 
   return (
     <>
-      <div className="relative flex-1 overflow-hidden">
+      <div
+        className={`relative flex-1 overflow-hidden ${
+          skinTheme ? `skin-bg-${skinTheme}` : ''
+        }`}
+      >
         {children}
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
