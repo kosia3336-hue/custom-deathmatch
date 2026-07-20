@@ -17,7 +17,7 @@ import {
   CARD_STYLES, CARD_NAMES, CARD_HINTS, WIN_TYPE_LABELS,
 } from './constants';
 import { getSkinTheme } from '@/lib/skins/registry';
-import { playCandyButtonSfx } from '@/lib/candySfx';
+import { playCandyButtonSfx, playCandyCardSfx, playCandyMinusSfx } from '@/lib/candySfx';
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 유리설탕 스킨 — 반짝임 위치 */
@@ -156,6 +156,16 @@ export default function GrapeSugar2Game() {
         />
       )}
 
+      {/* 상태 안내 — 배경 우측 상단 안내판 위 (GameShell 래퍼 기준 absolute, 데스크톱만) */}
+      {isCandy && (() => {
+        const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
+        return statusText ? (
+          <span className="skin-candy-signboard pointer-events-none absolute right-[3%] top-[2.6vw] z-30 hidden lg:block">
+            {statusText}
+          </span>
+        ) : null;
+      })()}
+
       <div
         className={`relative flex flex-1 flex-col gap-2 p-3 lg:flex-row lg:gap-3 lg:p-4 max-w-7xl mx-auto w-full ${
           isCandy ? 'skin-candy-field' : ''
@@ -256,8 +266,8 @@ export default function GrapeSugar2Game() {
           )}
         </div>
 
-        {/* 우측: 사이드 패널 */}
-        <div className="lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3">
+        {/* 우측: 사이드 패널 — 캔디 스킨은 상단 안내판과 겹치지 않게 아래로 내림 */}
+        <div className={`lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3 ${isCandy ? 'lg:mt-28' : ''}`}>
           <RoundHistoryPanel
             history={gameData.history}
             players={gameData.players}
@@ -274,6 +284,24 @@ export default function GrapeSugar2Game() {
 
 /* ────────── 라운드 인디케이터 ────────── */
 
+/** 라운드 인디케이터·안내판 공용 상태 문구 */
+function gs2StatusText(
+  phase: string, mySubmitted: boolean, oppSubmitted: boolean, isSpectator: boolean, extension: number,
+): string {
+  if (phase === 'input') {
+    if (mySubmitted && oppSubmitted) return '양측 제출 완료, 정산 시작...';
+    if (mySubmitted) return '상대를 기다리는 중...';
+    if (oppSubmitted) return '상대 제출 완료! 빨리 결정하세요';
+    if (isSpectator) return '양측 입력 대기 중...';
+    return '설탕 입력 후 카드를 눌러 제출하세요';
+  }
+  if (phase === 'reveal') return '정산 중...';
+  if (phase === 'roundEnd') return '라운드 종료';
+  if (phase === 'extensionIntro') return `${extension}차 연장전 시작!`;
+  if (phase === 'finished') return '게임 종료';
+  return '';
+}
+
 function RoundIndicator({
   round, maxRound, extension, phase, mySubmitted, oppSubmitted, isSpectator, candy,
 }: {
@@ -286,42 +314,24 @@ function RoundIndicator({
   isSpectator: boolean;
   candy?: boolean;
 }) {
-  let statusText = '';
-  if (phase === 'input') {
-    if (mySubmitted && oppSubmitted) statusText = '양측 제출 완료, 정산 시작...';
-    else if (mySubmitted) statusText = '상대를 기다리는 중...';
-    else if (oppSubmitted) statusText = '상대 제출 완료! 빨리 결정하세요';
-    else if (isSpectator) statusText = '양측 입력 대기 중...';
-    else statusText = '설탕 입력 후 카드를 눌러 제출하세요';
-  } else if (phase === 'reveal') statusText = '정산 중...';
-  else if (phase === 'roundEnd') statusText = '라운드 종료';
-  else if (phase === 'extensionIntro') statusText = `${extension}차 연장전 시작!`;
-  else if (phase === 'finished') statusText = '게임 종료';
+  const statusText = gs2StatusText(phase, mySubmitted, oppSubmitted, isSpectator, extension);
 
   if (candy) {
+    // 데스크톱 상태 안내는 배경 안내판 위에(최상위 CandySignboard) 별도 렌더. 여기선 R 바 + 모바일 안내만.
     return (
-      <>
-        {/* 상태 안내 — 시안처럼 우측 상단 모서리 프로스트 칩 (필드 루트 기준 absolute) */}
+      <div className="relative z-10 -mb-3 flex flex-col items-center lg:-mb-4">
+        <div className="skin-candy-round w-full max-w-xs px-6">
+          <span className="skin-candy-round-text text-lg lg:text-xl">
+            {extension > 0 && <span className="mr-1.5 text-sm">연장{extension}</span>}
+            R {round} / {maxRound}
+          </span>
+        </div>
         {statusText && (
-          <span className="skin-candy-status absolute right-2 top-2 z-20 hidden max-w-[45%] truncate sm:block lg:right-3 lg:top-3">
+          <span className="skin-candy-subtext mb-3 mt-0.5 max-w-full truncate text-xs font-medium lg:hidden">
             {statusText}
           </span>
         )}
-        <div className="relative z-10 -mb-3 flex flex-col items-center lg:-mb-4">
-          <div className="skin-candy-round w-full max-w-xs px-6">
-            <span className="skin-candy-round-text text-lg lg:text-xl">
-              {extension > 0 && <span className="mr-1.5 text-sm">연장{extension}</span>}
-              R {round} / {maxRound}
-            </span>
-          </div>
-          {/* 모바일: 코너 칩 대신 바 아래 안내 */}
-          {statusText && (
-            <span className="skin-candy-subtext mb-3 mt-0.5 max-w-full truncate text-xs font-medium sm:hidden">
-              {statusText}
-            </span>
-          )}
-        </div>
-      </>
+      </div>
     );
   }
 
@@ -794,7 +804,8 @@ function SugarBar({
   }
 
   if (candy) {
-    const adjustSfx = (d: number) => { playCandyButtonSfx(); adjust(d); };
+    // -5/-1 은 잼병 닫는 소리, +1/+5 는 잼병 여는 '뽁'
+    const adjustSfx = (d: number) => { (d < 0 ? playCandyMinusSfx : playCandyButtonSfx)(); adjust(d); };
     // 시안 스프라이트 버튼: 라벨은 이미지에 포함 (sr-only로 접근성 유지)
     return (
       <div className="skin-candy-panel relative z-10 flex flex-col gap-1.5 px-3 py-2">
@@ -902,11 +913,11 @@ function CardHand({
                 key={c}
                 className={
                   candy
-                    ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-12 flex-col items-center justify-center sm:w-14 lg:w-16`
+                    ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-16 flex-col items-center justify-center sm:w-20 lg:w-24`
                     : 'flex flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px] opacity-30'
                 }
               >
-                <span className={`text-base ${candy ? '' : 'text-gray-300'}`}>{style.icon}</span>
+                <span className={candy ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-base text-gray-300'}>{style.icon}</span>
               </div>
             );
           }
@@ -916,7 +927,7 @@ function CardHand({
               type="button"
               onClick={() => {
                 if (!canAct) return;
-                if (candy) playCandyButtonSfx();
+                if (candy) playCandyCardSfx();
                 onSelectCard(c);
               }}
               disabled={!canAct}
@@ -924,7 +935,7 @@ function CardHand({
               className={
                 candy
                   ? `skin-candy-card skin-candy-card--${c} skin-candy-card-btn flex flex-col items-center justify-center select-none
-                     w-12 sm:w-14 lg:w-16 ${canAct ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`
+                     w-16 sm:w-20 lg:w-24 ${canAct ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`
                   : `flex flex-col items-center justify-center rounded-lg border-2 transition-all select-none
                      w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px]
                      ${canAct
@@ -934,8 +945,8 @@ function CardHand({
                      ${style.bg} ${style.text} ${style.border}`
               }
             >
-              <span className="text-lg sm:text-xl lg:text-2xl">{style.icon}</span>
-              <span className="mt-0.5 text-[9px] sm:text-[10px] lg:text-xs font-bold leading-tight text-center px-0.5">
+              <span className={candy ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-lg sm:text-xl lg:text-2xl'}>{style.icon}</span>
+              <span className={`mt-0.5 font-bold leading-tight text-center px-0.5 ${candy ? 'text-[11px] sm:text-xs lg:text-sm' : 'text-[9px] sm:text-[10px] lg:text-xs'}`}>
                 {CARD_NAMES[c]}
               </span>
             </button>

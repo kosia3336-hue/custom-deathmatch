@@ -1994,7 +1994,8 @@ body {
 }
 
 .skin-bg-candy {
-  background: url('/skins/candy/background.png') center / cover no-repeat;
+  /* top 정렬 — 상단 우측 안내판이 항상 보이도록 (아래쪽을 크롭) */
+  background: url('/skins/candy/background-2.png') top center / cover no-repeat;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2046,17 +2047,18 @@ body {
 .skin-candy-heading { color: var(--cd-ink, #5b54a8); }
 .skin-candy-subtext { color: var(--cd-ink-dim, #9a8fc4); }
 
-/* ── 상태 안내 칩 — 시안 우측 상단 모서리의 프로스트 패널 ── */
-.skin-candy-status {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 0.625rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #c2688f; /* 시안의 안내 문구 핑크 */
-  box-shadow: 0 2px 8px rgba(140, 120, 190, 0.16);
-  backdrop-filter: blur(4px);
+/* ── 상태 안내 — 배경 우측 상단 안내판 위에 얹는 문구 (프레임은 배경이 이미 그림) ──
+   안내판 실제 위치(이미지 x 73~97%, y 6~15%)에 맞춰 컴포넌트에서 위치 지정 */
+.skin-candy-signboard {
+  max-width: 22%;
+  text-align: center;
+  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: #c2688f; /* 시안 안내 문구 핑크 */
+  text-shadow:
+    0 1px 2px rgba(255, 255, 255, 0.9),
+    0 0 6px rgba(255, 255, 255, 0.7);
 }
 
 /* ── 라운드 인디케이터 (얼음 바) ── */
@@ -2135,19 +2137,28 @@ body {
 }
 .skin-candy-input:disabled { opacity: 0.5; }
 
-/* ── 모달 확정 버튼 (얼음 필) ── */
+/* ── 모달 확정 버튼 — 파스텔 캔디 필 (이미지 미사용) ── */
 .skin-candy-submit {
   position: relative;
-  background: url('/skins/candy/submit.png') center / 100% 100% no-repeat;
-  border: 0;
-  color: #4c519e;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #f9b6d6 0%, #e888b6 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  color: #fff;
   font-weight: 700;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(180, 90, 140, 0.4);
+  box-shadow:
+    0 4px 12px rgba(220, 130, 175, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  transition: transform 0.14s ease, filter 0.14s ease;
+  transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
 }
-.skin-candy-submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.04); }
-.skin-candy-submit:active:not(:disabled) { transform: scale(0.98); }
+.skin-candy-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 6px 16px rgba(220, 130, 175, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.skin-candy-submit:active:not(:disabled) { transform: translateY(0) scale(0.98); }
 .skin-candy-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) {
