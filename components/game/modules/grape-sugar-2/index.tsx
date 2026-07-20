@@ -160,7 +160,7 @@ export default function GrapeSugar2Game() {
       {isCandy && (() => {
         const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
         return statusText ? (
-          <span className="skin-candy-signboard pointer-events-none absolute right-[3%] top-[2.6vw] z-30 hidden lg:block">
+          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[6.4vw] z-30 hidden -translate-x-1/2 lg:block">
             {statusText}
           </span>
         ) : null;
@@ -189,8 +189,8 @@ export default function GrapeSugar2Game() {
           </div>
         )}
 
-        {/* 좌측: 메인 게임 영역 */}
-        <div className="flex flex-1 flex-col gap-2 lg:gap-3 min-w-0">
+        {/* 좌측: 메인 게임 영역 — 캔디 스킨은 반투명 보드로 섹션을 하나로 묶음 */}
+        <div className={`flex flex-1 flex-col gap-2 lg:gap-3 min-w-0 ${isCandy ? 'skin-candy-board relative z-10 p-3 lg:p-4' : ''}`}>
           {/* 라운드 인디케이터 */}
           <RoundIndicator
             round={gameData.round}
@@ -267,7 +267,7 @@ export default function GrapeSugar2Game() {
         </div>
 
         {/* 우측: 사이드 패널 — 캔디 스킨은 상단 안내판과 겹치지 않게 아래로 내림 */}
-        <div className={`lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3 ${isCandy ? 'lg:mt-28' : ''}`}>
+        <div className={`lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3 ${isCandy ? 'relative z-10 lg:mt-28' : ''}`}>
           <RoundHistoryPanel
             history={gameData.history}
             players={gameData.players}
@@ -275,6 +275,7 @@ export default function GrapeSugar2Game() {
             open={showHistory}
             setOpen={setShowHistory}
             isRoundEnd={isRoundEnd}
+            candy={isCandy}
           />
         </div>
       </div>
@@ -903,7 +904,7 @@ function CardHand({
         </span>
         <span className={`text-[10px] ${candy ? 'skin-candy-subtext' : 'text-gray-400'}`}>잔여 {hand.length}장</span>
       </div>
-      <div className="flex flex-wrap gap-1.5 justify-center lg:gap-2">
+      <div className={`flex justify-center gap-1.5 ${candy ? 'flex-wrap lg:flex-nowrap lg:gap-1.5' : 'flex-wrap lg:gap-2'}`}>
         {CARD_IDS.map((c) => {
           const has = hand.includes(c);
           const style = CARD_STYLES[c];
@@ -913,7 +914,7 @@ function CardHand({
                 key={c}
                 className={
                   candy
-                    ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-16 flex-col items-center justify-center sm:w-20 lg:w-24`
+                    ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-16 flex-col items-center justify-center sm:w-20 lg:w-auto lg:min-w-0 lg:flex-1 lg:max-w-24`
                     : 'flex flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px] opacity-30'
                 }
               >
@@ -935,7 +936,7 @@ function CardHand({
               className={
                 candy
                   ? `skin-candy-card skin-candy-card--${c} skin-candy-card-btn flex flex-col items-center justify-center select-none
-                     w-16 sm:w-20 lg:w-24 ${canAct ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`
+                     w-16 sm:w-20 lg:w-auto lg:min-w-0 lg:flex-1 lg:max-w-24 ${canAct ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`
                   : `flex flex-col items-center justify-center rounded-lg border-2 transition-all select-none
                      w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px]
                      ${canAct
@@ -1034,7 +1035,7 @@ function CardSubmitModal({
 /* ────────── 라운드 히스토리 ────────── */
 
 function RoundHistoryPanel({
-  history, players, mySide, open, setOpen, isRoundEnd,
+  history, players, mySide, open, setOpen, isRoundEnd, candy,
 }: {
   history: GS2RoundRecord[];
   players: { p1: GS2PlayerPublic; p2: GS2PlayerPublic };
@@ -1042,19 +1043,20 @@ function RoundHistoryPanel({
   open: boolean;
   setOpen: (v: boolean) => void;
   isRoundEnd: boolean;
+  candy?: boolean;
 }) {
   void isRoundEnd;
   const orderedSides: GS2Side[] = mySide === 'p2' ? ['p2', 'p1'] : ['p1', 'p2'];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className={candy ? 'skin-candy-board' : 'rounded-xl border border-gray-200 bg-white'}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-700"
+        className={`flex w-full items-center justify-between px-3 py-2.5 text-sm font-semibold ${candy ? 'skin-candy-heading' : 'text-gray-700'}`}
       >
         라운드 기록
-        <span className="text-xs text-gray-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
+        <span className={`text-xs ${candy ? 'skin-candy-subtext' : 'text-gray-400'}`}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
       {open && (
         <div className="border-t border-gray-100 p-2 space-y-1.5 max-h-72 overflow-y-auto lg:max-h-[500px]">

@@ -2015,12 +2015,17 @@ body {
   background: transparent;
 }
 
-/* 반짝임 FX */
+/* 반짝임 FX + 가독성 스크림 (상단 R영역·우측에 흰 그라데이션 → 배경 톤다운) */
 .skin-candy-fx {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  background:
+    /* 상단(라운드 인디케이터 영역) — 우측 상단 안내판은 피하도록 중앙-좌측에 집중 */
+    radial-gradient(ellipse 65% 45% at 38% -8%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.32) 45%, transparent 72%),
+    /* 우측(사이드바 영역) — 안내판(상단) 아래에서 시작하도록 중앙-우측에 집중 */
+    radial-gradient(ellipse 38% 62% at 108% 62%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.26) 45%, transparent 74%);
 }
 .skin-candy-sparkle {
   position: absolute;
@@ -2034,15 +2039,23 @@ body {
   0%, 100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
   50%      { opacity: 0.85; transform: scale(1.1) rotate(20deg); }
 }
-/* ── 패널 (서리 유리) — 시안의 흰 프로스트 판. 테두리를 흐려 배경과 한 몸처럼 ── */
-.skin-candy-panel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 1rem;
+/* ── 보드 — 여러 섹션을 하나로 묶는 반투명 배경판 ── */
+.skin-candy-board {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 1.35rem;
   box-shadow:
-    0 6px 18px rgba(130, 110, 185, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(5px);
+    0 8px 24px rgba(130, 110, 185, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* ── 패널 — 보드 위 개별 섹션. 살짝 더 밝은 반투명 + 얇은 테두리로 서로 구분 ── */
+.skin-candy-panel {
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.85rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .skin-candy-heading { color: var(--cd-ink, #5b54a8); }
 .skin-candy-subtext { color: var(--cd-ink-dim, #9a8fc4); }
@@ -2065,8 +2078,8 @@ body {
 .skin-candy-round {
   position: relative;
   background: url('/skins/candy/round-panel.png') center / 100% 100% no-repeat;
-  aspect-ratio: 600 / 145;
-  max-height: 4.5rem;
+  aspect-ratio: 736 / 139;
+  max-height: 4.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
