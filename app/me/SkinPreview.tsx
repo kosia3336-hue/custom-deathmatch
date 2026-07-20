@@ -69,6 +69,25 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'candy') {
+    return (
+      <div className="skin-candy-field relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg">
+        <div className="skin-candy-fx" aria-hidden>
+          <span className="skin-candy-sparkle" style={{ left: '10%', top: '15%' }}>✦</span>
+          <span className="skin-candy-sparkle" style={{ left: '85%', top: '60%', animationDelay: '2s' }}>✦</span>
+        </div>
+        <div className="skin-candy-round relative z-10 w-32">
+          <span className="skin-candy-round-text text-xs">R 2 / 8</span>
+        </div>
+        <div className="relative z-10 flex gap-1">
+          {(['minus3', 'plus5', 'copy', 'grapeBless', 'spaceCrush'] as const).map((c) => (
+            <div key={c} className={`skin-candy-card skin-candy-card--${c} w-8`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (theme === 'citadel') {
     return (
       <div className="skin-citadel-field skin-citadel-preview relative flex h-24 w-full items-end justify-center gap-1 overflow-hidden rounded-lg p-2">

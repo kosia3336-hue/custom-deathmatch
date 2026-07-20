@@ -10,7 +10,7 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown' | 'meow';
+export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown' | 'meow' | 'candy';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -67,6 +67,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'meow',
     description: '솜사탕빛 고양이 다과회. 고양이 귀 타일과 젤리 발자국이 흩날린다.',
     swatch: 'linear-gradient(135deg, #ffe4ec 0%, #fdf3e3 50%, #ffd9e4 100%)',
+  },
+  'skin-g012-01': {
+    id: 'skin-g012-01',
+    gameId: GAME_IDS.GRAPE_SUGAR_2,
+    name: '유리설탕',
+    theme: 'candy',
+    description: '설탕서리가 앉은 유리 과자점. 파스텔 유리 카드와 얼음 결정 라운드 보드.',
+    swatch: 'linear-gradient(135deg, #e7defa 0%, #d8ecfb 45%, #fbe3f1 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',

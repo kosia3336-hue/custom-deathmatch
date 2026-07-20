@@ -16,6 +16,17 @@ import {
 import {
   CARD_STYLES, CARD_NAMES, CARD_HINTS, WIN_TYPE_LABELS,
 } from './constants';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { playCandyButtonSfx } from '@/lib/candySfx';
+import { GAME_IDS } from '@/shared/types/game';
+
+/** 유리설탕 스킨 — 반짝임 위치 */
+const CANDY_SPARKLES = [
+  { left: '6%',  top: '12%', delay: '0s' },
+  { left: '92%', top: '18%', delay: '1.4s' },
+  { left: '14%', top: '78%', delay: '2.6s' },
+  { left: '86%', top: '70%', delay: '3.4s' },
+];
 
 const RESOLVE_STEP_INTERVAL_MS = 1100;
 const REVEAL_INITIAL_DELAY_MS = 800;
@@ -28,6 +39,9 @@ export default function GrapeSugar2Game() {
   const gameData = gameState?.gameData as GS2GameData | undefined;
   const myId = useMySocketId();
   useTurnTimer();
+
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.GRAPE_SUGAR_2);
+  const isCandy = skin === 'candy';
 
   const [pendingSugar, setPendingSugar] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
@@ -138,10 +152,26 @@ export default function GrapeSugar2Game() {
           onClose={() => setModalCard(null)}
           onConfirm={handleConfirmSubmit}
           submitting={submitting}
+          candy={isCandy}
         />
       )}
 
-      <div className="relative flex flex-1 flex-col gap-2 p-3 lg:flex-row lg:gap-3 lg:p-4 max-w-7xl mx-auto w-full">
+      <div
+        className={`relative flex flex-1 flex-col gap-2 p-3 lg:flex-row lg:gap-3 lg:p-4 max-w-7xl mx-auto w-full ${
+          isCandy ? 'skin-candy-field' : ''
+        }`}
+      >
+        {isCandy && (
+          <div className="skin-candy-fx" aria-hidden>
+            {CANDY_SPARKLES.map((s, i) => (
+              <span key={i} className="skin-candy-sparkle" style={{ left: s.left, top: s.top, animationDelay: s.delay }}>
+                ✦
+              </span>
+            ))}
+            <div className="skin-candy-jar skin-candy-jar--left hidden h-20 lg:block" />
+            <div className="skin-candy-jar skin-candy-jar--right hidden h-[4.5rem] lg:block" />
+          </div>
+        )}
         {/* 연장전 인트로 오버레이 */}
         {isExtension && (
           <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
@@ -162,6 +192,7 @@ export default function GrapeSugar2Game() {
             mySubmitted={mySubmitted}
             oppSubmitted={oppSubmitted}
             isSpectator={isSpectator}
+            candy={isCandy}
           />
 
           {/* 상대 패널 */}
@@ -171,6 +202,7 @@ export default function GrapeSugar2Game() {
               label={isSpectator ? opponent.nickname : '상대'}
               isMe={false}
               showSubmittedBadge={isInput}
+              candy={isCandy}
             />
           )}
 
@@ -185,6 +217,7 @@ export default function GrapeSugar2Game() {
               isFinished={isFinished}
               finalWinner={gameData.finalWinner}
               winType={gameData.winType}
+              candy={isCandy}
             />
           )}
 
@@ -195,6 +228,7 @@ export default function GrapeSugar2Game() {
               label="나"
               isMe
               showSubmittedBadge={isInput}
+              candy={isCandy}
             />
           )}
 
@@ -208,6 +242,7 @@ export default function GrapeSugar2Game() {
               submitted={mySubmitted}
               oppSubmitted={oppSubmitted}
               onCancelSubmit={handleCancelSubmit}
+              candy={isCandy}
             />
           )}
 
@@ -218,6 +253,7 @@ export default function GrapeSugar2Game() {
               onSelectCard={handleSelectCard}
               canAct={canAct}
               submitted={mySubmitted}
+              candy={isCandy}
             />
           )}
         </div>
@@ -241,7 +277,7 @@ export default function GrapeSugar2Game() {
 /* ────────── 라운드 인디케이터 ────────── */
 
 function RoundIndicator({
-  round, maxRound, extension, phase, mySubmitted, oppSubmitted, isSpectator,
+  round, maxRound, extension, phase, mySubmitted, oppSubmitted, isSpectator, candy,
 }: {
   round: number;
   maxRound: 8 | 9;
@@ -250,6 +286,7 @@ function RoundIndicator({
   mySubmitted: boolean;
   oppSubmitted: boolean;
   isSpectator: boolean;
+  candy?: boolean;
 }) {
   let statusText = '';
   if (phase === 'input') {
@@ -262,6 +299,22 @@ function RoundIndicator({
   else if (phase === 'roundEnd') statusText = '라운드 종료';
   else if (phase === 'extensionIntro') statusText = `${extension}차 연장전 시작!`;
   else if (phase === 'finished') statusText = '게임 종료';
+
+  if (candy) {
+    return (
+      <div className="relative z-10 flex flex-col items-center gap-1">
+        <div className="skin-candy-round w-full max-w-xs px-6">
+          <span className="skin-candy-round-text text-lg lg:text-xl">
+            {extension > 0 && <span className="mr-1.5 text-sm">연장{extension}</span>}
+            R {round} / {maxRound}
+          </span>
+        </div>
+        <span className="skin-candy-subtext min-w-0 truncate text-xs font-medium lg:text-sm">
+          {statusText}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-linear-to-r from-purple-50 to-fuchsia-50 px-3 py-2">
@@ -289,16 +342,19 @@ function RoundIndicator({
 /* ────────── 플레이어 패널 ────────── */
 
 function PlayerPanel({
-  player, label, isMe, showSubmittedBadge,
+  player, label, isMe, showSubmittedBadge, candy,
 }: {
   player: GS2PlayerPublic;
   label: string;
   isMe: boolean;
   showSubmittedBadge: boolean;
+  candy?: boolean;
 }) {
   return (
-    <div className={`flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 ${
-      isMe ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white'
+    <div className={`relative z-10 flex min-w-0 items-center gap-2 px-3 py-2 ${
+      candy
+        ? `skin-candy-panel ${isMe ? 'ring-1 ring-white' : ''}`
+        : `rounded-lg border ${isMe ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white'}`
     }`}>
       {/* 닉네임 + 배지 */}
       <div className="min-w-0 flex items-center gap-1.5 flex-1">
@@ -354,7 +410,7 @@ function PlayerPanel({
  */
 function CombatArea({
   phase, roundResult, resolveSteps, players, mySide,
-  isFinished, finalWinner, winType,
+  isFinished, finalWinner, winType, candy,
 }: {
   phase: string;
   roundResult: GS2RoundRecord | null;
@@ -364,6 +420,7 @@ function CombatArea({
   isFinished: boolean;
   finalWinner: GS2Side | 'tie' | null;
   winType: string | null;
+  candy?: boolean;
 }) {
   const [stepIdx, setStepIdx] = useState(0);
   // reveal steps를 state로 보존 — roundEnd에서 resolveSteps=null 이 와도 유지됨
@@ -393,8 +450,14 @@ function CombatArea({
 
   if (isFinished) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-purple-300 bg-linear-to-br from-purple-100 to-fuchsia-100 py-6">
-        <p className="mt-2 text-xl font-bold text-purple-900 lg:text-2xl">
+      <div
+        className={`relative z-10 flex flex-col items-center justify-center py-6 ${
+          candy
+            ? 'skin-candy-panel'
+            : 'rounded-xl border border-purple-300 bg-linear-to-br from-purple-100 to-fuchsia-100'
+        }`}
+      >
+        <p className={`mt-2 text-xl font-bold lg:text-2xl ${candy ? 'skin-candy-heading' : 'text-purple-900'}`}>
           {finalWinner === 'tie' ? '무승부!' : finalWinner ? `${players[finalWinner].nickname} 승리!` : '게임 종료'}
         </p>
         {winType && <p className="mt-0.5 text-sm text-purple-600">{WIN_TYPE_LABELS[winType] ?? winType}</p>}
@@ -411,13 +474,18 @@ function CombatArea({
         mySide={mySide}
         roundResult={roundResult}
         showFinal={phase === 'roundEnd' || stepIdx >= cachedSteps.length}
+        candy={candy}
       />
     );
   }
 
   return (
-    <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-4">
-      <span className="text-sm text-gray-400">대기 중...</span>
+    <div
+      className={`relative z-10 flex items-center justify-center py-4 ${
+        candy ? 'skin-candy-panel' : 'rounded-xl border border-gray-200 bg-white'
+      }`}
+    >
+      <span className={`text-sm ${candy ? 'skin-candy-subtext' : 'text-gray-400'}`}>대기 중...</span>
     </div>
   );
 }
@@ -512,7 +580,7 @@ function LiveSugarBadge({ value }: { value: number }) {
 /* ────────── 정산 패널 ────────── */
 
 function ResolutionPanel({
-  steps, cursor, players, mySide, roundResult, showFinal,
+  steps, cursor, players, mySide, roundResult, showFinal, candy,
 }: {
   steps: GS2ResolveStep[];
   cursor: number;
@@ -520,6 +588,7 @@ function ResolutionPanel({
   mySide: GS2Side | null;
   roundResult: GS2RoundRecord | null;
   showFinal: boolean;
+  candy?: boolean;
 }) {
   const reveal = steps[0]?.type === 'reveal' ? steps[0] : null;
   const visibleSteps = steps.slice(0, cursor);
@@ -528,7 +597,13 @@ function ResolutionPanel({
   const liveSugar = computeLiveSugar(steps, cursor);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-purple-200 bg-linear-to-b from-purple-50 to-white p-4 lg:p-5">
+    <div
+      className={`relative z-10 flex flex-col gap-3 p-4 lg:p-5 ${
+        candy
+          ? 'skin-candy-panel'
+          : 'rounded-xl border border-purple-200 bg-linear-to-b from-purple-50 to-white'
+      }`}
+    >
       {/* 카드 + 설탕 동시 공개 */}
       {reveal && reveal.type === 'reveal' && (
         <div className="flex items-center justify-around gap-4">
@@ -544,8 +619,14 @@ function ResolutionPanel({
                 }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
-                <span className="text-xs text-gray-500 truncate max-w-[100px]">{nicknameOf(side)}</span>
-                <div className={`flex flex-col items-center justify-center rounded-xl border-2 w-20 h-28 lg:w-24 lg:h-32 ${style.bg} ${style.text} ${style.border}`}>
+                <span className={`text-xs truncate max-w-[100px] ${candy ? 'skin-candy-subtext' : 'text-gray-500'}`}>{nicknameOf(side)}</span>
+                <div
+                  className={
+                    candy
+                      ? `skin-candy-card skin-candy-card--${card} flex w-20 flex-col items-center justify-center lg:w-24`
+                      : `flex flex-col items-center justify-center rounded-xl border-2 w-20 h-28 lg:w-24 lg:h-32 ${style.bg} ${style.text} ${style.border}`
+                  }
+                >
                   <span className="text-3xl lg:text-4xl">{style.icon}</span>
                   <span className="mt-1 text-xs font-bold text-center px-1">{CARD_NAMES[card]}</span>
                 </div>
@@ -667,7 +748,7 @@ function ResolveStepRow({
 /* ────────── 설탕 입력 바 (SugarBar) ────────── */
 
 function SugarBar({
-  sugarRemain, pendingSugar, setPendingSugar, canAct, submitted, oppSubmitted, onCancelSubmit,
+  sugarRemain, pendingSugar, setPendingSugar, canAct, submitted, oppSubmitted, onCancelSubmit, candy,
 }: {
   sugarRemain: number;
   pendingSugar: number;
@@ -676,6 +757,7 @@ function SugarBar({
   submitted: boolean;
   oppSubmitted: boolean;
   onCancelSubmit: () => void;
+  candy?: boolean;
 }) {
   const clamp = (n: number) => Math.max(0, Math.min(sugarRemain, Math.floor(n)));
   const adjust = (d: number) => setPendingSugar(clamp(pendingSugar + d));
@@ -698,6 +780,43 @@ function SugarBar({
             취소
           </button>
         )}
+      </div>
+    );
+  }
+
+  if (candy) {
+    const adjustSfx = (d: number) => { playCandyButtonSfx(); adjust(d); };
+    // 시안 스프라이트 버튼: 라벨은 이미지에 포함 (sr-only로 접근성 유지)
+    return (
+      <div className="skin-candy-panel relative z-10 flex flex-col gap-1.5 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="skin-candy-heading text-xs font-medium">제출 설탕</span>
+          <span className="skin-candy-subtext text-xs">보유 {sugarRemain}</span>
+        </div>
+        <div className="flex items-center justify-center gap-1">
+          <button type="button" onClick={() => adjustSfx(-5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m5 h-9">
+            <span className="sr-only">-5</span>
+          </button>
+          <button type="button" onClick={() => adjustSfx(-1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--m1 h-9">
+            <span className="sr-only">-1</span>
+          </button>
+          <input
+            type="text" inputMode="numeric"
+            value={pendingSugar}
+            onChange={(e) => handleInput(e.target.value)}
+            disabled={!canAct}
+            className="skin-candy-input h-9 w-16 px-1 text-sm"
+          />
+          <button type="button" onClick={() => adjustSfx(1)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p1 h-9">
+            <span className="sr-only">+1</span>
+          </button>
+          <button type="button" onClick={() => adjustSfx(5)} disabled={!canAct} className="skin-candy-btn skin-candy-btn--p5 h-9">
+            <span className="sr-only">+5</span>
+          </button>
+          <button type="button" onClick={() => { playCandyButtonSfx(); setPendingSugar(sugarRemain); }} disabled={!canAct} className="skin-candy-btn skin-candy-btn--max h-9">
+            <span className="sr-only">MAX</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -744,20 +863,25 @@ function SugarBar({
 /* ────────── 카드 핸드 ────────── */
 
 function CardHand({
-  hand, onSelectCard, canAct, submitted,
+  hand, onSelectCard, canAct, submitted, candy,
 }: {
   hand: GS2CardId[];
   onSelectCard: (c: GS2CardId) => void;
   canAct: boolean;
   submitted: boolean;
+  candy?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-2.5 lg:p-3">
+    <div
+      className={`relative z-10 p-2.5 lg:p-3 ${
+        candy ? 'skin-candy-panel' : 'rounded-xl border border-gray-200 bg-white'
+      }`}
+    >
       <div className="mb-2 flex items-center justify-between px-0.5">
-        <span className="text-xs font-medium text-gray-500">
+        <span className={`text-xs font-medium ${candy ? 'skin-candy-heading' : 'text-gray-500'}`}>
           {submitted ? '제출 완료' : '카드를 눌러 제출'}
         </span>
-        <span className="text-[10px] text-gray-400">잔여 {hand.length}장</span>
+        <span className={`text-[10px] ${candy ? 'skin-candy-subtext' : 'text-gray-400'}`}>잔여 {hand.length}장</span>
       </div>
       <div className="flex flex-wrap gap-1.5 justify-center lg:gap-2">
         {CARD_IDS.map((c) => {
@@ -767,9 +891,13 @@ function CardHand({
             return (
               <div
                 key={c}
-                className="flex flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px] opacity-30"
+                className={
+                  candy
+                    ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-12 flex-col items-center justify-center sm:w-14 lg:w-16`
+                    : 'flex flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px] opacity-30'
+                }
               >
-                <span className="text-base text-gray-300">{style.icon}</span>
+                <span className={`text-base ${candy ? '' : 'text-gray-300'}`}>{style.icon}</span>
               </div>
             );
           }
@@ -777,17 +905,25 @@ function CardHand({
             <button
               key={c}
               type="button"
-              onClick={() => canAct && onSelectCard(c)}
+              onClick={() => {
+                if (!canAct) return;
+                if (candy) playCandyButtonSfx();
+                onSelectCard(c);
+              }}
               disabled={!canAct}
               title={CARD_HINTS[c]}
-              className={`flex flex-col items-center justify-center rounded-lg border-2 transition-all select-none
-                w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px]
-                ${canAct
-                  ? 'cursor-pointer hover:scale-105 hover:-translate-y-1 shadow-sm hover:shadow-md active:scale-95'
-                  : 'opacity-60 cursor-not-allowed'
-                }
-                ${style.bg} ${style.text} ${style.border}
-              `}
+              className={
+                candy
+                  ? `skin-candy-card skin-candy-card--${c} skin-candy-card-btn flex flex-col items-center justify-center select-none
+                     w-12 sm:w-14 lg:w-16 ${canAct ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`
+                  : `flex flex-col items-center justify-center rounded-lg border-2 transition-all select-none
+                     w-12 h-16 sm:w-14 sm:h-20 lg:w-16 lg:h-[88px]
+                     ${canAct
+                       ? 'cursor-pointer hover:scale-105 hover:-translate-y-1 shadow-sm hover:shadow-md active:scale-95'
+                       : 'opacity-60 cursor-not-allowed'
+                     }
+                     ${style.bg} ${style.text} ${style.border}`
+              }
             >
               <span className="text-lg sm:text-xl lg:text-2xl">{style.icon}</span>
               <span className="mt-0.5 text-[9px] sm:text-[10px] lg:text-xs font-bold leading-tight text-center px-0.5">
@@ -804,13 +940,14 @@ function CardHand({
 /* ────────── 카드 제출 확인 모달 ────────── */
 
 function CardSubmitModal({
-  card, sugar, onClose, onConfirm, submitting,
+  card, sugar, onClose, onConfirm, submitting, candy,
 }: {
   card: GS2CardId;
   sugar: number;
   onClose: () => void;
   onConfirm: () => void;
   submitting: boolean;
+  candy?: boolean;
 }) {
   const style = CARD_STYLES[card];
 
@@ -822,7 +959,13 @@ function CardSubmitModal({
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl">
         {/* 카드 + 효과 설명 */}
         <div className="flex items-start gap-4 mb-4">
-          <div className={`shrink-0 flex flex-col items-center justify-center rounded-xl border-2 w-20 h-28 ${style.bg} ${style.text} ${style.border}`}>
+          <div
+            className={
+              candy
+                ? `skin-candy-card skin-candy-card--${card} shrink-0 flex w-20 flex-col items-center justify-center`
+                : `shrink-0 flex flex-col items-center justify-center rounded-xl border-2 w-20 h-28 ${style.bg} ${style.text} ${style.border}`
+            }
+          >
             <span className="text-3xl">{style.icon}</span>
             <span className="mt-1 text-xs font-bold text-center px-1">{CARD_NAMES[card]}</span>
           </div>
@@ -849,9 +992,16 @@ function CardSubmitModal({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={() => {
+              if (candy) playCandyButtonSfx();
+              onConfirm();
+            }}
             disabled={submitting}
-            className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className={
+              candy
+                ? 'skin-candy-submit flex-1 py-3 text-sm'
+                : 'flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors'
+            }
           >
             {CARD_NAMES[card]} 제출
           </button>
