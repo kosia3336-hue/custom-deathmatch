@@ -2009,16 +2009,9 @@ body {
   --cd-frost:    rgba(255, 255, 255, 0.78);
 
   position: relative;
-  /* 전체 배경은 GameShell(.skin-bg-candy)이 그림 — 필드는 가독성용 반투명 베일 */
-  background: rgba(240, 234, 250, 0.45);
-  backdrop-filter: blur(1.5px);
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  border-radius: 1rem;
-  box-shadow:
-    0 0 0 1px rgba(155, 140, 200, 0.25),
-    0 8px 24px rgba(120, 100, 180, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  overflow: hidden;
+  /* 전체 배경은 GameShell(.skin-bg-candy)이 그림.
+     필드 자체는 레이아웃만 담당 — 시안처럼 개별 서리 유리 패널이 배경 위에 직접 얹힌다 */
+  background: transparent;
 }
 
 /* 반짝임 FX */
@@ -2040,30 +2033,31 @@ body {
   0%, 100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
   50%      { opacity: 0.85; transform: scale(1.1) rotate(20deg); }
 }
-.skin-candy-jar {
-  position: absolute;
-  bottom: 0;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: bottom center;
-  pointer-events: none;
-  opacity: 0.9;
-}
-.skin-candy-jar--left  { left: 0.25rem;  background-image: url('/skins/candy/jar-left.png');  aspect-ratio: 94 / 135; }
-.skin-candy-jar--right { right: 0.25rem; background-image: url('/skins/candy/jar-right.png'); aspect-ratio: 98 / 125; }
-
-/* ── 패널 (서리 유리) ── */
+/* ── 패널 (서리 유리) — 시안의 흰 프로스트 판. 테두리를 흐려 배경과 한 몸처럼 ── */
 .skin-candy-panel {
-  background: var(--cd-frost, rgba(255, 255, 255, 0.78));
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
-  border-radius: 0.875rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.55) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 1rem;
   box-shadow:
-    0 0 0 1px rgba(155, 140, 200, 0.2),
-    0 2px 10px rgba(120, 100, 180, 0.12);
-  backdrop-filter: blur(2px);
+    0 6px 18px rgba(130, 110, 185, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
 }
 .skin-candy-heading { color: var(--cd-ink, #5b54a8); }
 .skin-candy-subtext { color: var(--cd-ink-dim, #9a8fc4); }
+
+/* ── 상태 안내 칩 — 시안 우측 상단 모서리의 프로스트 패널 ── */
+.skin-candy-status {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0.625rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c2688f; /* 시안의 안내 문구 핑크 */
+  box-shadow: 0 2px 8px rgba(140, 120, 190, 0.16);
+  backdrop-filter: blur(4px);
+}
 
 /* ── 라운드 인디케이터 (얼음 바) ── */
 .skin-candy-round {

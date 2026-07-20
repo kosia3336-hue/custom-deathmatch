@@ -168,8 +168,6 @@ export default function GrapeSugar2Game() {
                 ✦
               </span>
             ))}
-            <div className="skin-candy-jar skin-candy-jar--left hidden h-20 lg:block" />
-            <div className="skin-candy-jar skin-candy-jar--right hidden h-[4.5rem] lg:block" />
           </div>
         )}
         {/* 연장전 인트로 오버레이 */}
@@ -302,17 +300,28 @@ function RoundIndicator({
 
   if (candy) {
     return (
-      <div className="relative z-10 flex flex-col items-center gap-1">
-        <div className="skin-candy-round w-full max-w-xs px-6">
-          <span className="skin-candy-round-text text-lg lg:text-xl">
-            {extension > 0 && <span className="mr-1.5 text-sm">연장{extension}</span>}
-            R {round} / {maxRound}
+      <>
+        {/* 상태 안내 — 시안처럼 우측 상단 모서리 프로스트 칩 (필드 루트 기준 absolute) */}
+        {statusText && (
+          <span className="skin-candy-status absolute right-2 top-2 z-20 hidden max-w-[45%] truncate sm:block lg:right-3 lg:top-3">
+            {statusText}
           </span>
+        )}
+        <div className="relative z-10 -mb-3 flex flex-col items-center lg:-mb-4">
+          <div className="skin-candy-round w-full max-w-xs px-6">
+            <span className="skin-candy-round-text text-lg lg:text-xl">
+              {extension > 0 && <span className="mr-1.5 text-sm">연장{extension}</span>}
+              R {round} / {maxRound}
+            </span>
+          </div>
+          {/* 모바일: 코너 칩 대신 바 아래 안내 */}
+          {statusText && (
+            <span className="skin-candy-subtext mb-3 mt-0.5 max-w-full truncate text-xs font-medium sm:hidden">
+              {statusText}
+            </span>
+          )}
         </div>
-        <span className="skin-candy-subtext min-w-0 truncate text-xs font-medium lg:text-sm">
-          {statusText}
-        </span>
-      </div>
+      </>
     );
   }
 

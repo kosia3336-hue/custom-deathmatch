@@ -71,7 +71,7 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
 
   if (theme === 'candy') {
     return (
-      <div className="skin-candy-field relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg">
+      <div className="skin-bg-candy skin-candy-field relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg">
         <div className="skin-candy-fx" aria-hidden>
           <span className="skin-candy-sparkle" style={{ left: '10%', top: '15%' }}>✦</span>
           <span className="skin-candy-sparkle" style={{ left: '85%', top: '60%', animationDelay: '2s' }}>✦</span>
