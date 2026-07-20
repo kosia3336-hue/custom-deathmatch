@@ -11,6 +11,7 @@ import type {
   SBNWWinType,
 } from '@shared/types/silper-bnw.js';
 import { sessions } from '../../../store/sessions.js';
+import { getActiveSkin } from '../../skins.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized, getRoomShopState } from '../../../shop/roomShopState.js';
@@ -281,6 +282,7 @@ function buildGameState(s: InternalState, gameData: SBNWGameData): GameState {
     turnNumber: s.round,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
 }

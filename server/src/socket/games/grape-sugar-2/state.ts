@@ -1,5 +1,6 @@
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
+import { getActiveSkin } from '../../skins.js';
 import type {
   GS2GameData, GS2CardId, GS2RoundRecord, GS2Side,
   GS2PlayerPublic, GS2WinType, GS2PlayerAction,
@@ -152,6 +153,7 @@ function buildGameState(s: GS2InternalState, gameData: GS2GameData): GameState {
     turnNumber: s.round + s.extension * 100,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds && s.phase === 'input' ? s.turnStartedAt : null,
+    activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
 }
