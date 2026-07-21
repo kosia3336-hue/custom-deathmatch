@@ -156,16 +156,6 @@ export default function GrapeSugar2Game() {
         />
       )}
 
-      {/* 상태 안내 — 배경 우측 상단 안내판 위 (GameShell 래퍼 기준 absolute, 데스크톱만) */}
-      {isCandy && (() => {
-        const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
-        return statusText ? (
-          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[5.8vw] z-30 hidden -translate-x-1/2 lg:block">
-            {statusText}
-          </span>
-        ) : null;
-      })()}
-
       <div
         className={`relative flex flex-1 flex-col gap-2 p-3 lg:flex-row lg:gap-3 lg:p-4 max-w-7xl mx-auto w-full ${
           isCandy ? 'skin-candy-field' : ''
@@ -256,22 +246,26 @@ export default function GrapeSugar2Game() {
           {/* 카드 핸드 — 캔디는 보드 바로 아래 벨트 바(데스크톱)/컬럼(모바일), 비캔디는 컬럼 */}
           {myPlayer && !isSpectator && isInput && (
             isCandy ? (
-              <>
-                <div className="lg:hidden">
-                  <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy />
-                </div>
-                <div className="hidden lg:block">
-                  <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy belt />
-                </div>
-              </>
+              /* 데스크톱은 아래 넓은 벨트로. 모바일만 컬럼 유지 */
+              <div className="lg:hidden">
+                <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy />
+              </div>
             ) : (
               <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy={isCandy} />
             )
           )}
         </div>
 
-        {/* 우측: 사이드 패널 — 캔디 스킨은 상단 안내판과 겹치지 않게 아래로 내림 */}
-        <div className={`lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3 ${isCandy ? 'relative z-10 lg:mt-28' : ''}`}>
+        {/* 우측: 사이드 패널 — 캔디는 상태 안내판(라운드 기록 위 부착) + 라운드 기록 */}
+        <div className={`lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2 lg:gap-3 ${isCandy ? 'relative z-10' : ''}`}>
+          {isCandy && (() => {
+            const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
+            return statusText ? (
+              <div className="skin-candy-signboard-panel hidden px-3 py-2 text-center lg:block">
+                {statusText}
+              </div>
+            ) : null;
+          })()}
           <RoundHistoryPanel
             history={gameData.history}
             players={gameData.players}
@@ -284,7 +278,14 @@ export default function GrapeSugar2Game() {
         </div>
       </div>
 
-      {/* 캔디: 카드 핸드를 배경 컨베이어 벨트 위에 별도 배치 (래퍼 기준 하단 고정) */}
+      {/* 캔디 데스크톱: 카드 핸드를 배경 컨베이어 벨트 위에 넓게 배치 (래퍼 기준, 낮은 화면은 하단 고정) */}
+      {isCandy && myPlayer && !isSpectator && isInput && (
+        <div className="pointer-events-none absolute inset-x-0 top-[min(44vw,calc(100%-13rem))] z-20 hidden justify-center px-6 lg:flex">
+          <div className="pointer-events-auto w-full max-w-5xl">
+            <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy belt />
+          </div>
+        </div>
+      )}
     </>
   );
 }

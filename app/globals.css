@@ -2039,23 +2039,23 @@ body {
   0%, 100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
   50%      { opacity: 0.85; transform: scale(1.1) rotate(20deg); }
 }
-/* ── 보드 — 여러 섹션을 하나로 묶는 반투명 배경판 ── */
+/* ── 보드 — 여러 섹션을 하나로 묶는 반투명 배경판 (흰 프로스트, 불투명하게) ── */
 .skin-candy-board {
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 1.35rem;
   box-shadow:
-    0 8px 24px rgba(130, 110, 185, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(4px);
+    0 8px 24px rgba(130, 110, 185, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(5px);
 }
 
-/* ── 패널 — 보드 위 개별 섹션. 살짝 더 밝은 반투명 + 얇은 테두리로 서로 구분 ── */
+/* ── 패널 — 보드 위 개별 섹션. 흰 프로스트 + 얇은 테두리로 서로 구분 ── */
 .skin-candy-panel {
-  background: rgba(255, 255, 255, 0.26);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 0.85rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 .skin-candy-heading { color: var(--cd-ink, #5b54a8); }
 .skin-candy-subtext { color: var(--cd-ink-dim, #9a8fc4); }
@@ -2075,16 +2075,17 @@ body {
 
 /* ── 상태 안내 — 배경 우측 상단 안내판 위에 얹는 문구 (프레임은 배경이 이미 그림) ──
    안내판 실제 위치(이미지 x 73~97%, y 6~15%)에 맞춰 컴포넌트에서 위치 지정 */
-.skin-candy-signboard {
-  max-width: 22%;
-  text-align: center;
-  font-size: clamp(0.82rem, 1.2vw, 1.05rem);
+/* 라운드 기록 위에 붙는 상태 안내 패널 — 반투명 판 배경 + 핑크 문구 */
+.skin-candy-signboard-panel {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 0.85rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.25;
   color: #c2688f; /* 시안 안내 문구 핑크 */
-  text-shadow:
-    0 1px 2px rgba(255, 255, 255, 0.9),
-    0 0 6px rgba(255, 255, 255, 0.7);
 }
 
 /* ── 라운드 인디케이터 (얼음 바) ── */
