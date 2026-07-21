@@ -2060,12 +2060,25 @@ body {
 .skin-candy-heading { color: var(--cd-ink, #5b54a8); }
 .skin-candy-subtext { color: var(--cd-ink-dim, #9a8fc4); }
 
+/* ── 카드 벨트 — 배경 컨베이어 벨트 위에 얹히는 연보라 반투명 바.
+   위아래 연보라 라인으로 기존 보드와 자연스럽게 분리, 배경 벨트 장식이 비쳐 보임 ── */
+.skin-candy-belt-panel {
+  background: linear-gradient(180deg, rgba(206, 194, 240, 0.34) 0%, rgba(190, 176, 230, 0.46) 100%);
+  border-top: 2px solid rgba(214, 200, 244, 0.75);
+  border-bottom: 2px solid rgba(180, 164, 222, 0.55);
+  border-radius: 0.85rem;
+  box-shadow:
+    0 6px 20px rgba(140, 120, 190, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(2px);
+}
+
 /* ── 상태 안내 — 배경 우측 상단 안내판 위에 얹는 문구 (프레임은 배경이 이미 그림) ──
    안내판 실제 위치(이미지 x 73~97%, y 6~15%)에 맞춰 컴포넌트에서 위치 지정 */
 .skin-candy-signboard {
   max-width: 22%;
   text-align: center;
-  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-size: clamp(0.82rem, 1.2vw, 1.05rem);
   font-weight: 700;
   line-height: 1.25;
   color: #c2688f; /* 시안 안내 문구 핑크 */

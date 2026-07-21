@@ -160,7 +160,7 @@ export default function GrapeSugar2Game() {
       {isCandy && (() => {
         const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
         return statusText ? (
-          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[6.4vw] z-30 hidden -translate-x-1/2 lg:block">
+          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[3vw] z-30 hidden -translate-x-1/2 lg:block">
             {statusText}
           </span>
         ) : null;
@@ -254,15 +254,15 @@ export default function GrapeSugar2Game() {
             />
           )}
 
-          {/* 카드 핸드 (관전자 아닐 때, input 페이즈) */}
+          {/* 카드 핸드 — 비캔디는 컬럼 안. 캔디는 데스크톱에서 아래 벨트로, 모바일은 컬럼 유지 */}
           {myPlayer && !isSpectator && isInput && (
-            <CardHand
-              hand={myPlayer.hand}
-              onSelectCard={handleSelectCard}
-              canAct={canAct}
-              submitted={mySubmitted}
-              candy={isCandy}
-            />
+            isCandy ? (
+              <div className="lg:hidden">
+                <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy />
+              </div>
+            ) : (
+              <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy={isCandy} />
+            )
           )}
         </div>
 
@@ -279,6 +279,22 @@ export default function GrapeSugar2Game() {
           />
         </div>
       </div>
+
+      {/* 캔디: 카드 핸드를 배경 컨베이어 벨트 위에 별도 배치 (래퍼 기준 하단 고정) */}
+      {isCandy && myPlayer && !isSpectator && isInput && (
+        <div className="skin-candy-belt-wrap pointer-events-none absolute inset-x-0 top-[min(44vw,calc(100%-13rem))] z-20 hidden justify-center px-6 lg:flex">
+          <div className="skin-candy-belt pointer-events-auto w-full max-w-5xl">
+            <CardHand
+              hand={myPlayer.hand}
+              onSelectCard={handleSelectCard}
+              canAct={canAct}
+              submitted={mySubmitted}
+              candy={isCandy}
+              belt
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -884,18 +900,20 @@ function SugarBar({
 /* ────────── 카드 핸드 ────────── */
 
 function CardHand({
-  hand, onSelectCard, canAct, submitted, candy,
+  hand, onSelectCard, canAct, submitted, candy, belt,
 }: {
   hand: GS2CardId[];
   onSelectCard: (c: GS2CardId) => void;
   canAct: boolean;
   submitted: boolean;
   candy?: boolean;
+  /** 캔디 벨트 모드 — 프로스트 패널 대신 배경 컨베이어 벨트에 얹힌 연보라 반투명 바 */
+  belt?: boolean;
 }) {
   return (
     <div
       className={`relative z-10 p-2.5 lg:p-3 ${
-        candy ? 'skin-candy-panel' : 'rounded-xl border border-gray-200 bg-white'
+        belt ? 'skin-candy-belt-panel' : candy ? 'skin-candy-panel' : 'rounded-xl border border-gray-200 bg-white'
       }`}
     >
       <div className="mb-2 flex items-center justify-between px-0.5">
