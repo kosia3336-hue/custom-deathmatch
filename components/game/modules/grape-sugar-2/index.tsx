@@ -160,7 +160,7 @@ export default function GrapeSugar2Game() {
       {isCandy && (() => {
         const statusText = gs2StatusText(gameData.phase, mySubmitted, oppSubmitted, isSpectator, gameData.extension);
         return statusText ? (
-          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[3vw] z-30 hidden -translate-x-1/2 lg:block">
+          <span className="skin-candy-signboard pointer-events-none absolute left-[85.3%] top-[5.8vw] z-30 hidden -translate-x-1/2 lg:block">
             {statusText}
           </span>
         ) : null;
@@ -189,9 +189,9 @@ export default function GrapeSugar2Game() {
           </div>
         )}
 
-        {/* 좌측: 메인 게임 영역 — 캔디 스킨은 반투명 보드로 섹션을 하나로 묶음 */}
-        <div className={`flex flex-1 flex-col gap-2 lg:gap-3 min-w-0 ${isCandy ? 'skin-candy-board relative z-10 p-3 lg:p-4' : ''}`}>
-          {/* 라운드 인디케이터 */}
+        {/* 좌측: 메인 게임 영역 */}
+        <div className={`flex flex-1 flex-col gap-2 lg:gap-3 min-w-0 ${isCandy ? 'relative z-10' : ''}`}>
+          {/* 라운드 인디케이터 — 캔디는 보드 밖 독립(배경 보이게), 보드 위에 붙음 */}
           <RoundIndicator
             round={gameData.round}
             maxRound={gameData.maxRound}
@@ -203,63 +203,67 @@ export default function GrapeSugar2Game() {
             candy={isCandy}
           />
 
-          {/* 상대 패널 */}
-          {opponent && (
-            <PlayerPanel
-              player={opponent}
-              label={isSpectator ? opponent.nickname : '상대'}
-              isMe={false}
-              showSubmittedBadge={isInput}
-              candy={isCandy}
-            />
-          )}
+          {/* 플레이어·설탕 섹션 — 캔디는 반투명 보드로 묶음 (R 제외) */}
+          {(() => {
+            const sections = (
+              <>
+                {opponent && (
+                  <PlayerPanel
+                    player={opponent}
+                    label={isSpectator ? opponent.nickname : '상대'}
+                    isMe={false}
+                    showSubmittedBadge={isInput}
+                    candy={isCandy}
+                  />
+                )}
+                {gameData.phase !== 'input' && (
+                  <CombatArea
+                    phase={gameData.phase}
+                    roundResult={gameData.roundResult ?? null}
+                    resolveSteps={gameData.resolveSteps ?? null}
+                    players={gameData.players}
+                    mySide={mySide}
+                    isFinished={isFinished}
+                    finalWinner={gameData.finalWinner}
+                    winType={gameData.winType}
+                    candy={isCandy}
+                  />
+                )}
+                {myPlayer && (
+                  <PlayerPanel player={myPlayer} label="나" isMe showSubmittedBadge={isInput} candy={isCandy} />
+                )}
+                {myPlayer && !isSpectator && isInput && (
+                  <SugarBar
+                    sugarRemain={myPlayer.sugarRemain}
+                    pendingSugar={pendingSugar}
+                    setPendingSugar={setPendingSugar}
+                    canAct={canAct}
+                    submitted={mySubmitted}
+                    oppSubmitted={oppSubmitted}
+                    onCancelSubmit={handleCancelSubmit}
+                    candy={isCandy}
+                  />
+                )}
+              </>
+            );
+            return isCandy ? (
+              <div className="skin-candy-board flex flex-col gap-2 p-3 lg:gap-3 lg:p-4">{sections}</div>
+            ) : (
+              sections
+            );
+          })()}
 
-          {/* 중앙 결투 영역 (reveal/roundEnd/finished 때만 표시) */}
-          {gameData.phase !== 'input' && (
-            <CombatArea
-              phase={gameData.phase}
-              roundResult={gameData.roundResult ?? null}
-              resolveSteps={gameData.resolveSteps ?? null}
-              players={gameData.players}
-              mySide={mySide}
-              isFinished={isFinished}
-              finalWinner={gameData.finalWinner}
-              winType={gameData.winType}
-              candy={isCandy}
-            />
-          )}
-
-          {/* 내 패널 */}
-          {myPlayer && (
-            <PlayerPanel
-              player={myPlayer}
-              label="나"
-              isMe
-              showSubmittedBadge={isInput}
-              candy={isCandy}
-            />
-          )}
-
-          {/* 설탕 입력 (관전자 아닐 때, input 페이즈) */}
-          {myPlayer && !isSpectator && isInput && (
-            <SugarBar
-              sugarRemain={myPlayer.sugarRemain}
-              pendingSugar={pendingSugar}
-              setPendingSugar={setPendingSugar}
-              canAct={canAct}
-              submitted={mySubmitted}
-              oppSubmitted={oppSubmitted}
-              onCancelSubmit={handleCancelSubmit}
-              candy={isCandy}
-            />
-          )}
-
-          {/* 카드 핸드 — 비캔디는 컬럼 안. 캔디는 데스크톱에서 아래 벨트로, 모바일은 컬럼 유지 */}
+          {/* 카드 핸드 — 캔디는 보드 바로 아래 벨트 바(데스크톱)/컬럼(모바일), 비캔디는 컬럼 */}
           {myPlayer && !isSpectator && isInput && (
             isCandy ? (
-              <div className="lg:hidden">
-                <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy />
-              </div>
+              <>
+                <div className="lg:hidden">
+                  <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy />
+                </div>
+                <div className="hidden lg:block">
+                  <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy belt />
+                </div>
+              </>
             ) : (
               <CardHand hand={myPlayer.hand} onSelectCard={handleSelectCard} canAct={canAct} submitted={mySubmitted} candy={isCandy} />
             )
@@ -281,20 +285,6 @@ export default function GrapeSugar2Game() {
       </div>
 
       {/* 캔디: 카드 핸드를 배경 컨베이어 벨트 위에 별도 배치 (래퍼 기준 하단 고정) */}
-      {isCandy && myPlayer && !isSpectator && isInput && (
-        <div className="skin-candy-belt-wrap pointer-events-none absolute inset-x-0 top-[min(44vw,calc(100%-13rem))] z-20 hidden justify-center px-6 lg:flex">
-          <div className="skin-candy-belt pointer-events-auto w-full max-w-5xl">
-            <CardHand
-              hand={myPlayer.hand}
-              onSelectCard={handleSelectCard}
-              canAct={canAct}
-              submitted={mySubmitted}
-              candy={isCandy}
-              belt
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 }
