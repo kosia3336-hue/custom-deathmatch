@@ -6,7 +6,7 @@ import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/cdm/Button';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { SpectatorMark } from '@/components/cdm/Marks';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import type { ChatScope, ChatMessage } from '@/shared/types';
@@ -123,7 +123,7 @@ export function ChatBubble({
       <div className="text-sm">
         {isSpec && <SpectatorMark className="mr-1" />}
         {title && (
-          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" className="mr-1.5" />
+          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" className="mr-1.5" />
         )}
         <span className="font-semibold text-cdm-fg">{m.senderNickname}</span>
         <span className="text-cdm-fg-muted">: {m.message}</span>

@@ -8,7 +8,7 @@ import { useLobbyChatStore } from '@/stores/lobbyChat';
 import { useRoomStore } from '@/stores/room';
 import { playRankMatchBellSfx } from '@/lib/sfx';
 import { RankBadge } from '@/components/cdm/RankBadge';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import type { RankTier } from '@/shared/types/rank';
 
@@ -120,7 +120,7 @@ function PlayerCard({
         <div
           className={`mt-2 flex justify-center ${side === 'left' ? 'md:justify-end' : 'md:justify-start'}`}
         >
-          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" />
+          <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" />
         </div>
       ) : null}
       <div className={`mt-3 flex flex-col gap-1 ${side === 'left' ? 'md:items-end' : 'md:items-start'}`}>

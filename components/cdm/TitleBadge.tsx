@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
-export type TitleEffect = 'legend' | 'xuanwu' | 'baekho';
+export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'eternal';
 
 const EFFECT_CLASS: Record<TitleEffect, string> = {
   legend: 'title-legend',
   xuanwu: 'title-xuanwu',
   baekho: 'title-baekho',
+  eternal: 'title-eternal',
 };
 
 interface TitleBadgeProps {

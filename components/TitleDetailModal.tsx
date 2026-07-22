@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/cdm/Modal';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { Spinner } from '@/components/cdm/Spinner';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
@@ -83,7 +83,7 @@ export function TitleDetailModal({
       size="md"
       title={
         <span className="flex items-center gap-2">
-          <TitleBadge name={titleName} color={titleColor} effect={titleEffect as 'legend' | null} size="md" />
+          <TitleBadge name={titleName} color={titleColor} effect={titleEffect as TitleEffect | null} size="md" />
           {isSystem && (
             <span
               className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"

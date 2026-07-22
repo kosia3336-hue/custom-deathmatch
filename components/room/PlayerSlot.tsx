@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { AI_PLAYER_ID } from '@/shared/types';
 import type { Player } from '@/shared/types';
 import type { TitleColor } from '@/lib/supabase/database.types';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { HostMark, MeLabel } from '@/components/cdm/Marks';
 
@@ -57,7 +57,7 @@ export default function PlayerSlot({
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             {title && (
-              <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as 'legend' | null} size="sm" />
+              <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" />
             )}
             <span className="font-semibold text-cdm-fg truncate">{player.nickname}</span>
             {isAI && (

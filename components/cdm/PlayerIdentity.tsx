@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { TitleColor, TurnPosition } from '@/lib/supabase/database.types';
-import { TitleBadge } from './TitleBadge';
+import { TitleBadge, type TitleEffect } from './TitleBadge';
 import { TurnBadge } from './TurnBadge';
 import { HostMark, SpectatorMark, MeLabel, ReconnectingMark } from './Marks';
 
@@ -54,7 +54,7 @@ export function PlayerIdentity({
   className,
 }: PlayerIdentityProps) {
   const titleEl = title ? (
-    <TitleBadge name={title.name} color={title.color} effect={title.effect as 'legend' | null} size={TITLE_SIZE[size]} />
+    <TitleBadge name={title.name} color={title.color} effect={title.effect as TitleEffect | null} size={TITLE_SIZE[size]} />
   ) : null;
 
   const turnEl = turn ? <TurnBadge turn={turn} size="sm" /> : null;

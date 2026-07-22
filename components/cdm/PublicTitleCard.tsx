@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from './Card';
-import { TitleBadge } from './TitleBadge';
+import { TitleBadge, type TitleEffect } from './TitleBadge';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 interface PublicTitleCardProps {
@@ -41,7 +41,7 @@ export function PublicTitleCard({
     >
       <Card variant="interactive" className="p-4! h-full flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <TitleBadge name={name} color={color} effect={effect as 'legend' | null} size="md" />
+          <TitleBadge name={name} color={color} effect={effect as TitleEffect | null} size="md" />
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {isLegend && (
               <span

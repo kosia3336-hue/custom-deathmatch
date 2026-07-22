@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSocket } from '@/lib/socket';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { Button } from '@/components/cdm/Button';
 import { Modal } from '@/components/cdm/Modal';
 import type { TitleColor } from '@/lib/supabase/database.types';
@@ -61,7 +61,7 @@ export default function TitleGrantedModal() {
         <TitleBadge
           name={current.name}
           color={current.color as TitleColor}
-          effect={current.effect as 'legend' | 'xuanwu' | 'baekho' | null}
+          effect={current.effect as TitleEffect | null}
           size="lg"
         />
         {current.description && (

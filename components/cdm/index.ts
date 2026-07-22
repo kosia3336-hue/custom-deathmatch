@@ -1,5 +1,5 @@
 export { Logo } from './Logo';
-export { TitleBadge } from './TitleBadge';
+export { TitleBadge, type TitleEffect } from './TitleBadge';
 export { TurnBadge } from './TurnBadge';
 export {
   StatusChip,
