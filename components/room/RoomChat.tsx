@@ -7,6 +7,7 @@ import { useNicknameStore } from '@/stores/nickname';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
+import { GuildMark } from '@/components/cdm/GuildMark';
 import { SpectatorMark } from '@/components/cdm/Marks';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import type { ChatScope, ChatMessage } from '@/shared/types';
@@ -125,6 +126,7 @@ export function ChatBubble({
         {title && (
           <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" className="mr-1.5" />
         )}
+        {m.senderGuildMark && <GuildMark mark={m.senderGuildMark} size="sm" className="mr-1" />}
         <span className="font-semibold text-cdm-fg">{m.senderNickname}</span>
         <span className="text-cdm-fg-muted">: {m.message}</span>
         {canReport && (

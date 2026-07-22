@@ -93,6 +93,7 @@ export function setupSocketHandlers(io: IO) {
             id: string;
             nickname: string;
             displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+            guildMark?: { url: string; name: string } | null;
             equippedSkins?: { skinId: string; gameId: string }[];
             skinExpiries?: { skinId: string; expiresAt: Date }[];
           };
@@ -100,7 +101,7 @@ export function setupSocketHandlers(io: IO) {
       ).member;
       if (member) {
         sessions.setNickname(socket.id, member.nickname, true);
-        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? []);
+        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? [], member.guildMark ?? null);
         scheduleSkinExpiries(token, member.skinExpiries ?? []);
       }
 
@@ -214,7 +215,7 @@ export function setupSocketHandlers(io: IO) {
         if (!member) return callback({ ok: false });
 
         const memberId = sessions.getMemberId(token);
-        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins);
+        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildMark ?? null);
         scheduleSkinExpiries(token, member.skinExpiries);
         callback({ ok: true });
       } catch {

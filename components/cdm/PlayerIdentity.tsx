@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import type { TitleColor, TurnPosition } from '@/lib/supabase/database.types';
 import { TitleBadge, type TitleEffect } from './TitleBadge';
+import { GuildMark, type GuildMarkInfo } from './GuildMark';
 import { TurnBadge } from './TurnBadge';
 import { HostMark, SpectatorMark, MeLabel, ReconnectingMark } from './Marks';
 
@@ -14,6 +15,8 @@ export interface DisplayedTitle {
 interface PlayerIdentityProps {
   nickname: string;
   title?: DisplayedTitle | null;
+  /** 길드 마크 — 닉네임 앞에 칭호처럼 표시 */
+  guildMark?: GuildMarkInfo | null;
   turn?: TurnPosition | null;
   isHost?: boolean;
   isSpectator?: boolean;
@@ -44,6 +47,7 @@ const TITLE_SIZE = {
 export function PlayerIdentity({
   nickname,
   title,
+  guildMark,
   turn,
   isHost,
   isSpectator,
@@ -62,6 +66,7 @@ export function PlayerIdentity({
   const nameRow = (
     <span className={cn('inline-flex items-center gap-1.5', NAME_SIZE[size])}>
       {isSpectator && <SpectatorMark />}
+      <GuildMark mark={guildMark} size={size === 'lg' ? 'lg' : 'sm'} />
       <span className="font-semibold text-cdm-fg">{nickname}</span>
       {isHost && <HostMark />}
       {isMe && <MeLabel />}

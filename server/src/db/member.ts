@@ -12,6 +12,8 @@ export interface MemberInfo {
   nickname: string;
   status: 'active' | 'suspended' | 'banned' | 'withdrawn';
   displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+  /** 소속 길드 마크 (미가입/마크 미등록이면 null) */
+  guildMark: { url: string; name: string } | null;
   equippedSkins: EquippedSkin[];
   /** expires_at 이 있는 착용 스킨의 만료 시각 목록 (무기한 스킨은 제외) */
   skinExpiries: Array<{ skinId: string; expiresAt: Date }>;
@@ -54,6 +56,21 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     }
   }
 
+  // 소속 길드 마크 (컬럼 미배포/미가입이면 null)
+  let guildMark: MemberInfo['guildMark'] = null;
+  try {
+    const { data: gmRow } = await sb
+      .from('guild_members')
+      .select('guilds!inner(name, mark_url)')
+      .eq('member_id', memberId)
+      .maybeSingle();
+    const raw = (gmRow as { guilds: { name: string; mark_url: string | null } | { name: string; mark_url: string | null }[] } | null)?.guilds;
+    const g = Array.isArray(raw) ? raw[0] : raw;
+    if (g?.mark_url) guildMark = { url: g.mark_url, name: g.name };
+  } catch {
+    guildMark = null;
+  }
+
   // 착용 중인 스킨 (게임 ID + 만료 시각 포함)
   let equippedSkins: EquippedSkin[] = [];
   const skinExpiries: Array<{ skinId: string; expiresAt: Date }> = [];
@@ -80,6 +97,7 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     nickname: member.nickname,
     status: status ?? 'active',
     displayedTitle,
+    guildMark,
     equippedSkins,
     skinExpiries,
   };

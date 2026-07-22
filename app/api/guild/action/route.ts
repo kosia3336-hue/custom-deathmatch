@@ -7,7 +7,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-type GuildAction = 'create' | 'join' | 'cancel_join' | 'decide' | 'expand' | 'leave';
+type GuildAction = 'create' | 'join' | 'cancel_join' | 'decide' | 'expand' | 'leave' | 'buy_buff';
 
 interface Body {
   action?: GuildAction;
@@ -34,6 +34,7 @@ const ERROR_MSG: Record<string, { status: number; msg: string }> = {
   },
   capacity_max: { status: 409, msg: '더 이상 정원을 늘릴 수 없어요.' },
   insufficient_guild_points: { status: 402, msg: '길드 포인트가 부족해요.' },
+  buff_max_level: { status: 409, msg: '버프가 이미 최대 레벨이에요.' },
 };
 
 function mapError(message: string | undefined | null) {
@@ -130,6 +131,14 @@ export async function POST(req: NextRequest) {
       }
       case 'expand': {
         const { data, error } = await rpc('buy_guild_expansion', { p_owner: member.id });
+        if (error) {
+          const e = mapError(error.message);
+          return NextResponse.json({ error: e.msg }, { status: e.status });
+        }
+        return NextResponse.json({ ok: true, data });
+      }
+      case 'buy_buff': {
+        const { data, error } = await rpc('buy_guild_buff', { p_owner: member.id });
         if (error) {
           const e = mapError(error.message);
           return NextResponse.json({ error: e.msg }, { status: e.status });

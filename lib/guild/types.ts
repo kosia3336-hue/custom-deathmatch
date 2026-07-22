@@ -10,6 +10,23 @@ export const GUILD_CHARTER_PRICE_CDP = 1500;
 /** 랭크 게임 길드 포인트 적립량 */
 export const GUILD_POINTS = { rankWin: 10, rankDraw: 5, rankLoss: 4 } as const;
 
+/** 길드 마크 등록·변경 가격 (길드 포인트) */
+export const GUILD_MARK_COST_GP = 300;
+/** 길드 마크 이미지 제한 */
+export const GUILD_MARK_MAX_BYTES = 512 * 1024; // 512KB
+export const GUILD_MARK_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+
+/** CDP 수완 버프 최대 레벨 (레벨당 CDP +1%) */
+export const GUILD_BUFF_MAX_LEVEL = 9;
+/** 다음 레벨(현재 level → level+1) 승급 비용: 100 × 2^level */
+export function guildBuffCost(currentLevel: number): number {
+  return 100 * 2 ** currentLevel;
+}
+/** 버프 레벨 → CDP 배수 (레벨당 +1%) */
+export function guildBuffMultiplier(level: number): number {
+  return 1 + Math.max(0, Math.min(GUILD_BUFF_MAX_LEVEL, level)) * 0.01;
+}
+
 export interface GuildSummary {
   id: string;
   name: string;
@@ -19,6 +36,10 @@ export interface GuildSummary {
   memberCount: number;
   points: number;
   createdAt: string;
+  /** 길드 마크 이미지 URL (미등록 시 null) */
+  markUrl: string | null;
+  /** CDP 수완 버프 레벨 (0~9) */
+  buffCdpLevel: number;
 }
 
 export interface GuildMemberInfo {

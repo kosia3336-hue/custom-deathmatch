@@ -5,6 +5,7 @@ import type {
   RoomType,
   PlayMode,
   DisplayedTitle,
+  GuildMark,
   TurnOrderMode,
 } from './room';
 import type { RankTier } from './rank';
@@ -58,6 +59,8 @@ export interface ChatMessage {
   timestamp: number;
   /** v2 — 발신자의 표시 칭호 (보유자만) */
   senderTitle?: DisplayedTitle | null;
+  /** 발신자의 길드 마크 (길드 가입 + 마크 등록자만) */
+  senderGuildMark?: GuildMark | null;
   /** v2 — 발신자가 관전자면 true (👁️ 마크 표시용) */
   isSpectator?: boolean;
   /** v2 — 신고용 발신자 회원 ID (AI/익명은 null) */

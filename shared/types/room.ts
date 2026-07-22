@@ -14,6 +14,12 @@ export interface DisplayedTitle {
   effect?: string | null;
 }
 
+/** 길드 마크 스냅샷 — 닉네임 옆에 칭호처럼 표시 */
+export interface GuildMark {
+  url: string;
+  name: string;
+}
+
 /** v2 — 선공/후공 (모든 2인 게임 통일) */
 export type TurnPosition = 'first' | 'second';
 
@@ -28,6 +34,8 @@ export interface Player {
   joinedAt: number;
   /** v2 — 표시 칭호 (보유자만) */
   displayedTitle?: DisplayedTitle | null;
+  /** 길드 마크 (길드 가입 + 마크 등록자만) */
+  guildMark?: GuildMark | null;
   /** v2 — 회원 ID (Supabase auth.users.id). AI 는 null */
   memberId?: string | null;
   /**

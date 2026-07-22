@@ -30,6 +30,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
     if (!nickname || !token) return;
 
     const senderTitle = sessions.getDisplayedTitleBySocket(socket.id);
+    const senderGuildMark = sessions.getGuildMarkBySocket(socket.id);
     const senderMemberId = sessions.getMemberIdBySocket(socket.id);
 
     // v2.1: 로비 채팅 — 로그인 회원 + 방에 속해있지 않은 유저만
@@ -46,6 +47,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         isSystem: false,
         timestamp: now,
         senderTitle: senderTitle ?? null,
+        senderGuildMark: senderGuildMark ?? null,
         isSpectator: false,
         senderMemberId: senderMemberId ?? null,
       };
@@ -74,6 +76,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       isSystem: false,
       timestamp: now,
       senderTitle: senderTitle ?? null,
+      senderGuildMark: senderGuildMark ?? null,
       isSpectator,
       senderMemberId: senderMemberId ?? null,
     };

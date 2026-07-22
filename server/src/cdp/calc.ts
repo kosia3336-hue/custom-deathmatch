@@ -43,6 +43,10 @@ export interface CdpGrantInput {
     base: number;
     tierBonus: number;
     tierAtGrant: RankTier;
+    /** 길드 CDP 수완 버프 레벨 (0/미가입이면 미설정) */
+    guildBuffLevel?: number;
+    /** 길드 버프로 추가된 CDP */
+    guildBuffBonus?: number;
   };
 }
 

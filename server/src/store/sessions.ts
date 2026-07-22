@@ -1,4 +1,4 @@
-import type { DisplayedTitle } from '@shared/types/room.js';
+import type { DisplayedTitle, GuildMark } from '@shared/types/room.js';
 import type { EquippedSkin } from '@shared/types/skin.js';
 
 // ── 소켓 ↔ 닉네임 (임시, 현재 연결된 소켓 기준) ─────────────────────────────
@@ -21,6 +21,7 @@ const tokenToNickname = new Map<string, string>();
 const tokenToMemberId = new Map<string, string | null>();
 // token → 표시 칭호 (없으면 null)
 const tokenToDisplayedTitle = new Map<string, DisplayedTitle | null>();
+const tokenToGuildMark = new Map<string, GuildMark | null>();
 // token → 착용 스킨 목록 (없으면 [])
 const tokenToEquippedSkins = new Map<string, EquippedSkin[]>();
 
@@ -197,10 +198,12 @@ export const sessions = {
     memberId: string | null,
     displayedTitle: DisplayedTitle | null,
     equippedSkins: EquippedSkin[] = [],
+    guildMark: GuildMark | null = null,
   ) {
     tokenToMemberId.set(token, memberId);
     tokenToDisplayedTitle.set(token, displayedTitle);
     tokenToEquippedSkins.set(token, equippedSkins);
+    tokenToGuildMark.set(token, guildMark);
     if (memberId) memberIdToToken.set(memberId, token);
   },
 
@@ -210,6 +213,10 @@ export const sessions = {
 
   getDisplayedTitle(token: string): DisplayedTitle | null {
     return tokenToDisplayedTitle.get(token) ?? null;
+  },
+
+  getGuildMark(token: string): GuildMark | null {
+    return tokenToGuildMark.get(token) ?? null;
   },
 
   getEquippedSkins(token: string): EquippedSkin[] {
@@ -224,6 +231,11 @@ export const sessions = {
   getDisplayedTitleBySocket(socketId: string): DisplayedTitle | null {
     const t = socketToToken.get(socketId);
     return t ? tokenToDisplayedTitle.get(t) ?? null : null;
+  },
+
+  getGuildMarkBySocket(socketId: string): GuildMark | null {
+    const t = socketToToken.get(socketId);
+    return t ? tokenToGuildMark.get(t) ?? null : null;
   },
 
   getEquippedSkinsBySocket(socketId: string): EquippedSkin[] {

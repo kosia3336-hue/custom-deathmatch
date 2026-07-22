@@ -1,14 +1,18 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { Card } from '@/components/cdm/Card';
 import { Modal } from '@/components/cdm/Modal';
 import { TextInput } from '@/components/cdm/TextInput';
+import { GuildMark } from '@/components/cdm/GuildMark';
 import {
   GUILD_EXPANSION_COST_GP,
   GUILD_CHARTER_PRICE_CDP,
+  GUILD_MARK_COST_GP,
+  GUILD_BUFF_MAX_LEVEL,
+  guildBuffCost,
   type GuildSummary,
   type MyGuildState,
 } from '@/lib/guild/types';
@@ -83,7 +87,7 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
       </header>
 
       {my.guild ? (
-        <MyGuildPanel my={my} myMemberId={myMemberId} busy={busy} act={act} />
+        <MyGuildPanel my={my} myMemberId={myMemberId} busy={busy} act={act} refresh={refresh} />
       ) : my.myRequest ? (
         <Card className="flex items-center justify-between gap-3">
           <p className="text-sm text-cdm-fg">
@@ -159,6 +163,7 @@ function GuildRow({
     <Card className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
+          <GuildMark mark={guild.markUrl ? { url: guild.markUrl, name: guild.name } : null} size="md" />
           <p className="truncate font-semibold text-cdm-fg">{guild.name}</p>
           <span className="shrink-0 text-xs tabular-nums text-cdm-fg-muted">
             {guild.memberCount}/{guild.capacity}명
@@ -170,7 +175,13 @@ function GuildRow({
         {guild.description && (
           <p className="mt-0.5 truncate text-sm text-cdm-fg-muted">{guild.description}</p>
         )}
-        <div className="mt-1 text-[11px] text-cdm-fg-subtle">길드장 {guild.ownerNickname}</div>
+        <div className="mt-1 flex items-center gap-1 text-[11px] text-cdm-fg-subtle">
+          <span className="rounded-full bg-cdm-bg-elev-2 px-1.5 py-0.5 font-semibold text-cdm-fg-muted">길드장</span>
+          {guild.ownerNickname}
+          {guild.buffCdpLevel > 0 && (
+            <span className="ml-1 text-cdm-primary">· CDP +{guild.buffCdpLevel}%</span>
+          )}
+        </div>
       </div>
       {canJoin && (
         <Button size="sm" variant="secondary" disabled={busy || full} onClick={onJoin}>
@@ -186,11 +197,13 @@ function MyGuildPanel({
   myMemberId,
   busy,
   act,
+  refresh,
 }: {
   my: MyGuildState;
   myMemberId: string;
   busy: boolean;
   act: (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
+  refresh: () => Promise<void>;
 }) {
   const g = my.guild!;
   const isOwner = my.role === 'owner';
@@ -198,9 +211,19 @@ function MyGuildPanel({
   return (
     <Card variant="highlight" accent="primary" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-bold text-cdm-fg">{g.name}</h2>
-          {g.description && <p className="mt-0.5 text-sm text-cdm-fg-muted">{g.description}</p>}
+        <div className="flex items-start gap-2.5">
+          <GuildMark mark={g.markUrl ? { url: g.markUrl, name: g.name } : null} size="lg" className="mt-0.5 h-9 w-9" />
+          <div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h2 className="text-lg font-bold text-cdm-fg">{g.name}</h2>
+              {isOwner && (
+                <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  길드장
+                </span>
+              )}
+            </div>
+            {g.description && <p className="mt-0.5 text-sm text-cdm-fg-muted">{g.description}</p>}
+          </div>
         </div>
         <div className="text-right">
           <p className="text-xs text-cdm-fg-muted">길드 포인트</p>
@@ -260,6 +283,63 @@ function MyGuildPanel({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* 길드 버프 — CDP 수완 증가 */}
+      <div className="border-t border-cdm-border pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-cdm-fg">길드 버프 · CDP 수완</p>
+            <p className="mt-0.5 text-[11px] text-cdm-fg-muted">
+              Lv.{g.buffCdpLevel} / {GUILD_BUFF_MAX_LEVEL} — 길드원이 매 게임 CDP{' '}
+              <strong className="text-cdm-primary">+{g.buffCdpLevel}%</strong> 추가 적립
+            </p>
+          </div>
+          {isOwner && (
+            g.buffCdpLevel >= GUILD_BUFF_MAX_LEVEL ? (
+              <span className="text-[11px] font-semibold text-cdm-fg-subtle">최대 레벨</span>
+            ) : (
+              <Button
+                size="sm"
+                disabled={busy || g.points < guildBuffCost(g.buffCdpLevel)}
+                onClick={() => {
+                  const cost = guildBuffCost(g.buffCdpLevel);
+                  if (!confirm(`길드 포인트 ${cost.toLocaleString()} GP로 CDP 수완을 Lv.${g.buffCdpLevel + 1}로 올릴까요?`)) return;
+                  void act({ action: 'buy_buff' }, `CDP 수완이 Lv.${g.buffCdpLevel + 1}이 됐어요!`);
+                }}
+              >
+                Lv.{g.buffCdpLevel + 1}로 강화 ({guildBuffCost(g.buffCdpLevel).toLocaleString()} GP)
+              </Button>
+            )
+          )}
+        </div>
+        {/* 레벨 게이지 */}
+        <div className="mt-2 flex gap-0.5">
+          {Array.from({ length: GUILD_BUFF_MAX_LEVEL }, (_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 flex-1 rounded-full ${
+                i < g.buffCdpLevel ? 'bg-cdm-primary' : 'bg-cdm-bg-elev-2'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 길드 마크 */}
+      {isOwner && (
+        <div className="border-t border-cdm-border pt-3">
+          <p className="text-xs font-semibold text-cdm-fg">길드 마크</p>
+          <p className="mt-0.5 text-[11px] text-cdm-fg-muted">
+            등록하면 길드원 닉네임 옆에 표시돼요. 등록·변경 시 {GUILD_MARK_COST_GP} GP가 차감돼요. (PNG/JPEG/WebP/GIF, 512KB 이하)
+          </p>
+          <GuildMarkUploader
+            guildPoints={g.points}
+            busy={busy}
+            hasMark={Boolean(g.markUrl)}
+            refresh={refresh}
+          />
         </div>
       )}
 
@@ -351,5 +431,69 @@ function CreateGuildModal({
         <p className="text-[11px] text-cdm-fg-subtle">초기 정원은 3명이에요. 길드 포인트로 정원을 늘릴 수 있어요.</p>
       </div>
     </Modal>
+  );
+}
+
+/** 길드 마크 업로드 (길드장 전용) */
+function GuildMarkUploader({
+  guildPoints,
+  busy,
+  hasMark,
+  refresh,
+}: {
+  guildPoints: number;
+  busy: boolean;
+  hasMark: boolean;
+  refresh: () => Promise<void>;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const affordable = guildPoints >= GUILD_MARK_COST_GP;
+
+  const onPick = async (file: File) => {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/guild/mark', { method: 'POST', body: form });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        toast.error(json.error ?? '마크 등록에 실패했어요.');
+        return;
+      }
+      toast.success(`길드 마크를 등록했어요. (-${GUILD_MARK_COST_GP} GP)`);
+      await refresh();
+    } catch {
+      toast.error('마크 등록 중 오류가 발생했어요.');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void onPick(f);
+        }}
+      />
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={busy || uploading || !affordable}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? '업로드 중…' : hasMark ? `마크 변경 (${GUILD_MARK_COST_GP} GP)` : `마크 등록 (${GUILD_MARK_COST_GP} GP)`}
+      </Button>
+      {!affordable && (
+        <span className="text-[11px] text-cdm-fg-subtle">길드 포인트가 부족해요.</span>
+      )}
+    </div>
   );
 }

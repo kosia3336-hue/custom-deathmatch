@@ -1,5 +1,6 @@
 export { Logo } from './Logo';
 export { TitleBadge, type TitleEffect } from './TitleBadge';
+export { GuildMark, type GuildMarkInfo } from './GuildMark';
 export { TurnBadge } from './TurnBadge';
 export {
   StatusChip,

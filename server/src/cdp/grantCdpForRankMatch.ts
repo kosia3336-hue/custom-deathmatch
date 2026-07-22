@@ -5,6 +5,7 @@ import type { IO } from '../socket/types.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import { sessions } from '../store/sessions.js';
 import type { CdpGrantInput } from './calc.js';
+import { applyGuildCdpBuff } from './guildBuff.js';
 
 export type { CdpGrantInput } from './calc.js';
 
@@ -24,11 +25,14 @@ interface GrantRpcRow {
 
 export async function grantCdpForRankMatch(
   io: IO | null,
-  inputs: CdpGrantInput[],
+  rawInputs: CdpGrantInput[],
 ): Promise<CdpGrantResult[]> {
-  if (!isSupabaseConfigured() || inputs.length === 0) return [];
+  if (!isSupabaseConfigured() || rawInputs.length === 0) return [];
   const sb = getSupabaseAdmin();
   const out: CdpGrantResult[] = [];
+
+  // 길드 CDP 수완 버프(레벨당 +1%) 반영
+  const inputs = await applyGuildCdpBuff(rawInputs);
 
   for (const inp of inputs) {
     if (inp.amount <= 0) {
@@ -60,6 +64,12 @@ export async function grantCdpForRankMatch(
           base: inp.breakdown.base,
           tier_bonus: inp.breakdown.tierBonus,
           tier: inp.breakdown.tierAtGrant,
+          ...(inp.breakdown.guildBuffBonus
+            ? {
+                guild_buff_level: inp.breakdown.guildBuffLevel,
+                guild_buff_bonus: inp.breakdown.guildBuffBonus,
+              }
+            : {}),
         },
       });
       if (error) throw error;

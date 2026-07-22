@@ -15,6 +15,8 @@ interface GuildRow {
   capacity: number;
   points: number;
   created_at: string;
+  mark_url: string | null;
+  buff_cdp_level: number | null;
 }
 
 interface GuildMemberRow {
@@ -64,6 +66,8 @@ export async function listGuilds(): Promise<GuildSummary[]> {
       memberCount: members.length,
       points: Number(g.points),
       createdAt: g.created_at,
+      markUrl: g.mark_url ?? null,
+      buffCdpLevel: Number(g.buff_cdp_level ?? 0),
     };
   });
 }
@@ -167,6 +171,8 @@ export async function getMyGuildState(memberId: string): Promise<MyGuildState> {
       memberCount: members.length,
       points: Number(g.points),
       createdAt: g.created_at,
+      markUrl: g.mark_url ?? null,
+      buffCdpLevel: Number(g.buff_cdp_level ?? 0),
     },
     role: my.role,
     members,

@@ -6,6 +6,7 @@ import { AI_PLAYER_ID } from '@/shared/types';
 import type { Player } from '@/shared/types';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
+import { GuildMark } from '@/components/cdm/GuildMark';
 import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { HostMark, MeLabel } from '@/components/cdm/Marks';
 
@@ -59,6 +60,7 @@ export default function PlayerSlot({
             {title && (
               <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" />
             )}
+            <GuildMark mark={player.guildMark ?? null} size="sm" />
             <span className="font-semibold text-cdm-fg truncate">{player.nickname}</span>
             {isAI && (
               <span className="text-xs px-1.5 py-0.5 rounded-cdm-sm bg-cdm-bg-elev-2 text-cdm-fg-muted">

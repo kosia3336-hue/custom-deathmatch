@@ -40,6 +40,7 @@ function buildPlayer(socketId: string, isHost: boolean): Player | null {
     joinedAt: Date.now(),
     memberId: sessions.getMemberId(token),
     displayedTitle: sessions.getDisplayedTitle(token),
+    guildMark: sessions.getGuildMark(token),
     equippedSkins: sessions.getEquippedSkins(token),
   };
 }
@@ -84,8 +85,8 @@ export async function createRankMatchedRoom(
   ]);
   hostPlayer.displayedTitle = hostTitle;
   guestPlayer.displayedTitle = guestTitle;
-  sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id));
-  sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id));
+  sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id), sessions.getGuildMark(hostPlayer.id));
+  sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id), sessions.getGuildMark(guestPlayer.id));
 
   const room = roomStore.create({
     title: `[랭크] ${hostPlayer.nickname} vs ${guestPlayer.nickname}`,
