@@ -8,7 +8,9 @@ import {
   notifyInventoryUpdated,
 } from '@/lib/cdp/notify';
 import { executeGachaDraw, GachaDrawError } from '@/lib/gacha/execute-draw';
+import { GACHA_MAX_BULK_COUNT } from '@/lib/gacha/constants';
 import type { ConsumableKind } from '@/lib/cdp/types';
+import type { GachaDrawResult } from '@/lib/gacha/types';
 import {
   getSupabaseServiceRole,
   isSupabaseServiceRoleConfigured,
@@ -16,10 +18,29 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+type PayMode = 'auto' | 'cdp' | 'ticket';
+
 interface DrawBody {
   gachaId?: string;
-  /** true 면 CDP 대신 뽑기권(gacha_ticket) 1장으로 뽑기 */
+  /** @deprecated payMode 로 대체. true 면 뽑기권 우선 */
   useTicket?: boolean;
+  /** 'auto' = 뽑기권 있으면 뽑기권 먼저, 없으면 CDP */
+  payMode?: PayMode;
+  /** 한 번에 뽑을 횟수 (1 ~ GACHA_MAX_BULK_COUNT) */
+  count?: number;
+}
+
+async function readTicketCount(
+  sb: ReturnType<typeof getSupabaseServiceRole>,
+  memberId: string,
+): Promise<number> {
+  const { data } = await sb
+    .from('shop_consumable_inventory')
+    .select('count')
+    .eq('member_id', memberId)
+    .eq('kind', 'gacha_ticket')
+    .maybeSingle();
+  return Number((data as { count?: number } | null)?.count ?? 0);
 }
 
 export async function POST(req: NextRequest) {
@@ -42,91 +63,144 @@ export async function POST(req: NextRequest) {
   }
 
   const gachaId = body.gachaId ?? 'default';
-  const useTicket = body.useTicket === true;
+  const payMode: PayMode =
+    body.payMode === 'cdp' || body.payMode === 'ticket' || body.payMode === 'auto'
+      ? body.payMode
+      : body.useTicket === true
+        ? 'ticket'
+        : 'auto';
+  const count = Math.max(1, Math.min(GACHA_MAX_BULK_COUNT, Math.floor(Number(body.count ?? 1)) || 1));
+
   const sb = getSupabaseServiceRole();
 
-  try {
-    const result = await executeGachaDraw(sb, member.id, gachaId, useTicket ? 'ticket' : 'cdp');
+  // 시작 시점의 잔액/뽑기권 — delta 계산과 auto 결제 판단에 사용
+  const { data: startCdpRow } = await sb
+    .from('member_cdp')
+    .select('balance')
+    .eq('member_id', member.id)
+    .maybeSingle();
+  const startBalance = Number((startCdpRow as { balance?: number } | null)?.balance ?? 0);
+  let ticketsLeft = await readTicketCount(sb, member.id);
+  const startTickets = ticketsLeft;
 
-    // 뽑기권 결제 시 CDP 비용은 0 (상품이 CDP면 그만큼만 증가)
-    const cost = useTicket ? 0 : 100;
-    const delta =
-      result.resolved.kind === 'cdp'
-        ? -cost + result.resolved.amount
-        : -cost;
+  const results: GachaDrawResult[] = [];
+  const consumableKinds = new Set<ConsumableKind>();
+  let grantedTitle = false;
+  let newBalance = startBalance;
+  let stopCode: string | null = null;
+  let stopMessage: string | null = null;
 
+  for (let i = 0; i < count; i++) {
+    // auto: 뽑기권이 남아 있으면 뽑기권을 우선 소모한다.
+    const payWith: 'cdp' | 'ticket' =
+      payMode === 'cdp' ? 'cdp'
+      : payMode === 'ticket' ? 'ticket'
+      : ticketsLeft > 0 ? 'ticket' : 'cdp';
+
+    try {
+      const r = await executeGachaDraw(sb, member.id, gachaId, payWith);
+      results.push(r);
+      newBalance = r.newBalance;
+      if (payWith === 'ticket') ticketsLeft = Math.max(0, ticketsLeft - 1);
+      if (r.resolved.kind === 'consumable') {
+        consumableKinds.add(r.resolved.consumableKind as ConsumableKind);
+      }
+      if (r.resolved.kind === 'title' || r.resolved.kind === 'legend') grantedTitle = true;
+    } catch (e) {
+      if (e instanceof GachaDrawError) {
+        stopCode = e.code;
+        stopMessage =
+          e.code === 'insufficient_balance' ? 'CDP가 부족해요.'
+          : e.code === 'insufficient_ticket' ? '뽑기권이 없어요.'
+          : e.code === 'gacha_inactive' ? '뽑기가 준비 중이에요.'
+          : '뽑기에 실패했어요.';
+      } else {
+        console.error('[gacha/draw]', e);
+        stopCode = 'internal_error';
+        stopMessage = '뽑기에 실패했어요.';
+      }
+      break;
+    }
+  }
+
+  // 한 번도 못 뽑았으면 기존과 동일하게 에러 응답
+  if (results.length === 0) {
+    const status =
+      stopCode === 'insufficient_balance' ? 402
+      : stopCode === 'insufficient_ticket' ? 409
+      : stopCode === 'gacha_inactive' ? 404
+      : stopCode === 'member_not_active' ? 403
+      : 500;
+    return NextResponse.json(
+      { error: stopMessage ?? '뽑기에 실패했어요.', code: stopCode ?? 'internal_error' },
+      { status },
+    );
+  }
+
+  const lastDrawId = results[results.length - 1].drawId;
+  const ticketsUsed = startTickets - ticketsLeft;
+
+  const delta = newBalance - startBalance;
+  if (delta !== 0) {
     void notifyCdpAdjusted({
       memberId: member.id,
-      newBalance: result.newBalance,
+      newBalance,
       delta,
       reason: 'shop_purchase',
-      ref: { kind: 'gacha_draw', id: result.drawId },
+      ref: { kind: 'gacha_draw', id: lastDrawId },
     });
-
-    // 뽑기권 결제 시 뽑기권 잔량 갱신 통보
-    if (useTicket) {
-      try {
-        const { data: tRow } = await sb
-          .from('shop_consumable_inventory')
-          .select('count')
-          .eq('member_id', member.id)
-          .eq('kind', 'gacha_ticket')
-          .maybeSingle();
-        void notifyInventoryUpdated({
-          memberId: member.id,
-          kind: 'gacha_ticket',
-          countAfter: Number((tRow as { count?: number } | null)?.count ?? 0),
-          reason: 'manual_use',
-          ref: { kind: 'gacha_draw', id: result.drawId },
-        });
-      } catch {
-        // ignore
-      }
-    }
-
-    if (result.resolved.kind === 'consumable') {
-      try {
-        const { data: invRow } = await sb
-          .from('shop_consumable_inventory')
-          .select('count')
-          .eq('member_id', member.id)
-          .eq('kind', result.resolved.consumableKind)
-          .maybeSingle();
-        void notifyInventoryUpdated({
-          memberId: member.id,
-          kind: result.resolved.consumableKind as ConsumableKind,
-          countAfter: Number((invRow as { count?: number } | null)?.count ?? 0),
-          reason: 'purchase',
-          ref: { kind: 'gacha_draw', id: result.drawId },
-        });
-      } catch {
-        // ignore
-      }
-    }
-
-    if (result.resolved.kind === 'title' || result.resolved.kind === 'legend') {
-      void notifyInvalidateBiasTitles();
-      void notifyInvalidateOwnedTitles(member.id);
-      void notifyHiddenTitleCheck('title_granted', member.id);
-    }
-
-    return NextResponse.json(result);
-  } catch (e) {
-    if (e instanceof GachaDrawError) {
-      const status =
-        e.code === 'insufficient_balance' ? 402
-        : e.code === 'insufficient_ticket' ? 409
-        : e.code === 'gacha_inactive' ? 404
-        : e.code === 'member_not_active' ? 403
-        : 500;
-      const msg =
-        e.code === 'insufficient_balance' ? 'CDP가 부족해요.'
-        : e.code === 'insufficient_ticket' ? '뽑기권이 없어요.'
-        : e.code === 'gacha_inactive' ? '뽑기가 준비 중이에요.'
-        : '뽑기에 실패했어요.';
-      return NextResponse.json({ error: msg, code: e.code }, { status });
-    }
-    console.error('[gacha/draw]', e);
-    return NextResponse.json({ error: '뽑기에 실패했어요.', code: 'internal_error' }, { status: 500 });
   }
+
+  if (ticketsUsed > 0) {
+    try {
+      void notifyInventoryUpdated({
+        memberId: member.id,
+        kind: 'gacha_ticket',
+        countAfter: await readTicketCount(sb, member.id),
+        reason: 'manual_use',
+        ref: { kind: 'gacha_draw', id: lastDrawId },
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const kind of consumableKinds) {
+    try {
+      const { data: invRow } = await sb
+        .from('shop_consumable_inventory')
+        .select('count')
+        .eq('member_id', member.id)
+        .eq('kind', kind)
+        .maybeSingle();
+      void notifyInventoryUpdated({
+        memberId: member.id,
+        kind,
+        countAfter: Number((invRow as { count?: number } | null)?.count ?? 0),
+        reason: 'purchase',
+        ref: { kind: 'gacha_draw', id: lastDrawId },
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  if (grantedTitle) {
+    void notifyInvalidateBiasTitles();
+    void notifyInvalidateOwnedTitles(member.id);
+    void notifyHiddenTitleCheck('title_granted', member.id);
+  }
+
+  // 단일 뽑기는 기존 응답 형태를 그대로 유지 (results 는 추가 필드)
+  const head = results[0];
+  return NextResponse.json({
+    ...head,
+    newBalance,
+    results,
+    requestedCount: count,
+    drawnCount: results.length,
+    ticketsUsed,
+    ticketsLeft,
+    ...(stopCode ? { stoppedCode: stopCode, stoppedError: stopMessage } : {}),
+  });
 }

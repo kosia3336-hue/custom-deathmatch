@@ -3,6 +3,9 @@ import type { GachaGrade } from './types';
 export const GACHA_ID = 'default';
 export const GACHA_PRICE_CDP = 80;
 
+/** 한 번의 요청으로 뽑을 수 있는 최대 횟수 */
+export const GACHA_MAX_BULK_COUNT = 30;
+
 /** 가중치 합 = 10_000 (= 100%) */
 export const GRADE_WEIGHTS: Record<GachaGrade, number> = {
   S: 20,
