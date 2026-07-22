@@ -598,23 +598,26 @@ export async function finalizeRankedMultiGameEnd(
     winnerGain = parts.winnerGain;
     loserLoss = parts.loserLoss;
 
-    // 챌린저·다이아 패배 시 RP 차감 없음 (패널티 삭제)
-    // loserLoss=0 이면 applyRankLoss 가 RP 유지 + 강등 없이 처리한다.
-    const loserNoPenalty = loserStats.tier === 'challenger' || loserStats.tier === 'diamond';
-    if (loserNoPenalty) loserLoss = 0;
+    // 다이아·챌린저가 '하위 티어에게' 졌을 때만 붙던 티어 격차 추가 차감을 제거.
+    // 동급 기준치(12)를 상한으로 잡아, 상위 티어에게 졌을 때의 감액 혜택(10/8/6)은 유지한다.
+    // 패배 자체의 RP 차감과 연패 가산은 그대로 적용된다.
+    const PARITY_BASE_TABLE = 12;
+    const loserIsHighTier = loserStats.tier === 'challenger' || loserStats.tier === 'diamond';
+    const loserBaseTable = loserIsHighTier
+      ? Math.min(parts.loserBaseTable, PARITY_BASE_TABLE)
+      : parts.loserBaseTable;
+    loserLoss = Math.max(5, loserBaseTable + parts.loserStreakPenalty);
 
     const winBr = {
       parityReference: 20,
       tierVersusParity: parts.winnerBaseTable - 20,
       streakVersusParity: parts.winnerStreakBonus,
     };
-    const loseBr = loserNoPenalty
-      ? { parityReference: 0, tierVersusParity: 0, streakVersusParity: 0 }
-      : {
-          parityReference: -20,
-          tierVersusParity: -(parts.loserBaseTable - 20),
-          streakVersusParity: -parts.loserStreakPenalty,
-        };
+    const loseBr = {
+      parityReference: -20,
+      tierVersusParity: -(loserBaseTable - 20),
+      streakVersusParity: -parts.loserStreakPenalty,
+    };
 
     if (beforeWinnerPlacementDone && beforeLoserPlacementDone) {
       rpBreakdownA = idA === winnerPl.memberId ? winBr : loseBr;
