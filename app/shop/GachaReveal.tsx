@@ -18,9 +18,18 @@ interface Props {
   reducedMotion: boolean;
   onConfirm: () => void;
   onDrawAgain: () => void;
+  drawAgainLabel?: string;
+  drawAgainDisabled?: boolean;
 }
 
-export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAgain }: Props) {
+export default function GachaReveal({
+  result,
+  reducedMotion,
+  onConfirm,
+  onDrawAgain,
+  drawAgainLabel = '다시 뽑기',
+  drawAgainDisabled,
+}: Props) {
   const [showResult, setShowResult] = useState(reducedMotion);
 
   const isFail = result.resolved.kind === 'nothing';
@@ -141,8 +150,8 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
       <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
         {isFail ? (
           <>
-            <Button fullWidth onClick={onDrawAgain}>
-              다시 뽑기
+            <Button fullWidth onClick={onDrawAgain} disabled={drawAgainDisabled}>
+              {drawAgainLabel}
             </Button>
             <Button fullWidth variant="secondary" onClick={onConfirm}>
               닫기
@@ -153,8 +162,8 @@ export default function GachaReveal({ result, reducedMotion, onConfirm, onDrawAg
             <Button fullWidth onClick={onConfirm}>
               확인
             </Button>
-            <Button fullWidth variant="secondary" onClick={onDrawAgain}>
-              다시 뽑기
+            <Button fullWidth variant="secondary" onClick={onDrawAgain} disabled={drawAgainDisabled}>
+              {drawAgainLabel}
             </Button>
           </>
         )}

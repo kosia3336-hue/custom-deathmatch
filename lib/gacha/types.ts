@@ -78,6 +78,21 @@ export interface GachaDrawResult {
   legendClaimed?: boolean;
 }
 
+/** 결제 수단. 'auto' = 뽑기권이 있으면 뽑기권 우선, 없으면 CDP */
+export type GachaPayMode = 'auto' | 'cdp' | 'ticket';
+
+/** /api/shop/gacha/draw 응답 — 단일 뽑기는 GachaDrawResult 필드를 그대로 유지한다 */
+export interface GachaDrawResponse extends GachaDrawResult {
+  results: GachaDrawResult[];
+  requestedCount: number;
+  drawnCount: number;
+  ticketsUsed: number;
+  ticketsLeft: number;
+  /** 요청한 횟수를 다 못 뽑고 중단된 이유 */
+  stoppedCode?: string;
+  stoppedError?: string;
+}
+
 export interface ShopTitlePoolItem {
   id: string;
   name: string;

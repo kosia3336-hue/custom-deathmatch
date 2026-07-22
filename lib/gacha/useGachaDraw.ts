@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { gachaTitleGrantedSuppress } from './suppress-title-granted';
-import type { GachaDrawResult, GachaPoolResponse } from './types';
+import type { GachaDrawResponse, GachaPayMode, GachaPoolResponse } from './types';
 
-export type GachaPhase = 'idle' | 'drawing' | 'reveal';
+export type GachaPhase = 'idle' | 'drawing' | 'reveal' | 'bulk';
 
 function minDelay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -17,47 +17,69 @@ export function usePrefersReducedMotion(): boolean {
 
 export function useGachaDraw() {
   const [phase, setPhase] = useState<GachaPhase>('idle');
-  const [result, setResult] = useState<GachaDrawResult | null>(null);
+  const [result, setResult] = useState<GachaDrawResponse | null>(null);
   const [busy, setBusy] = useState(false);
+  // setBusy 는 비동기라 연속 클릭 방어에 못 쓴다 — ref 로 즉시 잠근다.
+  const busyRef = useRef(false);
 
-  const draw = useCallback(async (reducedMotion: boolean, useTicket = false): Promise<GachaDrawResult | null> => {
-    if (busy) return null;
-    setBusy(true);
-    setPhase('drawing');
-    setResult(null);
-    gachaTitleGrantedSuppress.active = true;
+  const run = useCallback(
+    async (
+      reducedMotion: boolean,
+      payMode: GachaPayMode,
+      count: number,
+    ): Promise<GachaDrawResponse | null> => {
+      if (busyRef.current) return null;
+      busyRef.current = true;
+      setBusy(true);
+      setPhase('drawing');
+      setResult(null);
+      gachaTitleGrantedSuppress.active = true;
 
-    const minMs = reducedMotion ? 400 : 1500;
+      const minMs = reducedMotion ? 400 : count > 1 ? 900 : 1500;
 
-    try {
-      const [res] = await Promise.all([
-        fetch('/api/shop/gacha/draw', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gachaId: 'default', useTicket }),
-        }),
-        minDelay(minMs),
-      ]);
+      try {
+        const [res] = await Promise.all([
+          fetch('/api/shop/gacha/draw', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gachaId: 'default', payMode, count }),
+          }),
+          minDelay(minMs),
+        ]);
 
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
+        const json = await res.json();
+        if (!res.ok || !json.ok) {
+          setPhase('idle');
+          gachaTitleGrantedSuppress.active = false;
+          throw Object.assign(new Error(json.error ?? 'draw failed'), { code: json.code });
+        }
+
+        const ok = json as GachaDrawResponse;
+        setResult(ok);
+        setPhase(count > 1 ? 'bulk' : 'reveal');
+        return ok;
+      } catch (e) {
         setPhase('idle');
         gachaTitleGrantedSuppress.active = false;
-        throw Object.assign(new Error(json.error ?? 'draw failed'), { code: json.code });
+        throw e;
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
       }
+    },
+    [],
+  );
 
-      const ok = json as GachaDrawResult;
-      setResult(ok);
-      setPhase('reveal');
-      return ok;
-    } catch (e) {
-      setPhase('idle');
-      gachaTitleGrantedSuppress.active = false;
-      throw e;
-    } finally {
-      setBusy(false);
-    }
-  }, [busy]);
+  const draw = useCallback(
+    (reducedMotion: boolean, payMode: GachaPayMode = 'auto') => run(reducedMotion, payMode, 1),
+    [run],
+  );
+
+  const drawMany = useCallback(
+    (reducedMotion: boolean, count: number, payMode: GachaPayMode = 'auto') =>
+      run(reducedMotion, payMode, Math.max(1, count)),
+    [run],
+  );
 
   const resetToIdle = useCallback(() => {
     setPhase('idle');
@@ -69,7 +91,7 @@ export function useGachaDraw() {
     resetToIdle();
   }, [resetToIdle]);
 
-  return { phase, result, busy, draw, resetToIdle, finishReveal, setPhase };
+  return { phase, result, busy, draw, drawMany, resetToIdle, finishReveal, setPhase };
 }
 
 export async function fetchGachaPool(): Promise<GachaPoolResponse> {
