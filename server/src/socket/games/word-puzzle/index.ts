@@ -9,7 +9,7 @@ import {
   type WordPuzzleGameData,
   type WordPuzzleRoundResult,
 } from '@shared/types/word-puzzle.js';
-import { validThreeLetterWords } from '@shared/data/three-letter-words.js';
+import { wordPickPool, wordDictStats } from '@shared/data/word-pool.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
@@ -46,8 +46,16 @@ interface WPState {
 }
 
 const gameStates = new Map<string, WPState>();
-const DICT = new Set(validThreeLetterWords());
-const WORDS = validThreeLetterWords();
+/**
+ * 출제용 풀 — 표준국어대사전 3글자 명사(정적). 검증은 이 풀이 아니라
+ * '해당 라운드에 뽑힌 정답 3단어'로만 하므로 런타임 사전 조회·API 호출이 없다.
+ */
+const WORDS = wordPickPool();
+
+{
+  const st = wordDictStats();
+  console.log(`[word-puzzle] 출제 풀 ${st.pickPool}단어 로드 (큐레이션)`);
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -274,15 +282,16 @@ export function handleWordPuzzleAction(
     return;
   }
 
-  // 1) 9칸 글자 소진 검증
-  if (!multisetEqual(words.join('').split(''), s.grid)) {
-    socket.emit('error', { message: '격자의 9글자를 정확히 사용해야 해요.' });
-    return;
-  }
-  // 2) 사전 검증 (원본과 달라도 사전 단어 조합이면 정답)
-  const invalid = words.filter((w) => !DICT.has(w));
-  if (invalid.length > 0) {
-    socket.emit('error', { message: `사전에 없는 단어예요: ${invalid.join(', ')}` });
+  // 정답 3단어와 정확히 일치하는지만 검증 (사전 조회·API 없음, O(1)).
+  //  · 중복 답(다른 조합)은 인정하지 않는다 — 이 라운드의 정답만 정답.
+  //  · 멀티셋 비교라 제출 순서는 무관.
+  if (!multisetEqual(words, s.answerWords)) {
+    // 9글자는 맞지만 정답 조합이 아닌 경우와, 글자 자체가 틀린 경우를 구분해 안내
+    if (multisetEqual(words.join('').split(''), s.grid)) {
+      socket.emit('error', { message: '9글자는 맞지만 정답 단어 조합이 아니에요.' });
+    } else {
+      socket.emit('error', { message: '격자의 9글자로 만든 정답 3단어를 맞혀야 해요.' });
+    }
     return;
   }
 
