@@ -73,3 +73,19 @@ BEGIN
   RETURN v_deposited;
 END;
 $$;
+
+-- ─────────────────────────────────────────────────────────────
+-- [수동 운영] 이벤트 쿠폰 초기화 (필요할 때 골라서 실행)
+-- ─────────────────────────────────────────────────────────────
+-- ① 전체 초기화: 쿠폰 전부 삭제 + 쿠폰함 다시 열기 (새 이벤트 시작)
+-- TRUNCATE TABLE public.event_coupons;
+-- UPDATE public.event_coupon_box SET is_open = true, updated_at = now() WHERE id = 1;
+
+-- ② 투입된 쿠폰만 비우기 (미투입 보유 쿠폰은 유지)
+-- DELETE FROM public.event_coupons WHERE deposited_at IS NOT NULL;
+
+-- ③ 기록 보관 후 초기화 (아카이브 테이블로 복사 후 삭제)
+-- CREATE TABLE IF NOT EXISTS public.event_coupons_archive
+--   (LIKE public.event_coupons INCLUDING ALL);
+-- INSERT INTO public.event_coupons_archive SELECT * FROM public.event_coupons;
+-- TRUNCATE TABLE public.event_coupons;
