@@ -1,6 +1,6 @@
 /** 단어 퍼즐 — 서버 모듈 (init / handleAction / cleanup). */
 import type { GameState } from '@shared/types/events.js';
-import type { Player, PlayMode } from '@shared/types/room.js';
+import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
 import {
   WP_TOTAL_ROUNDS,
   WP_ROUND_SECONDS,
@@ -9,10 +9,11 @@ import {
   type WordPuzzleGameData,
   type WordPuzzleRoundResult,
 } from '@shared/types/word-puzzle.js';
-import { validThreeLetterWords } from '@shared/data/three-letter-words.js';
+import { wordPickPool, wordDictStats, isRealWord } from '@shared/data/word-pool.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { isTokenAnonymized, hasWordSearchChance } from '../../../shop/roomShopState.js';
+import { consumeWordSearchForRoom } from '../../../shop/applyAutoConsumables.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import type { IO, TypedSocket } from '../../types.js';
 
@@ -46,8 +47,16 @@ interface WPState {
 }
 
 const gameStates = new Map<string, WPState>();
-const DICT = new Set(validThreeLetterWords());
-const WORDS = validThreeLetterWords();
+/**
+ * 출제용 풀 — 표준국어대사전 3글자 명사(정적). 검증은 이 풀이 아니라
+ * '해당 라운드에 뽑힌 정답 3단어'로만 하므로 런타임 사전 조회·API 호출이 없다.
+ */
+const WORDS = wordPickPool();
+
+{
+  const st = wordDictStats();
+  console.log(`[word-puzzle] 출제 풀 ${st.pickPool}단어(큐레이션) · 검색사전 ${st.dict}단어(stdict) 로드`);
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -100,6 +109,7 @@ function buildGameData(s: WPState, viewerId: string | null): WordPuzzleGameData 
     roundSeconds: WP_ROUND_SECONDS,
     lastResult: s.lastResult,
     history: [...s.history],
+    searchChance: viewerId ? hasWordSearchChance(s.roomId, viewerId) : false,
   };
 }
 
@@ -145,6 +155,27 @@ function startRoundTimer(io: IO, s: WPState) {
   }, WP_ROUND_SECONDS * 1000);
 }
 
+const AI_MIN_DELAY_MS = 2500;
+const AI_MAX_DELAY_MS = 9000;
+
+/**
+ * COM(1인 연습) 모드 — 사람처럼 약간의 지연 후 정답을 제출한다.
+ * 별도 전략은 없음(단어조합은 정답이 정해진 스피드 퍼즐이라 판단할 게 없다).
+ * 라운드가 바뀌거나 게임이 끝나면(gameStates 교체·라운드 번호 불일치) 예약을 폐기한다.
+ */
+function scheduleAi(io: IO, s: WPState) {
+  if (s.playMode !== 'com') return;
+  const ai = s.players.find((p) => p.id === AI_PLAYER_ID);
+  if (!ai) return;
+  const roundAt = s.round;
+  const delay = AI_MIN_DELAY_MS + Math.random() * (AI_MAX_DELAY_MS - AI_MIN_DELAY_MS);
+  setTimeout(() => {
+    const cur = gameStates.get(s.roomId);
+    if (cur !== s || cur.gameOver || cur.phase !== 'playing' || cur.round !== roundAt) return;
+    endRound(io, cur, ai.id, [...cur.answerWords]);
+  }, delay);
+}
+
 function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string[] | null) {
   clearTimer(s);
   const result: WordPuzzleRoundResult = {
@@ -168,6 +199,7 @@ function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string
       s.round++;
       dealRound(s);
       startRoundTimer(io, s);
+      scheduleAi(io, s);
       void broadcastState(io, s);
     }
   }, WP_REVEAL_MS);
@@ -248,7 +280,18 @@ export function initWordPuzzle(
   dealRound(s);
   gameStates.set(roomId, s);
   startRoundTimer(io, s);
+  scheduleAi(io, s);
   void broadcastState(io, s);
+
+  // '검색 찬스' 아이템 소모 — 단어조합이 실제 시작될 때만(다른 게임 낭비 방지).
+  // 소모 후 사전 검색창이 열리도록 상태를 다시 브로드캐스트한다.
+  void consumeWordSearchForRoom(io, roomId, players)
+    .then((changed) => {
+      if (changed && gameStates.get(roomId) === s) void broadcastState(io, s);
+    })
+    .catch((err) => {
+      console.warn('[word-puzzle] 검색 찬스 소모 실패:', (err as Error).message);
+    });
 }
 
 export function handleWordPuzzleAction(
@@ -264,6 +307,19 @@ export function handleWordPuzzleAction(
   if (!s.players.some((p) => p.id === pid)) return;
 
   const action = data as WordPuzzleAction;
+
+  // '검색 찬스' — 실제 사전에 있는 단어인지 조회 (보유자만, 라운드 판정과 무관)
+  if (action.type === 'search') {
+    if (!hasWordSearchChance(roomId, pid)) return;
+    const word = String(action.word ?? '').trim();
+    if (!/^[가-힣]{3}$/.test(word)) {
+      socket.emit('wordpuzzle:searchResult', { word, exists: false });
+      return;
+    }
+    socket.emit('wordpuzzle:searchResult', { word, exists: isRealWord(word) });
+    return;
+  }
+
   if (action.type !== 'submit') return;
 
   const words = Array.isArray(action.words)
@@ -274,15 +330,16 @@ export function handleWordPuzzleAction(
     return;
   }
 
-  // 1) 9칸 글자 소진 검증
-  if (!multisetEqual(words.join('').split(''), s.grid)) {
-    socket.emit('error', { message: '격자의 9글자를 정확히 사용해야 해요.' });
-    return;
-  }
-  // 2) 사전 검증 (원본과 달라도 사전 단어 조합이면 정답)
-  const invalid = words.filter((w) => !DICT.has(w));
-  if (invalid.length > 0) {
-    socket.emit('error', { message: `사전에 없는 단어예요: ${invalid.join(', ')}` });
+  // 정답 3단어와 정확히 일치하는지만 검증 (사전 조회·API 없음, O(1)).
+  //  · 중복 답(다른 조합)은 인정하지 않는다 — 이 라운드의 정답만 정답.
+  //  · 멀티셋 비교라 제출 순서는 무관.
+  if (!multisetEqual(words, s.answerWords)) {
+    // 9글자는 맞지만 정답 조합이 아닌 경우와, 글자 자체가 틀린 경우를 구분해 안내
+    if (multisetEqual(words.join('').split(''), s.grid)) {
+      socket.emit('error', { message: '9글자는 맞지만 정답 단어 조합이 아니에요.' });
+    } else {
+      socket.emit('error', { message: '격자의 9글자로 만든 정답 3단어를 맞혀야 해요.' });
+    }
     return;
   }
 

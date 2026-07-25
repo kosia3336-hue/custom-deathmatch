@@ -129,6 +129,7 @@ export const CONSUMABLE_LABELS: Record<ConsumableKind, string> = {
   gacha_box: '뽑기 박스',
   gacha_ticket: '뽑기권',
   guild_charter: '길드 창설권',
+  word_search: '검색 찬스',
 };
 
 export function labelForConsumable(kind: ConsumableKind | string): string {

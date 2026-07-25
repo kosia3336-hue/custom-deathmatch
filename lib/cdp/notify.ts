@@ -20,7 +20,7 @@ interface NotifyShopItemChangedArgs {
 
 interface NotifyInventoryUpdatedArgs {
   memberId: string;
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter' | 'word_search';
   countAfter: number;
   reason: 'purchase' | 'sell' | 'auto_use' | 'manual_use' | 'admin_adjust';
   ref?: { kind: string; id: string };
