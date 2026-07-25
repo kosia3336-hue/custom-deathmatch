@@ -79,7 +79,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
         gameOptions: { banCount: rawBanCount },
         host,
       });
-      socket.leave(LOBBY_ROOM);
+      // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
       socket.join(socketRoom(room.id));
       sessions.setRoom(socket.id, room.id);
       broadcastRoomCreated(io, room.id);
@@ -132,7 +132,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       host,
     });
 
-    socket.leave(LOBBY_ROOM);
+    // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
     socket.join(socketRoom(room.id));
     sessions.setRoom(socket.id, room.id);
     broadcastRoomCreated(io, room.id);
@@ -164,7 +164,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     // 세션 복원 후 재입장: 이미 room.players에 있는 토큰이면 소켓만 재입장 (관전자 폴백 방지)
     const token = sessions.getToken(socket.id);
     if (token && room.players.find((p) => p.id === token)) {
-      socket.leave(LOBBY_ROOM);
+      // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
       socket.join(socketRoom(data.roomId));
       sessions.setRoom(socket.id, data.roomId);
       const clientRoom = maskedClientRoomForSocket(data.roomId, socket);
@@ -202,7 +202,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const added = roomStore.addPlayer(data.roomId, player);
     if (!added) return callback({ success: false, error: '입장에 실패했습니다.' });
 
-    socket.leave(LOBBY_ROOM);
+    // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
     socket.join(socketRoom(data.roomId));
     sessions.setRoom(socket.id, data.roomId);
 
@@ -226,7 +226,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       const player = makePlayer(socket, false);
       const added = roomStore.addPlayer(found.id, player);
       if (!added) return callback({ success: false, error: '입장에 실패했습니다.' });
-      socket.leave(LOBBY_ROOM);
+      // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
       socket.join(socketRoom(found.id));
       sessions.setRoom(socket.id, found.id);
       io.to(socketRoom(found.id)).emit('room:player:joined', player);
@@ -540,7 +540,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     const spectator = makePlayer(socket, false);
     roomStore.addSpectator(roomId, spectator);
-    socket.leave(LOBBY_ROOM);
+    // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
     socket.join(socketRoom(roomId));
     sessions.setRoom(socket.id, roomId);
 

@@ -239,15 +239,30 @@ function MyGuildPanel({
         </p>
         <ul className="flex flex-col gap-1">
           {my.members.map((m) => (
-            <li key={m.memberId} className="flex items-center gap-2 text-sm">
-              <span className="font-medium text-cdm-fg">{m.nickname}</span>
-              {m.role === 'owner' && (
-                <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  길드장
-                </span>
-              )}
-              {m.memberId === myMemberId && (
-                <span className="text-[11px] text-cdm-fg-subtle">(나)</span>
+            <li key={m.memberId} className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2">
+                <span className="font-medium text-cdm-fg">{m.nickname}</span>
+                {m.role === 'owner' && (
+                  <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    길드장
+                  </span>
+                )}
+                {m.memberId === myMemberId && (
+                  <span className="text-[11px] text-cdm-fg-subtle">(나)</span>
+                )}
+              </span>
+              {isOwner && m.memberId !== myMemberId && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    if (!confirm(`${m.nickname}님을 길드에서 추방할까요?`)) return;
+                    void act({ action: 'kick', targetMemberId: m.memberId }, `${m.nickname}님을 추방했어요.`);
+                  }}
+                >
+                  추방
+                </Button>
               )}
             </li>
           ))}

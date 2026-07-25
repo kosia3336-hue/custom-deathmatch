@@ -7,7 +7,6 @@ import { useNicknameStore } from '@/stores/nickname';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
-import { GuildMark } from '@/components/cdm/GuildMark';
 import { SpectatorMark } from '@/components/cdm/Marks';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import type { ChatScope, ChatMessage } from '@/shared/types';
@@ -27,6 +26,18 @@ interface Props {
  *  - 시스템 메시지는 텍스트만
  */
 export default function RoomChat({ scope, scrollClassName }: Props) {
+  return (
+    <div className="flex flex-col rounded-cdm-lg border border-cdm-border bg-cdm-bg">
+      <RoomChatBody scope={scope} scrollClassName={scrollClassName} />
+    </div>
+  );
+}
+
+/**
+ * 테두리 없는 본문(메시지 목록 + 입력창)만 — 바깥에서 자체 탭 컨테이너로 감쌀 때(예: 방 채팅
+ * 탭바가 있는 ChatButton) 이중 테두리를 피하려고 분리했다.
+ */
+export function RoomChatBody({ scope, scrollClassName }: Props) {
   const allMessages = useRoomStore((s) => s.messages);
   const messages = useMemo(
     () => allMessages.filter((m) => m.scope === scope || m.scope === 'room'),
@@ -49,7 +60,7 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
   };
 
   return (
-    <div className="flex flex-col rounded-cdm-lg border border-cdm-border bg-cdm-bg">
+    <>
       <div
         ref={scrollRef}
         className={cn(
@@ -91,7 +102,7 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
         targetNickname={reportTarget?.nickname}
         context="chat"
       />
-    </div>
+    </>
   );
 }
 
@@ -126,7 +137,7 @@ export function ChatBubble({
         {title && (
           <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" className="mr-1.5" />
         )}
-        {m.senderGuildMark && <GuildMark mark={m.senderGuildMark} size="sm" className="mr-1" />}
+        {/* 길드 마크는 길드 페이지에서만 표시(v2.2) — 채팅에서는 표시하지 않음 */}
         <span className="font-semibold text-cdm-fg">{m.senderNickname}</span>
         <span className="text-cdm-fg-muted">: {m.message}</span>
         {canReport && (

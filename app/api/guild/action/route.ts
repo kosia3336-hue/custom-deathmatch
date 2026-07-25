@@ -7,7 +7,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-type GuildAction = 'create' | 'join' | 'cancel_join' | 'decide' | 'expand' | 'leave' | 'buy_buff';
+type GuildAction = 'create' | 'join' | 'cancel_join' | 'decide' | 'expand' | 'leave' | 'buy_buff' | 'kick';
 
 interface Body {
   action?: GuildAction;
@@ -16,6 +16,7 @@ interface Body {
   guildId?: string;
   requestId?: string;
   approve?: boolean;
+  targetMemberId?: string;
 }
 
 /** RPC RAISE EXCEPTION 메시지 → 사용자 메시지 */
@@ -35,6 +36,8 @@ const ERROR_MSG: Record<string, { status: number; msg: string }> = {
   capacity_max: { status: 409, msg: '더 이상 정원을 늘릴 수 없어요.' },
   insufficient_guild_points: { status: 402, msg: '길드 포인트가 부족해요.' },
   buff_max_level: { status: 409, msg: '버프가 이미 최대 레벨이에요.' },
+  cannot_kick_self: { status: 400, msg: '본인은 추방할 수 없어요. 탈퇴를 이용해 주세요.' },
+  member_not_found: { status: 404, msg: '길드원을 찾을 수 없어요.' },
 };
 
 function mapError(message: string | undefined | null) {
@@ -147,6 +150,18 @@ export async function POST(req: NextRequest) {
       }
       case 'leave': {
         const { error } = await rpc('leave_guild', { p_member: member.id });
+        if (error) {
+          const e = mapError(error.message);
+          return NextResponse.json({ error: e.msg }, { status: e.status });
+        }
+        return NextResponse.json({ ok: true });
+      }
+      case 'kick': {
+        if (!body.targetMemberId) return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+        const { error } = await rpc('kick_guild_member', {
+          p_owner: member.id,
+          p_target: body.targetMemberId,
+        });
         if (error) {
           const e = mapError(error.message);
           return NextResponse.json({ error: e.msg }, { status: e.status });

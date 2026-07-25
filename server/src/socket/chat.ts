@@ -33,10 +33,10 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
     const senderGuildMark = sessions.getGuildMarkBySocket(socket.id);
     const senderMemberId = sessions.getMemberIdBySocket(socket.id);
 
-    // v2.1: 로비 채팅 — 로그인 회원 + 방에 속해있지 않은 유저만
+    // v2.2: 로비 채팅 — 로그인 회원만 (게스트 차단). 방/관전 중이어도 보낼 수 있다
+    // (방 안에서도 로비 채팅에 접근 가능하도록 v2.2에서 제한 완화).
     if (scope === 'lobby') {
       if (!senderMemberId) return; // 게스트 차단
-      if (sessions.getRoom(socket.id)) return; // 방/관전 중 차단
 
       const lobbyMsg: ChatMessage = {
         id: uuid(),

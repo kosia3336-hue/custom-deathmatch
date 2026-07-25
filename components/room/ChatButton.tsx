@@ -1,32 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
+import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { Modal } from '@/components/cdm/Modal';
-import RoomChat from '@/components/room/RoomChat';
+import { RoomChatBody } from '@/components/room/RoomChat';
+import { LobbyChatList } from '@/components/lobby/LobbyChatList';
+import { LobbyChatInput } from '@/components/lobby/LobbyChatInput';
+import { OnlineUsersList } from '@/components/lobby/OnlineUsersList';
+import { cn } from '@/lib/utils';
 import type { ChatScope } from '@/shared/types';
+
+type RoomChatTab = 'users' | 'room' | 'lobby';
 
 interface Props {
   scope: ChatScope;
   scrollClassName?: string;
 }
 
+/**
+ * 방/게임 화면 채팅 진입 버튼.
+ * v2.2 — 방 안에서도 로비 채팅·접속자 현황에 접근할 수 있도록 3탭 구성:
+ *   접속자 / 방 채팅 / 로비 채팅
+ */
 export default function ChatButton({ scope, scrollClassName }: Props) {
   const [showChat, setShowChat] = useState(false);
+  const [tab, setTab] = useState<RoomChatTab>('room');
   const messagesLen = useRoomStore((s) => s.messages.length);
   const lastSeenMsgCount = useRoomStore((s) => s.lastSeenMsgCount);
+  const lobbyMessagesLen = useLobbyChatStore((s) => s.messages.length);
+  const usersLen = useOnlineUsersStore((s) => s.users.length);
   const unreadCount = showChat ? 0 : Math.max(0, messagesLen - lastSeenMsgCount);
 
-  // 채팅 닫힐 때 읽은 시점 기록
+  const lobbyInputRef = useRef<HTMLInputElement>(null);
+
+  // 채팅 닫힐 때 읽은 시점 기록 (방 채팅 기준)
   useEffect(() => {
     if (!showChat) {
       useRoomStore.getState().clearChatUnread();
     }
   }, [showChat]);
 
+  // 로비 채팅 탭 활성화 시 입력란 포커스
+  useEffect(() => {
+    if (!showChat || tab !== 'lobby') return;
+    const t = setTimeout(() => lobbyInputRef.current?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [showChat, tab]);
+
   const handleOpen = () => {
     setShowChat(true);
   };
+
+  const bodyHeightClass = scrollClassName ?? 'min-h-[240px] max-h-[340px]';
 
   return (
     <>
@@ -52,8 +79,58 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
         title="채팅"
         className="w-full max-w-sm md:max-w-lg"
       >
-        <RoomChat scope={scope} scrollClassName={scrollClassName} />
+        <div className="flex flex-col overflow-hidden rounded-cdm-lg border border-cdm-border bg-cdm-bg">
+          <div className="flex border-b border-cdm-border" role="tablist">
+            <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
+              접속자 <span className="text-xs text-cdm-fg-muted">{usersLen}</span>
+            </ChatTabButton>
+            <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
+              방 채팅
+            </ChatTabButton>
+            <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
+              로비 채팅
+              {lobbyMessagesLen > 0 && <span className="text-xs text-cdm-fg-muted"> ({lobbyMessagesLen})</span>}
+            </ChatTabButton>
+          </div>
+
+          <div className={cn('flex flex-col overflow-hidden', bodyHeightClass)}>
+            {tab === 'users' && <OnlineUsersList />}
+            {tab === 'room' && <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />}
+            {tab === 'lobby' && (
+              <>
+                <LobbyChatList />
+                <LobbyChatInput ref={lobbyInputRef} />
+              </>
+            )}
+          </div>
+        </div>
       </Modal>
     </>
+  );
+}
+
+function ChatTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'relative flex h-10 flex-1 items-center justify-center gap-1 text-sm font-medium transition-colors',
+        active ? 'text-cdm-fg' : 'text-cdm-fg-muted hover:text-cdm-fg',
+      )}
+    >
+      {children}
+      {active && (
+        <span aria-hidden className="absolute bottom-0 left-0 right-0 h-0.5 bg-cdm-primary" />
+      )}
+    </button>
   );
 }
