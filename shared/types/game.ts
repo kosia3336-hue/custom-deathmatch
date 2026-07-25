@@ -28,6 +28,7 @@ export const GAME_IDS = {
   SUN_MOON_STAR_EVENT: 'game-016',
   QUATRO: 'game-017',
   WORD_PUZZLE: 'game-018',
+  TRANSLETTER: 'game-019',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

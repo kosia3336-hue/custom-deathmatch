@@ -244,6 +244,16 @@ import {
   getWordPuzzleResultData,
 } from './games/word-puzzle/index.js';
 import {
+  initTransletter,
+  handleTransletterAction,
+  cleanupTransletter,
+  getTransletterState,
+  emitTransletterStateToSocket,
+  performTransletterUndo,
+  canTransletterUndo,
+  getTransletterResultData,
+} from './games/transletter/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -264,6 +274,16 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performWordPuzzleUndo,
     canUndo: canWordPuzzleUndo,
     getResultData: getWordPuzzleResultData,
+  },
+  [GAME_IDS.TRANSLETTER]: {
+    init: initTransletter,
+    handleAction: handleTransletterAction,
+    cleanup: cleanupTransletter,
+    getState: getTransletterState,
+    emitStateToSocket: emitTransletterStateToSocket,
+    performUndo: performTransletterUndo,
+    canUndo: canTransletterUndo,
+    getResultData: getTransletterResultData,
   },
   [GAME_IDS.QUATRO]: {
     init: initQuatro,

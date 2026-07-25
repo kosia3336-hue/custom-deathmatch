@@ -193,6 +193,18 @@ export type {
   WordPuzzleGameData,
 } from './word-puzzle';
 export {
+  TL_PUZZLE_COUNT,
+  TL_TIME_LIMIT_SEC,
+  TL_WRONG_LOCK_MS,
+} from './transletter';
+export type {
+  TransletterPhase,
+  TransletterAction,
+  TransletterPuzzleView,
+  TransletterResult,
+  TransletterGameData,
+} from './transletter';
+export {
   QUATRO_SUIT_PRIORITY,
   QUATRO_MAX_MULLIGANS,
   QUATRO_VP_COUNT,
