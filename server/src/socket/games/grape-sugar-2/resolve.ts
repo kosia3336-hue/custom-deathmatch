@@ -99,10 +99,13 @@ export function resolveRound(
   let breathExtended = false;
   let breathConsumed = !breathAvailable;
 
+  /* 3a. 본인 설탕 배수/가산 카드 (plus5·copy·highRisk) 및 무설탕 카드(grapeBless·breath).
+   *     주사위의 설탕 가감(3b)보다 먼저 적용해야, 배수(×2·×3)가 '제출한 설탕 원본'에
+   *     적용된다. (예전엔 dice가 같은 루프에서 먼저 상대 설탕을 깎아버려, 이후 배수가
+   *     이미 깎인 값에 곱해지는 버그가 있었다: 3 → dice -3 → 0 → ×3 → 0) */
   for (const side of SIDES) {
     if (!cardEffective[side]) continue;
     const card = cards[side];
-    const opp = other(side);
 
     switch (card) {
       case 'plus5': {
@@ -140,30 +143,6 @@ export function resolveRound(
         });
         break;
       }
-      case 'dice': {
-        const roll = rollDice();
-        if (roll === 1 || roll === 2) {
-          const before = round[opp];
-          round[opp] = before - 3;
-          steps.push({ type: 'dice', actor: side, roll, branch: 'opp-3' });
-          steps.push({
-            type: 'effect', actor: side, card, targetSide: opp,
-            before, after: round[opp], op: '주사위 상대 -3',
-          });
-        } else if (roll === 3 || roll === 4) {
-          const before = round[side];
-          round[side] = before - 5;
-          steps.push({ type: 'dice', actor: side, roll, branch: 'self-5' });
-          steps.push({
-            type: 'effect', actor: side, card, targetSide: side,
-            before, after: round[side], op: '주사위 본인 -5',
-          });
-        } else {
-          steps.push({ type: 'dice', actor: side, roll, branch: 'loserBonus' });
-          diceLoserBonusTo = side; // actor가 미승리 시 상대에게 +2점
-        }
-        break;
-      }
       case 'breath': {
         if (!breathConsumed) {
           breathConsumed = true;
@@ -176,6 +155,34 @@ export function resolveRound(
       }
       default:
         break;
+    }
+  }
+
+  /* 3b. 주사위 — 설탕 가감은 배수(3a) 적용 후에 이뤄진다. */
+  for (const side of SIDES) {
+    if (!cardEffective[side]) continue;
+    if (cards[side] !== 'dice') continue;
+    const opp = other(side);
+    const roll = rollDice();
+    if (roll === 1 || roll === 2) {
+      const before = round[opp];
+      round[opp] = before - 3;
+      steps.push({ type: 'dice', actor: side, roll, branch: 'opp-3' });
+      steps.push({
+        type: 'effect', actor: side, card: 'dice', targetSide: opp,
+        before, after: round[opp], op: '주사위 상대 -3',
+      });
+    } else if (roll === 3 || roll === 4) {
+      const before = round[side];
+      round[side] = before - 5;
+      steps.push({ type: 'dice', actor: side, roll, branch: 'self-5' });
+      steps.push({
+        type: 'effect', actor: side, card: 'dice', targetSide: side,
+        before, after: round[side], op: '주사위 본인 -5',
+      });
+    } else {
+      steps.push({ type: 'dice', actor: side, roll, branch: 'loserBonus' });
+      diceLoserBonusTo = side; // actor가 미승리 시 상대에게 +2점
     }
   }
   // 우주뿌셔!로 cancel된 breath 표시
