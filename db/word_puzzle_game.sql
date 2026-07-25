@@ -2,11 +2,16 @@
 -- 주의: is_active = true 로 재활성화하므로 테스트 완료 전에는 실행하지 말 것
 -- 비활성 상태에서 명칭만 먼저 바꾸려면:
 --   UPDATE games SET name = '단어조합' WHERE id = 'game-018';
+--
+-- supports_com = true : 1인 연습(COM 상대) 모드 추가. 서버 word-puzzle/index.ts 의
+--   scheduleAi() 가 사람처럼 2.5~9초 지연 후 정답을 제출한다(전략 판단 없음 — 정답이
+--   고정된 스피드 퍼즐이라 COM은 랜덤 지연만 준다). 실전적으로는 로그인 없이도 사용 가능한
+--   1인 연습용이라 랭크 집계에는 잡히지 않는다(등록 회원이 1명뿐이라 자동 제외됨).
 INSERT INTO games (id, name, description, min_players, max_players,
                    supports_multi, supports_com, supports_solo, is_active, sort_order)
 VALUES ('game-018', '단어조합',
         '3글자 단어 3개가 흩어진 9칸 격자에서 원래 단어를 먼저 조합하는 스피드 언어 퍼즐!',
-        2, 2, true, false, false, true, 180)
+        2, 2, true, true, false, true, 180)
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name, description = EXCLUDED.description,
-    supports_multi = true, supports_com = false, supports_solo = false, is_active = true;
+    supports_multi = true, supports_com = true, supports_solo = false, is_active = true;

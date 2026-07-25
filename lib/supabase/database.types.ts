@@ -54,7 +54,8 @@ export type ConsumableKind =
   | 'ban_eraser'
   | 'gacha_box'
   | 'gacha_ticket'
-  | 'guild_charter';
+  | 'guild_charter'
+  | 'word_search';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입

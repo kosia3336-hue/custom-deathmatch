@@ -312,7 +312,7 @@ export interface ShopItemChangedPayload {
 
 /** 인벤토리(소모성) 변동 — 본인 전용 emit */
 export interface InventoryUpdatedPayload {
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter';
+  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter' | 'word_search';
   countAfter: number;
   reason?: 'purchase' | 'sell' | 'auto_use' | 'manual_use' | 'admin_adjust' | 'daily_reward' | 'gacha_box_open';
   ref?: { kind: string; id: string };
@@ -356,6 +356,8 @@ export interface ServerToClientEvents {
   'chat:message': (msg: ChatMessage) => void;
 
   'game:state': (state: GameState) => void;
+  /** 단어조합 '검색 찬스' 조회 결과 — 조회한 본인에게만 emit */
+  'wordpuzzle:searchResult': (payload: { word: string; exists: boolean }) => void;
   'game:undo:proposal': (data: GameUndoProposal) => void;
   'banpick:start': (payload: BanPickStartPayload) => void;
   'banpick:update': (payload: BanPickUpdatePayload) => void;

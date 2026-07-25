@@ -22,6 +22,8 @@ export interface RoomShopState {
   biasTitlesByToken: Map<string, Set<string>>;
   /** 돋보기를 사용한 회원의 token Set */
   magnifierTokens: Set<string>;
+  /** '검색 찬스'(단어조합 사전 검색)를 사용한 회원의 token Set */
+  wordSearchTokens: Set<string>;
 }
 
 const states = new Map<string, RoomShopState>();
@@ -35,6 +37,7 @@ export function ensureRoomShopState(roomId: string): RoomShopState {
       anonymizedMemberIds: new Set(),
       biasTitlesByToken: new Map(),
       magnifierTokens: new Set(),
+      wordSearchTokens: new Set(),
     };
     states.set(roomId, s);
   }
@@ -51,6 +54,11 @@ export function isRoomSpectatorLocked(roomId: string): boolean {
 
 export function isTokenAnonymized(roomId: string, token: string): boolean {
   return states.get(roomId)?.anonymizedTokens.has(token) === true;
+}
+
+/** 해당 토큰이 '검색 찬스'를 보유·사용 중인가 (단어조합 사전 검색 허용 여부) */
+export function hasWordSearchChance(roomId: string, token: string): boolean {
+  return states.get(roomId)?.wordSearchTokens.has(token) === true;
 }
 
 export function getBiasTitlesByToken(roomId: string, token: string): ReadonlySet<string> {

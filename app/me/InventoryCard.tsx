@@ -72,16 +72,22 @@ const META: Record<ConsumableKind, ConsumableMeta> = {
     manual: true,
     trigger: '길드 페이지 → "길드 창설"',
   },
+  word_search: {
+    emoji: '',
+    description: "'단어조합' 게임에서 입력한 단어가 실제 사전에 있는 단어인지 검색할 수 있다(게임 내내 무제한). 자동사용되며, '단어조합' 1게임 당 1개씩 사용된다.",
+    manual: false,
+    trigger: "'단어조합' 게임 시작 시 자동으로 1개 사용",
+  },
 };
 
-const ORDER: ConsumableKind[] = ['gacha_box', 'gacha_ticket', 'guild_charter', 'rank_reset', 'nickname_change', 'spectator_lock', 'anonymity', 'magnifier', 'ban_eraser'];
+const ORDER: ConsumableKind[] = ['gacha_box', 'gacha_ticket', 'guild_charter', 'rank_reset', 'nickname_change', 'spectator_lock', 'anonymity', 'magnifier', 'word_search', 'ban_eraser'];
 
 interface RankResetState {
   open: boolean;
   busy: boolean;
 }
 
-const AUTO_USE_KINDS = new Set<ConsumableKind>(['spectator_lock', 'anonymity', 'magnifier']);
+const AUTO_USE_KINDS = new Set<ConsumableKind>(['spectator_lock', 'anonymity', 'magnifier', 'word_search']);
 
 /** 판매 가능한 소모품 (뽑기 박스·뽑기권 제외) */
 const SELLABLE_KINDS = new Set<ConsumableKind>([
@@ -90,6 +96,7 @@ const SELLABLE_KINDS = new Set<ConsumableKind>([
   'spectator_lock',
   'anonymity',
   'magnifier',
+  'word_search',
   'ban_eraser',
 ]);
 

@@ -20,6 +20,8 @@ export default function WordPuzzleGame() {
   const [picked, setPicked] = useState<number[]>([]); // grid 인덱스 나열 (최대 9)
   const [lockedUntil, setLockedUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState<{ word: string; exists: boolean }[]>([]);
   const roundKey = `${gameData?.round}-${gameData?.roundStartedAt}`;
   const prevRoundKey = useRef(roundKey);
 
@@ -52,6 +54,27 @@ export default function WordPuzzleGame() {
       s.off('error', onError);
     };
   }, []);
+
+  // '검색 찬스' 조회 결과 수신
+  useEffect(() => {
+    const s = getSocket();
+    const onResult = (d: { word: string; exists: boolean }) => {
+      setSearchResults((prev) => {
+        const next = prev.filter((r) => r.word !== d.word);
+        return [{ word: d.word, exists: d.exists }, ...next].slice(0, 8);
+      });
+    };
+    s.on('wordpuzzle:searchResult', onResult);
+    return () => {
+      s.off('wordpuzzle:searchResult', onResult);
+    };
+  }, []);
+
+  // 라운드가 바뀌면 검색 기록 비우기
+  useEffect(() => {
+    setSearchResults([]);
+    setSearchInput('');
+  }, [roundKey]);
 
   const words = useMemo(() => {
     if (!gameData) return ['', '', ''];
@@ -87,6 +110,16 @@ export default function WordPuzzleGame() {
   function submit() {
     if (picked.length !== 9 || locked) return;
     getSocket().emit('game:action', { type: 'submit', words });
+  }
+
+  function doSearch() {
+    const w = searchInput.replace(/\s/g, '');
+    if (!/^[가-힣]{3}$/.test(w)) {
+      toast.error('3글자 한글 단어를 입력하세요.', { duration: 1400 });
+      return;
+    }
+    getSocket().emit('game:action', { type: 'search', word: w });
+    setSearchInput('');
   }
 
   const scoreEntries = Object.entries(gameData.players).map(([pid, p]) => ({
@@ -199,6 +232,54 @@ export default function WordPuzzleGame() {
           <br />
           오답 제출 시 {WP_WRONG_LOCK_MS / 1000}초간 제출이 잠겨요.
         </p>
+      )}
+
+      {/* 검색 찬스 — 실제 사전에 있는 단어인지 조회 (아이템 보유자 전용) */}
+      {isPlayer && gameData.searchChance && gameData.phase === 'playing' && (
+        <div className="rounded-cdm-lg border border-cdm-accent/40 bg-cdm-accent/5 p-3">
+          <p className="mb-2 flex items-center gap-1 text-xs font-bold text-cdm-accent">
+            <span>🔍 검색 찬스</span>
+            <span className="font-normal text-cdm-fg-subtle">— 실제 있는 단어인지 확인 (무제한)</span>
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') doSearch();
+              }}
+              maxLength={3}
+              placeholder="3글자 단어"
+              className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-1.5 text-center text-base font-bold text-cdm-fg outline-none focus:border-cdm-accent"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={doSearch}
+              disabled={!searchInput.trim()}
+              className="shrink-0 rounded-cdm-md border border-cdm-accent bg-cdm-accent px-4 py-1.5 text-sm font-bold text-white disabled:opacity-40"
+            >
+              검색
+            </button>
+          </div>
+          {searchResults.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {searchResults.map((r) => (
+                <span
+                  key={r.word}
+                  className={cn(
+                    'rounded-full px-2.5 py-0.5 text-xs font-bold',
+                    r.exists
+                      ? 'bg-cdm-success/15 text-cdm-success'
+                      : 'bg-cdm-fg-subtle/15 text-cdm-fg-muted line-through',
+                  )}
+                >
+                  {r.word} {r.exists ? '✓' : '✗'}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* 라운드 결과 */}

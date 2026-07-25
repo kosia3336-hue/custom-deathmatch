@@ -21,6 +21,7 @@ const EMPTY: InventoryMap = {
   gacha_box: 0,
   gacha_ticket: 0,
   guild_charter: 0,
+  word_search: 0,
 };
 
 const EMPTY_AUTO_USE: AutoUseMap = {
@@ -33,6 +34,7 @@ const EMPTY_AUTO_USE: AutoUseMap = {
   gacha_box: false,
   gacha_ticket: false,
   guild_charter: false,
+  word_search: true,
 };
 
 interface InventoryState {

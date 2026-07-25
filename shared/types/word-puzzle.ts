@@ -14,7 +14,9 @@ export const WP_REVEAL_MS = 5000;
 
 export type WordPuzzlePhase = 'playing' | 'reveal' | 'finished';
 
-export type WordPuzzleAction = { type: 'submit'; words: string[] };
+export type WordPuzzleAction =
+  | { type: 'submit'; words: string[] }
+  | { type: 'search'; word: string }; // '검색 찬스' 아이템: 실제 단어인지 조회
 
 export interface WordPuzzleRoundResult {
   round: number;
@@ -37,4 +39,6 @@ export interface WordPuzzleGameData {
   /** reveal 단계에서만 채워짐 */
   lastResult: WordPuzzleRoundResult | null;
   history: WordPuzzleRoundResult[];
+  /** 이 뷰어가 '검색 찬스'를 보유해 사전 검색창을 쓸 수 있는지 */
+  searchChance: boolean;
 }

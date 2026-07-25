@@ -149,3 +149,50 @@ export async function applyAutoConsumablesForRankRoom(
     }
   }
 }
+
+/**
+ * '검색 찬스'(word_search) 소모 — 단어조합 게임이 실제 시작될 때 호출한다.
+ *  - 랭크방 생성 시점(applyAutoConsumablesForRankRoom)이 아니라, 단어조합이
+ *    실제로 launch 될 때만 소모해 다른 게임에 낭비되지 않게 한다.
+ *  - 플레이어별 auto_use 설정을 확인(기본 true)하고, 사용 시 wordSearchTokens 에 추가.
+ *  - use_consumable RPC 는 ref_kind='room', ref_id=roomId 로 멱등(중복 소모 방지).
+ *  - 반환: 실제로 1개 이상 소모돼 상태가 바뀌었는지 (재브로드캐스트 필요 여부).
+ */
+export async function consumeWordSearchForRoom(
+  io: IO,
+  roomId: string,
+  players: ReadonlyArray<Player>,
+): Promise<boolean> {
+  const state = ensureRoomShopState(roomId);
+  const humans = players.filter(
+    (p): p is Player & { memberId: string; id: string } => Boolean(p.memberId),
+  );
+  if (humans.length === 0) return false;
+
+  const memberIds = humans.map((p) => p.memberId!);
+  const sb = getSupabaseAdmin();
+  const { data: autoUseRows } = await (sb as any)
+    .from('shop_consumable_inventory')
+    .select('member_id, kind, auto_use')
+    .in('member_id', memberIds)
+    .eq('kind', 'word_search');
+  const autoUseMap = new Map<string, boolean>();
+  for (const row of (autoUseRows ?? []) as Array<{ member_id: string; auto_use: boolean }>) {
+    autoUseMap.set(row.member_id, row.auto_use);
+  }
+
+  let changed = false;
+  for (const p of humans) {
+    const autoUse = autoUseMap.get(p.memberId!) ?? true; // 행 없으면 기본 자동사용 on
+    if (!autoUse) continue;
+    const r = await tryUseConsumable(p.memberId!, 'word_search', roomId, {
+      token: p.id,
+      nickname: p.nickname,
+    });
+    if (!r.used) continue;
+    state.wordSearchTokens.add(p.id);
+    emitInventoryUpdated(io, p.memberId!, 'word_search', r.countAfter, { roomId });
+    changed = true;
+  }
+  return changed;
+}

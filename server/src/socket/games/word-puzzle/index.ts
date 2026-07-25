@@ -1,6 +1,6 @@
 /** 단어 퍼즐 — 서버 모듈 (init / handleAction / cleanup). */
 import type { GameState } from '@shared/types/events.js';
-import type { Player, PlayMode } from '@shared/types/room.js';
+import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
 import {
   WP_TOTAL_ROUNDS,
   WP_ROUND_SECONDS,
@@ -9,10 +9,11 @@ import {
   type WordPuzzleGameData,
   type WordPuzzleRoundResult,
 } from '@shared/types/word-puzzle.js';
-import { wordPickPool, wordDictStats } from '@shared/data/word-pool.js';
+import { wordPickPool, wordDictStats, isRealWord } from '@shared/data/word-pool.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { isTokenAnonymized, hasWordSearchChance } from '../../../shop/roomShopState.js';
+import { consumeWordSearchForRoom } from '../../../shop/applyAutoConsumables.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import type { IO, TypedSocket } from '../../types.js';
 
@@ -54,7 +55,7 @@ const WORDS = wordPickPool();
 
 {
   const st = wordDictStats();
-  console.log(`[word-puzzle] 출제 풀 ${st.pickPool}단어 로드 (큐레이션)`);
+  console.log(`[word-puzzle] 출제 풀 ${st.pickPool}단어(큐레이션) · 검색사전 ${st.dict}단어(stdict) 로드`);
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -108,6 +109,7 @@ function buildGameData(s: WPState, viewerId: string | null): WordPuzzleGameData 
     roundSeconds: WP_ROUND_SECONDS,
     lastResult: s.lastResult,
     history: [...s.history],
+    searchChance: viewerId ? hasWordSearchChance(s.roomId, viewerId) : false,
   };
 }
 
@@ -153,6 +155,27 @@ function startRoundTimer(io: IO, s: WPState) {
   }, WP_ROUND_SECONDS * 1000);
 }
 
+const AI_MIN_DELAY_MS = 2500;
+const AI_MAX_DELAY_MS = 9000;
+
+/**
+ * COM(1인 연습) 모드 — 사람처럼 약간의 지연 후 정답을 제출한다.
+ * 별도 전략은 없음(단어조합은 정답이 정해진 스피드 퍼즐이라 판단할 게 없다).
+ * 라운드가 바뀌거나 게임이 끝나면(gameStates 교체·라운드 번호 불일치) 예약을 폐기한다.
+ */
+function scheduleAi(io: IO, s: WPState) {
+  if (s.playMode !== 'com') return;
+  const ai = s.players.find((p) => p.id === AI_PLAYER_ID);
+  if (!ai) return;
+  const roundAt = s.round;
+  const delay = AI_MIN_DELAY_MS + Math.random() * (AI_MAX_DELAY_MS - AI_MIN_DELAY_MS);
+  setTimeout(() => {
+    const cur = gameStates.get(s.roomId);
+    if (cur !== s || cur.gameOver || cur.phase !== 'playing' || cur.round !== roundAt) return;
+    endRound(io, cur, ai.id, [...cur.answerWords]);
+  }, delay);
+}
+
 function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string[] | null) {
   clearTimer(s);
   const result: WordPuzzleRoundResult = {
@@ -176,6 +199,7 @@ function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string
       s.round++;
       dealRound(s);
       startRoundTimer(io, s);
+      scheduleAi(io, s);
       void broadcastState(io, s);
     }
   }, WP_REVEAL_MS);
@@ -256,7 +280,18 @@ export function initWordPuzzle(
   dealRound(s);
   gameStates.set(roomId, s);
   startRoundTimer(io, s);
+  scheduleAi(io, s);
   void broadcastState(io, s);
+
+  // '검색 찬스' 아이템 소모 — 단어조합이 실제 시작될 때만(다른 게임 낭비 방지).
+  // 소모 후 사전 검색창이 열리도록 상태를 다시 브로드캐스트한다.
+  void consumeWordSearchForRoom(io, roomId, players)
+    .then((changed) => {
+      if (changed && gameStates.get(roomId) === s) void broadcastState(io, s);
+    })
+    .catch((err) => {
+      console.warn('[word-puzzle] 검색 찬스 소모 실패:', (err as Error).message);
+    });
 }
 
 export function handleWordPuzzleAction(
@@ -272,6 +307,19 @@ export function handleWordPuzzleAction(
   if (!s.players.some((p) => p.id === pid)) return;
 
   const action = data as WordPuzzleAction;
+
+  // '검색 찬스' — 실제 사전에 있는 단어인지 조회 (보유자만, 라운드 판정과 무관)
+  if (action.type === 'search') {
+    if (!hasWordSearchChance(roomId, pid)) return;
+    const word = String(action.word ?? '').trim();
+    if (!/^[가-힣]{3}$/.test(word)) {
+      socket.emit('wordpuzzle:searchResult', { word, exists: false });
+      return;
+    }
+    socket.emit('wordpuzzle:searchResult', { word, exists: isRealWord(word) });
+    return;
+  }
+
   if (action.type !== 'submit') return;
 
   const words = Array.isArray(action.words)
