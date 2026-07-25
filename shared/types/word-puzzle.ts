@@ -41,4 +41,6 @@ export interface WordPuzzleGameData {
   history: WordPuzzleRoundResult[];
   /** 이 뷰어가 '검색 찬스'를 보유해 사전 검색창을 쓸 수 있는지 */
   searchChance: boolean;
+  /** 1인 솔로 모드 — 상대 없이 혼자 라운드를 클리어한다 */
+  isSolo: boolean;
 }

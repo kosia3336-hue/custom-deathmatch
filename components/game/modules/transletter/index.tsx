@@ -51,6 +51,11 @@ export default function TransletterGame() {
     if (!gameData?.result || shownResult.current) return;
     shownResult.current = true;
     const r = gameData.result;
+    if (gameData.isSolo) {
+      if (r.winnerId) toast.success(r.reason, { duration: 6000 });
+      else toast(r.reason, { duration: 6000 });
+      return;
+    }
     if (!r.winnerId) {
       toast(`무승부! (${r.reason})`, { duration: 6000 });
       return;
@@ -92,7 +97,7 @@ export default function TransletterGame() {
       {/* 상단: 타이머 + 진행 */}
       <div className="flex items-center justify-between rounded-cdm-lg border border-cdm-border bg-cdm-bg px-4 py-2.5">
         <div className="text-sm">
-          <span className="font-semibold text-cdm-fg">나</span>{' '}
+          <span className="font-semibold text-cdm-fg">{gameData.isSolo ? '진행' : '나'}</span>{' '}
           <span className="tabular-nums font-bold text-cdm-primary">{gameData.myCount}</span>
           <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
         </div>
@@ -104,16 +109,19 @@ export default function TransletterGame() {
         >
           {mm}:{ss}
         </div>
-        <div className="text-sm text-right">
-          <span className="font-semibold text-cdm-fg">{gameData.players[oppId]?.nickname ?? '상대'}</span>{' '}
-          <span className="tabular-nums font-bold text-cdm-fg-muted">{gameData.oppCount}</span>
-          <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
-        </div>
+        {!gameData.isSolo && (
+          <div className="text-sm text-right">
+            <span className="font-semibold text-cdm-fg">{gameData.players[oppId]?.nickname ?? '상대'}</span>{' '}
+            <span className="tabular-nums font-bold text-cdm-fg-muted">{gameData.oppCount}</span>
+            <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
+          </div>
+        )}
       </div>
 
       {gameData.phase === 'playing' && (
         <p className="text-center text-xs text-cdm-fg-subtle">
-          각 글자에서 자음/모음 하나가 바뀌었어요. 주제를 보고 원래 단어를 맞혀 3문제를 먼저 완성하세요!
+          각 글자에서 자음/모음 하나가 바뀌었어요. 주제를 보고 원래 단어를 맞혀{' '}
+          {gameData.isSolo ? '3문제를 모두 완성하세요!' : '3문제를 먼저 완성하세요!'}
         </p>
       )}
 
@@ -181,16 +189,22 @@ export default function TransletterGame() {
       </div>
 
       {!isPlayer && gameData.phase === 'playing' && (
-        <p className="text-center text-sm text-cdm-fg-muted">관전 중 — 먼저 3문제 푸는 사람이 이겨요.</p>
+        <p className="text-center text-sm text-cdm-fg-muted">
+          {gameData.isSolo ? '관전 중 — 혼자 3문제를 풀고 있어요.' : '관전 중 — 먼저 3문제 푸는 사람이 이겨요.'}
+        </p>
       )}
 
       {/* 최종 결과 */}
       {gameData.phase === 'finished' && gameData.result && (
         <div className="rounded-cdm-lg border-2 border-cdm-primary bg-cdm-primary-soft/40 p-4 text-center">
           <p className="text-base font-bold text-cdm-fg">
-            {gameData.result.winnerId
-              ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리!`
-              : '무승부'}
+            {gameData.isSolo
+              ? gameData.result.winnerId && gameData.result.reason.includes('모두 완성')
+                ? '클리어!'
+                : '타임 아웃!'
+              : gameData.result.winnerId
+                ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리!`
+                : '무승부'}
           </p>
           <p className="mt-1 text-sm text-cdm-fg-muted">{gameData.result.reason}</p>
         </div>

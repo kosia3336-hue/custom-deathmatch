@@ -51,6 +51,8 @@ export interface TransletterGameData {
   oppCount: number;
   players: Record<string, { nickname: string }>;
   result: TransletterResult | null;
+  /** 1인 솔로 모드 — 상대 없이 혼자 3문제를 푼다 */
+  isSolo: boolean;
 }
 
 /* ── 자모 변형 ────────────────────────────────────────────────── */

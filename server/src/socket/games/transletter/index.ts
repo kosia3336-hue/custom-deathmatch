@@ -102,6 +102,7 @@ function buildGameData(s: TLState, viewerId: string | null): TransletterGameData
       [b.id]: { nickname: maskNick(s, viewerId, b) },
     },
     result: s.result,
+    isSolo: s.playMode === 'solo',
   };
 }
 
@@ -163,10 +164,42 @@ function finishGame(io: IO, s: TLState, instantWinnerId: string | null) {
   clearTimer(s);
   s.phase = 'finished';
   s.gameOver = true;
+
+  const [a, b] = s.players;
+
+  // 솔로 — 상대가 없으므로 개인 진행 결과만 단일 랭킹으로 보고한다(a===b 중복 방지).
+  if (s.playMode === 'solo') {
+    const p = s.progress[a.id]!;
+    const solvedAll = p.count >= TL_PUZZLE_COUNT;
+    s.result = {
+      winnerId: p.count > 0 ? a.id : null,
+      reason: solvedAll
+        ? `${TL_PUZZLE_COUNT}문제 모두 완성!`
+        : `제한시간 종료 — ${p.count}/${TL_PUZZLE_COUNT}문제 해결`,
+      counts: { [a.id]: p.count },
+      answers: s.puzzles.map((pz) => pz.answer),
+    };
+    void broadcastState(io, s);
+
+    const payload = {
+      rankings: [{ playerId: a.id, nickname: a.nickname, rank: 1, score: p.count }],
+      totalTurns: p.count,
+      gameResultData: {
+        result: s.result,
+        players: { [a.id]: { nickname: a.nickname } },
+      },
+    };
+    setTimeout(() => {
+      if (!gameStates.has(s.roomId)) return;
+      gameStates.delete(s.roomId);
+      s.endGameCallback(io, s.roomId, payload);
+    }, 3500);
+    return;
+  }
+
   s.result = decideWinner(s, instantWinnerId);
   void broadcastState(io, s);
 
-  const [a, b] = s.players;
   const r = s.result;
   const rankings = r.winnerId
     ? [
@@ -219,13 +252,18 @@ export function initTransletter(
     lastSolveAt: 0,
   });
 
+  // 1인 솔로 — 상대가 없으므로 유일한 플레이어를 두 슬롯 모두에 채운다(내부 자료구조 재사용).
+  // 룸에 실제로 저장되는 players 는 여전히 1명뿐이라 랭크 집계에는 영향 없음.
+  const p0 = players[0];
+  const p1 = playMode === 'solo' ? p0 : players[1];
+
   const s: TLState = {
     roomId,
     playMode,
-    players: [players[0], players[1]] as [Player, Player],
+    players: [p0, p1] as [Player, Player],
     phase: 'playing',
     puzzles: makePuzzles(),
-    progress: { [players[0].id]: mkProgress(), [players[1].id]: mkProgress() },
+    progress: { [p0.id]: mkProgress(), [p1.id]: mkProgress() },
     startedAt,
     result: null,
     gameOver: false,
