@@ -110,6 +110,7 @@ function buildGameData(s: WPState, viewerId: string | null): WordPuzzleGameData 
     lastResult: s.lastResult,
     history: [...s.history],
     searchChance: viewerId ? hasWordSearchChance(s.roomId, viewerId) : false,
+    isSolo: s.playMode === 'solo',
   };
 }
 
@@ -212,6 +213,27 @@ function finishGame(io: IO, s: WPState) {
   void broadcastState(io, s);
 
   const [a, b] = s.players;
+
+  // 솔로 — 상대가 없으므로 개인 점수만 단일 랭킹으로 보고한다(a===b 중복 방지).
+  if (s.playMode === 'solo') {
+    const score = s.scores[a.id] ?? 0;
+    const payload = {
+      rankings: [{ playerId: a.id, nickname: a.nickname, rank: 1, score }],
+      totalTurns: s.round,
+      gameResultData: {
+        history: s.history,
+        scores: s.scores,
+        players: { [a.id]: { nickname: a.nickname } },
+      },
+    };
+    setTimeout(() => {
+      if (!gameStates.has(s.roomId)) return;
+      gameStates.delete(s.roomId);
+      s.endGameCallback(io, s.roomId, payload);
+    }, 3000);
+    return;
+  }
+
   const sa = s.scores[a.id] ?? 0;
   const sb = s.scores[b.id] ?? 0;
   const rankings =
@@ -260,15 +282,21 @@ export function initWordPuzzle(
   if (prev) clearTimer(prev);
   gameStates.delete(roomId);
 
+  // 1인 솔로 — 상대가 없으므로 유일한 플레이어를 두 슬롯 모두에 채운다(내부 자료구조 재사용).
+  // 룸에 실제로 저장되는 players 는 여전히 1명뿐이라 랭크 집계·아이템 소모는 영향 없음.
+  const isSolo = playMode === 'solo';
+  const p0 = players[0];
+  const p1 = isSolo ? p0 : players[1];
+
   const s: WPState = {
     roomId,
     playMode,
-    players: [players[0], players[1]] as [Player, Player],
+    players: [p0, p1] as [Player, Player],
     phase: 'playing',
     round: 1,
     answerWords: [],
     grid: [],
-    scores: { [players[0].id]: 0, [players[1].id]: 0 },
+    scores: { [p0.id]: 0, [p1.id]: 0 },
     history: [],
     lastResult: null,
     roundStartedAt: Date.now(),

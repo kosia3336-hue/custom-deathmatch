@@ -228,7 +228,8 @@ export default function WordPuzzleGame() {
       {/* 안내 */}
       {gameData.phase === 'playing' && (
         <p className="text-center text-[11px] leading-relaxed text-cdm-fg-subtle">
-          글자를 순서대로 눌러 3글자 단어 3개를 만드세요. 먼저 맞히는 사람이 라운드 승리!
+          글자를 순서대로 눌러 3글자 단어 3개를 만드세요.{' '}
+          {gameData.isSolo ? '정답을 맞히면 다음 라운드로!' : '먼저 맞히는 사람이 라운드 승리!'}
           <br />
           오답 제출 시 {WP_WRONG_LOCK_MS / 1000}초간 제출이 잠겨요.
         </p>
@@ -287,11 +288,15 @@ export default function WordPuzzleGame() {
         <div className="rounded-cdm-lg border-2 border-cdm-primary bg-cdm-primary-soft/40 p-4 text-center">
           <p className="mb-2 text-sm font-bold text-cdm-fg">
             {gameData.lastResult.winnerId
-              ? `${gameData.players[gameData.lastResult.winnerId]?.nickname} 라운드 승리!` +
+              ? (gameData.isSolo
+                  ? '라운드 클리어!'
+                  : `${gameData.players[gameData.lastResult.winnerId]?.nickname} 라운드 승리!`) +
                 (gameData.lastResult.elapsedMs != null
                   ? ` (${(gameData.lastResult.elapsedMs / 1000).toFixed(1)}초)`
                   : '')
-              : '시간 초과 — 무승부'}
+              : gameData.isSolo
+                ? '시간 초과!'
+                : '시간 초과 — 무승부'}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {gameData.lastResult.answerWords.map((w) => (
