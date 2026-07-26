@@ -7,6 +7,9 @@ export interface Game {
   supportsMulti: boolean;
   supportsCom: boolean;
   supportsSolo: boolean;
+  /** 랭킹 페이지 노출 + 랭크 매칭 밴픽 풀 포함 여부. false 면 새 게임을 검증 기간 동안
+   *  캐주얼(비랭크) 방에서만 플레이하게 하고 랭크 큐에서는 제외할 수 있다. */
+  rankingActive: boolean;
 }
 
 export const GAME_IDS = {
