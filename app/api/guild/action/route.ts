@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         const targetMemberId = (reqRow as { member_id: string } | null)?.member_id;
 
         const { error } = await rpc('decide_guild_join', {
-          p_actor: member.id,
+          p_owner: member.id,
           p_request: body.requestId,
           p_approve: body.approve,
         });
@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
       case 'expand': {
-        const { data, error } = await rpc('buy_guild_expansion', { p_actor: member.id });
+        const { data, error } = await rpc('buy_guild_expansion', { p_owner: member.id });
         if (error) {
           const e = mapError(error.message);
           return NextResponse.json({ error: e.msg }, { status: e.status });
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, data });
       }
       case 'buy_buff': {
-        const { data, error } = await rpc('buy_guild_buff', { p_actor: member.id });
+        const { data, error } = await rpc('buy_guild_buff', { p_owner: member.id });
         if (error) {
           const e = mapError(error.message);
           return NextResponse.json({ error: e.msg }, { status: e.status });

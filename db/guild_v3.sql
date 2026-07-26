@@ -73,8 +73,12 @@ $$;
 
 -- 4) 기존 RPC 권한 위임: owner 전용 → owner + vice_owner
 --    (db/guild_audit.sql 의 최신 버전을 기준으로 감사 로그 유지하며 재정의)
+--    ⚠ 파라미터 이름은 그대로 p_owner 유지 — Postgres 는 CREATE OR REPLACE 로
+--    기존 함수의 파라미터 '이름'을 바꿀 수 없다(타입이 같아도 42P13 에러).
+--    호출부(app/api/guild/action/route.ts, app/api/guild/mark/route.ts)도
+--    여전히 p_owner 로 호출하므로 이름을 바꾸면 안 맞는다.
 
-CREATE OR REPLACE FUNCTION decide_guild_join(p_actor uuid, p_request uuid, p_approve boolean)
+CREATE OR REPLACE FUNCTION decide_guild_join(p_owner uuid, p_request uuid, p_approve boolean)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_guild uuid;
@@ -87,7 +91,7 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM guild_members
-     WHERE guild_id = v_guild AND member_id = p_actor AND role IN ('owner', 'vice_owner')
+     WHERE guild_id = v_guild AND member_id = p_owner AND role IN ('owner', 'vice_owner')
   ) THEN
     RAISE EXCEPTION 'forbidden';
   END IF;
@@ -95,7 +99,7 @@ BEGIN
   IF NOT p_approve THEN
     UPDATE guild_join_requests SET status = 'rejected', decided_at = now() WHERE id = p_request;
     INSERT INTO guild_audit_log (guild_id, member_id, action, detail)
-    VALUES (v_guild, v_member, 'join_rejected', jsonb_build_object('by', p_actor));
+    VALUES (v_guild, v_member, 'join_rejected', jsonb_build_object('by', p_owner));
     RETURN;
   END IF;
 
@@ -110,11 +114,11 @@ BEGIN
   UPDATE guild_join_requests SET status = 'approved', decided_at = now() WHERE id = p_request;
 
   INSERT INTO guild_audit_log (guild_id, member_id, action, detail)
-  VALUES (v_guild, v_member, 'join_approved', jsonb_build_object('by', p_actor));
+  VALUES (v_guild, v_member, 'join_approved', jsonb_build_object('by', p_owner));
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION buy_guild_expansion(p_actor uuid)
+CREATE OR REPLACE FUNCTION buy_guild_expansion(p_owner uuid)
 RETURNS TABLE (new_capacity int, new_points bigint)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -124,7 +128,7 @@ DECLARE
   v_points bigint;
 BEGIN
   SELECT gm.guild_id INTO v_guild
-    FROM guild_members gm WHERE gm.member_id = p_actor AND gm.role IN ('owner', 'vice_owner');
+    FROM guild_members gm WHERE gm.member_id = p_owner AND gm.role IN ('owner', 'vice_owner');
   IF NOT FOUND THEN RAISE EXCEPTION 'forbidden'; END IF;
 
   SELECT capacity, points INTO v_capacity, v_points FROM guilds WHERE id = v_guild FOR UPDATE;
@@ -134,15 +138,15 @@ BEGIN
   UPDATE guilds SET points = points - v_cost, capacity = capacity + 1
    WHERE id = v_guild RETURNING capacity, points INTO v_capacity, v_points;
   INSERT INTO guild_point_ledger (guild_id, member_id, delta, reason)
-  VALUES (v_guild, p_actor, -v_cost, 'expansion_purchase');
+  VALUES (v_guild, p_owner, -v_cost, 'expansion_purchase');
   INSERT INTO guild_audit_log (guild_id, member_id, action, detail)
-  VALUES (v_guild, p_actor, 'expanded', jsonb_build_object('new_capacity', v_capacity, 'cost', v_cost));
+  VALUES (v_guild, p_owner, 'expanded', jsonb_build_object('new_capacity', v_capacity, 'cost', v_cost));
 
   RETURN QUERY SELECT v_capacity, v_points;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION set_guild_mark(p_actor uuid, p_url text)
+CREATE OR REPLACE FUNCTION set_guild_mark(p_owner uuid, p_url text)
 RETURNS TABLE (mark_url text, new_points bigint)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -156,7 +160,7 @@ BEGIN
   END IF;
 
   SELECT gm.guild_id INTO v_guild
-    FROM guild_members gm WHERE gm.member_id = p_actor AND gm.role IN ('owner', 'vice_owner');
+    FROM guild_members gm WHERE gm.member_id = p_owner AND gm.role IN ('owner', 'vice_owner');
   IF NOT FOUND THEN RAISE EXCEPTION 'forbidden'; END IF;
 
   SELECT points INTO v_points FROM guilds WHERE id = v_guild FOR UPDATE;
@@ -166,13 +170,13 @@ BEGIN
    WHERE id = v_guild RETURNING guilds.mark_url, points INTO v_url, v_points;
 
   INSERT INTO guild_point_ledger (guild_id, member_id, delta, reason)
-  VALUES (v_guild, p_actor, -v_cost, 'mark_purchase');
+  VALUES (v_guild, p_owner, -v_cost, 'mark_purchase');
 
   RETURN QUERY SELECT v_url, v_points;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION buy_guild_buff(p_actor uuid)
+CREATE OR REPLACE FUNCTION buy_guild_buff(p_owner uuid)
 RETURNS TABLE (new_level int, cost bigint, new_points bigint)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -182,7 +186,7 @@ DECLARE
   v_points bigint;
 BEGIN
   SELECT gm.guild_id INTO v_guild
-    FROM guild_members gm WHERE gm.member_id = p_actor AND gm.role IN ('owner', 'vice_owner');
+    FROM guild_members gm WHERE gm.member_id = p_owner AND gm.role IN ('owner', 'vice_owner');
   IF NOT FOUND THEN RAISE EXCEPTION 'forbidden'; END IF;
 
   SELECT buff_cdp_level, points INTO v_level, v_points
@@ -200,7 +204,7 @@ BEGIN
    RETURNING buff_cdp_level, points INTO v_level, v_points;
 
   INSERT INTO guild_point_ledger (guild_id, member_id, delta, reason)
-  VALUES (v_guild, p_actor, -v_cost, 'buff_cdp_purchase');
+  VALUES (v_guild, p_owner, -v_cost, 'buff_cdp_purchase');
 
   RETURN QUERY SELECT v_level, v_cost, v_points;
 END;
