@@ -7,6 +7,7 @@ import { useNicknameStore } from '@/stores/nickname';
 import { useRankMatchStore, type RankMatchedPayload } from '@/stores/rankMatch';
 import { useSessionTakeoverStore } from '@/stores/sessionTakeover';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { useGuildChatStore } from '@/stores/guildChat';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useEventRoomStore } from '@/stores/eventRoom';
 import { useEventChipsStore } from '@/stores/eventChips';
@@ -111,16 +112,19 @@ export function useSocket(): void {
 
     const onDisconnect = () => {
       useLobbyChatStore.getState().clearAll();
+      useGuildChatStore.getState().clearAll();
     };
 
     const onReconnect = () => {
       // 재연결 시 LOBBY_ROOM 재가입 + 채팅 초기화
       s.emit('lobby:join');
       useLobbyChatStore.getState().clearAll();
+      useGuildChatStore.getState().clearAll();
     };
 
     const onSessionReplacedClear = () => {
       useLobbyChatStore.getState().clearAll();
+      useGuildChatStore.getState().clearAll();
     };
 
     // 이벤트 룸 — 글로벌 메타 + 칩 변동 (모든 페이지에서 GNB·로비 동기화)

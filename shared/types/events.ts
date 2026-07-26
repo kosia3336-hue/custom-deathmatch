@@ -47,7 +47,7 @@ export interface UpdateRoomSettings {
   gameOptions?: Record<string, unknown>;
 }
 
-export type ChatScope = 'lobby' | 'room' | 'game';
+export type ChatScope = 'lobby' | 'room' | 'game' | 'guild';
 
 export interface ChatMessage {
   id: string;
@@ -220,6 +220,8 @@ export interface ClientToServerEvents {
   ) => void;
 
   'chat:send': (data: { message: string; scope: ChatScope }) => void;
+  /** 길드 채팅 히스토리 요청 — 응답은 'guild:chat:history' (본인에게만) */
+  'guild:chat:load': () => void;
 
   'game:action': (data: Record<string, unknown>) => void;
   'game:undo:request': () => void;
@@ -354,6 +356,8 @@ export interface ServerToClientEvents {
   'room:disbanded': (data: { reason: string }) => void;
 
   'chat:message': (msg: ChatMessage) => void;
+  /** 길드 채팅 히스토리 응답 (본인 전용) — 'guild:chat:load' 요청에 대한 응답 */
+  'guild:chat:history': (payload: { messages: ChatMessage[] }) => void;
 
   'game:state': (state: GameState) => void;
   /** 단어조합 '검색 찬스' 조회 결과 — 조회한 본인에게만 emit */

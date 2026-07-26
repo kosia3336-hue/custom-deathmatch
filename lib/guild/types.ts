@@ -42,10 +42,12 @@ export interface GuildSummary {
   buffCdpLevel: number;
 }
 
+export type GuildRole = 'owner' | 'vice_owner' | 'member';
+
 export interface GuildMemberInfo {
   memberId: string;
   nickname: string;
-  role: 'owner' | 'member';
+  role: GuildRole;
   joinedAt: string;
 }
 
@@ -61,7 +63,7 @@ export interface GuildJoinRequestInfo {
 
 export interface MyGuildState {
   guild: GuildSummary | null;
-  role: 'owner' | 'member' | null;
+  role: GuildRole | null;
   members: GuildMemberInfo[];
   /** 길드장인 경우: 대기 중 가입 신청 */
   pendingRequests: GuildJoinRequestInfo[];
