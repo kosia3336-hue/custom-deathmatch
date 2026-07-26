@@ -46,7 +46,7 @@ export function useRoom(roomId: string) {
     const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
     const onDisbanded = () => { useRoomStore.getState().reset(); };
     const onChatMessage = (msg: ChatMessage) => {
-      if (msg.scope === 'lobby') return;
+      if (msg.scope === 'lobby' || msg.scope === 'guild') return;
       useRoomStore.getState().addMessage(msg);
     };
     const onGameState = (state: GameState) => {

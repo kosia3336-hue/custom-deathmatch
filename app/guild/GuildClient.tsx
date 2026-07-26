@@ -7,12 +7,15 @@ import { Card } from '@/components/cdm/Card';
 import { Modal } from '@/components/cdm/Modal';
 import { TextInput } from '@/components/cdm/TextInput';
 import { GuildMark } from '@/components/cdm/GuildMark';
+import { GuildChatPanel } from '@/components/guild/GuildChatPanel';
 import {
   GUILD_EXPANSION_COST_GP,
   GUILD_CHARTER_PRICE_CDP,
   GUILD_MARK_COST_GP,
+  GUILD_NAME_CHANGE_COST_GP,
   GUILD_BUFF_MAX_LEVEL,
   guildBuffCost,
+  isValidGuildName,
   type GuildSummary,
   type MyGuildState,
 } from '@/lib/guild/types';
@@ -207,6 +210,9 @@ function MyGuildPanel({
 }) {
   const g = my.guild!;
   const isOwner = my.role === 'owner';
+  const isViceOwner = my.role === 'vice_owner';
+  // 부길드장은 해체만 빼고 길드장과 동일한 권한(가입 승인/추방/설명 수정/버프·마크 구매/확장)
+  const canManage = isOwner || isViceOwner;
 
   return (
     <Card variant="highlight" accent="primary" className="flex flex-col gap-4">
@@ -215,14 +221,19 @@ function MyGuildPanel({
           <GuildMark mark={g.markUrl ? { url: g.markUrl, name: g.name } : null} size="lg" className="mt-0.5 h-9 w-9" />
           <div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="text-lg font-bold text-cdm-fg">{g.name}</h2>
+              <GuildNameEditor g={g} canManage={canManage} busy={busy} act={act} />
               {isOwner && (
                 <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
                   길드장
                 </span>
               )}
+              {isViceOwner && (
+                <span className="rounded-full bg-cdm-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  부길드장
+                </span>
+              )}
             </div>
-            {g.description && <p className="mt-0.5 text-sm text-cdm-fg-muted">{g.description}</p>}
+            <GuildDescription g={g} canManage={canManage} busy={busy} act={act} />
           </div>
         </div>
         <div className="text-right">
@@ -239,22 +250,68 @@ function MyGuildPanel({
         </p>
         <ul className="flex flex-col gap-1">
           {my.members.map((m) => (
-            <li key={m.memberId} className="flex items-center gap-2 text-sm">
-              <span className="font-medium text-cdm-fg">{m.nickname}</span>
-              {m.role === 'owner' && (
-                <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  길드장
-                </span>
-              )}
-              {m.memberId === myMemberId && (
-                <span className="text-[11px] text-cdm-fg-subtle">(나)</span>
-              )}
+            <li key={m.memberId} className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2">
+                <span className="font-medium text-cdm-fg">{m.nickname}</span>
+                {m.role === 'owner' && (
+                  <span className="rounded-full bg-cdm-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    길드장
+                  </span>
+                )}
+                {m.role === 'vice_owner' && (
+                  <span className="rounded-full bg-cdm-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    부길드장
+                  </span>
+                )}
+                {m.memberId === myMemberId && (
+                  <span className="text-[11px] text-cdm-fg-subtle">(나)</span>
+                )}
+              </span>
+              <span className="flex shrink-0 gap-1.5">
+                {isOwner && m.memberId !== myMemberId && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      const promote = m.role !== 'vice_owner';
+                      const verb = promote ? '부길드장으로 임명' : '부길드장에서 해제';
+                      if (!confirm(`${m.nickname}님을 ${verb}할까요?`)) return;
+                      void act(
+                        { action: 'set_vice', targetMemberId: m.memberId, promote },
+                        `${m.nickname}님을 ${verb}했어요.`,
+                      );
+                    }}
+                  >
+                    {m.role === 'vice_owner' ? '부길드장 해제' : '부길드장 임명'}
+                  </Button>
+                )}
+                {canManage && m.memberId !== myMemberId && m.role !== 'owner' && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      if (!confirm(`${m.nickname}님을 길드에서 추방할까요?`)) return;
+                      void act({ action: 'kick', targetMemberId: m.memberId }, `${m.nickname}님을 추방했어요.`);
+                    }}
+                  >
+                    추방
+                  </Button>
+                )}
+              </span>
             </li>
           ))}
         </ul>
       </div>
 
-      {isOwner && my.pendingRequests.length > 0 && (
+      {/* 길드 채팅 — 길드원 전용, 14일 지난 메시지는 자동 정리 */}
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-cdm-fg-muted">길드 채팅</p>
+        <GuildChatPanel />
+      </div>
+
+      {canManage && my.pendingRequests.length > 0 && (
         <div>
           <p className="mb-1.5 text-xs font-semibold text-cdm-fg-muted">
             가입 신청 {my.pendingRequests.length}건
@@ -296,7 +353,7 @@ function MyGuildPanel({
               <strong className="text-cdm-primary">+{g.buffCdpLevel}%</strong> 추가 적립
             </p>
           </div>
-          {isOwner && (
+          {canManage && (
             g.buffCdpLevel >= GUILD_BUFF_MAX_LEVEL ? (
               <span className="text-[11px] font-semibold text-cdm-fg-subtle">최대 레벨</span>
             ) : (
@@ -328,7 +385,7 @@ function MyGuildPanel({
       </div>
 
       {/* 길드 마크 */}
-      {isOwner && (
+      {canManage && (
         <div className="border-t border-cdm-border pt-3">
           <p className="text-xs font-semibold text-cdm-fg">길드 마크</p>
           <p className="mt-0.5 text-[11px] text-cdm-fg-muted">
@@ -344,7 +401,7 @@ function MyGuildPanel({
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-cdm-border pt-3">
-        {isOwner && (
+        {canManage && (
           <Button
             size="sm"
             disabled={busy || g.points < GUILD_EXPANSION_COST_GP}
@@ -380,6 +437,167 @@ function MyGuildPanel({
   );
 }
 
+/** 길드 이름 표시 + 변경 (길드장·부길드장 전용, 300 GP) */
+function GuildNameEditor({
+  g,
+  canManage,
+  busy,
+  act,
+}: {
+  g: MyGuildState['guild'];
+  canManage: boolean;
+  busy: boolean;
+  act: (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(g?.name ?? '');
+
+  if (!g) return null;
+
+  if (editing) {
+    const nameValid = isValidGuildName(draft);
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5">
+          <TextInput
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={20}
+            fullWidth={false}
+            className="h-8 w-[180px] text-sm"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            disabled={busy || !nameValid || draft.trim() === g.name}
+            onClick={async () => {
+              if (!confirm(`길드 포인트 ${GUILD_NAME_CHANGE_COST_GP} GP로 길드명을 "${draft.trim()}"(으)로 변경할까요?`)) return;
+              const ok = await act(
+                { action: 'update_name', name: draft.trim() },
+                '길드명을 변경했어요.',
+              );
+              if (ok) setEditing(false);
+            }}
+          >
+            저장
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => {
+              setDraft(g.name);
+              setEditing(false);
+            }}
+          >
+            취소
+          </Button>
+        </div>
+        {draft.trim().length > 0 && !nameValid && (
+          <p className="text-[11px] text-cdm-danger">
+            영어·한글 글자만 사용할 수 있어요. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1.5">
+      <h2 className="text-lg font-bold text-cdm-fg">{g.name}</h2>
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(g.name);
+            setEditing(true);
+          }}
+          className="text-[11px] text-cdm-primary underline-offset-2 hover:underline"
+        >
+          이름 변경 ({GUILD_NAME_CHANGE_COST_GP} GP)
+        </button>
+      )}
+    </span>
+  );
+}
+
+/** 길드 설명 표시 + 수정 (길드장·부길드장 전용) */
+function GuildDescription({
+  g,
+  canManage,
+  busy,
+  act,
+}: {
+  g: MyGuildState['guild'];
+  canManage: boolean;
+  busy: boolean;
+  act: (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(g?.description ?? '');
+
+  if (!g) return null;
+
+  if (editing) {
+    return (
+      <div className="mt-1 flex flex-col gap-1.5">
+        <textarea
+          className="w-full rounded-cdm-md border border-cdm-border bg-cdm-bg p-2 text-sm"
+          rows={2}
+          maxLength={200}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          autoFocus
+        />
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={async () => {
+              const ok = await act(
+                { action: 'update_description', description: draft.trim() },
+                '길드 설명을 수정했어요.',
+              );
+              if (ok) setEditing(false);
+            }}
+          >
+            저장
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => {
+              setDraft(g.description ?? '');
+              setEditing(false);
+            }}
+          >
+            취소
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-cdm-fg-muted">
+      <span>{g.description || (canManage ? '길드 소개를 입력해 보세요.' : '')}</span>
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(g.description ?? '');
+            setEditing(true);
+          }}
+          className="shrink-0 text-[11px] text-cdm-primary underline-offset-2 hover:underline"
+        >
+          수정
+        </button>
+      )}
+    </p>
+  );
+}
+
 function CreateGuildModal({
   busy,
   onClose,
@@ -391,6 +609,7 @@ function CreateGuildModal({
 }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const nameValid = isValidGuildName(name);
 
   return (
     <Modal
@@ -405,7 +624,7 @@ function CreateGuildModal({
           </Button>
           <Button
             loading={busy}
-            disabled={name.trim().length < 2}
+            disabled={!nameValid}
             onClick={() => void onCreate(name.trim(), description.trim())}
           >
             창설 (창설권 1개 소모)
@@ -415,8 +634,13 @@ function CreateGuildModal({
     >
       <div className="flex flex-col gap-3 text-sm">
         <div>
-          <label className="text-xs font-semibold text-cdm-fg-muted">길드 이름 (2~20자)</label>
+          <label className="text-xs font-semibold text-cdm-fg-muted">길드 이름 (2~20자, 영어·한글만)</label>
           <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={20} />
+          {name.trim().length > 0 && !nameValid && (
+            <p className="mt-1 text-[11px] text-cdm-danger">
+              영어·한글 글자만 사용할 수 있어요. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
+            </p>
+          )}
         </div>
         <div>
           <label className="text-xs font-semibold text-cdm-fg-muted">소개 (선택, 200자)</label>

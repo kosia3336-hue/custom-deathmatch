@@ -44,7 +44,9 @@ export function broadcastOnlineUsers(io: IO) {
 
 export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
   socket.on('lobby:join', () => {
-    if (sessions.getRoom(socket.id)) return;
+    // v2.2: 방 안에서도 로비 채팅/접속자 현황에 접근할 수 있도록, 방에 속해있어도
+    // LOBBY_ROOM 에는 계속 합류시킨다(중복 소켓방 가입은 안전·멱등). 방 목록(lobby:rooms)
+    // 자동 갱신은 로비 페이지에서만 의미가 있지만, 그냥 받아도 무해하다.
     socket.join(LOBBY_ROOM);
     socket.emit('lobby:rooms', roomStore.getAllSummaries());
     socket.emit('lobby:users:online', { users: getOnlineUsers(io) });

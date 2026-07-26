@@ -1,12 +1,13 @@
 import { v4 as uuid } from 'uuid';
 import type { ChatMessage } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
-import { socketRoom } from './utils.js';
+import { socketRoom, guildRoom } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 import { roomStore } from '../store/rooms.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { maskChatMessageForViewer } from '../shop/maskNicknames.js';
+import { getSupabaseAdmin } from '../db/supabase.js';
 
 const lastMessageTime = new Map<string, number>();
 const COOLDOWN_MS = 500;
@@ -31,12 +32,13 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
 
     const senderTitle = sessions.getDisplayedTitleBySocket(socket.id);
     const senderGuildMark = sessions.getGuildMarkBySocket(socket.id);
+    const senderGuildName = sessions.getGuildNameBySocket(socket.id);
     const senderMemberId = sessions.getMemberIdBySocket(socket.id);
 
-    // v2.1: 로비 채팅 — 로그인 회원 + 방에 속해있지 않은 유저만
+    // v2.2: 로비 채팅 — 로그인 회원만 (게스트 차단). 방/관전 중이어도 보낼 수 있다
+    // (방 안에서도 로비 채팅에 접근 가능하도록 v2.2에서 제한 완화).
     if (scope === 'lobby') {
       if (!senderMemberId) return; // 게스트 차단
-      if (sessions.getRoom(socket.id)) return; // 방/관전 중 차단
 
       const lobbyMsg: ChatMessage = {
         id: uuid(),
@@ -48,11 +50,51 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         timestamp: now,
         senderTitle: senderTitle ?? null,
         senderGuildMark: senderGuildMark ?? null,
+        senderGuildName: senderGuildName ?? null,
         isSpectator: false,
         senderMemberId: senderMemberId ?? null,
       };
 
       io.to(LOBBY_ROOM).emit('chat:message', lobbyMsg);
+      return;
+    }
+
+    // 길드 채팅 — 길드원만, DB 에 영속(오래된 메시지는 RPC 가 자동 정리)
+    if (scope === 'guild') {
+      if (!senderMemberId) return; // 게스트 차단
+      const guildId = sessions.getGuildIdBySocket(socket.id);
+      if (!guildId) return; // 길드 미가입
+
+      void (async () => {
+        const sb = getSupabaseAdmin();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (sb.rpc as any)('send_guild_chat', {
+          p_member: senderMemberId,
+          p_message: trimmed,
+        });
+        if (error) {
+          console.warn('[chat] send_guild_chat 실패:', error.message);
+          return;
+        }
+        const row = (Array.isArray(data) ? data[0] : data) as
+          | { id: string; guild_id: string; created_at: string }
+          | undefined;
+
+        const guildMsg: ChatMessage = {
+          id: row?.id ?? uuid(),
+          sender: socket.id,
+          senderNickname: nickname,
+          message: trimmed,
+          scope: 'guild',
+          isSystem: false,
+          timestamp: row?.created_at ? new Date(row.created_at).getTime() : now,
+          senderTitle: senderTitle ?? null,
+          senderGuildMark: senderGuildMark ?? null,
+          isSpectator: false,
+          senderMemberId: senderMemberId ?? null,
+        };
+        io.to(guildRoom(guildId)).emit('chat:message', guildMsg);
+      })();
       return;
     }
 
@@ -77,6 +119,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       timestamp: now,
       senderTitle: senderTitle ?? null,
       senderGuildMark: senderGuildMark ?? null,
+      senderGuildName: senderGuildName ?? null,
       isSpectator,
       senderMemberId: senderMemberId ?? null,
     };
@@ -101,5 +144,62 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
     }
 
     io.to(socketRoom(roomId)).emit('chat:message', msg);
+  });
+
+  // 길드 채팅 히스토리 요청 (탭 진입 시 1회)
+  socket.on('guild:chat:load', () => {
+    const senderMemberId = sessions.getMemberIdBySocket(socket.id);
+    if (!senderMemberId) return;
+    const guildId = sessions.getGuildIdBySocket(socket.id);
+    if (!guildId) return;
+
+    void (async () => {
+      const sb = getSupabaseAdmin();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb.rpc as any)('get_guild_chat_history', {
+        p_member: senderMemberId,
+        p_limit: 50,
+      });
+      if (error) {
+        console.warn('[chat] get_guild_chat_history 실패:', error.message);
+        return;
+      }
+      const rows = (data ?? []) as Array<{
+        id: string;
+        member_id: string;
+        message: string;
+        created_at: string;
+      }>;
+      // 오래된 것부터 표시되도록 뒤집는다 (RPC 는 최신순으로 반환)
+      // 닉네임은 오프라인 발신자도 있을 수 있어 세션 캐시가 아닌 DB 에서 조회.
+      const senderNicknames = new Map<string, string>();
+      const uniqueMemberIds = [...new Set(rows.map((r) => r.member_id))];
+      if (uniqueMemberIds.length > 0) {
+        const { data: memberRows } = await sb
+          .from('members')
+          .select('id, nickname')
+          .in('id', uniqueMemberIds);
+        for (const m of (memberRows ?? []) as { id: string; nickname: string }[]) {
+          senderNicknames.set(m.id, m.nickname);
+        }
+      }
+      const messages: ChatMessage[] = rows
+        .slice()
+        .reverse()
+        .map((r) => ({
+          id: r.id,
+          sender: r.member_id,
+          senderNickname: senderNicknames.get(r.member_id) ?? '???',
+          message: r.message,
+          scope: 'guild',
+          isSystem: false,
+          timestamp: new Date(r.created_at).getTime(),
+          senderTitle: null,
+          senderGuildMark: null,
+          isSpectator: false,
+          senderMemberId: r.member_id,
+        }));
+      socket.emit('guild:chat:history', { messages });
+    })();
   });
 }

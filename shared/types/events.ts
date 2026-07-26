@@ -47,7 +47,7 @@ export interface UpdateRoomSettings {
   gameOptions?: Record<string, unknown>;
 }
 
-export type ChatScope = 'lobby' | 'room' | 'game';
+export type ChatScope = 'lobby' | 'room' | 'game' | 'guild';
 
 export interface ChatMessage {
   id: string;
@@ -61,6 +61,9 @@ export interface ChatMessage {
   senderTitle?: DisplayedTitle | null;
   /** 발신자의 길드 마크 (길드 가입 + 마크 등록자만) */
   senderGuildMark?: GuildMark | null;
+  /** v2.2 — 발신자의 소속 길드명 (마크 등록 여부 무관, 길드 가입자만). 채팅에서
+   *  "닉네임 [길드명]" 형태로 표시할 때 사용 — 마크 아이콘 대신 텍스트로 노출 */
+  senderGuildName?: string | null;
   /** v2 — 발신자가 관전자면 true (👁️ 마크 표시용) */
   isSpectator?: boolean;
   /** v2 — 신고용 발신자 회원 ID (AI/익명은 null) */
@@ -220,6 +223,8 @@ export interface ClientToServerEvents {
   ) => void;
 
   'chat:send': (data: { message: string; scope: ChatScope }) => void;
+  /** 길드 채팅 히스토리 요청 — 응답은 'guild:chat:history' (본인에게만) */
+  'guild:chat:load': () => void;
 
   'game:action': (data: Record<string, unknown>) => void;
   'game:undo:request': () => void;
@@ -354,6 +359,8 @@ export interface ServerToClientEvents {
   'room:disbanded': (data: { reason: string }) => void;
 
   'chat:message': (msg: ChatMessage) => void;
+  /** 길드 채팅 히스토리 응답 (본인 전용) — 'guild:chat:load' 요청에 대한 응답 */
+  'guild:chat:history': (payload: { messages: ChatMessage[] }) => void;
 
   'game:state': (state: GameState) => void;
   /** 단어조합 '검색 찬스' 조회 결과 — 조회한 본인에게만 emit */

@@ -19,6 +19,8 @@ import config from '../config.js';
 import { invalidateBiasTitlesCache } from '../shop/biasTitlesCache.js';
 import { invalidateOwnedTitles } from '../shop/playerOwnedTitles.js';
 import { rankQueueStore } from '../store/rankQueue.js';
+import { getSupabaseAdmin } from '../db/supabase.js';
+import { guildRoom } from '../socket/utils.js';
 
 interface NotifyTitleGrantedBody {
   secret: string;
@@ -315,4 +317,50 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     }
     return reply.send({ status: 'no_session' });
   });
+
+  // ── 길드 가입/탈퇴/추방 — 접속 중인 소켓의 길드방 멤버십 즉시 동기화 ─────
+  // (guildId/role 은 session:restore 때만 채워지므로, 접속 중 변경은 이 엔드포인트로 반영)
+  app.post<{ Body: { secret: string; memberId: string } }>(
+    '/internal/notify-guild-membership-changed',
+    async (req, reply) => {
+      const { secret, memberId } = req.body;
+      if (secret !== config.internalSecret) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      if (typeof memberId !== 'string' || !memberId) {
+        return reply.status(400).send({ error: 'memberId required' });
+      }
+
+      const token = sessions.getTokenByMemberId(memberId);
+      if (!token) return reply.send({ status: 'no_session' });
+
+      const io = getIO();
+      const socketId = sessions.getSocketByToken(token);
+      const sock = io && socketId ? io.sockets.sockets.get(socketId) : null;
+
+      const sb = getSupabaseAdmin();
+      const { data } = await sb
+        .from('guild_members')
+        .select('guild_id, guilds!inner(name)')
+        .eq('member_id', memberId)
+        .maybeSingle();
+      const row = data as { guild_id: string; guilds: { name: string } | { name: string }[] } | null;
+      const raw = row?.guilds;
+      const g = Array.isArray(raw) ? raw[0] : raw;
+      const newGuildId = row?.guild_id ?? null;
+      const newGuildName = g?.name ?? null;
+
+      sessions.setGuildId(token, newGuildId);
+      sessions.setGuildName(token, newGuildName);
+
+      if (sock) {
+        for (const room of sock.rooms) {
+          if (room.startsWith('guild:')) sock.leave(room);
+        }
+        if (newGuildId) sock.join(guildRoom(newGuildId));
+      }
+
+      return reply.send({ status: 'synced', guildId: newGuildId, guildName: newGuildName });
+    },
+  );
 }

@@ -10,6 +10,10 @@ export function socketRoom(roomId: string): string {
   return `room:${roomId}`;
 }
 
+export function guildRoom(guildId: string): string {
+  return `guild:${guildId}`;
+}
+
 /** viewer 시점에 마스킹된 ClientRoom. 마스킹 효과가 없으면 원본 그대로. */
 export function maskedClientRoomFor(roomId: string, viewerToken: string | null): Room | undefined {
   const room = roomStore.getClientRoom(roomId);

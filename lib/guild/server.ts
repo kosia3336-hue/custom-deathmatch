@@ -3,6 +3,7 @@ import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
 import type {
   GuildJoinRequestInfo,
   GuildMemberInfo,
+  GuildRole,
   GuildSummary,
   MyGuildState,
 } from './types';
@@ -22,7 +23,7 @@ interface GuildRow {
 interface GuildMemberRow {
   guild_id: string;
   member_id: string;
-  role: 'owner' | 'member';
+  role: GuildRole;
   joined_at: string;
 }
 
@@ -35,16 +36,26 @@ async function fetchNicknames(memberIds: string[]): Promise<Map<string, string>>
   return map;
 }
 
-/** 길드 목록 (버킷 분포 포함) */
+/** Fisher-Yates 셔플 — 매 조회마다 다른 순서를 만들어 모든 길드가 비슷한 노출도를 갖게 한다. */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** 길드 목록 (버킷 분포 포함). 정렬은 항상 랜덤 — 포인트 순으로 고정하면 상위 길드만
+ *  계속 노출되므로, 모든 길드가 비슷하게 눈에 띄도록 매 조회마다 순서를 섞는다. */
 export async function listGuilds(): Promise<GuildSummary[]> {
   const sb = getSupabaseServiceRole();
   const { data: guilds } = await sb
     .from('guilds')
     .select('*')
     .is('disbanded_at', null)
-    .order('points', { ascending: false })
     .limit(100);
-  const rows = (guilds ?? []) as GuildRow[];
+  const rows = shuffle((guilds ?? []) as GuildRow[]);
   if (rows.length === 0) return [];
 
   const { data: membersData } = await sb
@@ -119,7 +130,7 @@ export async function getMyGuildState(memberId: string): Promise<MyGuildState> {
     };
   }
 
-  const my = myRow as { guild_id: string; role: 'owner' | 'member' };
+  const my = myRow as { guild_id: string; role: GuildRole };
   const [{ data: guildRow }, { data: membersData }] = await Promise.all([
     sb.from('guilds').select('*').eq('id', my.guild_id).single(),
     sb
@@ -142,7 +153,7 @@ export async function getMyGuildState(memberId: string): Promise<MyGuildState> {
   }));
 
   let pendingRequests: GuildJoinRequestInfo[] = [];
-  if (my.role === 'owner') {
+  if (my.role === 'owner' || my.role === 'vice_owner') {
     const { data: reqs } = await sb
       .from('guild_join_requests')
       .select('id, guild_id, member_id, status, created_at')
