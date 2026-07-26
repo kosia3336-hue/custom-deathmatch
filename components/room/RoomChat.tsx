@@ -137,8 +137,11 @@ export function ChatBubble({
         {title && (
           <TitleBadge name={title.name} color={title.color as TitleColor} effect={title.effect as TitleEffect | null} size="sm" className="mr-1.5" />
         )}
-        {/* 길드 마크는 길드 페이지에서만 표시(v2.2) — 채팅에서는 표시하지 않음 */}
+        {/* 길드 마크 아이콘은 길드 페이지에서만 표시(v2.2) — 채팅에서는 "닉네임 [길드명]" 텍스트로 표시 */}
         <span className="font-semibold text-cdm-fg">{m.senderNickname}</span>
+        {m.senderGuildName && (
+          <span className="ml-1 text-xs font-medium text-cdm-fg-muted">[{m.senderGuildName}]</span>
+        )}
         <span className="text-cdm-fg-muted">: {m.message}</span>
         {canReport && (
           <button

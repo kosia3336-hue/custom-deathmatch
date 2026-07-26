@@ -341,12 +341,17 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
       const sb = getSupabaseAdmin();
       const { data } = await sb
         .from('guild_members')
-        .select('guild_id')
+        .select('guild_id, guilds!inner(name)')
         .eq('member_id', memberId)
         .maybeSingle();
-      const newGuildId = (data as { guild_id: string } | null)?.guild_id ?? null;
+      const row = data as { guild_id: string; guilds: { name: string } | { name: string }[] } | null;
+      const raw = row?.guilds;
+      const g = Array.isArray(raw) ? raw[0] : raw;
+      const newGuildId = row?.guild_id ?? null;
+      const newGuildName = g?.name ?? null;
 
       sessions.setGuildId(token, newGuildId);
+      sessions.setGuildName(token, newGuildName);
 
       if (sock) {
         for (const room of sock.rooms) {
@@ -355,7 +360,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
         if (newGuildId) sock.join(guildRoom(newGuildId));
       }
 
-      return reply.send({ status: 'synced', guildId: newGuildId });
+      return reply.send({ status: 'synced', guildId: newGuildId, guildName: newGuildName });
     },
   );
 }

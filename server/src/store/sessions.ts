@@ -24,6 +24,8 @@ const tokenToDisplayedTitle = new Map<string, DisplayedTitle | null>();
 const tokenToGuildMark = new Map<string, GuildMark | null>();
 // token → 소속 길드 ID (없으면 null) — 길드 채팅 소켓방 라우팅용
 const tokenToGuildId = new Map<string, string | null>();
+// token → 소속 길드명 (마크 등록 여부 무관, 없으면 null) — 채팅 "닉네임 [길드명]" 표시용
+const tokenToGuildName = new Map<string, string | null>();
 // token → 착용 스킨 목록 (없으면 [])
 const tokenToEquippedSkins = new Map<string, EquippedSkin[]>();
 
@@ -202,12 +204,14 @@ export const sessions = {
     equippedSkins: EquippedSkin[] = [],
     guildMark: GuildMark | null = null,
     guildId: string | null = null,
+    guildName: string | null = null,
   ) {
     tokenToMemberId.set(token, memberId);
     tokenToDisplayedTitle.set(token, displayedTitle);
     tokenToEquippedSkins.set(token, equippedSkins);
     tokenToGuildMark.set(token, guildMark);
     tokenToGuildId.set(token, guildId);
+    tokenToGuildName.set(token, guildName);
     if (memberId) memberIdToToken.set(memberId, token);
   },
 
@@ -254,6 +258,20 @@ export const sessions = {
   getGuildIdBySocket(socketId: string): string | null {
     const t = socketToToken.get(socketId);
     return t ? tokenToGuildId.get(t) ?? null : null;
+  },
+
+  getGuildName(token: string): string | null {
+    return tokenToGuildName.get(token) ?? null;
+  },
+
+  /** 길드 가입/탈퇴/추방/개명 등으로 소속·이름이 바뀔 때 캐시만 갱신 */
+  setGuildName(token: string, guildName: string | null) {
+    tokenToGuildName.set(token, guildName);
+  },
+
+  getGuildNameBySocket(socketId: string): string | null {
+    const t = socketToToken.get(socketId);
+    return t ? tokenToGuildName.get(t) ?? null : null;
   },
 
   getEquippedSkinsBySocket(socketId: string): EquippedSkin[] {

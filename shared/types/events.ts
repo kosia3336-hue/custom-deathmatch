@@ -61,6 +61,9 @@ export interface ChatMessage {
   senderTitle?: DisplayedTitle | null;
   /** 발신자의 길드 마크 (길드 가입 + 마크 등록자만) */
   senderGuildMark?: GuildMark | null;
+  /** v2.2 — 발신자의 소속 길드명 (마크 등록 여부 무관, 길드 가입자만). 채팅에서
+   *  "닉네임 [길드명]" 형태로 표시할 때 사용 — 마크 아이콘 대신 텍스트로 노출 */
+  senderGuildName?: string | null;
   /** v2 — 발신자가 관전자면 true (👁️ 마크 표시용) */
   isSpectator?: boolean;
   /** v2 — 신고용 발신자 회원 ID (AI/익명은 null) */

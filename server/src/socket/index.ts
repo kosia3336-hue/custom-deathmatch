@@ -95,6 +95,7 @@ export function setupSocketHandlers(io: IO) {
             displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
             guildMark?: { url: string; name: string } | null;
             guildId?: string | null;
+            guildName?: string | null;
             equippedSkins?: { skinId: string; gameId: string }[];
             skinExpiries?: { skinId: string; expiresAt: Date }[];
           };
@@ -102,7 +103,7 @@ export function setupSocketHandlers(io: IO) {
       ).member;
       if (member) {
         sessions.setNickname(socket.id, member.nickname, true);
-        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? [], member.guildMark ?? null, member.guildId ?? null);
+        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? [], member.guildMark ?? null, member.guildId ?? null, member.guildName ?? null);
         scheduleSkinExpiries(token, member.skinExpiries ?? []);
         // 길드 채팅 — 소속 길드가 있으면 해당 소켓방에 합류
         if (member.guildId) socket.join(guildRoom(member.guildId));
@@ -218,7 +219,7 @@ export function setupSocketHandlers(io: IO) {
         if (!member) return callback({ ok: false });
 
         const memberId = sessions.getMemberId(token);
-        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildMark ?? null, member.guildId ?? null);
+        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildMark ?? null, member.guildId ?? null, member.guildName ?? null);
         scheduleSkinExpiries(token, member.skinExpiries);
         if (member.guildId) socket.join(guildRoom(member.guildId));
         callback({ ok: true });

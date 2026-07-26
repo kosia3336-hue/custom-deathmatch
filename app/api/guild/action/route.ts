@@ -17,6 +17,7 @@ type GuildAction =
   | 'buy_buff'
   | 'kick'
   | 'update_description'
+  | 'update_name'
   | 'set_vice';
 
 interface Body {
@@ -35,6 +36,7 @@ const ERROR_MSG: Record<string, { status: number; msg: string }> = {
   already_in_guild: { status: 409, msg: '이미 길드에 가입되어 있어요.' },
   no_charter: { status: 402, msg: '길드 창설권이 필요해요. 상점에서 구매할 수 있어요.' },
   name_taken: { status: 409, msg: '이미 사용 중인 길드 이름이에요.' },
+  invalid_name_chars: { status: 400, msg: '길드 이름은 영어·한글만 사용할 수 있어요. (2~20자)' },
   guild_not_found: { status: 404, msg: '길드를 찾을 수 없어요.' },
   guild_full: { status: 409, msg: '길드 정원이 가득 찼어요.' },
   already_requested: { status: 409, msg: '이미 가입 신청 중이에요.' },
@@ -220,6 +222,34 @@ export async function POST(req: NextRequest) {
         if (error) {
           const e = mapError(error.message);
           return NextResponse.json({ error: e.msg }, { status: e.status });
+        }
+        return NextResponse.json({ ok: true });
+      }
+      case 'update_name': {
+        const { error } = await rpc('update_guild_name', {
+          p_actor: member.id,
+          p_name: (body.name ?? '').trim(),
+        });
+        if (error) {
+          const e = mapError(error.message);
+          return NextResponse.json({ error: e.msg }, { status: e.status });
+        }
+        // 길드명이 바뀌면 채팅에 표시되는 "[길드명]" 태그가 전부 갱신돼야 하므로
+        // 같은 길드의 접속 중인 모든 멤버 세션 캐시를 갱신한다.
+        const { data: myRow } = await sb
+          .from('guild_members')
+          .select('guild_id')
+          .eq('member_id', member.id)
+          .maybeSingle();
+        const guildId = (myRow as { guild_id: string } | null)?.guild_id;
+        if (guildId) {
+          const { data: memberRows } = await sb
+            .from('guild_members')
+            .select('member_id')
+            .eq('guild_id', guildId);
+          for (const row of (memberRows ?? []) as { member_id: string }[]) {
+            await notifyGuildMembershipChanged(row.member_id);
+          }
         }
         return NextResponse.json({ ok: true });
       }

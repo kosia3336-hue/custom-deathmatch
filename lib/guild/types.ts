@@ -16,6 +16,18 @@ export const GUILD_MARK_COST_GP = 300;
 export const GUILD_MARK_MAX_BYTES = 512 * 1024; // 512KB
 export const GUILD_MARK_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
 
+/** 길드명 변경권 가격 (길드 포인트) */
+export const GUILD_NAME_CHANGE_COST_GP = 300;
+/**
+ * 길드명 허용 문자: 영어(대소문자) + 완성형 한글 음절만. 공백·숫자·특수문자·이모지·
+ * 낱자모(ㄹ,ㅎ,ㅣ 등)는 전부 불허 — '가-힣' 범위는 완성형 음절만 포함해 낱자모를 자연히 배제한다.
+ */
+export const GUILD_NAME_REGEX = /^[A-Za-z가-힣]+$/;
+export function isValidGuildName(name: string): boolean {
+  const trimmed = name.trim();
+  return trimmed.length >= 2 && trimmed.length <= 20 && GUILD_NAME_REGEX.test(trimmed);
+}
+
 /** CDP 수완 버프 최대 레벨 (레벨당 CDP +1%) */
 export const GUILD_BUFF_MAX_LEVEL = 9;
 /** 다음 레벨(현재 level → level+1) 승급 비용: 100 × 2^level */

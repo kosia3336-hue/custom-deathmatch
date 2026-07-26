@@ -32,6 +32,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
 
     const senderTitle = sessions.getDisplayedTitleBySocket(socket.id);
     const senderGuildMark = sessions.getGuildMarkBySocket(socket.id);
+    const senderGuildName = sessions.getGuildNameBySocket(socket.id);
     const senderMemberId = sessions.getMemberIdBySocket(socket.id);
 
     // v2.2: 로비 채팅 — 로그인 회원만 (게스트 차단). 방/관전 중이어도 보낼 수 있다
@@ -49,6 +50,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         timestamp: now,
         senderTitle: senderTitle ?? null,
         senderGuildMark: senderGuildMark ?? null,
+        senderGuildName: senderGuildName ?? null,
         isSpectator: false,
         senderMemberId: senderMemberId ?? null,
       };
@@ -117,6 +119,7 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       timestamp: now,
       senderTitle: senderTitle ?? null,
       senderGuildMark: senderGuildMark ?? null,
+      senderGuildName: senderGuildName ?? null,
       isSpectator,
       senderMemberId: senderMemberId ?? null,
     };

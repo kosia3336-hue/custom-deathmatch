@@ -44,6 +44,7 @@ export function scheduleSkinExpiries(
         updated,
         sessions.getGuildMark(token),
         sessions.getGuildId(token),
+        sessions.getGuildName(token),
       );
 
       expiryTimers.get(token)?.delete(skinId);
