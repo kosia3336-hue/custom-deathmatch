@@ -2,6 +2,7 @@ import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { GAME_IDS } from '@shared/types/game.js';
 import { getGames } from '../../../routes/games.js';
 import { sessions } from '../../../store/sessions.js';
+import { roomStore } from '../../../store/rooms.js';
 import { socketRoom } from '../../utils.js';
 import type {
   IO, BanTurn, BannedGame, BanPickState,
@@ -469,10 +470,14 @@ export async function initBanPick(
   const prev = states.get(roomId);
   if (prev) cleanupBanPick(roomId);
 
+  // 랭크 매칭이면 ranking_active=false 인 게임(검증 전 신규 게임 등)을 밴픽 풀에서 제외한다.
+  // 캐주얼(비랭크) 방은 영향 없음 — is_active 인 게임은 그대로 다 나온다.
+  const isRanked = roomStore.get(roomId)?.isRanked === true;
   const allGames = getGames().filter((g) =>
     (playMode === 'com' ? g.supportsCom : g.supportsMulti)
     && g.id !== GAME_IDS.INDIAN_POKER_EVENT
-    && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+    && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT
+    && (!isRanked || g.rankingActive),
   );
   const maxBanCount = Math.floor((allGames.length - 1) / 2);
   const rawBanCount = typeof gameOptions?.banCount === 'number' ? gameOptions.banCount : 3;

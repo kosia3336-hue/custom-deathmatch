@@ -24,6 +24,7 @@ const RANDOM_GAME: Game = {
   supportsMulti: true,
   supportsCom: false,
   supportsSolo: false,
+  rankingActive: true,
 };
 
 const BAN_PICK_GAME: Game = {
@@ -35,6 +36,7 @@ const BAN_PICK_GAME: Game = {
   supportsMulti: true,
   supportsCom: true,
   supportsSolo: false,
+  rankingActive: true,
 };
 
 interface Props {
