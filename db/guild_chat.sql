@@ -45,8 +45,8 @@ BEGIN
   VALUES (v_guild, p_member, trim(p_message))
   RETURNING guild_chat_messages.id, guild_chat_messages.created_at INTO v_id, v_created;
 
-  DELETE FROM guild_chat_messages
-   WHERE guild_id = v_guild AND created_at < now() - interval '14 days';
+  DELETE FROM guild_chat_messages gcm
+   WHERE gcm.guild_id = v_guild AND gcm.created_at < now() - interval '14 days';
 
   RETURN QUERY SELECT v_id, v_guild, v_created;
 END;
