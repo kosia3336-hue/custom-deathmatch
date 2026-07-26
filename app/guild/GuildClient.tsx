@@ -166,7 +166,11 @@ function GuildRow({
     <Card className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <GuildMark mark={guild.markUrl ? { url: guild.markUrl, name: guild.name } : null} size="md" />
+          <GuildMark
+            mark={guild.markUrl ? { url: guild.markUrl, name: guild.name } : null}
+            size="md"
+            className="h-8 w-8"
+          />
           <p className="truncate font-semibold text-cdm-fg">{guild.name}</p>
           <span className="shrink-0 text-xs tabular-nums text-cdm-fg-muted">
             {guild.memberCount}/{guild.capacity}명
@@ -218,7 +222,7 @@ function MyGuildPanel({
     <Card variant="highlight" accent="primary" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-start gap-2.5">
-          <GuildMark mark={g.markUrl ? { url: g.markUrl, name: g.name } : null} size="lg" className="mt-0.5 h-9 w-9" />
+          <GuildMark mark={g.markUrl ? { url: g.markUrl, name: g.name } : null} size="lg" className="mt-0.5 h-12 w-12" />
           <div>
             <div className="flex flex-wrap items-center gap-1.5">
               <GuildNameEditor g={g} canManage={canManage} busy={busy} act={act} />
