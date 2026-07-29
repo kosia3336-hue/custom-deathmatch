@@ -1,8 +1,8 @@
 -- ─────────────────────────────────────────────────────────────
--- sell_shop_item : 소모성 아이템을 상점 가격의 80%로 판매(환급)
+-- sell_shop_item : 소모성 아이템을 상점 가격의 10%로 판매(환급)
 --
---  - 판매가(개당) = floor( (구매가 / stockPerUnit) * 0.8 )
---    · 구매가/팩단위 = "소모품 1개의 실구매 가치" → 그 80%를 환급
+--  - 판매가(개당) = floor( (구매가 / stockPerUnit) * 0.1 )
+--    · 구매가/팩단위 = "소모품 1개의 실구매 가치" → 그 10%를 환급
 --  - shop_consumable_inventory.count 를 p_quantity 만큼 차감
 --  - member_cdp 잔액/누적획득 증가 + cdp_ledger 원장 기록
 --
@@ -62,8 +62,8 @@ BEGIN
     RAISE EXCEPTION 'item_not_found';
   END IF;
 
-  -- 3) 개당 환급 = floor( (구매가/팩단위) * 0.8 )
-  v_unit_refund := FLOOR((v_price::numeric / v_per_unit) * 0.8)::integer;
+  -- 3) 개당 환급 = floor( (구매가/팩단위) * 0.1 )
+  v_unit_refund := FLOOR((v_price::numeric / v_per_unit) * 0.1)::integer;
   v_refund := v_unit_refund * v_qty;
 
   -- 4) 인벤토리 차감

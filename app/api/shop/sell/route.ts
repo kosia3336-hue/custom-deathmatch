@@ -34,7 +34,7 @@ interface SellRpcRow {
 /**
  * POST /api/shop/sell
  * body: { kind: ConsumableKind, quantity?: number }
- * 소모성 아이템을 상점 가격의 80%로 판매하고 CDP 환급.
+ * 소모성 아이템을 상점 가격의 10%로 판매하고 CDP 환급.
  */
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();

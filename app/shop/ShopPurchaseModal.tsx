@@ -191,7 +191,7 @@ export default function ShopPurchaseModal({ item, balance, merchantDiscount, onC
           </dd>
         </dl>
         <p className="text-xs text-cdm-fg-muted">
-          ※ 구매한 아이템은 환불되지 않아요. (판매 시 구매가의 80% 환급)
+          ※ 구매한 아이템은 환불되지 않아요. (판매 시 구매가의 10% 환급)
         </p>
       </div>
     </Modal>

@@ -445,7 +445,7 @@ export default function InventoryCard() {
             </div>
           </div>
           <ul className="mt-2 ml-4 list-disc text-xs text-cdm-fg-muted">
-            <li>구매가의 80%가 CDP로 환급돼요.</li>
+            <li>구매가의 10%가 CDP로 환급돼요.</li>
             <li>보유 수량: {sellMax}개</li>
             <li>되돌릴 수 없어요.</li>
           </ul>
