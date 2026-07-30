@@ -430,80 +430,58 @@ body {
   animation: title-xuanwu-glow 4s ease-in-out infinite;
 }
 
-/* 영원의 군주(레전드) — 전용 이펙트: 청록(주권) × 자수정(위엄) × 금(영광)이 교차하는
-   서약의 문장 텍스트 sweep + 이중 오라 glow + 왕좌의 숨결(breath) 스케일 펄스 */
+/* 영원의 군주(레전드): 불멸의 정점(title-legend)과 같은 shimmer+glow 구조,
+   불꽃색 → 청록/시안 계열로 교체 */
 @keyframes title-eternal-shimmer {
-  0%   { background-position: 380% center; }
-  100% { background-position: -380% center; }
+  0%   { background-position: 350% center; }
+  100% { background-position: -350% center; }
 }
 @keyframes title-eternal-glow {
   0%, 100% {
-    box-shadow:
-      0 0 4px rgba(13, 148, 136, 0.7),
-      0 0 10px rgba(13, 148, 136, 0.25),
-      0 0 0 rgba(168, 85, 247, 0);
+    box-shadow: 0 0 5px rgba(13, 148, 136, 0.75), 0 0 12px rgba(13, 148, 136, 0.3);
     border-color: #0e6a66;
   }
-  35% {
-    box-shadow:
-      0 0 7px rgba(20, 184, 166, 0.8),
-      0 0 16px rgba(20, 184, 166, 0.3),
-      0 0 10px rgba(168, 85, 247, 0.25);
+  40% {
+    box-shadow: 0 0 8px rgba(20, 184, 166, 0.8), 0 0 16px rgba(20, 184, 166, 0.35);
     border-color: #14b8a6;
   }
-  60% {
-    box-shadow:
-      0 0 10px rgba(196, 160, 82, 0.85),
-      0 0 20px rgba(196, 160, 82, 0.35),
-      0 0 14px rgba(168, 85, 247, 0.35);
-    border-color: #c4a052;
+  70% {
+    box-shadow: 0 0 10px rgba(45, 212, 191, 0.9), 0 0 22px rgba(94, 234, 212, 0.4);
+    border-color: #2dd4bf;
   }
-  85% {
-    box-shadow:
-      0 0 9px rgba(168, 85, 247, 0.8),
-      0 0 20px rgba(94, 234, 212, 0.35),
-      0 0 12px rgba(168, 85, 247, 0.3);
-    border-color: #a855f7;
-  }
-}
-@keyframes title-eternal-breath {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.035); }
 }
 .title-eternal {
-  display: inline-flex;
   background: linear-gradient(
-    100deg,
-    #001a1c 0%,
-    #0a4a4a 8%,
-    #0e8f86 18%,
-    #14b8a6 27%,
-    #c4a052 38%,
-    #f3d98a 45%,
-    #ffffff 50%,
-    #f3d98a 55%,
-    #c4a052 62%,
-    #a855f7 71%,
-    #14b8a6 80%,
-    #0a4a4a 90%,
-    #001a1c 100%
+    90deg,
+    #002523 0%,
+    #0a5a55 10%,
+    #0e8f86 22%,
+    #12b8ab 34%,
+    #1fd4c4 44%,
+    #4fe3d5 53%,
+    #9df6ec 60%,
+    #ffffff 65%,
+    #9df6ec 70%,
+    #4fe3d5 77%,
+    #1fd4c4 83%,
+    #12b8ab 90%,
+    #0a5a55 96%,
+    #002523 100%
   );
-  background-size: 480% auto;
+  background-size: 450% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  transform-origin: center;
   animation:
-    title-eternal-shimmer 14s linear infinite,
-    title-eternal-glow    8s ease-in-out infinite,
-    title-eternal-breath  4s ease-in-out infinite;
+    title-eternal-shimmer 12s linear infinite,
+    title-eternal-glow    7s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .title-eternal {
     animation: none;
     background-position: center;
-    border-color: #c4a052;
+    border-color: #14b8a6;
   }
 }
 
