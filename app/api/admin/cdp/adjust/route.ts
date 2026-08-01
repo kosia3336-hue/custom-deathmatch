@@ -30,7 +30,7 @@ function err(msg: string, status = 400, code?: string) {
 export async function POST(req: NextRequest) {
   const admin = await requireAdminMember();
   if (!admin) return err('권한이 없습니다.', 403, 'forbidden');
-  if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없어요.', 503);
+  if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없습니다.', 503);
 
   let body: AdjustBody;
   try {

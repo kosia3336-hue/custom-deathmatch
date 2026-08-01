@@ -22,7 +22,7 @@ export default async function ProfilePage() {
             닉네임을 설정해 주세요
           </h1>
           <p className="text-sm text-cdm-fg-muted">
-            2~8자 한글/영문/숫자. 가입 후 30일에 1회 변경할 수 있어요.
+            2~8자 한글/영문/숫자. 가입 후 30일에 1회 변경할 수 있습니다.
           </p>
         </header>
 

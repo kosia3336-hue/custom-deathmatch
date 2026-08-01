@@ -44,7 +44,7 @@ export default function QuatroViewer({ record }: { record: GameRecordFile }) {
   for (const [pid, p] of Object.entries(data.players ?? {})) nicknames[pid] ??= p.nickname;
 
   if (!result) {
-    return <p className="py-6 text-center text-sm text-cdm-fg-muted">기록 데이터가 없어요.</p>;
+    return <p className="py-6 text-center text-sm text-cdm-fg-muted">기록 데이터가 없습니다.</p>;
   }
 
   const rounds = [1, 2, 3, 4];

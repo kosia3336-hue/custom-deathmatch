@@ -46,11 +46,11 @@ async function readTicketCount(
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
-    return NextResponse.json({ error: '로그인이 필요해요.', code: 'unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '로그인이 필요합니다.', code: 'unauthorized' }, { status: 401 });
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' },
       { status: 503 },
     );
   }
@@ -110,14 +110,14 @@ export async function POST(req: NextRequest) {
       if (e instanceof GachaDrawError) {
         stopCode = e.code;
         stopMessage =
-          e.code === 'insufficient_balance' ? 'CDP가 부족해요.'
-          : e.code === 'insufficient_ticket' ? '뽑기권이 없어요.'
-          : e.code === 'gacha_inactive' ? '뽑기가 준비 중이에요.'
-          : '뽑기에 실패했어요.';
+          e.code === 'insufficient_balance' ? 'CDP가 부족합니다.'
+          : e.code === 'insufficient_ticket' ? '뽑기권이 없습니다.'
+          : e.code === 'gacha_inactive' ? '뽑기가 준비 중입니다.'
+          : '뽑기에 실패했습니다.';
       } else {
         console.error('[gacha/draw]', e);
         stopCode = 'internal_error';
-        stopMessage = '뽑기에 실패했어요.';
+        stopMessage = '뽑기에 실패했습니다.';
       }
       break;
     }
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       : stopCode === 'member_not_active' ? 403
       : 500;
     return NextResponse.json(
-      { error: stopMessage ?? '뽑기에 실패했어요.', code: stopCode ?? 'internal_error' },
+      { error: stopMessage ?? '뽑기에 실패했습니다.', code: stopCode ?? 'internal_error' },
       { status },
     );
   }

@@ -34,7 +34,7 @@ export default function NoticeRowActions({ notice, pinnedCount }: RowProps) {
     const next = !notice.isPinned;
     if (next && notice.isPublished && pinnedCount >= PIN_LIMIT_SOFT) {
       const ok = window.confirm(
-        `현재 ${pinnedCount}개의 공지가 상단 고정되어 있어요.\n` +
+        `현재 ${pinnedCount}개의 공지가 상단 고정되어 있습니다.\n` +
           `${PIN_LIMIT_SOFT}개를 초과해 핀하면 사용자 화면이 복잡해질 수 있습니다.\n` +
           `그래도 진행할까요?`,
       );

@@ -120,7 +120,7 @@ export default async function NoticeListPage({ searchParams }: Props) {
 
         {rows.length === 0 ? (
           <EmptyState
-            title={category ? '해당 카테고리의 공지가 없어요' : '공지사항이 없어요'}
+            title={category ? '해당 카테고리의 공지가 없습니다' : '공지사항이 없습니다'}
             description={
               category ? '다른 카테고리를 확인해보세요.' : '새로운 공지가 등록되면 여기에 표시됩니다.'
             }

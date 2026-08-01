@@ -180,7 +180,7 @@ export default async function TitleOwnersPage({
           )}
           {title.is_system && (
             <p className="mt-1 text-xs text-cdm-fg-subtle">
-              이 칭호는 시스템이 자동으로 부여한 히든 칭호예요. 구체적인 달성 조건은 서버 코드에서만 관리되며,
+              이 칭호는 시스템이 자동으로 부여한 히든 칭호입니다. 구체적인 달성 조건은 서버 코드에서만 관리되며,
               이 페이지에서는 편집/삭제할 수 없습니다.
             </p>
           )}

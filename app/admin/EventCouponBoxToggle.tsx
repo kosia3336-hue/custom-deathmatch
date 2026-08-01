@@ -26,7 +26,7 @@ export default function EventCouponBoxToggle({ isOpen }: { isOpen: boolean }) {
         toast.error(data.error ?? '변경 실패');
         return;
       }
-      toast.success(next ? '쿠폰함을 열었어요.' : '쿠폰함을 닫았어요. 수동 추첨을 진행하세요.');
+      toast.success(next ? '쿠폰함을 열었습니다.' : '쿠폰함을 닫았습니다. 수동 추첨을 진행하세요.');
       router.refresh();
     } finally {
       setBusy(false);

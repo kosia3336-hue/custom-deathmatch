@@ -53,7 +53,7 @@ export default async function EventPage() {
         <header className="mb-4 flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-cdm-fg">{title}</h1>
           <p className="text-sm text-cdm-fg-muted">
-            랭크게임에서 승리하면 자신의 닉네임이 적힌 이벤트 쿠폰을 1장씩 받아요. 이벤트 종료
+            랭크게임에서 승리하면 자신의 닉네임이 적힌 이벤트 쿠폰을 1장씩 받습니다. 이벤트 종료
             전까지 원하는 만큼 쿠폰함에 넣을 수 있고, 종료 후 추첨으로 당첨자를 뽑아요.
           </p>
         </header>

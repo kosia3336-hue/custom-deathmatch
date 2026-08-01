@@ -98,7 +98,7 @@ export default async function NoticesTab({ page: pageParam }: { page: string | u
       </div>
 
       {totalCount === 0 ? (
-        <EmptyState title="등록된 공지가 없어요" description="위 버튼으로 첫 공지를 작성하세요." />
+        <EmptyState title="등록된 공지가 없습니다" description="위 버튼으로 첫 공지를 작성하세요." />
       ) : (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-cdm-fg-muted">

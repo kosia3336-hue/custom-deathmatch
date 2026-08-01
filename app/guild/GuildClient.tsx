@@ -51,7 +51,7 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
         });
         const json = (await res.json()) as { ok?: boolean; error?: string };
         if (!res.ok || !json.ok) {
-          toast.error(json.error ?? '처리에 실패했어요.');
+          toast.error(json.error ?? '처리에 실패했습니다.');
           return false;
         }
         if (successMsg) toast.success(successMsg);
@@ -77,7 +77,7 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
           <Button
             onClick={() => {
               if (my.charterCount <= 0) {
-                toast(`길드 창설권이 필요해요. 상점에서 ${GUILD_CHARTER_PRICE_CDP.toLocaleString()} CDP에 구매할 수 있어요.`);
+                toast(`길드 창설권이 필요합니다. 상점에서 ${GUILD_CHARTER_PRICE_CDP.toLocaleString()} CDP에 구매할 수 있습니다.`);
                 return;
               }
               setCreateOpen(true);
@@ -94,21 +94,21 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
       ) : my.myRequest ? (
         <Card className="flex items-center justify-between gap-3">
           <p className="text-sm text-cdm-fg">
-            <strong>{my.myRequest.guildName}</strong> 길드에 가입 신청 중이에요.
+            <strong>{my.myRequest.guildName}</strong> 길드에 가입 신청 중입니다.
           </p>
           <Button
             size="sm"
             variant="secondary"
             disabled={busy}
-            onClick={() => act({ action: 'cancel_join', requestId: my.myRequest!.id }, '신청을 취소했어요.')}
+            onClick={() => act({ action: 'cancel_join', requestId: my.myRequest!.id }, '신청을 취소했습니다.')}
           >
             신청 취소
           </Button>
         </Card>
       ) : (
         <Card className="text-sm text-cdm-fg-muted">
-          아직 가입한 길드가 없어요. 아래 목록에서 가입 신청하거나, 길드 창설권(
-          {GUILD_CHARTER_PRICE_CDP.toLocaleString()} CDP)으로 직접 창설할 수 있어요.
+          아직 가입한 길드가 없습니다. 아래 목록에서 가입 신청하거나, 길드 창설권(
+          {GUILD_CHARTER_PRICE_CDP.toLocaleString()} CDP)으로 직접 창설할 수 있습니다.
           {my.charterCount > 0 && (
             <span className="ml-1 font-semibold text-cdm-primary">
               창설권 {my.charterCount}개 보유 중
@@ -121,7 +121,7 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
         <h2 className="text-base font-semibold text-cdm-fg">길드 목록</h2>
         {guilds.length === 0 ? (
           <Card className="py-10 text-center text-sm text-cdm-fg-muted">
-            아직 창설된 길드가 없어요. 첫 길드를 만들어 보세요!
+            아직 창설된 길드가 없습니다. 첫 길드를 만들어 보세요!
           </Card>
         ) : (
           guilds.map((g) => (
@@ -141,7 +141,7 @@ export default function GuildClient({ initialGuilds, initialMy, myMemberId }: Pr
           busy={busy}
           onClose={() => setCreateOpen(false)}
           onCreate={async (name, description) => {
-            const ok = await act({ action: 'create', name, description }, '길드를 창설했어요!');
+            const ok = await act({ action: 'create', name, description }, '길드를 창설했습니다!');
             if (ok) setCreateOpen(false);
           }}
         />
@@ -283,7 +283,7 @@ function MyGuildPanel({
                       if (!confirm(`${m.nickname}님을 ${verb}할까요?`)) return;
                       void act(
                         { action: 'set_vice', targetMemberId: m.memberId, promote },
-                        `${m.nickname}님을 ${verb}했어요.`,
+                        `${m.nickname}님을 ${verb}했습니다.`,
                       );
                     }}
                   >
@@ -297,7 +297,7 @@ function MyGuildPanel({
                     disabled={busy}
                     onClick={() => {
                       if (!confirm(`${m.nickname}님을 길드에서 추방할까요?`)) return;
-                      void act({ action: 'kick', targetMemberId: m.memberId }, `${m.nickname}님을 추방했어요.`);
+                      void act({ action: 'kick', targetMemberId: m.memberId }, `${m.nickname}님을 추방했습니다.`);
                     }}
                   >
                     추방
@@ -328,7 +328,7 @@ function MyGuildPanel({
                   <Button
                     size="sm"
                     disabled={busy}
-                    onClick={() => act({ action: 'decide', requestId: r.id, approve: true }, '가입을 승인했어요.')}
+                    onClick={() => act({ action: 'decide', requestId: r.id, approve: true }, '가입을 승인했습니다.')}
                   >
                     승인
                   </Button>
@@ -336,7 +336,7 @@ function MyGuildPanel({
                     size="sm"
                     variant="secondary"
                     disabled={busy}
-                    onClick={() => act({ action: 'decide', requestId: r.id, approve: false }, '거절했어요.')}
+                    onClick={() => act({ action: 'decide', requestId: r.id, approve: false }, '거절했습니다.')}
                   >
                     거절
                   </Button>
@@ -367,7 +367,7 @@ function MyGuildPanel({
                 onClick={() => {
                   const cost = guildBuffCost(g.buffCdpLevel);
                   if (!confirm(`길드 포인트 ${cost.toLocaleString()} GP로 CDP 수완을 Lv.${g.buffCdpLevel + 1}로 올릴까요?`)) return;
-                  void act({ action: 'buy_buff' }, `CDP 수완이 Lv.${g.buffCdpLevel + 1}이 됐어요!`);
+                  void act({ action: 'buy_buff' }, `CDP 수완이 Lv.${g.buffCdpLevel + 1}이 됐습니다!`);
                 }}
               >
                 Lv.{g.buffCdpLevel + 1}로 강화 ({guildBuffCost(g.buffCdpLevel).toLocaleString()} GP)
@@ -393,7 +393,7 @@ function MyGuildPanel({
         <div className="border-t border-cdm-border pt-3">
           <p className="text-xs font-semibold text-cdm-fg">길드 마크</p>
           <p className="mt-0.5 text-[11px] text-cdm-fg-muted">
-            등록하면 길드원 닉네임 옆에 표시돼요. 등록·변경 시 {GUILD_MARK_COST_GP} GP가 차감돼요. (PNG/JPEG/WebP/GIF, 512KB 이하)
+            등록하면 길드원 닉네임 옆에 표시됩니다. 등록·변경 시 {GUILD_MARK_COST_GP} GP가 차감됩니다. (PNG/JPEG/WebP/GIF, 512KB 이하)
           </p>
           <GuildMarkUploader
             guildPoints={g.points}
@@ -411,7 +411,7 @@ function MyGuildPanel({
             disabled={busy || g.points < GUILD_EXPANSION_COST_GP}
             onClick={() => {
               if (!confirm(`길드 포인트 ${GUILD_EXPANSION_COST_GP} GP로 정원을 1 늘릴까요?`)) return;
-              void act({ action: 'expand' }, '정원이 1 늘었어요!');
+              void act({ action: 'expand' }, '정원이 1 늘었습니다!');
             }}
           >
             길드원 추가 모집권 구매 ({GUILD_EXPANSION_COST_GP} GP)
@@ -423,10 +423,10 @@ function MyGuildPanel({
           disabled={busy}
           onClick={() => {
             const warn = isOwner
-              ? '길드를 해체할까요? (다른 길드원이 남아 있으면 해체할 수 없어요)'
+              ? '길드를 해체할까요? (다른 길드원이 남아 있으면 해체할 수 없습니다)'
               : '길드에서 탈퇴할까요?';
             if (!confirm(warn)) return;
-            void act({ action: 'leave' }, isOwner ? '길드를 해체했어요.' : '길드에서 탈퇴했어요.');
+            void act({ action: 'leave' }, isOwner ? '길드를 해체했습니다.' : '길드에서 탈퇴했습니다.');
           }}
         >
           {isOwner ? '길드 해체' : '길드 탈퇴'}
@@ -434,8 +434,8 @@ function MyGuildPanel({
       </div>
 
       <p className="text-[11px] leading-relaxed text-cdm-fg-subtle">
-        길드 포인트는 길드원이 랭크 게임을 플레이하면 적립돼요 (승리 +10 / 무승부 +5 / 패배 +4).
-        모은 포인트로 길드원 추가 모집권 등을 구매할 수 있어요.
+        길드 포인트는 길드원이 랭크 게임을 플레이하면 적립됩니다 (승리 +10 / 무승부 +5 / 패배 +4).
+        모은 포인트로 길드원 추가 모집권 등을 구매할 수 있습니다.
       </p>
     </Card>
   );
@@ -478,7 +478,7 @@ function GuildNameEditor({
               if (!confirm(`길드 포인트 ${GUILD_NAME_CHANGE_COST_GP} GP로 길드명을 "${draft.trim()}"(으)로 변경할까요?`)) return;
               const ok = await act(
                 { action: 'update_name', name: draft.trim() },
-                '길드명을 변경했어요.',
+                '길드명을 변경했습니다.',
               );
               if (ok) setEditing(false);
             }}
@@ -499,7 +499,7 @@ function GuildNameEditor({
         </div>
         {draft.trim().length > 0 && !nameValid && (
           <p className="text-[11px] text-cdm-danger">
-            영어·한글 글자만 사용할 수 있어요. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
+            영어·한글 글자만 사용할 수 있습니다. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
           </p>
         )}
       </div>
@@ -560,7 +560,7 @@ function GuildDescription({
             onClick={async () => {
               const ok = await act(
                 { action: 'update_description', description: draft.trim() },
-                '길드 설명을 수정했어요.',
+                '길드 설명을 수정했습니다.',
               );
               if (ok) setEditing(false);
             }}
@@ -642,7 +642,7 @@ function CreateGuildModal({
           <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={20} />
           {name.trim().length > 0 && !nameValid && (
             <p className="mt-1 text-[11px] text-cdm-danger">
-              영어·한글 글자만 사용할 수 있어요. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
+              영어·한글 글자만 사용할 수 있습니다. (공백·숫자·특수문자·이모지·자모 단독 입력 불가)
             </p>
           )}
         </div>
@@ -656,7 +656,7 @@ function CreateGuildModal({
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
-        <p className="text-[11px] text-cdm-fg-subtle">초기 정원은 3명이에요. 길드 포인트로 정원을 늘릴 수 있어요.</p>
+        <p className="text-[11px] text-cdm-fg-subtle">초기 정원은 3명입니다. 길드 포인트로 정원을 늘릴 수 있습니다.</p>
       </div>
     </Modal>
   );
@@ -686,13 +686,13 @@ function GuildMarkUploader({
       const res = await fetch('/api/guild/mark', { method: 'POST', body: form });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) {
-        toast.error(json.error ?? '마크 등록에 실패했어요.');
+        toast.error(json.error ?? '마크 등록에 실패했습니다.');
         return;
       }
-      toast.success(`길드 마크를 등록했어요. (-${GUILD_MARK_COST_GP} GP)`);
+      toast.success(`길드 마크를 등록했습니다. (-${GUILD_MARK_COST_GP} GP)`);
       await refresh();
     } catch {
-      toast.error('마크 등록 중 오류가 발생했어요.');
+      toast.error('마크 등록 중 오류가 발생했습니다.');
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -720,7 +720,7 @@ function GuildMarkUploader({
         {uploading ? '업로드 중…' : hasMark ? `마크 변경 (${GUILD_MARK_COST_GP} GP)` : `마크 등록 (${GUILD_MARK_COST_GP} GP)`}
       </Button>
       {!affordable && (
-        <span className="text-[11px] text-cdm-fg-subtle">길드 포인트가 부족해요.</span>
+        <span className="text-[11px] text-cdm-fg-subtle">길드 포인트가 부족합니다.</span>
       )}
     </div>
   );

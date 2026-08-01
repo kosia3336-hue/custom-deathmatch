@@ -24,36 +24,36 @@ interface RpcRow {
 }
 
 const ERROR_HTTP: Record<string, { status: number; msg: string; code: string }> = {
-  no_ticket: { status: 409, msg: '랭크 초기화권이 없어요.', code: 'no_ticket' },
+  no_ticket: { status: 409, msg: '랭크 초기화권이 없습니다.', code: 'no_ticket' },
   season_use_limit_exceeded: {
     status: 409,
-    msg: '이번 시즌에는 더 이상 사용할 수 없어요. (시즌당 3회)',
+    msg: '이번 시즌에는 더 이상 사용할 수 없습니다. (시즌당 3회)',
     code: 'season_use_limit_exceeded',
   },
-  season_not_active: { status: 409, msg: '진행 중인 시즌이 없어요.', code: 'season_not_active' },
-  invalid_args: { status: 400, msg: '잘못된 요청이에요.', code: 'invalid_args' },
-  forbidden: { status: 403, msg: '권한이 없어요.', code: 'forbidden' },
+  season_not_active: { status: 409, msg: '진행 중인 시즌이 없습니다.', code: 'season_not_active' },
+  invalid_args: { status: 400, msg: '잘못된 요청입니다.', code: 'invalid_args' },
+  forbidden: { status: 403, msg: '권한이 없습니다.', code: 'forbidden' },
 };
 
 function parseError(msg: string | undefined): { status: number; msg: string; code: string } {
-  if (!msg) return { status: 500, msg: '랭크 초기화에 실패했어요.', code: 'internal_error' };
+  if (!msg) return { status: 500, msg: '랭크 초기화에 실패했습니다.', code: 'internal_error' };
   for (const k of Object.keys(ERROR_HTTP)) {
     if (msg.includes(k)) return ERROR_HTTP[k];
   }
-  return { status: 500, msg: '랭크 초기화에 실패했어요.', code: 'internal_error' };
+  return { status: 500, msg: '랭크 초기화에 실패했습니다.', code: 'internal_error' };
 }
 
 export async function POST() {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' },
       { status: 401 },
     );
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' },
       { status: 503 },
     );
   }
@@ -71,7 +71,7 @@ export async function POST() {
 
   if (seasonErr || !season) {
     return NextResponse.json(
-      { error: '진행 중인 시즌이 없어요.', code: 'season_not_active' },
+      { error: '진행 중인 시즌이 없습니다.', code: 'season_not_active' },
       { status: 409 },
     );
   }
@@ -96,7 +96,7 @@ export async function POST() {
   const row: RpcRow | undefined = Array.isArray(data) ? data[0] : data;
   if (!row?.success) {
     return NextResponse.json(
-      { error: '랭크 초기화에 실패했어요.', code: 'internal_error' },
+      { error: '랭크 초기화에 실패했습니다.', code: 'internal_error' },
       { status: 500 },
     );
   }

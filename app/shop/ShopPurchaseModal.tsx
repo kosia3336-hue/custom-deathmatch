@@ -136,7 +136,7 @@ export default function ShopPurchaseModal({ item, balance, merchantDiscount, onC
               </div>
             </div>
             <p className="mt-1.5 text-[11px] text-cdm-fg-subtle">
-              5개 이상 구매 시 10%, 20개 이상 구매 시 20% 대량 할인이 적용돼요.
+              5개 이상 구매 시 10%, 20개 이상 구매 시 20% 대량 할인이 적용됩니다.
             </p>
           </div>
         )}
@@ -191,7 +191,7 @@ export default function ShopPurchaseModal({ item, balance, merchantDiscount, onC
           </dd>
         </dl>
         <p className="text-xs text-cdm-fg-muted">
-          ※ 구매한 아이템은 환불되지 않아요. (판매 시 구매가의 10% 환급)
+          ※ 구매한 아이템은 환불되지 않습니다. (판매 시 구매가의 10% 환급)
         </p>
       </div>
     </Modal>

@@ -68,7 +68,7 @@ export default function AdminShopItems() {
       const json = (await res.json()) as { items?: ShopItemAdminRow[] };
       setItems(json.items ?? []);
     } catch {
-      toast.error('목록을 불러오지 못했어요.');
+      toast.error('목록을 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function AdminShopItems() {
       toast.error(j.error ?? '실패');
       return;
     }
-    toast.success(next ? '활성화했어요' : '비활성화했어요');
+    toast.success(next ? '활성화했습니다' : '비활성화했습니다');
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_active: next } : i)));
   }
 
@@ -109,7 +109,7 @@ export default function AdminShopItems() {
         </Card>
       ) : items.length === 0 ? (
         <EmptyState
-          title="등록된 아이템이 없어요"
+          title="등록된 아이템이 없습니다"
           description="첫 아이템을 등록해 상점을 시작하세요"
         />
       ) : (
@@ -238,7 +238,7 @@ function ShopItemFormModal({ mode, itemId, initial, onClose, onSaved }: FormProp
     try {
       const parsed = JSON.parse(form.payloadJson || '{}');
       if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
-        toast.error('payload 는 JSON 객체여야 해요.');
+        toast.error('payload 는 JSON 객체여야 합니다.');
         return;
       }
       payload = parsed as Record<string, unknown>;
@@ -287,7 +287,7 @@ function ShopItemFormModal({ mode, itemId, initial, onClose, onSaved }: FormProp
         toast.error(j.error ?? '저장 실패');
         return;
       }
-      toast.success(mode === 'create' ? '등록했어요' : '저장했어요');
+      toast.success(mode === 'create' ? '등록했습니다' : '저장했습니다');
       onSaved();
     } finally {
       setBusy(false);

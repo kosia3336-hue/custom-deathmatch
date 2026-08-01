@@ -95,11 +95,11 @@ export function MarkdownWysiwyg({
       const res = await fetch(uploadEndpoint, { method: 'POST', body: form });
       const json = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !json.ok || !json.url) {
-        toast.error(json.error ?? '이미지 업로드에 실패했어요.');
+        toast.error(json.error ?? '이미지 업로드에 실패했습니다.');
         return;
       }
       editor?.chain().focus().setImage({ src: json.url, alt: '이미지' }).run();
-      toast.success('이미지를 넣었어요.');
+      toast.success('이미지를 넣었습니다.');
     } finally {
       setUploading(false);
     }

@@ -46,7 +46,7 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
   const dirty = draft !== savedText || !metaEquals(metaDraft, savedMeta);
 
   function switchGame(id: string) {
-    if (dirty && !confirm('저장하지 않은 변경 사항이 있어요. 이동할까요?')) return;
+    if (dirty && !confirm('저장하지 않은 변경 사항이 있습니다. 이동할까요?')) return;
     setSelectedId(id);
     setDraft(texts[id] ?? '');
     setMetaDraft(metas[id] ?? EMPTY_RULE_META);
@@ -69,13 +69,13 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) {
-        toast.error(json.error ?? '저장에 실패했어요.');
+        toast.error(json.error ?? '저장에 실패했습니다.');
         return;
       }
       setTexts((prev) => ({ ...prev, [selectedId]: draft }));
       setMetas((prev) => ({ ...prev, [selectedId]: { ...metaDraft } }));
       setUpdatedAt((prev) => ({ ...prev, [selectedId]: new Date().toISOString() }));
-      toast.success(`${selected.name} 룰을 저장했어요.`);
+      toast.success(`${selected.name} 룰을 저장했습니다.`);
     } finally {
       setSaving(false);
     }
@@ -209,9 +209,9 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
         )}
 
         <p className="mt-2 text-[11px] text-cdm-fg-subtle">
-          보이는 그대로 저장돼요. 단축키: Ctrl+B 굵게 · Ctrl+I 기울임 · Ctrl+Shift+X 취소선 ·
+          보이는 그대로 저장됩니다. 단축키: Ctrl+B 굵게 · Ctrl+I 기울임 · Ctrl+Shift+X 취소선 ·
           Ctrl+S 저장. 이미지는 [사진] 버튼 또는 클립보드 붙여넣기로 업로드됩니다. 저장하면 룰
-          페이지와 인게임 룰 모달에 바로 반영돼요 (최대 1분 캐시).
+          페이지와 인게임 룰 모달에 바로 반영됩니다 (최대 1분 캐시).
         </p>
       </Card>
     </div>

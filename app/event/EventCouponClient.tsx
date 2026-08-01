@@ -28,10 +28,10 @@ export default function EventCouponClient({ boxOpen, held, deposited }: Props) {
       });
       const data = (await res.json()) as { deposited?: number; error?: string };
       if (!res.ok) {
-        toast.error(data.error ?? '쿠폰 투입에 실패했어요.');
+        toast.error(data.error ?? '쿠폰 투입에 실패했습니다.');
         return;
       }
-      toast.success(`이벤트 쿠폰 ${data.deposited}장을 쿠폰함에 넣었어요!`);
+      toast.success(`이벤트 쿠폰 ${data.deposited}장을 쿠폰함에 넣었습니다!`);
       setCount(1);
       router.refresh();
     } finally {
@@ -75,12 +75,12 @@ export default function EventCouponClient({ boxOpen, held, deposited }: Props) {
               </Button>
             </div>
             <p className="text-[11px] text-cdm-fg-subtle">
-              한 번 넣은 쿠폰은 돌려받을 수 없어요. 많이 넣을수록 당첨 확률이 올라가요!
+              한 번 넣은 쿠폰은 돌려받을 수 없습니다. 많이 넣을수록 당첨 확률이 올라가요!
             </p>
           </div>
         ) : (
           <p className="rounded-cdm-lg border border-dashed border-cdm-border p-4 text-center text-sm text-cdm-fg-muted">
-            보유한 쿠폰이 없어요. 랭크게임에서 승리하면 닉네임이 적힌 이벤트 쿠폰을 1장씩 받아요.
+            보유한 쿠폰이 없습니다. 랭크게임에서 승리하면 닉네임이 적힌 이벤트 쿠폰을 1장씩 받습니다.
           </p>
         )
       ) : (

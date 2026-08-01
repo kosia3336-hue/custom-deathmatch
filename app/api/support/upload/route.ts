@@ -18,9 +18,9 @@ const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
  */
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();
-  if (!member) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
+  if (!member) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   if (!isSupabaseServiceRoleConfigured()) {
-    return NextResponse.json({ error: '서비스 설정이 없어요.' }, { status: 503 });
+    return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
   let file: File | null = null;
@@ -29,14 +29,14 @@ export async function POST(req: NextRequest) {
     const f = form.get('file');
     if (f instanceof File) file = f;
   } catch {
-    return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
   }
-  if (!file) return NextResponse.json({ error: '파일이 없어요.' }, { status: 400 });
+  if (!file) return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
   if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 첨부할 수 있어요.' }, { status: 400 });
+    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 첨부할 수 있습니다.' }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: '이미지는 5MB 이하만 가능해요.' }, { status: 400 });
+    return NextResponse.json({ error: '이미지는 5MB 이하만 가능합니다.' }, { status: 400 });
   }
 
   const sb = getSupabaseServiceRole();
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     .select('id, url')
     .single();
   if (insErr) {
-    return NextResponse.json({ error: '첨부 기록 생성에 실패했어요.' }, { status: 500 });
+    return NextResponse.json({ error: '첨부 기록 생성에 실패했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: (row as { id: string }).id, url: (row as { url: string }).url });

@@ -93,7 +93,7 @@ export function GameRulesModal({ gameId, open, onClose }: Props) {
         </div>
       ) : (
         <p className="py-10 text-center text-sm text-cdm-fg-muted">
-          아직 룰이 준비 중이에요.
+          아직 룰이 준비 중입니다.
         </p>
       )}
     </Modal>

@@ -13,7 +13,7 @@ interface DepositedRow {
 /** 관리자 — 이벤트 쿠폰함: 투입된 쿠폰 집계 확인 + 쿠폰함 열기/닫기 (수동 추첨용) */
 export default async function EventCouponsTab() {
   if (!isSupabaseServiceRoleConfigured()) {
-    return <p className="text-sm text-cdm-fg-muted">서비스 롤 설정이 없어요.</p>;
+    return <p className="text-sm text-cdm-fg-muted">서비스 롤 설정이 없습니다.</p>;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = getSupabaseServiceRole() as any;
@@ -59,7 +59,7 @@ export default async function EventCouponsTab() {
             </span>
           </p>
           <p className="mt-0.5 text-xs text-cdm-fg-muted">
-            닫으면 랭크 승리 쿠폰 지급과 유저의 쿠폰 투입이 모두 중단돼요. 추첨은 아래 목록으로
+            닫으면 랭크 승리 쿠폰 지급과 유저의 쿠폰 투입이 모두 중단됩니다. 추첨은 아래 목록으로
             수동 진행하세요.
           </p>
         </div>
@@ -96,7 +96,7 @@ export default async function EventCouponsTab() {
             {summary.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-3 py-6 text-center text-cdm-fg-muted">
-                  아직 투입된 쿠폰이 없어요.
+                  아직 투입된 쿠폰이 없습니다.
                 </td>
               </tr>
             )}

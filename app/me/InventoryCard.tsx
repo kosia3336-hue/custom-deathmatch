@@ -162,17 +162,17 @@ export default function InventoryCard() {
         | { error: string; code: string };
       if (!res.ok || !('ok' in json)) {
         const e = json as { error: string };
-        toast.error(e.error ?? '랭크 초기화에 실패했어요.');
+        toast.error(e.error ?? '랭크 초기화에 실패했습니다.');
         return;
       }
       setOne('rank_reset', json.ticketCountAfter);
       toast.success(
-        `랭크 진행도를 초기화했어요. (이번 시즌 ${json.usedCountInSeason}/3회 사용)`,
+        `랭크 진행도를 초기화했습니다. (이번 시즌 ${json.usedCountInSeason}/3회 사용)`,
       );
       // 페이지 RSC 다시 받아 RP/티어 표시 즉시 반영.
       router.refresh();
     } catch {
-      toast.error('네트워크 오류가 발생했어요.');
+      toast.error('네트워크 오류가 발생했습니다.');
     } finally {
       setRankReset({ open: false, busy: false });
     }
@@ -191,14 +191,14 @@ export default function InventoryCard() {
         | { ok: true; ticketsGranted: number; boxCountAfter: number; ticketCountAfter: number }
         | { error: string; code: string };
       if (!res.ok || !('ok' in json)) {
-        toast.error((json as { error: string }).error ?? '개봉에 실패했어요.');
+        toast.error((json as { error: string }).error ?? '개봉에 실패했습니다.');
         return;
       }
       setOne('gacha_box', json.boxCountAfter);
       setOne('gacha_ticket', json.ticketCountAfter);
-      toast.success(`뽑기 박스 개봉! 뽑기권 ${json.ticketsGranted}장을 획득했어요.`);
+      toast.success(`뽑기 박스 개봉! 뽑기권 ${json.ticketsGranted}장을 획득했습니다.`);
     } catch {
-      toast.error('네트워크 오류가 발생했어요.');
+      toast.error('네트워크 오류가 발생했습니다.');
     } finally {
       setBoxBusy(false);
     }
@@ -221,18 +221,18 @@ export default function InventoryCard() {
         | { ok: true; refund: number; unitRefund: number; newBalance: number; countAfter: number }
         | { error: string; code: string };
       if (!res.ok || !('ok' in json)) {
-        toast.error((json as { error: string }).error ?? '판매에 실패했어요.');
+        toast.error((json as { error: string }).error ?? '판매에 실패했습니다.');
         return;
       }
       setOne(kind, json.countAfter);
       toast.success(
-        `${CONSUMABLE_LABELS[kind]} ${quantity}개를 판매하고 ${json.refund.toLocaleString()} CDP를 받았어요.`,
+        `${CONSUMABLE_LABELS[kind]} ${quantity}개를 판매하고 ${json.refund.toLocaleString()} CDP를 받았습니다.`,
       );
       // CDP 요약 등 RSC 즉시 반영
       router.refresh();
       setSell({ open: false, kind: null, quantity: 1, busy: false });
     } catch {
-      toast.error('네트워크 오류가 발생했어요.');
+      toast.error('네트워크 오류가 발생했습니다.');
     } finally {
       setSell((s) => ({ ...s, busy: false }));
     }
@@ -284,7 +284,7 @@ export default function InventoryCard() {
                       aria-label={`${label} 자동사용 ${currentAutoUse ? 'ON' : 'OFF'}`}
                       onClick={() => {
                         if (toggleDisabled) {
-                          toast.info('보유한 아이템이 없어요.');
+                          toast.info('보유한 아이템이 없습니다.');
                           return;
                         }
                         toggleAutoUse(kind, !currentAutoUse);
@@ -386,8 +386,8 @@ export default function InventoryCard() {
           진행 중인 시즌의 RP / 티어 / 배치전 진행도가 모두 초기 상태로 돌아가요.
         </p>
         <ul className="mt-2 ml-4 list-disc text-xs text-cdm-fg-muted">
-          <li>되돌릴 수 없어요.</li>
-          <li>이번 시즌에 최대 3회까지만 사용할 수 있어요.</li>
+          <li>되돌릴 수 없습니다.</li>
+          <li>이번 시즌에 최대 3회까지만 사용할 수 있습니다.</li>
           <li>매칭 큐에 대기 중이라면 자동으로 큐에서 빠져요.</li>
         </ul>
       </Modal>
@@ -416,7 +416,7 @@ export default function InventoryCard() {
           }
         >
           <p className="text-sm text-cdm-fg">
-            <span className="font-semibold">{CONSUMABLE_LABELS[sell.kind]}</span> 을(를) 판매해요.
+            <span className="font-semibold">{CONSUMABLE_LABELS[sell.kind]}</span> 을(를) 판매합니다.
           </p>
           <div className="mt-3 flex items-center justify-between rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-3">
             <span className="text-sm text-cdm-fg-muted">판매 수량</span>
@@ -445,9 +445,9 @@ export default function InventoryCard() {
             </div>
           </div>
           <ul className="mt-2 ml-4 list-disc text-xs text-cdm-fg-muted">
-            <li>구매가의 10%가 CDP로 환급돼요.</li>
+            <li>구매가의 10%가 CDP로 환급됩니다.</li>
             <li>보유 수량: {sellMax}개</li>
-            <li>되돌릴 수 없어요.</li>
+            <li>되돌릴 수 없습니다.</li>
           </ul>
         </Modal>
       )}

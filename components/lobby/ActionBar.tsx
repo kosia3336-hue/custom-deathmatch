@@ -301,7 +301,7 @@ function FilterDropdown({
 
           {/* 푸터: 초기화 */}
           <div className="mt-4 flex items-center justify-between border-t border-cdm-border pt-3">
-            <p className="text-[11px] text-cdm-fg-subtle">같은 줄은 OR, 방 종류×게임은 AND 로 함께 적용돼요. 여러 개 체크 가능.</p>
+            <p className="text-[11px] text-cdm-fg-subtle">같은 줄은 OR, 방 종류×게임은 AND 로 함께 적용됩니다. 여러 개 체크 가능.</p>
             <button
               type="button"
               onClick={clearFilters}

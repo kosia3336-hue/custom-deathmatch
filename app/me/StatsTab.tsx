@@ -111,7 +111,7 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
 
   if (stats.length === 0 && !rankBlock) {
     return (
-      <EmptyState title="아직 전적이 없어요" />
+      <EmptyState title="아직 전적이 없습니다" />
     );
   }
 

@@ -89,7 +89,7 @@ export default async function AdminShopLogsTab({ page: pageParam }: { page?: str
       </p>
 
       {rows.length === 0 ? (
-        <EmptyState title="구매 내역이 없어요" />
+        <EmptyState title="구매 내역이 없습니다" />
       ) : (
         <>
           {/* 데스크톱 테이블 */}

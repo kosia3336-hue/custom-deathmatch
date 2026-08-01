@@ -115,7 +115,7 @@ export default function GameLogView({
         {record ? (
           <LogViewer record={record} />
         ) : (
-          <p className="text-sm text-cdm-fg-muted">이 게임의 로그 뷰어가 아직 준비되지 않았어요.</p>
+          <p className="text-sm text-cdm-fg-muted">이 게임의 로그 뷰어가 아직 준비되지 않았습니다.</p>
         )}
       </Card>
     </div>

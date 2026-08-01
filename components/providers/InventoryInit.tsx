@@ -48,7 +48,7 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
       setOne(p.kind, Number(p.countAfter));
       // 하루 5승 뽑기 박스 지급 안내
       if (p.reason === 'daily_reward' && p.kind === 'gacha_box') {
-        toast.success('오늘 랭크 5승 달성! 뽑기 박스 1개를 받았어요.');
+        toast.success('오늘 랭크 5승 달성! 뽑기 박스 1개를 받았습니다.');
       }
     };
     socket.on('inventory:updated', onUpdated);

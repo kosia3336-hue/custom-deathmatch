@@ -40,7 +40,7 @@ export default async function SkinsTab({ memberId }: { memberId: string }) {
 
   if (owned.length === 0) {
     return (
-      <EmptyState title="아직 보유한 스킨이 없어요" />
+      <EmptyState title="아직 보유한 스킨이 없습니다" />
     );
   }
 

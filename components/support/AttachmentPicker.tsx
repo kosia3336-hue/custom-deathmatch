@@ -24,7 +24,7 @@ export function AttachmentPicker({ files, onChange, max = 5, disabled }: Props) 
     const remain = max - files.length;
     const targets = Array.from(list).slice(0, remain);
     if (Array.from(list).length > remain) {
-      toast.error(`스크린샷은 최대 ${max}장까지 첨부할 수 있어요.`);
+      toast.error(`스크린샷은 최대 ${max}장까지 첨부할 수 있습니다.`);
     }
     if (targets.length === 0) return;
 
@@ -37,7 +37,7 @@ export function AttachmentPicker({ files, onChange, max = 5, disabled }: Props) 
         const res = await fetch('/api/support/upload', { method: 'POST', body: form });
         const json = (await res.json()) as { ok?: boolean; id?: string; url?: string; error?: string };
         if (!res.ok || !json.ok || !json.id || !json.url) {
-          toast.error(json.error ?? `${f.name} 업로드에 실패했어요.`);
+          toast.error(json.error ?? `${f.name} 업로드에 실패했습니다.`);
           continue;
         }
         added.push({ id: json.id, url: json.url });

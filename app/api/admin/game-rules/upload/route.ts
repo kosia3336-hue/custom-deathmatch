@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const admin = await requireAdminMember();
   if (!admin) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
   if (!isSupabaseServiceRoleConfigured()) {
-    return NextResponse.json({ error: '서비스 설정이 없어요.' }, { status: 503 });
+    return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
   let file: File | null = null;
@@ -25,14 +25,14 @@ export async function POST(req: NextRequest) {
     const f = form.get('file');
     if (f instanceof File) file = f;
   } catch {
-    return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
   }
-  if (!file) return NextResponse.json({ error: '파일이 없어요.' }, { status: 400 });
+  if (!file) return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
   if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 업로드할 수 있어요.' }, { status: 400 });
+    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 업로드할 수 있습니다.' }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: '이미지는 5MB 이하만 가능해요.' }, { status: 400 });
+    return NextResponse.json({ error: '이미지는 5MB 이하만 가능합니다.' }, { status: 400 });
   }
 
   const sb = getSupabaseServiceRole();

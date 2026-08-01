@@ -34,7 +34,7 @@ export default async function EventSeasonLeaderboard({ page, memberId }: Props) 
   }
 
   if (total === 0) {
-    return <EmptyState title="아직 집계된 이벤트 점수가 없어요" />;
+    return <EmptyState title="아직 집계된 이벤트 점수가 없습니다" />;
   }
 
   const totalPages = getTotalPages(total, DEFAULT_PAGE_SIZE);

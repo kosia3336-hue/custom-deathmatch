@@ -38,7 +38,7 @@ export default async function TitlesTab({
 
   if (owned.length === 0) {
     return (
-      <EmptyState title="아직 받은 칭호가 없어요" />
+      <EmptyState title="아직 받은 칭호가 없습니다" />
     );
   }
 

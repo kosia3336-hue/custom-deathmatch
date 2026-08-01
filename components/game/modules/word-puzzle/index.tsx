@@ -231,7 +231,7 @@ export default function WordPuzzleGame() {
           글자를 순서대로 눌러 3글자 단어 3개를 만드세요.{' '}
           {gameData.isSolo ? '정답을 맞히면 다음 라운드로!' : '먼저 맞히는 사람이 라운드 승리!'}
           <br />
-          오답 제출 시 {WP_WRONG_LOCK_MS / 1000}초간 제출이 잠겨요.
+          오답 제출 시 {WP_WRONG_LOCK_MS / 1000}초간 제출이 잠깁니다.
         </p>
       )}
 

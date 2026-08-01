@@ -14,12 +14,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   if (!isSupabaseServiceRoleConfigured()) {
-    return NextResponse.json({ error: '서비스 설정이 없어요.' }, { status: 503 });
+    return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
   const body = (await req.json().catch(() => ({}))) as { isOpen?: unknown };
   if (typeof body.isOpen !== 'boolean') {
-    return NextResponse.json({ error: 'isOpen(boolean)이 필요해요.' }, { status: 400 });
+    return NextResponse.json({ error: 'isOpen(boolean)이 필요합니다.' }, { status: 400 });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('[admin/event-coupons/box]', error.message);
-    return NextResponse.json({ error: '쿠폰함 상태 변경에 실패했어요.' }, { status: 500 });
+    return NextResponse.json({ error: '쿠폰함 상태 변경에 실패했습니다.' }, { status: 500 });
   }
   return NextResponse.json({ isOpen: body.isOpen });
 }

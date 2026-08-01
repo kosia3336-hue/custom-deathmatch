@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' as const },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' as const },
       { status: 401 },
     );
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' as const },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' as const },
       { status: 503 },
     );
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     body = (await req.json()) as SellBody;
   } catch {
     return NextResponse.json(
-      { error: '잘못된 요청이에요.', code: 'invalid_request' as const },
+      { error: '잘못된 요청입니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   const kind = String(body.kind ?? '').trim() as ConsumableKind;
   if (!SELLABLE_KINDS.includes(kind)) {
     return NextResponse.json(
-      { error: '판매할 수 없는 아이템이에요.', code: 'invalid_request' as const },
+      { error: '판매할 수 없는 아이템입니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   const quantity = Math.trunc(Number(body.quantity ?? 1));
   if (!Number.isFinite(quantity) || quantity < 1 || quantity > 999) {
     return NextResponse.json(
-      { error: '판매 수량이 올바르지 않아요.', code: 'invalid_request' as const },
+      { error: '판매 수량이 올바르지 않습니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -89,19 +89,19 @@ export async function POST(req: NextRequest) {
     const msg = (error as { message?: string }).message ?? '';
     if (msg.includes('not_enough')) {
       return NextResponse.json(
-        { error: '보유 수량이 부족해요.', code: 'not_enough' as const },
+        { error: '보유 수량이 부족합니다.', code: 'not_enough' as const },
         { status: 409 },
       );
     }
     if (msg.includes('item_not_found')) {
       return NextResponse.json(
-        { error: '판매 가격을 찾을 수 없어요. (판매 종료된 아이템)', code: 'item_not_found' as const },
+        { error: '판매 가격을 찾을 수 없습니다. (판매 종료된 아이템)', code: 'item_not_found' as const },
         { status: 404 },
       );
     }
     console.warn(`[shop:sell] 실패 member=${member.id} kind=${kind} msg=${msg}`);
     return NextResponse.json(
-      { error: '판매 중 오류가 발생했어요.', code: 'internal_error' as const },
+      { error: '판매 중 오류가 발생했습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   const row: SellRpcRow | undefined = Array.isArray(data) ? data[0] : data;
   if (!row) {
     return NextResponse.json(
-      { error: '판매 응답이 비었어요.', code: 'internal_error' as const },
+      { error: '판매 응답이 비었습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }

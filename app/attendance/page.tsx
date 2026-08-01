@@ -65,7 +65,7 @@ export default async function AttendancePage() {
         <div>
           <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">출석판</h1>
           <p className="mt-1 text-sm text-cdm-fg-muted">
-            매일 출석하고 보상을 받아보세요. 오늘의 랭크 보상 진행 상황도 여기서 확인할 수 있어요.
+            매일 출석하고 보상을 받아보세요. 오늘의 랭크 보상 진행 상황도 여기서 확인할 수 있습니다.
           </p>
         </div>
         <AttendanceClient
