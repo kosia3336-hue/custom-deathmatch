@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getSiteUrl } from '@/lib/site';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
+import { GAME_RULES } from '@/lib/gameRules';
 
 interface NoticeRow {
   id: string;
@@ -13,7 +14,10 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
+  // '/' 는 비로그인 방문자에게 소개 페이지 내용을 그대로 보여준다(middleware rewrite).
+  // '/guide' 는 canonical 이 '/' 이므로 사이트맵에는 대표 URL 인 '/' 만 싣는다.
   { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  { path: '/rules', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/ranking', changeFrequency: 'hourly', priority: 0.8 },
   { path: '/notice', changeFrequency: 'daily', priority: 0.7 },
   { path: '/legal/terms', changeFrequency: 'yearly', priority: 0.3 },
@@ -30,6 +34,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: now,
     changeFrequency,
     priority,
+  }));
+
+  // 게임별 룰 페이지 — 검색 유입의 핵심 콘텐츠
+  const ruleEntries: MetadataRoute.Sitemap = GAME_RULES.map((g) => ({
+    url: `${base}/rules/${g.id}`,
+    lastModified: now,
+    changeFrequency: 'weekly',
+    priority: 0.6,
   }));
 
   let noticeEntries: MetadataRoute.Sitemap = [];
@@ -56,5 +68,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] notices fetch failed', e);
   }
 
-  return [...staticEntries, ...noticeEntries];
+  return [...staticEntries, ...ruleEntries, ...noticeEntries];
 }
