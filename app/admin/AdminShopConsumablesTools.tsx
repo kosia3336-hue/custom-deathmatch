@@ -49,7 +49,7 @@ export default function AdminShopConsumablesTools() {
         return;
       }
       setRows(json.rows ?? []);
-      if ((json.rows ?? []).length === 0) toast('일치하는 회원이 없어요.');
+      if ((json.rows ?? []).length === 0) toast('일치하는 회원이 없습니다.');
     } finally {
       setSearching(false);
     }

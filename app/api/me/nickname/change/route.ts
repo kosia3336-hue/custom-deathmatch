@@ -46,18 +46,18 @@ interface RpcRow {
 }
 
 const ERROR_HTTP: Record<string, { status: number; msg: string; code: string }> = {
-  '22023': { status: 409, msg: '닉네임 변경 쿨다운(30일)이 남아있어요.', code: 'cooldown' },
-  '23505': { status: 409, msg: '사용할 수 없는 닉네임이에요.', code: 'invalid_nickname' },
-  '42501': { status: 403, msg: '권한이 없어요.', code: 'forbidden' },
-  '42704': { status: 404, msg: '회원을 찾을 수 없어요.', code: 'not_found' },
-  P0001: { status: 409, msg: '닉네임 변경권이 없어요.', code: 'no_ticket' },
+  '22023': { status: 409, msg: '닉네임 변경 쿨다운(30일)이 남아있습니다.', code: 'cooldown' },
+  '23505': { status: 409, msg: '사용할 수 없는 닉네임입니다.', code: 'invalid_nickname' },
+  '42501': { status: 403, msg: '권한이 없습니다.', code: 'forbidden' },
+  '42704': { status: 404, msg: '회원을 찾을 수 없습니다.', code: 'not_found' },
+  P0001: { status: 409, msg: '닉네임 변경권이 없습니다.', code: 'no_ticket' },
 };
 
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' },
       { status: 401 },
     );
   }
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     body = (await req.json()) as Body;
   } catch {
     return NextResponse.json(
-      { error: '잘못된 요청이에요.', code: 'invalid_request' },
+      { error: '잘못된 요청입니다.', code: 'invalid_request' },
       { status: 400 },
     );
   }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
     console.warn(`[me/nickname/change] RPC 실패: ${e.message}`);
     return NextResponse.json(
-      { error: '닉네임 변경에 실패했어요.', code: 'internal_error' },
+      { error: '닉네임 변경에 실패했습니다.', code: 'internal_error' },
       { status: 500 },
     );
   }

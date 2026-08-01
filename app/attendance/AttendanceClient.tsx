@@ -57,7 +57,7 @@ export default function AttendanceClient({
       if (!res.ok || !('ok' in json)) {
         const e = json as { error: string; code: string };
         if (e.code === 'already_checked_in') setCheckedIn(true);
-        toast.error(e.error ?? '출석에 실패했어요.');
+        toast.error(e.error ?? '출석에 실패했습니다.');
         return;
       }
       setCheckedIn(true);
@@ -65,19 +65,19 @@ export default function AttendanceClient({
       setTotalDays(json.totalDays);
 
       if (json.rewardKind === 'cdp') {
-        toast.success(`출석 완료! ${json.cdpAmount.toLocaleString()} CDP를 받았어요.`);
+        toast.success(`출석 완료! ${json.cdpAmount.toLocaleString()} CDP를 받았습니다.`);
       } else {
         setOne('gacha_ticket', json.ticketCount);
-        toast.success('출석 완료! 뽑기권 1개를 받았어요.');
+        toast.success('출석 완료! 뽑기권 1개를 받았습니다.');
       }
       if (json.completed) {
         setOne('gacha_box', json.boxCount);
-        toast.success('30일 개근 달성! 뽑기 박스 10개를 받았어요!', { duration: 6000 });
+        toast.success('30일 개근 달성! 뽑기 박스 10개를 받았습니다!', { duration: 6000 });
       }
       // GNB CDP 칩 등 동기화
       router.refresh();
     } catch {
-      toast.error('네트워크 오류가 발생했어요.');
+      toast.error('네트워크 오류가 발생했습니다.');
     } finally {
       setBusy(false);
     }
@@ -121,9 +121,9 @@ export default function AttendanceClient({
             {checkedIn ? '오늘 출석 완료' : '출석 체크 (100 CDP 또는 뽑기권 랜덤)'}
           </Button>
           <ul className="mt-2 ml-4 list-disc text-xs text-cdm-fg-muted">
-            <li>하루 1회 출석할 수 있어요. (한국시간 자정 기준)</li>
-            <li>출석 시 100 CDP 또는 뽑기권 1개를 랜덤으로 받아요.</li>
-            <li>30회를 모두 채우면 뽑기 박스 10개를 받고 새 판이 시작돼요.</li>
+            <li>하루 1회 출석할 수 있습니다. (한국시간 자정 기준)</li>
+            <li>출석 시 100 CDP 또는 뽑기권 1개를 랜덤으로 받습니다.</li>
+            <li>30회를 모두 채우면 뽑기 박스 10개를 받고 새 판이 시작됩니다.</li>
           </ul>
         </div>
       </Card>

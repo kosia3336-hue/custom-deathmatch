@@ -66,7 +66,7 @@ export default async function RankTab({
     .order('id', { ascending: false });
 
   const seasonList = (seasons ?? []) as Season[];
-  if (seasonList.length === 0) return <EmptyState title="아직 랭크 시즌이 없어요" />;
+  if (seasonList.length === 0) return <EmptyState title="아직 랭크 시즌이 없습니다" />;
 
   const activeSeason = seasonList.find((s) => s.is_active) ?? seasonList[0];
   const parsedId = seasonIdParam ? parseInt(seasonIdParam, 10) : NaN;
@@ -149,7 +149,7 @@ export default async function RankTab({
     ((gamesRes.data ?? []) as { id: string; name: string }[]).find((g) => g.id === id)?.name ?? id;
 
   if (!stats && recentMatches.length === 0) {
-    return <EmptyState title="아직 랭크 게임 기록이 없어요" />;
+    return <EmptyState title="아직 랭크 게임 기록이 없습니다" />;
   }
 
   const totalGames = stats ? stats.season_wins + stats.season_losses + stats.season_draws : 0;

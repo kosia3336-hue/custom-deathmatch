@@ -105,7 +105,7 @@ export default function InquiryDetailModal({ inquiry, isAdmin = false, onClose, 
               <p className="whitespace-pre-wrap text-sm text-cdm-fg">{inquiry.answer_body}</p>
             </div>
           ) : !isAdmin ? (
-            <p className="text-xs text-cdm-fg-subtle">답변을 기다리고 있어요.</p>
+            <p className="text-xs text-cdm-fg-subtle">답변을 기다리고 있습니다.</p>
           ) : null}
 
           {/* 관리자: 답변 입력 */}

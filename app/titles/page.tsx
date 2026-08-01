@@ -8,7 +8,7 @@ import TitlesClient from './TitlesClient';
 
 export const metadata: Metadata = {
   title: '칭호',
-  description: '현재 보유자가 있는 공개 칭호 목록이에요.',
+  description: '현재 보유자가 있는 공개 칭호 목록입니다.',
   alternates: { canonical: '/titles' },
   robots: { index: true, follow: true },
 };
@@ -61,7 +61,7 @@ export default async function TitlesPage() {
 
         {titles.length === 0 ? (
           <EmptyState
-            title="아직 공개된 칭호가 없어요"
+            title="아직 공개된 칭호가 없습니다"
             description="첫 번째 보유자가 나타나면 여기에 표시됩니다."
           />
         ) : (

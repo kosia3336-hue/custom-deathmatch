@@ -196,7 +196,7 @@ export default async function RankingPage({ searchParams }: Props) {
             )}
 
             {rankings.length === 0 ? (
-              <EmptyState title="아직 집계된 랭킹이 없어요" />
+              <EmptyState title="아직 집계된 랭킹이 없습니다" />
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-cdm-fg-muted">

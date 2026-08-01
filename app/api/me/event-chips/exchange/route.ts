@@ -16,11 +16,11 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
-    return NextResponse.json({ error: '로그인이 필요해요.', code: 'unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '로그인이 필요합니다.', code: 'unauthorized' }, { status: 401 });
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' },
       { status: 503 },
     );
   }
@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as { chips?: number };
   } catch {
-    return NextResponse.json({ error: '잘못된 요청이에요.', code: 'invalid_request' }, { status: 400 });
+    return NextResponse.json({ error: '잘못된 요청입니다.', code: 'invalid_request' }, { status: 400 });
   }
   const chips = Math.trunc(Number(body.chips ?? 0));
   if (!Number.isFinite(chips) || chips < 10) {
     return NextResponse.json(
-      { error: '최소 10칩부터 환전할 수 있어요.', code: 'below_minimum' },
+      { error: '최소 10칩부터 환전할 수 있습니다.', code: 'below_minimum' },
       { status: 400 },
     );
   }
@@ -49,19 +49,19 @@ export async function POST(req: NextRequest) {
   if (error) {
     const msg = (error as { message?: string }).message ?? '';
     let code = 'internal_error';
-    let userMsg = '환전 중 오류가 발생했어요.';
+    let userMsg = '환전 중 오류가 발생했습니다.';
     let status = 500;
     if (msg.includes('below_minimum_exchange')) {
       code = 'below_minimum';
-      userMsg = '최소 10칩부터 환전할 수 있어요.';
+      userMsg = '최소 10칩부터 환전할 수 있습니다.';
       status = 400;
     } else if (msg.includes('insufficient_chips')) {
       code = 'insufficient_chips';
-      userMsg = '칩이 부족해요.';
+      userMsg = '칩이 부족합니다.';
       status = 409;
     } else if (msg.includes('chip_account_not_found')) {
       code = 'no_chip_account';
-      userMsg = '환전할 칩이 없어요.';
+      userMsg = '환전할 칩이 없습니다.';
       status = 409;
     }
     console.warn(`[api:event-chips:exchange] 실패 ${code} member=${member.id} chips=${chips} msg=${msg}`);

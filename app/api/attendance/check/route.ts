@@ -27,13 +27,13 @@ export async function POST() {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' as const },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' as const },
       { status: 401 },
     );
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' as const },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' as const },
       { status: 503 },
     );
   }
@@ -48,13 +48,13 @@ export async function POST() {
     const msg = (error as { message?: string }).message ?? '';
     if (msg.includes('already_checked_in')) {
       return NextResponse.json(
-        { error: '오늘은 이미 출석했어요.', code: 'already_checked_in' as const },
+        { error: '오늘은 이미 출석했습니다.', code: 'already_checked_in' as const },
         { status: 409 },
       );
     }
     console.warn(`[attendance:check] 실패 member=${member.id} msg=${msg}`);
     return NextResponse.json(
-      { error: '출석 처리 중 오류가 발생했어요.', code: 'internal_error' as const },
+      { error: '출석 처리 중 오류가 발생했습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }
@@ -62,7 +62,7 @@ export async function POST() {
   const row: CheckRpcRow | undefined = Array.isArray(data) ? data[0] : data;
   if (!row) {
     return NextResponse.json(
-      { error: '출석 응답이 비었어요.', code: 'internal_error' as const },
+      { error: '출석 응답이 비었습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }

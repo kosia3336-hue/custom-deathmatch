@@ -70,6 +70,12 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
+  verification: {
+    google: 'UxESEsMWsheNCtlgaP13lSYt5-52sNc8w4CXFjFPrzw',
+    other: {
+      'naver-site-verification': '63e940384c0b56ae3779d9de83e5d817ba01b5fa',
+    },
+  },
 };
 
 export const viewport: Viewport = {

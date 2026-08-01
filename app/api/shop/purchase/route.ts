@@ -39,22 +39,22 @@ interface PurchaseRpcRow {
 
 const ERROR_HTTP: Record<string, { code: PurchaseErrorCode; status: number; msg: string }> = {
   forbidden: { code: 'forbidden', status: 403, msg: '권한이 없습니다.' },
-  member_not_active: { code: 'member_not_active', status: 403, msg: '정상 회원만 구매할 수 있어요.' },
-  item_not_found: { code: 'item_not_found', status: 404, msg: '아이템을 찾을 수 없어요.' },
-  item_inactive: { code: 'item_inactive', status: 409, msg: '판매 종료된 아이템이에요.' },
+  member_not_active: { code: 'member_not_active', status: 403, msg: '정상 회원만 구매할 수 있습니다.' },
+  item_not_found: { code: 'item_not_found', status: 404, msg: '아이템을 찾을 수 없습니다.' },
+  item_inactive: { code: 'item_inactive', status: 409, msg: '판매 종료된 아이템입니다.' },
   item_not_available_yet: {
     code: 'item_not_available_yet',
     status: 409,
-    msg: '아직 판매 시작 전이에요.',
+    msg: '아직 판매 시작 전입니다.',
   },
-  item_expired: { code: 'item_expired', status: 409, msg: '판매가 종료됐어요.' },
-  out_of_stock: { code: 'out_of_stock', status: 409, msg: '방금 품절됐어요.' },
+  item_expired: { code: 'item_expired', status: 409, msg: '판매가 종료됐습니다.' },
+  out_of_stock: { code: 'out_of_stock', status: 409, msg: '방금 품절됐습니다.' },
   insufficient_balance: {
     code: 'insufficient_balance',
     status: 402,
-    msg: 'CDP가 부족해요.',
+    msg: 'CDP가 부족합니다.',
   },
-  already_owned: { code: 'already_owned', status: 409, msg: '이미 보유하고 있어요.' },
+  already_owned: { code: 'already_owned', status: 409, msg: '이미 보유하고 있습니다.' },
 };
 
 function mapRpcError(message: string | undefined | null): {
@@ -62,12 +62,12 @@ function mapRpcError(message: string | undefined | null): {
   status: number;
   msg: string;
 } {
-  if (!message) return { code: 'internal_error', status: 500, msg: '구매 중 오류가 발생했어요.' };
+  if (!message) return { code: 'internal_error', status: 500, msg: '구매 중 오류가 발생했습니다.' };
   // PostgREST 는 RAISE EXCEPTION 메시지를 그대로 message 로 노출
   for (const key of Object.keys(ERROR_HTTP)) {
     if (message.includes(key)) return ERROR_HTTP[key]!;
   }
-  return { code: 'internal_error', status: 500, msg: '구매 중 오류가 발생했어요.' };
+  return { code: 'internal_error', status: 500, msg: '구매 중 오류가 발생했습니다.' };
 }
 
 /**
@@ -78,13 +78,13 @@ export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' as const },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' as const },
       { status: 401 },
     );
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' as const },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' as const },
       { status: 503 },
     );
   }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     body = (await req.json()) as PurchaseBody;
   } catch {
     return NextResponse.json(
-      { error: '잘못된 요청이에요.', code: 'invalid_request' as const },
+      { error: '잘못된 요청입니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   const quantity = Math.floor(Number(body.quantity ?? 1));
   if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
     return NextResponse.json(
-      { error: '수량은 1~99개까지 가능해요.', code: 'invalid_request' as const },
+      { error: '수량은 1~99개까지 가능합니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       if (gm) {
         return NextResponse.json(
           {
-            error: '이미 길드에 가입되어 있어 창설권을 구매할 수 없어요.',
+            error: '이미 길드에 가입되어 있어 창설권을 구매할 수 없습니다.',
             code: 'forbidden' as const,
           },
           { status: 409 },
@@ -213,15 +213,15 @@ export async function POST(req: NextRequest) {
       if (epErr) {
         const msg = (epErr as { message?: string }).message ?? '';
         let code: PurchaseErrorCode = 'internal_error';
-        let userMsg = '구매 중 오류가 발생했어요.';
+        let userMsg = '구매 중 오류가 발생했습니다.';
         let status = 500;
         if (msg.includes('insufficient_balance')) {
           code = 'insufficient_balance';
-          userMsg = 'CDP가 부족해요.';
+          userMsg = 'CDP가 부족합니다.';
           status = 402;
         } else if (msg.includes('item_not_found')) {
           code = 'item_not_found';
-          userMsg = '아이템을 찾을 수 없어요.';
+          userMsg = '아이템을 찾을 수 없습니다.';
           status = 404;
         }
         console.warn(
@@ -282,7 +282,7 @@ export async function POST(req: NextRequest) {
   const row: PurchaseRpcRow | undefined = Array.isArray(data) ? data[0] : data;
   if (!row) {
     return NextResponse.json(
-      { error: '구매 응답이 비었어요.', code: 'internal_error' as const },
+      { error: '구매 응답이 비었습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }

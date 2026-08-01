@@ -1,15 +1,17 @@
-'use client';
-
-import { useState } from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { GAME_RULES, GAME_CATEGORIES } from '@/lib/gameRules';
-import { GameRulesModal } from '@/components/game/GameRulesModal';
 
 /** 컬럼별 시작 오프셋(px) — 벽돌처럼 엇갈리고 삐죽삐죽한(마감 덜 된) 느낌 */
 const COLUMN_OFFSET = [0, 28, 16, 36, 10, 30, 20];
 
+/**
+ * 게임 룰 목록 — 각 칸은 개별 룰 페이지(/rules/[gameId])로 이동하는 링크.
+ * 모달이 아닌 실제 페이지 링크라 검색엔진이 룰 본문까지 수집할 수 있다.
+ */
 export default function RulesClient() {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const lineClass = 'border-cdm-fg';
+  const headingClass = 'text-cdm-fg';
 
   return (
     <>
@@ -34,40 +36,42 @@ export default function RulesClient() {
             <div
               key={`${cat}-${ci}`}
               className={cn(
-                'flex min-w-0 flex-1 flex-col border-cdm-fg',
+                'flex min-w-0 flex-1 flex-col',
+                lineClass,
                 'border-l-2',
                 isLast && 'border-r-2',
               )}
             >
               {/* 맨 위 칸: 갈래 이름 (상단 선 없음) */}
-              <div className="px-1 py-2.5 text-center text-xs font-extrabold text-cdm-fg sm:text-sm">
+              <div
+                className={cn(
+                  'px-1 py-2.5 text-center text-xs font-extrabold sm:text-sm',
+                  headingClass,
+                )}
+              >
                 {cat}
               </div>
 
               {/* 엇갈림 오프셋 */}
               <div style={{ marginTop: COLUMN_OFFSET[ci] ?? 0 }}>
                 {games.map((g, j) => (
-                  <button
+                  <Link
                     key={g.id}
-                    type="button"
-                    onClick={() => setOpenId(g.id)}
+                    href={`/rules/${g.id}`}
                     style={{ backgroundColor: `hsl(${hue} 58% ${87 - (j % 3) * 3}%)` }}
-                    className="flex min-h-[84px] w-full items-center justify-center overflow-hidden border-t-2 border-cdm-fg px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-cdm-fg break-all transition-[filter] hover:brightness-95 active:brightness-90 sm:min-h-[104px] sm:px-1.5 sm:text-sm sm:break-keep"
+                    className={cn(
+                      'flex min-h-[84px] w-full items-center justify-center overflow-hidden border-t-2 px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-cdm-fg break-all transition-[filter] hover:brightness-95 active:brightness-90 sm:min-h-[104px] sm:px-1.5 sm:text-sm sm:break-keep',
+                      lineClass,
+                    )}
                   >
                     {g.name}
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
           );
         })}
       </div>
-
-      <GameRulesModal
-        gameId={openId}
-        open={openId !== null}
-        onClose={() => setOpenId(null)}
-      />
     </>
   );
 }

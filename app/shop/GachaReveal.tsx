@@ -57,7 +57,7 @@ export default function GachaReveal({
             transition={{ duration: 0.5 }}
           >
           </motion.span>
-          <p className="text-sm text-cdm-fg-muted">아쉽게도 꽝이에요</p>
+          <p className="text-sm text-cdm-fg-muted">아쉽게도 꽝입니다</p>
         </div>
       );
     }

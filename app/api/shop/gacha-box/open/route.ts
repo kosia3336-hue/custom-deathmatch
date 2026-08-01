@@ -22,13 +22,13 @@ export async function POST() {
   const member = await getActiveMember();
   if (!member) {
     return NextResponse.json(
-      { error: '로그인이 필요해요.', code: 'unauthorized' as const },
+      { error: '로그인이 필요합니다.', code: 'unauthorized' as const },
       { status: 401 },
     );
   }
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json(
-      { error: '서비스 설정이 없어요.', code: 'service_unavailable' as const },
+      { error: '서비스 설정이 없습니다.', code: 'service_unavailable' as const },
       { status: 503 },
     );
   }
@@ -43,13 +43,13 @@ export async function POST() {
     const msg = (error as { message?: string }).message ?? '';
     if (msg.includes('no_box')) {
       return NextResponse.json(
-        { error: '개봉할 뽑기 박스가 없어요.', code: 'no_box' as const },
+        { error: '개봉할 뽑기 박스가 없습니다.', code: 'no_box' as const },
         { status: 409 },
       );
     }
     console.warn(`[gacha-box:open] 실패 member=${member.id} msg=${msg}`);
     return NextResponse.json(
-      { error: '개봉 중 오류가 발생했어요.', code: 'internal_error' as const },
+      { error: '개봉 중 오류가 발생했습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }
@@ -57,7 +57,7 @@ export async function POST() {
   const row: OpenRpcRow | undefined = Array.isArray(data) ? data[0] : data;
   if (!row) {
     return NextResponse.json(
-      { error: '개봉 응답이 비었어요.', code: 'internal_error' as const },
+      { error: '개봉 응답이 비었습니다.', code: 'internal_error' as const },
       { status: 500 },
     );
   }

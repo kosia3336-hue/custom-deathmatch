@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const member = await getActiveMember();
   if (!member) {
-    return NextResponse.json({ error: '로그인이 필요해요.', code: 'unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: '로그인이 필요합니다.', code: 'unauthorized' }, { status: 401 });
   }
 
   const sb = await getServerSupabase();
@@ -24,7 +24,7 @@ export async function GET() {
   const banner = bannerRes.data as { name?: string; price_cdp?: number; is_active?: boolean } | null;
 
   if (banner && banner.is_active === false) {
-    return NextResponse.json({ error: '뽑기가 비활성화됐어요.', code: 'gacha_inactive' }, { status: 404 });
+    return NextResponse.json({ error: '뽑기가 비활성화됐습니다.', code: 'gacha_inactive' }, { status: 404 });
   }
 
   const pool = buildPoolResponse(ctx, balance, banner?.name ?? 'CDP 뽑기');

@@ -6,6 +6,7 @@ import { Card } from '@/components/cdm/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import RankMatchHistoryPanel from './RankMatchHistoryPanel';
 
 export interface AdminSeasonRow {
   id: number;
@@ -51,6 +52,8 @@ export default function AdminRankTools({
 
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<SearchRow | null>(null);
+  const [matchOpen, setMatchOpen] = useState(false);
+  const [matchTarget, setMatchTarget] = useState<SearchRow | null>(null);
   const [deltaStr, setDeltaStr] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -279,18 +282,32 @@ export default function AdminRankTools({
                       {row.placementDone ? `${row.winStreak ?? 0}연승` : '배치전'}
                     </td>
                     <td className="py-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={!activeSeasonId || row.missingStats}
-                        onClick={() => {
-                          setAdjustTarget(row);
-                          setAdjustOpen(true);
-                        }}
-                      >
-                        수동 조정
-                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={!activeSeasonId || row.missingStats}
+                          onClick={() => {
+                            setAdjustTarget(row);
+                            setAdjustOpen(true);
+                          }}
+                        >
+                          수동 조정
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={!activeSeasonId}
+                          onClick={() => {
+                            setMatchTarget(row);
+                            setMatchOpen(true);
+                          }}
+                        >
+                          전적
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -330,6 +347,20 @@ export default function AdminRankTools({
           ))}
         </div>
       </section>
+
+      <Modal
+        open={matchOpen}
+        onClose={() => setMatchOpen(false)}
+        title="최근 전적 · 삭제"
+      >
+        {matchTarget ? (
+          <RankMatchHistoryPanel
+            memberId={matchTarget.memberId}
+            nickname={matchTarget.nickname}
+            onChanged={() => void runSearch()}
+          />
+        ) : null}
+      </Modal>
 
       <Modal open={adjustOpen} onClose={() => !busy && setAdjustOpen(false)} title="수동 RP 조정">
         {adjustTarget ? (

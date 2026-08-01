@@ -33,26 +33,26 @@ interface Body {
 
 /** RPC RAISE EXCEPTION 메시지 → 사용자 메시지 */
 const ERROR_MSG: Record<string, { status: number; msg: string }> = {
-  already_in_guild: { status: 409, msg: '이미 길드에 가입되어 있어요.' },
-  no_charter: { status: 402, msg: '길드 창설권이 필요해요. 상점에서 구매할 수 있어요.' },
-  name_taken: { status: 409, msg: '이미 사용 중인 길드 이름이에요.' },
-  invalid_name_chars: { status: 400, msg: '길드 이름은 영어·한글만 사용할 수 있어요. (2~20자)' },
-  guild_not_found: { status: 404, msg: '길드를 찾을 수 없어요.' },
-  guild_full: { status: 409, msg: '길드 정원이 가득 찼어요.' },
-  already_requested: { status: 409, msg: '이미 가입 신청 중이에요.' },
-  request_not_found: { status: 404, msg: '신청을 찾을 수 없어요.' },
-  forbidden: { status: 403, msg: '길드장·부길드장만 할 수 있어요.' },
+  already_in_guild: { status: 409, msg: '이미 길드에 가입되어 있습니다.' },
+  no_charter: { status: 402, msg: '길드 창설권이 필요합니다. 상점에서 구매할 수 있습니다.' },
+  name_taken: { status: 409, msg: '이미 사용 중인 길드 이름입니다.' },
+  invalid_name_chars: { status: 400, msg: '길드 이름은 영어·한글만 사용할 수 있습니다. (2~20자)' },
+  guild_not_found: { status: 404, msg: '길드를 찾을 수 없습니다.' },
+  guild_full: { status: 409, msg: '길드 정원이 가득 찼습니다.' },
+  already_requested: { status: 409, msg: '이미 가입 신청 중입니다.' },
+  request_not_found: { status: 404, msg: '신청을 찾을 수 없습니다.' },
+  forbidden: { status: 403, msg: '길드장·부길드장만 할 수 있습니다.' },
   owner_must_disband_last: {
     status: 409,
-    msg: '길드장은 다른 길드원이 모두 탈퇴한 뒤에 해체할 수 있어요.',
+    msg: '길드장은 다른 길드원이 모두 탈퇴한 뒤에 해체할 수 있습니다.',
   },
-  capacity_max: { status: 409, msg: '더 이상 정원을 늘릴 수 없어요.' },
-  insufficient_guild_points: { status: 402, msg: '길드 포인트가 부족해요.' },
-  buff_max_level: { status: 409, msg: '버프가 이미 최대 레벨이에요.' },
-  cannot_kick_self: { status: 400, msg: '본인은 추방할 수 없어요. 탈퇴를 이용해 주세요.' },
-  cannot_kick_owner: { status: 403, msg: '길드장은 추방할 수 없어요.' },
-  cannot_target_self: { status: 400, msg: '본인은 대상으로 지정할 수 없어요.' },
-  member_not_found: { status: 404, msg: '길드원을 찾을 수 없어요.' },
+  capacity_max: { status: 409, msg: '더 이상 정원을 늘릴 수 없습니다.' },
+  insufficient_guild_points: { status: 402, msg: '길드 포인트가 부족합니다.' },
+  buff_max_level: { status: 409, msg: '버프가 이미 최대 레벨입니다.' },
+  cannot_kick_self: { status: 400, msg: '본인은 추방할 수 없습니다. 탈퇴를 이용해 주세요.' },
+  cannot_kick_owner: { status: 403, msg: '길드장은 추방할 수 없습니다.' },
+  cannot_target_self: { status: 400, msg: '본인은 대상으로 지정할 수 없습니다.' },
+  member_not_found: { status: 404, msg: '길드원을 찾을 수 없습니다.' },
   description_too_long: { status: 400, msg: '설명은 200자 이내로 입력해 주세요.' },
 };
 
@@ -63,7 +63,7 @@ function mapError(message: string | undefined | null) {
       if (message.includes(key)) return ERROR_MSG[key]!;
     }
   }
-  return { status: 500, msg: '처리 중 오류가 발생했어요.' };
+  return { status: 500, msg: '처리 중 오류가 발생했습니다.' };
 }
 
 /** 길드 가입/탈퇴/추방 등으로 소속이 바뀐 회원의 접속 중인 소켓에 즉시 반영 */
@@ -88,17 +88,17 @@ async function notifyGuildMembershipChanged(memberId: string): Promise<void> {
 export async function POST(req: NextRequest) {
   const member = await getActiveMember();
   if (!member) {
-    return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   }
   if (!isSupabaseServiceRoleConfigured()) {
-    return NextResponse.json({ error: '서비스 설정이 없어요.' }, { status: 503 });
+    return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
   let body: Body;
   try {
     body = (await req.json()) as Body;
   } catch {
-    return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
   }
 
   const sb = getSupabaseServiceRole();
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       case 'create': {
         const name = (body.name ?? '').trim();
         if (name.length < 2 || name.length > 20) {
-          return NextResponse.json({ error: '길드 이름은 2~20자예요.' }, { status: 400 });
+          return NextResponse.json({ error: '길드 이름은 2~20자입니다.' }, { status: 400 });
         }
         const description = (body.description ?? '').trim().slice(0, 200);
         const { data, error } = await rpc('create_guild', {
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, data });
       }
       case 'join': {
-        if (!body.guildId) return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+        if (!body.guildId) return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
         const { error } = await rpc('request_guild_join', {
           p_member: member.id,
           p_guild: body.guildId,
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
       case 'cancel_join': {
-        if (!body.requestId) return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+        if (!body.requestId) return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
         const { error } = await rpc('cancel_guild_join', {
           p_member: member.id,
           p_request: body.requestId,
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       }
       case 'decide': {
         if (!body.requestId || typeof body.approve !== 'boolean') {
-          return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+          return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
         }
         // 승인 대상 회원 id 를 미리 조회 (승인 성공 시 그 회원 세션에도 즉시 반영해야 함)
         const { data: reqRow } = await sb
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
       case 'kick': {
-        if (!body.targetMemberId) return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+        if (!body.targetMemberId) return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
         const { error } = await rpc('kick_guild_member', {
           p_actor: member.id,
           p_target: body.targetMemberId,
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
       }
       case 'set_vice': {
         if (!body.targetMemberId || typeof body.promote !== 'boolean') {
-          return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+          return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
         }
         const { error } = await rpc('set_guild_vice', {
           p_owner: member.id,
@@ -269,10 +269,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
       default:
-        return NextResponse.json({ error: '잘못된 요청이에요.' }, { status: 400 });
+        return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
     }
   } catch (err) {
     console.error('[guild:action] 예외:', body?.action, (err as Error).message, (err as Error).stack?.split('\n')[1]);
-    return NextResponse.json({ error: '처리 중 오류가 발생했어요.' }, { status: 500 });
+    return NextResponse.json({ error: '처리 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

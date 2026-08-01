@@ -11,10 +11,10 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const member = await getActiveMember();
   if (!member) {
-    return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   }
   if (!isSupabaseServiceRoleConfigured()) {
-    return NextResponse.json({ error: '서비스 설정이 없어요.' }, { status: 503 });
+    return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

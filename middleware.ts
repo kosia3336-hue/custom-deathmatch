@@ -45,11 +45,14 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 로비(/)와 랭킹(/ranking), 공지(/notice), 약관(/legal/*) 은 로그인 없이도 볼 수 있다.
-  // 방 입장·마이페이지 등 로그인이 필요한 액션은 각 페이지/컴포넌트에서 /login 으로 보낸다.
+  // 설명 페이지(/guide), 랭킹(/ranking), 공지(/notice), 룰(/rules), 약관(/legal/*) 등은
+  // 로그인 없이도 볼 수 있다. 홈(/)은 공개이며 app/page.tsx 가 소개 화면을 렌더한다
+  // (리다이렉트로 보내면 크롤러에게 홈이 '리다이렉트 페이지'로 분류돼 색인에서 빠진다).
+  // 방 입장·마이페이지 등 로그인이 필요한 액션은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
     const isPublic =
       pathname === '/' ||
+      pathname === '/guide' ||
       pathname === '/login' ||
       pathname.startsWith('/auth/') ||
       pathname === '/banned' ||

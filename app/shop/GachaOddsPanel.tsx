@@ -18,7 +18,7 @@ export default function GachaOddsPanel({ pool }: Props) {
       aria-label="뽑기 확률표"
     >
       <p className="mb-3 text-xs text-cdm-fg-muted">
-        아래는 <strong className="text-cdm-fg">현재 기준</strong> 당첨 가능 확률이에요. 보유·소진 항목은 취소선으로 표시됩니다.
+        아래는 <strong className="text-cdm-fg">현재 기준</strong> 당첨 가능 확률입니다. 보유·소진 항목은 취소선으로 표시됩니다.
       </p>
 
       <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3">

@@ -71,7 +71,7 @@ export default function SupportTabClient({
           </Button>
         </div>
         {inquiriesTotalCount === 0 ? (
-          <EmptyState title="보낸 문의가 없어요" />
+          <EmptyState title="보낸 문의가 없습니다" />
         ) : (
           <>
             <div className="flex flex-col gap-2">
@@ -108,7 +108,7 @@ export default function SupportTabClient({
           )}
         </h2>
         {reportsTotalCount === 0 ? (
-          <EmptyState title="보낸 신고가 없어요" />
+          <EmptyState title="보낸 신고가 없습니다" />
         ) : (
           <>
             <div className="flex flex-col gap-2">

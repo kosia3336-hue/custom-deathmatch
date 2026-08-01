@@ -22,7 +22,7 @@ const NICKNAME_PATTERN = /^[A-Za-z0-9가-힣]{2,8}$/;
 function localValidate(nick: string): string | null {
   if (nick.length < 2) return '2자 이상 입력해 주세요';
   if (nick.length > 8) return '8자 이내로 입력해 주세요';
-  if (!NICKNAME_PATTERN.test(nick)) return '한글, 영문, 숫자만 사용할 수 있어요';
+  if (!NICKNAME_PATTERN.test(nick)) return '한글, 영문, 숫자만 사용할 수 있습니다';
   return null;
 }
 
@@ -51,7 +51,7 @@ export default function ProfileForm() {
       if (ok === true) {
         setCheck({ kind: 'available' });
       } else {
-        setCheck({ kind: 'unavailable', reason: '사용할 수 없거나 이미 사용 중인 닉네임이에요' });
+        setCheck({ kind: 'unavailable', reason: '사용할 수 없거나 이미 사용 중인 닉네임입니다' });
       }
     } catch (e) {
       setCheck({ kind: 'unavailable', reason: (e as Error).message });

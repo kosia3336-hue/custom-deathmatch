@@ -144,14 +144,14 @@ export default function ShopClient({
         const e = json as PurchaseError;
         switch (e.code) {
           case 'insufficient_balance':
-            toast.error(`CDP 가 부족해요. 필요 ${formatCdp(expected)} / 보유 ${formatCdp(balance)}`);
+            toast.error(`CDP 가 부족합니다. 필요 ${formatCdp(expected)} / 보유 ${formatCdp(balance)}`);
             return false;
           case 'out_of_stock':
-            toast.error('방금 품절됐어요.');
+            toast.error('방금 품절됐습니다.');
             setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, stock: 0 } : it)));
             return true;
           case 'already_owned':
-            toast.error('이미 보유하고 있어요.');
+            toast.error('이미 보유하고 있습니다.');
             setOwned((prev) => {
               const n = new Set(prev);
               n.add(item.id);
@@ -160,11 +160,11 @@ export default function ShopClient({
             return true;
           case 'item_inactive':
           case 'item_expired':
-            toast.error('판매가 종료된 아이템이에요.');
+            toast.error('판매가 종료된 아이템입니다.');
             setItems((prev) => prev.filter((it) => it.id !== item.id));
             return true;
           default:
-            toast.error(e.error ?? '구매에 실패했어요.');
+            toast.error(e.error ?? '구매에 실패했습니다.');
             return false;
         }
       }
@@ -217,7 +217,7 @@ export default function ShopClient({
       void dispPrice;
       return true;
     } catch {
-      toast.error('네트워크 오류가 발생했어요.');
+      toast.error('네트워크 오류가 발생했습니다.');
       return false;
     }
   }
@@ -226,7 +226,7 @@ export default function ShopClient({
     <section className="flex flex-col gap-4">
       {hasMerchantDiscount && (
         <div className="rounded-cdm-md border border-cdm-primary/40 bg-cdm-primary/10 px-3 py-2 text-sm text-cdm-fg">
-          <strong>최초의 거상</strong> 효과로 모든 상점 아이템이 <b>10% 할인</b> 적용 중이에요. (시즌 종료 시까지)
+          <strong>최초의 거상</strong> 효과로 모든 상점 아이템이 <b>10% 할인</b> 적용 중입니다. (시즌 종료 시까지)
         </div>
       )}
 
@@ -240,8 +240,8 @@ export default function ShopClient({
         <ShopGachaTab balance={balance} onOpen={() => setGachaOpen(true)} />
       ) : visibleItems.length === 0 ? (
         <EmptyState
-          title={activeTab === 'all' ? '아직 판매 중인 아이템이 없어요' : '이 카테고리에는 아이템이 없어요'}
-          description={activeTab === 'all' ? '곧 첫 아이템이 등록될 예정이에요!' : undefined}
+          title={activeTab === 'all' ? '아직 판매 중인 아이템이 없습니다' : '이 카테고리에는 아이템이 없습니다'}
+          description={activeTab === 'all' ? '곧 첫 아이템이 등록될 예정입니다!' : undefined}
         />
       ) : (
         <ul role="list" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">

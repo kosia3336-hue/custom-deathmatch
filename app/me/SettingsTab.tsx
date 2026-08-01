@@ -193,30 +193,30 @@ function NicknameModal({
           if (e.code === 'cooldown') {
             toast.error(
               ticketCount > 0
-                ? '쿨다운이 남아있어요. "변경권 사용"을 체크하면 우회할 수 있어요.'
-                : '닉네임은 30일에 한 번만 변경할 수 있어요.',
+                ? '쿨다운이 남아있습니다. "변경권 사용"을 체크하면 우회할 수 있습니다.'
+                : '닉네임은 30일에 한 번만 변경할 수 있습니다.',
             );
             return;
           }
           if (e.code === 'no_ticket') {
-            toast.error('닉네임 변경권이 없어요.');
+            toast.error('닉네임 변경권이 없습니다.');
             return;
           }
           if (e.code === 'invalid_nickname') {
-            toast.error('사용할 수 없는 닉네임이에요.');
+            toast.error('사용할 수 없는 닉네임입니다.');
             return;
           }
-          toast.error(e.error ?? '변경에 실패했어요.');
+          toast.error(e.error ?? '변경에 실패했습니다.');
           return;
         }
 
         if (json.usedTicket) {
           setOne('nickname_change', json.ticketCountAfter);
           toast.success(
-            `닉네임이 변경됐어요. (변경권 사용, 잔여 ${json.ticketCountAfter}개)`,
+            `닉네임이 변경됐습니다. (변경권 사용, 잔여 ${json.ticketCountAfter}개)`,
           );
         } else {
-          toast.success('닉네임이 변경됐어요.');
+          toast.success('닉네임이 변경됐습니다.');
         }
         onClose();
         onDone();
@@ -268,7 +268,7 @@ function NicknameModal({
         </span>
       </label>
       <p className="mt-2 text-xs text-cdm-fg-muted">
-        ※ 가입 후 1분 이내, 또는 마지막 변경 후 30일이 지났다면 변경권 없이 변경할 수 있어요.
+        ※ 가입 후 1분 이내, 또는 마지막 변경 후 30일이 지났다면 변경권 없이 변경할 수 있습니다.
       </p>
     </Modal>
   );

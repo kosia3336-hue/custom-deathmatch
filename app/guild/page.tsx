@@ -18,7 +18,7 @@ export default async function GuildPage() {
       <div className="flex min-h-screen flex-col bg-cdm-page">
         <GNB member={member} />
         <main className="mx-auto w-full max-w-4xl px-4 py-10 text-sm text-cdm-fg-muted">
-          서비스 설정이 없어요.
+          서비스 설정이 없습니다.
         </main>
       </div>
     );

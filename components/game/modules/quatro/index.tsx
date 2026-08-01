@@ -140,7 +140,7 @@ export default function QuatroGame() {
         {phase === 'exchange' &&
           (isMyTurn
             ? gameData.mustExchangeRemaining > 0
-              ? `마지막 교환! 남은 가상 플레이어 ${gameData.mustExchangeRemaining}명과 모두 교환해야 해요`
+              ? `마지막 교환! 남은 가상 플레이어 ${gameData.mustExchangeRemaining}명과 모두 교환해야 합니다`
               : '교환할 카드와 가상 플레이어를 고르세요 (또는 스탑)'
             : '상대의 교환 차례…')}
         {(phase === 'reveal' || phase === 'finished') && '최종 공개!'}
@@ -298,7 +298,7 @@ export default function QuatroGame() {
           {phase === 'exchange' && isMyTurn && myClosedCards.length > 0 && !selectedCardId && (
             <p className="mt-1.5 text-[11px] text-cdm-fg-subtle">
               넘길 카드(비공개)를 먼저 고른 뒤 가상 플레이어를 선택하세요. 넘긴 카드는 공개되고, 받는
-              카드는 비공개예요.
+              카드는 비공개입니다.
             </p>
           )}
         </section>

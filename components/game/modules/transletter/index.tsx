@@ -120,7 +120,7 @@ export default function TransletterGame() {
 
       {gameData.phase === 'playing' && (
         <p className="text-center text-xs text-cdm-fg-subtle">
-          각 글자에서 자음/모음 하나가 바뀌었어요. 주제를 보고 원래 단어를 맞혀{' '}
+          각 글자에서 자음/모음 하나가 바뀌었습니다. 주제를 보고 원래 단어를 맞혀{' '}
           {gameData.isSolo ? '3문제를 모두 완성하세요!' : '3문제를 먼저 완성하세요!'}
         </p>
       )}
@@ -190,7 +190,7 @@ export default function TransletterGame() {
 
       {!isPlayer && gameData.phase === 'playing' && (
         <p className="text-center text-sm text-cdm-fg-muted">
-          {gameData.isSolo ? '관전 중 — 혼자 3문제를 풀고 있어요.' : '관전 중 — 먼저 3문제 푸는 사람이 이겨요.'}
+          {gameData.isSolo ? '관전 중 — 혼자 3문제를 풀고 있습니다.' : '관전 중 — 먼저 3문제 푸는 사람이 이겨요.'}
         </p>
       )}
 

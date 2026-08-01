@@ -65,8 +65,10 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
           <Logo size="md" className="h-5 w-auto sm:h-8" />
         </Link>
 
+        {/* 비로그인 화면(소개 페이지)에서는 내부 메뉴를 감춘다 — 로고와 로그인만 노출 */}
         <nav className="hidden gap-1 sm:flex">
-          {NAV_ITEMS.map((it) => (
+          {member &&
+            NAV_ITEMS.map((it) => (
             <Link
               key={it.href}
               href={it.href}
@@ -77,14 +79,14 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
                   : 'text-cdm-ink-fg-muted hover:text-white hover:bg-white/10',
               )}
             >
-              {it.label}
-              {it.href === '/notice' && unreadNoticeCount > 0 && (
-                <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
-                  {unreadNoticeCount > 9 ? '9+' : unreadNoticeCount}
-                </span>
-              )}
-            </Link>
-          ))}
+                {it.label}
+                {it.href === '/notice' && unreadNoticeCount > 0 && (
+                  <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
+                    {unreadNoticeCount > 9 ? '9+' : unreadNoticeCount}
+                  </span>
+                )}
+              </Link>
+            ))}
           {member &&
             MEMBER_NAV_ITEMS.map((it) => (
               <Link

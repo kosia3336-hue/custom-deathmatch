@@ -49,7 +49,7 @@ export default function GachaDrawCeremony({ reducedMotion }: Props) {
             />
           ))}
       </div>
-      <p className="text-sm font-medium text-cdm-fg">뽑는 중이에요…</p>
+      <p className="text-sm font-medium text-cdm-fg">뽑는 중입니다…</p>
     </motion.div>
   );
 }

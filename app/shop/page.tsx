@@ -11,7 +11,7 @@ import ShopClient from './ShopClient';
 
 export const metadata: Metadata = {
   title: '상점',
-  description: 'CDP 로 다양한 아이템을 구매할 수 있어요.',
+  description: 'CDP 로 다양한 아이템을 구매할 수 있습니다.',
 };
 
 export const dynamic = 'force-dynamic';

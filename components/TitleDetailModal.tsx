@@ -113,7 +113,7 @@ export function TitleDetailModal({
             <p className="text-sm text-cdm-fg">{conditionText}</p>
           ) : (
             <p className="text-sm text-cdm-fg-muted italic">
-              조건이 공개되어 있지 않은 칭호예요.
+              조건이 공개되어 있지 않은 칭호입니다.
             </p>
           )}
         </div>
@@ -129,7 +129,7 @@ export function TitleDetailModal({
           ) : error ? (
             <p className="text-sm text-cdm-accent">보유자 조회 실패: {error}</p>
           ) : holders.length === 0 ? (
-            <p className="text-sm text-cdm-fg-muted">아직 보유자가 없어요.</p>
+            <p className="text-sm text-cdm-fg-muted">아직 보유자가 없습니다.</p>
           ) : (
             <ul className="flex flex-col gap-1.5 max-h-[min(50vh,320px)] overflow-y-auto pr-1">
               {holders.map((h) => (

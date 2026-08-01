@@ -53,7 +53,7 @@ export default function ShopGachaModal({
       setPool(p);
       onBalanceChange(p.balance);
     } catch {
-      toast.error('확률표를 불러오지 못했어요.');
+      toast.error('확률표를 불러오지 못했습니다.');
     } finally {
       setLoadingPool(false);
     }
@@ -81,11 +81,11 @@ export default function ShopGachaModal({
       } catch (e) {
         const code = (e as { code?: string }).code;
         if (code === 'insufficient_balance') {
-          toast.error('CDP가 부족해요.');
+          toast.error('CDP가 부족합니다.');
         } else if (code === 'insufficient_ticket') {
-          toast.error('뽑기권이 없어요.');
+          toast.error('뽑기권이 없습니다.');
         } else {
-          toast.error((e as Error).message || '뽑기에 실패했어요.');
+          toast.error((e as Error).message || '뽑기에 실패했습니다.');
         }
       } finally {
         // 잔액·확률표를 갱신해 두어야 이어 뽑기에서 정확한 상태로 판단한다.
@@ -140,7 +140,7 @@ export default function ShopGachaModal({
           ) : pool ? (
             <GachaOddsPanel pool={pool} />
           ) : (
-            <p className="py-8 text-center text-sm text-cdm-fg-muted">뽑기 정보를 불러올 수 없어요.</p>
+            <p className="py-8 text-center text-sm text-cdm-fg-muted">뽑기 정보를 불러올 수 없습니다.</p>
           )}
 
           <div className="sticky bottom-0 -mx-5 mt-4 border-t border-cdm-border bg-cdm-bg/95 px-5 py-4 backdrop-blur">
@@ -231,7 +231,7 @@ export default function ShopGachaModal({
 
             {affordable < count && (
               <p className="mt-2 text-center text-xs text-cdm-fg-muted">
-                현재 잔액·뽑기권으로는 최대 {affordable}회까지 뽑을 수 있어요.
+                현재 잔액·뽑기권으로는 최대 {affordable}회까지 뽑을 수 있습니다.
               </p>
             )}
           </div>

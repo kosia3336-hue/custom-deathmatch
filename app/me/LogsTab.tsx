@@ -98,7 +98,7 @@ export default async function LogsTab({
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
 
   if (totalCount === 0) {
-    return <EmptyState title="아직 게임 로그가 없어요" />;
+    return <EmptyState title="아직 게임 로그가 없습니다" />;
   }
 
   return (

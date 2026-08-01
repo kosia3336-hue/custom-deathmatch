@@ -24,7 +24,7 @@ export async function POST(
 ) {
   const admin = await requireAdminMember();
   if (!admin) return err('권한이 없습니다.', 403);
-  if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없어요.', 503);
+  if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없습니다.', 503);
 
   const { itemId } = await params;
   if (!UUID_RE.test(itemId)) return err('잘못된 itemId');

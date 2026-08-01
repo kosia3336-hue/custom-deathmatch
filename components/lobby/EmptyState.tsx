@@ -25,7 +25,7 @@ export default function EmptyState({ hasFilter, onCreate }: Props) {
         height={115}
         className="mb-4 h-auto w-40"
       />
-      <p className="text-lg font-medium text-cdm-fg">아직 만들어진 방이 없어요!</p>
+      <p className="text-lg font-medium text-cdm-fg">아직 만들어진 방이 없습니다!</p>
       <p className="mt-1 text-sm text-cdm-fg-muted">첫 번째 방을 만들어 보세요.</p>
       <Button className="mt-6" onClick={onCreate}>방 만들기</Button>
     </div>

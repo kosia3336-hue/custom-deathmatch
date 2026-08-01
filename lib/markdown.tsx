@@ -190,6 +190,23 @@ function parseBlocks(input: string): Block[] {
       buf.push(lines[i]);
       i++;
     }
+
+    /*
+      전진 보장 가드.
+
+      위 while 의 '제외 조건'은 각 블록 핸들러의 정규식보다 느슨하다.
+      그래서 어느 핸들러에도 소비되지 않으면서 단락에도 못 들어가는 줄이 존재한다.
+        - "### "  : 헤딩 핸들러는 내용(.+?)을 요구해 불일치, 제외 조건 /^#{1,6}\s+/ 에는 일치
+        - "```c++": 코드펜스 핸들러는 [a-zA-Z0-9_-]* 만 허용해 불일치, 제외 조건 /^```/ 에는 일치
+      이 경우 buf 가 비어 i 가 전진하지 못하고, 바깥 while 이 빈 단락을 무한히 쌓아
+      힙을 소진시킨다(JavaScript heap out of memory).
+      한 줄도 소비하지 못했다면 현재 줄을 일반 텍스트로 처리하고 반드시 전진시킨다.
+    */
+    if (buf.length === 0) {
+      buf.push(lines[i]);
+      i++;
+    }
+
     blocks.push({ kind: 'p', text: buf.join('\n') });
   }
 

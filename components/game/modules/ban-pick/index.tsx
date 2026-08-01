@@ -645,7 +645,7 @@ export default function BanPickGame() {
           {isMyUnbanTurn ? (
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-semibold text-emerald-700">
-                밴 삭제 — 상대 밴을 1개 취소할 수 있어요
+                밴 삭제 — 상대 밴을 1개 취소할 수 있습니다
               </span>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 text-xs text-gray-400">
