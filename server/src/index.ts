@@ -9,6 +9,7 @@ import { registerGameRoutes, initGames, getGames } from './routes/games.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { setupSocketHandlers } from './socket/index.js';
 import { preloadBiasTitlesCache } from './shop/biasTitlesCache.js';
+import { roomStore } from './store/rooms.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -17,7 +18,19 @@ async function main() {
 
   await registerGameRoutes(app);
 
-  app.get('/health', async () => ({ status: 'ok', timestamp: Date.now() }));
+  // 배포 스크립트가 "지금 재시작해도 되는가"를 여기서 판단한다. 이 서버는 방
+  // 상태를 메모리에 들고 있어, 재시작하면 진행 중이던 게임이 그대로 사라진다.
+  // scripts/deploy/release.sh 는 activeRooms 가 0 이 될 때까지 기다렸다가 올린다.
+  app.get('/health', async () => {
+    const rooms = roomStore.getAll();
+    return {
+      status: 'ok',
+      // 대기 중인 방도 재시작하면 사라지므로 전부 센다
+      activeRooms: rooms.length,
+      inGameRooms: rooms.filter((r) => r.status === 'playing').length,
+      timestamp: Date.now(),
+    };
+  });
 
   // io 인스턴스는 listen 후 생성되므로 lazy getter로 전달
   let ioInstance: IO | null = null;
