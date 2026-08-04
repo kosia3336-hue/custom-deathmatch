@@ -54,8 +54,11 @@ next-env.d.ts
 # docs
 docs/
 
-# supabase
-supabase
+# supabase CLI 프로젝트 디렉터리.
+# 슬래시 없이 `supabase` 라고 쓰면 경로 어디에 있든 supabase 라는 이름의
+# 디렉터리·파일이 전부 걸린다. 실제로 lib/supabase/ 아래 소스가 조용히
+# 누락돼 클린 체크아웃에서 빌드가 깨졌다. 최상위 디렉터리만 무시한다.
+/supabase/
 
 # local-only dev previews (skins, UI experiments)
 /app/dev/
