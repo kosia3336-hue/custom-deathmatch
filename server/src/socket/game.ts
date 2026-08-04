@@ -863,6 +863,12 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room) return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 재시작 미지원
 
+    // 재대결은 결과 화면에서만 누를 수 있다. 가드가 없으면 관전자나 상대가
+    // 진행 중인 게임을 'waiting' 으로 되돌려 판을 깨뜨릴 수 있다.
+    if (room.status === 'playing') return;
+    const myId = getPlayerId(socket);
+    if (!room.players.some((p: Player) => p.id === myId)) return;
+
     clearAutoEnd(roomId);
 
     if (room.playMode === 'multi') {

@@ -392,7 +392,8 @@ export interface ServerToClientEvents {
   kicked: (data: { reason: string }) => void;
   'connection:duplicate': () => void;
 
-  'session:new': (data: { nickname: string }) => void;
+  /** token 이 실려 오면 서버가 세션 토큰을 재발급한 것 — 클라이언트는 저장된 토큰을 교체해야 한다. */
+  'session:new': (data: { nickname: string; token?: string }) => void;
   'session:exists': (data: { nickname: string; roomId?: string }) => void;
   'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;

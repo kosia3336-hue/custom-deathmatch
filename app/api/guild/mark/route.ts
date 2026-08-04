@@ -4,12 +4,12 @@ import {
   getSupabaseServiceRole,
   isSupabaseServiceRoleConfigured,
 } from '@/lib/supabase/service-role';
-import { GUILD_MARK_MAX_BYTES, GUILD_MARK_MIME } from '@/lib/guild/types';
+import { GUILD_MARK_MAX_BYTES } from '@/lib/guild/types';
+import { ensureBucketOnce, readImageUpload } from '@/lib/uploads/image';
 
 export const dynamic = 'force-dynamic';
 
 const BUCKET = 'guild-marks';
-const ALLOWED = new Set<string>(GUILD_MARK_MIME);
 
 const ERROR_MSG: Record<string, { status: number; msg: string }> = {
   forbidden: { status: 403, msg: '길드장만 마크를 등록할 수 있습니다.' },
@@ -38,20 +38,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
-  let file: File | null = null;
-  try {
-    const form = await req.formData();
-    const f = form.get('file');
-    if (f instanceof File) file = f;
-  } catch {
-    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
-  }
-  if (!file) return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
-  if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 등록할 수 있습니다.' }, { status: 400 });
-  }
-  if (file.size > GUILD_MARK_MAX_BYTES) {
-    return NextResponse.json({ error: '마크 이미지는 512KB 이하만 가능합니다.' }, { status: 400 });
+  const upload = await readImageUpload(req, GUILD_MARK_MAX_BYTES);
+  if (!upload.ok) {
+    const msg = upload.status === 413 ? '마크 이미지는 512KB 이하만 가능합니다.' : upload.error;
+    return NextResponse.json({ error: msg }, { status: upload.status });
   }
 
   const sb = getSupabaseServiceRole();
@@ -67,21 +57,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: ERROR_MSG.forbidden.msg }, { status: 403 });
   }
 
-  try {
-    await sb.storage.createBucket(BUCKET, { public: true, fileSizeLimit: GUILD_MARK_MAX_BYTES });
-  } catch {
-    // 이미 존재 — 무시
-  }
+  await ensureBucketOnce(sb, BUCKET, GUILD_MARK_MAX_BYTES);
 
-  const ext = file.type === 'image/png' ? 'png'
-    : file.type === 'image/webp' ? 'webp'
-    : file.type === 'image/gif' ? 'gif'
-    : 'jpg';
-  const path = `${my.guild_id}/${crypto.randomUUID()}.${ext}`;
+  const path = `${my.guild_id}/${crypto.randomUUID()}.${upload.ext}`;
 
-  const buf = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, {
-    contentType: file.type,
+  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, upload.buffer, {
+    contentType: upload.contentType,
     upsert: false,
   });
   if (upErr) {

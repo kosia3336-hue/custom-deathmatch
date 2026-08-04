@@ -4,12 +4,11 @@ import {
   getSupabaseServiceRole,
   isSupabaseServiceRoleConfigured,
 } from '@/lib/supabase/service-role';
+import { ensureBucketOnce, readImageUpload } from '@/lib/uploads/image';
 
 export const dynamic = 'force-dynamic';
 
 const BUCKET = 'rule-images';
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
-const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 /** POST /api/admin/game-rules/upload — 룰 에디터 이미지 업로드 (multipart, admin 전용) */
 export async function POST(req: NextRequest) {
@@ -19,40 +18,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
 
-  let file: File | null = null;
-  try {
-    const form = await req.formData();
-    const f = form.get('file');
-    if (f instanceof File) file = f;
-  } catch {
-    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
-  }
-  if (!file) return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
-  if (!ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: 'PNG/JPEG/WebP/GIF 이미지만 업로드할 수 있습니다.' }, { status: 400 });
-  }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: '이미지는 5MB 이하만 가능합니다.' }, { status: 400 });
+  const upload = await readImageUpload(req);
+  if (!upload.ok) {
+    return NextResponse.json({ error: upload.error }, { status: upload.status });
   }
 
   const sb = getSupabaseServiceRole();
+  await ensureBucketOnce(sb, BUCKET);
 
-  // 버킷 없으면 생성 (public 읽기)
-  try {
-    await sb.storage.createBucket(BUCKET, { public: true, fileSizeLimit: MAX_BYTES });
-  } catch {
-    // 이미 존재 — 무시
-  }
+  const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${upload.ext}`;
 
-  const ext = file.type === 'image/png' ? 'png'
-    : file.type === 'image/webp' ? 'webp'
-    : file.type === 'image/gif' ? 'gif'
-    : 'jpg';
-  const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`;
-
-  const buf = Buffer.from(await file.arrayBuffer());
-  const { error } = await sb.storage.from(BUCKET).upload(path, buf, {
-    contentType: file.type,
+  const { error } = await sb.storage.from(BUCKET).upload(path, upload.buffer, {
+    contentType: upload.contentType,
     upsert: false,
   });
   if (error) {

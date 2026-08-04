@@ -15,7 +15,7 @@ import {
   onNoticeReadForHidden as hiddenOnNoticeReadForHidden,
   onShopPurchase as hiddenOnShopPurchase,
 } from '../hidden-titles/hooks.js';
-import config from '../config.js';
+import { isValidInternalSecret } from '../config.js';
 import { invalidateBiasTitlesCache } from '../shop/biasTitlesCache.js';
 import { invalidateOwnedTitles } from '../shop/playerOwnedTitles.js';
 import { rankQueueStore } from '../store/rankQueue.js';
@@ -61,7 +61,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     async (req, reply) => {
       const { secret, memberId, titleId, name, color, description, effect } = req.body;
 
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
 
@@ -116,7 +116,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     async (req, reply) => {
       const { secret, noticeId, title, category } = req.body;
 
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
 
@@ -144,7 +144,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     '/internal/hidden-titles/check',
     async (req, reply) => {
       const { secret, kind, memberId, noticeId } = req.body;
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       if (!memberId) {
@@ -190,7 +190,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     '/internal/notify-cdp-adjusted',
     async (req, reply) => {
       const { secret, memberId, newBalance, delta, reason, ref } = req.body;
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       const io = getIO();
@@ -214,7 +214,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     '/internal/notify-shop-item-changed',
     async (req, reply) => {
       const { secret, itemId, stock, isActive } = req.body;
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       const io = getIO();
@@ -230,7 +230,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
   app.post<{ Body: { secret: string } }>(
     '/internal/invalidate-bias-titles',
     async (req, reply) => {
-      if (req.body.secret !== config.internalSecret) {
+      if (!isValidInternalSecret(req.body.secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       invalidateBiasTitlesCache();
@@ -243,7 +243,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     '/internal/invalidate-owned-titles',
     async (req, reply) => {
       const { secret, memberId } = req.body;
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       if (typeof memberId !== 'string' || !memberId) {
@@ -266,7 +266,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     };
   }>('/internal/notify-inventory-updated', async (req, reply) => {
     const { secret, memberId, kind, countAfter, reason, ref } = req.body;
-    if (secret !== config.internalSecret) {
+    if (!isValidInternalSecret(secret)) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
     const io = getIO();
@@ -297,7 +297,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     };
   }>('/internal/notify-rank-stats-reset', async (req, reply) => {
     const { secret, memberId, seasonId, ticketCountAfter } = req.body;
-    if (secret !== config.internalSecret) {
+    if (!isValidInternalSecret(secret)) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
     const io = getIO();
@@ -324,7 +324,7 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
     '/internal/notify-guild-membership-changed',
     async (req, reply) => {
       const { secret, memberId } = req.body;
-      if (secret !== config.internalSecret) {
+      if (!isValidInternalSecret(secret)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
       if (typeof memberId !== 'string' || !memberId) {

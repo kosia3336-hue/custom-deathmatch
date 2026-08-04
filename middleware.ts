@@ -84,11 +84,16 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const memberRes = await sb
-    .from('members')
-    .select('id, withdrawn_at')
-    .eq('id', user.id)
-    .maybeSingle();
+  // 두 조회는 서로 의존하지 않는다. 미들웨어는 모든 페이지 이동마다 도므로
+  // 순차로 기다리면 왕복 지연이 그대로 첫 바이트까지 밀린다.
+  const [memberRes, privRes] = await Promise.all([
+    sb.from('members').select('id, withdrawn_at').eq('id', user.id).maybeSingle(),
+    sb
+      .from('members_private')
+      .select('status, role')
+      .eq('member_id', user.id)
+      .maybeSingle(),
+  ]);
   const memberRow = memberRes.data as unknown as { id: string; withdrawn_at: string | null } | null;
 
   const isWithdrawn = !!memberRow?.withdrawn_at;
@@ -97,11 +102,6 @@ export async function middleware(request: NextRequest) {
   let status: 'active' | 'suspended' | 'banned' | undefined;
   let role: 'user' | 'admin' | undefined;
   if (memberRow && !isWithdrawn) {
-    const privRes = await sb
-      .from('members_private')
-      .select('status, role')
-      .eq('member_id', user.id)
-      .maybeSingle();
     const privRow = privRes.data as unknown as { status?: string; role?: string } | null;
     status = privRow?.status as 'active' | 'suspended' | 'banned' | undefined;
     role = privRow?.role as 'user' | 'admin' | undefined;

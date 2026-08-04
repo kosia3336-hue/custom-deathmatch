@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import GNB from '@/components/layout/GNB';
-import { getSiteUrl } from '@/lib/site';
+import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
 import { GAME_CATEGORIES, GAME_RULES } from '@/lib/gameRules';
@@ -233,7 +233,7 @@ export default async function GuideContent() {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
     </div>
   );

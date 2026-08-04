@@ -12,9 +12,15 @@ import { getSupabaseAdmin } from '../db/supabase.js';
 const lastMessageTime = new Map<string, number>();
 const COOLDOWN_MS = 500;
 
+// 히스토리 조회는 요청 1건당 DB 왕복이 2번(RPC + 닉네임 조회)이라 무제한으로 열어 두면
+// 반복 호출만으로 DB 부하를 만들 수 있다. 탭 진입 시 1회면 충분하므로 짧게 묶어 둔다.
+const lastHistoryLoad = new Map<string, number>();
+const HISTORY_COOLDOWN_MS = 3_000;
+
 export function registerChatHandlers(io: IO, socket: TypedSocket) {
   socket.on('disconnect', () => {
     lastMessageTime.delete(socket.id);
+    lastHistoryLoad.delete(socket.id);
   });
 
   socket.on('chat:send', ({ message, scope }) => {
@@ -152,6 +158,10 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
     if (!senderMemberId) return;
     const guildId = sessions.getGuildIdBySocket(socket.id);
     if (!guildId) return;
+
+    const now = Date.now();
+    if (now - (lastHistoryLoad.get(socket.id) ?? 0) < HISTORY_COOLDOWN_MS) return;
+    lastHistoryLoad.set(socket.id, now);
 
     void (async () => {
       const sb = getSupabaseAdmin();

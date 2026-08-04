@@ -47,6 +47,48 @@ const pendingTitles = new Map<string, PendingTitlePayload[]>();
 // ── memberId → token 역탐색 (관리자 알림 emit 시 대상 소켓 탐색용) ────────────
 const memberIdToToken = new Map<string, string>();
 
+// ── 오프라인 토큰 정리 ────────────────────────────────────────────────────────
+// 토큰 기준 맵들은 소켓이 끊겨도 남는다(재연결 복원용). 정리하지 않으면 방문자 수만큼
+// 무한히 쌓여 프로세스 수명 내내 메모리가 우상향한다. 일정 시간 오프라인이면 지운다.
+// (그 뒤 재접속하면 새 세션으로 시작 — 닉네임·칭호는 어차피 로그인 정보로 다시 채워진다.)
+const OFFLINE_TOKEN_TTL_MS = 60 * 60 * 1000;
+const purgeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function cancelTokenPurge(token: string) {
+  const timer = purgeTimers.get(token);
+  if (timer) {
+    clearTimeout(timer);
+    purgeTimers.delete(token);
+  }
+}
+
+function purgeToken(token: string) {
+  purgeTimers.delete(token);
+  // 그 사이 다시 접속했으면 건드리지 않는다
+  if (tokenToSocketId.has(token)) return;
+
+  const memberId = tokenToMemberId.get(token);
+  if (memberId && memberIdToToken.get(memberId) === token) {
+    memberIdToToken.delete(memberId);
+  }
+  tokenToNickname.delete(token);
+  tokenToMemberId.delete(token);
+  tokenToDisplayedTitle.delete(token);
+  tokenToGuildMark.delete(token);
+  tokenToGuildId.delete(token);
+  tokenToGuildName.delete(token);
+  tokenToEquippedSkins.delete(token);
+  // 미전달 칭호 알림은 Supabase notifications 에 남아 있어 다음 접속 때 다시 조회된다
+  pendingTitles.delete(token);
+}
+
+function scheduleTokenPurge(token: string) {
+  cancelTokenPurge(token);
+  const timer = setTimeout(() => purgeToken(token), OFFLINE_TOKEN_TTL_MS);
+  timer.unref?.();
+  purgeTimers.set(token, timer);
+}
+
 export const sessions = {
   // ── 닉네임 ─────────────────────────────────────────────────────────────────
 
@@ -122,7 +164,8 @@ export const sessions = {
     const token = socketToToken.get(socketId);
     if (token && tokenToSocketId.get(token) === socketId) {
       tokenToSocketId.delete(token);
-      // tokenToNickname은 재연결 후 닉네임 복원에 사용하므로 유지
+      // tokenToNickname은 재연결 후 닉네임 복원에 사용하므로 유지 (TTL 후 정리)
+      scheduleTokenPurge(token);
     }
     socketToToken.delete(socketId);
   },
@@ -135,6 +178,7 @@ export const sessions = {
    * - 없으면: 신규 토큰 등록 후 'new' 반환
    */
   linkToken(socketId: string, token: string): 'restored' | 'new' {
+    cancelTokenPurge(token);
     const prevSocketId = tokenToSocketId.get(token);
 
     // 이미 다른 소켓이 이 토큰 사용 중이면 교체

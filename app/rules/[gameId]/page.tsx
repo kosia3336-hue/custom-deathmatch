@@ -5,7 +5,7 @@ import GNB from '@/components/layout/GNB';
 import { MarkdownView, extractPlainText } from '@/lib/markdown';
 import { GAME_RULES, getGameRule } from '@/lib/gameRules';
 import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
-import { getSiteUrl } from '@/lib/site';
+import { getSiteUrl, jsonLdScript } from '@/lib/site';
 
 interface Props {
   params: Promise<{ gameId: string }>;
@@ -198,7 +198,7 @@ export default async function GameRulePage({ params }: Props) {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
     </div>
   );
