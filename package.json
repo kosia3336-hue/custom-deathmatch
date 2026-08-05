@@ -14,7 +14,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "./scripts/deploy/release.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
