@@ -21,6 +21,21 @@ export function useSocket(): void {
   useEffect(() => {
     let cancelled = false;
 
+    // v2: 서버가 session:new 에 닉네임을 실어 보냄
+    // 닉네임 없음 = 게스트 연결 → stale 로컬스토리지 닉네임 제거
+    const onSessionNew = ({ nickname }: { nickname: string }) => {
+      if (nickname) {
+        useNicknameStore.getState().setNickname(nickname);
+      } else {
+        useNicknameStore.setState({ nickname: null });
+        try { localStorage.removeItem('nickname'); } catch { /* ignore */ }
+      }
+    };
+
+    const onSessionExists = (data: { nickname: string; roomId?: string }) => {
+      useSessionTakeoverStore.getState().setPending(data);
+    };
+
     async function bootstrap() {
       // 로그인 여부와 무관하게 소켓 연결 (비로그인 = 게스트, 로비 방 목록만 수신 가능)
       if (cancelled) return;
@@ -28,21 +43,6 @@ export function useSocket(): void {
 
       // 초기 연결 시 LOBBY_ROOM 참여 (모든 페이지에서 온라인 유저 업데이트 수신)
       s.emit('lobby:join');
-
-      // v2: 서버가 session:new 에 닉네임을 실어 보냄
-      // 닉네임 없음 = 게스트 연결 → stale 로컬스토리지 닉네임 제거
-      const onSessionNew = ({ nickname }: { nickname: string }) => {
-        if (nickname) {
-          useNicknameStore.getState().setNickname(nickname);
-        } else {
-          useNicknameStore.setState({ nickname: null });
-          try { localStorage.removeItem('nickname'); } catch { /* ignore */ }
-        }
-      };
-
-      const onSessionExists = (data: { nickname: string; roomId?: string }) => {
-        useSessionTakeoverStore.getState().setPending(data);
-      };
 
       s.on('session:new', onSessionNew);
       s.on('session:exists', onSessionExists);
@@ -52,10 +52,12 @@ export function useSocket(): void {
 
     return () => {
       cancelled = true;
-      // socket 객체 자체는 모듈 싱글톤이므로 listener 만 정리 (페이지 이동 시 유지)
+      // socket 객체 자체는 모듈 싱글톤이므로 listener 만 정리 (페이지 이동 시 유지).
+      // 핸들러를 지정해 해제한다 — 이벤트 이름만 넘기면 lib/socket.ts 가 등록한
+      // 토큰 재발급 리스너까지 함께 제거된다.
       const s = getSocket();
-      s.off('session:new');
-      s.off('session:exists');
+      s.off('session:new', onSessionNew);
+      s.off('session:exists', onSessionExists);
     };
   }, []);
 

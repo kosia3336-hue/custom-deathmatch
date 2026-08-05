@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/events.js';
 import { sessions } from '../store/sessions.js';
@@ -27,6 +28,44 @@ type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 
 /** 인게임 재연결 유예 시간 (ms) */
 const RECONNECT_GRACE_PLAYING = 30_000;
+
+/** 핸드셰이크에서 검증된 회원 정보 (게스트면 null) */
+interface SocketMember {
+  id: string;
+  nickname: string;
+  displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+  guildMark?: { url: string; name: string } | null;
+  guildId?: string | null;
+  guildName?: string | null;
+  equippedSkins?: { skinId: string; gameId: string }[];
+  skinExpiries?: { skinId: string; expiresAt: Date }[];
+}
+
+function getSocketMember(socket: { data: unknown }): SocketMember | null {
+  return (socket.data as { member?: SocketMember | null }).member ?? null;
+}
+
+/** 검증된 회원 정보를 세션 토큰에 바인딩 (닉네임·칭호·스킨·길드방) */
+function bindMemberToSession(
+  socket: { data: unknown; id: string; join: (room: string) => void },
+  token: string,
+): void {
+  const member = getSocketMember(socket);
+  if (!member) return;
+  sessions.setNickname(socket.id, member.nickname, true);
+  sessions.setMemberInfo(
+    token,
+    member.id,
+    member.displayedTitle,
+    member.equippedSkins ?? [],
+    member.guildMark ?? null,
+    member.guildId ?? null,
+    member.guildName ?? null,
+  );
+  scheduleSkinExpiries(token, member.skinExpiries ?? []);
+  // 길드 채팅 — 소속 길드가 있으면 해당 소켓방에 합류
+  if (member.guildId) socket.join(guildRoom(member.guildId));
+}
 
 export function setupSocketHandlers(io: IO) {
   // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
@@ -62,7 +101,33 @@ export function setupSocketHandlers(io: IO) {
   io.on('connection', (socket) => {
 
     // ── 세션 복원 ─────────────────────────────────────────────────────────
-    socket.on('session:restore', ({ token, confirmed }) => {
+    socket.on('session:restore', ({ token: rawToken, confirmed }) => {
+      // 세션 토큰은 Player.id 로 쓰이며 room:state 를 통해 같은 방의 다른 참가자에게
+      // 그대로 노출된다. 남의 토큰으로 restore 하면 방·닉네임·회원 바인딩이 통째로
+      // 넘어가 세션을 가로챌 수 있으므로, 이미 '다른 회원'에게 묶인 토큰이면 인계하지
+      // 않고 서버가 새 토큰을 발급한다(같은 브라우저에서 계정만 바꿔 로그인한 경우도
+      // 동일하게 새 세션으로 시작하는 것이 맞다).
+      const authedMemberId = getSocketMember(socket)?.id ?? null;
+      const boundMemberId =
+        typeof rawToken === 'string' ? sessions.getMemberId(rawToken) : null;
+      const tokenRejected =
+        typeof rawToken !== 'string' ||
+        rawToken.length < 8 ||
+        (boundMemberId !== null && boundMemberId !== authedMemberId);
+
+      if (tokenRejected) {
+        const fresh = randomUUID();
+        sessions.linkToken(socket.id, fresh);
+        bindMemberToSession(socket, fresh);
+        if (authedMemberId) broadcastOnlineUsers(io);
+        socket.emit('session:new', {
+          nickname: getSocketMember(socket)?.nickname ?? '',
+          token: fresh,
+        });
+        return;
+      }
+
+      const token = rawToken;
       const prevSocketId = sessions.getSocketByToken(token);
       const prevSocketAlive = !!prevSocketId && prevSocketId !== socket.id && io.sockets.sockets.has(prevSocketId);
 
@@ -87,27 +152,8 @@ export function setupSocketHandlers(io: IO) {
       }
 
       // ── v2 — 회원 정보로 닉네임/칭호 자동 설정 ──────────────────────
-      const member = (
-        socket.data as {
-          member?: {
-            id: string;
-            nickname: string;
-            displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
-            guildMark?: { url: string; name: string } | null;
-            guildId?: string | null;
-            guildName?: string | null;
-            equippedSkins?: { skinId: string; gameId: string }[];
-            skinExpiries?: { skinId: string; expiresAt: Date }[];
-          };
-        }
-      ).member;
-      if (member) {
-        sessions.setNickname(socket.id, member.nickname, true);
-        sessions.setMemberInfo(token, member.id, member.displayedTitle, member.equippedSkins ?? [], member.guildMark ?? null, member.guildId ?? null, member.guildName ?? null);
-        scheduleSkinExpiries(token, member.skinExpiries ?? []);
-        // 길드 채팅 — 소속 길드가 있으면 해당 소켓방에 합류
-        if (member.guildId) socket.join(guildRoom(member.guildId));
-      }
+      const member = getSocketMember(socket);
+      bindMemberToSession(socket, token);
 
       // ── 칭호 획득 모달 pending 처리 ──────────────────────────────────────
       if (member) {

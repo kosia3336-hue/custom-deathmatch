@@ -8,7 +8,7 @@ import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 import TitleGrantedModal from '@/components/TitleGrantedModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import BgmProvider from '@/components/providers/BgmProvider';
-import { getServerSupabase } from '@/lib/supabase/server';
+import { getAccountSettings } from '@/lib/auth/server';
 import { getSiteUrl } from '@/lib/site';
 
 const geistMono = Geist_Mono({
@@ -92,19 +92,10 @@ interface BgmInitial {
 
 async function getBgmInitial(): Promise<{ isLoggedIn: boolean; initial: BgmInitial }> {
   try {
-    const supabase = await getServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { isLoggedIn: false, initial: {} };
+    // 페이지 쪽 getAuthState 와 같은 요청 캐시를 쓰므로 왕복이 추가되지 않는다.
+    const { isLoggedIn, settings } = await getAccountSettings();
+    if (!isLoggedIn) return { isLoggedIn: false, initial: {} };
 
-    const { data } = await supabase
-      .from('members_private')
-      .select('settings')
-      .eq('member_id', user.id)
-      .maybeSingle();
-
-    const settings = (data as { settings?: Record<string, unknown> } | null)?.settings ?? {};
     const initial: BgmInitial = {};
     if (typeof settings.bgmMuted === 'boolean') initial.bgmMuted = settings.bgmMuted;
     if (typeof settings.bgmVolume === 'number') initial.bgmVolume = settings.bgmVolume;

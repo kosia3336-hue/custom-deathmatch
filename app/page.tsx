@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import GNB from '@/components/layout/GNB';
 import MainBillboard from '@/components/lobby/MainBillboard';
 import LobbyClient from './LobbyClient';
-import { getSiteUrl } from '@/lib/site';
+import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { getAuthState } from '@/lib/auth/server';
 import GuideContent from './guide/GuideContent';
 
@@ -61,7 +61,7 @@ export default async function LobbyPage() {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
     </div>
   );

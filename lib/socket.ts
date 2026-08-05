@@ -57,6 +57,15 @@ export function getOrCreateSessionToken(): string {
   }
 }
 
+/** 서버가 세션 토큰을 재발급했을 때 로컬 토큰을 교체한다. */
+function replaceSessionToken(token: string): void {
+  try {
+    localStorage.setItem('sessionToken', token);
+  } catch {
+    fallbackToken = token;
+  }
+}
+
 /** 현재 Supabase access_token (없으면 null) */
 async function getCurrentAccessToken(): Promise<string | null> {
   if (!isSupabaseConfigured()) return null;
@@ -89,6 +98,12 @@ export function getSocket(): TypedSocket {
     socket.on('connect', () => {
       const token = getOrCreateSessionToken();
       socket!.emit('session:restore', { token });
+    });
+
+    // 서버가 토큰을 재발급한 경우(다른 회원에게 묶인 토큰 등) 즉시 교체.
+    // useSocket 의 리스너보다 먼저 붙어야 첫 응답을 놓치지 않는다.
+    socket.on('session:new', ({ token }) => {
+      if (token) replaceSessionToken(token);
     });
 
     (window as unknown as Record<string, unknown>)['__s'] = socket;

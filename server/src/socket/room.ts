@@ -21,6 +21,40 @@ function getPlayerId(socket: TypedSocket): string {
   return sessions.getToken(socket.id) ?? socket.id;
 }
 
+// ── 비공개 방 비밀번호 무차별 대입 방지 ─────────────────────────────────────
+// 비밀번호는 4~8자리라 제한이 없으면 짧은 시간 안에 전수 대입이 가능하다.
+// 재접속으로 초기화되지 않도록 소켓이 아닌 회원 기준으로 실패를 센다.
+const PW_MAX_FAILURES = 5;
+const PW_LOCKOUT_MS = 60_000;
+const passwordFailures = new Map<string, { fails: number; lockedUntil: number }>();
+
+function pwKey(socket: TypedSocket): string {
+  return sessions.getMemberIdBySocket(socket.id) ?? socket.id;
+}
+
+function isPasswordLockedOut(socket: TypedSocket): boolean {
+  const entry = passwordFailures.get(pwKey(socket));
+  if (!entry) return false;
+  if (entry.lockedUntil > Date.now()) return true;
+  if (entry.lockedUntil !== 0) passwordFailures.delete(pwKey(socket));
+  return false;
+}
+
+function recordPasswordFailure(socket: TypedSocket): void {
+  const key = pwKey(socket);
+  const entry = passwordFailures.get(key) ?? { fails: 0, lockedUntil: 0 };
+  entry.fails += 1;
+  if (entry.fails >= PW_MAX_FAILURES) {
+    entry.fails = 0;
+    entry.lockedUntil = Date.now() + PW_LOCKOUT_MS;
+  }
+  passwordFailures.set(key, entry);
+}
+
+function clearPasswordFailures(socket: TypedSocket): void {
+  passwordFailures.delete(pwKey(socket));
+}
+
 function makePlayer(socket: TypedSocket, isHost: boolean): Player {
   return {
     id: getPlayerId(socket),
@@ -185,10 +219,19 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.roomType === 'private' && !data.inviteToken) {
+      if (isPasswordLockedOut(socket)) {
+        return callback({
+          success: false,
+          error: '비밀번호를 여러 번 틀렸습니다. 잠시 후 다시 시도해 주세요.',
+        });
+      }
       const pw = roomStore.getPassword(data.roomId);
       if (pw && data.password !== pw) {
+        // 비밀번호는 4~8자리라 제한이 없으면 짧은 시간 안에 전수 대입이 가능하다.
+        recordPasswordFailure(socket);
         return callback({ success: false, error: '비밀번호가 틀렸습니다.' });
       }
+      clearPasswordFailures(socket);
     }
 
     if (data.inviteToken) {
@@ -520,10 +563,18 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.roomType === 'private') {
+      if (isPasswordLockedOut(socket)) {
+        return callback({
+          success: false,
+          error: '비밀번호를 여러 번 틀렸습니다. 잠시 후 다시 시도해 주세요.',
+        });
+      }
       const pw = roomStore.getPassword(roomId);
       if (pw && password !== pw) {
+        recordPasswordFailure(socket);
         return callback({ success: false, error: '비밀번호가 틀렸습니다.' });
       }
+      clearPasswordFailures(socket);
     }
 
     // 관전 잠금: 한 명이라도 관전 잠금을 사용한 방이면 일반 사용자는 관전 불가.

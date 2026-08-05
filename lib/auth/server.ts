@@ -14,6 +14,7 @@
 
 import 'server-only';
 
+import { cache } from 'react';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
 
@@ -48,6 +49,7 @@ interface PrivRowSel {
   suspended_until: string | null;
   suspended_reason: string | null;
   banned_reason: string | null;
+  settings: Record<string, unknown> | null;
 }
 
 interface TitleRowSel {
@@ -57,39 +59,74 @@ interface TitleRowSel {
   effect: string | null;
 }
 
-export async function getAuthState(): Promise<AuthState> {
+/**
+ * 아래 조회들은 모두 React `cache` 로 감싼다.
+ * 한 요청 안에서 레이아웃·페이지·중첩 컴포넌트가 각각 인증 상태를 물어보는데,
+ * 감싸지 않으면 그때마다 Supabase 왕복이 새로 발생한다(특히 auth.getUser 는 매번
+ * 네트워크 호출이다). 캐시는 요청 단위라 요청 간에 상태가 새지 않는다.
+ */
+const getCurrentUser = cache(async () => {
   const supabase = await getServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user;
+});
+
+const getMemberRow = cache(async (userId: string): Promise<MemberRowSel | null> => {
+  const supabase = await getServerSupabase();
+  const res = await supabase
+    .from('members')
+    .select('id, nickname, created_at, withdrawn_at, displayed_title_id')
+    .eq('id', userId)
+    .maybeSingle();
+  if (res.error || !res.data) return null;
+  return res.data as unknown as MemberRowSel;
+});
+
+const getPrivRow = cache(async (userId: string): Promise<PrivRowSel | null> => {
+  const supabase = await getServerSupabase();
+  const res = await supabase
+    .from('members_private')
+    .select('role, status, suspended_until, suspended_reason, banned_reason, settings')
+    .eq('member_id', userId)
+    .maybeSingle();
+  return (res.data as unknown as PrivRowSel) ?? null;
+});
+
+/** 계정 설정(BGM 등). 인증 상태 조회와 members_private 왕복을 공유한다. */
+export async function getAccountSettings(): Promise<{
+  isLoggedIn: boolean;
+  settings: Record<string, unknown>;
+}> {
+  const user = await getCurrentUser();
+  if (!user) return { isLoggedIn: false, settings: {} };
+  const priv = await getPrivRow(user.id);
+  return { isLoggedIn: true, settings: priv?.settings ?? {} };
+}
+
+export const getAuthState = cache(async (): Promise<AuthState> => {
+  const user = await getCurrentUser();
 
   if (!user) return { kind: 'LOGGED_OUT' };
 
-  const memberRes = await supabase
-    .from('members')
-    .select('id, nickname, created_at, withdrawn_at, displayed_title_id')
-    .eq('id', user.id)
-    .maybeSingle();
+  // members / members_private 는 서로 독립적이라 순차로 기다릴 이유가 없다.
+  const [memberRow, privRow] = await Promise.all([
+    getMemberRow(user.id),
+    getPrivRow(user.id),
+  ]);
 
-  if (memberRes.error || !memberRes.data) {
+  if (!memberRow) {
     return { kind: 'SIGNUP_PENDING', userId: user.id };
   }
-  const memberRow = memberRes.data as unknown as MemberRowSel;
 
   if (memberRow.withdrawn_at) {
     return { kind: 'WITHDRAWN', userId: user.id };
   }
 
-  const privRes = await supabase
-    .from('members_private')
-    .select('role, status, suspended_until, suspended_reason, banned_reason')
-    .eq('member_id', user.id)
-    .maybeSingle();
-
-  const privRow = (privRes.data as unknown as PrivRowSel) ?? null;
-
   let displayedTitle: CurrentMember['displayedTitle'] = null;
   if (memberRow.displayed_title_id) {
+    const supabase = await getServerSupabase();
     const titleRes = await supabase
       .from('titles')
       .select('id, name, color, effect')
@@ -122,7 +159,7 @@ export async function getAuthState(): Promise<AuthState> {
     };
   }
   return { kind: 'ACTIVE', member };
-}
+});
 
 export async function getActiveMember(): Promise<CurrentMember | null> {
   const state = await getAuthState();
