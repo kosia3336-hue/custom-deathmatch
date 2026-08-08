@@ -91,8 +91,18 @@ export function getSocket(): TypedSocket {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      // 초기 auth 는 connectSocket() 안에서 동적으로 채운다
-      auth: {},
+      // auth 를 함수로 준다 — socket.io 가 '연결을 시도할 때마다' 호출하므로
+      // 재연결 시점의 최신 access_token 이 실린다.
+      //
+      // 고정 객체로 두면 처음 연결할 때 담은 토큰이 계속 재사용된다. 모바일에서
+      // 백그라운드로 오래 있다 돌아오면 그 토큰은 이미 만료돼 있고, 서버는 만료
+      // 토큰을 UNAUTHENTICATED 로 거부한다(게스트로 강등하지 않는다). 그러면
+      // 재연결이 10회 모두 실패하고 조용히 오프라인 상태가 된다.
+      auth: (cb: (data: { accessToken: string | null }) => void) => {
+        getCurrentAccessToken()
+          .then((accessToken) => cb({ accessToken }))
+          .catch(() => cb({ accessToken: null }));
+      },
     }) as TypedSocket;
 
     socket.on('connect', () => {
@@ -118,8 +128,7 @@ export function getSocket(): TypedSocket {
 export async function connectSocket(): Promise<TypedSocket> {
   const s = getSocket();
   if (!s.connected) {
-    const accessToken = await getCurrentAccessToken();
-    s.auth = { accessToken };
+    // 토큰은 auth 콜백(getSocket)에서 매 시도마다 새로 읽는다.
     s.connect();
   }
   return s;

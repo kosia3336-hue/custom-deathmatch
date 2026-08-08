@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
+import { requestRankNotifyPermission } from '@/lib/rankMatchNotify';
 import { useRankMatchStore } from '@/stores/rankMatch';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
 import Button from '@/components/ui/Button';
@@ -44,6 +45,10 @@ export default function RankLobbyControls() {
       toast.error('운영 종료 1분 전입니다. 새 랭크 매칭을 시작할 수 없습니다.');
       return;
     }
+    // 알림 권한은 사용자 제스처 안에서만 요청할 수 있다 — 큐 진입 버튼이 그 자리다.
+    // 결과를 기다리지 않는다(거부해도 큐 진입은 그대로 진행).
+    void requestRankNotifyPermission();
+
     setQueuing(true);
     getSocket().emit('rank:queue:join', (res: { success: boolean; error?: string }) => {
       if (!res.success) {

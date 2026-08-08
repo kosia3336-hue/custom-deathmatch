@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { connectSocket, getSocket } from '@/lib/socket';
+import { notifyRankMatched } from '@/lib/rankMatchNotify';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRankMatchStore, type RankMatchedPayload } from '@/stores/rankMatch';
 import { useSessionTakeoverStore } from '@/stores/sessionTakeover';
@@ -83,15 +85,37 @@ export function useSocket(): void {
 
     const onRankMatched = (data: RankMatchedPayload) => {
       useRankMatchStore.getState().setMatched(data);
+      // 매칭은 탭이 뒤에 있을 때 잡히는 경우가 많다 — 소리·브라우저 알림으로도 알린다
+      notifyRankMatched(data.opponentNickname);
+    };
+
+    /**
+     * 재연결 시 랭크 큐 복귀.
+     *
+     * 서버는 소켓이 끊기는 즉시 큐에서 제거한다(rankQueueStore.removeBySocket).
+     * 모바일에서 백그라운드로 가면 소켓이 죽으므로, 돌아왔을 때 클라이언트는
+     * '매칭 중' 으로 보이는데 서버는 이미 잊은 상태가 된다. 큐에 있던 상태면
+     * 다시 넣어 준다.
+     */
+    const onReconnectRequeue = () => {
+      if (!useRankMatchStore.getState().queuing) return;
+      s.emit('rank:queue:join', (res: { success: boolean; error?: string }) => {
+        if (res.success) return;
+        // 운영 시간 종료 등으로 복귀 실패 — 대기 중 UI 를 걷어내고 알린다
+        useRankMatchStore.getState().setQueuing(false);
+        toast.error(res.error ?? '랭크 대기열 복귀에 실패했습니다. 다시 시작해 주세요.');
+      });
     };
 
     s.on('rank:queue:matched', onRankMatched);
+    s.on('connect', onReconnectRequeue);
     s.on('session:restored', onSessionRestored);
     s.on('session:replaced', onSessionReplaced);
     s.on('connect_error', onConnectError);
 
     return () => {
       s.off('rank:queue:matched', onRankMatched);
+      s.off('connect', onReconnectRequeue);
       s.off('session:restored', onSessionRestored);
       s.off('session:replaced', onSessionReplaced);
       s.off('connect_error', onConnectError);
