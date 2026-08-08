@@ -6,6 +6,13 @@
  *  지원 문법(lib/markdown.tsx): 제목(#, ##), 목록(-, 1.), **굵게**, *기울임*, `코드`, 링크 등.
  *  비워두면("") 모달에 "아직 룰이 준비 중입니다."가 표시됩니다.
  *
+ * ── 룰 이미지 추가 방법 ────────────────────────────────────────
+ *  1) 원본 PNG 를 webp 로 변환해 public/rules/<gameId>.webp 로 저장:
+ *       cwebp -q 92 -sharp_yuv -m 6 "Rule_002_양면장기.png" -o public/rules/game-002.webp
+ *  2) 아래 GAME_RULES 의 해당 항목에 `hasImage: true` 를 추가.
+ *  이미지가 있으면 룰 페이지가 이미지를 우선 보여주고, 텍스트는 접이식으로 함께
+ *  남습니다(= 검색엔진은 그대로 본문을 수집). 원본 규격은 1251x800.
+ *
  * ── 갈래(category) 재분류 ──────────────────────────────────────
  *  아래 assignment 는 이름 기준 "추정"입니다. 실제 게임 성격에 맞게
  *  각 게임의 `category` 값만 바꾸면 룰 페이지 컬럼이 자동으로 재배치됩니다.
@@ -27,19 +34,29 @@ export interface GameRule {
   category: GameCategory;
   /** 마크다운 룰 텍스트 (여기를 채우세요) */
   rules: string;
+  /** public/rules/<id>.webp 룰 이미지 보유 여부 — 있으면 룰 페이지가 이미지를 우선 표시 */
+  hasImage?: boolean;
+}
+
+/** 룰 이미지 경로 (public 기준). 원본 규격 1251x800 */
+export const RULE_IMAGE_WIDTH = 1251;
+export const RULE_IMAGE_HEIGHT = 800;
+
+export function ruleImagePath(gameId: string): string {
+  return `/rules/${gameId}.webp`;
 }
 
 export const GAME_RULES: GameRule[] = [
   { id: 'game-001', name: '사중력 사목', category: '추상전략', rules: '' },
-  { id: 'game-002', name: '양면장기', category: '추상전략', rules: '' },
+  { id: 'game-002', name: '양면장기', category: '추상전략', rules: '', hasImage: true },
   { id: 'game-003', name: '넘버4', category: '심리', rules: '' },
   { id: 'game-004', name: '인디언홀덤Q', category: '심리', rules: '' },
-  { id: 'game-005', name: '투자와 기부', category: '심리', rules: '' },
+  { id: 'game-005', name: '투자와 기부', category: '심리', rules: '', hasImage: true },
   { id: 'game-006', name: '베팅! 가위바위보', category: '심리', rules: '' },
   { id: 'game-007', name: '배수 흑과 백', category: '심리', rules: '' },
   { id: 'game-008', name: '연승게임 리뉴얼', category: '심리', rules: '' },
   { id: 'game-009', name: '흑과백2', category: '심리', rules: '' },
-  { id: 'game-010', name: '실퍼의 흑과백', category: '심리', rules: '' },
+  { id: 'game-010', name: '실퍼의 흑과백', category: '심리', rules: '', hasImage: true },
   { id: 'game-011', name: '5개의 탑', category: '심리', rules: '' },
   { id: 'game-012', name: '포도설탕2', category: '심리', rules: '' },
   { id: 'game-013', name: '해달별2', category: '심리', rules: '' },
