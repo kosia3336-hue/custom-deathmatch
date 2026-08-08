@@ -3,8 +3,9 @@ import GNB from '@/components/layout/GNB';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
+import RuleImage from '@/components/rules/RuleImage';
 import { GAME_CATEGORIES, GAME_RULES } from '@/lib/gameRules';
-import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
+import { fetchAllGameRules, hasMeaningfulRule, hasRuleImage } from '@/lib/gameRulesServer';
 import { MarkdownView } from '@/lib/markdown';
 
 /**
@@ -37,16 +38,16 @@ export default async function GuideContent() {
   const siteUrl = getSiteUrl();
 
   /*
-    룰 목록은 DB(game_rule_texts)에서 그대로 읽어 만든다.
-    관리자 페이지에서 새 룰을 저장하면 저장 API 가 이 경로를 재검증하므로
-    소개 페이지 목록에도 코드 수정 없이 자동으로 추가된다.
-    (새 '게임 종목' 자체를 늘릴 때만 lib/gameRules.ts 의 GAME_RULES 에 항목을 추가하면 된다.)
+    룰 캐러셀은 룰 이미지(public/rules/<gameId>.webp)가 있는 종목만 싣는다.
+    이미지를 새로 넣기만 하면 룰 상세 페이지와 이 섹션에 함께 나타난다(코드 수정 불필요).
+
+    이미지에 담긴 내용은 DB(game_rule_texts)의 룰 본문과 같은 내용이므로,
+    본문을 이미지의 '텍스트 대체물'로 함께 싣는다 — 눈으로는 이미지를 보고,
+    스크린리더와 검색엔진은 글을 읽는다.
   */
   const allRules = await fetchAllGameRules();
-  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) =>
-    hasMeaningfulRule(allRules[g.id]?.rules),
-  ).map((g) => {
-    const { rules, meta } = allRules[g.id];
+  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) => hasRuleImage(g.id)).map((g) => {
+    const { rules, meta } = allRules[g.id] ?? { rules: '', meta: undefined };
     const hasMeta = Boolean(
       meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
     );
@@ -58,24 +59,17 @@ export default async function GuideContent() {
       hue: categoryHue(g.category),
       node: (
         <>
-          <MarkdownView source={rules} />
-          {hasMeta && (
-            <div className="mt-5 border-t border-cdm-border pt-3 text-xs leading-relaxed text-cdm-fg-muted">
-              {meta.source && <p>출처: {meta.source}</p>}
-              {meta.originalAuthor && <p>원작자: {meta.originalAuthor}</p>}
-              {meta.poster && <p>게시자: {meta.poster}</p>}
-              {meta.originUrl && (
-                <p className="truncate">
-                  원본 룰:{' '}
-                  <a
-                    href={meta.originUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-cdm-primary underline underline-offset-2"
-                  >
-                    {meta.originUrl}
-                  </a>
-                </p>
+          <RuleImage gameId={g.id} name={g.name} caption={false} className="mb-0" />
+          {hasMeaningfulRule(rules) && (
+            <div className="sr-only">
+              <MarkdownView source={rules} />
+              {hasMeta && (
+                <div>
+                  {meta!.source && <p>출처: {meta!.source}</p>}
+                  {meta!.originalAuthor && <p>원작자: {meta!.originalAuthor}</p>}
+                  {meta!.poster && <p>게시자: {meta!.poster}</p>}
+                  {meta!.originUrl && <p>원본 룰: {meta!.originUrl}</p>}
+                </div>
               )}
             </div>
           )}

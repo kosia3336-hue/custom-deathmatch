@@ -6,6 +6,8 @@
  * 검색엔진이 룰 본문을 수집할 수 있다.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseUrl, getSupabaseAnonKey, isSupabaseConfigured } from '@/lib/supabase/env';
@@ -25,6 +27,45 @@ export function hasMeaningfulRule(rules: string | undefined | null): boolean {
   // 마크다운 기호/공백을 걷어낸 뒤 남는 실질 문자 수로 판단
   const plain = rules.replace(/[\s.\-_*#>~`|[\]()!]/g, '');
   return plain.length >= 10;
+}
+
+/* ── 룰 이미지 ───────────────────────────────────────────────────
+   public/rules/<gameId>.webp 의 "파일 존재" 자체가 유일한 기준이다.
+   이미지를 넣기만 하면 룰 상세 페이지(/rules/[gameId])와 소개 페이지의
+   룰 섹션에 코드 수정 없이 함께 반영된다.
+   (fs 를 쓰므로 이 모듈은 서버에서만 import 해야 한다 — lib/gameRules.ts 는
+    클라이언트 컴포넌트도 쓰기 때문에 그쪽에 두면 번들이 깨진다.)
+   ────────────────────────────────────────────────────────────── */
+
+const RULE_IMAGE_EXT = '.webp';
+let ruleImageIdsCache: Set<string> | null = null;
+
+/** 룰 이미지가 실제로 존재하는 게임 id 집합 */
+export function getRuleImageIds(): Set<string> {
+  // 운영에서는 릴리스 중 파일이 바뀌지 않으므로 캐시한다.
+  // 개발 중에는 이미지를 새로 넣자마자 반영되도록 매번 읽는다.
+  if (ruleImageIdsCache && process.env.NODE_ENV === 'production') return ruleImageIdsCache;
+
+  let ids: Set<string>;
+  try {
+    const dir = path.join(process.cwd(), 'public', 'rules');
+    ids = new Set(
+      fs
+        .readdirSync(dir)
+        .filter((f) => f.endsWith(RULE_IMAGE_EXT))
+        .map((f) => f.slice(0, -RULE_IMAGE_EXT.length)),
+    );
+  } catch {
+    // 디렉터리가 아직 없으면 이미지 없음으로 취급 — 페이지는 텍스트로 정상 동작
+    ids = new Set();
+  }
+
+  ruleImageIdsCache = ids;
+  return ids;
+}
+
+export function hasRuleImage(gameId: string): boolean {
+  return getRuleImageIds().has(gameId);
 }
 
 interface RuleRow {

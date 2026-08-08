@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import GNB from '@/components/layout/GNB';
+import RuleImage from '@/components/rules/RuleImage';
 import { MarkdownView, extractPlainText } from '@/lib/markdown';
 import {
   GAME_RULES,
@@ -11,7 +11,12 @@ import {
   RULE_IMAGE_WIDTH,
   RULE_IMAGE_HEIGHT,
 } from '@/lib/gameRules';
-import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
+import {
+  fetchGameRule,
+  fetchAllGameRules,
+  hasMeaningfulRule,
+  hasRuleImage,
+} from '@/lib/gameRulesServer';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       type: 'article',
       // 룰 이미지가 있으면 공유 카드 썸네일로 그대로 쓴다
-      ...(game.hasImage
+      ...(hasRuleImage(gameId)
         ? {
             images: [
               {
@@ -73,8 +78,7 @@ export default async function GameRulePage({ params }: Props) {
   const source = content?.rules?.trim() ?? '';
   const meta = content?.meta;
   const hasRules = hasMeaningfulRule(source);
-  const hasImage = game.hasImage === true;
-  const imageSrc = ruleImagePath(gameId);
+  const hasImage = hasRuleImage(gameId);
   const hasMeta = Boolean(
     meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
   );
@@ -134,31 +138,7 @@ export default async function GameRulePage({ params }: Props) {
           <article>
             {/* 룰 이미지 — 사용자는 기본적으로 이미지를 본다.
                 본문 텍스트는 아래 접이식 영역에 그대로 남아 크롤러가 수집한다. */}
-            {hasImage && (
-              <figure className="mb-6">
-                <a
-                  href={imageSrc}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block overflow-hidden rounded-cdm-md border border-cdm-border transition hover:border-cdm-primary"
-                >
-                  <Image
-                    src={imageSrc}
-                    alt={`${game.name} 룰 안내 이미지 — 아래 '룰 텍스트로 보기'에 같은 내용이 글로 있습니다.`}
-                    width={RULE_IMAGE_WIDTH}
-                    height={RULE_IMAGE_HEIGHT}
-                    priority
-                    // 글씨가 빽빽한 이미지라 재인코딩(기본 q75)하면 글자가 뭉갠다.
-                    // 원본이 이미 표시 해상도에 맞춘 webp(약 100~124KB)이므로 그대로 서빙한다.
-                    unoptimized
-                    className="h-auto w-full"
-                  />
-                </a>
-                <figcaption className="mt-2 text-center text-xs text-cdm-fg-muted">
-                  글씨가 작다면 이미지를 눌러 원본 크기로 볼 수 있어요.
-                </figcaption>
-              </figure>
-            )}
+            {hasImage && <RuleImage gameId={gameId} name={game.name} priority />}
 
             {hasRules &&
               (hasImage ? (
