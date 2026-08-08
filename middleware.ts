@@ -177,7 +177,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  /*
+    정적 파일은 미들웨어를 타지 않게 제외한다.
+    특히 html/txt/xml 은 검색엔진 소유확인 파일(google*.html, naver*.html)과
+    각종 검증 파일이 쓰는 확장자다. 빠뜨리면 비로그인 크롤러 요청이
+    /login 으로 307 리다이렉트되어 소유확인이 실패한다.
+  */
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|wav|ogg|ico|woff|woff2|ttf)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|wav|ogg|ico|woff|woff2|ttf|html|txt|xml|json)$).*)',
   ],
 };
