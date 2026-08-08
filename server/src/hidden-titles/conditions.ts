@@ -94,39 +94,59 @@ export async function getActiveGameCount(): Promise<number> {
  * post_update 이후 해당 멤버와 같은 방에서 게임을 함께 플레이한
  * "서로 다른 상대 회원 수".
  */
+/** Supabase/PostgREST 기본 페이지 상한(1행 조회 시). 초과 시 .range() 로 추가 조회. */
+const SUPABASE_PAGE_SIZE = 1000;
+/**
+ * .in() 에 한 번에 넣을 최대 id 개수. 실측 결과 game_log_id(UUID) 약 650개부터
+ * 요청 크기 제한으로 400 Bad Request 가 발생해(직접 재현·확인) 여유 있게 300으로 배치.
+ */
+const IN_QUERY_CHUNK_SIZE = 300;
+
 export async function countDistinctMultiOpponentsPostUpdate(memberId: string): Promise<number> {
   const sb = getSupabaseAdmin();
-  // 1) 본인이 참여한 post_update 이후 game_log_id 수집
-  const { data: mine, error: e1 } = await sb
-    .from('game_log_participants')
-    .select('game_log_id, game_logs!inner(played_at, counts_for_stats)')
-    .eq('member_id', memberId)
-    .eq('game_logs.counts_for_stats', true)
-    .gte('game_logs.played_at', HIDDEN_TITLES_POST_UPDATE_START_AT);
-  if (e1) {
-    console.warn('[hidden-titles] countDistinctMultiOpponents (mine):', e1.message);
-    return 0;
-  }
-  const gameLogIds = Array.from(
-    new Set((mine ?? []).map((r) => (r as { game_log_id: string }).game_log_id)),
-  );
-  if (gameLogIds.length === 0) return 0;
 
-  // 2) 해당 game_log 들의 나머지 참가자 (본인/AI/탈퇴 제외)
-  const { data: others, error: e2 } = await sb
-    .from('game_log_participants')
-    .select('member_id')
-    .in('game_log_id', gameLogIds)
-    .neq('member_id', memberId)
-    .not('member_id', 'is', null);
-  if (e2) {
-    console.warn('[hidden-titles] countDistinctMultiOpponents (others):', e2.message);
-    return 0;
+  // 1) 본인이 참여한 post_update 이후 game_log_id 수집.
+  //    활동량이 많은 회원은 1000행을 넘을 수 있어 .range() 로 전부 페이지네이션한다
+  //    (그렇지 않으면 Supabase 기본 상한(1000)에 걸려 최근 활동만 조용히 누락된다).
+  const gameLogIds = new Set<string>();
+  for (let offset = 0; ; offset += SUPABASE_PAGE_SIZE) {
+    const { data, error } = await sb
+      .from('game_log_participants')
+      .select('game_log_id, game_logs!inner(played_at, counts_for_stats)')
+      .eq('member_id', memberId)
+      .eq('game_logs.counts_for_stats', true)
+      .gte('game_logs.played_at', HIDDEN_TITLES_POST_UPDATE_START_AT)
+      .range(offset, offset + SUPABASE_PAGE_SIZE - 1);
+    if (error) {
+      console.warn('[hidden-titles] countDistinctMultiOpponents (mine):', error.message);
+      return 0;
+    }
+    for (const r of data ?? []) gameLogIds.add((r as { game_log_id: string }).game_log_id);
+    if (!data || data.length < SUPABASE_PAGE_SIZE) break;
   }
+  if (gameLogIds.size === 0) return 0;
+
+  // 2) 해당 game_log 들의 나머지 참가자 (본인/AI/탈퇴 제외).
+  //    id 목록이 크면 .in() 요청 자체가 400 Bad Request 로 실패하므로 청크 단위로 나눠 조회.
+  //    한 청크가 실패해도 나머지 청크는 계속 집계한다(부분 결과가 0보다 정확함).
+  const ids = Array.from(gameLogIds);
   const opponents = new Set<string>();
-  for (const r of others ?? []) {
-    const mid = (r as { member_id: string | null }).member_id;
-    if (mid) opponents.add(mid);
+  for (let i = 0; i < ids.length; i += IN_QUERY_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + IN_QUERY_CHUNK_SIZE);
+    const { data, error } = await sb
+      .from('game_log_participants')
+      .select('member_id')
+      .in('game_log_id', chunk)
+      .neq('member_id', memberId)
+      .not('member_id', 'is', null);
+    if (error) {
+      console.warn('[hidden-titles] countDistinctMultiOpponents (others):', error.message);
+      continue;
+    }
+    for (const r of data ?? []) {
+      const mid = (r as { member_id: string | null }).member_id;
+      if (mid) opponents.add(mid);
+    }
   }
   return opponents.size;
 }
