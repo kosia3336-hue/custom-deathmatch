@@ -85,8 +85,8 @@ export function useSocket(): void {
 
     const onRankMatched = (data: RankMatchedPayload) => {
       useRankMatchStore.getState().setMatched(data);
-      // 매칭은 탭이 뒤에 있을 때 잡히는 경우가 많다 — 소리·브라우저 알림으로도 알린다
-      notifyRankMatched(data.opponentNickname);
+      // 매칭은 탭이 뒤에 있을 때 잡히는 경우가 많다 — 효과음이 켜져 있으면 소리로도 알린다
+      notifyRankMatched();
     };
 
     /**
