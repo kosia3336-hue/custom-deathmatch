@@ -83,6 +83,65 @@ export async function listGuilds(): Promise<GuildSummary[]> {
   });
 }
 
+/** 길드 랭킹 한 줄 — 목록(랜덤 정렬)과 달리 순위가 붙는다 */
+export interface GuildRankRow extends GuildSummary {
+  /** 1부터 시작하는 순위. 포인트가 같으면 같은 순위(공동 순위) */
+  rank: number;
+}
+
+/**
+ * 길드 랭킹 — 길드 포인트 내림차순.
+ *
+ * 목록(listGuilds)은 노출 형평성 때문에 일부러 섞지만, 랭킹은 순위가 목적이므로
+ * 포인트 순으로 고정한다. 동점은 공동 순위로 처리하고, 그 안에서는 먼저 만들어진
+ * 길드를 앞에 둔다(순서가 매번 흔들리지 않도록).
+ */
+export async function listGuildRanking(limit = 100): Promise<GuildRankRow[]> {
+  const sb = getSupabaseServiceRole();
+  const { data: guilds } = await sb
+    .from('guilds')
+    .select('*')
+    .is('disbanded_at', null)
+    .order('points', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  const rows = (guilds ?? []) as GuildRow[];
+  if (rows.length === 0) return [];
+
+  const { data: membersData } = await sb
+    .from('guild_members')
+    .select('guild_id, member_id, role, joined_at')
+    .in('guild_id', rows.map((g) => g.id));
+  const memberRows = (membersData ?? []) as GuildMemberRow[];
+
+  const nicknames = await fetchNicknames(rows.map((g) => g.owner_id));
+
+  let prevPoints: number | null = null;
+  let prevRank = 0;
+
+  return rows.map((g, i) => {
+    const points = Number(g.points);
+    // 동점이면 앞 순위를 그대로 물려준다 (1, 2, 2, 4 …)
+    const rank = points === prevPoints ? prevRank : i + 1;
+    prevPoints = points;
+    prevRank = rank;
+
+    return {
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      ownerNickname: nicknames.get(g.owner_id) ?? '',
+      capacity: g.capacity,
+      memberCount: memberRows.filter((m) => m.guild_id === g.id).length,
+      points,
+      createdAt: g.created_at,
+      markUrl: g.mark_url ?? null,
+      buffCdpLevel: Number(g.buff_cdp_level ?? 0),
+      rank,
+    };
+  });
+}
+
 /** 내 길드 상태 (미가입이면 guild=null + 내 pending 신청/창설권 수) */
 export async function getMyGuildState(memberId: string): Promise<MyGuildState> {
   const sb = getSupabaseServiceRole();

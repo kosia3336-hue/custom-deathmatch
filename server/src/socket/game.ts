@@ -593,11 +593,20 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
   if (!gameModule) return;
 
   const state = gameModule.getState(roomId);
+
+  // 이미 승부가 난 뒤(결과 연출 중)라면 손대지 않고 그대로 둔다.
+  // 대부분의 게임은 gameOver 를 세운 직후가 아니라 3~8초 뒤에 endGameCallback 을
+  // 부르는데(결과 공개 연출), 그 사이에 여기서 cleanup 해 버리면 예약된 타이머가
+  // 게임 상태를 못 찾고 그냥 반환한다. 그러면 endGame 이 영영 불리지 않아
+  // 방이 'playing' 인 채로 멈추고, 남은 사람 화면이 결과로 넘어가지 못한다.
+  // 이 경우 타이머가 알아서 정상 종료시키므로 기권 처리로 덮어쓸 필요도 없다.
+  if (state?.gameOver) return;
+
   const gameResultData = gameModule.getResultData?.(roomId);
   clearPendingUndo(roomId);
   gameModule.cleanup(roomId);
 
-  if (state && !state.gameOver && room.playMode === 'multi') {
+  if (state && room.playMode === 'multi') {
     const other = room.players.find((p: Player) => p.id !== playerId);
     const leaverNickname =
       room.players.find((p: Player) => p.id === playerId)?.nickname ??
