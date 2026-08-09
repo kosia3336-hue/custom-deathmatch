@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { ZoomIcon } from '@/components/rules/RuleImage';
+import { ruleImagePath } from '@/lib/gameRules';
 
 export interface GuideRuleItem {
   id: string;
@@ -35,11 +37,12 @@ function Arrow({ dir }: { dir: 'prev' | 'next' }) {
 }
 
 /**
- * 소개 페이지 룰 뷰어.
- * 위: 갈래 색 점으로 구분한 종목 버튼 / 아래: 고정 높이 캔버스(넘치면 스크롤) + 좌우 이동 화살표.
+ * 소개 페이지 룰 뷰어 — 룰 이미지 캐러셀.
+ * 위: 갈래 색 점으로 구분한 종목 버튼 / 아래: 이미지 크기에 딱 맞는 캔버스.
+ * 좌우 화살표는 캔버스 안(이미지 위)에, 돋보기는 캔버스 밖에 둔다.
  *
- * items 는 서버에서 DB(game_rule_texts)를 읽어 만들기 때문에,
- * 관리자 페이지에서 룰을 추가·수정하면 별도 작업 없이 이 목록에 자동 반영된다.
+ * items 는 룰 이미지(public/rules/<gameId>.webp)가 있는 종목만 서버에서 만들어 넘긴다.
+ * 이미지를 새로 넣으면 코드 수정 없이 이 목록에 자동으로 추가된다.
  */
 export default function GuideRulesPanel({ items }: Props) {
   const [selectedId, setSelectedId] = useState(items[0]?.id ?? '');
@@ -89,21 +92,22 @@ export default function GuideRulesPanel({ items }: Props) {
         })}
       </ul>
 
-      {/* 룰 캔버스 — 버튼 아래. 제목 없이 본문만, 좌우 화살표로 이동 */}
+      {/* 룰 캔버스 — 이미지 크기에 딱 맞는다(여백 없음).
+          선택 안 된 항목은 hidden 이라 높이를 차지하지 않으므로,
+          캔버스 높이 = 지금 보이는 이미지 높이가 된다. */}
       <div className="relative mt-4">
-        <div className="h-[240px] overflow-y-auto overscroll-contain rounded-xl bg-cdm-page px-4 py-4 md:h-[280px] md:px-12">
-          {items.map((it) => (
-            <div key={it.id} hidden={it.id !== selected.id}>
-              {it.node}
-            </div>
-          ))}
-        </div>
+        {items.map((it) => (
+          <div key={it.id} hidden={it.id !== selected.id}>
+            {it.node}
+          </div>
+        ))}
 
+        {/* 화살표 — 캔버스 안(이미지 위)에 겹쳐 놓는다 */}
         <button
           type="button"
           onClick={() => go(-1)}
           aria-label="이전 게임 룰"
-          className="absolute top-1/2 left-1.5 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white/85 p-2 text-cdm-fg shadow-md transition hover:bg-white md:flex"
+          className="absolute top-1/2 left-2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full bg-white/85 p-2 text-cdm-fg shadow-md transition hover:bg-white"
         >
           <Arrow dir="prev" />
         </button>
@@ -111,33 +115,23 @@ export default function GuideRulesPanel({ items }: Props) {
           type="button"
           onClick={() => go(1)}
           aria-label="다음 게임 룰"
-          className="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white/85 p-2 text-cdm-fg shadow-md transition hover:bg-white md:flex"
+          className="absolute top-1/2 right-2 z-10 flex -translate-y-1/2 items-center justify-center rounded-full bg-white/85 p-2 text-cdm-fg shadow-md transition hover:bg-white"
         >
           <Arrow dir="next" />
         </button>
       </div>
 
-      {/* 모바일 — 캔버스 폭이 좁아 화살표를 아래에 배치 */}
-      <div className="mt-3 flex items-center justify-center gap-3 md:hidden">
-        <button
-          type="button"
-          onClick={() => go(-1)}
-          aria-label="이전 게임 룰"
-          className="flex items-center justify-center rounded-full bg-white/10 p-2 text-cdm-ink-fg transition hover:bg-white/20"
+      {/* 캔버스 밖 — 돋보기(원본 크기로 열기) */}
+      <div className="mt-2 flex justify-center">
+        <a
+          href={ruleImagePath(selected.id)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${selected.name} 룰 이미지 원본 크기로 보기`}
+          className="text-cdm-ink-fg-muted transition hover:text-cdm-ink-fg"
         >
-          <Arrow dir="prev" />
-        </button>
-        <span className="text-xs text-cdm-ink-fg-muted">
-          {idx + 1} / {items.length}
-        </span>
-        <button
-          type="button"
-          onClick={() => go(1)}
-          aria-label="다음 게임 룰"
-          className="flex items-center justify-center rounded-full bg-white/10 p-2 text-cdm-ink-fg transition hover:bg-white/20"
-        >
-          <Arrow dir="next" />
-        </button>
+          <ZoomIcon />
+        </a>
       </div>
     </div>
   );

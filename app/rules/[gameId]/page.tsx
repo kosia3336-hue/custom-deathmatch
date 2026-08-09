@@ -2,10 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import GNB from '@/components/layout/GNB';
+import RuleImage from '@/components/rules/RuleImage';
 import { MarkdownView, extractPlainText } from '@/lib/markdown';
-import { GAME_RULES, getGameRule } from '@/lib/gameRules';
-import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
+import {
+  GAME_RULES,
+  getGameRule,
+  ruleImagePath,
+  RULE_IMAGE_WIDTH,
+  RULE_IMAGE_HEIGHT,
+} from '@/lib/gameRules';
+import {
+  fetchGameRule,
+  fetchAllGameRules,
+  hasMeaningfulRule,
+  hasRuleImage,
+} from '@/lib/gameRulesServer';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
+import { cn } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ gameId: string }>;
@@ -38,6 +51,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${game.name} 룰 | 커스텀 데스매치`,
       description,
       type: 'article',
+      // 룰 이미지가 있으면 공유 카드 썸네일로 그대로 쓴다
+      ...(hasRuleImage(gameId)
+        ? {
+            images: [
+              {
+                url: ruleImagePath(gameId),
+                width: RULE_IMAGE_WIDTH,
+                height: RULE_IMAGE_HEIGHT,
+                alt: `${game.name} 룰`,
+              },
+            ],
+          }
+        : {}),
     },
   };
 }
@@ -52,6 +78,7 @@ export default async function GameRulePage({ params }: Props) {
   const source = content?.rules?.trim() ?? '';
   const meta = content?.meta;
   const hasRules = hasMeaningfulRule(source);
+  const hasImage = hasRuleImage(gameId);
   const hasMeta = Boolean(
     meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
   );
@@ -82,7 +109,13 @@ export default async function GameRulePage({ params }: Props) {
     <div className="flex min-h-screen flex-col bg-cdm-page">
       <GNB />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 md:px-6 md:py-10">
+      {/* 룰 이미지가 있으면 이미지 안의 글씨가 잘 보이도록 본문 폭을 넓힌다 */}
+      <main
+        className={cn(
+          'mx-auto w-full flex-1 px-4 py-6 md:px-6 md:py-10',
+          hasImage ? 'max-w-5xl' : 'max-w-3xl',
+        )}
+      >
         {/* 브레드크럼 */}
         <nav className="mb-4 text-sm text-cdm-fg-muted">
           <Link href="/rules" className="hover:text-cdm-fg hover:underline">
@@ -101,9 +134,32 @@ export default async function GameRulePage({ params }: Props) {
           </h1>
         </header>
 
-        {hasRules ? (
+        {hasImage || hasRules ? (
           <article>
-            <MarkdownView source={source} />
+            {/* 룰 이미지 — 사용자는 기본적으로 이미지를 본다.
+                본문 텍스트는 아래 접이식 영역에 그대로 남아 크롤러가 수집한다. */}
+            {hasImage && <RuleImage gameId={gameId} name={game.name} priority />}
+
+            {hasRules &&
+              (hasImage ? (
+                <details className="group rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1">
+                  <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-3 text-sm font-bold text-cdm-fg transition hover:text-cdm-primary [&::-webkit-details-marker]:hidden">
+                    <span>룰 텍스트로 보기</span>
+                    <span
+                      aria-hidden
+                      className="text-cdm-fg-muted transition-transform group-open:rotate-180"
+                    >
+                      ▾
+                    </span>
+                  </summary>
+                  <div className="border-t border-cdm-border px-4 py-4">
+                    <MarkdownView source={source} />
+                  </div>
+                </details>
+              ) : (
+                <MarkdownView source={source} />
+              ))}
+
             {hasMeta && (
               <div className="mt-8 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-4 text-xs leading-relaxed text-cdm-fg-muted">
                 {meta!.source && <p>출처: {meta!.source}</p>}
