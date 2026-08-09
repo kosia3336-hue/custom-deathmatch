@@ -5,7 +5,7 @@ import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
 import RuleImage from '@/components/rules/RuleImage';
 import { GAME_CATEGORIES, GAME_RULES } from '@/lib/gameRules';
-import { fetchAllGameRules, hasMeaningfulRule, hasRuleImage } from '@/lib/gameRulesServer';
+import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 import { MarkdownView } from '@/lib/markdown';
 
 /**
@@ -46,7 +46,7 @@ export default async function GuideContent() {
     스크린리더와 검색엔진은 글을 읽는다.
   */
   const allRules = await fetchAllGameRules();
-  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) => hasRuleImage(g.id)).map((g) => {
+  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) => allRules[g.id]?.imageUrl).map((g) => {
     const { rules, meta } = allRules[g.id] ?? { rules: '', meta: undefined };
     const hasMeta = Boolean(
       meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
@@ -59,7 +59,7 @@ export default async function GuideContent() {
       hue: categoryHue(g.category),
       node: (
         <>
-          <RuleImage gameId={g.id} name={g.name} caption={false} className="mb-0" />
+          <RuleImage src={allRules[g.id]!.imageUrl} name={g.name} />
           {hasMeaningfulRule(rules) && (
             <div className="sr-only">
               <MarkdownView source={rules} />

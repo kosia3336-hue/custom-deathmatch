@@ -10,12 +10,13 @@ export default async function GameRulesTab() {
   const texts: Record<string, string> = {};
   const meta: Record<string, GameRuleMeta> = {};
   const updatedAt: Record<string, string> = {};
+  const images: Record<string, string> = {};
 
   if (isSupabaseServiceRoleConfigured()) {
     const sb = getSupabaseServiceRole();
     const { data } = await sb
       .from('game_rule_texts')
-      .select('game_id, rules, source, origin_url, original_author, poster, updated_at');
+      .select('game_id, rules, source, origin_url, original_author, poster, updated_at, image_url');
     for (const r of (data ?? []) as {
       game_id: string;
       rules: string;
@@ -24,6 +25,7 @@ export default async function GameRulesTab() {
       original_author: string;
       poster: string;
       updated_at: string;
+      image_url: string | null;
     }[]) {
       texts[r.game_id] = r.rules;
       meta[r.game_id] = {
@@ -33,8 +35,16 @@ export default async function GameRulesTab() {
         poster: r.poster ?? '',
       };
       updatedAt[r.game_id] = r.updated_at;
+      images[r.game_id] = r.image_url ?? '';
     }
   }
 
-  return <AdminGameRulesEditor initialTexts={texts} initialMeta={meta} initialUpdatedAt={updatedAt} />;
+  return (
+    <AdminGameRulesEditor
+      initialTexts={texts}
+      initialMeta={meta}
+      initialUpdatedAt={updatedAt}
+      initialImages={images}
+    />
+  );
 }

@@ -16,8 +16,8 @@ interface Props {
 interface RuleData {
   texts: Record<string, string>;
   meta: Record<string, GameRuleMeta>;
-  /** 룰 이미지(public/rules/<id>.webp)가 있는 게임 id — 서버가 파일 존재로 판정해 내려준다 */
-  imageIds: string[];
+  /** 게임별 룰 이미지 URL — 관리자 페이지에서 등록한 값 */
+  images: Record<string, string>;
 }
 
 /** DB(game_rule_texts) 룰 텍스트/메타 캐시 — 세션 중 1회만 로드 */
@@ -28,24 +28,24 @@ async function loadRuleData(): Promise<RuleData> {
   if (dataCache) return dataCache;
   if (!dataPromise) {
     dataPromise = fetch('/api/game-rules')
-      .then((res) => (res.ok ? res.json() : { texts: {}, meta: {}, imageIds: [] }))
+      .then((res) => (res.ok ? res.json() : { texts: {}, meta: {}, images: {} }))
       .then(
         (json: {
           texts?: Record<string, string>;
           meta?: Record<string, GameRuleMeta>;
-          imageIds?: string[];
+          images?: Record<string, string>;
         }) => {
           dataCache = {
             texts: json.texts ?? {},
             meta: json.meta ?? {},
-            imageIds: json.imageIds ?? [],
+            images: json.images ?? {},
           };
           return dataCache;
         },
       )
       .catch(() => {
         dataPromise = null;
-        return { texts: {}, meta: {}, imageIds: [] };
+        return { texts: {}, meta: {}, images: {} };
       });
   }
   return dataPromise;
@@ -70,7 +70,7 @@ export function GameRulesModal({ gameId, open, onClose }: Props) {
   const source = (gameId ? data?.texts[gameId] : undefined) ?? rule?.rules ?? '';
   const meta = gameId ? data?.meta[gameId] : undefined;
   const hasRules = Boolean(source.trim());
-  const hasImage = Boolean(gameId && data?.imageIds.includes(gameId));
+  const imageUrl = (gameId && data?.images[gameId]) || '';
   const hasMeta = Boolean(meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster));
 
   return (
@@ -81,31 +81,11 @@ export function GameRulesModal({ gameId, open, onClose }: Props) {
       size="lg"
       mobileBottomSheet
     >
-      {hasImage || hasRules ? (
+      {imageUrl || hasRules ? (
         <div className="max-h-[65dvh] overflow-y-auto overscroll-contain pr-1">
-          {/* 이미지가 있으면 이미지를 먼저 — 게임 중에는 그림이 훨씬 빨리 읽힌다.
-              글로 정확히 확인해야 할 때만 아래를 펼치면 된다. */}
-          {hasImage && gameId && <RuleImage gameId={gameId} name={rule?.name ?? '게임'} />}
-
-          {hasRules &&
-            (hasImage ? (
-              <details className="group rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1">
-                <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-3 text-sm font-bold text-cdm-fg transition hover:text-cdm-primary [&::-webkit-details-marker]:hidden">
-                  <span>룰 텍스트로 보기</span>
-                  <span
-                    aria-hidden
-                    className="text-cdm-fg-muted transition-transform group-open:rotate-180"
-                  >
-                    ▾
-                  </span>
-                </summary>
-                <div className="border-t border-cdm-border px-4 py-4">
-                  <MarkdownView source={source} />
-                </div>
-              </details>
-            ) : (
-              <MarkdownView source={source} />
-            ))}
+          {/* 이미지 먼저, 본문은 그 아래에 그대로 펼쳐 둔다 */}
+          {imageUrl && <RuleImage src={imageUrl} name={rule?.name ?? '게임'} className="mb-4" />}
+          {hasRules && <MarkdownView source={source} />}
           {hasMeta && (
             <div className="mt-5 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-3 text-xs leading-relaxed text-cdm-fg-muted">
               {meta!.source && <p>출처: {meta!.source}</p>}
