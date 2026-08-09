@@ -13,7 +13,6 @@ import GameStatsTab from './GameStatsTab';
 import GameRulesTab from './GameRulesTab';
 import AuditTab from './AuditTab';
 import AdminShopTab from './AdminShopTab';
-import EventCouponsTab from './EventCouponsTab';
 
 export const metadata: Metadata = { title: '관리자', robots: { index: false } };
 
@@ -57,7 +56,6 @@ export default async function AdminPage({ searchParams }: Props) {
           {tab === 'reports' && <ReportsTab page={sp.page} />}
           {tab === 'inquiries' && <InquiriesTab page={sp.page} statusFilter={sp.inquiryStatus} />}
           {tab === 'notices' && <NoticesTab page={sp.page} />}
-          {tab === 'event-coupons' && <EventCouponsTab />}
           {tab === 'audit' && (
             <AuditTab page={sp.page} actionKind={sp.actionKind} actor={sp.actor} />
           )}
