@@ -353,9 +353,14 @@ const aiWorkerMap = new Map<string, Worker>();
 function resolveWorkerPath(): string {
   const selfPath = fileURLToPath(import.meta.url);
   const isTs = extname(selfPath) === '.ts';
+  // dev: .mjs 부트스트랩이 tsx를 등록한 후 같은 폴더의 ai-worker.ts를 로드
+  // prod: 번들된 index.js 옆(dist/)에 게임별 폴더로 빌드된 워커를 로드.
+  //   ⚠ prod 에서는 이 파일이 dist/index.js 안에 번들되므로 dirname 이 dist/ 다.
+  //   전에는 사중력 사목과 이 게임이 dist/ai-worker.js 하나를 공유해, 양면장기가
+  //   사중력 사목 워커를 띄우고 매 수마다 죽었다(폴백 AI 로 대체되며 에러 도배).
   return isTs
     ? join(dirname(selfPath), 'ai-worker-boot.mjs')
-    : join(dirname(selfPath), 'ai-worker.js');
+    : join(dirname(selfPath), 'double-sided-chess', 'ai-worker.js');
 }
 
 let _workerPath: string | null = null;

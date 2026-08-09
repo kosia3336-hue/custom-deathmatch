@@ -391,11 +391,14 @@ const aiWorkerMap = new Map<string, Worker>();
 function resolveWorkerPath(): string {
   const selfPath = fileURLToPath(import.meta.url);
   const isTs = extname(selfPath) === '.ts';
-  // dev: .mjs 부트스트랩이 tsx를 등록한 후 ai-worker.ts를 로드
-  // prod: tsup으로 컴파일된 ai-worker.js를 직접 로드
+  // dev: .mjs 부트스트랩이 tsx를 등록한 후 같은 폴더의 ai-worker.ts를 로드
+  // prod: 번들된 index.js 옆(dist/)에 게임별 폴더로 빌드된 워커를 로드.
+  //   ⚠ prod 에서는 이 파일이 dist/index.js 안에 번들되므로 dirname 이 dist/ 다.
+  //   게임마다 폴더를 나누지 않으면 워커 두 개가 dist/ai-worker.js 하나를 두고
+  //   충돌해, 한쪽 게임이 다른 게임의 워커를 띄우게 된다.
   return isTs
     ? join(dirname(selfPath), 'ai-worker-boot.mjs')
-    : join(dirname(selfPath), 'ai-worker.js');
+    : join(dirname(selfPath), 'four-gravity', 'ai-worker.js');
 }
 
 let _workerPath: string | null = null;
