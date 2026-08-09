@@ -9,8 +9,10 @@ export interface SeasonOption {
   is_active: boolean | null;
 }
 
+export type RankingBoard = 'game' | 'rank' | 'guild';
+
 interface Props {
-  board: 'game' | 'rank' | 'event';
+  board: RankingBoard;
   seasons: SeasonOption[];
   /** URL에 season 없을 때 선택값 (서버에서 진행 중 시즌 등) */
   defaultSeasonId: number | null;
@@ -21,7 +23,7 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function setBoard(next: 'game' | 'rank' | 'event') {
+  function setBoard(next: RankingBoard) {
     const p = new URLSearchParams(searchParams.toString());
     p.set('board', next);
     if (next === 'game') {
@@ -62,10 +64,10 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
         tabs={[
           { id: 'rank', label: '랭크' },
           { id: 'game', label: '게임 랭킹' },
-          { id: 'event', label: '이벤트' },
+          { id: 'guild', label: '길드' },
         ]}
         value={board}
-        onChange={(id) => setBoard(id as 'game' | 'rank' | 'event')}
+        onChange={(id) => setBoard(id as RankingBoard)}
       />
       {board === 'rank' && seasons.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">

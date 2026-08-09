@@ -14,9 +14,9 @@ import {
   parsePageParam,
 } from '@/lib/pagination';
 import RankingTabs from './RankingTabs';
-import RankingBoardTabs from './RankingBoardTabs';
+import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
-import EventSeasonLeaderboard from './EventSeasonLeaderboard';
+import GuildLeaderboard from './GuildLeaderboard';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = {
@@ -104,8 +104,8 @@ export default async function RankingPage({ searchParams }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = sb as any;
 
-  const board =
-    sp.board === 'game' ? 'game' : sp.board === 'event' ? 'event' : 'rank';
+  const board: RankingBoard =
+    sp.board === 'game' ? 'game' : sp.board === 'guild' ? 'guild' : 'rank';
 
   let seasons: { id: number; name: string; is_active: boolean | null }[] = [];
   if (board === 'rank') {
@@ -261,8 +261,8 @@ export default async function RankingPage({ searchParams }: Props) {
           </>
         )}
 
-        {board === 'event' && (
-          <EventSeasonLeaderboard page={page} memberId={member?.id ?? null} />
+        {board === 'guild' && (
+          <GuildLeaderboard page={page} memberId={member?.id ?? null} />
         )}
       </main>
     </>
