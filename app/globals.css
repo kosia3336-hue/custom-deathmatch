@@ -3669,20 +3669,39 @@ body {
    배경만 이미지로 깔고 룰 본문은 진짜 텍스트로 얹는다. 통이미지로 구우면
    폭이 좁아질 때 글씨까지 줄어들어 모바일에서 읽기 힘들었다.
 
-   배경(1251x800)은 폭에 맞춰 한 번만 깔고, 그 아래로 본문이 넘치면
-   같은 톤의 바탕색이 이어받는다. 상단 명판 띠(1251x132)는 같은 비율의
-   블록으로 잡아 두어, 폭이 바뀌어도 제목이 늘 명판 안에 들어간다.
-   글자 크기는 컨테이너 폭(cqw) 기준이라 배경과 함께 확대·축소된다. */
+   배경 이미지(1251x800)는 위쪽에 한 번만 깔고 아래로 갈수록 투명해지게
+   마스크를 씌운다. 그래서 룰이 길어져도 이미지가 '뚝 잘린' 자국 없이
+   바탕 그라데이션으로 자연스럽게 이어진다.
+
+   상단 명판 띠(1251x132)는 배경과 같은 비율로 잡아 두어, 폭이 바뀌어도
+   제목이 늘 명판 안에 들어간다. 글자 크기는 컨테이너 폭(cqw) 기준이라
+   배경과 함께 확대·축소된다. */
 .rule-sheet {
   container-type: inline-size;
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
   border-radius: var(--cdm-radius-md, 12px);
-  background-color: #0b1024;
-  background-image: url('/rules/rule-sheet-bg.webp');
-  background-repeat: no-repeat;
-  background-position: top center;
-  background-size: 100% auto;
+  /* 배경 이미지 아래를 받아 주는 바탕 — 이미지 가장자리 색과 맞춘다 */
+  background:
+    radial-gradient(120% 90% at 92% 100%, #2a1450 0%, transparent 55%),
+    radial-gradient(90% 70% at 0% 8%, #12285c 0%, transparent 60%),
+    linear-gradient(180deg, #0b1024 0%, #0b1026 60%, #0e0c22 100%);
   color: #d9def2;
+  font-family: var(--font-sans);
+}
+
+/* 배경 이미지 — 아래로 갈수록 사라지게 해서 본문이 길어도 경계가 안 보인다 */
+.rule-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  aspect-ratio: 1251 / 800;
+  background: url('/rules/rule-sheet-bg.webp') top center / 100% auto no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 52%, transparent 96%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 52%, transparent 96%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 /* 상단 명판 띠 — 배경 이미지의 명판 위치(높이 132/800)와 같은 비율 */
@@ -3695,32 +3714,48 @@ body {
   justify-content: center;
 }
 
+/* 갈래 태그 — 원본 룰지처럼 붉은 기가 도는 작은 글씨 */
 .rule-sheet__cat {
   font-size: 1.15cqw;
   font-weight: 800;
-  letter-spacing: 0.25em;
-  color: #ffd9a0;
-  opacity: 0.9;
+  letter-spacing: 0.3em;
+  color: #e8836f;
+  text-shadow: 0 0 0.5cqw rgba(232, 131, 111, 0.55);
 }
 
+/* 제목 — 금색 세로 그라데이션 + 발광 + 베벨(위 하이라이트 / 아래 그림자) */
 .rule-sheet__title {
   margin-top: 0.4cqw;
   font-size: 4.2cqw;
   font-weight: 800;
-  line-height: 1.1;
-  color: #f5c869;
-  text-shadow: 0 0.15cqw 0.5cqw rgba(0, 0, 0, 0.65);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  background: linear-gradient(180deg, #fff6cf 0%, #ffdf86 38%, #f4b043 70%, #d98a2b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* background-clip:text 이라 text-shadow 는 글자 뒤가 아니라 상자에 깔린다.
+     글자 모양 그대로 그림자를 주려면 filter: drop-shadow 를 써야 한다. */
+  filter:
+    drop-shadow(0 -0.04cqw 0 rgba(255, 255, 255, 0.35))
+    drop-shadow(0 0.09cqw 0.09cqw rgba(0, 0, 0, 0.8))
+    drop-shadow(0 0 0.7cqw rgba(255, 178, 70, 0.5));
 }
 
 .rule-sheet__body {
+  position: relative;
   padding: 3cqw 6.2cqw 5cqw;
   font-size: clamp(0.95rem, 1.9cqw, 1.05rem);
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
 /* 본문 안 마크다운 — 어두운 배경에 맞춰 색을 덮어쓴다 */
-.rule-sheet__body :is(p, li, td, th) { color: #d9def2; }
-.rule-sheet__body :is(h1, h2, h3, h4, strong) { color: #ffffff; }
+.rule-sheet__body :is(p, li, td, th) { color: #dbe0f4; }
+.rule-sheet__body :is(h1, h2, h3, h4) {
+  color: #ffe6b0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.rule-sheet__body strong { color: #ffffff; }
 .rule-sheet__body a { color: #9fb4ff; }
 .rule-sheet__body :is(hr, table, th, td) { border-color: rgba(255, 255, 255, 0.18); }
 .rule-sheet__body code {
@@ -3730,8 +3765,14 @@ body {
 
 /* 좁은 화면 — cqw 로만 두면 글씨가 너무 작아지므로 하한을 준다 */
 @container (max-width: 560px) {
-  .rule-sheet__head { aspect-ratio: auto; padding-block: 4.5cqw 2cqw; }
-  .rule-sheet__cat { font-size: 0.68rem; letter-spacing: 0.2em; }
-  .rule-sheet__title { font-size: 1.5rem; }
+  .rule-sheet__head { aspect-ratio: auto; padding-block: 5cqw 2.5cqw; }
+  .rule-sheet__cat { font-size: 0.7rem; letter-spacing: 0.22em; text-shadow: 0 0 4px rgba(232, 131, 111, 0.55); }
+  .rule-sheet__title {
+    font-size: 1.6rem;
+    filter:
+      drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.35))
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 7px rgba(255, 178, 70, 0.5));
+  }
   .rule-sheet__body { padding: 1rem 1.1rem 1.6rem; font-size: 0.95rem; }
 }
