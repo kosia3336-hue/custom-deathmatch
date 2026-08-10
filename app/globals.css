@@ -3717,6 +3717,8 @@ body {
 /* 갈래 태그 — 갈래별 색(--rule-cat-hue)은 룰 목록·소개 페이지와 같은 값이다.
    어두운 바탕이라 밝기를 올려 쓴다. 심리=빨강 · 언어=초록 … */
 .rule-sheet__cat {
+  position: relative;
+  top: 0.45cqw; /* 배경에 그려진 로고 선과 눈으로 맞춘 값 */
   font-size: 1.15cqw;
   font-weight: 800;
   letter-spacing: 0.3em;
@@ -3736,7 +3738,7 @@ body {
   line-height: 1.15;
   letter-spacing: 0.01em;
   font-family: var(--font-display), var(--font-sans);
-  color: #f3c65f;
+  color: #fed760; /* 원본 룰지 제목에서 추출한 금색 */
   -webkit-text-stroke: 0.07em #2b1703;
   paint-order: stroke fill;
 }
