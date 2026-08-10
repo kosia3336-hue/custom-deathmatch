@@ -3724,31 +3724,24 @@ body {
   text-shadow: 0 0 0.5cqw hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
 }
 
-/* 제목 — 금색 세로 그라데이션 + 발광 + 베벨(위 하이라이트 / 아래 그림자) */
+/* 제목 — 금색 단색 + 엠보스.
+   그라데이션(background-clip:text)을 쓰면 text-shadow 가 글자가 아니라 상자에
+   깔려서, 깎인 단면을 만들 수 없고 drop-shadow 를 겹쳐도 지저분해진다.
+   단색으로 두면 고전적인 방법 그대로 — 위쪽에 밝은 선, 아래쪽에 어두운 선을
+   한 픽셀씩 쌓아 판에 새긴 듯한 단면을 만든다. */
 .rule-sheet__title {
   margin-top: 0.4cqw;
   font-size: 4.2cqw;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #fffbe8 0%, #ffe89a 30%, #f7bb52 62%, #cf7f22 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* 베벨·엠보스 —
-     ① 글자 테두리를 어둡게 둘러 판에 박힌 느낌을 준다(paint-order 로 획을 글자
-        뒤에 그려야 그라데이션 면이 안 가려진다).
-     ② 위쪽에 밝은 선, 아래쪽에 어두운 선을 겹쳐 깎인 단면을 만든다.
-     ③ 마지막으로 따뜻한 발광.
-     background-clip:text 이라 text-shadow 는 글자가 아니라 상자에 깔리므로
-     전부 filter: drop-shadow 로 넣는다. */
-  -webkit-text-stroke: 0.055em rgba(66, 28, 0, 0.55);
-  paint-order: stroke fill;
-  filter:
-    drop-shadow(0 -0.055em 0 rgba(255, 252, 228, 0.45))
-    drop-shadow(0 0.045em 0 rgba(120, 55, 0, 0.75))
-    drop-shadow(0 0.1em 0.09em rgba(0, 0, 0, 0.75))
-    drop-shadow(0 0 0.55em rgba(255, 178, 70, 0.45));
+  color: #f3c65f;
+  text-shadow:
+    0 -0.025em 0 rgba(255, 250, 224, 0.6),
+    0 0.025em 0 #9a6317,
+    0 0.05em 0 #6f4410,
+    0 0.075em 0.06em rgba(0, 0, 0, 0.7),
+    0 0 0.5em rgba(255, 178, 70, 0.35);
 }
 
 .rule-sheet__body {
