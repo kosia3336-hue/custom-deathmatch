@@ -56,6 +56,16 @@ export const GAME_RULES: GameRule[] = [
   { id: 'game-019', name: '트랜스레터', category: '언어', rules: '' },
 ];
 
+/**
+ * 갈래별 색상(HSL 색상환 각도). 룰 목록(사다리)·소개 페이지·룰지가 같은 값을 써서
+ * 어느 화면에서 보든 '심리는 빨강, 언어는 초록' 이 일치한다.
+ *   심리 0(빨강) · 추상전략 50 · 수리 100 · 언어 150(초록) · 관찰 200 · 기타 250
+ */
+export function categoryHue(category: string): number {
+  const idx = GAME_CATEGORIES.indexOf(category as GameCategory);
+  return Math.round(((idx < 0 ? 0 : idx) / GAME_CATEGORIES.length) * 300);
+}
+
 export function getGameRule(id: string): GameRule | undefined {
   return GAME_RULES.find((g) => g.id === id);
 }

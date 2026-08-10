@@ -4,7 +4,7 @@ import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
 import RuleSheet from '@/components/rules/RuleSheet';
-import { GAME_CATEGORIES, GAME_RULES } from '@/lib/gameRules';
+import { GAME_RULES, categoryHue } from '@/lib/gameRules';
 import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 
 /**
@@ -25,12 +25,6 @@ const STEPS: Array<{ title: string; desc: string }> = [
     desc: '상대와 실시간으로 겨룹니다. 승패는 전적·랭킹·칭호에 반영되며, 지난 판은 게임 로그로 다시 확인할 수 있습니다.',
   },
 ];
-
-/** 갈래별 색상 — 룰 목록 페이지와 동일한 계산식(빨강→보라) */
-function categoryHue(category: string): number {
-  const idx = GAME_CATEGORIES.indexOf(category as (typeof GAME_CATEGORIES)[number]);
-  return Math.round(((idx < 0 ? 0 : idx) / GAME_CATEGORIES.length) * 300);
-}
 
 // 룰 본문은 관리자 저장 시 갱신되므로 주기적 재검증
 export default async function GuideContent() {

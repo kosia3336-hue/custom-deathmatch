@@ -3714,13 +3714,14 @@ body {
   justify-content: center;
 }
 
-/* 갈래 태그 — 원본 룰지처럼 붉은 기가 도는 작은 글씨 */
+/* 갈래 태그 — 갈래별 색(--rule-cat-hue)은 룰 목록·소개 페이지와 같은 값이다.
+   어두운 바탕이라 밝기를 올려 쓴다. 심리=빨강 · 언어=초록 … */
 .rule-sheet__cat {
   font-size: 1.15cqw;
   font-weight: 800;
   letter-spacing: 0.3em;
-  color: #e8836f;
-  text-shadow: 0 0 0.5cqw rgba(232, 131, 111, 0.55);
+  color: hsl(var(--rule-cat-hue, 0) 78% 68%);
+  text-shadow: 0 0 0.5cqw hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
 }
 
 /* 제목 — 금색 세로 그라데이션 + 발광 + 베벨(위 하이라이트 / 아래 그림자) */
@@ -3730,16 +3731,24 @@ body {
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #fff6cf 0%, #ffdf86 38%, #f4b043 70%, #d98a2b 100%);
+  background: linear-gradient(180deg, #fffbe8 0%, #ffe89a 30%, #f7bb52 62%, #cf7f22 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  /* background-clip:text 이라 text-shadow 는 글자 뒤가 아니라 상자에 깔린다.
-     글자 모양 그대로 그림자를 주려면 filter: drop-shadow 를 써야 한다. */
+  /* 베벨·엠보스 —
+     ① 글자 테두리를 어둡게 둘러 판에 박힌 느낌을 준다(paint-order 로 획을 글자
+        뒤에 그려야 그라데이션 면이 안 가려진다).
+     ② 위쪽에 밝은 선, 아래쪽에 어두운 선을 겹쳐 깎인 단면을 만든다.
+     ③ 마지막으로 따뜻한 발광.
+     background-clip:text 이라 text-shadow 는 글자가 아니라 상자에 깔리므로
+     전부 filter: drop-shadow 로 넣는다. */
+  -webkit-text-stroke: 0.055em rgba(66, 28, 0, 0.55);
+  paint-order: stroke fill;
   filter:
-    drop-shadow(0 -0.04cqw 0 rgba(255, 255, 255, 0.35))
-    drop-shadow(0 0.09cqw 0.09cqw rgba(0, 0, 0, 0.8))
-    drop-shadow(0 0 0.7cqw rgba(255, 178, 70, 0.5));
+    drop-shadow(0 -0.055em 0 rgba(255, 252, 228, 0.45))
+    drop-shadow(0 0.045em 0 rgba(120, 55, 0, 0.75))
+    drop-shadow(0 0.1em 0.09em rgba(0, 0, 0, 0.75))
+    drop-shadow(0 0 0.55em rgba(255, 178, 70, 0.45));
 }
 
 .rule-sheet__body {
@@ -3766,13 +3775,11 @@ body {
 /* 좁은 화면 — cqw 로만 두면 글씨가 너무 작아지므로 하한을 준다 */
 @container (max-width: 560px) {
   .rule-sheet__head { aspect-ratio: auto; padding-block: 5cqw 2.5cqw; }
-  .rule-sheet__cat { font-size: 0.7rem; letter-spacing: 0.22em; text-shadow: 0 0 4px rgba(232, 131, 111, 0.55); }
-  .rule-sheet__title {
-    font-size: 1.6rem;
-    filter:
-      drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.35))
-      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
-      drop-shadow(0 0 7px rgba(255, 178, 70, 0.5));
+  .rule-sheet__cat {
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-shadow: 0 0 4px hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
   }
+  .rule-sheet__title { font-size: 1.6rem; }
   .rule-sheet__body { padding: 1rem 1.1rem 1.6rem; font-size: 0.95rem; }
 }

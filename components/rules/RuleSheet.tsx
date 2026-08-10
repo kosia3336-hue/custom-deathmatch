@@ -1,4 +1,5 @@
 import { MarkdownView } from '@/lib/markdown';
+import { categoryHue } from '@/lib/gameRules';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -29,7 +30,11 @@ interface Props {
  */
 export default function RuleSheet({ name, category, source, imageUrl, className }: Props) {
   return (
-    <div className={cn('rule-sheet', className)}>
+    <div
+      className={cn('rule-sheet', className)}
+      // 갈래 색 — 룰 목록(사다리)·소개 페이지와 같은 계산식이라 화면이 달라도 색이 같다
+      style={{ '--rule-cat-hue': categoryHue(category) } as React.CSSProperties}
+    >
       <div className="rule-sheet__head">
         <span className="rule-sheet__cat">{category}</span>
         <h2 className="rule-sheet__title">{name}</h2>
