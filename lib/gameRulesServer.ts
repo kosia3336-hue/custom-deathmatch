@@ -39,7 +39,17 @@ interface RuleRow {
   image_url: string | null;
 }
 
-const SELECT_COLS = 'game_id, rules, source, origin_url, original_author, poster, image_url';
+const BASE_COLS = 'game_id, rules, source, origin_url, original_author, poster';
+const SELECT_COLS = `${BASE_COLS}, image_url`;
+
+/**
+ * image_url 컬럼이 아직 없는 DB(마이그레이션 전)에서도 룰 본문은 그대로 보여준다.
+ * 컬럼 하나 때문에 조회가 통째로 실패해 모든 게임 룰이 '준비 중'으로 보이는 일이
+ * 없도록, 실패하면 컬럼을 빼고 한 번 더 조회한다.
+ */
+function isMissingImageColumn(error: { message?: string } | null): boolean {
+  return Boolean(error?.message?.includes('image_url'));
+}
 
 function toContent(row: RuleRow): GameRuleContent {
   return {
@@ -66,11 +76,18 @@ export async function fetchGameRule(gameId: string): Promise<GameRuleContent | n
   if (!isSupabaseConfigured()) return null;
   try {
     const sb = getReadClient();
-    const { data } = await sb
+    let { data, error } = await sb
       .from('game_rule_texts')
       .select(SELECT_COLS)
       .eq('game_id', gameId)
       .maybeSingle();
+    if (error && isMissingImageColumn(error)) {
+      ({ data, error } = await sb
+        .from('game_rule_texts')
+        .select(BASE_COLS)
+        .eq('game_id', gameId)
+        .maybeSingle());
+    }
     const row = data as unknown as RuleRow | null;
     if (!row) return null;
     return toContent(row);
@@ -84,7 +101,10 @@ export async function fetchAllGameRules(): Promise<Record<string, GameRuleConten
   if (!isSupabaseConfigured()) return {};
   try {
     const sb = getReadClient();
-    const { data } = await sb.from('game_rule_texts').select(SELECT_COLS);
+    let { data, error } = await sb.from('game_rule_texts').select(SELECT_COLS);
+    if (error && isMissingImageColumn(error)) {
+      ({ data, error } = await sb.from('game_rule_texts').select(BASE_COLS));
+    }
     const out: Record<string, GameRuleContent> = {};
     for (const row of (data ?? []) as unknown as RuleRow[]) {
       out[row.game_id] = toContent(row);

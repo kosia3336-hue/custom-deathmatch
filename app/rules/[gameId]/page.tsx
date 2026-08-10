@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import GNB from '@/components/layout/GNB';
-import RuleImage from '@/components/rules/RuleImage';
-import { MarkdownView, extractPlainText } from '@/lib/markdown';
+import RuleSheet from '@/components/rules/RuleSheet';
+import { extractPlainText } from '@/lib/markdown';
 import { GAME_RULES, getGameRule } from '@/lib/gameRules';
 import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
@@ -117,10 +117,14 @@ export default async function GameRulePage({ params }: Props) {
 
         {hasImage || hasRules ? (
           <article>
-            {/* 이미지 먼저, 본문은 그 아래에 그대로 펼쳐 둔다.
-                접었다 폈다 하는 장치 없이 위에서 아래로 읽히게 하는 편이 간결하다. */}
-            {hasImage && <RuleImage src={imageUrl} name={game.name} className="mb-6" />}
-            {hasRules && <MarkdownView source={source} />}
+            {/* 룰지 — 배경 위에 본문을 진짜 텍스트로 얹는다(모바일에서도 읽히도록).
+                도해 이미지가 등록돼 있으면 본문 위에 함께 넣는다. */}
+            <RuleSheet
+              name={game.name}
+              category={game.category}
+              source={source}
+              imageUrl={imageUrl || undefined}
+            />
 
             {hasMeta && (
               <div className="mt-8 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-4 text-xs leading-relaxed text-cdm-fg-muted">

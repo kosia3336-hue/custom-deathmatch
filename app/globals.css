@@ -3664,3 +3664,74 @@ body {
   }
   .guide-ember { opacity: 0.5; }
 }
+
+/* ── 룰지 (RuleSheet) ────────────────────────────────────────────────
+   배경만 이미지로 깔고 룰 본문은 진짜 텍스트로 얹는다. 통이미지로 구우면
+   폭이 좁아질 때 글씨까지 줄어들어 모바일에서 읽기 힘들었다.
+
+   배경(1251x800)은 폭에 맞춰 한 번만 깔고, 그 아래로 본문이 넘치면
+   같은 톤의 바탕색이 이어받는다. 상단 명판 띠(1251x132)는 같은 비율의
+   블록으로 잡아 두어, 폭이 바뀌어도 제목이 늘 명판 안에 들어간다.
+   글자 크기는 컨테이너 폭(cqw) 기준이라 배경과 함께 확대·축소된다. */
+.rule-sheet {
+  container-type: inline-size;
+  overflow: hidden;
+  border-radius: var(--cdm-radius-md, 12px);
+  background-color: #0b1024;
+  background-image: url('/rules/rule-sheet-bg.webp');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% auto;
+  color: #d9def2;
+}
+
+/* 상단 명판 띠 — 배경 이미지의 명판 위치(높이 132/800)와 같은 비율 */
+.rule-sheet__head {
+  position: relative;
+  aspect-ratio: 1251 / 132;
+  padding-inline: 6.2cqw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rule-sheet__cat {
+  font-size: 1.15cqw;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: #ffd9a0;
+  opacity: 0.9;
+}
+
+.rule-sheet__title {
+  margin-top: 0.4cqw;
+  font-size: 4.2cqw;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f5c869;
+  text-shadow: 0 0.15cqw 0.5cqw rgba(0, 0, 0, 0.65);
+}
+
+.rule-sheet__body {
+  padding: 3cqw 6.2cqw 5cqw;
+  font-size: clamp(0.95rem, 1.9cqw, 1.05rem);
+  line-height: 1.75;
+}
+
+/* 본문 안 마크다운 — 어두운 배경에 맞춰 색을 덮어쓴다 */
+.rule-sheet__body :is(p, li, td, th) { color: #d9def2; }
+.rule-sheet__body :is(h1, h2, h3, h4, strong) { color: #ffffff; }
+.rule-sheet__body a { color: #9fb4ff; }
+.rule-sheet__body :is(hr, table, th, td) { border-color: rgba(255, 255, 255, 0.18); }
+.rule-sheet__body code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffe4b0;
+}
+
+/* 좁은 화면 — cqw 로만 두면 글씨가 너무 작아지므로 하한을 준다 */
+@container (max-width: 560px) {
+  .rule-sheet__head { aspect-ratio: auto; padding-block: 4.5cqw 2cqw; }
+  .rule-sheet__cat { font-size: 0.68rem; letter-spacing: 0.2em; }
+  .rule-sheet__title { font-size: 1.5rem; }
+  .rule-sheet__body { padding: 1rem 1.1rem 1.6rem; font-size: 0.95rem; }
+}

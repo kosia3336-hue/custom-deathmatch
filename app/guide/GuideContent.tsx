@@ -3,10 +3,9 @@ import GNB from '@/components/layout/GNB';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
-import RuleImage from '@/components/rules/RuleImage';
+import RuleSheet from '@/components/rules/RuleSheet';
 import { GAME_CATEGORIES, GAME_RULES } from '@/lib/gameRules';
 import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
-import { MarkdownView } from '@/lib/markdown';
 
 /**
  * 소개 페이지 본문.
@@ -38,19 +37,15 @@ export default async function GuideContent() {
   const siteUrl = getSiteUrl();
 
   /*
-    룰 캐러셀은 룰 이미지(public/rules/<gameId>.webp)가 있는 종목만 싣는다.
-    이미지를 새로 넣기만 하면 룰 상세 페이지와 이 섹션에 함께 나타난다(코드 수정 불필요).
-
-    이미지에 담긴 내용은 DB(game_rule_texts)의 룰 본문과 같은 내용이므로,
-    본문을 이미지의 '텍스트 대체물'로 함께 싣는다 — 눈으로는 이미지를 보고,
-    스크린리더와 검색엔진은 글을 읽는다.
+    룰이 등록된 종목을 룰지(RuleSheet)로 싣는다 — 배경 위에 본문을 진짜 텍스트로
+    얹으므로 좁은 화면에서도 읽히고, 검색엔진도 그대로 수집한다.
+    관리자가 룰을 저장하면 저장 API 가 이 경로를 재검증해 바로 반영된다.
   */
   const allRules = await fetchAllGameRules();
-  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) => allRules[g.id]?.imageUrl).map((g) => {
-    const { rules, meta } = allRules[g.id] ?? { rules: '', meta: undefined };
-    const hasMeta = Boolean(
-      meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
-    );
+  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) =>
+    hasMeaningfulRule(allRules[g.id]?.rules),
+  ).map((g) => {
+    const rules = allRules[g.id]?.rules ?? '';
 
     return {
       id: g.id,
@@ -58,22 +53,12 @@ export default async function GuideContent() {
       category: g.category,
       hue: categoryHue(g.category),
       node: (
-        <>
-          <RuleImage src={allRules[g.id]!.imageUrl} name={g.name} />
-          {hasMeaningfulRule(rules) && (
-            <div className="sr-only">
-              <MarkdownView source={rules} />
-              {hasMeta && (
-                <div>
-                  {meta!.source && <p>출처: {meta!.source}</p>}
-                  {meta!.originalAuthor && <p>원작자: {meta!.originalAuthor}</p>}
-                  {meta!.poster && <p>게시자: {meta!.poster}</p>}
-                  {meta!.originUrl && <p>원본 룰: {meta!.originUrl}</p>}
-                </div>
-              )}
-            </div>
-          )}
-        </>
+        <RuleSheet
+          name={g.name}
+          category={g.category}
+          source={rules}
+          imageUrl={allRules[g.id]?.imageUrl || undefined}
+        />
       ),
     };
   });

@@ -94,11 +94,15 @@ export default function GuideRulesPanel({ items }: Props) {
           선택 안 된 항목은 hidden 이라 높이를 차지하지 않으므로,
           캔버스 높이 = 지금 보이는 이미지 높이가 된다. */}
       <div className="relative mt-4">
-        {items.map((it) => (
-          <div key={it.id} hidden={it.id !== selected.id}>
-            {it.node}
-          </div>
-        ))}
+        {/* 높이 고정 — 종목마다 룰 길이가 달라 그대로 두면 페이지가 들썩인다.
+            넘치는 본문은 캔버스 안에서 스크롤된다. */}
+        <div className="h-[340px] overflow-y-auto overscroll-contain rounded-cdm-md md:h-[460px]">
+          {items.map((it) => (
+            <div key={it.id} hidden={it.id !== selected.id}>
+              {it.node}
+            </div>
+          ))}
+        </div>
 
         {/* 화살표 — 캔버스 안(이미지 위)에 겹쳐 놓는다 */}
         <button

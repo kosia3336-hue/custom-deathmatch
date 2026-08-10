@@ -14,9 +14,12 @@ export default async function GameRulesTab() {
 
   if (isSupabaseServiceRoleConfigured()) {
     const sb = getSupabaseServiceRole();
-    const { data } = await sb
-      .from('game_rule_texts')
-      .select('game_id, rules, source, origin_url, original_author, poster, updated_at, image_url');
+    const COLS = 'game_id, rules, source, origin_url, original_author, poster, updated_at';
+    // image_url 컬럼 추가 전이어도 편집기가 뜨도록 폴백한다
+    let { data, error } = await sb.from('game_rule_texts').select(`${COLS}, image_url`);
+    if (error?.message?.includes('image_url')) {
+      ({ data } = await sb.from('game_rule_texts').select(COLS));
+    }
     for (const r of (data ?? []) as {
       game_id: string;
       rules: string;
