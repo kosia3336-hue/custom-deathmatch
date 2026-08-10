@@ -13,6 +13,8 @@ interface Props {
   initialTexts: Record<string, string>;
   initialMeta: Record<string, GameRuleMeta>;
   initialUpdatedAt: Record<string, string>;
+  /** 게임별 룰 이미지 URL (없으면 빈 문자열) */
+  initialImages: Record<string, string>;
 }
 
 function metaEquals(a: GameRuleMeta, b: GameRuleMeta): boolean {
@@ -29,7 +31,12 @@ function metaEquals(a: GameRuleMeta, b: GameRuleMeta): boolean {
  * 공용 WYSIWYG(MarkdownWysiwyg) 사용: 서식이 입력 즉시 그대로 보이고,
  * 마크다운으로 직렬화되어 룰 모달 렌더러(lib/markdown.tsx)와 호환된다.
  */
-export default function AdminGameRulesEditor({ initialTexts, initialMeta, initialUpdatedAt }: Props) {
+export default function AdminGameRulesEditor({
+  initialTexts,
+  initialMeta,
+  initialUpdatedAt,
+  initialImages,
+}: Props) {
   const [texts, setTexts] = useState(initialTexts);
   const [metas, setMetas] = useState(initialMeta);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
@@ -38,18 +45,44 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
   const [metaDraft, setMetaDraft] = useState<GameRuleMeta>(
     initialMeta[GAME_RULES[0]!.id] ?? EMPTY_RULE_META,
   );
+  const [images, setImages] = useState(initialImages);
+  const [imageDraft, setImageDraft] = useState(initialImages[GAME_RULES[0]!.id] ?? '');
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const selected = useMemo(() => GAME_RULES.find((g) => g.id === selectedId)!, [selectedId]);
   const savedText = texts[selectedId] ?? '';
   const savedMeta = metas[selectedId] ?? EMPTY_RULE_META;
-  const dirty = draft !== savedText || !metaEquals(metaDraft, savedMeta);
+  const savedImage = images[selectedId] ?? '';
+  const dirty = draft !== savedText || !metaEquals(metaDraft, savedMeta) || imageDraft !== savedImage;
 
   function switchGame(id: string) {
     if (dirty && !confirm('저장하지 않은 변경 사항이 있습니다. 이동할까요?')) return;
     setSelectedId(id);
     setDraft(texts[id] ?? '');
     setMetaDraft(metas[id] ?? EMPTY_RULE_META);
+    setImageDraft(images[id] ?? '');
+  }
+
+  /** 룰 이미지 업로드 — 성공하면 URL 만 들고 있다가 저장 시 함께 보낸다 */
+  async function handleImagePick(file: File) {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/admin/game-rules/upload', { method: 'POST', body: form });
+      const json = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!res.ok || !json.ok || !json.url) {
+        toast.error(json.error ?? '이미지 업로드에 실패했습니다.');
+        return;
+      }
+      setImageDraft(json.url);
+      toast.success('이미지를 올렸습니다. 저장을 눌러야 반영됩니다.');
+    } catch {
+      toast.error('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSave() {
@@ -65,6 +98,7 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
           originUrl: metaDraft.originUrl,
           originalAuthor: metaDraft.originalAuthor,
           poster: metaDraft.poster,
+          imageUrl: imageDraft,
         }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
@@ -74,6 +108,7 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
       }
       setTexts((prev) => ({ ...prev, [selectedId]: draft }));
       setMetas((prev) => ({ ...prev, [selectedId]: { ...metaDraft } }));
+      setImages((prev) => ({ ...prev, [selectedId]: imageDraft }));
       setUpdatedAt((prev) => ({ ...prev, [selectedId]: new Date().toISOString() }));
       toast.success(`${selected.name} 룰을 저장했습니다.`);
     } finally {
@@ -92,7 +127,7 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, metaDraft, selectedId]);
+  }, [draft, metaDraft, imageDraft, selectedId]);
 
   return (
     <div className="flex flex-col gap-4 xl:flex-row">
@@ -188,6 +223,52 @@ export default function AdminGameRulesEditor({ initialTexts, initialMeta, initia
               placeholder="원본 룰 게시자를 작성해 주세요."
             />
           </div>
+        </div>
+
+        {/* 룰 이미지 — 룰 페이지·소개 페이지·인게임 모달의 맨 위에 그대로 뜬다 */}
+        <div className="mt-3 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold text-cdm-fg-muted">룰 이미지</span>
+            <label className="cursor-pointer rounded-cdm-md border border-cdm-border px-2.5 py-1 text-xs font-semibold text-cdm-fg transition hover:bg-cdm-bg-elev-2">
+              {uploading ? '업로드 중…' : imageDraft ? '이미지 교체' : '이미지 올리기'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleImagePick(f);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {imageDraft && (
+              <button
+                type="button"
+                onClick={() => setImageDraft('')}
+                className="rounded-cdm-md border border-cdm-border px-2.5 py-1 text-xs font-semibold text-cdm-danger transition hover:bg-cdm-bg-elev-2"
+              >
+                이미지 삭제
+              </button>
+            )}
+            {!imageDraft && (
+              <span className="text-[11px] text-cdm-fg-subtle">
+                없으면 텍스트만 보여집니다.
+              </span>
+            )}
+          </div>
+          {imageDraft && (
+            <div className="mt-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageDraft}
+                alt="룰 이미지 미리보기"
+                className="h-auto w-full max-w-lg rounded-cdm-md border border-cdm-border"
+              />
+              <p className="mt-1 break-all text-[10px] text-cdm-fg-subtle">{imageDraft}</p>
+            </div>
+          )}
         </div>
 
         <MarkdownWysiwyg

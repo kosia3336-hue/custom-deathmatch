@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ZoomIcon } from '@/components/rules/RuleImage';
-import { ruleImagePath } from '@/lib/gameRules';
 
 export interface GuideRuleItem {
   id: string;
@@ -39,7 +37,7 @@ function Arrow({ dir }: { dir: 'prev' | 'next' }) {
 /**
  * 소개 페이지 룰 뷰어 — 룰 이미지 캐러셀.
  * 위: 갈래 색 점으로 구분한 종목 버튼 / 아래: 이미지 크기에 딱 맞는 캔버스.
- * 좌우 화살표는 캔버스 안(이미지 위)에, 돋보기는 캔버스 밖에 둔다.
+ * 좌우 화살표는 캔버스 안(이미지 위)에 겹쳐 둔다.
  *
  * items 는 룰 이미지(public/rules/<gameId>.webp)가 있는 종목만 서버에서 만들어 넘긴다.
  * 이미지를 새로 넣으면 코드 수정 없이 이 목록에 자동으로 추가된다.
@@ -96,11 +94,15 @@ export default function GuideRulesPanel({ items }: Props) {
           선택 안 된 항목은 hidden 이라 높이를 차지하지 않으므로,
           캔버스 높이 = 지금 보이는 이미지 높이가 된다. */}
       <div className="relative mt-4">
-        {items.map((it) => (
-          <div key={it.id} hidden={it.id !== selected.id}>
-            {it.node}
-          </div>
-        ))}
+        {/* 높이 고정 — 종목마다 룰 길이가 달라 그대로 두면 페이지가 들썩인다.
+            넘치는 본문은 캔버스 안에서 스크롤된다. */}
+        <div className="h-[340px] overflow-y-auto overscroll-contain rounded-cdm-md md:h-[460px]">
+          {items.map((it) => (
+            <div key={it.id} hidden={it.id !== selected.id}>
+              {it.node}
+            </div>
+          ))}
+        </div>
 
         {/* 화살표 — 캔버스 안(이미지 위)에 겹쳐 놓는다 */}
         <button
@@ -119,19 +121,6 @@ export default function GuideRulesPanel({ items }: Props) {
         >
           <Arrow dir="next" />
         </button>
-      </div>
-
-      {/* 캔버스 밖 — 돋보기(원본 크기로 열기) */}
-      <div className="mt-2 flex justify-center">
-        <a
-          href={ruleImagePath(selected.id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`${selected.name} 룰 이미지 원본 크기로 보기`}
-          className="text-cdm-ink-fg-muted transition hover:text-cdm-ink-fg"
-        >
-          <ZoomIcon />
-        </a>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { GAME_RULES, GAME_CATEGORIES } from '@/lib/gameRules';
+import { GAME_RULES, GAME_CATEGORIES, categoryHue } from '@/lib/gameRules';
 
 /** 컬럼별 시작 오프셋(px) — 벽돌처럼 엇갈리고 삐죽삐죽한(마감 덜 된) 느낌 */
 const COLUMN_OFFSET = [0, 28, 16, 36, 10, 30, 20];
@@ -29,7 +29,7 @@ export default function RulesClient() {
           }
           return [{ cat, catIdx, games: all }];
         }).map(({ cat, catIdx, games }, ci, cols) => {
-          const hue = Math.round((catIdx / GAME_CATEGORIES.length) * 300);
+          const hue = categoryHue(cat);
           const isLast = ci === cols.length - 1;
 
           return (

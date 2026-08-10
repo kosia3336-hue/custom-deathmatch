@@ -2,21 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import GNB from '@/components/layout/GNB';
-import RuleImage from '@/components/rules/RuleImage';
-import { MarkdownView, extractPlainText } from '@/lib/markdown';
-import {
-  GAME_RULES,
-  getGameRule,
-  ruleImagePath,
-  RULE_IMAGE_WIDTH,
-  RULE_IMAGE_HEIGHT,
-} from '@/lib/gameRules';
-import {
-  fetchGameRule,
-  fetchAllGameRules,
-  hasMeaningfulRule,
-  hasRuleImage,
-} from '@/lib/gameRulesServer';
+import RuleSheet from '@/components/rules/RuleSheet';
+import { extractPlainText } from '@/lib/markdown';
+import { GAME_RULES, getGameRule } from '@/lib/gameRules';
+import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
@@ -52,17 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       type: 'article',
       // 룰 이미지가 있으면 공유 카드 썸네일로 그대로 쓴다
-      ...(hasRuleImage(gameId)
-        ? {
-            images: [
-              {
-                url: ruleImagePath(gameId),
-                width: RULE_IMAGE_WIDTH,
-                height: RULE_IMAGE_HEIGHT,
-                alt: `${game.name} 룰`,
-              },
-            ],
-          }
+      ...(content?.imageUrl
+        ? { images: [{ url: content.imageUrl, alt: `${game.name} 룰` }] }
         : {}),
     },
   };
@@ -78,7 +58,8 @@ export default async function GameRulePage({ params }: Props) {
   const source = content?.rules?.trim() ?? '';
   const meta = content?.meta;
   const hasRules = hasMeaningfulRule(source);
-  const hasImage = hasRuleImage(gameId);
+  const imageUrl = content?.imageUrl ?? '';
+  const hasImage = Boolean(imageUrl);
   const hasMeta = Boolean(
     meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
   );
@@ -136,29 +117,14 @@ export default async function GameRulePage({ params }: Props) {
 
         {hasImage || hasRules ? (
           <article>
-            {/* 룰 이미지 — 사용자는 기본적으로 이미지를 본다.
-                본문 텍스트는 아래 접이식 영역에 그대로 남아 크롤러가 수집한다. */}
-            {hasImage && <RuleImage gameId={gameId} name={game.name} priority />}
-
-            {hasRules &&
-              (hasImage ? (
-                <details className="group rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1">
-                  <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-3 text-sm font-bold text-cdm-fg transition hover:text-cdm-primary [&::-webkit-details-marker]:hidden">
-                    <span>룰 텍스트로 보기</span>
-                    <span
-                      aria-hidden
-                      className="text-cdm-fg-muted transition-transform group-open:rotate-180"
-                    >
-                      ▾
-                    </span>
-                  </summary>
-                  <div className="border-t border-cdm-border px-4 py-4">
-                    <MarkdownView source={source} />
-                  </div>
-                </details>
-              ) : (
-                <MarkdownView source={source} />
-              ))}
+            {/* 룰지 — 배경 위에 본문을 진짜 텍스트로 얹는다(모바일에서도 읽히도록).
+                도해 이미지가 등록돼 있으면 본문 위에 함께 넣는다. */}
+            <RuleSheet
+              name={game.name}
+              category={game.category}
+              source={source}
+              imageUrl={imageUrl || undefined}
+            />
 
             {hasMeta && (
               <div className="mt-8 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-4 text-xs leading-relaxed text-cdm-fg-muted">

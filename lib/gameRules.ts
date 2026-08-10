@@ -6,15 +6,10 @@
  *  지원 문법(lib/markdown.tsx): 제목(#, ##), 목록(-, 1.), **굵게**, *기울임*, `코드`, 링크 등.
  *  비워두면("") 모달에 "아직 룰이 준비 중입니다."가 표시됩니다.
  *
- * ── 룰 이미지 추가 방법 ────────────────────────────────────────
- *  원본 PNG 를 webp 로 변환해 public/rules/<gameId>.webp 로 저장하면 끝입니다.
- *    cwebp -q 92 -sharp_yuv -m 6 "Rule_002_양면장기.png" -o public/rules/game-002.webp
- *
- *  코드 수정은 필요 없습니다 — 파일이 있는지를 서버가 직접 확인하므로
- *  (lib/gameRulesServer.ts 의 hasRuleImage) 룰 상세 페이지(/rules/[gameId])와
- *  소개 페이지의 룰 섹션에 동시에 반영됩니다. 이미지가 있으면 이미지를 우선
- *  보여주고, 텍스트는 접이식으로 남아 검색엔진이 그대로 본문을 수집합니다.
- *  원본 규격은 1251x800.
+ * ── 룰 이미지 ──────────────────────────────────────────────────
+ *  관리자 페이지 > 게임 룰 탭에서 올립니다(코드/배포 불필요).
+ *  URL 은 game_rule_texts.image_url 에 저장되고, 룰 상세 페이지·소개 페이지
+ *  캐러셀·인게임 룰 모달 세 곳에 함께 반영됩니다.
  *
  * ── 갈래(category) 재분류 ──────────────────────────────────────
  *  아래 assignment 는 이름 기준 "추정"입니다. 실제 게임 성격에 맞게
@@ -39,14 +34,6 @@ export interface GameRule {
   rules: string;
 }
 
-/** 룰 이미지 경로 (public 기준). 원본 규격 1251x800 */
-export const RULE_IMAGE_WIDTH = 1251;
-export const RULE_IMAGE_HEIGHT = 800;
-
-export function ruleImagePath(gameId: string): string {
-  return `/rules/${gameId}.webp`;
-}
-
 export const GAME_RULES: GameRule[] = [
   { id: 'game-001', name: '사중력 사목', category: '추상전략', rules: '' },
   { id: 'game-002', name: '양면장기', category: '추상전략', rules: '' },
@@ -68,6 +55,16 @@ export const GAME_RULES: GameRule[] = [
   { id: 'game-018', name: '단어조합', category: '언어', rules: '' },
   { id: 'game-019', name: '트랜스레터', category: '언어', rules: '' },
 ];
+
+/**
+ * 갈래별 색상(HSL 색상환 각도). 룰 목록(사다리)·소개 페이지·룰지가 같은 값을 써서
+ * 어느 화면에서 보든 '심리는 빨강, 언어는 초록' 이 일치한다.
+ *   심리 0(빨강) · 추상전략 50 · 수리 100 · 언어 150(초록) · 관찰 200 · 기타 250
+ */
+export function categoryHue(category: string): number {
+  const idx = GAME_CATEGORIES.indexOf(category as GameCategory);
+  return Math.round(((idx < 0 ? 0 : idx) / GAME_CATEGORIES.length) * 300);
+}
 
 export function getGameRule(id: string): GameRule | undefined {
   return GAME_RULES.find((g) => g.id === id);

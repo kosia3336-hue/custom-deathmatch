@@ -16,6 +16,7 @@ interface Body {
   originUrl?: string;
   originalAuthor?: string;
   poster?: string;
+  imageUrl?: string;
 }
 
 /** POST /api/admin/game-rules — 게임 룰 텍스트 + 메타 저장 (upsert) */
@@ -48,6 +49,12 @@ export async function POST(req: NextRequest) {
   }
   const originalAuthor = String(body.originalAuthor ?? '').slice(0, 100);
   const poster = String(body.poster ?? '').slice(0, 100);
+  // 룰 이미지 — 업로드 엔드포인트가 돌려준 URL 이거나, 저장소에 있는 /rules/... 경로.
+  // 빈 문자열이면 '이미지 없음' 으로 저장된다(관리자가 지운 경우).
+  const imageUrl = String(body.imageUrl ?? '').trim().slice(0, 1000);
+  if (imageUrl && !/^(https?:\/\/|\/)/.test(imageUrl)) {
+    return NextResponse.json({ error: '이미지 주소가 올바르지 않습니다.' }, { status: 400 });
+  }
 
   const sb = getSupabaseServiceRole();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +65,7 @@ export async function POST(req: NextRequest) {
     origin_url: originUrl,
     original_author: originalAuthor,
     poster,
+    image_url: imageUrl,
     updated_at: new Date().toISOString(),
     updated_by: admin.id,
   });
