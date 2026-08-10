@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist_Mono } from 'next/font/google';
+import { Geist_Mono, Song_Myung } from 'next/font/google';
 import './globals.css';
 import SocketProvider from '@/components/providers/SocketProvider';
 import ToastProvider from '@/components/providers/ToastProvider';
@@ -14,6 +14,18 @@ import { getSiteUrl } from '@/lib/site';
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap',
+});
+
+/**
+ * 룰지 제목·갈래 태그용 명조 (SIL OFL — 웹 임베딩 허용).
+ * 원본 룰지의 '빛의계승자체' 는 라이선스상 게임 임베딩·재배포가 막혀 있어
+ * 결이 비슷한 이 서체로 대체한다. 본문은 그대로 Pretendard 를 쓴다.
+ * (next/font 가 서브셋을 알아서 처리한다 — subsets 옵션을 받지 않는 서체다.)
+ */
+const songMyung = Song_Myung({
+  variable: '--font-display',
+  weight: '400',
   display: 'swap',
 });
 
@@ -113,7 +125,7 @@ export default async function RootLayout({
   const { isLoggedIn, initial } = await getBgmInitial();
 
   return (
-    <html lang="ko" className={`${geistMono.variable} h-full antialiased`}>
+    <html lang="ko" className={`${geistMono.variable} ${songMyung.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-cdm-bg text-cdm-fg">
         <SocketProvider>
           <BgmProvider isLoggedIn={isLoggedIn} initial={initial}>

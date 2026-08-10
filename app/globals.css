@@ -3720,6 +3720,7 @@ body {
   font-size: 1.15cqw;
   font-weight: 800;
   letter-spacing: 0.3em;
+  font-family: var(--font-display), var(--font-sans);
   color: hsl(var(--rule-cat-hue, 0) 78% 68%);
   text-shadow: 0 0 0.5cqw hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
 }
@@ -3735,6 +3736,7 @@ body {
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: 0.01em;
+  font-family: var(--font-display), var(--font-sans);
   color: #f3c65f;
   text-shadow:
     0 -0.025em 0 rgba(255, 250, 224, 0.6),
