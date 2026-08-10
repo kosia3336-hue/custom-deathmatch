@@ -3725,11 +3725,10 @@ body {
   text-shadow: 0 0 0.5cqw hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
 }
 
-/* 제목 — 금색 단색 + 엠보스.
-   그라데이션(background-clip:text)을 쓰면 text-shadow 가 글자가 아니라 상자에
-   깔려서, 깎인 단면을 만들 수 없고 drop-shadow 를 겹쳐도 지저분해진다.
-   단색으로 두면 고전적인 방법 그대로 — 위쪽에 밝은 선, 아래쪽에 어두운 선을
-   한 픽셀씩 쌓아 판에 새긴 듯한 단면을 만든다. */
+/* 제목 — 금색 단색 + 어두운 테두리 선.
+   입체(베벨/엠보스)는 명조의 가는 획과 잘 안 맞아 번져 보였다. 원본 룰지처럼
+   테두리만 어둡게 둘러 배경에서 또렷하게 떼어 놓는다.
+   paint-order 로 획을 글자 뒤에 그려야 테두리가 글자 속을 파먹지 않는다. */
 .rule-sheet__title {
   margin-top: 1.3cqw;
   font-size: 4.2cqw;
@@ -3738,13 +3737,8 @@ body {
   letter-spacing: 0.01em;
   font-family: var(--font-display), var(--font-sans);
   color: #f3c65f;
-  /* 엠보스는 얕게. 명조는 획이 가늘어서 단면을 두껍게 쌓으면(0.05em씩 두 겹)
-     글자마다 테두리가 이중으로 번져 지저분해 보인다. 위 하이라이트 한 겹과
-     아래 그림자 한 겹만 남기고 발광으로 마무리한다. */
-  text-shadow:
-    0 -0.018em 0 rgba(255, 250, 224, 0.4),
-    0 0.03em 0.03em rgba(74, 42, 5, 0.75),
-    0 0 0.45em rgba(255, 178, 70, 0.28);
+  -webkit-text-stroke: 0.07em #2b1703;
+  paint-order: stroke fill;
 }
 
 .rule-sheet__body {
@@ -3776,6 +3770,6 @@ body {
     letter-spacing: 0.22em;
     text-shadow: 0 0 4px hsl(var(--rule-cat-hue, 0) 80% 60% / 0.6);
   }
-  .rule-sheet__title { margin-top: 0.35rem; font-size: 1.6rem; }
+  .rule-sheet__title { margin-top: 0.35rem; font-size: 1.6rem; -webkit-text-stroke-width: 0.06em; }
   .rule-sheet__body { padding: 1rem 1.1rem 1.6rem; font-size: 0.95rem; }
 }
