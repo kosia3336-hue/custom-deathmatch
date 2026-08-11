@@ -343,33 +343,32 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           파일이 없는 게임은 아무것도 안 보이고 레이아웃만 그대로 간다
                           (배경 이미지라 404 여도 깨진 아이콘이 뜨지 않는다). */}
                       <div className="max-h-[260px] overflow-y-auto rounded-lg border border-gray-100 sm:max-h-[320px]">
-                        <div className="flex flex-col gap-1.5 p-2">
-                          {/* 랜덤 */}
+                        <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3">
+                          {/* 랜덤·밴픽은 게임이 아니라 '방식' 이라 한 줄을 통째로 쓴다 */}
                           <button
                             onClick={selectRandom}
                             className={cn(
-                              'flex h-14 w-full items-center rounded-lg border px-3 text-left text-sm transition-colors',
+                              'col-span-2 flex h-12 items-center rounded-lg border px-3 text-left text-sm transition-colors sm:col-span-3',
                               isRandom
                                 ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                             )}
                           >
-                            <span className="font-medium">랜덤</span>
+                            <span className="font-semibold">랜덤</span>
                             <span className="ml-2 text-xs text-gray-500">무작위 배정</span>
                           </button>
 
-                          {/* 밴픽 */}
                           {!gameSearch.trim() && (
                             <button
                               onClick={selectBanPick}
                               className={cn(
-                                'flex h-14 w-full items-center rounded-lg border px-3 text-left text-sm transition-colors',
+                                'col-span-2 flex h-12 items-center rounded-lg border px-3 text-left text-sm transition-colors sm:col-span-3',
                                 isBanPick
                                   ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                               )}
                             >
-                              <span className="font-medium">밴픽</span>
+                              <span className="font-semibold">밴픽</span>
                               <span className="ml-2 text-xs text-gray-500">게임 선택 전 밴</span>
                             </button>
                           )}
@@ -379,33 +378,34 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               key={g.id}
                               onClick={() => selectGame(g)}
                               className={cn(
-                                'relative h-16 w-full overflow-hidden rounded-lg border text-left transition-colors',
+                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors',
                                 selectedGame?.id === g.id
                                   ? 'border-indigo-500 bg-indigo-50'
                                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                               )}
                             >
-                              {/* 대표 이미지 — 오른쪽 절반. 왼쪽으로 갈수록 사라져
-                                  글자와 겹치는 부분이 없게 한다. */}
+                              {/* 대표 이미지 — 꾸밈용이라 오른쪽 영역에만 흐리게 깐다.
+                                  글자 영역(왼쪽)과 폭을 나눠 두어 서로 침범하지 않는다.
+                                  파일이 없는 게임은 배경이 비어 아무것도 안 보인다. */}
                               <span
                                 aria-hidden
-                                className="pointer-events-none absolute inset-y-0 right-0 w-3/5 bg-cover bg-center opacity-45"
+                                className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-cover bg-center opacity-35"
                                 style={{
                                   backgroundImage: `url(/games/${g.id}.webp)`,
-                                  maskImage: 'linear-gradient(to right, transparent, #000 55%)',
-                                  WebkitMaskImage: 'linear-gradient(to right, transparent, #000 55%)',
+                                  maskImage: 'linear-gradient(to right, transparent, #000 70%)',
+                                  WebkitMaskImage: 'linear-gradient(to right, transparent, #000 70%)',
                                 }}
                               />
-                              <span className="relative flex h-full flex-col justify-center px-3">
+                              <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
                                 <span
                                   className={cn(
-                                    'text-sm font-semibold',
+                                    'text-sm leading-tight font-semibold break-keep',
                                     selectedGame?.id === g.id ? 'text-indigo-700' : 'text-gray-800',
                                   )}
                                 >
                                   {g.name}
                                 </span>
-                                <span className="text-xs text-gray-500">
+                                <span className="mt-0.5 text-xs text-gray-500">
                                   {g.minPlayers === g.maxPlayers
                                     ? `${g.minPlayers}인`
                                     : `${g.minPlayers}~${g.maxPlayers}인`}
