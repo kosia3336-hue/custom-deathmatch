@@ -34,7 +34,6 @@ interface SocketMember {
   id: string;
   nickname: string;
   displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
-  guildMark?: { url: string; name: string } | null;
   guildId?: string | null;
   guildName?: string | null;
   equippedSkins?: { skinId: string; gameId: string }[];
@@ -58,7 +57,6 @@ function bindMemberToSession(
     member.id,
     member.displayedTitle,
     member.equippedSkins ?? [],
-    member.guildMark ?? null,
     member.guildId ?? null,
     member.guildName ?? null,
   );
@@ -265,7 +263,7 @@ export function setupSocketHandlers(io: IO) {
         if (!member) return callback({ ok: false });
 
         const memberId = sessions.getMemberId(token);
-        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildMark ?? null, member.guildId ?? null, member.guildName ?? null);
+        sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildId ?? null, member.guildName ?? null);
         scheduleSkinExpiries(token, member.skinExpiries);
         if (member.guildId) socket.join(guildRoom(member.guildId));
         callback({ ok: true });

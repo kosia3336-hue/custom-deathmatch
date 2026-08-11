@@ -34,8 +34,6 @@ export interface Player {
   joinedAt: number;
   /** v2 — 표시 칭호 (보유자만) */
   displayedTitle?: DisplayedTitle | null;
-  /** 길드 마크 (길드 가입 + 마크 등록자만) */
-  guildMark?: GuildMark | null;
   /** v2 — 회원 ID (Supabase auth.users.id). AI 는 null */
   memberId?: string | null;
   /**

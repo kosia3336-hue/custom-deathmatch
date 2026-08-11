@@ -106,7 +106,6 @@ class EventRoomManager {
       joinedAt: Date.now(),
       memberId,
       displayedTitle: sessions.getDisplayedTitle(token),
-      guildMark: sessions.getGuildMark(token),
     };
   }
 
