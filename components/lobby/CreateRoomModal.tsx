@@ -242,7 +242,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
           {/* 모달 패널 */}
           <motion.div
-            className="relative z-10 flex w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-lg sm:rounded-xl"
+            className="relative z-10 flex w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-xl"
             style={{ maxHeight: 'min(92dvh, 92vh)' }}
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
