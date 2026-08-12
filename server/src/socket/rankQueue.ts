@@ -15,6 +15,24 @@ import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * 처리 중인 join 을 회원 단위로 잠근다.
+ *
+ * rank:queue:join 은 enqueue 전에 ensureRankStatsRow 로 DB 를 한 번 다녀온다.
+ * 그 사이에 같은 사람의 join 이 또 들어오면(버튼 연타, connect 재참가와 겹침 등)
+ * 두 요청이 나란히 enqueue 까지 내려간다. 먼저 온 쪽이 이미 매칭돼 큐에서 빠진
+ * 뒤라면, 나중 쪽이 같은 사람을 큐에 다시 넣고 또 다른 상대와 매칭시킨다.
+ * → 한 사람이 랭크 방 두 개에 동시에 들어가는 사고가 난다(실제 발생).
+ */
+const joinInFlight = new Set<string>();
+
+/** 이 회원이 이미 어떤 방에든 들어가 있는가 (소켓이 여러 개일 수 있어 회원 단위로 본다) */
+function isMemberInAnyRoom(memberId: string): boolean {
+  return roomStore
+    .getAll()
+    .some((r) => r.players.some((p) => p.memberId === memberId));
+}
+
 function startRetryTimer(io: IO) {
   if (retryTimer) return;
   retryTimer = setInterval(() => {
@@ -77,6 +95,21 @@ export async function createRankMatchedRoom(
   const hostPlayer = buildPlayer(hostEntry.socketId, true);
   const guestPlayer = buildPlayer(guestEntry.socketId, false);
   if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
+
+  // 큐에서 빠진 뒤 방을 만들기까지 사이에 상대가 이미 다른 방에 들어갔을 수 있다.
+  // 그대로 진행하면 그 사람을 원래 방에서 끌어내 두 방이 동시에 망가진다.
+  // 한쪽만 문제라면 멀쩡한 쪽은 큐로 돌려보내 다음 상대를 찾게 한다.
+  const hostBusy = isMemberInAnyRoom(hostPlayer.memberId);
+  const guestBusy = isMemberInAnyRoom(guestPlayer.memberId);
+  if (hostBusy || guestBusy) {
+    console.warn(
+      `[rankQueue] 매칭 취소 — 이미 방에 있는 참가자: `
+      + `${hostBusy ? hostEntry.nickname : ''}${hostBusy && guestBusy ? ', ' : ''}${guestBusy ? guestEntry.nickname : ''}`,
+    );
+    if (!hostBusy) rankQueueStore.enqueue(hostEntry);
+    if (!guestBusy) rankQueueStore.enqueue(guestEntry);
+    return;
+  }
 
   // 표시 칭호를 DB 기준으로 갱신 — 웹에서 칭호 변경 후 소켓 세션이 낡은 값을 들고 있는 문제 방지
   const [hostTitle, guestTitle] = await Promise.all([
@@ -225,12 +258,21 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
       return;
     }
 
-    if (sessions.getRoom(socket.id)) {
-      console.log(`[rankQueue:join] BLOCKED — already in room ${sessions.getRoom(socket.id)}`);
+    if (sessions.getRoom(socket.id) || isMemberInAnyRoom(member.id)) {
+      console.log(`[rankQueue:join] BLOCKED — already in room ${sessions.getRoom(socket.id) ?? '(다른 소켓)'}`);
       callback({ success: false, error: '이미 방에 참여 중입니다.' });
       return;
     }
 
+    // 같은 사람의 join 이 겹치면 뒤엣것은 흘려보낸다. 앞선 요청이 큐에 넣거나
+    // 매칭까지 끝내므로 사용자 입장에서는 성공으로 보여도 문제없다.
+    if (joinInFlight.has(member.id)) {
+      console.log(`[rankQueue:join] SKIP — 이미 처리 중인 join 이 있음 (${member.id.slice(0, 8)})`);
+      callback({ success: true });
+      return;
+    }
+    joinInFlight.add(member.id);
+    try {
     const row = await ensureRankStatsRow(member.id);
     if (!row.ok) {
       console.log(`[rankQueue:join] BLOCKED — ensureRankStatsRow failed: ${row.error}`);
@@ -262,6 +304,13 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
       seasonId: row.seasonId,
     };
 
+    // DB 를 다녀온 사이에 다른 경로로 방에 들어갔을 수 있다 — 큐에 넣기 직전에 다시 본다.
+    if (sessions.getRoom(socket.id) || isMemberInAnyRoom(member.id)) {
+      console.log('[rankQueue:join] BLOCKED — 대기 중 방에 입장함');
+      callback({ success: false, error: '이미 방에 참여 중입니다.' });
+      return;
+    }
+
     const res = rankQueueStore.enqueue(entry);
     if (!res.matched) {
       startRetryTimer(io);
@@ -277,6 +326,9 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
       console.warn('[rankQueue] createRankMatchedRoom 실패:', (err as Error).message);
     });
     callback({ success: true });
+    } finally {
+      joinInFlight.delete(member.id);
+    }
   });
 
   socket.on('rank:queue:leave', () => {
