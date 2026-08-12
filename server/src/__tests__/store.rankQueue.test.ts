@@ -19,7 +19,10 @@ function entry(name: string, rp: number, joinedAt: number): RankQueueEntry {
 
 /** 각 테스트가 서로 영향을 주지 않도록 큐를 비운다 */
 function drain() {
-  for (const n of ['a', 'b', 'c']) rankQueueStore.removeByMemberId(`member-${n}`);
+  for (const n of ['a', 'b', 'c']) {
+    rankQueueStore.removeByMemberId(`member-${n}`);
+    rankQueueStore.releaseMatch(`member-${n}`);
+  }
 }
 
 describe('rankQueueStore', () => {
@@ -41,25 +44,32 @@ describe('rankQueueStore', () => {
   });
 
   /**
-   * 중복 매칭 사고의 재현.
+   * 중복 매칭 사고의 재현 — 이제는 큐가 막는다.
    *
-   * a 가 b 와 매칭돼 큐에서 빠진 직후, 같은 사람의 join 이 한 번 더 도착하면
-   * (버튼 연타·connect 재참가 겹침) a 가 큐에 다시 들어가고 c 와 또 매칭된다.
-   * → a 가 랭크 방 두 개에 동시에 들어간다.
-   *
-   * 큐 자체는 "다시 넣으면 다시 매칭" 이 맞는 동작이므로, 이 재진입을 막는 책임은
-   * 호출부(socket/rankQueue.ts 의 joinInFlight + isMemberInAnyRoom 가드)에 있다.
-   * 이 테스트는 가드가 없을 때 실제로 이중 매칭이 나는지를 고정해 둔다.
+   * a 가 b 와 매칭돼 큐에서 빠진 직후, 같은 사람의 join 이 한 번 더 도착하는 상황
+   * (버튼 연타·재연결 재참가 겹침). 예전에는 a 가 큐에 다시 들어가 c 와 또
+   * 매칭돼 랭크 방 두 개에 동시 배정됐다.
    */
-  it('큐만으로는 이중 매칭을 막지 못한다 — 호출부 가드가 필요하다', () => {
+  it('매칭 확정된 사람은 방이 만들어지기 전까지 큐에 다시 못 들어간다', () => {
     rankQueueStore.enqueue(entry('b', 50, 1));
-    const first = rankQueueStore.enqueue(entry('a', 50, 2));
-    expect(first.matched).toBe(true); // a-b 성사
+    expect(rankQueueStore.enqueue(entry('a', 50, 2)).matched).toBe(true); // a-b 성사
+    expect(rankQueueStore.isPendingMatch('member-a')).toBe(true);
 
     rankQueueStore.enqueue(entry('c', 50, 3));
-    const second = rankQueueStore.enqueue(entry('a', 50, 4)); // a 의 중복 join
+    const dup = rankQueueStore.enqueue(entry('a', 50, 4)); // a 의 중복 join
 
-    expect(second.matched).toBe(true); // a-c 도 성사 → a 가 두 방에
+    expect(dup.matched).toBe(false); // 두 번째 매칭이 생기지 않는다
+    expect(rankQueueStore.attemptAllMatches()).toHaveLength(0); // c 도 a 와 안 붙는다
+  });
+
+  it('방 생성이 끝나면 다시 큐에 들어갈 수 있다', () => {
+    rankQueueStore.enqueue(entry('b', 50, 1));
+    rankQueueStore.enqueue(entry('a', 50, 2));
+    rankQueueStore.releaseMatch('member-a', 'member-b');
+
+    expect(rankQueueStore.isPendingMatch('member-a')).toBe(false);
+    rankQueueStore.enqueue(entry('a', 50, 3));
+    expect(rankQueueStore.enqueue(entry('c', 50, 4)).matched).toBe(true);
   });
 
   it('나간 사람은 매칭 대상에서 빠진다', () => {
