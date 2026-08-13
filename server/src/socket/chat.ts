@@ -59,6 +59,22 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         senderMemberId: senderMemberId ?? null,
       };
 
+      // 방 안에서도 로비 채팅을 보낼 수 있어, 그 방에서 익명 물약을 쓴 채라면
+      // 로비 채팅에도 실명이 새면 안 된다 — 방 채팅과 같은 마스킹을 적용한다.
+      const senderRoomId = sessions.getRoom(socket.id);
+      const senderShopState = senderRoomId ? getRoomShopState(senderRoomId) : undefined;
+      if (senderShopState && senderShopState.anonymizedMemberIds.has(senderMemberId)) {
+        const lobbySockets = io.sockets.adapter.rooms.get(LOBBY_ROOM);
+        if (lobbySockets) {
+          for (const sid of lobbySockets) {
+            const viewerMemberId = sessions.getMemberIdBySocket(sid);
+            const masked = maskChatMessageForViewer(senderRoomId!, lobbyMsg, viewerMemberId);
+            io.sockets.sockets.get(sid)?.emit('chat:message', masked);
+          }
+          return;
+        }
+      }
+
       io.to(LOBBY_ROOM).emit('chat:message', lobbyMsg);
       return;
     }
