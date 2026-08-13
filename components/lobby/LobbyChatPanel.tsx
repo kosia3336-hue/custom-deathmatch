@@ -108,14 +108,14 @@ export function LobbyChatPanel() {
           'animate-[modal-in_200ms_var(--cdm-ease-out)]',
         )}
       >
-        {/* 헤더 */}
-        <header className="flex items-center justify-between border-b border-cdm-border px-5 py-3">
-          <h2 className="text-base font-semibold text-cdm-fg">로비</h2>
+        {/* 헤더 — 다른 모달과 같은 어두운 헤더 */}
+        <header className="flex items-center justify-between border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
+          <h2 className="text-lg font-bold text-cdm-ink-fg">로비</h2>
           <button
             type="button"
             aria-label="닫기"
             onClick={() => setOpen(false)}
-            className="rounded-cdm-md p-1 text-cdm-fg-muted hover:text-cdm-fg hover:bg-cdm-bg-elev-1"
+            className="rounded-cdm-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
