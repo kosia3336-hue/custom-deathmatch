@@ -1,18 +1,21 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types';
 import type { Game, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
-
-type Step = 'main' | 'detail';
+import type { GameCategory } from '@/lib/gameRules';
+import {
+  RoomModalShell,
+  SettingsAccordion,
+  SettingField,
+  OptionButton,
+  GameListPicker,
+} from '@/components/room-modal/RoomModalKit';
 
 interface Props {
   open: boolean;
@@ -22,8 +25,6 @@ interface Props {
 
 export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const { setFooterHidden } = useRoomLayout();
-  const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState<Step>('main');
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [title, setTitle] = useState('');
@@ -35,6 +36,11 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [gameSearch, setGameSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
+  /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
+  const [detailOpen, setDetailOpen] = useState(false);
+  /** 게임이 이미 정해져 있으므로 처음엔 접힌 채로 시작 — '변경' 으로 편다 */
+  const [listOpen, setListOpen] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -42,8 +48,6 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const CHIPS_MAX = 200;
   const CHIPS_STEP = 5;
   const CHIPS_PRESETS = [10, 25, 50, 100];
-
-  useEffect(() => setMounted(true), []);
 
   // paint 전에 sticky 푸터 바 제거 (게임 시작 버튼 클릭 가로채기 방지)
   useLayoutEffect(() => {
@@ -55,10 +59,12 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   // 모달 열릴 때 현재 방 설정으로 초기화
   useEffect(() => {
     if (!open) return;
-    setStep('main');
     setError('');
     setPassword('');
     setGameSearch('');
+    setCatFilter(null);
+    setDetailOpen(false);
+    setListOpen(false);
     setTitle(room.title);
     setRoomType(room.roomType);
     setMaxPlayers(room.maxPlayers);
@@ -114,13 +120,11 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       )
     : [];
 
-  const hasDetailOptions = selectedGame?.id === GAME_IDS.INDIAN_POKER || true; // 방 유형·시간제한은 항상 있음
-
   const selectGame = (g: Game) => {
+    setListOpen(false);
     setSelectedGame(g);
     // 새 게임의 인원 범위로 조정
-    const newMax = Math.max(Math.min(maxPlayers, g.maxPlayers), g.minPlayers);
-    setMaxPlayers(newMax);
+    setMaxPlayers(Math.max(Math.min(maxPlayers, g.maxPlayers), g.minPlayers));
     setError('');
   };
 
@@ -179,400 +183,189 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     }, 300);
   };
 
-  const filteredGames = gameSearch.trim()
-    ? games.filter((g) => g.name.includes(gameSearch.trim()) && g.supportsMulti)
-    : games.filter((g) => g.supportsMulti);
+  // 방 설정에서는 언제나 방 유형·시간제한 중 하나는 있다
+  const hasDetailOptions = true;
 
-  const CloseIcon = () => (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-
-  const BackIcon = () => (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-    </svg>
-  );
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-(--cdm-z-modal) flex items-end sm:items-center justify-center sm:p-4"
-          style={{ zIndex: 'var(--cdm-z-modal)' }}
-        >
-          {/* 백드롭 */}
-          <motion.div
-            className="fixed inset-0 bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-
-          {/* 모달 패널 */}
-          <motion.div
-            className="relative z-10 flex w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-lg sm:rounded-xl"
-            style={{ maxHeight: 'min(92dvh, 92vh)' }}
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 32 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-            {/* ── 헤더 (고정) ── */}
-            <div className="flex shrink-0 items-center border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
-              <AnimatePresence mode="wait" initial={false}>
-                {step === 'main' ? (
-                  <motion.div
-                    key="h-main"
-                    className="flex flex-1 items-center justify-between"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.12 }}
-                  >
-                    <h2 className="text-lg font-bold text-cdm-ink-fg">방 설정 변경</h2>
-                    <button
-                      onClick={onClose}
-                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
-                      aria-label="닫기"
-                    >
-                      <CloseIcon />
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="h-detail"
-                    className="flex flex-1 items-center justify-between"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.12 }}
-                  >
-                    <button
-                      onClick={() => { setStep('main'); setError(''); }}
-                      className="flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <BackIcon />
-                      돌아가기
-                    </button>
-                    <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-cdm-ink-fg">
-                      상세 설정
-                    </h2>
-                    <button
-                      onClick={onClose}
-                      className="rounded-md p-1 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"
-                      aria-label="닫기"
-                    >
-                      <CloseIcon />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* ── 본문 (스크롤) ── */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <AnimatePresence mode="wait" initial={false}>
-                {step === 'main' ? (
-                  <motion.div
-                    key="b-main"
-                    className="space-y-5 px-5 py-5"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {/* 게임 선택 */}
-                    <div>
-                      <div className="mb-2 flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700">게임 선택</label>
-                        <div className="relative flex-1">
-                          <input
-                            type="text"
-                            value={gameSearch}
-                            onChange={(e) => setGameSearch(e.target.value)}
-                            placeholder="검색"
-                            className="h-7 w-full rounded-md border border-gray-200 pl-2 pr-6 text-xs focus:border-indigo-400 focus:outline-none"
-                          />
-                          {gameSearch && (
-                            <button
-                              onClick={() => setGameSearch('')}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                              aria-label="검색 초기화"
-                            >
-                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="max-h-[148px] overflow-y-auto rounded-lg border border-gray-100 sm:max-h-[160px]">
-                        <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3">
-                          {filteredGames.map((g) => (
-                            <button
-                              key={g.id}
-                              onClick={() => selectGame(g)}
-                              className={cn(
-                                'flex h-16 flex-col justify-center rounded-lg border px-3 text-left text-sm transition-colors',
-                                selectedGame?.id === g.id
-                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
-                              )}
-                            >
-                              <div className="font-medium">{g.name}</div>
-                              <div className="text-xs text-gray-500">
-                                {g.minPlayers === g.maxPlayers ? `${g.minPlayers}인` : `${g.minPlayers}~${g.maxPlayers}인`}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 방 제목 */}
-                    <Input
-                      label="방 제목"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="방 제목"
-                      maxLength={30}
-                    />
-
-                    {/* 상세 설정 진입 버튼 */}
-                    <button
-                      onClick={() => { setStep('detail'); setError(''); }}
-                      className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
-                    >
-                      <span className="flex items-center gap-2">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        상세 설정
-                      </span>
-                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="b-detail"
-                    className="space-y-5 px-5 py-5"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {!hasDetailOptions ? (
-                      <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-4 py-10 text-center">
-                        <p className="text-sm text-gray-500">추가 설정이 없습니다.</p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* 방 유형 — 멀티 모드만 */}
-                        {room.playMode === 'multi' && (
-                          <>
-                            <div>
-                              <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
-                              <div className="flex gap-2">
-                                {[
-                                  { key: 'public' as RoomType, label: '공개' },
-                                  { key: 'private' as RoomType, label: '비밀' },
-                                ].map((rt) => (
-                                  <button
-                                    key={rt.key}
-                                    onClick={() => { setRoomType(rt.key); setPassword(''); }}
-                                    className={cn(
-                                      'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                                      roomType === rt.key
-                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                        : 'border-gray-200 hover:border-gray-300',
-                                    )}
-                                  >
-                                    {rt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* 비밀번호 */}
-                            {roomType === 'private' && (
-                              <Input
-                                label={
-                                  room.roomType === 'private'
-                                    ? '새 비밀번호 (변경 시만 입력)'
-                                    : '비밀번호'
-                                }
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
-                                maxLength={8}
-                              />
-                            )}
-                          </>
-                        )}
-
-                        {/* 최대 인원 */}
-                        {selectedGame && playerRange.length > 1 && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">최대 인원</label>
-                            <div className="flex flex-wrap gap-2">
-                              {playerRange.map((n) => (
-                                <button
-                                  key={n}
-                                  onClick={() => setMaxPlayers(n)}
-                                  className={cn(
-                                    'h-10 w-10 rounded-lg border text-sm font-medium transition-colors',
-                                    maxPlayers === n
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
-                                  )}
-                                >
-                                  {n}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 초기 칩 (인디언홀덤Q) */}
-                        {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">
-                              초기 칩{' '}
-                              <span className="font-normal text-gray-400">(기본 25)</span>
-                            </label>
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="range"
-                                min={CHIPS_MIN}
-                                max={CHIPS_MAX}
-                                step={CHIPS_STEP}
-                                value={initialChips}
-                                onChange={(e) => setInitialChips(Number(e.target.value))}
-                                className="flex-1"
-                              />
-                              <span className="w-12 text-right text-sm font-bold text-gray-900">
-                                {initialChips}
-                              </span>
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {CHIPS_PRESETS.map((v) => (
-                                <button
-                                  key={v}
-                                  onClick={() => setInitialChips(v)}
-                                  className={cn(
-                                    'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-                                    initialChips === v
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
-                                  )}
-                                >
-                                  {v}개
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 시간제한 */}
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
-                          <div className="flex gap-2">
-                            {[
-                              { enabled: false, label: '무제한' },
-                              { enabled: true, label: '시간제한' },
-                            ].map((opt) => (
-                              <button
-                                key={String(opt.enabled)}
-                                onClick={() => setTimeLimitEnabled(opt.enabled)}
-                                className={cn(
-                                  'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                                  timeLimitEnabled === opt.enabled
-                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                    : 'border-gray-200 hover:border-gray-300',
-                                )}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {timeLimitEnabled && (
-                            <div className="mt-3 space-y-3">
-                              <div className="flex items-center gap-2">
-                                <select
-                                  value={timeLimitMin}
-                                  onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                                  className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
-                                >
-                                  {Array.from({ length: 11 }, (_, i) => (
-                                    <option key={i} value={i}>{i}</option>
-                                  ))}
-                                </select>
-                                <span className="text-sm text-gray-600">분</span>
-                                <select
-                                  value={timeLimitSec}
-                                  onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                                  className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
-                                >
-                                  {[0, 10, 15, 20, 30, 45].map((s) => (
-                                    <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
-                                  ))}
-                                </select>
-                                <span className="text-sm text-gray-600">초</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1.5">
-                                {[
-                                  { label: '30초', min: 0, sec: 30 },
-                                  { label: '1분', min: 1, sec: 0 },
-                                  { label: '2분', min: 2, sec: 0 },
-                                  { label: '3분', min: 3, sec: 0 },
-                                  { label: '5분', min: 5, sec: 0 },
-                                ].map((p) => (
-                                  <button
-                                    key={p.label}
-                                    onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
-                                    className={cn(
-                                      'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-                                      timeLimitMin === p.min && timeLimitSec === p.sec
-                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                        : 'border-gray-200 hover:border-gray-300',
-                                    )}
-                                  >
-                                    {p.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* ── 푸터 (고정) ── */}
-            <div className="shrink-0 border-t border-gray-100 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
-              <div className="flex justify-end gap-3">
-                <Button variant="secondary" onClick={onClose}>취소</Button>
-                <Button onClick={handleSave} loading={loading}>저장</Button>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
+  return (
+    <RoomModalShell
+      open={open}
+      title="방 설정 변경"
+      onClose={onClose}
+      footer={(
+        <>
+          {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={onClose}>취소</Button>
+            <Button onClick={handleSave} loading={loading}>저장</Button>
+          </div>
+        </>
       )}
-    </AnimatePresence>,
-    document.body,
+    >
+      <GameListPicker
+        games={games.filter((g) => g.supportsMulti)}
+        activeGameId={selectedGame?.id ?? null}
+        onSelectGame={selectGame}
+        onSelectMode={() => {}}
+        listOpen={listOpen}
+        onOpenList={() => setListOpen(true)}
+        search={gameSearch}
+        onSearchChange={setGameSearch}
+        catFilter={catFilter}
+        onCatFilterChange={setCatFilter}
+      />
+
+      {/* 방 제목 */}
+      <Input
+        label="방 제목"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="방 제목"
+        maxLength={30}
+      />
+
+      {/* 상세 설정 — 방 설정에서는 게임이 이미 정해져 있어 항상 열 수 있다 */}
+      <SettingsAccordion open={detailOpen} onToggle={() => setDetailOpen((v) => !v)}>
+        {!hasDetailOptions ? null : (
+          <>
+            {/* 방 유형 — 멀티 모드만 */}
+            {room.playMode === 'multi' && (
+              <>
+                <SettingField label="방 유형">
+                  <div className="flex gap-2">
+                    {[
+                      { key: 'public' as RoomType, label: '공개' },
+                      { key: 'private' as RoomType, label: '비밀' },
+                    ].map((rt) => (
+                      <OptionButton
+                        key={rt.key}
+                        active={roomType === rt.key}
+                        onClick={() => { setRoomType(rt.key); setPassword(''); }}
+                      >
+                        {rt.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </SettingField>
+
+                {/* 비밀번호 */}
+                {roomType === 'private' && (
+                  <Input
+                    label={room.roomType === 'private' ? '새 비밀번호 (변경 시만 입력)' : '비밀번호'}
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
+                    maxLength={8}
+                  />
+                )}
+              </>
+            )}
+
+            {/* 최대 인원 */}
+            {selectedGame && playerRange.length > 1 && (
+              <SettingField label="최대 인원">
+                <div className="flex flex-wrap gap-2">
+                  {playerRange.map((n) => (
+                    <OptionButton key={n} size="square" active={maxPlayers === n} onClick={() => setMaxPlayers(n)}>
+                      {n}
+                    </OptionButton>
+                  ))}
+                </div>
+              </SettingField>
+            )}
+
+            {/* 초기 칩 (인디언홀덤Q) */}
+            {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
+              <SettingField label="초기 칩" hint="(기본 25)">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={CHIPS_MIN}
+                    max={CHIPS_MAX}
+                    step={CHIPS_STEP}
+                    value={initialChips}
+                    onChange={(e) => setInitialChips(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-right text-sm font-bold text-cdm-fg">
+                    {initialChips}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {CHIPS_PRESETS.map((v) => (
+                    <OptionButton key={v} size="sm" active={initialChips === v} onClick={() => setInitialChips(v)}>
+                      {v}개
+                    </OptionButton>
+                  ))}
+                </div>
+              </SettingField>
+            )}
+
+            {/* 시간제한 */}
+            <SettingField label="시간제한">
+              <div className="flex gap-2">
+                {[
+                  { enabled: false, label: '∞ 무제한' },
+                  { enabled: true, label: '시간제한' },
+                ].map((opt) => (
+                  <OptionButton
+                    key={String(opt.enabled)}
+                    active={timeLimitEnabled === opt.enabled}
+                    onClick={() => setTimeLimitEnabled(opt.enabled)}
+                  >
+                    {opt.label}
+                  </OptionButton>
+                ))}
+              </div>
+
+              {timeLimitEnabled && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={timeLimitMin}
+                      onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                      className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                    >
+                      {Array.from({ length: 11 }, (_, i) => (
+                        <option key={i} value={i}>{i}</option>
+                      ))}
+                    </select>
+                    <span className="text-sm text-cdm-fg-muted">분</span>
+                    <select
+                      value={timeLimitSec}
+                      onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                      className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                    >
+                      {[0, 10, 15, 20, 30, 45].map((s) => (
+                        <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                    <span className="text-sm text-cdm-fg-muted">초</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '30초', min: 0, sec: 30 },
+                      { label: '1분', min: 1, sec: 0 },
+                      { label: '2분', min: 2, sec: 0 },
+                      { label: '3분', min: 3, sec: 0 },
+                      { label: '5분', min: 5, sec: 0 },
+                    ].map((p) => (
+                      <OptionButton
+                        key={p.label}
+                        size="sm"
+                        active={timeLimitMin === p.min && timeLimitSec === p.sec}
+                        onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
+                      >
+                        {p.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </SettingField>
+          </>
+        )}
+      </SettingsAccordion>
+    </RoomModalShell>
   );
 }
