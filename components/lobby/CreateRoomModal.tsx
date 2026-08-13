@@ -528,12 +528,18 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   maxLength={30}
                 />
 
-                {/* 상세 설정 — 게임 목록과 같이 그 자리에서 접었다 편다 */}
+                {/* 상세 설정 — 게임을 골라야 열린다. 아직이면 접은 채로 안내만 띄운다 */}
                 <div className="overflow-hidden rounded-lg border border-cdm-border">
                   <button
-                    onClick={() => setDetailOpen((v) => !v)}
+                    onClick={() => {
+                      if (!selectedGame) { setError('게임을 먼저 선택해 주세요.'); return; }
+                      setDetailOpen((v) => !v);
+                    }}
                     aria-expanded={detailOpen}
-                    className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1"
+                    className={cn(
+                      'flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors',
+                      selectedGame ? 'text-cdm-fg-muted hover:bg-cdm-bg-elev-1' : 'text-cdm-fg-subtle',
+                    )}
                   >
                     <span className="flex items-center gap-2">
                       <GearIcon />
