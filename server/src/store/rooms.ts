@@ -121,6 +121,20 @@ export const roomStore = {
     return Array.from(rooms.values());
   },
 
+  /**
+   * 이 회원이 '선수로' 들어가 있는 방. 없으면 undefined.
+   *
+   * 소켓이 아니라 회원 기준이다 — 재접속 직후엔 새 소켓에 방이 아직 연결되지
+   * 않아 소켓으로 보면 비어 있는 것처럼 보이고, 다른 기기로 접속하면 토큰이
+   * 달라 소켓도 별개다. 관전자(room.spectators)는 선수가 아니므로 제외한다.
+   */
+  findByMemberId(memberId: string): Room | undefined {
+    for (const r of rooms.values()) {
+      if (r.players.some((p) => p.memberId === memberId)) return r;
+    }
+    return undefined;
+  },
+
   getAllSummaries(): RoomSummary[] {
     // 시스템 룸(hostId === '')은 로비에 노출하지 않는다.
     return Array.from(rooms.values()).filter((r) => r.hostId !== '').map(toSummary);

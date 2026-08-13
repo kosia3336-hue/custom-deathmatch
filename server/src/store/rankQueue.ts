@@ -22,6 +22,26 @@ export interface RankQueueEntry {
 const byMemberId = new Map<string, RankQueueEntry>();
 const socketToMemberId = new Map<string, string>();
 
+/**
+ * 매칭은 확정됐지만 아직 방이 만들어지지 않은 회원.
+ *
+ * 한 회원은 늘 {대기 없음 / 큐에 있음 / 매칭 확정 / 방에 있음} 중 하나여야 한다.
+ * 그런데 매칭이 성사되면 큐에서는 바로 빠지는 반면 방은 비동기로 만들어지므로,
+ * 그 사이에 이 회원은 어디에도 속하지 않는 상태가 된다. 하필 그때 같은 사람의
+ * join 이 한 번 더 들어오면(버튼 연타, 재연결 재참가 등) 큐에 다시 들어가
+ * 다른 상대와 또 매칭된다 — 랭크 방 두 개에 동시 배정.
+ *
+ * 그래서 '매칭 확정' 을 큐가 직접 들고 있는다. 검사·등록·매칭이 모두 이 모듈
+ * 안의 동기 코드라, 중간에 다른 요청이 끼어들 수 없다(원자적).
+ */
+const pendingMatch = new Set<string>();
+
+/** 매칭 확정 표시 — 방 생성이 끝나거나 실패하면 releaseMatch 로 푼다 */
+function claim(a: RankQueueEntry, b: RankQueueEntry): void {
+  pendingMatch.add(a.memberId);
+  pendingMatch.add(b.memberId);
+}
+
 /** 큐 밖일 때도 직전 상대 쿨다운 유지 */
 const lastRankPair = new Map<string, { opponentMemberId: string; endedAt: number }>();
 
@@ -106,6 +126,7 @@ export const rankQueueStore = {
       visited.add(entry.memberId);
       visited.add(opp.memberId);
 
+      claim(entry, opp);
       byMemberId.delete(entry.memberId);
       byMemberId.delete(opp.memberId);
       socketToMemberId.delete(entry.socketId);
@@ -120,6 +141,9 @@ export const rankQueueStore = {
   },
 
   enqueue(entry: RankQueueEntry): RankEnqueueResult {
+    // 이미 매칭이 확정된 사람은 방이 만들어지는 중이다 — 큐에 다시 넣지 않는다.
+    if (pendingMatch.has(entry.memberId)) return { matched: false };
+
     const hydrated = applyStoredCooldown(entry);
 
     const existing = byMemberId.get(hydrated.memberId);
@@ -134,6 +158,7 @@ export const rankQueueStore = {
     const opp = pickOpponent(hydrated, now);
     if (!opp) return { matched: false };
 
+    claim(hydrated, opp);
     byMemberId.delete(hydrated.memberId);
     byMemberId.delete(opp.memberId);
     socketToMemberId.delete(hydrated.socketId);
@@ -143,6 +168,16 @@ export const rankQueueStore = {
     const guest = hydrated.joinedAt <= opp.joinedAt ? opp : hydrated;
 
     return { matched: true, host, guest };
+  },
+
+  /** 방 생성이 끝났거나(성공/실패) 취소됐을 때 '매칭 확정' 을 푼다 */
+  releaseMatch(...memberIds: string[]): void {
+    for (const id of memberIds) pendingMatch.delete(id);
+  },
+
+  /** 테스트용 — 매칭 확정 상태 확인 */
+  isPendingMatch(memberId: string): boolean {
+    return pendingMatch.has(memberId);
   },
 
   removeBySocket(socketId: string): void {

@@ -68,12 +68,47 @@ async function fetchFreshDisplayedTitle(memberId: string): Promise<DisplayedTitl
   }
 }
 
+/**
+ * 매칭된 두 사람으로 랭크 방을 만든다.
+ *
+ * 큐에서는 이미 빠졌지만 '매칭 확정'(pendingMatch)으로 잡혀 있는 상태라,
+ * 이 함수가 끝날 때까지 두 사람은 큐에 다시 들어올 수 없다.
+ * 성공하든 실패하든 마지막에 반드시 풀어 준다.
+ */
 export async function createRankMatchedRoom(
   io: IO,
   hostEntry: RankQueueEntry,
   guestEntry: RankQueueEntry,
   seasonId: number,
 ): Promise<void> {
+  try {
+    await buildRankMatchedRoom(io, hostEntry, guestEntry, seasonId);
+  } finally {
+    rankQueueStore.releaseMatch(hostEntry.memberId, guestEntry.memberId);
+  }
+}
+
+async function buildRankMatchedRoom(
+  io: IO,
+  hostEntry: RankQueueEntry,
+  guestEntry: RankQueueEntry,
+  seasonId: number,
+): Promise<void> {
+  // 큐는 '방에 들어갔다' 를 알 수 없다 — 대기 중 일반 방에 입장해도 큐에 그대로
+  // 남는다(room.ts 는 랭크 큐를 건드리지 않는다). 그대로 방을 만들면 아래 로직이
+  // 그 사람을 원래 방에서 끌어내 두 방이 함께 깨진다. 그래서 만들기 직전에 확인한다.
+  const hostBusy = roomStore.findByMemberId(hostEntry.memberId);
+  const guestBusy = roomStore.findByMemberId(guestEntry.memberId);
+  if (hostBusy || guestBusy) {
+    console.warn(
+      `[rankQueue] 매칭 취소 — 이미 방에 있음: ${hostBusy ? hostEntry.nickname : ''}${hostBusy && guestBusy ? ', ' : ''}${guestBusy ? guestEntry.nickname : ''}`,
+    );
+    // 멀쩡한 쪽은 큐로 돌려보내 다음 상대를 찾게 한다 (조용히 사라지지 않도록)
+    if (!hostBusy) rankQueueStore.enqueue(hostEntry);
+    if (!guestBusy) rankQueueStore.enqueue(guestEntry);
+    return;
+  }
+
   const hostPlayer = buildPlayer(hostEntry.socketId, true);
   const guestPlayer = buildPlayer(guestEntry.socketId, false);
   if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
@@ -225,8 +260,12 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
       return;
     }
 
-    if (sessions.getRoom(socket.id)) {
-      console.log(`[rankQueue:join] BLOCKED — already in room ${sessions.getRoom(socket.id)}`);
+    // 이미 어딘가에서 뛰고 있으면 큐에 못 들어온다.
+    // 소켓 기준만 보면 새 소켓으로 재접속한 직후(방은 30초 유예로 남아 있다)나
+    // 다른 기기로 접속한 경우를 놓치므로, 회원 기준으로도 확인한다.
+    const busyRoom = roomStore.findByMemberId(member.id);
+    if (sessions.getRoom(socket.id) || busyRoom) {
+      console.log(`[rankQueue:join] BLOCKED — already in room ${sessions.getRoom(socket.id) ?? busyRoom?.id}`);
       callback({ success: false, error: '이미 방에 참여 중입니다.' });
       return;
     }
