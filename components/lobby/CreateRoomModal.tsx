@@ -78,6 +78,24 @@ function CatChip({
   );
 }
 
+/* ── 공용 아이콘 ── */
+/* 컴포넌트 본문 안에서 정의하면 렌더마다 타입이 바뀌어 서브트리가 다시 마운트된다 */
+function CloseIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 /** 선택 표시 — 테두리만으로는 훑을 때 눈에 안 들어와 체크를 함께 둔다 */
 function CheckMark() {
   return (
@@ -330,19 +348,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         (_, i) => selectedGame.minPlayers + i,
       )
     : [];
-
-  /* ── 공용 아이콘 ── */
-  const CloseIcon = () => (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-
-  const BackIcon = () => (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-    </svg>
-  );
 
   if (!mounted) return null;
 
