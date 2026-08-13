@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/cdm/Modal';
-import RuleImage from '@/components/rules/RuleImage';
-import { MarkdownView } from '@/lib/markdown';
+import RuleSheet from '@/components/rules/RuleSheet';
 import { getGameRule, type GameRuleMeta } from '@/lib/gameRules';
 
 interface Props {
@@ -77,15 +76,20 @@ export function GameRulesModal({ gameId, open, onClose }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={rule ? `${rule.name} 룰` : '게임 룰'}
+      // 게임 이름은 룰지 명판에 크게 들어가므로 헤더는 일반 제목으로 둔다
+      title="게임 룰"
       size="lg"
       mobileBottomSheet
     >
       {imageUrl || hasRules ? (
         <div className="max-h-[65dvh] overflow-y-auto overscroll-contain pr-1">
-          {/* 이미지 먼저, 본문은 그 아래에 그대로 펼쳐 둔다 */}
-          {imageUrl && <RuleImage src={imageUrl} name={rule?.name ?? '게임'} className="mb-4" />}
-          {hasRules && <MarkdownView source={source} />}
+          {/* 룰 페이지·소개 페이지와 같은 룰지를 쓴다 */}
+          <RuleSheet
+            name={rule?.name ?? '게임'}
+            category={rule?.category ?? ''}
+            source={source}
+            imageUrl={imageUrl || undefined}
+          />
           {hasMeta && (
             <div className="mt-5 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-3 text-xs leading-relaxed text-cdm-fg-muted">
               {meta!.source && <p>출처: {meta!.source}</p>}

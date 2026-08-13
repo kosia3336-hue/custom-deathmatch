@@ -3,7 +3,7 @@
  *
  *  - 본인 시점: 항상 원본 닉네임 표시
  *  - 다른 사람 시점(상대/관전자/로비): '???' 로 마스킹
- *  - 익명 처리된 player 의 displayedTitle·guildMark 도 함께 숨김 (칭호·길드 마크로 정체 식별 방지)
+ *  - 익명 처리된 player 의 displayedTitle 도 함께 숨김 (칭호로 정체 식별 방지)
  */
 
 import type { Player, Room } from '@shared/types/room.js';
@@ -17,7 +17,6 @@ function maskPlayer(p: Player): Player {
     ...p,
     nickname: ANONYMOUS_NICKNAME,
     displayedTitle: null,
-    guildMark: null,
     // memberId 도 가린다 (신고/통계 식별 방지) — 단, 자기 자신 시점에서는 원본 사용.
     memberId: null,
   };

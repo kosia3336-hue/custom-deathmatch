@@ -42,7 +42,6 @@ export function scheduleSkinExpiries(
         sessions.getMemberId(token),
         sessions.getDisplayedTitle(token),
         updated,
-        sessions.getGuildMark(token),
         sessions.getGuildId(token),
         sessions.getGuildName(token),
       );

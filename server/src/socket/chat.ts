@@ -37,7 +37,6 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
     if (!nickname || !token) return;
 
     const senderTitle = sessions.getDisplayedTitleBySocket(socket.id);
-    const senderGuildMark = sessions.getGuildMarkBySocket(socket.id);
     const senderGuildName = sessions.getGuildNameBySocket(socket.id);
     const senderMemberId = sessions.getMemberIdBySocket(socket.id);
 
@@ -55,7 +54,6 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         isSystem: false,
         timestamp: now,
         senderTitle: senderTitle ?? null,
-        senderGuildMark: senderGuildMark ?? null,
         senderGuildName: senderGuildName ?? null,
         isSpectator: false,
         senderMemberId: senderMemberId ?? null,
@@ -95,7 +93,6 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
           isSystem: false,
           timestamp: row?.created_at ? new Date(row.created_at).getTime() : now,
           senderTitle: senderTitle ?? null,
-          senderGuildMark: senderGuildMark ?? null,
           isSpectator: false,
           senderMemberId: senderMemberId ?? null,
         };
@@ -124,7 +121,6 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       isSystem: false,
       timestamp: now,
       senderTitle: senderTitle ?? null,
-      senderGuildMark: senderGuildMark ?? null,
       senderGuildName: senderGuildName ?? null,
       isSpectator,
       senderMemberId: senderMemberId ?? null,
@@ -205,7 +201,6 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
           isSystem: false,
           timestamp: new Date(r.created_at).getTime(),
           senderTitle: null,
-          senderGuildMark: null,
           isSpectator: false,
           senderMemberId: r.member_id,
         }));

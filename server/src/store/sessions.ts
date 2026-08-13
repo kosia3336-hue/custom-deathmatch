@@ -1,4 +1,4 @@
-import type { DisplayedTitle, GuildMark } from '@shared/types/room.js';
+import type { DisplayedTitle } from '@shared/types/room.js';
 import type { EquippedSkin } from '@shared/types/skin.js';
 
 // ── 소켓 ↔ 닉네임 (임시, 현재 연결된 소켓 기준) ─────────────────────────────
@@ -21,7 +21,6 @@ const tokenToNickname = new Map<string, string>();
 const tokenToMemberId = new Map<string, string | null>();
 // token → 표시 칭호 (없으면 null)
 const tokenToDisplayedTitle = new Map<string, DisplayedTitle | null>();
-const tokenToGuildMark = new Map<string, GuildMark | null>();
 // token → 소속 길드 ID (없으면 null) — 길드 채팅 소켓방 라우팅용
 const tokenToGuildId = new Map<string, string | null>();
 // token → 소속 길드명 (마크 등록 여부 무관, 없으면 null) — 채팅 "닉네임 [길드명]" 표시용
@@ -74,7 +73,6 @@ function purgeToken(token: string) {
   tokenToNickname.delete(token);
   tokenToMemberId.delete(token);
   tokenToDisplayedTitle.delete(token);
-  tokenToGuildMark.delete(token);
   tokenToGuildId.delete(token);
   tokenToGuildName.delete(token);
   tokenToEquippedSkins.delete(token);
@@ -246,14 +244,12 @@ export const sessions = {
     memberId: string | null,
     displayedTitle: DisplayedTitle | null,
     equippedSkins: EquippedSkin[] = [],
-    guildMark: GuildMark | null = null,
     guildId: string | null = null,
     guildName: string | null = null,
   ) {
     tokenToMemberId.set(token, memberId);
     tokenToDisplayedTitle.set(token, displayedTitle);
     tokenToEquippedSkins.set(token, equippedSkins);
-    tokenToGuildMark.set(token, guildMark);
     tokenToGuildId.set(token, guildId);
     tokenToGuildName.set(token, guildName);
     if (memberId) memberIdToToken.set(memberId, token);
@@ -267,9 +263,6 @@ export const sessions = {
     return tokenToDisplayedTitle.get(token) ?? null;
   },
 
-  getGuildMark(token: string): GuildMark | null {
-    return tokenToGuildMark.get(token) ?? null;
-  },
 
   getEquippedSkins(token: string): EquippedSkin[] {
     return tokenToEquippedSkins.get(token) ?? [];
@@ -285,10 +278,6 @@ export const sessions = {
     return t ? tokenToDisplayedTitle.get(t) ?? null : null;
   },
 
-  getGuildMarkBySocket(socketId: string): GuildMark | null {
-    const t = socketToToken.get(socketId);
-    return t ? tokenToGuildMark.get(t) ?? null : null;
-  },
 
   getGuildId(token: string): string | null {
     return tokenToGuildId.get(token) ?? null;
