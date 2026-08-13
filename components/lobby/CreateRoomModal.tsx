@@ -44,6 +44,27 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * 랜덤·밴픽 행의 대표 이미지.
+ *
+ * 이 둘은 게임 카드와 달리 한 줄을 통째로 쓴다. 카드처럼 폭 비율(42%)로 잡으면
+ * 이미지 영역이 300px 가까이 되어 너무 넓으므로, 오른쪽에 고정 폭 띠로 둔다.
+ * 왼쪽으로 갈수록 사라져 글자와 겹치지 않는다.
+ */
+function ModeArt({ src }: { src: string }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 right-0 w-56 bg-cover bg-center opacity-35"
+      style={{
+        backgroundImage: `url(${src})`,
+        maskImage: 'linear-gradient(to right, transparent, #000 70%)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, #000 70%)',
+      }}
+    />
+  );
+}
+
 export default function CreateRoomModal({ open, onClose }: Props) {
   const router = useRouter();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
@@ -348,28 +369,48 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           <button
                             onClick={selectRandom}
                             className={cn(
-                              'col-span-2 flex h-12 items-center rounded-lg border px-3 text-left text-sm transition-colors sm:col-span-3',
+                              'relative col-span-2 h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
                               isRandom
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                ? 'border-indigo-500 bg-indigo-50'
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                             )}
                           >
-                            <span className="font-semibold">랜덤</span>
-                            <span className="ml-2 text-xs text-gray-500">무작위 배정</span>
+                            <ModeArt src="/games/random.webp" />
+                            <span className="relative flex h-full flex-col justify-center pl-3">
+                              <span
+                                className={cn(
+                                  'text-sm font-semibold',
+                                  isRandom ? 'text-indigo-700' : 'text-gray-800',
+                                )}
+                              >
+                                랜덤
+                              </span>
+                              <span className="mt-0.5 text-xs text-gray-500">무작위 배정</span>
+                            </span>
                           </button>
 
                           {!gameSearch.trim() && (
                             <button
                               onClick={selectBanPick}
                               className={cn(
-                                'col-span-2 flex h-12 items-center rounded-lg border px-3 text-left text-sm transition-colors sm:col-span-3',
+                                'relative col-span-2 h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
                                 isBanPick
-                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                  ? 'border-indigo-500 bg-indigo-50'
                                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                               )}
                             >
-                              <span className="font-semibold">밴픽</span>
-                              <span className="ml-2 text-xs text-gray-500">게임 선택 전 밴</span>
+                              <ModeArt src="/games/ban-pick.webp" />
+                              <span className="relative flex h-full flex-col justify-center pl-3">
+                                <span
+                                  className={cn(
+                                    'text-sm font-semibold',
+                                    isBanPick ? 'text-indigo-700' : 'text-gray-800',
+                                  )}
+                                >
+                                  밴픽
+                                </span>
+                                <span className="mt-0.5 text-xs text-gray-500">게임 선택 전 밴</span>
+                              </span>
                             </button>
                           )}
 
