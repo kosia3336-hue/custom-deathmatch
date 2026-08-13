@@ -12,6 +12,12 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
+import {
+  GAME_CATEGORIES,
+  categoryHue,
+  getGameRule,
+  type GameCategory,
+} from '@/lib/gameRules';
 
 type Step = 'main' | 'detail';
 
@@ -44,24 +50,113 @@ interface Props {
   onClose: () => void;
 }
 
-/**
- * 랜덤·밴픽 행의 대표 이미지.
- *
- * 이 둘은 게임 카드와 달리 한 줄을 통째로 쓴다. 카드처럼 폭 비율(42%)로 잡으면
- * 이미지 영역이 300px 가까이 되어 너무 넓으므로, 오른쪽에 고정 폭 띠로 둔다.
- * 왼쪽으로 갈수록 사라져 글자와 겹치지 않는다.
- */
-function ModeArt({ src }: { src: string }) {
+/** 갈래 필터 칩 — 로비 방 검색과 같은 갈래·색을 쓴다 */
+function CatChip({
+  label, hue, active, onClick,
+}: { label: string; hue?: number; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+        active
+          ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+          : 'border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:border-cdm-border-strong',
+      )}
+    >
+      {hue !== undefined && (
+        <span
+          aria-hidden
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ backgroundColor: `hsl(${hue} 62% 55%)` }}
+        />
+      )}
+      {label}
+    </button>
+  );
+}
+
+/** 선택 표시 — 테두리만으로는 훑을 때 눈에 안 들어와 체크를 함께 둔다 */
+function CheckMark() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-y-0 right-0 w-56 bg-cover bg-center opacity-35"
-      style={{
-        backgroundImage: `url(${src})`,
-        maskImage: 'linear-gradient(to right, transparent, #000 70%)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, #000 70%)',
+      className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-cdm-primary text-white"
+    >
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </span>
+  );
+}
+
+const CARD_BASE =
+  'relative flex h-20 items-center gap-2 overflow-hidden rounded-lg border p-2 text-left transition-colors';
+const CARD_STATE = (active: boolean) =>
+  active
+    ? 'border-cdm-primary bg-cdm-primary-soft ring-2 ring-cdm-primary'
+    : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1';
+
+/** 대표 이미지 썸네일 — 흐린 배경 대신 또렷하게 보여 준다. 없으면 자리만 비운다. */
+function Thumb({ src, alt }: { src: string; alt: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="h-14 w-14 shrink-0 rounded-md object-cover"
+      onError={(e) => {
+        // 이미지가 아직 없는 게임 — 빈 자리로 두고 글자만 보이게 한다
+        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
       }}
     />
+  );
+}
+
+/** 랜덤·밴픽 카드 (게임이 아니라 '방식') */
+function ModeCard({
+  label, desc, art, active, onClick, className,
+}: { label: string; desc: string; art: string; active: boolean; onClick: () => void; className?: string }) {
+  return (
+    <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-3', className)}>
+      {active && <CheckMark />}
+      <span className="min-w-0 flex-1 pl-1">
+        <span className={cn('block text-sm font-semibold', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
+          {label}
+        </span>
+        <span className="mt-0.5 block text-xs text-cdm-fg-muted">{desc}</span>
+      </span>
+      <Thumb src={art} alt="" />
+    </button>
+  );
+}
+
+/** 게임 카드 — 인원수 대신 갈래를 색 점과 함께 보여 준다(룰·랭킹과 같은 색) */
+function GameCard({ game, active, onClick, className }: { game: Game; active: boolean; onClick: () => void; className?: string }) {
+  const cat = getGameRule(game.id)?.category;
+  return (
+    <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
+      {active && <CheckMark />}
+      <span className="min-w-0 flex-1 pl-1">
+        <span className={cn('block text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
+          {game.name}
+        </span>
+        {cat && (
+          <span className="mt-1 flex items-center gap-1 text-xs text-cdm-fg-muted">
+            <span
+              aria-hidden
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: `hsl(${categoryHue(cat)} 62% 55%)` }}
+            />
+            {cat}
+          </span>
+        )}
+      </span>
+      <Thumb src={`/games/${game.id}.webp`} alt="" />
+    </button>
   );
 }
 
@@ -83,7 +178,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [banCount, setBanCount] = useState(3);
-  const [gameSearch, setGameSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
+  /** 게임을 고르면 긴 목록을 접는다 — '변경' 으로 다시 편다 */
+  const [listOpen, setListOpen] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -101,7 +198,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setSelectedGame(null);
     setPlayMode('multi');
     setTitle(`초보 환영합니다! ${Math.floor(Math.random() * 900) + 100}`);
-    setGameSearch('');
+    setCatFilter(null);
+    setListOpen(true);
     setRoomType('public');
     setPassword('');
     setMaxPlayers(4);
@@ -146,6 +244,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     isBanPick;
 
   const selectGame = (g: Game) => {
+    setListOpen(false);
     setSelectedGame(g);
     if (g.supportsMulti) setPlayMode('multi');
     else if (g.supportsCom) setPlayMode('com');
@@ -221,8 +320,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     });
   };
 
-  const filteredGames = gameSearch.trim()
-    ? games.filter((g) => g.name.includes(gameSearch.trim()))
+  const filteredGames = catFilter
+    ? games.filter((g) => getGameRule(g.id)?.category === catFilter)
     : games;
 
   const playerRange = selectedGame
@@ -336,126 +435,83 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   >
                     {/* 게임 선택 */}
                     <div>
-                      <div className="mb-2 flex items-center gap-2">
+                      <div className="mb-2 flex items-center justify-between gap-2">
                         <label className="text-sm font-medium text-cdm-fg">게임 선택</label>
-                        <div className="relative flex-1">
-                          <input
-                            type="text"
-                            value={gameSearch}
-                            onChange={(e) => setGameSearch(e.target.value)}
-                            placeholder="검색"
-                            className="h-7 w-full rounded-md border border-cdm-border pl-2 pr-6 text-xs focus:border-cdm-primary focus:outline-none"
-                          />
-                          {gameSearch && (
-                            <button
-                              onClick={() => setGameSearch('')}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cdm-fg-subtle hover:text-cdm-fg-muted"
-                              aria-label="검색 초기화"
-                            >
-                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {/* 게임 목록 — 한 줄에 하나씩. 오른쪽에 대표 이미지를 흐리게 깐다.
-                          이미지는 public/games/<gameId>.webp 를 배경으로 불러오므로,
-                          파일이 없는 게임은 아무것도 안 보이고 레이아웃만 그대로 간다
-                          (배경 이미지라 404 여도 깨진 아이콘이 뜨지 않는다). */}
-                      <div className="max-h-[260px] overflow-y-auto rounded-lg border border-cdm-border bg-cdm-page sm:max-h-[320px]">
-                        <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-6">
-                          {/* 랜덤·밴픽은 게임이 아니라 '방식' 이라 한 줄을 통째로 쓴다 */}
+                        {/* 고르고 나면 목록을 접어 둔다 — 아래 설정이 바로 보이도록 */}
+                        {!listOpen && (
                           <button
-                            onClick={selectRandom}
-                            className={cn(
-                              'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
-                              isRandom
-                                ? 'border-cdm-primary bg-cdm-primary-soft'
-                                : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
-                            )}
+                            type="button"
+                            onClick={() => setListOpen(true)}
+                            className="text-xs font-semibold text-cdm-primary hover:underline"
                           >
-                            <ModeArt src="/games/random.webp" />
-                            <span className="relative flex h-full flex-col justify-center pl-3">
-                              <span
-                                className={cn(
-                                  'text-sm font-semibold',
-                                  isRandom ? 'text-cdm-primary-strong' : 'text-cdm-fg',
-                                )}
-                              >
-                                랜덤
-                              </span>
-                              <span className="mt-0.5 text-xs text-cdm-fg-muted">무작위 배정</span>
-                            </span>
+                            변경
                           </button>
-
-                          {!gameSearch.trim() && (
-                            <button
-                              onClick={selectBanPick}
-                              className={cn(
-                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
-                                isBanPick
-                                  ? 'border-cdm-primary bg-cdm-primary-soft'
-                                  : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
-                              )}
-                            >
-                              <ModeArt src="/games/ban-pick.webp" />
-                              <span className="relative flex h-full flex-col justify-center pl-3">
-                                <span
-                                  className={cn(
-                                    'text-sm font-semibold',
-                                    isBanPick ? 'text-cdm-primary-strong' : 'text-cdm-fg',
-                                  )}
-                                >
-                                  밴픽
-                                </span>
-                                <span className="mt-0.5 text-xs text-cdm-fg-muted">게임 선택 전 밴</span>
-                              </span>
-                            </button>
-                          )}
-
-                          {filteredGames.map((g) => (
-                            <button
-                              key={g.id}
-                              onClick={() => selectGame(g)}
-                              className={cn(
-                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-2',
-                                selectedGame?.id === g.id
-                                  ? 'border-cdm-primary bg-cdm-primary-soft'
-                                  : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
-                              )}
-                            >
-                              {/* 대표 이미지 — 꾸밈용이라 오른쪽 영역에만 흐리게 깐다.
-                                  글자 영역(왼쪽)과 폭을 나눠 두어 서로 침범하지 않는다.
-                                  파일이 없는 게임은 배경이 비어 아무것도 안 보인다. */}
-                              <span
-                                aria-hidden
-                                className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-cover bg-center opacity-35"
-                                style={{
-                                  backgroundImage: `url(/games/${g.id}.webp)`,
-                                  maskImage: 'linear-gradient(to right, transparent, #000 70%)',
-                                  WebkitMaskImage: 'linear-gradient(to right, transparent, #000 70%)',
-                                }}
-                              />
-                              <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
-                                <span
-                                  className={cn(
-                                    'text-sm leading-tight font-semibold break-keep',
-                                    selectedGame?.id === g.id ? 'text-cdm-primary-strong' : 'text-cdm-fg',
-                                  )}
-                                >
-                                  {g.name}
-                                </span>
-                                <span className="mt-0.5 text-xs text-cdm-fg-muted">
-                                  {g.minPlayers === g.maxPlayers
-                                    ? `${g.minPlayers}인`
-                                    : `${g.minPlayers}~${g.maxPlayers}인`}
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
+                        )}
                       </div>
+
+                      {listOpen ? (
+                        <>
+                          {/* 갈래 필터 — 로비 방 검색과 같은 갈래 기준 */}
+                          <div className="mb-2 flex flex-wrap gap-1.5">
+                            <CatChip
+                              label="전체"
+                              active={catFilter === null}
+                              onClick={() => setCatFilter(null)}
+                            />
+                            {GAME_CATEGORIES.map((c) => (
+                              <CatChip
+                                key={c}
+                                label={c}
+                                hue={categoryHue(c)}
+                                active={catFilter === c}
+                                onClick={() => setCatFilter(catFilter === c ? null : c)}
+                              />
+                            ))}
+                          </div>
+
+                          {/* 목록 — 모달 본문 하나만 스크롤하도록 자체 스크롤을 두지 않는다 */}
+                          <div className="grid grid-cols-2 gap-2 rounded-lg border border-cdm-border bg-cdm-page p-2 sm:grid-cols-6">
+                            {!catFilter && (
+                              <>
+                                <ModeCard
+                                  label="랜덤"
+                                  desc="무작위 배정"
+                                  art="/games/random.webp"
+                                  active={isRandom}
+                                  onClick={selectRandom}
+                                />
+                                <ModeCard
+                                  label="밴픽"
+                                  desc="게임 선택 전 밴"
+                                  art="/games/ban-pick.webp"
+                                  active={isBanPick}
+                                  onClick={selectBanPick}
+                                />
+                              </>
+                            )}
+
+                            {filteredGames.map((g) => (
+                              <GameCard
+                                key={g.id}
+                                game={g}
+                                active={selectedGame?.id === g.id}
+                                onClick={() => selectGame(g)}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        /* 접힌 상태 — 고른 것만 보여 준다 */
+                        <div className="rounded-lg border border-cdm-border bg-cdm-page p-2">
+                          {isRandom ? (
+                            <ModeCard label="랜덤" desc="무작위 배정" art="/games/random.webp" active onClick={() => setListOpen(true)} className="w-full sm:col-span-full" />
+                          ) : isBanPick ? (
+                            <ModeCard label="밴픽" desc="게임 선택 전 밴" art="/games/ban-pick.webp" active onClick={() => setListOpen(true)} className="w-full sm:col-span-full" />
+                          ) : selectedGame ? (
+                            <GameCard game={selectedGame} active onClick={() => setListOpen(true)} className="w-full sm:col-span-full" />
+                          ) : null}
+                        </div>
+                      )}
                     </div>
 
                     {/* 플레이 모드 */}
