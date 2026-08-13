@@ -14,7 +14,6 @@ import { GAME_IDS } from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
 import {
   GAME_CATEGORIES,
-  categoryHue,
   getGameRule,
   type GameCategory,
 } from '@/lib/gameRules';
@@ -50,29 +49,22 @@ interface Props {
   onClose: () => void;
 }
 
-/** 갈래 필터 칩 — 로비 방 검색과 같은 갈래·색을 쓴다 */
+/** 갈래 필터 칩 — 로비 방 검색과 같은 갈래를 쓴다 */
 function CatChip({
-  label, hue, active, onClick,
-}: { label: string; hue?: number; active: boolean; onClick: () => void }) {
+  label, active, onClick,
+}: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+        'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
         active
           ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
           : 'border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:border-cdm-border-strong',
       )}
     >
-      {hue !== undefined && (
-        <span
-          aria-hidden
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{ backgroundColor: `hsl(${hue} 62% 55%)` }}
-        />
-      )}
       {label}
     </button>
   );
@@ -118,6 +110,19 @@ function CheckMark() {
   );
 }
 
+/**
+ * 설정 묶음 하나 = 흰 카드. 본문 바닥이 회색이라 묶음 경계가 눈에 보이고,
+ * 안에 다시 회색 우물(게임 목록)을 두면 계층이 한 단계 더 드러난다.
+ */
+function Section({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-cdm-border bg-cdm-bg p-3">
+      {title && <label className="mb-2 block text-sm font-medium text-cdm-fg">{title}</label>}
+      {children}
+    </div>
+  );
+}
+
 const CARD_BASE =
   'relative h-20 overflow-hidden rounded-lg border text-left transition-colors';
 const CARD_STATE = (active: boolean) =>
@@ -150,20 +155,20 @@ function ModeCard({
 }: { label: string; desc: string; art: string; active: boolean; onClick: () => void; className?: string }) {
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-3', className)}>
-      {/* 한 줄을 통째로 쓰므로 폭 비율 대신 오른쪽 고정 폭 띠로 둔다 */}
-      <CardArt src={art} className="w-56" />
+      {/* 게임 카드와 같은 비율 — 고정 폭으로 두면 좁은 화면에서 카드를 거의 덮는다 */}
+      <CardArt src={art} className="w-[42%]" />
       {active && <CheckMark />}
       <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
-        <span className={cn('text-base font-bold', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
+        <span className={cn('text-sm font-semibold', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
           {label}
         </span>
-        <span className="mt-0.5 text-[11px] text-cdm-fg-subtle">{desc}</span>
+        <span className="mt-0.5 text-xs text-cdm-fg-muted">{desc}</span>
       </span>
     </button>
   );
 }
 
-/** 게임 카드 — 이름을 앞세우고, 갈래는 색 점과 함께 작게 곁들인다(룰·랭킹과 같은 색) */
+/** 게임 카드 — 인원수는 전부 2인이라 정보가 없어, 대신 갈래를 곁들인다 */
 function GameCard({ game, active, onClick, className }: { game: Game; active: boolean; onClick: () => void; className?: string }) {
   const cat = getGameRule(game.id)?.category;
   return (
@@ -171,19 +176,10 @@ function GameCard({ game, active, onClick, className }: { game: Game; active: bo
       <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
       {active && <CheckMark />}
       <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
-        <span className={cn('text-base leading-tight font-bold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
+        <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
           {game.name}
         </span>
-        {cat && (
-          <span className="mt-1 flex items-center gap-1 text-[11px] text-cdm-fg-subtle">
-            <span
-              aria-hidden
-              className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: `hsl(${categoryHue(cat)} 62% 55%)` }}
-            />
-            {cat}
-          </span>
-        )}
+        {cat && <span className="mt-0.5 text-xs text-cdm-fg-muted">{cat}</span>}
       </span>
     </button>
   );
@@ -466,14 +462,14 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 {step === 'main' ? (
                   <motion.div
                     key="b-main"
-                    className="space-y-5 px-5 py-5"
+                    className="space-y-4 bg-cdm-page px-5 py-5"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.15 }}
                   >
                     {/* 게임 선택 */}
-                    <div>
+                    <Section>
                       <div className="mb-2 flex items-center gap-2">
                         <label className="shrink-0 text-sm font-medium text-cdm-fg">게임 선택</label>
                         {listOpen ? (
@@ -540,7 +536,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 <CatChip
                                   key={c}
                                   label={c}
-                                  hue={categoryHue(c)}
                                   active={catFilter === c}
                                   onClick={() => setCatFilter(catFilter === c ? null : c)}
                                 />
@@ -549,7 +544,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           )}
 
                           {/* 목록 — 모달 본문 하나만 스크롤하도록 자체 스크롤을 두지 않는다 */}
-                          <div className="grid grid-cols-2 gap-2 rounded-lg border border-cdm-border bg-cdm-page p-2 sm:grid-cols-6">
+                          <div className="grid grid-cols-2 gap-2 rounded-lg border border-cdm-border bg-cdm-bg-elev-2 p-2 sm:grid-cols-6">
                             {showRandom && (
                               <ModeCard
                                 label="랜덤"
@@ -587,7 +582,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         </>
                       ) : (
                         /* 접힌 상태 — 고른 것만 보여 준다 */
-                        <div className="rounded-lg border border-cdm-border bg-cdm-page p-2">
+                        <div className="rounded-lg border border-cdm-border bg-cdm-bg-elev-2 p-2">
                           {isRandom ? (
                             <ModeCard label="랜덤" desc="무작위 배정" art="/games/random.webp" active onClick={() => setListOpen(true)} className="w-full sm:col-span-full" />
                           ) : isBanPick ? (
@@ -597,12 +592,11 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           ) : null}
                         </div>
                       )}
-                    </div>
+                    </Section>
 
                     {/* 플레이 모드 */}
                     {selectedGame && !isRandom && (
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-cdm-fg">플레이 모드</label>
+                      <Section title="플레이 모드">
                         <div className="flex flex-wrap gap-2">
                           {[
                             { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
@@ -625,22 +619,24 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               </button>
                             ))}
                         </div>
-                      </div>
+                      </Section>
                     )}
 
                     {/* 방 제목 */}
-                    <Input
-                      label="방 제목"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="초보 환영합니다!"
-                      maxLength={30}
-                    />
+                    <Section>
+                      <Input
+                        label="방 제목"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="초보 환영합니다!"
+                        maxLength={30}
+                      />
+                    </Section>
 
                     {/* 상세 설정 진입 버튼 */}
                     <button
                       onClick={() => { setStep('detail'); setError(''); }}
-                      className="flex w-full items-center justify-between rounded-lg border border-cdm-border px-4 py-3 text-sm font-medium text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
+                      className="flex w-full items-center justify-between rounded-lg border border-cdm-border bg-cdm-bg px-4 py-3 text-sm font-medium text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
                     >
                       <span className="flex items-center gap-2">
                         <svg className="h-4 w-4 text-cdm-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -657,7 +653,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 ) : (
                   <motion.div
                     key="b-detail"
-                    className="space-y-5 px-5 py-5"
+                    className="space-y-4 bg-cdm-page px-5 py-5"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
@@ -665,15 +661,14 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   >
                     {!hasDetailOptions ? (
                       /* 표시할 항목 없음 */
-                      <div className="flex flex-col items-center gap-2 rounded-lg border border-cdm-border bg-cdm-bg-elev-1 px-4 py-10 text-center">
+                      <div className="flex flex-col items-center gap-2 rounded-lg border border-cdm-border bg-cdm-bg px-4 py-10 text-center">
                         <p className="text-sm text-cdm-fg-muted">이 모드에서는 추가 설정이 없습니다.</p>
                       </div>
                     ) : (
                       <>
                         {/* 방 유형 */}
                         {playMode === 'multi' && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-cdm-fg">방 유형</label>
+                          <Section title="방 유형">
                             <div className="flex gap-2">
                               {[
                                 { key: 'public' as RoomType, label: '공개' },
@@ -693,25 +688,26 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 </button>
                               ))}
                             </div>
-                          </div>
+                          </Section>
                         )}
 
                         {/* 비밀번호 */}
                         {playMode === 'multi' && roomType === 'private' && (
-                          <Input
-                            label="비밀번호"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="4~8자리"
-                            maxLength={8}
-                          />
+                          <Section>
+                            <Input
+                              label="비밀번호"
+                              type="password"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="4~8자리"
+                              maxLength={8}
+                            />
+                          </Section>
                         )}
 
                         {/* 최대 인원 */}
                         {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-cdm-fg">최대 인원</label>
+                          <Section title="최대 인원">
                             <div className="flex flex-wrap gap-2">
                               {playerRange.map((n) => (
                                 <button
@@ -728,12 +724,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 </button>
                               ))}
                             </div>
-                          </div>
+                          </Section>
                         )}
 
                         {/* 초기 칩 (인디언홀덤Q) */}
                         {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
-                          <div>
+                          <Section>
                             <label className="mb-2 block text-sm font-medium text-cdm-fg">
                               초기 칩{' '}
                               <span className="font-normal text-cdm-fg-subtle">(기본 25)</span>
@@ -768,12 +764,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 </button>
                               ))}
                             </div>
-                          </div>
+                          </Section>
                         )}
 
                         {/* 밴 개수 (밴픽 모드) */}
                         {isBanPick && (
-                          <div>
+                          <Section>
                             <label className="mb-2 block text-sm font-medium text-cdm-fg">
                               밴 개수{' '}
                               <span className="font-normal text-cdm-fg-subtle">(1인당, 기본 1)</span>
@@ -797,13 +793,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 +
                               </button>
                             </div>
-                          </div>
+                          </Section>
                         )}
 
                         {/* 시간제한 */}
                         {playMode === 'multi' && !isRandom && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-cdm-fg">시간제한</label>
+                          <Section title="시간제한">
                             <div className="flex gap-2">
                               {[
                                 { enabled: false, label: '∞ 무제한' },
@@ -872,7 +867,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 </div>
                               </div>
                             )}
-                          </div>
+                          </Section>
                         )}
                       </>
                     )}
