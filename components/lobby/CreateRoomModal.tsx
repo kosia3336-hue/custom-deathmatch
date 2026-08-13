@@ -302,7 +302,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   >
                     <button
                       onClick={() => { setStep('main'); setError(''); }}
-                      className="flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      className="flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-cdm-fg-muted hover:bg-cdm-bg-elev-2 hover:text-cdm-fg"
                     >
                       <BackIcon />
                       돌아가기
@@ -337,19 +337,19 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     {/* 게임 선택 */}
                     <div>
                       <div className="mb-2 flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700">게임 선택</label>
+                        <label className="text-sm font-medium text-cdm-fg">게임 선택</label>
                         <div className="relative flex-1">
                           <input
                             type="text"
                             value={gameSearch}
                             onChange={(e) => setGameSearch(e.target.value)}
                             placeholder="검색"
-                            className="h-7 w-full rounded-md border border-gray-200 pl-2 pr-6 text-xs focus:border-indigo-400 focus:outline-none"
+                            className="h-7 w-full rounded-md border border-cdm-border pl-2 pr-6 text-xs focus:border-cdm-primary focus:outline-none"
                           />
                           {gameSearch && (
                             <button
                               onClick={() => setGameSearch('')}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cdm-fg-subtle hover:text-cdm-fg-muted"
                               aria-label="검색 초기화"
                             >
                               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -363,16 +363,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           이미지는 public/games/<gameId>.webp 를 배경으로 불러오므로,
                           파일이 없는 게임은 아무것도 안 보이고 레이아웃만 그대로 간다
                           (배경 이미지라 404 여도 깨진 아이콘이 뜨지 않는다). */}
-                      <div className="max-h-[260px] overflow-y-auto rounded-lg border border-gray-100 sm:max-h-[320px]">
-                        <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3">
+                      <div className="max-h-[260px] overflow-y-auto rounded-lg border border-cdm-border bg-cdm-page sm:max-h-[320px]">
+                        <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-6">
                           {/* 랜덤·밴픽은 게임이 아니라 '방식' 이라 한 줄을 통째로 쓴다 */}
                           <button
                             onClick={selectRandom}
                             className={cn(
-                              'relative col-span-2 h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
+                              'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
                               isRandom
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                                ? 'border-cdm-primary bg-cdm-primary-soft'
+                                : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
                             )}
                           >
                             <ModeArt src="/games/random.webp" />
@@ -380,12 +380,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               <span
                                 className={cn(
                                   'text-sm font-semibold',
-                                  isRandom ? 'text-indigo-700' : 'text-gray-800',
+                                  isRandom ? 'text-cdm-primary-strong' : 'text-cdm-fg',
                                 )}
                               >
                                 랜덤
                               </span>
-                              <span className="mt-0.5 text-xs text-gray-500">무작위 배정</span>
+                              <span className="mt-0.5 text-xs text-cdm-fg-muted">무작위 배정</span>
                             </span>
                           </button>
 
@@ -393,10 +393,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                             <button
                               onClick={selectBanPick}
                               className={cn(
-                                'relative col-span-2 h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
+                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-3',
                                 isBanPick
-                                  ? 'border-indigo-500 bg-indigo-50'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                                  ? 'border-cdm-primary bg-cdm-primary-soft'
+                                  : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
                               )}
                             >
                               <ModeArt src="/games/ban-pick.webp" />
@@ -404,12 +404,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 <span
                                   className={cn(
                                     'text-sm font-semibold',
-                                    isBanPick ? 'text-indigo-700' : 'text-gray-800',
+                                    isBanPick ? 'text-cdm-primary-strong' : 'text-cdm-fg',
                                   )}
                                 >
                                   밴픽
                                 </span>
-                                <span className="mt-0.5 text-xs text-gray-500">게임 선택 전 밴</span>
+                                <span className="mt-0.5 text-xs text-cdm-fg-muted">게임 선택 전 밴</span>
                               </span>
                             </button>
                           )}
@@ -419,10 +419,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               key={g.id}
                               onClick={() => selectGame(g)}
                               className={cn(
-                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors',
+                                'relative h-20 overflow-hidden rounded-lg border text-left transition-colors sm:col-span-2',
                                 selectedGame?.id === g.id
-                                  ? 'border-indigo-500 bg-indigo-50'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                                  ? 'border-cdm-primary bg-cdm-primary-soft'
+                                  : 'border-cdm-border bg-cdm-bg hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1',
                               )}
                             >
                               {/* 대표 이미지 — 꾸밈용이라 오른쪽 영역에만 흐리게 깐다.
@@ -441,12 +441,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 <span
                                   className={cn(
                                     'text-sm leading-tight font-semibold break-keep',
-                                    selectedGame?.id === g.id ? 'text-indigo-700' : 'text-gray-800',
+                                    selectedGame?.id === g.id ? 'text-cdm-primary-strong' : 'text-cdm-fg',
                                   )}
                                 >
                                   {g.name}
                                 </span>
-                                <span className="mt-0.5 text-xs text-gray-500">
+                                <span className="mt-0.5 text-xs text-cdm-fg-muted">
                                   {g.minPlayers === g.maxPlayers
                                     ? `${g.minPlayers}인`
                                     : `${g.minPlayers}~${g.maxPlayers}인`}
@@ -461,7 +461,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     {/* 플레이 모드 */}
                     {selectedGame && !isRandom && (
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">플레이 모드</label>
+                        <label className="mb-2 block text-sm font-medium text-cdm-fg">플레이 모드</label>
                         <div className="flex flex-wrap gap-2">
                           {[
                             { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
@@ -476,8 +476,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 className={cn(
                                   'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                                   playMode === m.key
-                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                    : 'border-gray-200 hover:border-gray-300',
+                                    ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                    : 'border-cdm-border hover:border-cdm-border-strong',
                                 )}
                               >
                                 {m.label}
@@ -499,16 +499,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     {/* 상세 설정 진입 버튼 */}
                     <button
                       onClick={() => { setStep('detail'); setError(''); }}
-                      className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                      className="flex w-full items-center justify-between rounded-lg border border-cdm-border px-4 py-3 text-sm font-medium text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
                     >
                       <span className="flex items-center gap-2">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-4 w-4 text-cdm-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         상세 설정
                       </span>
-                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-4 w-4 text-cdm-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -524,15 +524,15 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   >
                     {!hasDetailOptions ? (
                       /* 표시할 항목 없음 */
-                      <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-4 py-10 text-center">
-                        <p className="text-sm text-gray-500">이 모드에서는 추가 설정이 없습니다.</p>
+                      <div className="flex flex-col items-center gap-2 rounded-lg border border-cdm-border bg-cdm-bg-elev-1 px-4 py-10 text-center">
+                        <p className="text-sm text-cdm-fg-muted">이 모드에서는 추가 설정이 없습니다.</p>
                       </div>
                     ) : (
                       <>
                         {/* 방 유형 */}
                         {playMode === 'multi' && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">방 유형</label>
+                            <label className="mb-2 block text-sm font-medium text-cdm-fg">방 유형</label>
                             <div className="flex gap-2">
                               {[
                                 { key: 'public' as RoomType, label: '공개' },
@@ -544,8 +544,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   className={cn(
                                     'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                                     roomType === rt.key
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
+                                      ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                      : 'border-cdm-border hover:border-cdm-border-strong',
                                   )}
                                 >
                                   {rt.label}
@@ -570,7 +570,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         {/* 최대 인원 */}
                         {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">최대 인원</label>
+                            <label className="mb-2 block text-sm font-medium text-cdm-fg">최대 인원</label>
                             <div className="flex flex-wrap gap-2">
                               {playerRange.map((n) => (
                                 <button
@@ -579,8 +579,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   className={cn(
                                     'h-10 w-10 rounded-lg border text-sm font-medium transition-colors',
                                     maxPlayers === n
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
+                                      ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                      : 'border-cdm-border hover:border-cdm-border-strong',
                                   )}
                                 >
                                   {n}
@@ -593,9 +593,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         {/* 초기 칩 (인디언홀덤Q) */}
                         {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">
+                            <label className="mb-2 block text-sm font-medium text-cdm-fg">
                               초기 칩{' '}
-                              <span className="font-normal text-gray-400">(기본 25)</span>
+                              <span className="font-normal text-cdm-fg-subtle">(기본 25)</span>
                             </label>
                             <div className="flex items-center gap-3">
                               <input
@@ -607,7 +607,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                 onChange={(e) => setInitialChips(Number(e.target.value))}
                                 className="flex-1"
                               />
-                              <span className="w-12 text-right text-sm font-bold text-gray-900">
+                              <span className="w-12 text-right text-sm font-bold text-cdm-fg">
                                 {initialChips}
                               </span>
                             </div>
@@ -619,8 +619,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   className={cn(
                                     'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
                                     initialChips === v
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
+                                      ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                      : 'border-cdm-border hover:border-cdm-border-strong',
                                   )}
                                 >
                                   {v}개
@@ -633,15 +633,15 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         {/* 밴 개수 (밴픽 모드) */}
                         {isBanPick && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">
+                            <label className="mb-2 block text-sm font-medium text-cdm-fg">
                               밴 개수{' '}
-                              <span className="font-normal text-gray-400">(1인당, 기본 1)</span>
+                              <span className="font-normal text-cdm-fg-subtle">(1인당, 기본 1)</span>
                             </label>
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => setBanCount(Math.max(1, banCount - 1))}
                                 disabled={banCount <= 1}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-cdm-border text-lg font-bold text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 disabled:opacity-30"
                               >
                                 −
                               </button>
@@ -651,7 +651,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                               <button
                                 onClick={() => setBanCount(Math.min(6, banCount + 1))}
                                 disabled={banCount >= 6}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-cdm-border text-lg font-bold text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 disabled:opacity-30"
                               >
                                 +
                               </button>
@@ -662,7 +662,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         {/* 시간제한 */}
                         {playMode === 'multi' && !isRandom && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-700">시간제한</label>
+                            <label className="mb-2 block text-sm font-medium text-cdm-fg">시간제한</label>
                             <div className="flex gap-2">
                               {[
                                 { enabled: false, label: '∞ 무제한' },
@@ -674,8 +674,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   className={cn(
                                     'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
                                     timeLimitEnabled === opt.enabled
-                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                      : 'border-gray-200 hover:border-gray-300',
+                                      ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                      : 'border-cdm-border hover:border-cdm-border-strong',
                                   )}
                                 >
                                   {opt.label}
@@ -689,23 +689,23 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                   <select
                                     value={timeLimitMin}
                                     onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
+                                    className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
                                   >
                                     {Array.from({ length: 11 }, (_, i) => (
                                       <option key={i} value={i}>{i}</option>
                                     ))}
                                   </select>
-                                  <span className="text-sm text-gray-600">분</span>
+                                  <span className="text-sm text-cdm-fg-muted">분</span>
                                   <select
                                     value={timeLimitSec}
                                     onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-500 focus:outline-none"
+                                    className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
                                   >
                                     {[0, 10, 15, 20, 30, 45].map((s) => (
                                       <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
                                     ))}
                                   </select>
-                                  <span className="text-sm text-gray-600">초</span>
+                                  <span className="text-sm text-cdm-fg-muted">초</span>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                   {[
@@ -721,8 +721,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                                       className={cn(
                                         'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
                                         timeLimitMin === p.min && timeLimitSec === p.sec
-                                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                          : 'border-gray-200 hover:border-gray-300',
+                                          ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                          : 'border-cdm-border hover:border-cdm-border-strong',
                                       )}
                                     >
                                       {p.label}
@@ -741,7 +741,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             </div>
 
             {/* ── 푸터 (고정) ── */}
-            <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4">
+            <div className="flex-shrink-0 border-t border-cdm-border px-5 py-4">
               {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
               <div className="flex justify-end gap-3">
                 <Button variant="secondary" onClick={onClose}>취소</Button>
