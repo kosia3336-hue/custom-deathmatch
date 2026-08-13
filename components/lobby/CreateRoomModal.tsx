@@ -12,7 +12,8 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
-import { GAME_CATEGORIES, getGameRule } from '@/lib/gameRules';
+import { GAME_CATEGORIES, categoryHue, getGameRule } from '@/lib/gameRules';
+import type { GameCategory } from '@/lib/gameRules';
 
 const RANDOM_GAME: Game = {
   id: GAME_IDS.RANDOM,
@@ -41,6 +42,34 @@ const BAN_PICK_GAME: Game = {
 interface Props {
   open: boolean;
   onClose: () => void;
+}
+
+/** 갈래 필터 버튼 — 로비 방 검색과 같은 갈래·색을 쓴다 */
+function CatChip({
+  label, hue, active, onClick,
+}: { label: string; hue?: number; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+        active
+          ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+          : 'border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:border-cdm-border-strong',
+      )}
+    >
+      {hue !== undefined && (
+        <span
+          aria-hidden
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ backgroundColor: `hsl(${hue} 62% 55%)` }}
+        />
+      )}
+      {label}
+    </button>
+  );
 }
 
 /* ── 공용 아이콘 ── */
@@ -166,6 +195,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [initialChips, setInitialChips] = useState(25);
   const [banCount, setBanCount] = useState(3);
   const [gameSearch, setGameSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
   /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
   const [detailOpen, setDetailOpen] = useState(false);
   /** 게임을 고르면 긴 목록을 접는다 — '변경' 으로 다시 편다 */
@@ -187,6 +217,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setPlayMode('multi');
     setTitle(`초보 환영합니다! ${Math.floor(Math.random() * 900) + 100}`);
     setGameSearch('');
+    setCatFilter(null);
     setDetailOpen(false);
     setListOpen(true);
     setRoomType('public');
@@ -226,8 +257,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     ? timeLimitMin * 60 + timeLimitSec
     : null;
 
-  // 상세 설정 탭에 표시할 항목이 하나라도 있는지
+  // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
   const hasDetailOptions =
+    (Boolean(selectedGame) && !isRandom) ||
     playMode === 'multi' ||
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     isBanPick;
@@ -314,26 +346,22 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const query = gameSearch.trim();
 
   /**
-   * 갈래별로 나눠 깐다. '기타' 는 갈래가 붙지 않은 것까지 받는다 — 랜덤·밴픽처럼
-   * 룰 표에 없는 항목이나 갈래를 아직 안 정한 새 게임이 어디에도 안 실려
-   * 사라지지 않게. 검색어가 걸리면 비는 갈래는 통째로 빠진다.
+   * '기타' 는 갈래가 붙지 않은 것까지 모두 받는다 — 랜덤·밴픽처럼 룰 표에 없는
+   * 항목이나 갈래를 아직 안 정한 새 게임이 어느 필터에도 안 걸려 사라지지 않게.
    */
-  const matches = (name: string) => !query || name.includes(query);
+  const matchesCat = (category?: string) => {
+    if (!catFilter) return true;
+    if (catFilter === '기타') return !category || category === '기타';
+    return category === catFilter;
+  };
+  const matchesQuery = (name: string) => !query || name.includes(query);
 
-  const groups = GAME_CATEGORIES.map((category) => ({
-    category,
-    modes:
-      category === '기타'
-        ? (['random', 'ban-pick'] as const).filter((m) =>
-            matches(m === 'random' ? RANDOM_GAME.name : BAN_PICK_GAME.name),
-          )
-        : [],
-    games: games.filter((g) => {
-      const c = getGameRule(g.id)?.category;
-      const belongs = category === '기타' ? !c || c === '기타' : c === category;
-      return belongs && matches(g.name);
-    }),
-  })).filter((grp) => grp.games.length > 0 || grp.modes.length > 0);
+  const filteredGames = games.filter(
+    (g) => matchesCat(getGameRule(g.id)?.category) && matchesQuery(g.name),
+  );
+  const showRandom = matchesCat(undefined) && matchesQuery(RANDOM_GAME.name);
+  const showBanPick = matchesCat(undefined) && matchesQuery(BAN_PICK_GAME.name);
+  const hasResults = filteredGames.length > 0 || showRandom || showBanPick;
 
   const playerRange = selectedGame
     ? Array.from(
@@ -421,51 +449,62 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   </div>
 
                   {listOpen ? (
-                    /* 목록 — 갈래를 골라 거르는 대신 갈래별로 나눠 깐다.
-                       모달 본문 하나만 스크롤하도록 자체 스크롤은 두지 않는다. */
-                    <div className="space-y-3 rounded-lg border border-cdm-border bg-cdm-page p-2">
-                      {groups.map((grp) => (
-                        <div key={grp.category}>
-                          <p className="mb-1.5 px-0.5 text-xs font-semibold text-cdm-fg-muted">
-                            {grp.category}
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                            {grp.modes.includes('random') && (
-                              <ModeCard
-                                label="랜덤"
-                                desc="무작위 배정"
-                                art="/games/random.webp"
-                                active={isRandom}
-                                onClick={selectRandom}
-                              />
-                            )}
-                            {grp.modes.includes('ban-pick') && (
-                              <ModeCard
-                                label="밴픽"
-                                desc="게임 선택 전 밴"
-                                art="/games/ban-pick.webp"
-                                active={isBanPick}
-                                onClick={selectBanPick}
-                              />
-                            )}
-                            {grp.games.map((g) => (
-                              <GameCard
-                                key={g.id}
-                                game={g}
-                                active={selectedGame?.id === g.id}
-                                onClick={() => selectGame(g)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                    <>
+                      {/* 갈래 필터 — 로비 방 검색과 같은 갈래 기준 */}
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        <CatChip
+                          label="전체"
+                          active={catFilter === null}
+                          onClick={() => setCatFilter(null)}
+                        />
+                        {GAME_CATEGORIES.map((c) => (
+                          <CatChip
+                            key={c}
+                            label={c}
+                            hue={categoryHue(c)}
+                            active={catFilter === c}
+                            onClick={() => setCatFilter(catFilter === c ? null : c)}
+                          />
+                        ))}
+                      </div>
 
-                      {groups.length === 0 && (
-                        <p className="py-6 text-center text-xs text-cdm-fg-muted">
-                          검색 결과가 없습니다.
-                        </p>
-                      )}
-                    </div>
+                      {/* 목록 — 모달 본문 하나만 스크롤하도록 자체 스크롤을 두지 않는다 */}
+                      <div className="grid grid-cols-2 gap-2 rounded-lg border border-cdm-border bg-cdm-page p-2 sm:grid-cols-6">
+                        {showRandom && (
+                          <ModeCard
+                            label="랜덤"
+                            desc="무작위 배정"
+                            art="/games/random.webp"
+                            active={isRandom}
+                            onClick={selectRandom}
+                          />
+                        )}
+                        {showBanPick && (
+                          <ModeCard
+                            label="밴픽"
+                            desc="게임 선택 전 밴"
+                            art="/games/ban-pick.webp"
+                            active={isBanPick}
+                            onClick={selectBanPick}
+                          />
+                        )}
+
+                        {filteredGames.map((g) => (
+                          <GameCard
+                            key={g.id}
+                            game={g}
+                            active={selectedGame?.id === g.id}
+                            onClick={() => selectGame(g)}
+                          />
+                        ))}
+
+                        {!hasResults && (
+                          <p className="col-span-2 py-6 text-center text-xs text-cdm-fg-muted sm:col-span-6">
+                            조건에 맞는 게임이 없습니다.
+                          </p>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     /* 접힌 상태 — 고른 것만 보여 준다 */
                     <div className="rounded-lg border border-cdm-border bg-cdm-page p-2">
@@ -479,35 +518,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     </div>
                   )}
                 </div>
-
-                {/* 플레이 모드 */}
-                {selectedGame && !isRandom && (
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-cdm-fg">플레이 모드</label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
-                        { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
-                        { key: 'solo' as PlayMode, label: '1:1 솔로', supported: selectedGame.supportsSolo },
-                      ]
-                        .filter((m) => m.supported)
-                        .map((m) => (
-                          <button
-                            key={m.key}
-                            onClick={() => setPlayMode(m.key)}
-                            className={cn(
-                              'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                              playMode === m.key
-                                ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
-                                : 'border-cdm-border hover:border-cdm-border-strong',
-                            )}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* 방 제목 */}
                 <Input
@@ -541,6 +551,35 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                         </div>
                       ) : (
                         <>
+                          {/* 플레이 모드 */}
+                          {selectedGame && !isRandom && (
+                            <div>
+                              <label className="mb-2 block text-sm font-medium text-cdm-fg">플레이 모드</label>
+                              <div className="flex flex-wrap gap-2">
+                                {[
+                                  { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
+                                  { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
+                                  { key: 'solo' as PlayMode, label: '1:1 솔로', supported: selectedGame.supportsSolo },
+                                ]
+                                  .filter((m) => m.supported)
+                                  .map((m) => (
+                                    <button
+                                      key={m.key}
+                                      onClick={() => setPlayMode(m.key)}
+                                      className={cn(
+                                        'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                                        playMode === m.key
+                                          ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary-strong'
+                                          : 'border-cdm-border hover:border-cdm-border-strong',
+                                      )}
+                                    >
+                                      {m.label}
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* 방 유형 */}
                           {playMode === 'multi' && (
                             <div>
