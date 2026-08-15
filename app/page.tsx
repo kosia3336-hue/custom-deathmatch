@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { LOBBY_PEEK_COOKIE } from '@/lib/lobbyPeek';
 import GNB from '@/components/layout/GNB';
 import MainBillboard from '@/components/lobby/MainBillboard';
 import LobbyClient from './LobbyClient';
@@ -29,7 +31,10 @@ export const dynamic = 'force-dynamic';
 export default async function LobbyPage() {
   const auth = await getAuthState();
   if (auth.kind === 'LOGGED_OUT') {
-    redirect('/guide');
+    // 소개 페이지에서 '로비 둘러보기'를 누른 방문자는 로그인 없이도 로비를 본다.
+    // 미들웨어와 같은 기준이라 두 층의 판단이 어긋나지 않는다.
+    const peeking = (await cookies()).has(LOBBY_PEEK_COOKIE);
+    if (!peeking) redirect('/guide');
   }
 
   const siteUrl = getSiteUrl();

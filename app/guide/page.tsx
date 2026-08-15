@@ -12,7 +12,7 @@ import GuideContent from './GuideContent';
 export const metadata: Metadata = {
   title: { absolute: '커스텀 데스매치 — 브라우저에서 즐기는 1:1 두뇌 대결' },
   description:
-    '커스텀 데스매치는 설치 없이 브라우저에서 즐기는 1:1 심리·전략 게임 플랫폼입니다. 흑과백, 인디언 홀덤, 베팅 가위바위보, 사칙연산 등 다양한 게임을 카카오 로그인 한 번으로 바로 즐기고 전적·랭킹·칭호를 쌓아보세요.',
+    '설치 없이 브라우저에서 바로 하는 1:1 심리·전략 게임. 흑과백, 인디언 홀덤, 베팅 가위바위보, 사칙연산 등을 카카오 로그인 한 번으로 즐기고 전적·랭킹·칭호를 남깁니다.',
   alternates: { canonical: '/guide' },
 };
 

@@ -1,5 +1,24 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
+import { LOBBY_PEEK_COOKIE } from '@/lib/lobbyPeek';
+
+/**
+ * '/' 를 소개 페이지로 돌려보내지 않아도 되는 쿠키가 있는지.
+ *
+ *  - sb-<ref>-auth-token : 로그인 왕복/토큰 갱신 중. 렌더 시점에 다시 판정하게 통과.
+ *  - cdm_lobby_peek      : 소개 페이지에서 '로비 둘러보기'를 직접 누른 방문자.
+ *
+ * 크롤러·첫 방문자는 둘 다 없으므로 항상 /guide 로 간다.
+ */
+function hasHomeBypassCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name === LOBBY_PEEK_COOKIE ||
+        (c.name.startsWith('sb-') && c.name.includes('auth-token')),
+    );
+}
 
 /**
  * Next.js Middleware — 세션 갱신 + 인증 가드.
@@ -13,16 +32,6 @@ import { isSupabaseConfigured } from '@/lib/supabase/env';
  * 영구정지(banned) → /banned
  * 일시정지(suspended) → /suspended (단 /support/inquiry, /auth/signout 은 허용)
  */
-/**
- * Supabase 세션 쿠키(sb-<ref>-auth-token, 길면 .0/.1 로 쪼개짐)가 하나라도 있는지.
- * 크롤러·첫 방문자는 쿠키가 아예 없고, 로그인 왕복 중인 사용자는 남아 있다.
- */
-function hasAuthCookie(request: NextRequest): boolean {
-  return request.cookies
-    .getAll()
-    .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -62,9 +71,7 @@ export async function middleware(request: NextRequest) {
   // 문서가 되어 소개 페이지가 곧 메인으로 색인되고 /guide 는 중복으로 흡수됐다.
   // 방 입장·마이페이지 등 로그인이 필요한 액션은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
-    // 인증 쿠키가 남아 있으면 토큰 갱신 직후일 수 있어 그대로 통과시킨다 —
-    // 로그인 왕복 중에 소개 페이지로 튕기지 않게 하는 안전장치.
-    if (pathname === '/' && !hasAuthCookie(request)) {
+    if (pathname === '/' && !hasHomeBypassCookie(request)) {
       // 307(임시). 로그인 사용자에게는 '/' 가 실제 로비이므로 영구 이동이 아니다.
       return NextResponse.redirect(new URL('/guide', request.url));
     }

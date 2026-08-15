@@ -3,6 +3,7 @@ import GNB from '@/components/layout/GNB';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
 import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
+import LobbyPeekLink from './LobbyPeekLink';
 import RuleSheet from '@/components/rules/RuleSheet';
 import { GAME_RULES, categoryHue } from '@/lib/gameRules';
 import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
@@ -14,15 +15,15 @@ import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 const STEPS: Array<{ title: string; desc: string }> = [
   {
     title: '카카오로 로그인',
-    desc: '별도 회원가입 없이 카카오 계정으로 3초 만에 시작합니다. 첫 로그인 시 닉네임만 정하면 됩니다.',
+    desc: '따로 가입할 것은 없습니다. 카카오 계정으로 들어와 닉네임만 정하면 끝입니다.',
   },
   {
     title: '방 만들기 · 참여하기',
-    desc: '로비에서 원하는 게임의 방을 새로 만들거나, 다른 사람이 만든 방에 들어가 상대를 기다립니다.',
+    desc: '로비에서 하고 싶은 종목으로 방을 열거나, 이미 열려 있는 방에 들어가면 됩니다.',
   },
   {
     title: '1:1 대결',
-    desc: '상대와 실시간으로 겨룹니다. 승패는 전적·랭킹·칭호에 반영되며, 지난 판은 게임 로그로 다시 확인할 수 있습니다.',
+    desc: '승패는 전적과 랭킹, 칭호에 그대로 쌓입니다. 지난 판은 게임 로그에서 다시 볼 수 있습니다.',
   },
 ];
 
@@ -128,8 +129,8 @@ export default async function GuideContent() {
             </h1>
             <div className="guide-rule-line mx-auto mt-7 w-40" />
             <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-cdm-ink-fg-muted md:text-lg">
-              커스텀 데스매치는 설치도, 준비도 필요 없습니다. 흑과백·인디언 홀덤·베팅 가위바위보까지{' '}
-              <span className="block sm:inline">심리와 전략만으로 겨루는 1:1 두뇌 대결의 장입니다.</span>
+              내려받을 것도, 준비물도 없습니다. 흑과백·인디언 홀덤·베팅 가위바위보까지{' '}
+              <span className="block sm:inline">오직 심리와 수읽기로 겨루는 1:1 게임입니다.</span>
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -139,12 +140,13 @@ export default async function GuideContent() {
               >
                 카카오로 시작하기
               </Link>
-              <Link
-                href="/rules"
+              {/* 별도 페이지로 보내지 않고 같은 화면 아래 룰 영역으로 내린다 */}
+              <a
+                href="#rules"
                 className="w-full rounded-xl border border-white/15 px-8 py-3.5 text-center font-semibold text-cdm-ink-fg transition hover:border-white/35 hover:bg-white/5 sm:w-auto"
               >
-                전체 게임 룰 보기
-              </Link>
+                게임 룰 보기
+              </a>
             </div>
           </div>
         </section>
@@ -156,13 +158,13 @@ export default async function GuideContent() {
               시작까지 세 단계
             </h2>
             <p className="mt-2 text-sm text-cdm-ink-fg-muted">
-              가입 절차는 최소한으로 줄였습니다.
+              여기까지 오래 걸리지 않습니다.
             </p>
 
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
               {STEPS.map((step, i) => (
                 <li key={step.title} className="guide-card rounded-2xl p-6">
-                  <div className="text-3xl font-black text-white/15">
+                  <div className="guide-step-num text-3xl font-black">
                     {String(i + 1).padStart(2, '0')}
                   </div>
                   <h3 className="mt-3 text-lg font-bold text-cdm-ink-fg">{step.title}</h3>
@@ -175,10 +177,13 @@ export default async function GuideContent() {
           </section>
 
           {/* 게임 목록 — 어두운 무대 위의 밝은 룰 판 */}
-          <section className="mt-20">
+          <section id="rules" className="mt-20 scroll-mt-24">
             <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
-              다양한 게임들과 규칙을 확인해 보세요.
+              어떤 게임이 있나
             </h2>
+            <p className="mt-2 text-sm text-cdm-ink-fg-muted">
+              종목을 누르면 규칙이 바로 펼쳐집니다.
+            </p>
 
             <div className="mt-6">
               <GuideRulesPanel items={ruleItems} />
@@ -191,14 +196,11 @@ export default async function GuideContent() {
               상대는 이미 기다리고 있습니다
             </h2>
             <p className="mt-3 text-sm text-cdm-ink-fg-muted">
-              카카오 로그인 한 번이면 곧바로 로비에 입장합니다.
+              로그인 전에 로비부터 둘러봐도 됩니다.
             </p>
-            <Link
-              href="/login"
-              className="guide-cta mt-8 inline-block rounded-xl px-9 py-3.5 font-bold text-white transition"
-            >
-              카카오로 시작하기
-            </Link>
+            <LobbyPeekLink className="guide-cta mt-8 inline-block rounded-xl px-9 py-3.5 font-bold text-white transition">
+              로비 둘러보기
+            </LobbyPeekLink>
           </section>
         </div>
       </main>
