@@ -2,14 +2,18 @@ import type { Metadata } from 'next';
 import GuideContent from './GuideContent';
 
 /*
-  같은 내용이 비로그인 방문자에게 '/' 로도 노출된다(app/page.tsx).
-  대표 URL(canonical)은 '/' 로 모아 중복 색인을 피한다.
+  소개 페이지 = 검색 유입의 대표 페이지.
+
+  '/' 는 로그인 사용자의 로비이고, 비로그인 방문자(크롤러 포함)는 여기로 307
+  리다이렉트된다. 예전에는 '/' 가 이 내용을 그대로 렌더하고 여기 canonical 도
+  '/' 를 가리켜서, 두 URL 이 같은 문서가 되고 /guide 는 색인에서 흡수됐다.
+  이제 자기 자신을 canonical 로 선언해 이 URL 이 대표가 된다.
 */
 export const metadata: Metadata = {
-  title: '시작 가이드',
+  title: { absolute: '커스텀 데스매치 — 브라우저에서 즐기는 1:1 두뇌 대결' },
   description:
-    '커스텀 데스매치 시작 가이드 — 카카오 로그인 후 로비에서 방을 만들고, 흑과백·인디언 홀덤·베팅 가위바위보 등 다양한 1:1 심리·전략 게임을 즐기는 방법을 안내합니다.',
-  alternates: { canonical: '/' },
+    '커스텀 데스매치는 설치 없이 브라우저에서 즐기는 1:1 심리·전략 게임 플랫폼입니다. 흑과백, 인디언 홀덤, 베팅 가위바위보, 사칙연산 등 다양한 게임을 카카오 로그인 한 번으로 바로 즐기고 전적·랭킹·칭호를 쌓아보세요.',
+  alternates: { canonical: '/guide' },
 };
 
 export const revalidate = 300;

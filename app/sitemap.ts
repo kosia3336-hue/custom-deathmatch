@@ -14,9 +14,10 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
-  // '/' 는 비로그인 방문자에게 소개 페이지 내용을 그대로 보여준다(middleware rewrite).
-  // '/guide' 는 canonical 이 '/' 이므로 사이트맵에는 대표 URL 인 '/' 만 싣는다.
-  { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  // '/' 는 로그인 사용자의 로비이고 비로그인·크롤러는 '/guide' 로 307 리다이렉트된다.
+  // 사이트맵에 리다이렉트되는 URL 을 실으면 Search Console 이 '리다이렉션이 포함된
+  // 페이지' 로 잡으므로, 실제로 200 을 주는 대표 URL 인 '/guide' 를 싣는다.
+  { path: '/guide', changeFrequency: 'daily', priority: 1.0 },
   { path: '/rules', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/ranking', changeFrequency: 'hourly', priority: 0.8 },
   { path: '/notice', changeFrequency: 'daily', priority: 0.7 },

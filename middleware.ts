@@ -13,6 +13,16 @@ import { isSupabaseConfigured } from '@/lib/supabase/env';
  * 영구정지(banned) → /banned
  * 일시정지(suspended) → /suspended (단 /support/inquiry, /auth/signout 은 허용)
  */
+/**
+ * Supabase 세션 쿠키(sb-<ref>-auth-token, 길면 .0/.1 로 쪼개짐)가 하나라도 있는지.
+ * 크롤러·첫 방문자는 쿠키가 아예 없고, 로그인 왕복 중인 사용자는 남아 있다.
+ */
+function hasAuthCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -45,11 +55,20 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 설명 페이지(/guide), 랭킹(/ranking), 공지(/notice), 룰(/rules), 약관(/legal/*) 등은
-  // 로그인 없이도 볼 수 있다. 홈(/)은 공개이며 app/page.tsx 가 소개 화면을 렌더한다
-  // (리다이렉트로 보내면 크롤러에게 홈이 '리다이렉트 페이지'로 분류돼 색인에서 빠진다).
+  // 소개(/guide), 랭킹(/ranking), 공지(/notice), 룰(/rules), 약관(/legal/*) 등은
+  // 로그인 없이도 볼 수 있다.
+  // 홈(/)은 로비(앱 화면)이므로 비로그인 방문자는 소개 페이지로 보낸다.
+  // 예전에는 '/' 가 소개 내용을 그대로 렌더했는데, 그러면 '/' 와 '/guide' 가 같은
+  // 문서가 되어 소개 페이지가 곧 메인으로 색인되고 /guide 는 중복으로 흡수됐다.
   // 방 입장·마이페이지 등 로그인이 필요한 액션은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
+    // 인증 쿠키가 남아 있으면 토큰 갱신 직후일 수 있어 그대로 통과시킨다 —
+    // 로그인 왕복 중에 소개 페이지로 튕기지 않게 하는 안전장치.
+    if (pathname === '/' && !hasAuthCookie(request)) {
+      // 307(임시). 로그인 사용자에게는 '/' 가 실제 로비이므로 영구 이동이 아니다.
+      return NextResponse.redirect(new URL('/guide', request.url));
+    }
+
     const isPublic =
       pathname === '/' ||
       pathname === '/guide' ||

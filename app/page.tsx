@@ -1,15 +1,20 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import GNB from '@/components/layout/GNB';
 import MainBillboard from '@/components/lobby/MainBillboard';
 import LobbyClient from './LobbyClient';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { getAuthState } from '@/lib/auth/server';
-import GuideContent from './guide/GuideContent';
 
 /*
-  '/' 는 로그인 사용자에게는 로비, 비로그인 방문자에게는 소개 화면을 보여준다.
-  검색 크롤러는 항상 비로그인이므로 이 페이지가 곧 사이트의 대표 소개 페이지가 된다.
-  (리다이렉트로 처리하면 홈이 '리다이렉트 페이지'로 분류돼 색인에서 빠지므로 같은 URL 에서 렌더한다.)
+  '/' 는 로그인 사용자의 로비다. 비로그인 방문자는 소개 페이지(/guide)로 보낸다.
+  예전에는 여기서 소개 화면을 그대로 렌더했는데, 그러면 '/' 와 '/guide' 가 같은
+  문서가 되어(canonical 도 둘 다 '/') 소개 페이지가 곧 메인으로 색인되고
+  /guide 는 중복으로 흡수됐다. 지금은 소개 페이지가 /guide 하나로 분리돼 있고
+  그쪽이 검색 유입용 대표 페이지다.
+
+  리다이렉트는 미들웨어에서 먼저 처리한다(렌더 없이 307). 여기 분기는
+  미들웨어를 타지 않는 경로로 들어온 경우를 막는 backstop.
 */
 export const metadata: Metadata = {
   title: { absolute: '커스텀 데스매치 — 브라우저에서 즐기는 1:1 두뇌 대결' },
@@ -24,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default async function LobbyPage() {
   const auth = await getAuthState();
   if (auth.kind === 'LOGGED_OUT') {
-    return <GuideContent />;
+    redirect('/guide');
   }
 
   const siteUrl = getSiteUrl();
