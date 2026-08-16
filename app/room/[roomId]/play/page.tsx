@@ -80,7 +80,7 @@ export default function PlayPage() {
     const socket = getSocket();
     const handleDisbanded = (data: { reason: string }) => {
       toast.info(data.reason);
-      router.push('/');
+      router.push('/lobby');
     };
     socket.on('room:disbanded', handleDisbanded);
     return () => { socket.off('room:disbanded', handleDisbanded); };

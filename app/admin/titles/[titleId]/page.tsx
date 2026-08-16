@@ -58,7 +58,7 @@ export default async function TitleOwnersPage({
   const { page: pageParam } = await searchParams;
 
   const me = await getActiveMember();
-  if (!me || me.role !== 'admin') redirect('/');
+  if (!me || me.role !== 'admin') redirect('/lobby');
 
   const sb = await getServerSupabase();
 

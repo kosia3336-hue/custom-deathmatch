@@ -58,7 +58,7 @@ export default function ResultLog() {
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
-    router.push('/');
+    router.push('/lobby');
   }, [router]);
 
   const handleRankRequeue = useCallback(() => {
@@ -82,7 +82,7 @@ export default function ResultLog() {
     }
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
-    router.push('/');
+    router.push('/lobby');
   }, [member, router]);
 
   const handleRematch = useCallback(() => {

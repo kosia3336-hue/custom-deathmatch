@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-export interface GuideRuleItem {
+export interface IntroRuleItem {
   id: string;
   name: string;
   category: string;
@@ -13,7 +13,7 @@ export interface GuideRuleItem {
 }
 
 interface Props {
-  items: GuideRuleItem[];
+  items: IntroRuleItem[];
 }
 
 /** 접었을 때 보여 줄 최대 높이(px). 이보다 짧은 룰은 접기 버튼 없이 통째로 보인다. */
@@ -27,7 +27,7 @@ const COLLAPSED_MAX = 520;
  * 캔버스 스크롤이 겹쳐 오히려 답답했다. 지금은 긴 룰만 접어 두고 펼치면 전체가
  * 페이지 흐름에 그대로 펴진다 — 안쪽 스크롤이 없어 한눈에 읽힌다.
  */
-export default function GuideRulesPanel({ items }: Props) {
+export default function IntroRulesPanel({ items }: Props) {
   const [selectedId, setSelectedId] = useState(items[0]?.id ?? '');
   const [expanded, setExpanded] = useState(false);
   /** 접기 버튼이 필요한지 — 지금 보이는 룰이 COLLAPSED_MAX 를 넘을 때만 */

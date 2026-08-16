@@ -57,7 +57,7 @@ export function EventRoomClient() {
     };
     const onKicked = (p: IPEKickedPayload) => {
       toast.error(p.message);
-      router.push('/');
+      router.push('/lobby');
     };
     const onPromoted = (p: IPEPromotedPayload) => {
       toast.success(p.message);
@@ -99,7 +99,7 @@ export function EventRoomClient() {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-cdm-fg">{bootstrapError}</p>
-        <Button onClick={() => router.push('/')}>로비로 돌아가기</Button>
+        <Button onClick={() => router.push('/lobby')}>로비로 돌아가기</Button>
       </div>
     );
   }

@@ -13,7 +13,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get('code');
-  const next = url.searchParams.get('next') ?? '/';
+  const next = url.searchParams.get('next') ?? '/lobby';
   const errorParam = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
 
@@ -37,6 +37,6 @@ export async function GET(request: NextRequest) {
   }
 
   // 회원 상태 분기는 middleware 가 처리. 여기선 next 로만 보낸다.
-  const target = next.startsWith('/') ? next : '/';
+  const target = next.startsWith('/') ? next : '/lobby';
   return NextResponse.redirect(target);
 }

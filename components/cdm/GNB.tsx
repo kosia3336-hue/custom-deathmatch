@@ -23,7 +23,7 @@ interface GNBProps {
 }
 
 const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: '/', label: '로비' },
+  { href: '/lobby', label: '로비' },
   { href: '/ranking', label: '랭킹' },
   { href: '/rules', label: '게임 룰' },
   { href: '/titles', label: '칭호' },
@@ -61,7 +61,8 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
     <InventoryInit hasMember={Boolean(member)} />
     <header className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
-        <Link href="/" aria-label="홈" className="flex min-w-0 shrink items-center">
+        {/* 로그인했으면 로고는 로비로 — '/' 는 처음 오는 사람을 위한 소개 페이지다 */}
+        <Link href={member ? '/lobby' : '/'} aria-label="홈" className="flex min-w-0 shrink items-center">
           <Logo size="md" className="h-5 w-auto sm:h-8" />
         </Link>
 

@@ -2,15 +2,14 @@ import Link from 'next/link';
 import GNB from '@/components/layout/GNB';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import EmberField from './EmberField';
-import GuideRulesPanel, { type GuideRuleItem } from './GuideRulesPanel';
-import LobbyPeekLink from './LobbyPeekLink';
+import IntroRulesPanel, { type IntroRuleItem } from './IntroRulesPanel';
 import RuleSheet from '@/components/rules/RuleSheet';
 import { GAME_RULES, categoryHue } from '@/lib/gameRules';
 import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 
 /**
- * 소개 페이지 본문.
- * 비로그인 방문자에게는 '/' 에서, 직접 접근 시에는 '/guide' 에서 같은 내용을 보여준다.
+ * 소개 페이지 본문 — 사이트의 대표 페이지('/')다.
+ * 로비는 /lobby 에 따로 있고, 옛 주소 /guide 는 여기로 영구 이동시킨다.
  */
 const STEPS: Array<{ title: string; desc: string }> = [
   {
@@ -28,7 +27,7 @@ const STEPS: Array<{ title: string; desc: string }> = [
 ];
 
 // 룰 본문은 관리자 저장 시 갱신되므로 주기적 재검증
-export default async function GuideContent() {
+export default async function IntroContent() {
   const siteUrl = getSiteUrl();
 
   /*
@@ -37,7 +36,7 @@ export default async function GuideContent() {
     관리자가 룰을 저장하면 저장 API 가 이 경로를 재검증해 바로 반영된다.
   */
   const allRules = await fetchAllGameRules();
-  const ruleItems: GuideRuleItem[] = GAME_RULES.filter((g) =>
+  const ruleItems: IntroRuleItem[] = GAME_RULES.filter((g) =>
     hasMeaningfulRule(allRules[g.id]?.rules),
   ).map((g) => {
     const rules = allRules[g.id]?.rules ?? '';
@@ -186,7 +185,7 @@ export default async function GuideContent() {
             </p>
 
             <div className="mt-6">
-              <GuideRulesPanel items={ruleItems} />
+              <IntroRulesPanel items={ruleItems} />
             </div>
           </section>
 
@@ -198,9 +197,12 @@ export default async function GuideContent() {
             <p className="mt-3 text-sm text-cdm-ink-fg-muted">
               로그인 전에 로비부터 둘러봐도 됩니다.
             </p>
-            <LobbyPeekLink className="guide-cta mt-8 inline-block rounded-xl px-9 py-3.5 font-bold text-white transition">
+            <Link
+              href="/lobby"
+              className="guide-cta mt-8 inline-block rounded-xl px-9 py-3.5 font-bold text-white transition"
+            >
               로비 둘러보기
-            </LobbyPeekLink>
+            </Link>
           </section>
         </div>
       </main>

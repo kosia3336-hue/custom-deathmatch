@@ -30,7 +30,7 @@ export default async function EditNoticePage({ params }: Props) {
 
   const member = await getActiveMember();
   if (!member) redirect('/login');
-  if (member.role !== 'admin') redirect('/');
+  if (member.role !== 'admin') redirect('/lobby');
 
   if (!UUID_RE.test(noticeId)) notFound();
 

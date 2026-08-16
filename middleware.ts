@@ -1,24 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
-import { LOBBY_PEEK_COOKIE } from '@/lib/lobbyPeek';
-
-/**
- * '/' 를 소개 페이지로 돌려보내지 않아도 되는 쿠키가 있는지.
- *
- *  - sb-<ref>-auth-token : 로그인 왕복/토큰 갱신 중. 렌더 시점에 다시 판정하게 통과.
- *  - cdm_lobby_peek      : 소개 페이지에서 '로비 둘러보기'를 직접 누른 방문자.
- *
- * 크롤러·첫 방문자는 둘 다 없으므로 항상 /guide 로 간다.
- */
-function hasHomeBypassCookie(request: NextRequest): boolean {
-  return request.cookies
-    .getAll()
-    .some(
-      (c) =>
-        c.name === LOBBY_PEEK_COOKIE ||
-        (c.name.startsWith('sb-') && c.name.includes('auth-token')),
-    );
-}
 
 /**
  * Next.js Middleware — 세션 갱신 + 인증 가드.
@@ -64,21 +45,15 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 소개(/guide), 랭킹(/ranking), 공지(/notice), 룰(/rules), 약관(/legal/*) 등은
-  // 로그인 없이도 볼 수 있다.
-  // 홈(/)은 로비(앱 화면)이므로 비로그인 방문자는 소개 페이지로 보낸다.
-  // 예전에는 '/' 가 소개 내용을 그대로 렌더했는데, 그러면 '/' 와 '/guide' 가 같은
-  // 문서가 되어 소개 페이지가 곧 메인으로 색인되고 /guide 는 중복으로 흡수됐다.
-  // 방 입장·마이페이지 등 로그인이 필요한 액션은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
+  // 소개('/'), 로비(/lobby), 랭킹(/ranking), 공지(/notice), 룰(/rules),
+  // 약관(/legal/*) 등은 로그인 없이도 볼 수 있다. 로비는 둘러보기까지만 열어 두고,
+  // 방 입장·생성 같은 실제 행동에서 각 화면이 로그인을 요구한다.
+  // 마이페이지 등 로그인이 필요한 화면은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
-    if (pathname === '/' && !hasHomeBypassCookie(request)) {
-      // 307(임시). 로그인 사용자에게는 '/' 가 실제 로비이므로 영구 이동이 아니다.
-      return NextResponse.redirect(new URL('/guide', request.url));
-    }
-
     const isPublic =
       pathname === '/' ||
       pathname === '/guide' ||
+      pathname === '/lobby' ||
       pathname === '/login' ||
       pathname.startsWith('/auth/') ||
       pathname === '/banned' ||
@@ -186,17 +161,18 @@ export async function middleware(request: NextRequest) {
 
   // ── /admin 은 관리자만 ──
   if (pathname.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
-  // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 홈으로 ──
+  // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 로비로 ──
+  // ('/' 는 소개 페이지라 로그인한 사람을 보낼 곳이 아니다)
   if (
     pathname === '/login' ||
     pathname.startsWith('/signup/') ||
     pathname === '/banned' ||
     pathname === '/suspended'
   ) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
   return response;
