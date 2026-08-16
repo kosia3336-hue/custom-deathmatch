@@ -115,7 +115,7 @@ const SECTION_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 export default async function MemberDetailPage({ params, searchParams }: Props) {
   const me = await getActiveMember();
   if (!me) redirect('/login');
-  if (me.role !== 'admin') redirect('/');
+  if (me.role !== 'admin') redirect('/lobby');
 
   const { id } = await params;
   const sp = await searchParams;

@@ -15,7 +15,7 @@ export default function EventSpectatorPanel({ state }: Props) {
 
   const handleLeave = () => {
     getSocket().emit('event:leave');
-    router.push('/');
+    router.push('/lobby');
   };
 
   return (

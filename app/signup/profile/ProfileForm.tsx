@@ -98,7 +98,7 @@ export default function ProfileForm() {
           // ignore
         }
         toast.success(`환영합니다, ${trimmed}님!`);
-        router.replace('/');
+        router.replace('/lobby');
         router.refresh();
       } catch (e) {
         toast.error(`가입 실패: ${(e as Error).message}`);

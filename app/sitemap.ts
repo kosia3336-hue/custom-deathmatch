@@ -14,8 +14,8 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
-  // '/' 는 비로그인 방문자에게 소개 페이지 내용을 그대로 보여준다(middleware rewrite).
-  // '/guide' 는 canonical 이 '/' 이므로 사이트맵에는 대표 URL 인 '/' 만 싣는다.
+  // '/' 는 소개 페이지이자 대표 URL. 로비(/lobby)는 방 목록이 계속 바뀌는 앱 화면이라
+  // noindex 이고, 옛 주소 /guide 는 '/' 로 308 이동하므로 둘 다 싣지 않는다.
   { path: '/', changeFrequency: 'daily', priority: 1.0 },
   { path: '/rules', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/ranking', changeFrequency: 'hourly', priority: 0.8 },

@@ -16,7 +16,7 @@ export function BackButton({ label = '뒤로가기', className }: Props) {
       type="button"
       onClick={() => {
         if (window.history.length > 1) router.back();
-        else router.push('/');
+        else router.push('/lobby');
       }}
       className={cn(
         'inline-flex items-center gap-1 rounded-cdm-md px-2 py-1.5 text-sm font-medium text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 hover:text-cdm-fg',

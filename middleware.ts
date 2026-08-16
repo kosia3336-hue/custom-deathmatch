@@ -45,14 +45,15 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 설명 페이지(/guide), 랭킹(/ranking), 공지(/notice), 룰(/rules), 약관(/legal/*) 등은
-  // 로그인 없이도 볼 수 있다. 홈(/)은 공개이며 app/page.tsx 가 소개 화면을 렌더한다
-  // (리다이렉트로 보내면 크롤러에게 홈이 '리다이렉트 페이지'로 분류돼 색인에서 빠진다).
-  // 방 입장·마이페이지 등 로그인이 필요한 액션은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
+  // 소개('/'), 로비(/lobby), 랭킹(/ranking), 공지(/notice), 룰(/rules),
+  // 약관(/legal/*) 등은 로그인 없이도 볼 수 있다. 로비는 둘러보기까지만 열어 두고,
+  // 방 입장·생성 같은 실제 행동에서 각 화면이 로그인을 요구한다.
+  // 마이페이지 등 로그인이 필요한 화면은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
     const isPublic =
       pathname === '/' ||
       pathname === '/guide' ||
+      pathname === '/lobby' ||
       pathname === '/login' ||
       pathname.startsWith('/auth/') ||
       pathname === '/banned' ||
@@ -160,17 +161,18 @@ export async function middleware(request: NextRequest) {
 
   // ── /admin 은 관리자만 ──
   if (pathname.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
-  // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 홈으로 ──
+  // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 로비로 ──
+  // ('/' 는 소개 페이지라 로그인한 사람을 보낼 곳이 아니다)
   if (
     pathname === '/login' ||
     pathname.startsWith('/signup/') ||
     pathname === '/banned' ||
     pathname === '/suspended'
   ) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
   return response;

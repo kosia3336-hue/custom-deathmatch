@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: '공지 작성', robots: { index: fal
 export default async function NewNoticePage() {
   const member = await getActiveMember();
   if (!member) redirect('/login');
-  if (member.role !== 'admin') redirect('/');
+  if (member.role !== 'admin') redirect('/lobby');
 
   return (
     <>

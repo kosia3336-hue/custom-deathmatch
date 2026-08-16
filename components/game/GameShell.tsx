@@ -79,7 +79,7 @@ export default function GameShell({ children }: Props) {
   const handleLeave = () => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
-    router.push('/');
+    router.push('/lobby');
   };
 
   const handleResign = () => {

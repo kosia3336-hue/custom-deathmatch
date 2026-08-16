@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: '영구정지 안내' };
 
 export default async function BannedPage() {
   const state = await getAuthState();
-  if (state.kind !== 'BANNED') redirect('/');
+  if (state.kind !== 'BANNED') redirect('/lobby');
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-cdm-bg">

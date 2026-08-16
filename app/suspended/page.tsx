@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: '활동 정지' };
 
 export default async function SuspendedPage() {
   const state = await getAuthState();
-  if (state.kind !== 'SUSPENDED') redirect('/');
+  if (state.kind !== 'SUSPENDED') redirect('/lobby');
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-cdm-bg">

@@ -39,7 +39,7 @@ export default function ResultScreen() {
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
-    router.push('/');
+    router.push('/lobby');
   }, [router]);
 
   const handleRematch = useCallback(() => {

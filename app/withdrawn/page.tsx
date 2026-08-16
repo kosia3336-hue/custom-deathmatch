@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: '탈퇴한 계정' };
 
 export default async function WithdrawnPage() {
   const state = await getAuthState();
-  if (state.kind !== 'WITHDRAWN') redirect('/');
+  if (state.kind !== 'WITHDRAWN') redirect('/lobby');
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-cdm-bg">

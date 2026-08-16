@@ -45,7 +45,7 @@ export default async function AdminLogPage({ params, searchParams }: Props) {
 
   const me = await getActiveMember();
   if (!me) redirect('/login');
-  if (me.role !== 'admin') redirect('/');
+  if (me.role !== 'admin') redirect('/lobby');
 
   const sb = await getServerSupabase();
 

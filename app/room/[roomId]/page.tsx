@@ -66,7 +66,7 @@ export default function WaitingRoomPage() {
           setSpectatePasswordError(sRes.error ?? '비밀번호가 틀렸습니다.');
         } else {
           toast.error(sRes.error ?? '관전 입장에 실패했습니다.');
-          router.push('/');
+          router.push('/lobby');
         }
       }
     });
@@ -93,7 +93,7 @@ export default function WaitingRoomPage() {
             }
           } else {
             toast.error(res.error ?? '입장에 실패했습니다.');
-            router.push('/');
+            router.push('/lobby');
           }
         },
       );
@@ -104,11 +104,11 @@ export default function WaitingRoomPage() {
     const handleStarted = () => router.push(`/room/${roomId}/play`);
     const handleKicked = (data: { reason: string }) => {
       toast.error(data.reason);
-      router.push('/');
+      router.push('/lobby');
     };
     const handleDisbanded = (data: { reason: string }) => {
       toast.info(data.reason);
-      router.push('/');
+      router.push('/lobby');
     };
 
     socket.on('room:game:started', handleStarted);
@@ -147,7 +147,7 @@ export default function WaitingRoomPage() {
   const handleLeave = useCallback(() => {
     socket.emit('room:leave');
     useRoomStore.getState().reset();
-    router.push('/');
+    router.push('/lobby');
   }, [socket, router]);
 
   const handleReady = useCallback(() => {
@@ -415,7 +415,7 @@ export default function WaitingRoomPage() {
       </main>
 
       {/* 관전 비밀번호 모달 */}
-      <Modal open={showSpectatePassword} onClose={() => router.push('/')} closable={false} title="비밀방 관전">
+      <Modal open={showSpectatePassword} onClose={() => router.push('/lobby')} closable={false} title="비밀방 관전">
         <p className="mb-4 text-sm text-cdm-fg-muted">관전하려면 비밀번호를 입력하세요.</p>
         <Input
           type="password"
@@ -432,7 +432,7 @@ export default function WaitingRoomPage() {
           autoFocus
         />
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => router.push('/')}>취소</Button>
+          <Button variant="secondary" onClick={() => router.push('/lobby')}>취소</Button>
           <Button
             loading={spectatePasswordLoading}
             onClick={() => {

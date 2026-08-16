@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <p className="text-cdm-fg-muted text-sm">정해진 룰 안에서, 정직한 한 판.</p>
         </div>
 
-        <LoginForm next={sp.next ?? '/'} initialError={sp.error ?? null} />
+        <LoginForm next={sp.next ?? '/lobby'} initialError={sp.error ?? null} />
 
         <p className="text-cdm-fg-muted text-xs">
           처음 오셨나요? 가입은 카카오 로그인 후 자동 안내됩니다.

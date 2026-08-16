@@ -13,7 +13,7 @@ export default function EventClosedNotice() {
         평일 01:00 ~ 21:00 KST / 주말 24시간 운영합니다.
         <br />운영 시간이 시작되면 다시 입장해 주세요.
       </p>
-      <Button onClick={() => router.push('/')}>로비로 돌아가기</Button>
+      <Button onClick={() => router.push('/lobby')}>로비로 돌아가기</Button>
     </Card>
   );
 }
