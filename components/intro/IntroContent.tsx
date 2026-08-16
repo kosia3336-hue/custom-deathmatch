@@ -14,7 +14,7 @@ import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 const STEPS: Array<{ title: string; desc: string }> = [
   {
     title: '카카오로 로그인',
-    desc: '따로 가입할 것은 없습니다. 카카오 계정으로 들어와 닉네임만 정하면 끝입니다.',
+    desc: '카카오 계정으로 들어와 닉네임만 정하면 플레이가 가능합니다.',
   },
   {
     title: '방 만들기 · 참여하기',
@@ -22,7 +22,7 @@ const STEPS: Array<{ title: string; desc: string }> = [
   },
   {
     title: '1:1 대결',
-    desc: '승패는 전적과 랭킹, 칭호에 그대로 쌓입니다. 지난 판은 게임 로그에서 다시 볼 수 있습니다.',
+    desc: '승패는 전적에 반영되며, 저장된 게임 로그로 지난 판을 다시 분석할 수도 있습니다.',
   },
 ];
 
@@ -74,7 +74,17 @@ export default async function IntroContent() {
         name: '커스텀 데스매치',
         alternateName: ['Custom Deathmatch', 'customdeathmatch'],
         description:
-          '설치 없이 브라우저에서 즐기는 1:1 심리·전략 게임 플랫폼.',
+          '1:1 심리·전략 진검승부 두뇌게임.',
+        /*
+          검색엔진이 이 사이트를 무엇으로 볼지에 쓰인다.
+          <meta name="keywords"> 와 달리 구조화 데이터는 개체 인식에 실제로 참고된다.
+          다만 순위를 만드는 건 본문이라, 프로그램명은 위 히어로 문단에도 함께 있다.
+        */
+        keywords: [
+          '두뇌 서바이벌', '심리 게임', '전략 게임', '1:1 두뇌 게임',
+          '더 지니어스', '지니어스', '데블스 플랜', '피의 게임', '피의 게임X',
+          '흑과백', '인디언 홀덤', '베팅 가위바위보', '연승게임', '해달별',
+        ],
         inLanguage: 'ko-KR',
         publisher: { '@id': `${base}/#organization` },
       },
@@ -90,7 +100,7 @@ export default async function IntroContent() {
         '@type': 'HowTo',
         name: '커스텀 데스매치 시작 가이드',
         description:
-          '카카오 로그인 후 로비에서 방을 만들거나 참여해 1:1 심리·전략 게임을 즐기는 방법.',
+          '로비에서 방을 만들거나 참여해 보세요.',
         inLanguage: 'ko-KR',
         step: STEPS.map((s, i) => ({
           '@type': 'HowToStep',
@@ -128,8 +138,8 @@ export default async function IntroContent() {
             </h1>
             <div className="guide-rule-line mx-auto mt-7 w-40" />
             <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-cdm-ink-fg-muted md:text-lg">
-              내려받을 것도, 준비물도 없습니다. 흑과백·인디언 홀덤·베팅 가위바위보까지{' '}
-              <span className="block sm:inline">오직 심리와 수읽기로 겨루는 1:1 게임입니다.</span>
+              가벼운 예능 게임부터, 더 지니어스, 데블스 플랜, 피의 게임, 피의 게임X 등 서바이벌 장르에서 방영될만한 게임까지 플레이해보세요.{' '}
+              <span className="block sm:inline">오직 심리와 수읽기로 겨루는 1:1 진검승부입니다.</span>
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -157,7 +167,7 @@ export default async function IntroContent() {
               시작까지 세 단계
             </h2>
             <p className="mt-2 text-sm text-cdm-ink-fg-muted">
-              여기까지 오래 걸리지 않습니다.
+              간단하게 시작하세요.
             </p>
 
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
@@ -178,10 +188,10 @@ export default async function IntroContent() {
           {/* 게임 목록 — 어두운 무대 위의 밝은 룰 판 */}
           <section id="rules" className="mt-20 scroll-mt-24">
             <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
-              어떤 게임이 있나
+              게임 룰
             </h2>
             <p className="mt-2 text-sm text-cdm-ink-fg-muted">
-              종목을 누르면 규칙이 바로 펼쳐집니다.
+              게임별 다양한 룰을 직접 확인하세요.
             </p>
 
             <div className="mt-6">
@@ -195,7 +205,7 @@ export default async function IntroContent() {
               상대는 이미 기다리고 있습니다
             </h2>
             <p className="mt-3 text-sm text-cdm-ink-fg-muted">
-              로그인 전에 로비부터 둘러봐도 됩니다.
+              조금 더 살펴보고 싶으신가요?
             </p>
             <Link
               href="/lobby"

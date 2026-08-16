@@ -4,7 +4,7 @@ import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
 import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
-import { GACHA_PRICE_CDP } from '@/lib/gacha/constants';
+import { GACHA_PRICE_CDP, GRADE_ORDER, GRADE_WEIGHTS } from '@/lib/gacha/constants';
 import { useInventoryStore } from '@/stores/inventory';
 
 interface Props {
@@ -12,13 +12,15 @@ interface Props {
   onOpen: () => void;
 }
 
-const SUMMARY_CHIPS = [
-  { label: 'S', rate: '0.2%' },
-  { label: 'A', rate: '1.5%' },
-  { label: 'B', rate: '4%' },
-  { label: 'C', rate: '28.6%' },
-  { label: 'F', rate: '65.7%' },
-];
+/*
+  확률표는 GRADE_WEIGHTS 에서 그대로 뽑는다. 예전에는 값을 여기 적어 두어서
+  가중치를 바꾸면 표시와 실제가 조용히 어긋났다(B 를 8% 로 올렸는데 표는 4%).
+*/
+const WEIGHT_SUM = Object.values(GRADE_WEIGHTS).reduce((a, b) => a + b, 0);
+const SUMMARY_CHIPS = GRADE_ORDER.map((g) => ({
+  label: g,
+  rate: `${Number(((GRADE_WEIGHTS[g] / WEIGHT_SUM) * 100).toFixed(1))}%`,
+}));
 
 export default function ShopGachaTab({ balance, onOpen }: Props) {
   const ticketCount = useInventoryStore((st) => st.items?.gacha_ticket ?? 0);
