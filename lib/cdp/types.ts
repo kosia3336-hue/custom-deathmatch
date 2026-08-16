@@ -75,7 +75,7 @@ export type PurchaseErrorCode =
   | 'forbidden' | 'unauthorized' | 'invalid_request'
   | 'member_not_active' | 'item_not_found' | 'item_inactive'
   | 'item_not_available_yet' | 'item_expired' | 'out_of_stock'
-  | 'insufficient_balance' | 'already_owned'
+  | 'insufficient_balance' | 'already_owned' | 'effect_permanently_claimed'
   | 'service_unavailable' | 'internal_error';
 
 // ── 인벤토리 / 소모성 ──────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export const TYPE_LABELS: Record<string, string> = {
   limited: '한정판',
   title: '칭호',
   frame: '프레임',
-  effect: '효과',
+  effect: '이펙트',
   consumable: '소모성',
   event_chip_pack: '이벤트 칩',
   event_chip_exchange: '칩 환전',

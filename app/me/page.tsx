@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
 import { Card } from '@/components/cdm/Card';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import MyPageTabs from './MyPageTabs';
 import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
@@ -25,6 +25,7 @@ interface Props {
     rankSeason?: string;
     inquiriesPage?: string;
     reportsPage?: string;
+    titleSub?: string;
   }>;
 }
 
@@ -49,7 +50,7 @@ export default async function MyPage({ searchParams }: Props) {
                 <TitleBadge
                   name={member.displayedTitle.name}
                   color={member.displayedTitle.color}
-                  effect={member.displayedTitle.effect as 'legend' | null}
+                  effect={member.displayedTitle.effect as TitleEffect | null}
                   size="md"
                 />
               )}
@@ -75,7 +76,12 @@ export default async function MyPage({ searchParams }: Props) {
           {tab === 'stats' && <StatsTab memberId={member.id} />}
           {tab === 'rank' && <RankTab memberId={member.id} seasonId={sp.rankSeason} />}
           {tab === 'titles' && (
-            <TitlesTab memberId={member.id} displayedTitleId={member.displayedTitle?.id ?? null} />
+            <TitlesTab
+              memberId={member.id}
+              displayedTitleId={member.displayedTitle?.id ?? null}
+              displayedEffectId={member.displayedEffectId}
+              titleSub={sp.titleSub}
+            />
           )}
           {tab === 'skins' && <SkinsTab memberId={member.id} />}
           {tab === 'shop' && <ShopTab memberId={member.id} />}

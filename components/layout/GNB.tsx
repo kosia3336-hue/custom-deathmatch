@@ -59,6 +59,7 @@ export default function GNB({ minimal: _minimal }: GNBProps) {
               effect: member.displayedTitle.effect ?? null,
             }
           : null,
+        displayedEffectId: null,
       }
     : null;
 

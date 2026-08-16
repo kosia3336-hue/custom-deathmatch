@@ -7,6 +7,7 @@ import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '../rank/kst.js';
 import { startGame } from './game.js';
 import { socketRoom, emitRoomStateToRoom } from './utils.js';
 import type { Player, DisplayedTitle } from '@shared/types/room.js';
+import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import type { IO, TypedSocket } from './types.js';
 import { applyAutoConsumablesForRankRoom } from '../shop/applyAutoConsumables.js';
@@ -51,17 +52,19 @@ async function fetchFreshDisplayedTitle(memberId: string): Promise<DisplayedTitl
     const sb = getSupabaseAdmin();
     const { data: m } = await sb
       .from('members')
-      .select('displayed_title_id')
+      .select('displayed_title_id, displayed_effect_id')
       .eq('id', memberId)
       .maybeSingle();
-    const titleId = (m as { displayed_title_id?: string | null } | null)?.displayed_title_id;
-    if (!titleId) return null;
-    const { data: t } = await sb
-      .from('titles')
-      .select('id, name, color, effect')
-      .eq('id', titleId)
-      .maybeSingle();
-    return (t as DisplayedTitle | null) ?? null;
+    const row = m as {
+      displayed_title_id?: string | null;
+      displayed_effect_id?: string | null;
+    } | null;
+    return loadResolvedDisplayedTitle(
+      sb,
+      memberId,
+      row?.displayed_title_id ?? null,
+      row?.displayed_effect_id ?? null,
+    );
   } catch {
     return null;
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/cdm/Card';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 interface Props {
@@ -39,7 +39,7 @@ export default function EventLeaderRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {title && (
-            <TitleBadge name={title.name} color={title.color} effect={title.effect as 'legend' | null} size="sm" />
+            <TitleBadge name={title.name} color={title.color} effect={title.effect as TitleEffect | null} size="sm" />
           )}
           <span className="truncate font-semibold text-cdm-fg">
             {nickname}

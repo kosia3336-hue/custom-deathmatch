@@ -3,11 +3,12 @@ import { Suspense } from 'react';
 import { GNB } from '@/components/cdm/GNB';
 import { Card } from '@/components/cdm/Card';
 import { EmptyState } from '@/components/cdm/EmptyState';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { getAuthState } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { callRpc } from '@/lib/supabase/rpc';
+import { loadResolvedDisplayedTitles } from '@shared/titles/resolve-displayed';
 import {
   DEFAULT_PAGE_SIZE,
   getTotalPages,
@@ -163,6 +164,30 @@ export default async function RankingPage({ searchParams }: Props) {
     } catch (e) {
       console.error('[ranking] RPC error', e);
     }
+
+    if (rankings.length > 0) {
+      const { data: mems } = await sb
+        .from('members')
+        .select('id, displayed_title_id, displayed_effect_id')
+        .in('id', rankings.map((r) => r.member_id));
+      const resolved = await loadResolvedDisplayedTitles(
+        sb,
+        (mems ?? []) as Array<{
+          id: string;
+          displayed_title_id: string | null;
+          displayed_effect_id: string | null;
+        }>,
+      );
+      rankings = rankings.map((r) => {
+        const t = resolved.get(r.member_id);
+        return {
+          ...r,
+          title: t
+            ? { id: t.id, name: t.name, color: t.color as TitleColor, effect: t.effect }
+            : null,
+        };
+      });
+    }
   }
 
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
@@ -225,7 +250,7 @@ export default async function RankingPage({ searchParams }: Props) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {r.title && (
-                            <TitleBadge name={r.title.name} color={r.title.color} effect={r.title.effect as 'legend' | null} size="sm" />
+                            <TitleBadge name={r.title.name} color={r.title.color} effect={r.title.effect as TitleEffect | null} size="sm" />
                           )}
                           <span className="truncate font-semibold text-cdm-fg">
                             {r.nickname}

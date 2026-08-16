@@ -1,4 +1,5 @@
 import { getAdminSupabase } from '@/lib/supabase/admin';
+import { loadResolvedDisplayedTitles } from '@shared/titles/resolve-displayed';
 import { getSmsEventSeasonId, loadEventLeaderboard } from '@/lib/event/leaderboard';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { EmptyState } from '@/components/cdm/EmptyState';
@@ -43,39 +44,23 @@ export default async function EventSeasonLeaderboard({ page, memberId }: Props) 
   const sb = getAdminSupabase()!;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: members } = await (sb.from as any)('members')
-    .select('id, nickname, displayed_title_id')
+    .select('id, nickname, displayed_title_id, displayed_effect_id')
     .in('id', ids);
 
   const memberRows = (members ?? []) as {
     id: string;
     nickname: string;
     displayed_title_id: string | null;
+    displayed_effect_id: string | null;
   }[];
 
   const nickMap = new Map(memberRows.map((m) => [m.id, m.nickname]));
-  const titleIds = [
-    ...new Set(memberRows.map((m) => m.displayed_title_id).filter(Boolean)),
-  ] as string[];
-
-  let titleMap = new Map<string, { name: string; color: TitleColor; effect: string | null }>();
-  if (titleIds.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: titles } = await (sb.from as any)('titles')
-      .select('id, name, color, effect')
-      .in('id', titleIds);
-    titleMap = new Map(
-      (titles ?? []).map((t: { id: string; name: string; color: TitleColor; effect: string | null }) => [
-        t.id,
-        { name: t.name, color: t.color, effect: t.effect ?? null },
-      ]),
-    );
-  }
+  const titleMap = await loadResolvedDisplayedTitles(sb, memberRows);
 
   function titleFor(mid: string) {
-    const m = memberRows.find((x) => x.id === mid);
-    const tid = m?.displayed_title_id;
-    if (!tid) return null;
-    return titleMap.get(tid) ?? null;
+    const t = titleMap.get(mid);
+    if (!t) return null;
+    return { name: t.name, color: t.color as TitleColor, effect: t.effect };
   }
 
   return (

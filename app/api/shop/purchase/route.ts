@@ -55,6 +55,16 @@ const ERROR_HTTP: Record<string, { code: PurchaseErrorCode; status: number; msg:
     msg: 'CDP가 부족합니다.',
   },
   already_owned: { code: 'already_owned', status: 409, msg: '이미 보유하고 있습니다.' },
+  effect_permanently_claimed: {
+    code: 'effect_permanently_claimed',
+    status: 409,
+    msg: '이미 누군가 영구 보유 중이라 판매하지 않습니다.',
+  },
+  invalid_effect_duration: {
+    code: 'invalid_request',
+    status: 400,
+    msg: '이펙트 이용 기간이 올바르지 않습니다.',
+  },
 };
 
 function mapRpcError(message: string | undefined | null): {

@@ -3,7 +3,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SKIN_REGISTRY } from '@/lib/skins/registry';
 import { LEGEND_TITLE_ID } from './constants';
-import type { PoolContext, ShopTitlePoolItem } from './types';
+import type { PoolContext, PoolEffectItem, ShopTitlePoolItem } from './types';
 
 export async function loadPoolContext(
   sb: SupabaseClient,
@@ -28,6 +28,9 @@ export async function loadPoolContext(
     memberTitlesRes,
     shopTitlesRes,
     legendTitleRes,
+    effectDefsRes,
+    claimedEffectsRes,
+    memberEffectsRes,
   ] = await Promise.all([
     sb.from('skins').select('id').eq('is_active', true),
     sb.from('member_skins').select('skin_id, expires_at').eq('member_id', memberId).is('revoked_at', null),
@@ -35,6 +38,14 @@ export async function loadPoolContext(
     sb.from('member_titles').select('title_id').eq('member_id', memberId).is('revoked_at', null),
     sb.from('shop_items').select('payload, sort_order').eq('type', 'title'),
     sb.from('titles').select('id, name, color, effect, description').eq('id', LEGEND_TITLE_ID).maybeSingle(),
+    sb.from('title_effect_defs').select('id, key, name').eq('is_active', true),
+    sb.rpc('shop_permanently_claimed_effect_ids'),
+    sb
+      .from('member_title_effects')
+      .select('effect_id')
+      .eq('member_id', memberId)
+      .is('revoked_at', null)
+      .is('expires_at', null),
   ]);
 
   let allActiveSkinIds = ((skinsRes.data ?? []) as Array<{ id: string }>).map((r) => r.id);
@@ -78,6 +89,19 @@ export async function loadPoolContext(
   );
   const eligibleTitleIds = allBiasTitles.filter((t) => !ownedTitleIds.has(t.id));
 
+  const allActiveEffects: PoolEffectItem[] = (
+    (effectDefsRes.data ?? []) as Array<{ id: string; key: string; name: string }>
+  ).map((r) => ({ id: r.id, key: r.key, name: r.name }));
+  const claimedEffectIds = new Set(
+    ((claimedEffectsRes.data ?? []) as Array<{ effect_id: string }>).map((r) => r.effect_id),
+  );
+  const myPermanentEffectIds = new Set(
+    ((memberEffectsRes.data ?? []) as Array<{ effect_id: string }>).map((r) => r.effect_id),
+  );
+  const eligibleEffects = allActiveEffects.filter(
+    (e) => !claimedEffectIds.has(e.id) && !myPermanentEffectIds.has(e.id),
+  );
+
   const lt = legendTitleRes.data as {
     id: string;
     name: string;
@@ -95,6 +119,9 @@ export async function loadPoolContext(
     eligibleSkinIds,
     allBiasTitles,
     eligibleTitleIds,
+    allActiveEffects,
+    claimedEffectIds,
+    eligibleEffects,
     legendTitle: lt
       ? { id: lt.id, name: lt.name, color: lt.color, effect: lt.effect, description: lt.description }
       : {

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { OverviewRankCard } from '@/components/me/OverviewRankCard';
 import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { CurrentMember } from '@/lib/auth/server';
 import type { TitleColor } from '@/lib/supabase/database.types';
@@ -106,7 +106,7 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
               <TitleBadge
                 name={member.displayedTitle.name}
                 color={member.displayedTitle.color as TitleColor}
-                effect={member.displayedTitle.effect as 'legend' | null}
+                effect={member.displayedTitle.effect as TitleEffect | null}
                 size="md"
               />
             ) : (

@@ -65,6 +65,8 @@ export interface MemberRow {
   id: string;
   nickname: string;
   displayed_title_id: string | null;
+  /** 장착 이펙트. 표시 칭호가 레전드면 화면에서 무시 */
+  displayed_effect_id: string | null;
   created_at: string;
   withdrawn_at: string | null;
 }
@@ -512,6 +514,32 @@ export interface MemberSkinRow {
   expires_at: string | null;
 }
 
+/** 칭호 뱃지 이펙트 마스터 (titles 행과 분리) */
+export interface TitleEffectDefRow {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  css_class: string;
+  source_title_id: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MemberTitleEffectRow {
+  id: number;
+  member_id: string;
+  effect_id: string;
+  granted_at: string;
+  granted_by: string | null;
+  reason: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  revoked_reason: string | null;
+  /** NULL = 영구 */
+  expires_at: string | null;
+}
+
 // ──────────────────────────────────────────────
 // Database 타입 (Supabase 클라이언트 제네릭)
 // ──────────────────────────────────────────────
@@ -627,6 +655,19 @@ export interface Database {
         Insert: Omit<MemberSkinRow, 'id' | 'granted_at'> & { granted_at?: string };
         Update: Partial<MemberSkinRow>;
       };
+      title_effect_defs: {
+        Row: TitleEffectDefRow;
+        Insert: Partial<TitleEffectDefRow> & { key: string; name: string; css_class: string };
+        Update: Partial<TitleEffectDefRow>;
+      };
+      member_title_effects: {
+        Row: MemberTitleEffectRow;
+        Insert: Omit<MemberTitleEffectRow, 'id' | 'granted_at' | 'expires_at'> & {
+          granted_at?: string;
+          expires_at?: string | null;
+        };
+        Update: Partial<MemberTitleEffectRow>;
+      };
     };
     Views: {
       public_member_titles: { Row: { member_id: string; title_id: string; granted_at: string } };
@@ -653,6 +694,11 @@ export interface Database {
       change_nickname: { Args: { p_new_nick: string }; Returns: void };
       update_member_settings: { Args: { p_patch: Json }; Returns: void };
       set_displayed_title: { Args: { p_title_id: string | null }; Returns: void };
+      set_displayed_effect: { Args: { p_effect_id: string | null }; Returns: void };
+      shop_permanently_claimed_effect_ids: {
+        Args: Record<string, never>;
+        Returns: Array<{ effect_id: string }>;
+      };
       withdraw_member: { Args: { p_confirm_nick: string }; Returns: void };
       mark_notification_read: { Args: { p_id: number }; Returns: void };
 

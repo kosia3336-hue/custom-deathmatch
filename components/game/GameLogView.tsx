@@ -1,6 +1,6 @@
 'use client';
 
-import { TitleBadge } from '@/components/cdm/TitleBadge';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { Card } from '@/components/cdm/Card';
 import LogViewer from '@/components/archive/LogViewer';
@@ -10,7 +10,7 @@ import type { TitleColor } from '@/lib/supabase/database.types';
 
 export interface GameLogPlayer {
   nickname: string;
-  title?: { name: string; color: TitleColor } | null;
+  title?: { name: string; color: TitleColor; effect?: string | null } | null;
   turn: 'first' | 'second';
   isWinner: boolean;
   isDraw: boolean;
@@ -157,7 +157,12 @@ function PlayerCard({
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {player.title && (
-          <TitleBadge name={player.title.name} color={player.title.color} size="sm" />
+          <TitleBadge
+            name={player.title.name}
+            color={player.title.color}
+            effect={(player.title.effect as TitleEffect | null) ?? null}
+            size="sm"
+          />
         )}
         <span className="text-base font-bold text-cdm-fg">
           {player.nickname}

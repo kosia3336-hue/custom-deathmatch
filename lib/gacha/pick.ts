@@ -54,6 +54,13 @@ function resolvePrize(defId: string, ctx: PoolContext): ResolvedPrize {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       return { kind: 'skin', skinId, name: meta?.name ?? skinId, expiresAt };
     }
+    case 'random_effect': {
+      const effects = ctx.eligibleEffects;
+      if (effects.length === 0) throw new Error('no_eligible_effect');
+      const e = effects[secureRandomInt(effects.length)]!;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      return { kind: 'effect', effectId: e.id, key: e.key, name: e.name, expiresAt };
+    }
     case 'random_shop_title': {
       const titles = ctx.eligibleTitleIds;
       if (titles.length === 0) throw new Error('no_eligible_title');

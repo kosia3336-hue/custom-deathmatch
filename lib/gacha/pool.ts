@@ -17,6 +17,8 @@ export function isSlotEligible(def: PrizeDef, ctx: PoolContext): boolean {
       return true;
     case 'random_skin':
       return ctx.eligibleSkinIds.length > 0;
+    case 'random_effect':
+      return ctx.eligibleEffects.length > 0;
     case 'random_shop_title':
       return ctx.eligibleTitleIds.length > 0;
     case 'legend_title_mystery':
@@ -80,6 +82,13 @@ export function computeEffectiveRates(ctx: PoolContext): { gradeRates: Record<Ga
           slotRates[`title:${t.id}`] = perTitle;
         }
       }
+      const effectSlotRate = slotRates['a_random_effect_7d'] ?? 0;
+      if (ctx.eligibleEffects.length > 0 && effectSlotRate > 0) {
+        const perEffect = effectSlotRate / ctx.eligibleEffects.length;
+        for (const e of ctx.eligibleEffects) {
+          slotRates[`effect:${e.id}`] = perEffect;
+        }
+      }
     }
   }
 
@@ -116,6 +125,10 @@ export function buildPoolResponse(
       }
       if (def.kind === 'random_skin' && !eligible && ctx.eligibleSkinIds.length === 0) {
         row.ineligibleReason = 'permanent_owned';
+      }
+      if (def.kind === 'random_effect' && !eligible && ctx.eligibleEffects.length === 0) {
+        const remaining = ctx.allActiveEffects.filter((e) => !ctx.claimedEffectIds.has(e.id));
+        row.ineligibleReason = remaining.length === 0 ? 'global_claimed' : 'permanent_owned';
       }
       if (def.kind === 'random_shop_title' && !eligible && ctx.eligibleTitleIds.length === 0) {
         row.ineligibleReason = 'already_owned';

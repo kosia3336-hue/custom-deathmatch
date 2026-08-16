@@ -197,7 +197,11 @@ export default function ResultLog() {
         return {
           nickname: p.nickname,
           title: p.displayedTitle
-            ? { name: p.displayedTitle.name, color: p.displayedTitle.color as TitleColor }
+            ? {
+                name: p.displayedTitle.name,
+                color: p.displayedTitle.color as TitleColor,
+                effect: p.displayedTitle.effect ?? null,
+              }
             : null,
           turn: i === 0 ? 'first' : 'second',
           isWinner: !isDraw && ranking?.rank === 1,
