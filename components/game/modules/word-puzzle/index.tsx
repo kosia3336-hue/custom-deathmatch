@@ -19,7 +19,12 @@ export default function WordPuzzleGame() {
 
   const [picked, setPicked] = useState<number[]>([]); // grid 인덱스 나열 (최대 9)
   const [lockedUntil, setLockedUntil] = useState(0);
-  const [now, setNow] = useState(Date.now());
+  /*
+    렌더 중 Date.now() 를 읽으면 서버와 클라이언트 값이 갈려 hydration 이 어긋난다.
+    서버가 준 라운드 시작 시각으로 초기화하면 양쪽이 같은 값을 그리고, 첫 화면도
+    '남은 시간 = 라운드 시간' 이라 맞다. 실제 시각은 아래 interval 이 채운다.
+  */
+  const [now, setNow] = useState(gameData?.roundStartedAt ?? 0);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<{ word: string; exists: boolean }[]>([]);
   const roundKey = `${gameData?.round}-${gameData?.roundStartedAt}`;
