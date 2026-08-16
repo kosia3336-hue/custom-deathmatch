@@ -7,8 +7,10 @@ import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { formatCdp } from '@/lib/cdp/format';
 import { labelForConsumable } from '@/lib/cdp/types';
 import { GRADE_ORDER } from '@/lib/gacha/constants';
+import { effectPreviewColor } from '@/lib/gacha/format';
 import type { GachaDrawResponse, GachaDrawResult, GachaGrade } from '@/lib/gacha/types';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { isTitleEffectKey } from '@shared/titles/resolve-badge';
 import GachaGradeBadge from './GachaGradeBadge';
 
 interface Props {
@@ -42,13 +44,25 @@ function prizeLine(r: GachaDrawResult) {
           {p.name} <span className="text-cdm-fg-muted">7일</span>
         </span>
       );
+    case 'effect':
+      return (
+        <span className="inline-flex items-center gap-2 text-cdm-fg">
+          <TitleBadge
+            name={p.name}
+            color={effectPreviewColor(p.key)}
+            effect={isTitleEffectKey(p.key) ? p.key : null}
+            size="sm"
+          />
+          <span className="text-cdm-fg-muted">7일</span>
+        </span>
+      );
     case 'title':
     case 'legend':
       return (
         <TitleBadge
           name={p.name}
           color={p.color as TitleColor}
-          effect={(p.effect as 'legend' | 'xuanwu' | 'baekho' | 'eternal' | null) ?? null}
+          effect={(p.effect as 'legend' | 'xuanwu' | 'baekho' | 'eternal' | 'issen' | null) ?? null}
           size="sm"
         />
       );

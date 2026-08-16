@@ -8,9 +8,11 @@ import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { labelForConsumable } from '@/lib/cdp/types';
 import { GRADE_LABEL } from '@/lib/gacha/constants';
+import { effectPreviewColor } from '@/lib/gacha/format';
 import { getSkinMeta } from '@/lib/skins/registry';
 import type { GachaDrawResult } from '@/lib/gacha/types';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { isTitleEffectKey } from '@shared/titles/resolve-badge';
 import GachaGradeBadge from './GachaGradeBadge';
 
 interface Props {
@@ -89,6 +91,19 @@ export default function GachaReveal({
             />
           )}
           <p className="font-semibold text-cdm-fg">{r.name}</p>
+          <p className="text-sm text-cdm-fg-muted">7일 이용권</p>
+        </div>
+      );
+    }
+    if (r.kind === 'effect') {
+      return (
+        <div className="flex flex-col items-center gap-2 text-center">
+          <TitleBadge
+            name={r.name}
+            color={effectPreviewColor(r.key)}
+            effect={isTitleEffectKey(r.key) ? r.key : null}
+            size="lg"
+          />
           <p className="text-sm text-cdm-fg-muted">7일 이용권</p>
         </div>
       );

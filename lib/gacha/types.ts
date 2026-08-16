@@ -10,6 +10,7 @@ export type PrizeKind =
   | 'consumable'
   | 'random_skin'
   | 'random_shop_title'
+  | 'random_effect'
   | 'legend_title_mystery';
 
 export interface PrizeDef {
@@ -64,6 +65,7 @@ export type ResolvedPrize =
   | { kind: 'cdp'; amount: number }
   | { kind: 'consumable'; consumableKind: ConsumableKind; qty: number }
   | { kind: 'skin'; skinId: string; name: string; expiresAt: string }
+  | { kind: 'effect'; effectId: string; key: string; name: string; expiresAt: string }
   | { kind: 'title'; titleId: string; name: string; color: string; effect?: string | null }
   | { kind: 'legend'; titleId: string; name: string; color: string; effect: string };
 
@@ -100,6 +102,12 @@ export interface ShopTitlePoolItem {
   effect: string | null;
 }
 
+export interface PoolEffectItem {
+  id: string;
+  key: string;
+  name: string;
+}
+
 export interface PoolContext {
   memberId: string;
   legendClaimedGlobally: boolean;
@@ -109,6 +117,9 @@ export interface PoolContext {
   eligibleSkinIds: string[];
   allBiasTitles: ShopTitlePoolItem[];
   eligibleTitleIds: ShopTitlePoolItem[];
+  allActiveEffects: PoolEffectItem[];
+  claimedEffectIds: Set<string>;
+  eligibleEffects: PoolEffectItem[];
   legendTitle?: { id: string; name: string; color: string; effect: string | null; description: string | null };
 }
 

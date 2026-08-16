@@ -22,6 +22,7 @@ import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
 import { scheduleSkinExpiries, cancelSkinExpiries } from './skinExpiry.js';
+import { scheduleEffectExpiry, cancelEffectExpiry } from './effectExpiry.js';
 import { rankQueueStore } from '../store/rankQueue.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -38,6 +39,7 @@ interface SocketMember {
   guildName?: string | null;
   equippedSkins?: { skinId: string; gameId: string }[];
   skinExpiries?: { skinId: string; expiresAt: Date }[];
+  effectExpiry?: Date | null;
 }
 
 function getSocketMember(socket: { data: unknown }): SocketMember | null {
@@ -61,6 +63,7 @@ function bindMemberToSession(
     member.guildName ?? null,
   );
   scheduleSkinExpiries(token, member.skinExpiries ?? []);
+  scheduleEffectExpiry(token, member.effectExpiry ?? null);
   // 길드 채팅 — 소속 길드가 있으면 해당 소켓방에 합류
   if (member.guildId) socket.join(guildRoom(member.guildId));
 }
@@ -265,6 +268,7 @@ export function setupSocketHandlers(io: IO) {
         const memberId = sessions.getMemberId(token);
         sessions.setMemberInfo(token, memberId, member.displayedTitle, member.equippedSkins, member.guildId ?? null, member.guildName ?? null);
         scheduleSkinExpiries(token, member.skinExpiries);
+        scheduleEffectExpiry(token, member.effectExpiry);
         if (member.guildId) socket.join(guildRoom(member.guildId));
         callback({ ok: true });
       } catch {
@@ -286,7 +290,10 @@ export function setupSocketHandlers(io: IO) {
       rankQueueStore.removeBySocket(socket.id);
 
       const token = sessions.getToken(socket.id);
-      if (token) cancelSkinExpiries(token);
+      if (token) {
+        cancelSkinExpiries(token);
+        cancelEffectExpiry(token);
+      }
 
       const roomId = sessions.getRoom(socket.id);
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { useNicknameStore } from '@/stores/nickname';
+import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed';
 
 export interface CurrentMemberClient {
   id: string;
@@ -40,10 +41,15 @@ export function useCurrentMember(): State {
 
         const { data: memberRow } = await sb
           .from('members')
-          .select('id, nickname, displayed_title_id')
+          .select('id, nickname, displayed_title_id, displayed_effect_id')
           .eq('id', userId)
           .maybeSingle();
-        const member = memberRow as { id: string; nickname: string; displayed_title_id: string | null } | null;
+        const member = memberRow as {
+          id: string;
+          nickname: string;
+          displayed_title_id: string | null;
+          displayed_effect_id: string | null;
+        } | null;
         if (!member) {
           if (!cancelled) setState({ member: null, loading: false });
           return;
@@ -56,24 +62,30 @@ export function useCurrentMember(): State {
           .maybeSingle();
         const role = ((privRow as { role?: string } | null)?.role ?? 'user') as 'user' | 'admin';
 
-        let displayedTitle: CurrentMemberClient['displayedTitle'] = null;
-        if (member.displayed_title_id) {
-          const { data: titleRow } = await sb
-            .from('titles')
-            .select('id, name, color, effect')
-            .eq('id', member.displayed_title_id)
-            .maybeSingle();
-          const title = titleRow as { id: string; name: string; color: string; effect: string | null } | null;
-          if (title) {
-            displayedTitle = { ...title, effect: title.effect ?? null };
-          }
-        }
+        const displayedTitle = await loadResolvedDisplayedTitle(
+          sb,
+          member.id,
+          member.displayed_title_id,
+          member.displayed_effect_id,
+        );
 
         if (!cancelled) {
           // 소켓 이벤트 타이밍에 상관없이 닉네임 스토어를 여기서 확실히 세팅
           useNicknameStore.getState().setNickname(member.nickname);
           setState({
-            member: { id: member.id, nickname: member.nickname, role, displayedTitle },
+            member: {
+              id: member.id,
+              nickname: member.nickname,
+              role,
+              displayedTitle: displayedTitle
+                ? {
+                    id: displayedTitle.id,
+                    name: displayedTitle.name,
+                    color: displayedTitle.color,
+                    effect: displayedTitle.effect,
+                  }
+                : null,
+            },
             loading: false,
           });
         }

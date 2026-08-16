@@ -5,6 +5,8 @@
  */
 
 import type { EquippedSkin } from '@shared/types/skin.js';
+import { isUnexpiredGrant } from '@shared/titles/resolve-badge.js';
+import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed.js';
 import { getSupabaseAdmin, getMemberIdFromToken } from './supabase.js';
 
 export interface MemberInfo {
@@ -20,6 +22,8 @@ export interface MemberInfo {
   equippedSkins: EquippedSkin[];
   /** expires_at 이 있는 착용 스킨의 만료 시각 목록 (무기한 스킨은 제외) */
   skinExpiries: Array<{ skinId: string; expiresAt: Date }>;
+  /** 장착 이펙트의 만료 시각. 영구·미장착이면 null */
+  effectExpiry: Date | null;
 }
 
 /** access_token → 회원 정보 (모두 미설정/실패 시 null) */
@@ -31,11 +35,17 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
 
   const { data: memberRow, error: memberErr } = await sb
     .from('members')
-    .select('id, nickname, withdrawn_at, displayed_title_id')
+    .select('id, nickname, withdrawn_at, displayed_title_id, displayed_effect_id')
     .eq('id', memberId)
     .maybeSingle();
   if (memberErr || !memberRow) return null;
-  const member = memberRow as { id: string; nickname: string; withdrawn_at: string | null; displayed_title_id: string | null };
+  const member = memberRow as {
+    id: string;
+    nickname: string;
+    withdrawn_at: string | null;
+    displayed_title_id: string | null;
+    displayed_effect_id: string | null;
+  };
 
   if (member.withdrawn_at) return null;
 
@@ -46,17 +56,24 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     .maybeSingle();
   const status = (privRow as { status?: string } | null)?.status as MemberInfo['status'] | undefined;
 
-  let displayedTitle: MemberInfo['displayedTitle'] = null;
-  if (member.displayed_title_id) {
-    const { data: titleRow } = await sb
-      .from('titles')
-      .select('id, name, color, effect')
-      .eq('id', member.displayed_title_id)
+  const displayedTitle = await loadResolvedDisplayedTitle(
+    sb,
+    member.id,
+    member.displayed_title_id,
+    member.displayed_effect_id,
+  );
+
+  let effectExpiry: Date | null = null;
+  if (member.displayed_effect_id) {
+    const { data: effectOwn } = await sb
+      .from('member_title_effects')
+      .select('expires_at')
+      .eq('member_id', memberId)
+      .eq('effect_id', member.displayed_effect_id)
+      .is('revoked_at', null)
       .maybeSingle();
-    const title = titleRow as { id: string; name: string; color: string; effect: string | null } | null;
-    if (title) {
-      displayedTitle = { id: title.id, name: title.name, color: title.color, effect: title.effect ?? null };
-    }
+    const exp = (effectOwn as { expires_at: string | null } | null)?.expires_at;
+    if (exp && isUnexpiredGrant(exp)) effectExpiry = new Date(exp);
   }
 
   // 소속 길드 마크 + 길드 ID/명 (컬럼 미배포/미가입이면 null)
@@ -108,5 +125,6 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     guildName,
     equippedSkins,
     skinExpiries,
+    effectExpiry,
   };
 }

@@ -72,6 +72,40 @@ async function grantSkin7d(sb: SupabaseClient, memberId: string, skinId: string)
   return expiresAt;
 }
 
+async function grantEffect7d(sb: SupabaseClient, memberId: string, effectId: string): Promise<string> {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: row } = await sb
+    .from('member_title_effects')
+    .select('id, expires_at')
+    .eq('member_id', memberId)
+    .eq('effect_id', effectId)
+    .is('revoked_at', null)
+    .maybeSingle();
+
+  const existing = row as { id: number; expires_at: string | null } | null;
+  if (existing?.expires_at === null) {
+    throw new GachaDrawError('permanent_effect', 'internal_error');
+  }
+
+  if (existing) {
+    const base = new Date(
+      Math.max(Date.now(), new Date(existing.expires_at ?? Date.now()).getTime()),
+    );
+    const newExp = new Date(base.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await sb.from('member_title_effects').update({ expires_at: newExp }).eq('id', existing.id);
+    return newExp;
+  }
+
+  const { error } = await sb.from('member_title_effects').insert({
+    member_id: memberId,
+    effect_id: effectId,
+    reason: 'gacha_draw',
+    expires_at: expiresAt,
+  });
+  if (error) throw new GachaDrawError(error.message, 'internal_error');
+  return expiresAt;
+}
+
 async function grantTitle(sb: SupabaseClient, memberId: string, titleId: string): Promise<void> {
   const { error } = await sb.from('member_titles').insert({
     member_id: memberId,
@@ -96,6 +130,10 @@ async function applyResolved(
   }
   if (resolved.kind === 'skin') {
     const expiresAt = await grantSkin7d(sb, memberId, resolved.skinId);
+    return { ...resolved, expiresAt };
+  }
+  if (resolved.kind === 'effect') {
+    const expiresAt = await grantEffect7d(sb, memberId, resolved.effectId);
     return { ...resolved, expiresAt };
   }
   if (resolved.kind === 'title') {

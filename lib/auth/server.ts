@@ -17,6 +17,7 @@ import 'server-only';
 import { cache } from 'react';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
+import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed';
 
 export type AuthState =
   | { kind: 'LOGGED_OUT' }
@@ -33,6 +34,7 @@ export interface CurrentMember {
   role: 'user' | 'admin';
   createdAt: string;
   displayedTitle: { id: string; name: string; color: TitleColor; effect: string | null } | null;
+  displayedEffectId: string | null;
 }
 
 interface MemberRowSel {
@@ -41,6 +43,7 @@ interface MemberRowSel {
   created_at: string;
   withdrawn_at: string | null;
   displayed_title_id: string | null;
+  displayed_effect_id: string | null;
 }
 
 interface PrivRowSel {
@@ -50,13 +53,6 @@ interface PrivRowSel {
   suspended_reason: string | null;
   banned_reason: string | null;
   settings: Record<string, unknown> | null;
-}
-
-interface TitleRowSel {
-  id: string;
-  name: string;
-  color: TitleColor;
-  effect: string | null;
 }
 
 /**
@@ -77,7 +73,7 @@ const getMemberRow = cache(async (userId: string): Promise<MemberRowSel | null> 
   const supabase = await getServerSupabase();
   const res = await supabase
     .from('members')
-    .select('id, nickname, created_at, withdrawn_at, displayed_title_id')
+    .select('id, nickname, created_at, withdrawn_at, displayed_title_id, displayed_effect_id')
     .eq('id', userId)
     .maybeSingle();
   if (res.error || !res.data) return null;
@@ -124,19 +120,21 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
     return { kind: 'WITHDRAWN', userId: user.id };
   }
 
-  let displayedTitle: CurrentMember['displayedTitle'] = null;
-  if (memberRow.displayed_title_id) {
-    const supabase = await getServerSupabase();
-    const titleRes = await supabase
-      .from('titles')
-      .select('id, name, color, effect')
-      .eq('id', memberRow.displayed_title_id)
-      .maybeSingle();
-    const titleRow = (titleRes.data as unknown as TitleRowSel) ?? null;
-    if (titleRow) {
-      displayedTitle = { id: titleRow.id, name: titleRow.name, color: titleRow.color, effect: titleRow.effect ?? null };
-    }
-  }
+  const supabase = await getServerSupabase();
+  const displayedTitleRaw = await loadResolvedDisplayedTitle(
+    supabase,
+    memberRow.id,
+    memberRow.displayed_title_id,
+    memberRow.displayed_effect_id,
+  );
+  const displayedTitle: CurrentMember['displayedTitle'] = displayedTitleRaw
+    ? {
+        id: displayedTitleRaw.id,
+        name: displayedTitleRaw.name,
+        color: displayedTitleRaw.color as TitleColor,
+        effect: displayedTitleRaw.effect,
+      }
+    : null;
 
   const member: CurrentMember = {
     id: memberRow.id,
@@ -145,6 +143,7 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
     role: privRow?.role ?? 'user',
     createdAt: memberRow.created_at,
     displayedTitle,
+    displayedEffectId: memberRow.displayed_effect_id,
   };
 
   if (privRow?.status === 'banned') {
