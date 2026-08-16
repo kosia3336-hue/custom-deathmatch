@@ -659,14 +659,21 @@ export interface Database {
         Row: TitleEffectDefRow;
         Insert: Partial<TitleEffectDefRow> & { key: string; name: string; css_class: string };
         Update: Partial<TitleEffectDefRow>;
+        Relationships: [];
       };
       member_title_effects: {
         Row: MemberTitleEffectRow;
         Insert: Omit<MemberTitleEffectRow, 'id' | 'granted_at' | 'expires_at'> & {
           granted_at?: string;
+          granted_by?: string | null;
+          reason?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoked_reason?: string | null;
           expires_at?: string | null;
         };
         Update: Partial<MemberTitleEffectRow>;
+        Relationships: [];
       };
     };
     Views: {
@@ -697,7 +704,7 @@ export interface Database {
       set_displayed_effect: { Args: { p_effect_id: string | null }; Returns: void };
       shop_permanently_claimed_effect_ids: {
         Args: Record<string, never>;
-        Returns: Array<{ effect_id: string }>;
+        Returns: { effect_id: string };
       };
       withdraw_member: { Args: { p_confirm_nick: string }; Returns: void };
       mark_notification_read: { Args: { p_id: number }; Returns: void };

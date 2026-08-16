@@ -9,5 +9,6 @@ export async function loadPermanentlyClaimedEffectIds(
 ): Promise<string[]> {
   const { data, error } = await sb.rpc('shop_permanently_claimed_effect_ids');
   if (error || !data) return [];
-  return data.map((r) => r.effect_id);
+  const rows = (Array.isArray(data) ? data : [data]) as Array<{ effect_id: string }>;
+  return rows.map((r) => r.effect_id);
 }
