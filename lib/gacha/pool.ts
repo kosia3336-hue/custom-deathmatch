@@ -60,34 +60,28 @@ export function computeEffectiveRates(ctx: PoolContext): { gradeRates: Record<Ga
     gradeRates[g] = sum > 0 ? w / sum : 0;
     const slots = eligibleSlotsForGrade(g, ctx);
     const perSlot = slots.length > 0 ? gradeRates[g] / slots.length : 0;
+    /*
+      '랜덤 스킨/이펙트/칭호' 는 다시 개별 항목으로 쪼개진다.
+      예전에는 이 분배를 g === 'A' 안에 두고 슬롯 id 를 문자열로 찾았는데,
+      GRADE_ORDER 가 S,A,B,C,F 라 등급을 A 밖으로 내리는 순간 아직 계산되지
+      않은 값을 읽어 확률이 0 이 됐다. 등급이 아니라 def.kind 로 판정한다.
+    */
     for (const def of PRIZE_DEFS.filter((d) => d.grade === g)) {
-      if (isSlotEligible(def, ctx)) {
-        slotRates[def.id] = perSlot;
-      } else {
-        slotRates[def.id] = 0;
+      const rate = isSlotEligible(def, ctx) ? perSlot : 0;
+      slotRates[def.id] = rate;
+      if (rate <= 0) continue;
+
+      if (def.kind === 'random_skin' && ctx.eligibleSkinIds.length > 0) {
+        const perSkin = rate / ctx.eligibleSkinIds.length;
+        for (const sid of ctx.eligibleSkinIds) slotRates[`skin:${sid}`] = perSkin;
       }
-    }
-    if (g === 'A' && slots.length > 0) {
-      const skinSlotRate = slotRates['a_random_skin_7d'] ?? 0;
-      if (ctx.eligibleSkinIds.length > 0 && skinSlotRate > 0) {
-        const perSkin = skinSlotRate / ctx.eligibleSkinIds.length;
-        for (const sid of ctx.eligibleSkinIds) {
-          slotRates[`skin:${sid}`] = perSkin;
-        }
+      if (def.kind === 'random_shop_title' && ctx.eligibleTitleIds.length > 0) {
+        const perTitle = rate / ctx.eligibleTitleIds.length;
+        for (const t of ctx.eligibleTitleIds) slotRates[`title:${t.id}`] = perTitle;
       }
-      const titleSlotRate = slotRates['a_random_shop_title'] ?? 0;
-      if (ctx.eligibleTitleIds.length > 0 && titleSlotRate > 0) {
-        const perTitle = titleSlotRate / ctx.eligibleTitleIds.length;
-        for (const t of ctx.eligibleTitleIds) {
-          slotRates[`title:${t.id}`] = perTitle;
-        }
-      }
-      const effectSlotRate = slotRates['a_random_effect_7d'] ?? 0;
-      if (ctx.eligibleEffects.length > 0 && effectSlotRate > 0) {
-        const perEffect = effectSlotRate / ctx.eligibleEffects.length;
-        for (const e of ctx.eligibleEffects) {
-          slotRates[`effect:${e.id}`] = perEffect;
-        }
+      if (def.kind === 'random_effect' && ctx.eligibleEffects.length > 0) {
+        const perEffect = rate / ctx.eligibleEffects.length;
+        for (const e of ctx.eligibleEffects) slotRates[`effect:${e.id}`] = perEffect;
       }
     }
   }

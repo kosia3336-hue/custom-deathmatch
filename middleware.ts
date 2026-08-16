@@ -164,9 +164,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
-  // ── 정상 회원이 /login, /signup, /banned, /suspended 들어가면 로비로 ──
-  // ('/' 는 소개 페이지라 로그인한 사람을 보낼 곳이 아니다)
+  // ── 정상 회원이 소개·로그인·가입·정지 화면에 들어가면 로비로 ──
+  // '/' 는 처음 오는 사람을 위한 소개 페이지다. 이미 로그인한 사람에게는
+  // 로비가 홈이므로 여기서 넘긴다(크롤러는 비로그인이라 '/' 를 그대로 받는다).
   if (
+    pathname === '/' ||
     pathname === '/login' ||
     pathname.startsWith('/signup/') ||
     pathname === '/banned' ||

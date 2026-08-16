@@ -74,7 +74,12 @@ export default async function IntroContent() {
         name: '커스텀 데스매치',
         alternateName: ['Custom Deathmatch', 'customdeathmatch'],
         description:
-          '설치 없이 브라우저에서 즐기는 1:1 심리·전략 게임 플랫폼.',
+          '설치 없이 브라우저에서 즐기는 1:1 심리·전략 게임 플랫폼. 지니어스·데블스 플랜·피의 게임에서 보던 두뇌 서바이벌 종목을 다룬다.',
+        keywords: [
+          '두뇌 서바이벌', '심리 게임', '전략 게임', '1:1 두뇌 게임',
+          '지니어스', '더 지니어스', '데블스 플랜', '피의 게임',
+          '흑과백', '인디언 홀덤', '베팅 가위바위보', '연승게임', '해달별',
+        ],
         inLanguage: 'ko-KR',
         publisher: { '@id': `${base}/#organization` },
       },
@@ -181,6 +186,7 @@ export default async function IntroContent() {
               어떤 게임이 있나
             </h2>
             <p className="mt-2 text-sm text-cdm-ink-fg-muted">
+              지니어스·데블스 플랜·피의 게임에서 보던 두뇌 서바이벌 종목들입니다.
               종목을 누르면 규칙이 바로 펼쳐집니다.
             </p>
 

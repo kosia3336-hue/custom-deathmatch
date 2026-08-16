@@ -109,13 +109,20 @@ export default function ShowdownRevealPanel({ revealData, players, myId, firstPl
   const entries = Object.entries(revealData.players);
   const winnerId = revealData.winnerId;
 
-  const firstEntry = entries.find(([id]) => id === firstPlayerId);
-  const secondEntry = entries.find(([id]) => id !== firstPlayerId);
-  const ordered = [firstEntry, secondEntry].filter(Boolean) as [string, BNW2RevealData['players'][string]][];
-
   // 결투 배치는 트랙과 동일하게 좌=나(관전자는 첫 참가자), 우=상대
   const leftId = entries.some(([id]) => id === myId) ? myId : (entries[0]?.[0] ?? '');
   const rightId = entries.find(([id]) => id !== leftId)?.[0] ?? '';
+
+  /*
+    아래 점수 카드도 결투와 같은 좌우로 맞춘다.
+    예전에는 선플·후플 순서로 깔아서, 내가 후플이면 결투에서는 오른쪽(상대)이
+    총을 쏘는데 승자 카드는 왼쪽에 켜졌다 — 같은 패널 안에서 좌우가 서로 달라
+    '엉뚱한 쪽이 쏜다'로 읽혔다. 색 공개 순서만 선플이 먼저이므로 그건 자리
+    순서가 아니라 firstPlayerId 로 판정한다.
+  */
+  const ordered = [leftId, rightId]
+    .filter((id) => revealData.players[id])
+    .map((id) => [id, revealData.players[id]] as [string, BNW2RevealData['players'][string]]);
 
   return (
     <div className="w-full space-y-3 rounded-xl border border-amber-200/70 bg-white/85 p-4 backdrop-blur-sm">
@@ -124,11 +131,11 @@ export default function ShowdownRevealPanel({ revealData, players, myId, firstPl
       <DuelScene leftId={leftId} rightId={rightId} winnerId={winnerId} step={step} />
 
       <div className="grid grid-cols-2 gap-3">
-        {ordered.map(([pid, pd], idx) => {
+        {ordered.map(([pid, pd]) => {
           const pInfo = players[pid];
           const isMe = pid === myId;
           const isWinner = pid === winnerId;
-          const colorVisible = idx === 0 ? step >= 1 : step >= 2;
+          const colorVisible = pid === firstPlayerId ? step >= 1 : step >= 2;
           const winnerVisible = step >= 3;
           const stagesConsumed = pd.stageBefore - Math.max(pd.stageAfter, 1);
 
