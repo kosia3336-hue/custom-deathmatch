@@ -4533,7 +4533,6 @@ body {
   box-shadow: 0 0 var(--ember-blur, 8px) var(--ember-color, rgba(255, 150, 60, 0.8));
   animation: guide-ember-rise var(--ember-duration, 9s) linear infinite;
   animation-delay: var(--ember-delay, 0s);
-  will-change: transform, opacity;
 }
 
 /* 재(ash) — 빛나지 않고 흐릿하게 흩날림 */
@@ -4609,10 +4608,290 @@ body {
   background: linear-gradient(135deg, #6a6fe0 0%, #545ac6 55%, #4349b3 100%);
 }
 
+/* 소개 랭크 티어 — 낮은 순으로 조금씩 커지고, 광은 아이콘에만 얇게 */
+.intro-tier-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.intro-tier {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+}
+.intro-tier-img {
+  display: block;
+  width: var(--intro-tier-size);
+  height: var(--intro-tier-size);
+  object-fit: contain;
+  animation: intro-tier-float var(--intro-tier-dur, 5s) ease-in-out var(--intro-tier-delay, 0s) infinite;
+  filter: drop-shadow(0 0 var(--intro-tier-glow, 6px) var(--intro-tier-color));
+}
+.intro-tier-label {
+  margin-top: 0.45rem;
+  font-size: var(--intro-tier-label, 0.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cdm-ink-fg);
+}
+
+.intro-tier--0 {
+  --intro-tier-size: 2.4rem;
+  --intro-tier-label: 0.7rem;
+  --intro-tier-color: rgba(217, 119, 6, 0.35);
+  --intro-tier-glow: 4px;
+  --intro-tier-dur: 5.6s;
+  --intro-tier-delay: 0s;
+}
+.intro-tier--1 {
+  --intro-tier-size: 2.7rem;
+  --intro-tier-label: 0.72rem;
+  --intro-tier-color: rgba(203, 213, 225, 0.28);
+  --intro-tier-glow: 5px;
+  --intro-tier-dur: 5.3s;
+  --intro-tier-delay: 0.2s;
+}
+.intro-tier--2 {
+  --intro-tier-size: 3.05rem;
+  --intro-tier-label: 0.75rem;
+  --intro-tier-color: rgba(234, 179, 8, 0.4);
+  --intro-tier-glow: 6px;
+  --intro-tier-dur: 5s;
+  --intro-tier-delay: 0.4s;
+}
+.intro-tier--3 {
+  --intro-tier-size: 3.45rem;
+  --intro-tier-label: 0.8rem;
+  --intro-tier-color: rgba(34, 211, 238, 0.4);
+  --intro-tier-glow: 7px;
+  --intro-tier-dur: 4.7s;
+  --intro-tier-delay: 0.55s;
+}
+.intro-tier--4 {
+  --intro-tier-size: 3.9rem;
+  --intro-tier-label: 0.85rem;
+  --intro-tier-color: rgba(168, 85, 247, 0.45);
+  --intro-tier-glow: 8px;
+  --intro-tier-dur: 4.4s;
+  --intro-tier-delay: 0.7s;
+}
+
+@keyframes intro-tier-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (min-width: 640px) {
+  .intro-tier-row { gap: 1rem; }
+  .intro-tier--0 { --intro-tier-size: 3.25rem; --intro-tier-label: 0.8rem; }
+  .intro-tier--1 { --intro-tier-size: 3.7rem; --intro-tier-label: 0.85rem; }
+  .intro-tier--2 { --intro-tier-size: 4.2rem; --intro-tier-label: 0.9rem; }
+  .intro-tier--3 { --intro-tier-size: 4.75rem; --intro-tier-label: 0.95rem; }
+  .intro-tier--4 { --intro-tier-size: 5.35rem; --intro-tier-label: 1rem; }
+}
+
+/* 소개 랭크 — 특징 슬롯. 호버 없음 */
+.intro-rank-slot {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1.35rem 1.35rem 1.5rem 1.5rem;
+  background:
+    linear-gradient(165deg, rgba(174, 178, 255, 0.1) 0%, transparent 38%),
+    linear-gradient(180deg, rgba(24, 24, 48, 0.95), rgba(12, 12, 28, 0.98));
+  border: 1px solid rgba(174, 178, 255, 0.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset,
+    0 16px 36px -22px rgba(0, 0, 0, 0.85);
+}
+.intro-rank-slot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.15rem;
+  bottom: 1.15rem;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, #aeb2ff 0%, rgba(91, 96, 214, 0.15) 100%);
+}
+.intro-rank-slot::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(174, 178, 255, 0.45), transparent);
+  pointer-events: none;
+}
+.intro-rank-num {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #aeb2ff;
+}
+
+/* 소개 칭호 — 모달+설명을 한 카드로. 미리보기 모달만 축소 */
+.intro-title-card {
+  position: relative;
+  overflow: visible;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem 1.15rem 1.2rem;
+  background:
+    linear-gradient(165deg, rgba(174, 178, 255, 0.1) 0%, transparent 38%),
+    linear-gradient(180deg, rgba(24, 24, 48, 0.95), rgba(12, 12, 28, 0.98));
+  border: 1px solid rgba(174, 178, 255, 0.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset,
+    0 16px 36px -22px rgba(0, 0, 0, 0.85);
+}
+.intro-title-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  bottom: 1rem;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, #aeb2ff 0%, rgba(91, 96, 214, 0.15) 100%);
+}
+.intro-title-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(174, 178, 255, 0.45), transparent);
+  pointer-events: none;
+}
+.intro-title-modal {
+  max-width: none;
+  width: 100%;
+}
+.intro-title-modal > header {
+  padding: 0.45rem 0.7rem;
+}
+.intro-title-modal > header h2 {
+  font-size: 0.8125rem;
+}
+.intro-title-modal > header svg {
+  width: 16px;
+  height: 16px;
+}
+.intro-title-modal > div {
+  padding: 0.55rem 0.7rem;
+}
+
+/* 소개 랭크 — 랭킹 보기 링크 */
+.intro-rank-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: #aeb2ff;
+  text-shadow: 0 0 18px rgba(124, 131, 255, 0.35);
+  transition: color 200ms ease, text-shadow 200ms ease, gap 200ms ease;
+}
+.intro-rank-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 1.4rem;
+  bottom: -3px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(174, 178, 255, 0.95), rgba(174, 178, 255, 0.15));
+  transform-origin: left;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+.intro-rank-link svg {
+  transition: transform 220ms ease;
+}
+.intro-rank-link:hover {
+  color: #fff;
+  gap: 0.65rem;
+  text-shadow:
+    0 0 18px rgba(124, 131, 255, 0.85),
+    0 0 36px rgba(124, 131, 255, 0.4);
+}
+.intro-rank-link:hover::after {
+  transform: scaleX(1.04);
+}
+.intro-rank-link:hover svg {
+  transform: translateX(4px);
+}
+
+/* 소개 인게임 샷 — 테두리 광 + 뒤로 번지는 그림자. 움직임 없음 */
+.guide-screen {
+  position: relative;
+  isolation: isolate;
+}
+.guide-screen::before {
+  content: '';
+  position: absolute;
+  inset: -6% -8%;
+  z-index: -1;
+  border-radius: 2rem;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(91, 96, 214, 0.55), transparent 68%),
+    radial-gradient(ellipse at 80% 18%, rgba(244, 63, 94, 0.28), transparent 58%);
+  filter: blur(36px);
+}
+.guide-screen-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(174, 178, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.18) 42%,
+    rgba(244, 63, 94, 0.45) 100%
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 0 0 1px rgba(174, 178, 255, 0.22),
+    0 0 18px rgba(91, 96, 214, 0.5),
+    0 0 42px rgba(91, 96, 214, 0.32),
+    0 0 88px rgba(91, 96, 214, 0.2),
+    0 28px 56px -18px rgba(0, 0, 0, 0.88);
+}
+.guide-screen-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 64%
+  );
+  transform: translateX(-130%);
+  animation: guide-sheen 4.8s ease-in-out 1.2s infinite;
+}
+.guide-screen-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(1rem - 1px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guide-ember,
   .guide-hero::before,
-  .guide-card:hover::after {
+  .guide-card:hover::after,
+  .guide-screen-frame::after,
+  .intro-tier-img {
     animation: none !important;
   }
   .guide-ember { opacity: 0.5; }

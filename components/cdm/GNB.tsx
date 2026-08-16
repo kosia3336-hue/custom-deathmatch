@@ -28,6 +28,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/rules', label: '게임 룰' },
   { href: '/titles', label: '칭호' },
   { href: '/notice', label: '공지사항' },
+  { href: '/about', label: '소개' },
 ];
 
 /** 로그인한 사용자에게만 노출되는 메뉴 (비로그인은 미들웨어로 차단) */
@@ -61,15 +62,12 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
     <InventoryInit hasMember={Boolean(member)} />
     <header className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
-        {/* 로그인했으면 로고는 로비로 — '/' 는 처음 오는 사람을 위한 소개 페이지다 */}
-        <Link href={member ? '/lobby' : '/'} aria-label="홈" className="flex min-w-0 shrink items-center">
+        <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
           <Logo size="md" className="h-5 w-auto sm:h-8" />
         </Link>
 
-        {/* 비로그인 화면(소개 페이지)에서는 내부 메뉴를 감춘다 — 로고와 로그인만 노출 */}
         <nav className="hidden gap-1 sm:flex">
-          {member &&
-            NAV_ITEMS.map((it) => (
+          {NAV_ITEMS.map((it) => (
             <Link
               key={it.href}
               href={it.href}

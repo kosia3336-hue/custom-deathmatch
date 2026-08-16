@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { GAME_CATEGORIES, categoryHue } from '@/lib/gameRules';
 
 export interface IntroRuleItem {
   id: string;
@@ -21,24 +22,33 @@ const COLLAPSED_MAX = 520;
 
 /**
  * 소개 페이지 룰 뷰어.
- * 위: 갈래 색 점으로 구분한 종목 버튼 / 아래: 선택한 종목의 룰지.
- *
- * 예전에는 높이를 고정하고 안쪽에서 스크롤시켰는데, 룰을 읽으려면 페이지 스크롤과
- * 캔버스 스크롤이 겹쳐 오히려 답답했다. 지금은 긴 룰만 접어 두고 펼치면 전체가
- * 페이지 흐름에 그대로 펴진다 — 안쪽 스크롤이 없어 한눈에 읽힌다.
+ * 위: 갈래 필터 → 종목 버튼 / 아래: 선택한 종목의 룰지.
  */
 export default function IntroRulesPanel({ items }: Props) {
+  const [genre, setGenre] = useState<string>('전체');
   const [selectedId, setSelectedId] = useState(items[0]?.id ?? '');
   const [expanded, setExpanded] = useState(false);
-  /** 접기 버튼이 필요한지 — 지금 보이는 룰이 COLLAPSED_MAX 를 넘을 때만 */
   const [overflowing, setOverflowing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  /*
-    선택된 항목만 보이므로 래퍼의 높이 = 지금 보이는 룰의 높이.
-    ResizeObserver 는 관측을 시작할 때 한 번 즉시 불리므로 초기 측정도 여기서 끝난다
-    (effect 본문에서 직접 setState 하지 않아도 된다).
-  */
+  const genres = useMemo(() => {
+    const present = new Set(items.map((it) => it.category));
+    return GAME_CATEGORIES.filter((c) => present.has(c));
+  }, [items]);
+
+  const visible = useMemo(
+    () => (genre === '전체' ? items : items.filter((it) => it.category === genre)),
+    [items, genre],
+  );
+
+  useEffect(() => {
+    if (visible.length === 0) return;
+    if (!visible.some((it) => it.id === selectedId)) {
+      setSelectedId(visible[0].id);
+      setExpanded(false);
+    }
+  }, [visible, selectedId]);
+
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
@@ -47,17 +57,13 @@ export default function IntroRulesPanel({ items }: Props) {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [selectedId]);
 
   if (items.length === 0) return null;
 
-  const idx = Math.max(
-    0,
-    items.findIndex((it) => it.id === selectedId),
-  );
-  const selected = items[idx];
+  const selected = items.find((it) => it.id === selectedId) ?? visible[0];
+  if (!selected) return null;
 
-  // 종목을 바꾸면 다시 접힌 상태로 — 이전 종목에서 펼친 게 그대로 이어지면 들쭉날쭉하다
   const selectGame = (id: string) => {
     setSelectedId(id);
     setExpanded(false);
@@ -67,9 +73,39 @@ export default function IntroRulesPanel({ items }: Props) {
 
   return (
     <div>
-      {/* 종목 버튼 — 갈래 색 점으로 구분 */}
       <ul className="flex flex-wrap gap-2">
-        {items.map((it) => {
+        {['전체', ...genres].map((g) => {
+          const active = genre === g;
+          const hue = g === '전체' ? null : categoryHue(g);
+          return (
+            <li key={g}>
+              <button
+                type="button"
+                onClick={() => setGenre(g)}
+                aria-pressed={active}
+                className={[
+                  'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition',
+                  active
+                    ? 'bg-cdm-primary text-white shadow-[0_6px_16px_-8px_rgba(74,79,181,0.9)]'
+                    : 'bg-white/10 text-cdm-ink-fg hover:bg-white/15',
+                ].join(' ')}
+              >
+                {hue != null && (
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: `hsl(${hue} 62% 55%)` }}
+                  />
+                )}
+                {g}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {visible.map((it) => {
           const active = it.id === selected.id;
           return (
             <li key={it.id}>
@@ -84,7 +120,6 @@ export default function IntroRulesPanel({ items }: Props) {
                     : 'bg-white text-cdm-fg hover:bg-[#c9ccdd]',
                 ].join(' ')}
               >
-                {/* 갈래 색 점 — 심리=빨강, 언어=초록 … */}
                 <span
                   aria-hidden
                   className="h-2 w-2 shrink-0 rounded-full"
@@ -97,7 +132,6 @@ export default function IntroRulesPanel({ items }: Props) {
         })}
       </ul>
 
-      {/* 룰지 — 접혀 있으면 아래를 그라데이션으로 흐려 '더 있음'을 알린다 */}
       <div
         className="relative mt-4 overflow-hidden rounded-cdm-md"
         style={{ maxHeight: collapsed ? COLLAPSED_MAX : undefined }}

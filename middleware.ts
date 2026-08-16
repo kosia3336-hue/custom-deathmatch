@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
+import { hasSeenIntro, markIntroSeen } from '@/lib/intro-cookie';
 
 /**
  * Next.js Middleware — 세션 갱신 + 인증 가드.
@@ -45,13 +46,22 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // ── 비로그인 ────────────────────────────────────────────────
-  // 소개('/'), 로비(/lobby), 랭킹(/ranking), 공지(/notice), 룰(/rules),
+  // 소개(/about), 로비(/lobby), 랭킹(/ranking), 공지(/notice), 룰(/rules),
   // 약관(/legal/*) 등은 로그인 없이도 볼 수 있다. 로비는 둘러보기까지만 열어 두고,
   // 방 입장·생성 같은 실제 행동에서 각 화면이 로그인을 요구한다.
   // 마이페이지 등 로그인이 필요한 화면은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
+    // '/' 는 입구. 소개를 아직 안 본 첫 방문만 /about, 이후에는 /lobby.
+    // 로비·랭킹 등 다른 공개 주소로 바로 온 경우는 가로채지 않는다.
+    if (pathname === '/') {
+      const dest = hasSeenIntro(request.cookies) ? '/lobby' : '/about';
+      const redirect = NextResponse.redirect(new URL(dest, request.url));
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
+    }
+
     const isPublic =
-      pathname === '/' ||
+      pathname === '/about' ||
       pathname === '/guide' ||
       pathname === '/lobby' ||
       pathname === '/login' ||
@@ -65,7 +75,10 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/rules') ||
       pathname.startsWith('/support/inquiry');
 
-    if (isPublic) return response;
+    if (isPublic) {
+      if (pathname === '/about') markIntroSeen(response);
+      return response;
+    }
 
     const login = new URLSearchParams({ next: pathname });
     return NextResponse.redirect(new URL(`/login?${login}`, request.url));
@@ -164,9 +177,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/lobby', request.url));
   }
 
-  // ── 정상 회원이 소개·로그인·가입·정지 화면에 들어가면 로비로 ──
-  // '/' 는 처음 오는 사람을 위한 소개 페이지다. 이미 로그인한 사람에게는
-  // 로비가 홈이므로 여기서 넘긴다(크롤러는 비로그인이라 '/' 를 그대로 받는다).
+  // ── 정상 회원이 로그인·가입·정지 화면에 들어가면 로비로 ──
+  // '/' 도 로비가 홈이므로 넘긴다. /about 은 소개를 다시 볼 수 있게 열어 둔다.
   if (
     pathname === '/' ||
     pathname === '/login' ||
@@ -176,6 +188,8 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.redirect(new URL('/lobby', request.url));
   }
+
+  if (pathname === '/about') markIntroSeen(response);
 
   return response;
 }

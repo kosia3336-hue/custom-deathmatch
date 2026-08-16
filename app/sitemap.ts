@@ -14,9 +14,10 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
-  // '/' 는 소개 페이지이자 대표 URL. 로비(/lobby)는 방 목록이 계속 바뀌는 앱 화면이라
-  // noindex 이고, 옛 주소 /guide 는 '/' 로 308 이동하므로 둘 다 싣지 않는다.
-  { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  // '/about' 이 소개이자 대표 URL. '/' 는 첫 방문→소개 / 이후→로비 분기라 싣지 않는다.
+  // 로비(/lobby)는 방 목록이 계속 바뀌는 앱 화면이라 noindex.
+  // 옛 주소 /guide 는 '/about' 으로 308 이동하므로 싣지 않는다.
+  { path: '/about', changeFrequency: 'daily', priority: 1.0 },
   { path: '/rules', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/ranking', changeFrequency: 'hourly', priority: 0.8 },
   { path: '/notice', changeFrequency: 'daily', priority: 0.7 },
