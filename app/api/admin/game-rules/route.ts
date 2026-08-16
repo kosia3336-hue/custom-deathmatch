@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   // 룰이 새로 등록/수정되면 소개 페이지와 룰 페이지에 즉시 반영한다.
   // (각 페이지의 revalidate 주기를 기다리지 않도록 저장 시점에 캐시를 무효화)
-  revalidatePath('/');
+  revalidatePath('/about');
   revalidatePath('/rules');
   revalidatePath(`/rules/${gameId}`);
 

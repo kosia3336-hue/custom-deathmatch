@@ -16,7 +16,7 @@ interface Holder {
 
 interface TitleDetailModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   titleId: string | null;
   titleName: string;
   titleColor: TitleColor;
@@ -25,6 +25,10 @@ interface TitleDetailModalProps {
   conditionText: string | null;
   isSystem: boolean;
   holderCount: number;
+  /** 오버레이 없이 패널만 렌더 (소개 미리보기) */
+  embedded?: boolean;
+  /** 있으면 보유자를 다시 조회하지 않는다 */
+  initialHolders?: Holder[];
 }
 
 function formatKstDate(iso: string): string {
@@ -46,12 +50,21 @@ export function TitleDetailModal({
   conditionText,
   isSystem,
   holderCount,
+  embedded = false,
+  initialHolders,
 }: TitleDetailModalProps) {
-  const [holders, setHolders] = useState<Holder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const presetHolders = initialHolders !== undefined;
+  const [holders, setHolders] = useState<Holder[]>(initialHolders ?? []);
+  const [loading, setLoading] = useState(!presetHolders && open && Boolean(titleId));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (presetHolders) {
+      setHolders(initialHolders ?? []);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     if (!open || !titleId) return;
     let cancelled = false;
     setLoading(true);
@@ -74,16 +87,27 @@ export function TitleDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [open, titleId]);
+  }, [open, titleId, presetHolders, initialHolders]);
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={embedded ? undefined : onClose}
+      inline={embedded}
+      showClose={embedded}
+      closeOnEscape={!embedded}
+      closeOnBackdrop={!embedded}
+      mobileBottomSheet={!embedded}
       size="md"
+      className={embedded ? 'intro-title-modal' : undefined}
       title={
         <span className="flex items-center gap-2">
-          <TitleBadge name={titleName} color={titleColor} effect={titleEffect as TitleEffect | null} size="md" />
+          <TitleBadge
+            name={titleName}
+            color={titleColor}
+            effect={titleEffect as TitleEffect | null}
+            size={embedded ? 'sm' : 'md'}
+          />
           {isSystem && (
             <span
               className="inline-flex items-center rounded-full border border-cdm-border px-2 py-px text-[10px] font-semibold text-cdm-fg-muted"
@@ -95,49 +119,49 @@ export function TitleDetailModal({
         </span>
       }
     >
-      <div className="flex flex-col gap-4">
+      <div className={embedded ? 'flex flex-col gap-2' : 'flex flex-col gap-4'}>
         {description && (
           <div>
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-cdm-fg-subtle">
+            <h3 className={`font-semibold uppercase tracking-wider text-cdm-fg-subtle ${embedded ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'}`}>
               설명
             </h3>
-            <p className="text-sm text-cdm-fg">{description}</p>
+            <p className={embedded ? 'text-xs text-cdm-fg' : 'text-sm text-cdm-fg'}>{description}</p>
           </div>
         )}
 
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-cdm-fg-subtle">
+          <h3 className={`font-semibold uppercase tracking-wider text-cdm-fg-subtle ${embedded ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'}`}>
             달성 조건
           </h3>
           {conditionText ? (
-            <p className="text-sm text-cdm-fg">{conditionText}</p>
+            <p className={embedded ? 'text-xs text-cdm-fg' : 'text-sm text-cdm-fg'}>{conditionText}</p>
           ) : (
-            <p className="text-sm text-cdm-fg-muted italic">
+            <p className={embedded ? 'text-xs text-cdm-fg-muted italic' : 'text-sm text-cdm-fg-muted italic'}>
               조건이 공개되어 있지 않은 칭호입니다.
             </p>
           )}
         </div>
 
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-cdm-fg-subtle">
+          <h3 className={`font-semibold uppercase tracking-wider text-cdm-fg-subtle ${embedded ? 'mb-1 text-[10px]' : 'mb-2 text-xs'}`}>
             보유자 {holderCount > 0 ? `(${holderCount}명)` : ''}
           </h3>
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-cdm-fg-muted">
+            <div className={`flex items-center gap-2 text-cdm-fg-muted ${embedded ? 'text-xs' : 'text-sm'}`}>
               <Spinner size={16} /> 불러오는 중…
             </div>
           ) : error ? (
-            <p className="text-sm text-cdm-accent">보유자 조회 실패: {error}</p>
+            <p className={embedded ? 'text-xs text-cdm-accent' : 'text-sm text-cdm-accent'}>보유자 조회 실패: {error}</p>
           ) : holders.length === 0 ? (
-            <p className="text-sm text-cdm-fg-muted">아직 보유자가 없습니다.</p>
+            <p className={embedded ? 'text-xs text-cdm-fg-muted' : 'text-sm text-cdm-fg-muted'}>아직 보유자가 없습니다.</p>
           ) : (
-            <ul className="flex flex-col gap-1.5 max-h-[min(50vh,320px)] overflow-y-auto pr-1">
+            <ul className={`flex flex-col overflow-y-auto pr-1 ${embedded ? 'max-h-[4.5rem] gap-1' : 'max-h-[min(50vh,320px)] gap-1.5'}`}>
               {holders.map((h) => (
                 <li
                   key={h.member_id}
-                  className="flex items-center justify-between gap-3 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 px-3 py-2"
+                  className={`flex items-center justify-between rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 ${embedded ? 'gap-2 px-2 py-1' : 'gap-3 px-3 py-2'}`}
                 >
-                  <span className="truncate text-sm font-medium text-cdm-fg">
+                  <span className={`truncate font-medium text-cdm-fg ${embedded ? 'text-xs' : 'text-sm'}`}>
                     {h.nickname}
                   </span>
                   <time
