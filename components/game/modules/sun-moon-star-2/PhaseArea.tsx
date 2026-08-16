@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useState } from 'react';
 import PowderInput from './PowderInput';
 import BetInput from './BetInput';
 import MarkRevealPanel from './MarkRevealPanel';
@@ -60,9 +60,12 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
    * 같은 참조를 넘기면 MarkRevealPanel의 cachedRef 체크가 통과 → 애니 재시작 없이 done 상태 유지.
    * powder 페이즈(새 라운드)가 오면 새 steps가 들어오며 자연스럽게 덮어쓰기됨.
    */
-  const resolveStepsCache = useRef<SMS2ResolveStep[] | null>(null);
-  if (gameData?.resolveSteps) {
-    resolveStepsCache.current = gameData.resolveSteps;
+  const [cachedResolveSteps, setCachedResolveSteps] = useState<SMS2ResolveStep[] | null>(null);
+  if (gameData?.resolveSteps && gameData.resolveSteps !== cachedResolveSteps) {
+    // 렌더 중 state 조정(React 공식 패턴). ref 에 렌더 중 대입하던 것을 대체한다 —
+    // effect 로 미루면 steps 가 처음 들어온 프레임에 패널이 빈 채로 그려진다.
+    // 같은 참조를 그대로 보관하므로 MarkRevealPanel 의 cachedRef 검사도 그대로 통과한다.
+    setCachedResolveSteps(gameData.resolveSteps);
   }
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
@@ -81,7 +84,7 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   if (isResolve || isRoundEnd) {
     return (
       <MarkRevealPanel
-        resolveSteps={resolveStepsCache.current}
+        resolveSteps={cachedResolveSteps}
         players={gameData.players}
         mySide={mySide}
       />

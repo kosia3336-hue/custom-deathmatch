@@ -27,7 +27,19 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = sb as any;
 
-  let rankBlock: ReactNode = null;
+  /*
+    try/catch 안에서 JSX 를 만들면 렌더 도중 던진 오류까지 여기서 삼켜 버려
+    상위 에러 경계가 볼 수 없다(react-hooks/error-boundaries). 조회는 try 로
+    감싸 값만 뽑고, 화면은 그 밖에서 만든다.
+  */
+  let rankInfo: {
+    seasonName: string;
+    tier: string;
+    peak: string;
+    placementDone: boolean;
+    pg: number; ws: number; sw: number; sl: number; sd: number; rp: number;
+  } | null = null;
+
   try {
     const { data: season } = await db
       .from('rank_seasons')
@@ -45,47 +57,54 @@ export default async function StatsTab({ memberId }: { memberId: string }) {
         .maybeSingle();
       if (rs) {
         const row = rs as Record<string, unknown>;
-        const tierKo: Record<string, string> = {
-          unranked: '언랭',
-          bronze: '브론즈',
-          silver: '실버',
-          gold: '골드',
-          diamond: '다이아',
-          challenger: '챌린저',
+        rankInfo = {
+          seasonName: String(season.name),
+          tier: String(row.tier ?? 'unranked'),
+          peak: String(row.season_peak_tier ?? 'unranked'),
+          placementDone: Boolean(row.placement_done),
+          pg: Number(row.placement_games ?? 0),
+          ws: Number(row.win_streak ?? 0),
+          sw: Number(row.season_wins ?? 0),
+          sl: Number(row.season_losses ?? 0),
+          sd: Number(row.season_draws ?? 0),
+          rp: Number(row.rp ?? 0),
         };
-        const tier = String(row.tier ?? 'unranked');
-        const peak = String(row.season_peak_tier ?? 'unranked');
-        const placementDone = Boolean(row.placement_done);
-        const pg = Number(row.placement_games ?? 0);
-        const ws = Number(row.win_streak ?? 0);
-        const sw = Number(row.season_wins ?? 0);
-        const sl = Number(row.season_losses ?? 0);
-        const sd = Number(row.season_draws ?? 0);
-        const rp = Number(row.rp ?? 0);
-        rankBlock = (
-          <Card variant="highlight" accent="accent">
-            <h2 className="text-sm font-semibold text-cdm-fg-muted">랭크 전적 ({season.name})</h2>
-            {!placementDone ? (
-              <p className="mt-2 text-sm text-cdm-fg">
-                배치전 진행 중 ({Math.min(5, pg)}/5) · 언랭
-              </p>
-            ) : (
-              <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm text-cdm-fg">
-                <span className="font-semibold">{tierKo[tier] ?? tier}</span>
-                <span className="text-cdm-fg-muted">{rp} RP</span>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-cdm-fg-muted">
-              시즌 {sw + sl + sd}전 {sw}승 {sl}패{sd > 0 ? ` ${sd}무` : ''}
-              {placementDone && ws > 0 ? ` · 현재 ${ws}연승` : ''} · 최고 티어 {tierKo[peak] ?? peak}
-            </p>
-          </Card>
-        );
       }
     }
   } catch {
     /* 테이블 미구성 등 */
   }
+
+  const tierKo: Record<string, string> = {
+    unranked: '언랭',
+    bronze: '브론즈',
+    silver: '실버',
+    gold: '골드',
+    diamond: '다이아',
+    challenger: '챌린저',
+  };
+
+  const rankBlock: ReactNode = rankInfo ? (
+    <Card variant="highlight" accent="accent">
+      <h2 className="text-sm font-semibold text-cdm-fg-muted">랭크 전적 ({rankInfo.seasonName})</h2>
+      {!rankInfo.placementDone ? (
+        <p className="mt-2 text-sm text-cdm-fg">
+          배치전 진행 중 ({Math.min(5, rankInfo.pg)}/5) · 언랭
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm text-cdm-fg">
+          <span className="font-semibold">{tierKo[rankInfo.tier] ?? rankInfo.tier}</span>
+          <span className="text-cdm-fg-muted">{rankInfo.rp} RP</span>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-cdm-fg-muted">
+        시즌 {rankInfo.sw + rankInfo.sl + rankInfo.sd}전 {rankInfo.sw}승 {rankInfo.sl}패
+        {rankInfo.sd > 0 ? ` ${rankInfo.sd}무` : ''}
+        {rankInfo.placementDone && rankInfo.ws > 0 ? ` · 현재 ${rankInfo.ws}연승` : ''} · 최고 티어{' '}
+        {tierKo[rankInfo.peak] ?? rankInfo.peak}
+      </p>
+    </Card>
+  ) : null;
 
   const statsRes = await sb
     .from('member_game_stats')

@@ -36,8 +36,12 @@ export function Countdown({
   noPulse,
 }: CountdownProps) {
   const [left, setLeft] = React.useState(Math.max(0, Math.floor(seconds)));
+  // 최신 콜백 보관. 렌더 중에 쓰면 순수하지 않아(동시 렌더에서 어긋난다) effect 로 미룬다.
+  // 아래 두 사용처가 모두 effect·타이머 안이라 한 렌더 늦게 반영돼도 문제없다.
   const onCompleteRef = React.useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  React.useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   React.useEffect(() => {
     setLeft(Math.max(0, Math.floor(seconds)));

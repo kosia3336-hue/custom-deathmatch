@@ -314,7 +314,7 @@ async function executeGachaDrawTs(
     if (tErr) throw new GachaDrawError(tErr.message, 'internal_error');
   }
 
-  let resolved = await applyResolved(sb, memberId, pick.resolved);
+  const resolved = await applyResolved(sb, memberId, pick.resolved);
 
   if (resolved.kind === 'cdp') {
     newBalance += resolved.amount;

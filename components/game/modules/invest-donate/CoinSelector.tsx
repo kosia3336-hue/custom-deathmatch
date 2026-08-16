@@ -39,10 +39,13 @@ function Stepper({
 
   useEffect(() => () => stopRepeat(), [stopRepeat]);
 
+  // 길게 누르기 반복에서 최신 값을 읽으려는 ref. 렌더 중 대입은 순수하지 않아 effect 로.
   const valueRef = useRef(value);
-  valueRef.current = value;
   const maxRef = useRef(max);
-  maxRef.current = max;
+  useEffect(() => {
+    valueRef.current = value;
+    maxRef.current = max;
+  });
 
   const handleDown = useCallback((delta: number) => {
     onChange(Math.max(0, Math.min(maxRef.current, valueRef.current + delta)));

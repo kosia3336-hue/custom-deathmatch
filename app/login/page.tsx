@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import LoginForm from './LoginForm';
 import { Logo } from '@/components/cdm/Logo';
 
@@ -31,13 +32,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </p>
 
         <nav className="flex gap-3 text-xs text-cdm-fg-muted">
-          <a href="/legal/terms" className="hover:text-cdm-fg">
+          <Link href="/legal/terms" className="hover:text-cdm-fg">
             이용약관
-          </a>
+          </Link>
           <span aria-hidden>·</span>
-          <a href="/legal/privacy" className="hover:text-cdm-fg">
+          <Link href="/legal/privacy" className="hover:text-cdm-fg">
             개인정보처리방침
-          </a>
+          </Link>
         </nav>
       </div>
     </main>

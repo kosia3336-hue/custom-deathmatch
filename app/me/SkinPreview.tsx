@@ -4,6 +4,26 @@ const CLIP_FIRST = 'polygon(15% 100%, 0% 30%, 50% 0%, 100% 30%, 85% 100%)';
 const CLIP_SECOND = 'polygon(15% 0%, 0% 70%, 50% 100%, 100% 70%, 85% 0%)';
 
 /** 마이페이지 스킨 카드용 정적 비주얼 프리뷰 (게임 데이터 불필요) */
+/*
+  렌더 안에서 정의하면 렌더마다 새 타입이 되어 React 가 매번 서브트리를 다시
+  마운트한다. 바깥 상태를 쓰지 않으므로 모듈 스코프로 올린다.
+*/
+function ShowdownBundle({ state }: { state: 'lit' | 'active' }) {
+  return (
+    <span className={`skin-showdown-round skin-showdown-round--law skin-showdown-round--${state}`} style={{ position: 'relative' }}>
+      <span className="skin-showdown-round-loop" />
+      <span className="skin-showdown-round-bullets">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className="skin-showdown-round-bullet">
+            <span className="skin-showdown-cartridge-tip" />
+            <span className="skin-showdown-cartridge-case" />
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
 export default function SkinPreview({ theme }: { theme: SkinTheme }) {
   if (theme === 'duality') {
     return (
@@ -191,22 +211,9 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
   }
 
   if (theme === 'showdown') {
-    const Bundle = ({ state }: { state: 'lit' | 'active' }) => (
-      <span className={`skin-showdown-round skin-showdown-round--law skin-showdown-round--${state}`} style={{ position: 'relative' }}>
-        <span className="skin-showdown-round-loop" />
-        <span className="skin-showdown-round-bullets">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className="skin-showdown-round-bullet">
-              <span className="skin-showdown-cartridge-tip" />
-              <span className="skin-showdown-cartridge-case" />
-            </span>
-          ))}
-        </span>
-      </span>
-    );
     return (
       <div className="skin-showdown-stage-bg relative flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg px-4">
-        <Bundle state="lit" />
+        <ShowdownBundle state="lit" />
         <div className="skin-showdown-wanted-poster" style={{ transform: 'rotate(-3deg)' }} aria-hidden>
           <div className="skin-showdown-wanted-title">WANTED</div>
           <div className="skin-showdown-wanted-photo">
@@ -214,7 +221,7 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
           </div>
           <div className="skin-showdown-wanted-sub">DEAD&nbsp;OR&nbsp;ALIVE</div>
         </div>
-        <Bundle state="active" />
+        <ShowdownBundle state="active" />
       </div>
     );
   }

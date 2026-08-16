@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { IPEHandResult, IPEHandResultEntry, IPHand } from '@/shared/types';
@@ -44,7 +44,9 @@ function scaleKeyframes(hand: IPHand | null): number | number[] {
 }
 
 function RevealedCard({ entry }: { entry: IPEHandResultEntry }) {
-  const scale = useRef(scaleKeyframes(entry.hand)).current;
+  // 렌더 중 ref 를 읽지 않으면서 참조 동일성은 유지한다 —
+  // 매 렌더 새 배열을 넘기면 framer-motion 이 애니메이션을 다시 시작한다.
+  const scale = useMemo(() => scaleKeyframes(entry.hand), [entry.hand]);
   return (
     <motion.div
       initial={{ scale: 0.9 }}
