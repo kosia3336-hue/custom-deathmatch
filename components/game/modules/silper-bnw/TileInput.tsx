@@ -55,8 +55,6 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
   const lpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isLpRef     = useRef(false);
 
-  myTilesRef.current = myTiles;
-  slotRef.current    = slot;
 
   // 잔여 수량
   const used: Record<SBNWTile, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
@@ -69,7 +67,17 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, onS
     4: (myTiles[4] ?? 0) - used[4],
   };
   const remainingRef = useRef(remaining);
-  remainingRef.current = remaining;
+
+  /*
+    길게 누르기·연타 핸들러에서 최신 값을 읽으려고 두는 ref 들.
+    렌더 중 대입은 순수하지 않아 effect 로 미룬다 — 읽는 쪽이 전부
+    이벤트 핸들러와 setState 갱신 함수라 한 렌더 늦어도 문제없다.
+  */
+  useEffect(() => {
+    myTilesRef.current   = myTiles;
+    slotRef.current      = slot;
+    remainingRef.current = remaining;
+  });
 
   const leadingZeroError = slot.length >= 2 && slot[0].tile === 0;
   const isEmpty   = slot.length === 0;

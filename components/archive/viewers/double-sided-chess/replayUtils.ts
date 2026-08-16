@@ -20,7 +20,7 @@ export interface ReplayFrame {
 
 export function computeFrames(actions: DSCTurnActionLog[]): ReplayFrame[] {
   const frames: ReplayFrame[] = [];
-  let board = createInitialBoard();
+  const board = createInitialBoard();
 
   frames.push({
     board: cloneBoard(board),
