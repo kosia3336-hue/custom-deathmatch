@@ -5,7 +5,8 @@ import {
   parsePageParam,
 } from '@/lib/pagination';
 import type { Json } from '@/lib/supabase/database.types';
-import AuditTabClient, { type AuditRow, ACTION_KINDS } from './AuditTabClient';
+import AuditTabClient, { type AuditRow } from './AuditTabClient';
+import { ACTION_KINDS } from './auditActions';
 
 interface RawRow {
   id: number;
