@@ -114,6 +114,35 @@ export default function InventoryCard() {
     busy: false,
   });
   const [boxBusy, setBoxBusy] = useState(false);
+  /** 소모품별 1개당 판매가(CDP). 상점 가격에서 끌어오므로 관리자가 값을 바꾸면 같이 따라온다. */
+  const [unitRefunds, setUnitRefunds] = useState<Partial<Record<ConsumableKind, number>>>({});
+
+  /*
+    판매가 = 상점 단품 가격의 10%(내림). 실제 환급은 DB 함수가 계산하므로
+    여기서 값을 따로 적어 두면 가격이 바뀔 때 조용히 어긋난다. 같은 출처인
+    상점 아이템에서 끌어와 표시만 맞춘다.
+    묶음 상품(5개입 등)은 1개당 단가가 달라 stockPerUnit 이 1 인 것만 본다.
+  */
+  useEffect(() => {
+    let aborted = false;
+    fetch('/api/shop/items?type=consumable', { cache: 'no-store' })
+      .then((r) => r.json() as Promise<{ items: Array<{ price: number; payload?: Record<string, unknown> }> }>)
+      .then((j) => {
+        if (aborted) return;
+        const map: Partial<Record<ConsumableKind, number>> = {};
+        for (const it of j.items ?? []) {
+          const kind = it.payload?.kind as ConsumableKind | undefined;
+          const per = Number(it.payload?.stockPerUnit ?? 1);
+          if (!kind || per !== 1) continue;
+          map[kind] = Math.floor(Number(it.price) * 0.1);
+        }
+        setUnitRefunds(map);
+      })
+      .catch(() => {});
+    return () => {
+      aborted = true;
+    };
+  }, []);
 
   // 인벤토리 fetch 는 GNB 의 InventoryInit 가 이미 한다 — 여기선 fallback 만.
   useEffect(() => {
@@ -205,6 +234,8 @@ export default function InventoryCard() {
   }
 
   const sellMax = sell.kind ? (items?.[sell.kind] ?? 0) : 0;
+  /** 가격을 아직 못 받아왔거나 해당 상품이 상점에서 내려갔으면 null — 그때는 표시를 생략한다 */
+  const sellUnitRefund = sell.kind ? (unitRefunds[sell.kind] ?? null) : null;
 
   async function confirmSell() {
     if (sell.busy || !sell.kind) return;
@@ -350,7 +381,13 @@ export default function InventoryCard() {
                       onClick={() => openSell(kind)}
                       fullWidth
                     >
+                      {/* 모달을 열기 전에도 얼마 받는지 보이게 단가를 함께 둔다 */}
                       판매
+                      {unitRefunds[kind] != null && (
+                        <span className="ml-1 text-xs font-normal text-cdm-fg-muted">
+                          개당 {unitRefunds[kind]!.toLocaleString()} CDP
+                        </span>
+                      )}
                     </Button>
                   )}
                 </div>
@@ -444,6 +481,21 @@ export default function InventoryCard() {
               </button>
             </div>
           </div>
+          {/* 판매가 — 1개당 단가와 합계를 함께 보여 준다 */}
+          {sellUnitRefund != null && (
+            <div className="mt-2 flex items-center justify-between rounded-cdm-md border border-cdm-primary/30 bg-cdm-primary-soft p-3">
+              <span className="text-sm text-cdm-fg-muted">
+                받을 CDP
+                <span className="ml-1 text-xs text-cdm-fg-subtle">
+                  (개당 {sellUnitRefund.toLocaleString()})
+                </span>
+              </span>
+              <span className="text-base font-bold tabular-nums text-cdm-primary-strong">
+                +{(sellUnitRefund * sell.quantity).toLocaleString()} CDP
+              </span>
+            </div>
+          )}
+
           <ul className="mt-2 ml-4 list-disc text-xs text-cdm-fg-muted">
             <li>구매가의 10%가 CDP로 환급됩니다.</li>
             <li>보유 수량: {sellMax}개</li>
