@@ -5007,3 +5007,85 @@ body {
   .rule-sheet__title { margin-top: 0.35rem; font-size: 1.6rem; -webkit-text-stroke-width: 0.06em; }
   .rule-sheet__body { padding: 1rem 1.1rem 1.6rem; font-size: 0.95rem; }
 }
+
+/* ──────────────────────────────────────────────
+   소개(/about) — 등장 연출
+   ────────────────────────────────────────────── */
+
+/*
+  스크롤 등장은 스크롤 기반 애니메이션(animation-timeline: view())으로만 건다.
+  JS·IntersectionObserver 를 쓰면 초기 상태를 숨겨야 해서 스크립트가 없는 환경
+  (크롤러 일부, JS 실패)에서 본문이 통째로 안 보이게 된다. 소개 페이지는 검색
+  유입의 대표 문서라 그 위험을 지지 않는다.
+  미지원 브라우저(Safari/Firefox)에서는 아무 일도 없이 그냥 보인다.
+*/
+@keyframes intro-reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .intro-reveal {
+      animation: intro-reveal-in linear both;
+      animation-timeline: view();
+      /* 뷰포트에 들어오기 시작해 화면 1/4쯤 덮을 때까지 진행 */
+      animation-range: entry 8% cover 26%;
+    }
+  }
+}
+
+/* 히어로 — 최초 진입 시 위에서부터 차례로. 스크롤과 무관하므로 일반 애니메이션. */
+@keyframes intro-hero-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.intro-hero-in {
+  animation: intro-hero-in 0.75s var(--cdm-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation-delay: var(--intro-hero-delay, 0s);
+}
+
+/* 카드 — 마우스를 올리면 살짝 떠오르고 테두리 광이 밝아진다 */
+.intro-rank-slot,
+.intro-title-card {
+  transition:
+    transform 320ms var(--cdm-ease-out, ease-out),
+    border-color 320ms var(--cdm-ease-out, ease-out),
+    box-shadow 320ms var(--cdm-ease-out, ease-out);
+}
+.intro-rank-slot:hover,
+.intro-title-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(174, 178, 255, 0.45);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset,
+    0 22px 44px -22px rgba(0, 0, 0, 0.9),
+    0 0 24px -8px rgba(124, 131, 255, 0.45);
+}
+/* 번호도 함께 밝아져 카드가 '켜지는' 느낌을 준다 */
+.intro-rank-slot .intro-rank-num {
+  transition: color 320ms var(--cdm-ease-out, ease-out), text-shadow 320ms var(--cdm-ease-out, ease-out);
+}
+.intro-rank-slot:hover .intro-rank-num {
+  color: #cfd2ff;
+  text-shadow: 0 0 14px rgba(124, 131, 255, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-hero-in { animation: none; }
+  .intro-rank-slot:hover,
+  .intro-title-card:hover { transform: none; }
+}
