@@ -28,7 +28,7 @@ const PILLARS: Array<{ title: string; desc: string }> = [
 const RANK_POINTS: Array<{ title: string; body: string }> = [
   {
     title: '매일 밤 펼쳐지는 랭크게임 (21:00 ~ 01:00)',
-    body: '도전자들이 모이는 4시간. 매일 밤 열리는 랭크전에서 당신의 한계를 시험하세요.',
+    body: '도전자들이 모이는 4시간. 매일 밤 열리는 랭크전에서 당신의 한계를 시험하세요. (주말은 24시간제로 운영됩니다.)',
   },
   {
     title: '치열한 밴픽 전략',
@@ -40,7 +40,7 @@ const RANK_POINTS: Array<{ title: string; body: string }> = [
   },
   {
     title: '최고 명예와 시즌 한정 보상',
-    body: '높은 티어에 도달할수록 더 명예로운 보상이 기다립니다. 시즌 종료 후 최상위 랭커만을 위한 스패셜 보상을 획득하세요.',
+    body: '높은 티어에 도달할수록 더 명예로운 보상이 기다립니다. 시즌 종료 후 최상위 랭커만을 위한 스페셜 보상을 획득하세요.',
   },
 ];
 
@@ -63,7 +63,7 @@ const TITLE_POINTS: Array<{ kind: TitleSlotKind; title: string; body: string }> 
   {
     kind: 'normal',
     title: '일반 칭호',
-    body: '운영자가 직접 유저의 특별한 업적을 기리며 하사하는 희귀 칭호입니다.',
+    body: '운영자가 직접 부여하는, 유저의 특별한 업적을 기리는 희귀 칭호입니다.',
   },
   {
     kind: 'hidden',
@@ -73,12 +73,12 @@ const TITLE_POINTS: Array<{ kind: TitleSlotKind; title: string; body: string }> 
   {
     kind: 'shop',
     title: '상점 칭호',
-    body: '상점에서 구매할 수 가능하며, 장착 시 해당 게임이 추첨될 확률이 증가합니다.',
+    body: '상점 로테이션 품목에서 입수할 수 있으며, 장착 시 해당 게임이 추첨될 확률이 증가합니다.',
   },
   {
     kind: 'effect',
     title: '이펙트',
-    body: '보유한 칭호에 입히는 고유 시각 연출입니다. 챌린저 시즌 보상으로 영구 소장하거나, 상점 뽑기를 통해 기간제로 획득할 수 있습니다.',
+    body: '보유한 칭호에 입히는 고유 시각 연출입니다. 상점 뽑기를 통해 기간제로 획득하거나, 챌린저 시즌 보상으로 영구 소장할 수도 있습니다.',
   },
 ];
 
@@ -246,11 +246,14 @@ export default async function IntroContent() {
           <EmberField />
 
           <div className="relative z-10 mx-auto w-full max-w-3xl">
-            <p className="text-xs font-bold tracking-[0.4em] text-cdm-ink-fg-muted md:text-sm">
+            <p
+              className="intro-hero-in text-xs font-bold tracking-[0.4em] text-cdm-ink-fg-muted md:text-sm"
+              style={{ ['--intro-hero-delay' as string]: '0.05s' }}
+            >
               CUSTOM DEATHMATCH
             </p>
             {/* h1 에 브랜드명을 함께 둔다 — 브랜드 검색에서 본문 근거가 되도록 */}
-            <h1 className="mt-5">
+            <h1 className="intro-hero-in mt-5" style={{ ['--intro-hero-delay' as string]: '0.15s' }}>
               <span className="block text-lg font-bold text-cdm-ink-fg md:text-xl">
                 커스텀 데스매치
               </span>
@@ -260,13 +263,22 @@ export default async function IntroContent() {
                 승리한다
               </span>
             </h1>
-            <div className="guide-rule-line mx-auto mt-7 w-40" />
-            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-cdm-ink-fg-muted md:text-lg">
+            <div
+              className="intro-hero-in guide-rule-line mx-auto mt-7 w-40"
+              style={{ ['--intro-hero-delay' as string]: '0.3s' }}
+            />
+            <p
+              className="intro-hero-in mx-auto mt-7 max-w-xl text-base leading-relaxed text-cdm-ink-fg-muted md:text-lg"
+              style={{ ['--intro-hero-delay' as string]: '0.38s' }}
+            >
               더 지니어스, 데블스 플랜, 피의 게임 등 방송에서 나온 두뇌 서바이벌 게임부터, 유저들이 직접 만든 창작게임까지.
               <span className="mt-2 block">지금 직접 플레이어로 참여해보세요.</span>
             </p>
 
-            <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div
+              className="intro-hero-in mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+              style={{ ['--intro-hero-delay' as string]: '0.5s' }}
+            >
               <Link
                 href="/lobby"
                 className="guide-cta w-full rounded-xl px-8 py-3.5 text-center font-bold text-white transition sm:w-auto"
@@ -288,7 +300,7 @@ export default async function IntroContent() {
           className="flex scroll-mt-14 flex-col items-center justify-center px-4 py-16 sm:min-h-[calc(100vh-3.5rem)] md:px-6"
         >
           <div className="mx-auto w-full max-w-6xl">
-            <div className="grid items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
+            <div className="intro-reveal grid items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
               <div className="guide-screen">
                 <div className="guide-screen-frame">
                   <Image
@@ -346,11 +358,13 @@ export default async function IntroContent() {
         >
           <div className="mx-auto w-full max-w-6xl">
             <h2 className="sr-only">랭크</h2>
-            <IntroRankPanel />
-            <p className="mt-10 text-2xl font-black tracking-tight text-cdm-ink-fg md:text-4xl">
+            <div className="intro-reveal">
+              <IntroRankPanel />
+            </div>
+            <p className="intro-reveal mt-10 text-2xl font-black tracking-tight text-cdm-ink-fg md:text-4xl">
               오직 실력으로 당신의 가치를 증명하라.
             </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <ul className="intro-reveal mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4">
               {RANK_POINTS.map((item, i) => (
                 <li key={item.title} className="intro-rank-slot">
                   <span className="intro-rank-num">
@@ -391,10 +405,10 @@ export default async function IntroContent() {
         >
           <div className="mx-auto w-full max-w-6xl">
             <h2 className="sr-only">칭호</h2>
-            <p className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
+            <p className="intro-reveal text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               위대한 업적을 세우고, 칭호를 획득하라.
             </p>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-4">
+            <ul className="intro-reveal mt-6 grid gap-4 sm:grid-cols-2 sm:gap-4">
               {TITLE_POINTS.map((item) => (
                 <li key={item.kind} className="intro-title-card">
                   <IntroTitlesPanel modal={titleSlots[item.kind]} />
@@ -433,10 +447,10 @@ export default async function IntroContent() {
         >
           <div className="mx-auto w-full max-w-6xl">
             <h2 className="sr-only">상점</h2>
-            <p className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
+            <p className="intro-reveal text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               랭크 게임으로 재화를 벌고, 원하는 아이템을 구매하라.
             </p>
-            <ul className="mt-6 grid grid-cols-1 gap-3">
+            <ul className="intro-reveal mt-6 grid grid-cols-1 gap-3">
               {SHOP_POINTS.map((item) => (
                 <li key={item.title} className="intro-rank-slot">
                   <h3 className="text-base font-black tracking-tight text-cdm-ink-fg md:text-lg">
@@ -473,7 +487,7 @@ export default async function IntroContent() {
           className="flex scroll-mt-14 flex-col items-center justify-center px-4 py-10 sm:min-h-[calc(100vh-3.5rem)] sm:py-12 md:px-6"
         >
           <div className="mx-auto w-full max-w-6xl">
-            <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
+            <h2 className="intro-reveal text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               길드 시스템
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-cdm-ink-fg-muted md:text-lg">
@@ -504,7 +518,7 @@ export default async function IntroContent() {
           className="flex scroll-mt-14 flex-col items-center justify-center px-4 py-16 sm:min-h-[calc(100vh-3.5rem)] md:px-6"
         >
           <div className="mx-auto w-full max-w-6xl">
-            <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
+            <h2 className="intro-reveal text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               게임 룰
             </h2>
             <div className="mt-6">
@@ -515,7 +529,7 @@ export default async function IntroContent() {
 
         <div className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6 md:py-20">
           {/* 하단 CTA */}
-          <section className="guide-card rounded-2xl px-8 py-12 text-center">
+          <section className="intro-reveal guide-card rounded-2xl px-8 py-12 text-center">
             <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               지금 바로 치열한 승부에 도전하라.
             </h2>
