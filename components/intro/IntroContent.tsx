@@ -157,27 +157,9 @@ const TITLE_SAMPLES: Record<TitleSlotKind, IntroTitleModalData> = {
   },
 };
 
-function BroadcastIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12a7 7 0 0 1 14 0" />
-      <path d="M8.5 12a3.5 3.5 0 0 1 7 0" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-      <path d="M12 13.5V18" />
-      <path d="M9 18h6" />
-    </svg>
-  );
-}
-
-function GenreIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1.2" />
-      <rect x="14" y="3" width="7" height="7" rx="1.2" />
-      <rect x="3" y="14" width="7" height="7" rx="1.2" />
-      <rect x="14" y="14" width="7" height="7" rx="1.2" />
-    </svg>
-  );
+/** 특징 목록의 말머리 — 방송/장르를 각각 형상화한 아이콘 대신 일반 점 불릿 */
+function BulletMark() {
+  return <span aria-hidden className="block h-2.5 w-2.5 rounded-full bg-current" />;
 }
 
 // 룰 본문은 관리자 저장 시 갱신되므로 주기적 재검증
@@ -334,13 +316,13 @@ export default async function IntroContent() {
                 </p>
 
                 <ul className="mt-8 space-y-6">
-                  {PILLARS.map((item, i) => (
+                  {PILLARS.map((item) => (
                     <li key={item.title} className="flex gap-4">
                       <span
                         aria-hidden
                         className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(124,108,255,0.18)] text-[#aeb2ff]"
                       >
-                        {i === 0 ? <BroadcastIcon /> : <GenreIcon />}
+                        <BulletMark />
                       </span>
                       <div>
                         <h3 className="text-base font-bold text-cdm-ink-fg md:text-lg">
