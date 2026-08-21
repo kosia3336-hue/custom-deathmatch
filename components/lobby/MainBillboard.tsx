@@ -35,14 +35,6 @@ const SLIDES: Slide[] = [
     href: '/notice/4e5982fd-f102-4f77-ab17-58b8f8b09f4d',
     label: '신규 업데이트 공지 보기',
   },
-  {
-    src: '/brand/intro-gameplay.png',
-    alt: '커스텀 데스매치 소개',
-    href: '/about',
-    label: '커스텀 데스매치 소개 보기',
-    cover: true,
-    caption: { title: '커스텀 데스매치란?', sub: '소개 페이지에서 자세히 보기' },
-  },
 ];
 
 /** 자동 전환 간격. 읽을 시간을 주되 지루하지 않은 정도. */
