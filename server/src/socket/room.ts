@@ -480,7 +480,8 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       password: data.password,
       clearPassword: data.clearPassword,
       timeLimitSeconds: data.timeLimitSeconds,
-      gameOptions: newGame ? {} : data.gameOptions,
+      // 게임을 바꾸는 동시에 해당 게임의 상세 옵션을 보내는 경우에도 보존한다.
+      gameOptions: data.gameOptions ?? (newGame ? {} : undefined),
     });
 
     // 게임 변경 시 시스템 채팅 전송

@@ -254,6 +254,16 @@ import {
   getTransletterResultData,
 } from './games/transletter/index.js';
 import {
+  initFormulaCompletion,
+  handleFormulaCompletionAction,
+  cleanupFormulaCompletion,
+  getFormulaCompletionState,
+  emitFormulaCompletionStateToSocket,
+  performFormulaCompletionUndo,
+  canFormulaCompletionUndo,
+  getFormulaCompletionResultData,
+} from './games/formula-completion/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -265,6 +275,16 @@ import {
 } from './games/quatro/index.js';
 
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.FORMULA_COMPLETION]: {
+    init: initFormulaCompletion,
+    handleAction: handleFormulaCompletionAction,
+    cleanup: cleanupFormulaCompletion,
+    getState: getFormulaCompletionState,
+    emitStateToSocket: emitFormulaCompletionStateToSocket,
+    performUndo: performFormulaCompletionUndo,
+    canUndo: canFormulaCompletionUndo,
+    getResultData: getFormulaCompletionResultData,
+  },
   [GAME_IDS.WORD_PUZZLE]: {
     init: initWordPuzzle,
     handleAction: handleWordPuzzleAction,

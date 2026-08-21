@@ -7,7 +7,7 @@ import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
-import { GAME_IDS } from '@/shared/types';
+import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS } from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
@@ -69,6 +69,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitMin, setTimeLimitMin] = useState(1);
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
+  const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
   const [banCount, setBanCount] = useState(3);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
@@ -101,6 +102,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitMin(1);
     setTimeLimitSec(0);
     setInitialChips(25);
+    setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
     setBanCount(3);
     fetchGames()
       .then((all) =>
@@ -185,6 +187,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       }
       if (selectedGame.id === GAME_IDS.BAN_PICK) {
         gameOptions.banCount = banCount;
+      }
+      if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
+        gameOptions.numberCount = formulaNumberCount;
       }
       socket.emit(
         'room:create',
@@ -356,6 +361,27 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     </OptionButton>
                   ))}
                 </div>
+              </SettingField>
+            )}
+
+            {/* 제시 숫자 개수 (수식완성N) */}
+            {selectedGame?.id === GAME_IDS.FORMULA_COMPLETION && (
+              <SettingField label="제시 숫자 N" hint="(기본 4)">
+                <div className="flex gap-2">
+                  {[4, 5, 6].map((count) => (
+                    <OptionButton
+                      key={count}
+                      size="square"
+                      active={formulaNumberCount === count}
+                      onClick={() => setFormulaNumberCount(count)}
+                    >
+                      {count}
+                    </OptionButton>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-cdm-fg-subtle">
+                  숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
+                </p>
               </SettingField>
             )}
 
