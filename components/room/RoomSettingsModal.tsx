@@ -114,9 +114,12 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     };
   }, [open, onClose]);
 
-  const computedTimeLimit = timeLimitEnabled
-    ? timeLimitMin * 60 + timeLimitSec
-    : null;
+  const hasFixedMatchTime = selectedGame?.id === GAME_IDS.COMPLETE_HAP;
+  const computedTimeLimit = hasFixedMatchTime
+    ? 600
+    : timeLimitEnabled
+      ? timeLimitMin * 60 + timeLimitSec
+      : null;
 
   const playerRange = selectedGame
     ? Array.from(
@@ -331,6 +334,13 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             )}
 
             {/* 시간제한 */}
+            {hasFixedMatchTime ? (
+              <SettingField label="시간제한">
+                <div className="rounded-cdm-md bg-cdm-primary-soft px-3 py-2 text-sm font-bold text-cdm-primary">
+                  타임어택 고정 10분
+                </div>
+              </SettingField>
+            ) : (
             <SettingField label="시간제한">
               <div className="flex gap-2">
                 {[
@@ -392,6 +402,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                 </div>
               )}
             </SettingField>
+            )}
           </>
         )}
       </SettingsAccordion>

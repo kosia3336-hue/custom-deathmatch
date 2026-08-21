@@ -33,6 +33,7 @@ export const GAME_IDS = {
   WORD_PUZZLE: 'game-018',
   TRANSLETTER: 'game-019',
   FORMULA_COMPLETION: 'game-020',
+  COMPLETE_HAP: 'game-021',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;
