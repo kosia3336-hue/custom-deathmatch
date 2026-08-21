@@ -1,3 +1,13 @@
+/*
+  이 모듈은 import 되는 순간 env 를 읽어 검증한다. 그래서 .env 로딩을 진입점
+  (index.ts)의 `import 'dotenv/config'` 에만 맡기면 안 된다 — 번들러가 청크를
+  쪼개면서 config 가 들어간 청크를 그보다 먼저 import 하면, ESM 은 import 를
+  순서대로 평가하므로 .env 가 아직 안 읽힌 상태에서 여기가 실행된다.
+  실제로 그렇게 깨져 INTERNAL_SECRET 미설정으로 기동 자체가 막혔다.
+  번들 순서에 기대지 않도록 여기서도 직접 보장한다.
+  dotenv 는 이미 있는 값을 덮어쓰지 않으므로 중복 로드는 안전하다.
+*/
+import 'dotenv/config';
 import { timingSafeEqual } from 'node:crypto';
 
 const isProduction = process.env.NODE_ENV === 'production';
