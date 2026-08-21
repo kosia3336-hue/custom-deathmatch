@@ -5,6 +5,7 @@ import { getAuthState } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import TitlesClient from './TitlesClient';
+import { CONTAINER_WIDE } from '@/lib/layout';
 
 export const metadata: Metadata = {
   title: '칭호',
@@ -54,7 +55,7 @@ export default async function TitlesPage() {
   return (
     <>
       <GNB member={member} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <main className={`${CONTAINER_WIDE} flex-1 px-4 py-6 sm:px-6 sm:py-8`}>
         <header className="mb-6">
           <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">칭호</h1>
         </header>

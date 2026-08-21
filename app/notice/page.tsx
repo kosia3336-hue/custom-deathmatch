@@ -15,6 +15,7 @@ import {
 } from '@/lib/pagination';
 import type { NoticeCategory } from '@/lib/supabase/database.types';
 import { cn } from '@/lib/utils';
+import { CONTAINER_READ } from '@/lib/layout';
 
 export const metadata: Metadata = {
   title: '공지사항',
@@ -110,7 +111,7 @@ export default async function NoticeListPage({ searchParams }: Props) {
   return (
     <>
       <GNB member={member} />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <main className={`${CONTAINER_READ} flex-1 px-4 py-6 sm:px-6 sm:py-8`}>
         <header className="mb-4 flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">공지사항</h1>
           <p className="text-sm text-cdm-fg-muted">운영진의 공식 안내를 확인하세요.</p>
