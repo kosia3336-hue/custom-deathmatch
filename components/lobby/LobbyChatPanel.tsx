@@ -40,7 +40,7 @@ function TabButton({
 }
 
 /**
- * 로비 채팅 패널. 접속 인원 수는 전원에게 보이고, 명단 탭은 천하만.
+ * 로비 채팅 패널. 채팅은 전원. 접속자 탭만 천하.
  */
 export function LobbyChatPanel() {
   const isOpen = useLobbyChatStore((s) => s.isOpen);
@@ -133,29 +133,24 @@ export function LobbyChatPanel() {
           </button>
         </header>
 
-        {canSeeUsers ? (
-          <div className="flex border-b border-cdm-border" role="tablist">
-            <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
-              <span>채팅({onlineCount}명)</span>
-            </TabButton>
+        <div className="flex border-b border-cdm-border" role="tablist">
+          <TabButton active={activeTab !== 'users'} onClick={() => onTabChange('chat')}>
+            <span>채팅({onlineCount}명)</span>
+          </TabButton>
+          {canSeeUsers && (
             <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
               <span>접속자</span>
             </TabButton>
-          </div>
-        ) : (
-          <div className="flex h-11 items-center border-b border-cdm-border px-5 text-sm font-medium text-cdm-fg">
-            채팅({onlineCount}명)
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* 본문 */}
-        {activeTab === 'chat' || !canSeeUsers ? (
+        {canSeeUsers && activeTab === 'users' ? (
+          <OnlineUsersList />
+        ) : (
           <div className="flex flex-1 flex-col overflow-hidden">
             <LobbyChatList />
             <LobbyChatInput ref={inputRef} />
           </div>
-        ) : (
-          <OnlineUsersList />
         )}
       </div>
 

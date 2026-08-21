@@ -114,7 +114,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
             <RankQueueDesktopChip />
           </span>
           <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
-          {member && <OnlineUsersModalButton />}
+          <OnlineUsersModalButton />
 
 
         {loadingRight ? (

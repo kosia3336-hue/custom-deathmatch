@@ -156,7 +156,7 @@ export default function AboutGNB() {
             <RankQueueDesktopChip />
           </span>
           <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
-          {member && <OnlineUsersModalButton />}
+          <OnlineUsersModalButton />
 
           {loading ? (
             <div className="h-8 w-22 animate-pulse rounded-cdm-md bg-white/10" />
