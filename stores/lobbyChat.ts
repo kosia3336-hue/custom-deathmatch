@@ -44,6 +44,8 @@ export const useLobbyChatStore = create<LobbyChatState>((set) => ({
     set((s) => ({
       isOpen: v,
       lastSeenMsgCount: v ? s.messages.length : s.lastSeenMsgCount,
+      // 열 때는 항상 채팅. 접속자 탭에 남아 채팅이 사라진 것처럼 보이지 않게.
+      activeTab: v ? 'chat' : s.activeTab,
     })),
 
   setActiveTab: (t) => set({ activeTab: t }),
