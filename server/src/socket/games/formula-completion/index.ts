@@ -54,6 +54,9 @@ function startRoundTimer(io: IO, s: FormulaCompletionState) {
 function rankingsFor(s: FormulaCompletionState) {
   const [first, second] = s.players;
   const firstScore = s.scores[first.id] ?? 0;
+  if (s.playMode === 'solo') {
+    return [{ playerId: first.id, nickname: first.nickname, rank: 1, score: firstScore }];
+  }
   const secondScore = s.scores[second.id] ?? 0;
   if (firstScore === secondScore) {
     return [
@@ -150,12 +153,15 @@ export function initFormulaCompletion(
   if (previous) clearFormulaCompletionTimers(previous);
   formulaCompletionStates.delete(roomId);
 
-  if (!players[0] || !players[1]) throw new Error('수식완성N은 두 명의 플레이어가 필요합니다.');
+  const firstPlayer = players[0];
+  if (!firstPlayer) throw new Error('수식완성N을 시작할 플레이어가 필요합니다.');
+  const secondPlayer = playMode === 'solo' ? firstPlayer : players[1];
+  if (!secondPlayer) throw new Error('멀티 수식완성N은 두 명의 플레이어가 필요합니다.');
   const numberCount = resolveNumberCount(gameOptions.numberCount);
   const s: FormulaCompletionState = {
     roomId,
     playMode,
-    players: [players[0], players[1]],
+    players: [firstPlayer, secondPlayer],
     phase: 'playing',
     round: 1,
     numberCount,
@@ -163,7 +169,7 @@ export function initFormulaCompletion(
     target: 0,
     solution: '',
     usedPuzzleKeys: new Set(),
-    scores: { [players[0].id]: 0, [players[1].id]: 0 },
+    scores: { [firstPlayer.id]: 0, [secondPlayer.id]: 0 },
     history: [],
     lastResult: null,
     roundStartedAt: Date.now(),

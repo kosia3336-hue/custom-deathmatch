@@ -41,6 +41,7 @@ export function toFormulaCompletionGameData(
     roundSeconds: s.roundSeconds,
     lastResult: s.lastResult,
     history: [...s.history],
+    isSolo: s.playMode === 'solo',
   };
 }
 
