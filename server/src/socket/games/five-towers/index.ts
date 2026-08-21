@@ -17,6 +17,7 @@ import {
   performFiveTowersUndo,
   handleFiveTowersLeave,
   getFiveTowersResultData,
+  buildGameDataForPlayer,
 } from './state.js';
 import { aiAct } from './ai.js';
 
@@ -153,6 +154,46 @@ export function cleanupFiveTowers(roomId: string) {
 
 export function getFiveTowersState(roomId: string) {
   return gameStates.get(roomId);
+}
+
+/**
+ * 더미용 공개 뷰. 내 기여·마일스톤 밴드·마스킹된 로그만.
+ * towers.height / 상대 myStackedHeights / dbg 금지.
+ */
+export function getFiveTowersDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  const data = buildGameDataForPlayer(s, viewerId);
+  const myInfo = data.players[viewerId];
+  const oppInfo = data.players[opp.id];
+  if (!myInfo || !oppInfo) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: data.phase,
+    turn: data.turn,
+    currentPlayerId: data.currentPlayerId,
+    myId: me.id,
+    oppId: opp.id,
+    myScore: myInfo.score,
+    oppScore: oppInfo.score,
+    myStacked: myInfo.myStackedHeights ?? { A: 0, B: 0, C: 0, D: 0, E: 0 },
+    itemUsed: myInfo.itemUsed,
+    myItemUsedKind: myInfo.myItemUsedKind,
+    towers: data.towers,
+    myInfoResults: data.myInfoResults,
+    mySecretLog: data.mySecretLog,
+    unresolvedSecrets: data.unresolvedSecrets,
+    actionLog: data.actionLog,
+    milestoneLog: data.milestoneLog,
+    winner: data.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
 }
 
 export function emitFiveTowersStateToSocket(socket: TypedSocket, roomId: string) {

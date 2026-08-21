@@ -9,6 +9,7 @@ import { registerRoomHandlers, handleLeaveRoom } from './room.js';
 import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { registerRankQueueHandlers } from './rankQueue.js';
+import { registerDevDummyHandlers } from '../dummy/register.js';
 import { registerEventRoomHandlers, eventRoom, EVENT_ROOM_KEY, EVENT_SOCKET_CHANNEL } from './eventRoomHandlers.js';
 import {
   registerSmsEventRoomHandlers,
@@ -281,6 +282,9 @@ export function setupSocketHandlers(io: IO) {
     registerGameHandlers(io, socket);
     registerChatHandlers(io, socket);
     registerRankQueueHandlers(io, socket);
+    if (process.env.NODE_ENV !== 'production') {
+      registerDevDummyHandlers(io, socket);
+    }
     registerEventRoomHandlers(io, socket);
     registerSmsEventRoomHandlers(io, socket);
 

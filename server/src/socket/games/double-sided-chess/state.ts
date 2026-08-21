@@ -20,11 +20,13 @@ import { getActiveSkin } from '../../skins.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 
-export const gameStates = new Map<string, InternalState>();
+const g = globalThis as typeof globalThis & { __dscGameStates?: Map<string, InternalState> };
+export const gameStates: Map<string, InternalState> =
+  g.__dscGameStates ?? (g.__dscGameStates = new Map());
 
 /* ────────────────────── broadcasting ─────────────────── */
 
-function toGameData(s: InternalState, viewerToken: string): DoubleSidedChessGameData {
+export function toGameData(s: InternalState, viewerToken: string): DoubleSidedChessGameData {
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
   return {
@@ -382,16 +384,9 @@ export function terminateAIWorker(roomId: string) {
   }
 }
 
-function runAIWithWorker(s: InternalState): Promise<AIMove> {
-  const workerData: AIWorkerData = {
-    board: s.board,
-    prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
-    currentOwner: s.currentOwner,
-    useStrong: s.ownerToken !== null,
-  };
-
+export function runDscWorkerSearch(roomId: string, workerData: AIWorkerData): Promise<AIMove> {
   return new Promise((resolve) => {
-    const worker = getOrCreateAIWorker(s.roomId);
+    const worker = getOrCreateAIWorker(roomId);
 
     let settled = false;
     const settle = (move: AIMove) => {
@@ -400,6 +395,9 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
       resolve(move);
     };
 
+    const fallback = () =>
+      getQuickFallbackMove(workerData.board, workerData.prisoners, workerData.currentOwner);
+
     const onMessage = (move: AIMove) => {
       cleanup();
       settle(move);
@@ -407,17 +405,17 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     const onError = (err: Error) => {
       console.error('[DSC AI Worker Error]', err);
       cleanup();
-      terminateAIWorker(s.roomId);
-      settle(getQuickFallbackMove(s.board, s.prisoners, s.currentOwner));
+      terminateAIWorker(roomId);
+      settle(fallback());
     };
     const onExit = (code: number) => {
       cleanup();
       if (!settled) {
-        if (code !== 0 && gameStates.has(s.roomId)) {
+        if (code !== 0 && gameStates.has(roomId)) {
           console.error(`[DSC AI Worker] exited unexpectedly with code ${code}`);
         }
-        aiWorkerMap.delete(s.roomId);
-        settle(getQuickFallbackMove(s.board, s.prisoners, s.currentOwner));
+        aiWorkerMap.delete(roomId);
+        settle(fallback());
       }
     };
     const cleanup = () => {
@@ -430,6 +428,15 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     worker.once('error', onError);
     worker.once('exit', onExit);
     worker.postMessage(workerData);
+  });
+}
+
+function runAIWithWorker(s: InternalState): Promise<AIMove> {
+  return runDscWorkerSearch(s.roomId, {
+    board: s.board,
+    prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
+    currentOwner: s.currentOwner,
+    useStrong: s.ownerToken !== null,
   });
 }
 

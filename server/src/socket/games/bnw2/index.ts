@@ -2,7 +2,7 @@ import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { BNW2Action } from '@shared/types/bnw2.js';
-import { calcBNW2Stage } from './constants.js';
+import { calcBNW2Stage, calcBNW2Color } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { EndGameFn } from './types.js';
 import {
@@ -202,4 +202,62 @@ export function canBNW2Undo(roomId: string): boolean {
   if (!s || s.gameOver) return false;
   const partial = s.phase !== 'firstSubmit';
   return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
+}
+
+/**
+ * 더미용 공개 뷰. 내 잔여 숫자·단계·선 색·단계 전후만.
+ * firstPoints / 기록 points / dbg 금지.
+ */
+export function getBnw2DummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    myId: me.id,
+    oppId: opp.id,
+    firstPlayerId: s.firstPlayerId,
+    my: {
+      score: me.score,
+      remainingPoints: me.remainingPoints,
+      stage: calcBNW2Stage(me.remainingPoints),
+      submitted: me.submitted,
+    },
+    opp: {
+      score: opp.score,
+      stage: calcBNW2Stage(opp.remainingPoints),
+      submitted: opp.submitted,
+    },
+    prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
+    firstPlayerColor:
+      s.phase === 'secondSubmit' && s.firstPoints !== null
+        ? calcBNW2Color(s.firstPoints)
+        : null,
+    roundHistory: s.actionLog.map((log) => ({
+      round: log.round,
+      firstPlayerId: log.firstPlayerId,
+      winnerId: log.winnerId,
+      players: Object.fromEntries(
+        Object.entries(log.players).map(([pid, pd]) => [
+          pid,
+          {
+            color: pd.color,
+            scoreChange: pd.scoreChange,
+            scoreBefore: pd.scoreBefore,
+            scoreAfter: pd.scoreAfter,
+            stageBefore: pd.stageBefore,
+            stageAfter: pd.stageAfter,
+          },
+        ]),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
 }

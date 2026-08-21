@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useLobbyChatStore, type LobbyChatTab } from '@/stores/lobbyChat';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
+import { useNicknameStore } from '@/stores/nickname';
 import { LobbyChatList } from './LobbyChatList';
 import { LobbyChatInput } from './LobbyChatInput';
 import { OnlineUsersList } from './OnlineUsersList';
@@ -39,16 +40,16 @@ function TabButton({
 }
 
 /**
- * 로비 채팅 + 접속자 현황 통합 패널 (모달).
- * GNB 버튼이 여는 큰 모달.
+ * 로비 채팅 패널. 접속 인원 수는 전원에게 보이고, 명단 탭은 천하만.
  */
 export function LobbyChatPanel() {
   const isOpen = useLobbyChatStore((s) => s.isOpen);
   const setOpen = useLobbyChatStore((s) => s.setOpen);
   const activeTab = useLobbyChatStore((s) => s.activeTab);
   const setActiveTab = useLobbyChatStore((s) => s.setActiveTab);
-  const messagesLen = useLobbyChatStore((s) => s.messages.length);
-  const usersLen = useOnlineUsersStore((s) => s.users.length);
+  const onlineCount = useOnlineUsersStore((s) => s.count);
+  const myNickname = useNicknameStore((s) => s.nickname);
+  const canSeeUsers = myNickname === '천하';
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,10 @@ export function LobbyChatPanel() {
       document.body.style.overflow = prev;
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!canSeeUsers && activeTab === 'users') setActiveTab('chat');
+  }, [canSeeUsers, activeTab, setActiveTab]);
 
   // 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {
@@ -128,22 +133,23 @@ export function LobbyChatPanel() {
           </button>
         </header>
 
-        {/* 탭바 */}
-        <div className="flex border-b border-cdm-border" role="tablist">
-          <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
-            <span>채팅</span>
-            {messagesLen > 0 && (
-              <span className="text-xs text-cdm-fg-muted">({messagesLen})</span>
-            )}
-          </TabButton>
-          <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
-            <span>접속자</span>
-            <span className="text-xs text-cdm-fg-muted">{usersLen}</span>
-          </TabButton>
-        </div>
+        {canSeeUsers ? (
+          <div className="flex border-b border-cdm-border" role="tablist">
+            <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
+              <span>채팅({onlineCount}명)</span>
+            </TabButton>
+            <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
+              <span>접속자</span>
+            </TabButton>
+          </div>
+        ) : (
+          <div className="flex h-11 items-center border-b border-cdm-border px-5 text-sm font-medium text-cdm-fg">
+            채팅({onlineCount}명)
+          </div>
+        )}
 
         {/* 본문 */}
-        {activeTab === 'chat' ? (
+        {activeTab === 'chat' || !canSeeUsers ? (
           <div className="flex flex-1 flex-col overflow-hidden">
             <LobbyChatList />
             <LobbyChatInput ref={inputRef} />

@@ -264,6 +264,12 @@ export interface ClientToServerEvents {
   'rank:queue:join': (callback: (res: { success: boolean; error?: string }) => void) => void;
   'rank:queue:leave': () => void;
 
+  /** 로컬 `/dev` 전용. 프로덕션 서버는 핸들러를 등록하지 않는다. */
+  'dev:rankDummy:start': (
+    data: { tier: '상' | '중' | '하'; skipBanPick?: boolean; skipGameId?: string },
+    callback: (res: { success: boolean; roomId?: string; error?: string }) => void,
+  ) => void;
+
   /** 인디언홀덤 (이벤트) — 입장. 칩 1개 이상 보유 시 좌석/관전, 칩 0 또는 게임 중이면 대기열. */
   'event:join': (
     callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
@@ -340,7 +346,7 @@ export interface ServerToClientEvents {
   'lobby:room:created': (room: RoomSummary) => void;
   'lobby:room:updated': (room: RoomSummary) => void;
   'lobby:room:removed': (roomId: string) => void;
-  'lobby:users:online': (data: { users: OnlineUser[] }) => void;
+  'lobby:users:online': (data: { users: OnlineUser[]; count: number }) => void;
 
   'room:state': (room: Room) => void;
   'room:player:joined': (player: Player) => void;

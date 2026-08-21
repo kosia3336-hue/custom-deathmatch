@@ -122,7 +122,7 @@ export function useSocket(): void {
     };
   }, [router]);
 
-  // v2.1: 로비 채팅 + 접속자 현황 — 글로벌 수신 + 라이프사이클 초기화
+  // 로비 채팅 + 접속 인원 — 글로벌 수신 + 라이프사이클 초기화
   useEffect(() => {
     const s = getSocket();
 
@@ -132,8 +132,8 @@ export function useSocket(): void {
     };
 
     // lobby:users:online 글로벌 리스너 — 모든 페이지에서 실시간 업데이트
-    const onOnlineUsers = (data: { users: OnlineUser[] }) => {
-      useOnlineUsersStore.getState().setUsers(data.users);
+    const onOnlineUsers = (data: { users: OnlineUser[]; count?: number }) => {
+      useOnlineUsersStore.getState().setSnapshot(data.users, data.count ?? data.users.length);
     };
 
     const onDisconnect = () => {

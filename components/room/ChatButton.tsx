@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
-import { useLobbyChatStore } from '@/stores/lobbyChat';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
+import { useNicknameStore } from '@/stores/nickname';
 import { Modal } from '@/components/cdm/Modal';
 import { RoomChatBody } from '@/components/room/RoomChat';
 import { LobbyChatList } from '@/components/lobby/LobbyChatList';
@@ -21,16 +21,15 @@ interface Props {
 
 /**
  * 방/게임 화면 채팅 진입 버튼.
- * v2.2 — 방 안에서도 로비 채팅·접속자 현황에 접근할 수 있도록 3탭 구성:
- *   접속자 / 방 채팅 / 로비 채팅
+ * 방 채팅 / 로비 채팅. 접속자 탭은 천하만.
  */
 export default function ChatButton({ scope, scrollClassName }: Props) {
   const [showChat, setShowChat] = useState(false);
   const [tab, setTab] = useState<RoomChatTab>('room');
   const messagesLen = useRoomStore((s) => s.messages.length);
   const lastSeenMsgCount = useRoomStore((s) => s.lastSeenMsgCount);
-  const lobbyMessagesLen = useLobbyChatStore((s) => s.messages.length);
-  const usersLen = useOnlineUsersStore((s) => s.users.length);
+  const onlineCount = useOnlineUsersStore((s) => s.count);
+  const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
   const unreadCount = showChat ? 0 : Math.max(0, messagesLen - lastSeenMsgCount);
 
   const lobbyInputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +40,10 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
       useRoomStore.getState().clearChatUnread();
     }
   }, [showChat]);
+
+  useEffect(() => {
+    if (!canSeeUsers && tab === 'users') setTab('room');
+  }, [canSeeUsers, tab]);
 
   // 로비 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {
@@ -81,15 +84,16 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
       >
         <div className="flex flex-col overflow-hidden rounded-cdm-lg border border-cdm-border bg-cdm-bg">
           <div className="flex border-b border-cdm-border" role="tablist">
-            <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
-              접속자 <span className="text-xs text-cdm-fg-muted">{usersLen}</span>
-            </ChatTabButton>
+            {canSeeUsers && (
+              <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
+                접속자
+              </ChatTabButton>
+            )}
             <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
               방 채팅
             </ChatTabButton>
             <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
-              로비 채팅
-              {lobbyMessagesLen > 0 && <span className="text-xs text-cdm-fg-muted"> ({lobbyMessagesLen})</span>}
+              로비 채팅({onlineCount}명)
             </ChatTabButton>
           </div>
 

@@ -13,10 +13,21 @@ import type { IO, TypedSocket } from './types.js';
 import { applyAutoConsumablesForRankRoom } from '../shop/applyAutoConsumables.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { makeDummySocket } from '../dummy/fakeSocket.js';
+import { isLiveDummySocketId, maybeStartLiveDummyAgent } from '../dummy/live/index.js';
+import { isLiveDummyMemberId } from '../dummy/live/state.js';
+import { LIVE_DUMMY_TIER } from '../dummy/live/window.js';
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
 
-function startRetryTimer(io: IO) {
+function resolveQueueSocket(io: IO, socketId: string) {
+  const real = io.sockets.sockets.get(socketId);
+  if (real) return real;
+  if (isLiveDummySocketId(socketId)) return makeDummySocket(socketId);
+  return null;
+}
+
+export function startRetryTimer(io: IO) {
   if (retryTimer) return;
   retryTimer = setInterval(() => {
     const pairs = rankQueueStore.attemptAllMatches();
@@ -147,8 +158,8 @@ async function buildRankMatchedRoom(
     return;
   }
 
-  const hostSock = io.sockets.sockets.get(hostEntry.socketId);
-  const guestSock = io.sockets.sockets.get(guestEntry.socketId);
+  const hostSock = resolveQueueSocket(io, hostEntry.socketId);
+  const guestSock = resolveQueueSocket(io, guestEntry.socketId);
   if (!hostSock || !guestSock) {
     roomStore.delete(room.id);
     return;
@@ -232,6 +243,11 @@ async function buildRankMatchedRoom(
   });
 
   startGame(io, room.id);
+
+  const dummyPlayer = [hostPlayer, guestPlayer].find((p) => isLiveDummyMemberId(p.memberId));
+  if (dummyPlayer?.memberId) {
+    maybeStartLiveDummyAgent(io, room.id, dummyPlayer.id, dummyPlayer.memberId, LIVE_DUMMY_TIER);
+  }
 }
 
 export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {

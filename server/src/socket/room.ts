@@ -15,6 +15,7 @@ import { maskRoomForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js'
 import { eventRoom } from './eventRoom.js';
 import { smsEventRoom, EVENT_SMS_ROOM_KEY } from './smsEventRoomHandlers.js';
 import { EVENT_ROOM_KEY } from './eventRoom.js';
+import { destroyOrphanedDummyRoom, stopDummyAgent } from '../dummy/match.js';
 
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
@@ -703,6 +704,7 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
   broadcastOnlineUsers(io);
 
   if (result.destroyed) {
+    stopDummyAgent(roomId);
     clearAutoEnd(roomId);
     clearGameStartTime(roomId);
     io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
@@ -721,6 +723,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     broadcastRoomRemoved(io, roomId);
     return;
   }
+
+  destroyOrphanedDummyRoom(io, roomId);
 
   if (result.newHostId) {
     io.to(socketRoom(roomId)).emit('room:host:changed', { newHostId: result.newHostId });

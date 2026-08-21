@@ -8,7 +8,7 @@ import type { BankInternalState, EndGameFn } from './types.js';
 import {
   gameStates, broadcastState, emitStateToSocket, clearAllTimers,
   startRound, makePlayer, trySubmitBet, tryCancelBet, tryNextRoundReady,
-  trySkipReveal, resetTimeout, performBankUndo,
+  trySkipReveal, resetTimeout, performBankUndo, buildGameDataForViewer,
 } from './state.js';
 import { handleAiTurn } from './ai.js';
 
@@ -164,3 +164,64 @@ export function canBankGameUndo(roomId: string): boolean {
 }
 
 export { getBankGameResultData } from './state.js';
+
+/**
+ * 더미용 공개 뷰. 상대 권종·잔액·이번 선 금액 금지.
+ * 후에게 선 장수(`firstPublicCount`)만 — UI `FirstCountRevealBanner`와 같음.
+ */
+export function getBankGameDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  const data = buildGameDataForViewer(s, me.side);
+  const myInfo = data.players[me.side];
+  const oppInfo = data.players[opp.side];
+  const firstInfo = data.firstSide === 'p1' ? data.players.p1 : data.players.p2;
+  const countVisible =
+    data.phase === 'firstReveal'
+    || data.phase === 'secondSubmit'
+    || data.phase === 'reveal'
+    || data.phase === 'roundEnd'
+    || data.phase === 'finished';
+
+  const winner =
+    s.finalWinner === 'p1' ? s.player1.id
+    : s.finalWinner === 'p2' ? s.player2.id
+    : s.finalWinner === 'draw' ? 'draw'
+    : null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: data.phase,
+    round: data.round,
+    maxRound: data.maxRound,
+    firstSide: data.firstSide,
+    myId: me.id,
+    oppId: opp.id,
+    mySide: me.side,
+    my: {
+      score: myInfo.score,
+      inventory: myInfo.inventory
+        ? { 1000: myInfo.inventory[1000], 3000: myInfo.inventory[3000], 5000: myInfo.inventory[5000], 10000: myInfo.inventory[10000] }
+        : { 1000: 0, 3000: 0, 5000: 0, 10000: 0 },
+      inventoryCount: myInfo.inventoryCount,
+      inventoryAmount: myInfo.inventoryAmount ?? 0,
+      betConfirmed: myInfo.betConfirmed,
+    },
+    opp: {
+      score: oppInfo.score,
+      inventoryCount: oppInfo.inventoryCount,
+      betConfirmed: oppInfo.betConfirmed,
+      publicBetCount: oppInfo.publicBetCount,
+    },
+    firstPublicCount: countVisible ? firstInfo.publicBetCount : null,
+    history: data.history,
+    loserAmountTotal: data.loserAmountTotal,
+    winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}

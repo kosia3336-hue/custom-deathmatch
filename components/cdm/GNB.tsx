@@ -91,6 +91,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
               <Link
                 key={it.href}
                 href={it.href}
+                prefetch={pathname?.startsWith(it.href) ? false : undefined}
                 className={cn(
                   'rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
                   pathname === it.href || pathname?.startsWith(it.href)
@@ -113,7 +114,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
             <RankQueueDesktopChip />
           </span>
           <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
-          <OnlineUsersModalButton />
+          {member && <OnlineUsersModalButton />}
 
 
         {loadingRight ? (

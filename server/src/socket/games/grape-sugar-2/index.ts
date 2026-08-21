@@ -136,3 +136,51 @@ export function canGrapeSugar2Undo(roomId: string): boolean {
 }
 
 export { getGrapeSugar2ResultData } from './state.js';
+
+/**
+ * 더미용 공개 뷰. 잔여 카드는 UI와 같이 공개.
+ * 이번 라운드 pending 카드/설탕 · dbg opponentPending 금지.
+ */
+export function getGrapeSugar2DummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  const winner =
+    s.finalWinner === 'p1' ? s.player1.id
+    : s.finalWinner === 'p2' ? s.player2.id
+    : s.finalWinner === 'tie' ? 'tie'
+    : null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    maxRound: s.maxRound,
+    extension: s.extension,
+    myId: me.id,
+    oppId: opp.id,
+    mySide: me.side,
+    my: {
+      score: me.score,
+      sugarRemain: me.sugarRemain,
+      hand: [...me.hand],
+      submitted: me.submitted,
+      hrPenaltyPending: me.hrPenaltyPending,
+    },
+    opp: {
+      score: opp.score,
+      sugarRemain: opp.sugarRemain,
+      hand: [...opp.hand],
+      submitted: opp.submitted,
+      hrPenaltyPending: opp.hrPenaltyPending,
+    },
+    breathAvailable: !(s.player1.breathUsed || s.player2.breathUsed),
+    history: s.history.map((r) => ({ ...r, steps: [...r.steps] })),
+    winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}

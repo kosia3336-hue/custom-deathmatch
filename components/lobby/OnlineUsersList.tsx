@@ -56,12 +56,12 @@ function OnlineUsersSummary({ users }: { users: OnlineUser[] }) {
 }
 
 /**
- * 접속자 현황 탭 본문 (요약 + 목록).
- * 전역 useOnlineUsersStore 를 구독하므로 어느 페이지(로비/방/게임 중)에서 열어도 동일하게 동작한다.
+ * 접속자 명단. UI는 천하만 연다. 서버도 천하 소켓에만 users를 채운다.
  */
 export function OnlineUsersList() {
   const users = useOnlineUsersStore((s) => s.users);
   const myNickname = useNicknameStore((s) => s.nickname);
+  if (myNickname !== '천하') return null;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

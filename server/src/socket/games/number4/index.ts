@@ -201,6 +201,53 @@ export function getNumberFourState(roomId: string) {
   return gameStates.get(roomId);
 }
 
+/**
+ * 더미용 공개 뷰. 사람 game:state 와 같이 상대 잔여 타일·이번 제출은 숨긴다.
+ * roundHistory 도 클라처럼 타일 수치 없이 넘버·성공·점수만.
+ */
+export function getNumberFourDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    myId: me.id,
+    oppId: opp.id,
+    my: {
+      score: me.score,
+      remainingWhite: me.remainingWhite,
+      remainingBlack: me.remainingBlack,
+      submitted: me.submitted,
+    },
+    opp: {
+      score: opp.score,
+      submitted: opp.submitted,
+    },
+    roundHistory: s.roundHistory.map((r) => ({
+      round: r.round,
+      players: Object.fromEntries(
+        Object.entries(r.players).map(([pid, pr]) => [
+          pid,
+          {
+            number: pr.number,
+            success: pr.success,
+            scoreChange: pr.scoreChange,
+            scoreAfter: pr.scoreAfter,
+          },
+        ]),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}
+
 export function emitNumberFourStateToSocket(socket: TypedSocket, roomId: string) {
   const s = gameStates.get(roomId);
   if (!s) return;

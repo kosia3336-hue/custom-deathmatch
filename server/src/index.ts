@@ -53,6 +53,11 @@ async function main() {
 
   setupSocketHandlers(ioInstance);
 
+  const { startLiveDummy } = await import('./dummy/live/index.js');
+  void startLiveDummy(ioInstance).catch((err) => {
+    console.warn('[liveDummy] start 실패', (err as Error).message);
+  });
+
   await initGames();
   app.log.info(`[games] ${getGames().length}개 게임 로드 완료`);
 

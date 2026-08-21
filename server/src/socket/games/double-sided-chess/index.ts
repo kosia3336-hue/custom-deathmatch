@@ -1,5 +1,6 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { isDummyPlayerId } from '@shared/dummy.js';
 import { sessions } from '../../../store/sessions.js';
 import type { Position, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
@@ -8,6 +9,7 @@ import type { EndGameFn, DSCPlayerInfo } from './types.js';
 import { createInitialBoard, getValidMoves, getValidPrisonerPlacements } from './board.js';
 import {
   gameStates,
+  toGameData,
   broadcastState,
   emitStateToSocket,
   startTurnTimer,
@@ -92,7 +94,9 @@ export function handleDoubleSidedChessAction(
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return;
 
-  const myId = sessions.getToken(socket.id) ?? socket.id;
+  const myId = isDummyPlayerId(socket.id)
+    ? socket.id
+    : (sessions.getToken(socket.id) ?? socket.id);
   if (myId !== s.currentPlayer) {
     socket.emit('error', { message: '상대 턴입니다.' });
     return;
@@ -102,11 +106,17 @@ export function handleDoubleSidedChessAction(
     case 'move': {
       const from = data.from as Position | undefined;
       const to = data.to as Position | undefined;
-      if (!from || !to) return;
+      if (!from || !to) {
+        if (isDummyPlayerId(socket.id)) console.warn('[DSC] dummy move missing from/to', data);
+        return;
+      }
       if (
         typeof from.row !== 'number' || typeof from.col !== 'number' ||
         typeof to.row !== 'number' || typeof to.col !== 'number'
-      ) return;
+      ) {
+        if (isDummyPlayerId(socket.id)) console.warn('[DSC] dummy move non-number coords', data);
+        return;
+      }
 
       const cell = s.board[from.row]?.[from.col];
       if (!cell || cell.owner !== s.currentOwner) {
@@ -210,6 +220,19 @@ export function cleanupDoubleSidedChess(roomId: string) {
 
 export function getDoubleSidedChessState(roomId: string) {
   return gameStates.get(roomId);
+}
+
+/** 더미용. 보드·포로·턴은 사람 `game:state` 와 같다. owner 강수·워커 없음. */
+export function getDoubleSidedChessDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  return {
+    gameOver: s.gameOver,
+    data: toGameData(s, viewerId),
+    turnNumber: s.turnNumber,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
 }
 
 export function emitDoubleSidedChessStateToSocket(socket: TypedSocket, roomId: string) {

@@ -95,6 +95,7 @@ export function MobileTabBar({ isMember }: Props) {
                   <li key={m.href}>
                     <Link
                       href={m.href}
+                      prefetch={active ? false : undefined}
                       onClick={() => setMenuOpen(false)}
                       className={cn(
                         'flex flex-col items-center gap-1 rounded-cdm-md py-3 text-[11px] font-medium transition-colors',

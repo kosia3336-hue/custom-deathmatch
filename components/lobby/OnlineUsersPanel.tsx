@@ -19,8 +19,8 @@ export function OnlineUsersModalButton() {
       type="button"
       onClick={() => setOpen(true)}
       className="relative inline-flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
-      aria-label="로비 채팅 / 접속자 현황"
-      title="로비 채팅 / 접속자 현황"
+      aria-label="로비 채팅"
+      title="로비 채팅"
     >
       <svg
         width="18"

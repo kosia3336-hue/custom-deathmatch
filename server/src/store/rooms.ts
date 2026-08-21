@@ -1,7 +1,12 @@
 import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { isDummyPlayerId } from '@shared/dummy.js';
 import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus, TurnOrderMode } from '@shared/types/room.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
+
+function isNonHumanSeat(p: Player): boolean {
+  return p.id === AI_PLAYER_ID || isDummyPlayerId(p.id);
+}
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number; _fromBanPick?: boolean };
 
@@ -137,7 +142,10 @@ export const roomStore = {
 
   getAllSummaries(): RoomSummary[] {
     // 시스템 룸(hostId === '')은 로비에 노출하지 않는다.
-    return Array.from(rooms.values()).filter((r) => r.hostId !== '').map(toSummary);
+    return Array.from(rooms.values())
+      .filter((r) => r.hostId !== '')
+      .filter((r) => !r.players.some((p) => isDummyPlayerId(p.id)))
+      .map(toSummary);
   },
 
   getSummary(roomId: string): RoomSummary | undefined {
@@ -170,7 +178,7 @@ export const roomStore = {
     room.players = room.players.filter((p) => p.id !== playerId);
     room.spectators = room.spectators.filter((p) => p.id !== playerId);
 
-    if (room.players.length === 0 || room.players.every((p) => p.id === AI_PLAYER_ID)) {
+    if (room.players.length === 0 || room.players.every(isNonHumanSeat)) {
       if (room.inviteToken) inviteTokens.delete(room.inviteToken);
       rooms.delete(roomId);
       return { removed: true, destroyed: true };

@@ -3,10 +3,12 @@ import type { OnlineUser } from '@/shared/types/events';
 
 interface OnlineUsersState {
   users: OnlineUser[];
-  setUsers: (users: OnlineUser[]) => void;
+  count: number;
+  setSnapshot: (users: OnlineUser[], count: number) => void;
 }
 
 export const useOnlineUsersStore = create<OnlineUsersState>((set) => ({
   users: [],
-  setUsers: (users) => set({ users }),
+  count: 0,
+  setSnapshot: (users, count) => set({ users, count }),
 }));

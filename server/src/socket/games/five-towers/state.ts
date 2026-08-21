@@ -156,7 +156,7 @@ function buildUnresolvedSecrets(s: InternalState, viewerId: string | null): FTUn
   return out;
 }
 
-function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData {
+export function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData {
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
   const players: Record<string, FTPlayerInfo> = {
