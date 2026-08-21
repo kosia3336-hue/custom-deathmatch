@@ -28,7 +28,7 @@ function randDelay(): number {
 
 /* ────────────────────── broadcasting ─────────────────── */
 
-function toGameData(s: InternalState, viewerToken: string): FourGravityGameData {
+export function toGameData(s: InternalState, viewerToken: string): FourGravityGameData {
   const maskNick = (id: string, nick: string) =>
     isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
   return {

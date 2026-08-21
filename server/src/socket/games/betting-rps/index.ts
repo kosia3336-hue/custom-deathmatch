@@ -239,6 +239,61 @@ export function getBettingRpsState(roomId: string) {
   return gameStates.get(roomId);
 }
 
+/**
+ * 더미용 공개 뷰. 양측 칩·역할·과거 라운드는 UI와 같이 공개.
+ * 이번 라운드 상대 matchResult / prediction / betChips 는 숨김.
+ */
+export function getBettingRpsDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    totalRounds: s.totalRounds,
+    myId: me.id,
+    oppId: opp.id,
+    my: {
+      chips: me.chips,
+      role: me.role,
+      hasChoiceRight: me.hasChoiceRight,
+      submitted: me.submitted,
+    },
+    opp: {
+      chips: opp.chips,
+      role: opp.role,
+      hasChoiceRight: opp.hasChoiceRight,
+      submitted: opp.submitted,
+    },
+    roundHistory: s.actionLog.map((r) => ({
+      round: r.round,
+      choiceRightPlayerId: r.choiceRightPlayerId,
+      players: Object.fromEntries(
+        Object.entries(r.players).map(([pid, pr]) => [
+          pid,
+          {
+            role: pr.role,
+            matchResult: pr.matchResult,
+            prediction: pr.prediction,
+            betChips: pr.betChips,
+            betOutcome: pr.betOutcome,
+            chipsBefore: pr.chipsBefore,
+            chipsAfter: pr.chipsAfter,
+            chipChange: pr.chipChange,
+          },
+        ]),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}
+
 export function emitBettingRpsStateToSocket(socket: TypedSocket, roomId: string) {
   const s = gameStates.get(roomId);
   if (!s) return;

@@ -13,8 +13,10 @@ const THINK_MS = 5_000;
 const THINK_MS_STRONG = 90_000;
 
 parentPort!.on('message', (data: AIWorkerData) => {
-  const move = data.useStrong
-    ? findBestMoveIterativeStrong(data, THINK_MS_STRONG)
-    : findBestMoveIterative(data, THINK_MS);
+  const strong = data.useStrong === true;
+  const limit = data.timeLimitMs ?? (strong ? THINK_MS_STRONG : THINK_MS);
+  const move = strong
+    ? findBestMoveIterativeStrong(data, limit)
+    : findBestMoveIterative(data, limit);
   parentPort!.postMessage(move);
 });

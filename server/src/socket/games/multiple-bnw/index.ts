@@ -279,6 +279,74 @@ export function getMultipleBnwState(roomId: string) {
   return gameStates.get(roomId);
 }
 
+/**
+ * 더미용 공개 뷰. 내 잔여 타일·점수·색 공개·과거 색만.
+ * 상대 remainingTiles 배열·이번 라운드 상대 숫자·dbg `_x` 금지.
+ */
+export function getMultipleBnwDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  let myTile: number | null = null;
+  if (
+    me.currentTile != null
+    && (s.phase === 'suspectFirst' || s.phase === 'suspectSecond')
+  ) {
+    myTile = me.currentTile;
+  }
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    totalRounds: MBNW_TOTAL_ROUNDS,
+    myId: me.id,
+    oppId: opp.id,
+    firstPlayerId: s.firstPlayerId,
+    my: {
+      score: me.score,
+      remainingTiles: [...me.remainingTiles] as MBNWTile[],
+      submitted: me.submitted,
+      isFirst: me.id === s.firstPlayerId,
+    },
+    opp: {
+      score: opp.score,
+      submitted: opp.submitted,
+      isFirst: opp.id === s.firstPlayerId,
+    },
+    colorReveal: s.colorReveal
+      ? {
+          firstPlayerColor: s.colorReveal.firstPlayerColor,
+          secondPlayerColor: s.colorReveal.secondPlayerColor,
+        }
+      : null,
+    myTile,
+    roundHistory: s.roundHistory.map((r) => ({
+      round: r.round,
+      firstPlayerId: r.firstPlayerId,
+      players: Object.fromEntries(
+        Object.entries(r.players).map(([pid, pr]) => [
+          pid,
+          {
+            color: pr.tileColor,
+            suspected: pr.suspected,
+            suspectSuccess: pr.suspectSuccess,
+            bonusPoint: pr.bonusPoint,
+            normalPoint: pr.normalPoint,
+            scoreAfter: pr.scoreAfter,
+          },
+        ]),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}
+
 export function emitMultipleBnwStateToSocket(socket: TypedSocket, roomId: string) {
   const s = gameStates.get(roomId);
   if (!s) return;

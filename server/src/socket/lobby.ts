@@ -5,6 +5,25 @@ import { LOBBY_ROOM } from './types.js';
 import type { OnlineUser } from '@shared/types/events.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { isDummyPlayerId } from '@shared/dummy.js';
+
+function isDummyMatchRoom(roomId: string): boolean {
+  const room = roomStore.get(roomId);
+  return !!room?.players.some((p) => isDummyPlayerId(p.id));
+}
+
+export function onlineUsersPayload(
+  nickname: string | undefined,
+  users: OnlineUser[],
+): { users: OnlineUser[]; count: number } {
+  const count = users.length;
+  if (nickname === '천하') return { users, count };
+  return { users: [], count };
+}
+
+function emitOnlineUsers(socket: TypedSocket, users: OnlineUser[]) {
+  socket.emit('lobby:users:online', onlineUsersPayload(sessions.getNickname(socket.id), users));
+}
 
 function getOnlineUsers(io: IO): OnlineUser[] {
   const users: OnlineUser[] = [];
@@ -39,7 +58,11 @@ function getOnlineUsers(io: IO): OnlineUser[] {
 }
 
 export function broadcastOnlineUsers(io: IO) {
-  io.to(LOBBY_ROOM).emit('lobby:users:online', { users: getOnlineUsers(io) });
+  const users = getOnlineUsers(io);
+  for (const socket of io.sockets.sockets.values()) {
+    if (!socket.rooms.has(LOBBY_ROOM)) continue;
+    emitOnlineUsers(socket, users);
+  }
 }
 
 export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
@@ -49,7 +72,7 @@ export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
     // 자동 갱신은 로비 페이지에서만 의미가 있지만, 그냥 받아도 무해하다.
     socket.join(LOBBY_ROOM);
     socket.emit('lobby:rooms', roomStore.getAllSummaries());
-    socket.emit('lobby:users:online', { users: getOnlineUsers(io) });
+    emitOnlineUsers(socket, getOnlineUsers(io));
   });
 
   socket.on('lobby:leave', () => {
@@ -58,14 +81,18 @@ export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
 }
 
 export function broadcastRoomCreated(io: IO, roomId: string) {
-  const summary = roomStore.getSummary(roomId);
-  if (summary) io.to(LOBBY_ROOM).emit('lobby:room:created', summary);
+  if (!isDummyMatchRoom(roomId)) {
+    const summary = roomStore.getSummary(roomId);
+    if (summary) io.to(LOBBY_ROOM).emit('lobby:room:created', summary);
+  }
   broadcastOnlineUsers(io);
 }
 
 export function broadcastRoomUpdated(io: IO, roomId: string) {
-  const summary = roomStore.getSummary(roomId);
-  if (summary) io.to(LOBBY_ROOM).emit('lobby:room:updated', summary);
+  if (!isDummyMatchRoom(roomId)) {
+    const summary = roomStore.getSummary(roomId);
+    if (summary) io.to(LOBBY_ROOM).emit('lobby:room:updated', summary);
+  }
   broadcastOnlineUsers(io);
 }
 

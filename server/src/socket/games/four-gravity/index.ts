@@ -21,6 +21,7 @@ import {
   runAITurn,
   terminateAIWorker,
   hasPartialTurnFourGravity,
+  toGameData,
 } from './state.js';
 
 export type { EndGameFn };
@@ -230,6 +231,21 @@ export function cleanupFourGravity(roomId: string) {
 
 export function getFourGravityState(roomId: string) {
   return gameStates.get(roomId);
+}
+
+/** 더미용. 보드·양색 직전 중력은 사람이 보고 기억하는 공개 정보. */
+export function getFourGravityDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  return {
+    gameOver: s.gameOver,
+    data: toGameData(s, viewerId),
+    lastGravityBlack: s.lastGravityBlack,
+    lastGravityWhite: s.lastGravityWhite,
+    turnNumber: s.turnNumber,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
 }
 
 export function emitFourGravityStateToSocket(socket: TypedSocket, roomId: string) {

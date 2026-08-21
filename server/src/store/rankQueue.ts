@@ -1,5 +1,6 @@
 import { matchRp, type RankTier } from '@shared/types/rank.js';
 import type { DisplayedTitle } from '@shared/types/room.js';
+import { isLiveDummyMemberId } from '../dummy/live/state.js';
 
 const COOLDOWN_MS = 60_000;
 
@@ -65,7 +66,11 @@ function cooldownOk(a: RankQueueEntry, b: RankQueueEntry, now: number): boolean 
 
 function pickOpponent(self: RankQueueEntry, now: number): RankQueueEntry | null {
   const all = [...byMemberId.values()].filter((e) => e.memberId !== self.memberId);
-  const pool = all.filter((e) => cooldownOk(self, e, now));
+  const pool = all.filter((e) => {
+    if (!cooldownOk(self, e, now)) return false;
+    if (isLiveDummyMemberId(self.memberId) && isLiveDummyMemberId(e.memberId)) return false;
+    return true;
+  });
   console.log(
     `[rankQueue] pickOpponent for ${self.nickname}(${self.memberId.slice(0, 8)}): candidates=${all.length}, after_cooldown=${pool.length}`,
     all.map((e) => {
@@ -193,6 +198,10 @@ export const rankQueueStore = {
     if (!cur) return;
     socketToMemberId.delete(cur.socketId);
     byMemberId.delete(memberId);
+  },
+
+  has(memberId: string): boolean {
+    return byMemberId.has(memberId);
   },
 
   waitSeconds(memberId: string): number {

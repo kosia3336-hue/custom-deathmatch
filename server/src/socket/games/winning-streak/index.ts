@@ -2,7 +2,7 @@ import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { WSCardType } from '@shared/types/winning-streak.js';
-import { WS_INITIAL_CARDS, CARD_TYPES } from '@shared/types/winning-streak.js';
+import { WS_INITIAL_CARDS, CARD_TYPES, WS_TOTAL_ROUNDS } from '@shared/types/winning-streak.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { EndGameFn, WSPlayerInternal } from './types.js';
 import {
@@ -138,6 +138,62 @@ export function cleanupWinningStreak(roomId: string) {
 
 export function getWinningStreakState(roomId: string) {
   return gameStates.get(roomId);
+}
+
+/**
+ * 더미용 공개 뷰. 양측 잔여 장수·직전 카드·연승은 UI와 같이 공개.
+ * 이번 라운드 상대 selectedCard 금지.
+ */
+export function getWinningStreakDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    totalRounds: WS_TOTAL_ROUNDS,
+    myId: me.id,
+    oppId: opp.id,
+    my: {
+      currentStreak: me.currentStreak,
+      maxStreak: me.maxStreak,
+      totalWins: me.totalWins,
+      remainingCards: { ...me.remainingCards },
+      lastPlayedCard: me.lastPlayedCard,
+      submitted: me.submitted,
+    },
+    opp: {
+      currentStreak: opp.currentStreak,
+      maxStreak: opp.maxStreak,
+      totalWins: opp.totalWins,
+      remainingCards: { ...opp.remainingCards },
+      lastPlayedCard: opp.lastPlayedCard,
+      submitted: opp.submitted,
+    },
+    roundHistory: s.roundHistory.map((r) => ({
+      round: r.round,
+      players: Object.fromEntries(
+        Object.entries(r.players).map(([pid, pr]) => [
+          pid,
+          {
+            card: pr.card,
+            result: pr.result,
+            streakBefore: pr.streakBefore,
+            streakAfter: pr.streakAfter,
+            maxStreakAfter: pr.maxStreakAfter,
+            totalWinsAfter: pr.totalWinsAfter,
+          },
+        ]),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
 }
 
 export function emitWinningStreakStateToSocket(socket: TypedSocket, roomId: string) {

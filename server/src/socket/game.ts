@@ -1024,6 +1024,24 @@ export function endGame(
   autoEndTimers.set(roomId, timer);
 }
 
+/** 진행 중 모듈을 정리하고 종료. 더미가 아직 없는 게임이 걸렸을 때 쓴다. */
+export function abortPlayingGame(
+  io: IO,
+  roomId: string,
+  data?: {
+    rankings?: GameResult['rankings'];
+    totalTurns?: number;
+    gameResultData?: unknown;
+    endedByForfeit?: boolean;
+  },
+) {
+  const room = roomStore.get(roomId);
+  if (!room || room.status !== 'playing') return;
+  clearPendingUndo(roomId);
+  gameModules[room.gameId]?.cleanup(roomId);
+  endGame(io, roomId, data);
+}
+
 export function clearAutoEnd(roomId: string) {
   const timer = autoEndTimers.get(roomId);
   if (timer) {

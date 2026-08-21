@@ -247,6 +247,66 @@ export function getIndianPokerState(roomId: string) {
   return gameStates.get(roomId);
 }
 
+/**
+ * 더미용 공개 뷰. 사람 game:state 와 같이 내 홀카드는 숨기고,
+ * usedCards 에서 내 카드만 뺀 knownBurned 로 내 카드 분포를 추정하게 한다.
+ */
+export function getIndianPokerDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.players[viewerId];
+  if (!me) return null;
+  const oppId = viewerId === s.player1Id ? s.player2Id : s.player1Id;
+  const opp = s.players[oppId];
+  if (!opp) return null;
+
+  const knownBurned = (() => {
+    const used = s.usedCards;
+    if (me.card == null) return [...used];
+    const idx = used.indexOf(me.card);
+    if (idx < 0) return [...used];
+    return [...used.slice(0, idx), ...used.slice(idx + 1)];
+  })();
+
+  let oppRaiseRounds = 0;
+  let oppDieRounds = 0;
+  for (const round of s.roundHistory) {
+    const acts = round.bettingActions.filter((a) => a.playerId === oppId);
+    if (acts.some((a) => a.action === 'raise')) oppRaiseRounds += 1;
+    if (acts.some((a) => a.action === 'die')) oppDieRounds += 1;
+  }
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    myId: me.id,
+    oppId,
+    communityCards: s.communityCards,
+    oppCard: opp.card,
+    knownBurned,
+    my: { chips: me.chips, roundBet: me.roundBet },
+    opp: { chips: opp.chips, roundBet: opp.roundBet },
+    pot: s.pot,
+    currentBet: s.currentBet,
+    ante: s.ante,
+    currentTurnId: s.currentTurnId,
+    firstBettorId: s.firstBettorId,
+    bettingStarted: s.bettingStarted,
+    currentRoundActions: s.currentRoundActions.map((a) => ({
+      playerId: a.playerId,
+      action: a.action,
+      amount: a.amount,
+    })),
+    oppRaiseRounds,
+    oppDieRounds,
+    historyRounds: s.roundHistory.length,
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}
+
 export function emitIndianPokerStateToSocket(socket: TypedSocket, roomId: string) {
   const s = gameStates.get(roomId);
   if (!s) return;

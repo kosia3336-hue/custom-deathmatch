@@ -194,3 +194,63 @@ export function canSilperBnwUndo(roomId: string): boolean {
   if (!s) return false;
   return canSilperBnwUndoState(s);
 }
+
+/**
+ * 더미용 공개 뷰. 내 타일·점수·상대 장수·선 자릿수만.
+ * firstTiles / 상대 tilesUsed·valueStr / dbg 금지.
+ */
+export function getSilperBnwDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
+  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
+  if (!me || !opp) return null;
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    rematchIndex: s.rematchIndex,
+    myId: me.id,
+    oppId: opp.id,
+    firstPlayerId: s.firstPlayerId,
+    my: {
+      score: me.score,
+      tiles: { ...me.tiles },
+      tileCount: me.tileCount,
+      submitted: me.submitted,
+    },
+    opp: {
+      score: opp.score,
+      tileCount: opp.tileCount,
+      submitted: opp.submitted,
+    },
+    firstDigits: s.phase === 'secondSubmit' ? s.firstDigits : null,
+    roundHistory: s.actionLog.map((log) => ({
+      round: log.round,
+      rematchIndex: log.rematchIndex,
+      firstPlayerId: log.firstPlayerId,
+      winnerId: log.winnerId,
+      players: Object.fromEntries(
+        Object.entries(log.players).map(([pid, pd]) => {
+          const mine = pid === viewerId;
+          return [
+            pid,
+            {
+              digits: pd.digits,
+              tilesUsed: mine ? [...pd.tilesUsed] : [],
+              valueStr: mine ? pd.valueStr : '',
+              scoreBefore: pd.scoreBefore,
+              scoreAfter: pd.scoreAfter,
+              tileCountBefore: pd.tileCountBefore,
+              tileCountAfter: pd.tileCountAfter,
+            },
+          ];
+        }),
+      ),
+    })),
+    winner: s.winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}

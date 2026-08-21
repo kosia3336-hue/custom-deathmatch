@@ -66,3 +66,8 @@ docs/
 
 # Cursor MCP config (contains Supabase access token — do not commit)
 /.cursor/mcp.json
+
+# 개인 작업 방식 (choen 전용). 다른 기여자는 쓰지 않는다.
+# docs/ 는 이미 ignore. 루트 AGENTS.md · logs/ 도 커밋하지 않는다.
+/AGENTS.md
+/logs/

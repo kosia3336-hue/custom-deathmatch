@@ -291,5 +291,61 @@ export function getQuatroResultData(roomId: string): unknown {
   return s?.result ? { result: s.result } : undefined;
 }
 
-/** buildGameData 재수출 (관전 뷰 등에서 사용 가능) */
 export { buildGameData };
+
+/**
+ * 더미용 공개 뷰. 상대 미오픈·VP 숨은 패·dbg 금지.
+ * VP는 receivedOpen·hiddenCount·사용 여부만 (화면과 같음).
+ */
+export function getQuatroDummyView(roomId: string, viewerId: string) {
+  const s = gameStates.get(roomId);
+  if (!s) return null;
+  const me = s.players.find((p) => p.id === viewerId) ?? null;
+  const opp = me ? s.players.find((p) => p.id !== viewerId) ?? null : null;
+  if (!me || !opp) return null;
+
+  const data = buildGameData(s, viewerId);
+  const winner = !s.result
+    ? null
+    : s.result.winnerId
+      ? s.result.winnerId
+      : 'draw';
+
+  return {
+    gameOver: s.gameOver,
+    phase: s.phase,
+    round: s.round,
+    firstId: data.firstId,
+    currentTurnId: data.currentTurnId,
+    myId: me.id,
+    oppId: opp.id,
+    my: {
+      hand: me.hand.map((c) => ({ id: c.id, suit: c.suit, num: c.num })),
+      openIds: [...me.openIds],
+      mulligansUsed: me.mulligansUsed,
+      stopped: me.stopped,
+      vpUsedCount: me.usedVps.size,
+      usedVps: [...me.usedVps],
+    },
+    opp: {
+      openCards: opp.hand.filter((c) => opp.openIds.has(c.id)).map((c) => ({ id: c.id, suit: c.suit, num: c.num })),
+      closedCount: opp.hand.filter((c) => !opp.openIds.has(c.id)).length,
+      mulligansUsed: opp.mulligansUsed,
+      stopped: opp.stopped,
+      vpUsedCount: opp.usedVps.size,
+    },
+    vps: data.vps.map((vp) => ({
+      index: vp.index,
+      receivedOpen: vp.receivedOpen.map((c) => ({ id: c.id, suit: c.suit, num: c.num })),
+      hiddenCount: vp.hiddenCount,
+      usedByMe: vp.usedByMe,
+      usedByOpp: vp.usedByOpp,
+    })),
+    iOpened: data.iOpened,
+    oppOpened: data.oppOpened,
+    mustExchangeRemaining: data.mustExchangeRemaining,
+    winner,
+    turnStartedAt: s.turnStartedAt,
+    timeLimitSeconds: s.timeLimitSeconds,
+  };
+}

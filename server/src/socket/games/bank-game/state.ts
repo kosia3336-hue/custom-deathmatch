@@ -312,7 +312,7 @@ function buildHistoryForViewer(
   });
 }
 
-function buildGameDataForViewer(
+export function buildGameDataForViewer(
   s: BankInternalState,
   viewerSide: BankSide | 'spectator',
 ): BankGameData {
