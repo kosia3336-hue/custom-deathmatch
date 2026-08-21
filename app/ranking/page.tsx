@@ -19,6 +19,7 @@ import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
 import GuildLeaderboard from './GuildLeaderboard';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { CONTAINER_READ } from '@/lib/layout';
 
 export const metadata: Metadata = {
   title: '랭킹',
@@ -196,7 +197,7 @@ export default async function RankingPage({ searchParams }: Props) {
   return (
     <>
       <GNB member={member} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 md:px-6">
+      <main className={`${CONTAINER_READ} flex-1 px-4 py-6 md:px-6`}>
         <header className="mb-4">
           <h1 className="text-2xl font-bold text-cdm-fg sm:text-3xl">랭킹</h1>
         </header>

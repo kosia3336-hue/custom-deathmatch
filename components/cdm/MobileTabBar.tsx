@@ -43,7 +43,7 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
   { href: '/titles', label: '칭호', icon: <Icon d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM8.2 13.9 7 23l5-3 5 3-1.2-9.1" /> },
   { href: '/shop', label: '상점', icon: <Icon d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon d="M3 11v3a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1zM15 8a5 5 0 0 1 0 8M18 5a9 9 0 0 1 0 14" /> },
-  { href: '/about', label: '소개', icon: <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" /> },
+  // '소개'(/about)는 여기 두지 않는다 — 로비 대문 캐러셀과 푸터에서 들어간다.
   { href: '/guild', label: '길드', icon: <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />, memberOnly: true },
   { href: '/attendance', label: '출석판', icon: <Icon d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2M9 16l2 2 4-4" />, memberOnly: true },
 ];

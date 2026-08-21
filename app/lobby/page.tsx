@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic';
 
 export default function LobbyPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-cdm-page">
+    <div className="flex flex-1 flex-col bg-cdm-page">
       <GNB />
 
       <h1 className="sr-only">커스텀 데스매치 로비</h1>

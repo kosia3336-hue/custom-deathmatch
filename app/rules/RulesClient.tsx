@@ -28,7 +28,11 @@ export default function RulesClient() {
             ];
           }
           return [{ cat, catIdx, games: all }];
-        }).map(({ cat, catIdx, games }, ci, cols) => {
+        })
+        /* 아직 게임이 없는 갈래(수리·관찰 등)는 머리글만 있는 빈 레일이 되어
+           페이지가 미완성으로 보였다. 채워질 때 자동으로 다시 나타난다. */
+        .filter(({ games }) => games.length > 0)
+        .map(({ cat, catIdx, games }, ci, cols) => {
           const hue = categoryHue(cat);
           const isLast = ci === cols.length - 1;
 

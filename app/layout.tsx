@@ -8,6 +8,7 @@ import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 import TitleGrantedModal from '@/components/TitleGrantedModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import BgmProvider from '@/components/providers/BgmProvider';
+import SiteFooter from '@/components/layout/SiteFooter';
 import { getAccountSettings } from '@/lib/auth/server';
 import { getSiteUrl } from '@/lib/site';
 
@@ -130,6 +131,7 @@ export default async function RootLayout({
         <SocketProvider>
           <BgmProvider isLoggedIn={isLoggedIn} initial={initial}>
             {children}
+            <SiteFooter />
             <NicknameModal />
             <SessionTakeoverModal />
             <TitleGrantedModal />
