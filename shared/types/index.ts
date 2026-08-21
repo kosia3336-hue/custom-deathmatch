@@ -205,6 +205,21 @@ export type {
   TransletterGameData,
 } from './transletter';
 export {
+  FC_TOTAL_ROUNDS,
+  FC_MIN_NUMBER_COUNT,
+  FC_MAX_NUMBER_COUNT,
+  FC_DEFAULT_NUMBER_COUNT,
+  FC_REVEAL_MS,
+} from './formula-completion';
+export type {
+  FormulaCompletionPhase,
+  FormulaCompletionRoundOutcome,
+  FormulaCompletionAction,
+  FormulaCompletionRoundResult,
+  FormulaCompletionGameData,
+  FormulaCompletionArchiveRecord,
+} from './formula-completion';
+export {
   QUATRO_SUIT_PRIORITY,
   QUATRO_MAX_MULLIGANS,
   QUATRO_VP_COUNT,

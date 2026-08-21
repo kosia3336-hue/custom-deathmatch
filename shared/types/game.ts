@@ -32,6 +32,7 @@ export const GAME_IDS = {
   QUATRO: 'game-017',
   WORD_PUZZLE: 'game-018',
   TRANSLETTER: 'game-019',
+  FORMULA_COMPLETION: 'game-020',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

@@ -15,6 +15,7 @@ import BettingRpsGame from '@/components/game/modules/betting-rps';
 import QuatroGame from '@/components/game/modules/quatro';
 import WordPuzzleGame from '@/components/game/modules/word-puzzle';
 import TransletterGame from '@/components/game/modules/transletter';
+import FormulaCompletionGame from '@/components/game/modules/formula-completion';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -51,6 +52,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.QUATRO]: QuatroGame,
   [GAME_IDS.WORD_PUZZLE]: WordPuzzleGame,
   [GAME_IDS.TRANSLETTER]: TransletterGame,
+  [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 
