@@ -44,6 +44,8 @@ export interface FormulaCompletionGameData {
   roundSeconds: number | null;
   lastResult: FormulaCompletionRoundResult | null;
   history: FormulaCompletionRoundResult[];
+  /** 1인 솔로 모드 — 상대 없이 혼자 9라운드를 푼다. */
+  isSolo: boolean;
 }
 
 export interface FormulaCompletionArchiveRecord {

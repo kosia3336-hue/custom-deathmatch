@@ -10,6 +10,41 @@ interface Props {
 
 export default function ScoreBoard({ gameData, myId, remainingSeconds, className }: Props) {
   const entries = Object.entries(gameData.players);
+  if (gameData.isSolo) {
+    const [entry] = entries;
+    const [playerId, player] = entry ?? ['', { nickname: '플레이어' }];
+    return (
+      <div
+        className={cn(
+          'grid grid-cols-[1fr_auto] items-center gap-3 rounded-cdm-lg border border-cdm-border bg-cdm-bg px-3 py-2.5 shadow-(--cdm-shadow-sm)',
+          className,
+        )}
+      >
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-cdm-primary">
+            {player.nickname}{playerId === myId ? ' (나)' : ''} · 솔로
+          </p>
+          <p className="text-xl font-extrabold tabular-nums text-cdm-fg">
+            {gameData.scores[playerId] ?? 0}점
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold tabular-nums text-cdm-fg">
+            R{gameData.round}/{gameData.totalRounds}
+          </span>
+          <span
+            className={cn(
+              'rounded-full bg-cdm-bg-elev-2 px-2.5 py-0.5 text-xs font-bold tabular-nums text-cdm-fg-muted',
+              remainingSeconds != null && remainingSeconds <= 10 && 'bg-cdm-accent-soft text-cdm-accent',
+            )}
+          >
+            {remainingSeconds == null ? '∞' : `${remainingSeconds}s`}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(

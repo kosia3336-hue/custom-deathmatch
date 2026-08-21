@@ -71,7 +71,9 @@ export default function FormulaCompletionGame() {
           />
         ) : (
           <Card className="text-center text-sm text-cdm-fg-muted">
-            관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.
+            {gameData.isSolo
+              ? '솔로 플레이를 관전하고 있습니다.'
+              : '관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.'}
           </Card>
         )
       ) : (

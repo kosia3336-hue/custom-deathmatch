@@ -26,22 +26,31 @@ export default function FormulaCompletionViewer({
   return (
     <div className={cn('flex flex-col gap-4', className)}>
       <Card>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className={cn(
+          'items-center gap-4',
+          record.playMode === 'solo' ? 'flex justify-between' : 'grid grid-cols-[1fr_auto_1fr]',
+        )}>
           {scoreEntries.map((entry, index) => (
             <div
               key={entry.playerId}
               className={cn(
-                'row-start-1 min-w-0',
-                index === 0 ? 'col-start-1' : 'col-start-3 text-right',
+                'min-w-0',
+                record.playMode !== 'solo' && 'row-start-1',
+                record.playMode !== 'solo' && (index === 0 ? 'col-start-1' : 'col-start-3 text-right'),
               )}
             >
               <p className="truncate text-sm font-semibold text-cdm-fg">{entry.nickname}</p>
               <p className="text-2xl font-black tabular-nums text-cdm-primary">{entry.score}</p>
             </div>
           ))}
-          <div className="col-start-2 row-start-1 shrink-0 text-center">
+          <div className={cn(
+            'shrink-0 text-center',
+            record.playMode !== 'solo' && 'col-start-2 row-start-1',
+          )}>
             <p className="text-[10px] font-semibold tracking-wide text-cdm-fg-subtle">FORMAT</p>
-            <p className="text-sm font-bold text-cdm-fg">N = {data.numberCount}</p>
+            <p className="text-sm font-bold text-cdm-fg">
+              {record.playMode === 'solo' ? '솔로 · ' : ''}N = {data.numberCount}
+            </p>
           </div>
         </div>
       </Card>
