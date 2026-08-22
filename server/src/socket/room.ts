@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import type { Player } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { GAME_IDS } from '@shared/types/game.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById, getGames } from '../routes/games.js';
@@ -142,7 +143,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       }
     }
 
-    const tl = (playMode === 'multi' && !isRandom) ? data.timeLimitSeconds : null;
+    const tl = game.id === GAME_IDS.COMPLETE_HAP
+      ? 600
+      : (playMode === 'multi' && !isRandom) ? data.timeLimitSeconds : null;
     if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
@@ -479,7 +482,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       roomType: room.playMode === 'multi' ? data.roomType : 'public',
       password: data.password,
       clearPassword: data.clearPassword,
-      timeLimitSeconds: data.timeLimitSeconds,
+      timeLimitSeconds: (newGame?.id ?? room.gameId) === GAME_IDS.COMPLETE_HAP
+        ? 600
+        : data.timeLimitSeconds,
       // 게임을 바꾸는 동시에 해당 게임의 상세 옵션을 보내는 경우에도 보존한다.
       gameOptions: data.gameOptions ?? (newGame ? {} : undefined),
     });

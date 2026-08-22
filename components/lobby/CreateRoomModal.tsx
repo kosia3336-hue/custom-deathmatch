@@ -129,9 +129,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
-  const computedTimeLimit = (timeLimitEnabled && playMode === 'multi' && !isRandom)
-    ? timeLimitMin * 60 + timeLimitSec
-    : null;
+  const hasFixedMatchTime = selectedGame?.id === GAME_IDS.COMPLETE_HAP;
+  const computedTimeLimit = hasFixedMatchTime
+    ? 600
+    : (timeLimitEnabled && playMode === 'multi' && !isRandom)
+      ? timeLimitMin * 60 + timeLimitSec
+      : null;
 
   // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
   const hasDetailOptions =
@@ -411,7 +414,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 시간제한 */}
-            {playMode === 'multi' && !isRandom && (
+            {hasFixedMatchTime ? (
+              <SettingField label="시간제한">
+                <div className="rounded-cdm-md bg-cdm-primary-soft px-3 py-2 text-sm font-bold text-cdm-primary">
+                  타임어택 고정 10분
+                </div>
+              </SettingField>
+            ) : playMode === 'multi' && !isRandom && (
               <SettingField label="시간제한">
                 <div className="flex gap-2">
                   {[

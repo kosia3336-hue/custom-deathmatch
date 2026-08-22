@@ -20,6 +20,7 @@ import GrapeSugar2Viewer from '@/components/archive/viewers/grape-sugar-2';
 import SunMoonStar2Viewer from '@/components/archive/viewers/sun-moon-star-2';
 import BankGameViewer from '@/components/archive/viewers/bank-game';
 import FormulaCompletionViewer from '@/components/archive/viewers/formula-completion';
+import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
 
 export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -38,6 +39,7 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.BANK_GAME]: BankGameViewer,
   [GAME_IDS.QUATRO]: QuatroViewer,
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionViewer,
+  [GAME_IDS.COMPLETE_HAP]: CompleteHapViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {

@@ -12,6 +12,25 @@ export {
   applyRankLoss,
 } from './rank';
 export { AI_PLAYER_ID } from './room';
+export {
+  CH_BOARD_COUNT,
+  CH_CARDS_PER_BOARD,
+  CH_MATCH_SECONDS,
+  completeHapCardKey,
+} from './complete-hap';
+export type {
+  CompleteHapAction,
+  CompleteHapArchiveRecord,
+  CompleteHapBoard,
+  CompleteHapCard,
+  CompleteHapCardColor,
+  CompleteHapClaim,
+  CompleteHapGameData,
+  CompleteHapPhase,
+  CompleteHapShape,
+  CompleteHapBackground,
+  CompleteHapTiebreak,
+} from './complete-hap';
 export type {
   PlayMode,
   RoomStatus,
