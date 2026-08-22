@@ -1,5 +1,11 @@
-export type { Game } from './game';
-export { GAME_IDS } from './game';
+export type { AbstractAiDifficulty, Game } from './game';
+export {
+  ABSTRACT_AI_DIFFICULTIES,
+  DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  GAME_IDS,
+  isAbstractStrategyGameId,
+  resolveAbstractAiDifficulty,
+} from './game';
 export type { RankTier, DisplayRankTier } from './rank';
 export {
   rankTierNumericForRp,

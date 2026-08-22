@@ -8,14 +8,16 @@ import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
 import {
+  DEFAULT_ABSTRACT_AI_DIFFICULTY,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
   PLAY_MODE_LABEL,
   gameSupportsPlayMode,
+  isAbstractStrategyGameId,
   isSoloLikePlayMode,
 } from '@/shared/types';
-import type { Game, PlayMode, RoomType } from '@/shared/types';
+import type { AbstractAiDifficulty, Game, PlayMode, RoomType } from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
   RoomModalShell,
@@ -26,6 +28,7 @@ import {
   GameListPicker,
   type PickerMode,
 } from '@/components/room-modal/RoomModalKit';
+import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 
 const MODES: PickerMode[] = [
   { id: GAME_IDS.RANDOM, label: '랜덤', desc: '무작위 배정', art: '/games/random.webp' },
@@ -79,6 +82,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
+    DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  );
   const [banCount, setBanCount] = useState(3);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
@@ -112,6 +118,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitSec(0);
     setInitialChips(25);
     setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
+    setAbstractAiDifficulty(DEFAULT_ABSTRACT_AI_DIFFICULTY);
     setBanCount(3);
     fetchGames()
       .then((all) =>
@@ -142,6 +149,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
   const canConfigureTimeLimit =
     playMode === 'multi' && !isRandom && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
+  const showsAbstractAiDifficulty =
+    playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
   const computedTimeLimit =
     timeLimitEnabled && canConfigureTimeLimit ? timeLimitMin * 60 + timeLimitSec : null;
 
@@ -216,6 +225,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       }
       if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
         gameOptions.numberCount = formulaNumberCount;
+      }
+      if (showsAbstractAiDifficulty) {
+        gameOptions.aiDifficulty = abstractAiDifficulty;
       }
       socket.emit(
         'room:create',
@@ -451,6 +463,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   </button>
                 </div>
               </SettingField>
+            )}
+
+            {showsAbstractAiDifficulty && (
+              <AbstractAiDifficultyField
+                value={abstractAiDifficulty}
+                onChange={setAbstractAiDifficulty}
+              />
             )}
 
             {/* 시간제한 */}

@@ -43,3 +43,16 @@ export const GAME_IDS = {
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;
+
+/** 추상전략 COM에서 선택할 수 있는 AI 난이도. 보통이 이전 동작과 같은 기본값이다. */
+export const ABSTRACT_AI_DIFFICULTIES = ['normal', 'hard'] as const;
+export type AbstractAiDifficulty = (typeof ABSTRACT_AI_DIFFICULTIES)[number];
+export const DEFAULT_ABSTRACT_AI_DIFFICULTY: AbstractAiDifficulty = 'normal';
+
+export function resolveAbstractAiDifficulty(value: unknown): AbstractAiDifficulty {
+  return value === 'hard' ? 'hard' : DEFAULT_ABSTRACT_AI_DIFFICULTY;
+}
+
+export function isAbstractStrategyGameId(gameId: string | null | undefined): boolean {
+  return gameId === GAME_IDS.FOUR_GRAVITY || gameId === GAME_IDS.DOUBLE_SIDED_CHESS;
+}

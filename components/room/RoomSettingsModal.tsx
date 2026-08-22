@@ -6,8 +6,25 @@ import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS, PLAY_MODES, PLAY_MODE_LABEL, gameSupportsPlayMode, isSoloLikePlayMode } from '@/shared/types';
-import type { Game, PlayMode, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
+import {
+  DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  FC_DEFAULT_NUMBER_COUNT,
+  GAME_IDS,
+  PLAY_MODES,
+  PLAY_MODE_LABEL,
+  gameSupportsPlayMode,
+  isAbstractStrategyGameId,
+  isSoloLikePlayMode,
+  resolveAbstractAiDifficulty,
+} from '@/shared/types';
+import type {
+  AbstractAiDifficulty,
+  Game,
+  PlayMode,
+  Room,
+  RoomType,
+  UpdateRoomSettings,
+} from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
   RoomModalShell,
@@ -16,6 +33,7 @@ import {
   OptionButton,
   GameListPicker,
 } from '@/components/room-modal/RoomModalKit';
+import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 
 interface Props {
   open: boolean;
@@ -41,6 +59,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
+    DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  );
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
   /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
@@ -94,6 +115,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         ? room.gameOptions.numberCount
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
+    setAbstractAiDifficulty(resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty));
 
     fetchGames()
       .then((gsAll) => {
@@ -123,6 +145,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   }, [open, onClose]);
 
   const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
+  const showsAbstractAiDifficulty =
+    playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
   const computedTimeLimit =
     canConfigureTimeLimit && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 
@@ -212,6 +236,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     }
     if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
       gameOptions.numberCount = formulaNumberCount;
+    }
+    if (showsAbstractAiDifficulty) {
+      gameOptions.aiDifficulty = abstractAiDifficulty;
     }
 
     const isGameChanged = selectedGame.id !== room.gameId;
@@ -414,6 +441,13 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                   숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
                 </p>
               </SettingField>
+            )}
+
+            {showsAbstractAiDifficulty && (
+              <AbstractAiDifficultyField
+                value={abstractAiDifficulty}
+                onChange={setAbstractAiDifficulty}
+              />
             )}
 
             {/* 시간제한 */}
