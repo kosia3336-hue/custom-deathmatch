@@ -4,8 +4,16 @@
  * game_rule_texts 는 RLS 상 공개 읽기(SELECT USING true)라 anon 키로 조회 가능하다.
  * 클라이언트 fetch(/api/game-rules) 와 달리 서버에서 읽어 HTML 에 그대로 담기므로
  * 검색엔진이 룰 본문을 수집할 수 있다.
+ *
+ * 조회 결과는 여기서 캐시한다. supabase-js 의 fetch 는 Next 16 기준 캐시되지
+ * 않아서, 이걸 그대로 쓰면 룰을 읽는 페이지가 전부 동적이 되고 요청마다 DB 를
+ * 친다. 페이지에 revalidate 를 걸어도 소용이 없다 — 캐시할 대상이 없어서다.
+ * 그래서 페이지가 아니라 데이터에 캐시를 건다.
+ *
+ * 관리자가 룰을 저장하면 GAME_RULES_TAG 를 무효화해 즉시 반영한다.
  */
 
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseUrl, getSupabaseAnonKey, isSupabaseConfigured } from '@/lib/supabase/env';
@@ -71,8 +79,14 @@ function getReadClient() {
   });
 }
 
+/** 룰 캐시 무효화 태그 — 관리자 저장 시 revalidateTag 로 함께 비운다. */
+export const GAME_RULES_TAG = 'game-rules';
+
+/** 룰은 관리자가 가끔 고치는 공개 데이터다. 5분이면 충분히 신선하다. */
+const CACHE_TTL_SECONDS = 300;
+
 /** 게임 하나의 룰 본문 + 메타. 없으면 null */
-export async function fetchGameRule(gameId: string): Promise<GameRuleContent | null> {
+async function readGameRule(gameId: string): Promise<GameRuleContent | null> {
   if (!isSupabaseConfigured()) return null;
   try {
     const sb = getReadClient();
@@ -97,7 +111,7 @@ export async function fetchGameRule(gameId: string): Promise<GameRuleContent | n
 }
 
 /** 전체 게임의 룰 본문 + 메타 (gameId 키) */
-export async function fetchAllGameRules(): Promise<Record<string, GameRuleContent>> {
+async function readAllGameRules(): Promise<Record<string, GameRuleContent>> {
   if (!isSupabaseConfigured()) return {};
   try {
     const sb = getReadClient();
@@ -114,5 +128,18 @@ export async function fetchAllGameRules(): Promise<Record<string, GameRuleConten
     return {};
   }
 }
+
+/*
+  unstable_cache 는 함수 인자를 캐시 키에 함께 넣으므로 gameId 별로 따로 잡힌다.
+*/
+export const fetchGameRule = unstable_cache(readGameRule, ['game-rule'], {
+  revalidate: CACHE_TTL_SECONDS,
+  tags: [GAME_RULES_TAG],
+});
+
+export const fetchAllGameRules = unstable_cache(readAllGameRules, ['game-rules-all'], {
+  revalidate: CACHE_TTL_SECONDS,
+  tags: [GAME_RULES_TAG],
+});
 
 export { EMPTY_RULE_META };

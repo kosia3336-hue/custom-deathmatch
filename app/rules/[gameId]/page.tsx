@@ -18,9 +18,6 @@ export function generateStaticParams() {
   return GAME_RULES.map((g) => ({ gameId: g.id }));
 }
 
-// 룰 본문은 관리자 저장 시 갱신되어야 하므로 주기적 재검증
-export const revalidate = 300;
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { gameId } = await params;
   const game = getGameRule(gameId);
