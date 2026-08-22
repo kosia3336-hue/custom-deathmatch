@@ -49,9 +49,7 @@ function shuffle<T>(values: T[], random: () => number): T[] {
   return result;
 }
 
-/** 27장 전체를 한 번씩 섞어 9장짜리 보드 세 개로 나눈다. */
-export function dealCompleteHapBoards(random: () => number = Math.random) {
-  const deck = shuffle(createCompleteHapDeck(), random);
+function buildBoards(deck: CompleteHapCard[]) {
   return Array.from({ length: CH_BOARD_COUNT }, (_, boardIndex) => {
     const cards = deck.slice(
       boardIndex * CH_CARDS_PER_BOARD,
@@ -62,9 +60,21 @@ export function dealCompleteHapBoards(random: () => number = Math.random) {
       cards,
       allSets,
       allSetKeys: new Set(allSets.map(completeHapSetKey)),
-      claimedSets: [] as number[][],
+      claims: [],
       claimedSetKeys: new Set<string>(),
-      completed: false,
     };
   });
+}
+
+/**
+ * 27장 전체를 한 번씩 섞어 9장짜리 보드 세 개로 나눈다.
+ * 결 선언이 없는 선착순 규칙이므로 정답 없는 보드가 생기지 않게 각 보드에 합을 2개 이상 보장한다.
+ */
+export function dealCompleteHapBoards(random: () => number = Math.random) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const boards = buildBoards(shuffle(createCompleteHapDeck(), random));
+    if (boards.every((board) => board.allSets.length >= 2)) return boards;
+  }
+  // 주입된 난수가 항상 같은 값을 내는 테스트 환경에서도 유효한 보드를 반환한다.
+  return buildBoards(createCompleteHapDeck());
 }

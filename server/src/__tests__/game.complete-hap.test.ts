@@ -5,6 +5,7 @@ import { sessions } from '../store/sessions.js';
 import type { IO, TypedSocket } from '../socket/types.js';
 import {
   cleanupCompleteHap,
+  completeHapRankings,
   handleCompleteHapAction,
   initCompleteHap,
 } from '../socket/games/complete-hap/index.js';
@@ -98,98 +99,120 @@ describe('컴플릿 결! 합! 카드와 판정', () => {
   });
 });
 
-describe('컴플릿 결! 합! 진행', () => {
-  it('솔로에서 합 정답은 +1, 같은 합 반복은 -1로 처리한다', () => {
+describe('컴플릿 결! 합! 동시 선착순 진행', () => {
+  it('차례 없이 두 플레이어가 서로 다른 합을 바로 선점한다', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0.314159);
-    const roomId = 'complete-hap-solo';
+    const roomId = 'complete-hap-race';
     roomIds.add(roomId);
-    const human = player('human-solo', '솔로');
-    const socket = socketFor(human.id);
+    const first = player('race-first', '첫 번째');
+    const second = player('race-second', '두 번째');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
     const io = ioStub();
 
-    initCompleteHap(io, roomId, [human], 'solo', Date.now(), null, vi.fn());
+    initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = completeHapStates.get(roomId)!;
+    const answers = state.boards.flatMap((board, boardIndex) =>
+      board.allSets.map((cardIndexes) => ({ boardIndex, cardIndexes })),
+    );
+    expect(answers.length).toBeGreaterThanOrEqual(2);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    handleCompleteHapAction(io, firstSocket, roomId, {
+      type: 'submit-hap',
+      ...answers[0],
+    });
+    await vi.advanceTimersByTimeAsync(1000);
+    handleCompleteHapAction(io, secondSocket, roomId, {
+      type: 'submit-hap',
+      ...answers[1],
+    });
+
+    expect(state.correctCounts).toMatchObject({ [first.id]: 1, [second.id]: 1 });
+    expect(state.claims).toHaveLength(2);
+    expect(completeHapRankings(state).rankings[0].playerId).toBe(first.id);
+    expect(completeHapRankings(state).tiebreak).toBe('speed');
+  });
+
+  it('오답과 이미 선점된 합에는 감점이 없고 계속 제출할 수 있다', () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.314159);
+    const roomId = 'complete-hap-retry';
+    roomIds.add(roomId);
+    const first = player('retry-first', '첫 번째');
+    const second = player('retry-second', '두 번째');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
+    const io = ioStub();
+
+    initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
     const state = completeHapStates.get(roomId)!;
     const boardIndex = state.boards.findIndex((board) => board.allSets.length > 0);
-    expect(boardIndex).toBeGreaterThanOrEqual(0);
     const answer = state.boards[boardIndex].allSets[0];
+    const wrong = findWrongTriple(state.boards[boardIndex].allSetKeys);
 
-    handleCompleteHapAction(io, socket, roomId, { type: 'call-hap', boardIndex });
-    handleCompleteHapAction(io, socket, roomId, {
+    handleCompleteHapAction(io, firstSocket, roomId, {
+      type: 'submit-hap',
+      boardIndex,
+      cardIndexes: wrong,
+    });
+    expect(state.correctCounts[first.id]).toBe(0);
+
+    handleCompleteHapAction(io, firstSocket, roomId, {
       type: 'submit-hap',
       boardIndex,
       cardIndexes: answer,
     });
-    expect(state.scores[human.id]).toBe(1);
-    expect(state.currentPlayerId).toBe(human.id);
-
-    handleCompleteHapAction(io, socket, roomId, { type: 'call-hap', boardIndex });
-    handleCompleteHapAction(io, socket, roomId, {
+    handleCompleteHapAction(io, secondSocket, roomId, {
       type: 'submit-hap',
       boardIndex,
       cardIndexes: [...answer].reverse(),
     });
-    expect(state.scores[human.id]).toBe(0);
-    expect(state.actionLog.at(-1)?.kind).toBe('duplicate-hap');
+    expect(state.correctCounts).toMatchObject({ [first.id]: 1, [second.id]: 0 });
+    expect(state.claims).toHaveLength(1);
   });
 
-  it('합 호명 후 5초를 넘기면 -1점과 함께 상대 차례가 된다', async () => {
+  it('0:0일 때만 무승부로 판정한다', () => {
     vi.useFakeTimers();
-    const roomId = 'complete-hap-call-timeout';
+    const roomId = 'complete-hap-zero-draw';
     roomIds.add(roomId);
-    const first = player('first-call', '선공');
-    const second = player('second-call', '후공');
-    const socket = socketFor(first.id);
+    const first = player('draw-first', '첫 번째');
+    const second = player('draw-second', '두 번째');
     const io = ioStub();
 
     initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
-    handleCompleteHapAction(io, socket, roomId, { type: 'call-hap', boardIndex: 0 });
-    await vi.advanceTimersByTimeAsync(5000);
-
-    const state = completeHapStates.get(roomId)!;
-    expect(state.scores[first.id]).toBe(-1);
-    expect(state.currentPlayerId).toBe(second.id);
-    expect(state.actionLog.at(-1)?.kind).toBe('call-timeout');
+    const result = completeHapRankings(completeHapStates.get(roomId)!);
+    expect(result.tiebreak).toBe('zero-draw');
+    expect(result.rankings.every((ranking) => ranking.rank === 1)).toBe(true);
   });
 
-  it('10초 동안 외치지 않으면 점수 변화 없이 상대 차례가 된다', async () => {
+  it('솔로는 10분 동안 찾은 정답 수를 단일 랭킹으로 반환한다', async () => {
     vi.useFakeTimers();
-    const roomId = 'complete-hap-turn-timeout';
+    const roomId = 'complete-hap-solo';
     roomIds.add(roomId);
-    const first = player('first-turn', '선공');
-    const second = player('second-turn', '후공');
-    const io = ioStub();
-
-    initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
-    await vi.advanceTimersByTimeAsync(10_000);
-
-    const state = completeHapStates.get(roomId)!;
-    expect(state.scores[first.id]).toBe(0);
-    expect(state.currentPlayerId).toBe(second.id);
-    expect(state.actionLog.at(-1)?.kind).toBe('turn-timeout');
-  });
-
-  it('남은 합이 없는 보드의 결은 +3점으로 처리한다', () => {
-    vi.useFakeTimers();
-    const roomId = 'complete-hap-gyul';
-    roomIds.add(roomId);
-    const human = player('human-gyul', '솔로');
+    const human = player('solo-player', '솔로');
     const socket = socketFor(human.id);
     const io = ioStub();
+    const onEnd = vi.fn();
 
-    initCompleteHap(io, roomId, [human], 'solo', Date.now(), null, vi.fn());
+    initCompleteHap(io, roomId, [human], 'solo', Date.now(), null, onEnd);
     const state = completeHapStates.get(roomId)!;
-    const board = state.boards[0];
-    board.claimedSetKeys = new Set(board.allSetKeys);
-    board.claimedSets = board.allSets.map((set) => [...set]);
-    handleCompleteHapAction(io, socket, roomId, { type: 'call-gyul', boardIndex: 0 });
+    const boardIndex = state.boards.findIndex((board) => board.allSets.length > 0);
+    handleCompleteHapAction(io, socket, roomId, {
+      type: 'submit-hap',
+      boardIndex,
+      cardIndexes: state.boards[boardIndex].allSets[0],
+    });
+    await vi.advanceTimersByTimeAsync(603_000);
 
-    expect(state.scores[human.id]).toBe(3);
-    expect(board.completed).toBe(true);
-    expect(state.actionLog.at(-1)?.kind).toBe('gyul');
+    expect(onEnd).toHaveBeenCalledOnce();
+    expect(onEnd.mock.calls[0]?.[2]?.rankings).toEqual([
+      { playerId: human.id, nickname: human.nickname, rank: 1, score: 1 },
+    ]);
   });
 
-  it('COM 차례에는 서버 AI가 합 또는 결을 자동으로 처리한다', async () => {
+  it('COM은 사람과 동시에 남은 합을 자동으로 선점한다', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
     const roomId = 'complete-hap-com';
@@ -199,17 +222,22 @@ describe('컴플릿 결! 합! 진행', () => {
     const io = ioStub();
 
     initCompleteHap(io, roomId, [human, computer], 'com', Date.now(), null, vi.fn());
-    await vi.advanceTimersByTimeAsync(10_000);
-    expect(completeHapStates.get(roomId)?.currentPlayerId).toBe(AI_PLAYER_ID);
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(3500);
 
     const state = completeHapStates.get(roomId)!;
-    expect(
-      state.actionLog.some(
-        (record) =>
-          record.playerId === AI_PLAYER_ID && (record.kind === 'hap' || record.kind === 'gyul'),
-      ),
-    ).toBe(true);
-    expect(state.currentPlayerId).toBe(human.id);
+    expect(state.correctCounts[AI_PLAYER_ID]).toBe(1);
+    expect(state.claims[0]?.playerId).toBe(AI_PLAYER_ID);
   });
 });
+
+function findWrongTriple(validKeys: Set<string>) {
+  for (let first = 0; first < 7; first++) {
+    for (let second = first + 1; second < 8; second++) {
+      for (let third = second + 1; third < 9; third++) {
+        const triple = [first, second, third];
+        if (!validKeys.has(triple.join('-'))) return triple;
+      }
+    }
+  }
+  throw new Error('오답 조합을 찾지 못했습니다.');
+}

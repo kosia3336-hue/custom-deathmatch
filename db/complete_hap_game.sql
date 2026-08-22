@@ -6,7 +6,7 @@ INSERT INTO games (id, name, description, min_players, max_players,
                    supports_multi, supports_com, supports_solo,
                    is_active, sort_order, ranking_active)
 VALUES ('game-021', '컴플릿 결! 합!',
-        '세 개의 3×3 보드에서 속성이 모두 같거나 모두 다른 카드 세 장을 찾아 합을 외치고, 남은 합이 없으면 결을 선언하는 10분 관찰 대결.',
+        '세 개의 3×3 보드에서 속성이 모두 같거나 모두 다른 카드 세 장을 상대보다 먼저 찾아 선점하는 10분 관찰 대결.',
         2, 2, true, true, true, true, 210, false)
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,

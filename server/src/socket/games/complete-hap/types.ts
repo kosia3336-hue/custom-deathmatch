@@ -1,7 +1,8 @@
 import type {
-  CompleteHapActionRecord,
   CompleteHapCard,
+  CompleteHapClaim,
   CompleteHapPhase,
+  CompleteHapTiebreak,
 } from '@shared/types/complete-hap.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
 import type { IO } from '../../types.js';
@@ -21,9 +22,8 @@ export interface CompleteHapInternalBoard {
   cards: CompleteHapCard[];
   allSets: number[][];
   allSetKeys: Set<string>;
-  claimedSets: number[][];
+  claims: CompleteHapClaim[];
   claimedSetKeys: Set<string>;
-  completed: boolean;
 }
 
 export interface CompleteHapState {
@@ -32,22 +32,15 @@ export interface CompleteHapState {
   players: [Player, Player];
   boards: CompleteHapInternalBoard[];
   phase: CompleteHapPhase;
-  scores: Record<string, number>;
-  correctElapsedMs: Record<string, number>;
-  firstCorrectAt: Record<string, number | null>;
-  currentPlayerId: string;
-  selectedBoardIndex: number | null;
-  turn: number;
-  turnStartedAt: number;
-  phaseStartedAt: number;
+  correctCounts: Record<string, number>;
   matchStartedAt: number;
-  actionLog: CompleteHapActionRecord[];
-  lastAction: CompleteHapActionRecord | null;
+  claims: CompleteHapClaim[];
+  lastClaim: CompleteHapClaim | null;
+  tiebreak: CompleteHapTiebreak;
   winnerId: string | null;
   finishReason: string | null;
   gameOver: boolean;
   matchTimer: ReturnType<typeof setTimeout> | null;
-  phaseTimer: ReturnType<typeof setTimeout> | null;
   aiTimer: ReturnType<typeof setTimeout> | null;
   finishTimer: ReturnType<typeof setTimeout> | null;
   endGameCallback: CompleteHapEndGameFn;
