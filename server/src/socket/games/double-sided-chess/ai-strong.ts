@@ -7,7 +7,7 @@
    A. 평가 함수 버그 수정 (왕 자살 첫 수, 왕 안전 약함, 왕 중앙)
    B. Transposition Table (Zobrist hashing)
    C. Move Ordering (TT best + 왕 캡처/진입 + MVV-LVA + 위협 + Killer + History + 중앙)
-   D. 시간 90초 + max depth 20
+   D. 시간 최대 30초 + max depth 20
    E. 양면장기 고유 평가 보강
        (승격 잠재력 / 슬라이더 위협 / 왕 진입 임박 / 이중 위협 / 포로 정교화 / PST / 왕 안전지대 / 템포)
    F. 즉시승/패배 root prescan

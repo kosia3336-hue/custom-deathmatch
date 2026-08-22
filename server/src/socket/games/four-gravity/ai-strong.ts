@@ -6,7 +6,7 @@
 
    A. Transposition Table (Zobrist hashing)
    B. Move Ordering (TT best + 위협차단 + Killer + History + 중앙)
-   C. 시간 90초 + max depth 20
+   C. 시간 최대 30초 + max depth 20
    D. 평가 함수 보강 (복수 위협 + 중력 정렬 잠재력)
    E. 즉시승/패배 root prescan
    F. Aspiration Window
