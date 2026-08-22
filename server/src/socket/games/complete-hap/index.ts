@@ -3,6 +3,7 @@ import {
   CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,
   CH_TOTAL_ROUNDS,
+  CH_WIN_SCORE,
   type CompleteHapAction,
   type CompleteHapRoundResult,
   type CompleteHapTiebreak,
@@ -132,6 +133,12 @@ function opponentId(state: CompleteHapState, callerId: string) {
   return state.players.find((player) => player.id !== callerId)?.id ?? null;
 }
 
+function hasClinchedMatch(state: CompleteHapState) {
+  return (
+    state.playMode !== 'solo' && Object.values(state.scores).some((score) => score >= CH_WIN_SCORE)
+  );
+}
+
 function parseSubmittedSets(value: unknown) {
   if (!Array.isArray(value)) return { sets: [] as number[][], valid: false };
   const rawSets = value.slice(0, MAX_SET_COMBINATIONS + 1);
@@ -177,6 +184,10 @@ function scheduleAi(io: IO, state: CompleteHapState) {
 
 function advanceAfterRound(io: IO, state: CompleteHapState) {
   if (state.gameOver || completeHapStates.get(state.roomId) !== state) return;
+  if (hasClinchedMatch(state)) {
+    finishGame(io, state, `${CH_WIN_SCORE}점을 선취했습니다.`);
+    return;
+  }
   if (state.currentRoundIndex + 1 >= state.totalRounds) {
     finishGame(io, state, `${state.totalRounds}라운드가 종료되었습니다.`);
     return;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CH_TOTAL_ROUNDS, completeHapCardKey } from '@shared/types/complete-hap.js';
+import { CH_TOTAL_ROUNDS, CH_WIN_SCORE, completeHapCardKey } from '@shared/types/complete-hap.js';
 import { AI_PLAYER_ID, type Player } from '@shared/types/room.js';
 import { sessions } from '../store/sessions.js';
 import type { IO, TypedSocket } from '../socket/types.js';
@@ -195,17 +195,16 @@ describe('컴플릿 결! 합! 결 일괄 제출 진행', () => {
     expect(state.scores).toMatchObject({ [first.id]: 0, [second.id]: 1 });
   });
 
-  it('7라운드가 끝나면 최종 결과와 일곱 번의 판정 기록을 반환한다', async () => {
+  it('솔로는 7라운드가 끝나면 일곱 번의 판정 기록을 반환한다', async () => {
     vi.useFakeTimers();
     const roomId = 'complete-hap-seven-rounds';
     roomIds.add(roomId);
     const first = player('seven-first', '첫 번째');
-    const second = player('seven-second', '두 번째');
     const firstSocket = socketFor(first.id);
     const io = ioStub();
     const onEnd = vi.fn();
 
-    initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, onEnd);
+    initCompleteHap(io, roomId, [first], 'solo', Date.now(), null, onEnd);
     const state = completeHapStates.get(roomId)!;
     for (let roundIndex = 0; roundIndex < CH_TOTAL_ROUNDS; roundIndex++) {
       submitGyul(io, firstSocket, roomId, state.rounds[roundIndex].allSets);
@@ -219,6 +218,32 @@ describe('컴플릿 결! 합! 결 일괄 제출 진행', () => {
     expect(onEnd).toHaveBeenCalledOnce();
     expect(onEnd.mock.calls[0]?.[2]).toMatchObject({ totalTurns: 7 });
     expect(onEnd.mock.calls[0]?.[2]?.gameResultData).toMatchObject({ totalRounds: 7 });
+  });
+
+  it('7라운드 대전에서 한 플레이어가 4점을 선취하면 남은 라운드 없이 종료한다', async () => {
+    vi.useFakeTimers();
+    const roomId = 'complete-hap-clinch';
+    roomIds.add(roomId);
+    const first = player('clinch-first', '선취 플레이어');
+    const second = player('clinch-second', '상대 플레이어');
+    const firstSocket = socketFor(first.id);
+    const io = ioStub();
+    const onEnd = vi.fn();
+
+    initCompleteHap(io, roomId, [first, second], 'multi', Date.now(), null, onEnd);
+    const state = completeHapStates.get(roomId)!;
+    for (let roundIndex = 0; roundIndex < CH_WIN_SCORE; roundIndex++) {
+      submitGyul(io, firstSocket, roomId, state.rounds[roundIndex].allSets);
+      await vi.advanceTimersByTimeAsync(2500);
+    }
+
+    expect(state.phase).toBe('finished');
+    expect(state.currentRoundIndex).toBe(CH_WIN_SCORE - 1);
+    expect(state.scores[first.id]).toBe(CH_WIN_SCORE);
+    expect(state.roundResults).toHaveLength(CH_WIN_SCORE);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(onEnd).toHaveBeenCalledOnce();
+    expect(onEnd.mock.calls[0]?.[2]).toMatchObject({ totalTurns: CH_WIN_SCORE });
   });
 
   it('솔로 모드에서 오답이면 상대 득점 없이 다음 라운드로 넘어간다', async () => {

@@ -16,6 +16,7 @@ export {
   CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,
   CH_TOTAL_ROUNDS,
+  CH_WIN_SCORE,
   completeHapCardKey,
 } from './complete-hap';
 export type {
