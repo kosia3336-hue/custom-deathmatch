@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   FC_REVEAL_MS,
   FC_TOTAL_ROUNDS,
+  FC_WIN_SCORE,
   type FormulaCompletionArchiveRecord,
 } from '@shared/types/formula-completion.js';
 import type { Player } from '@shared/types/room.js';
@@ -117,6 +118,70 @@ describe('수식완성N 출제기', () => {
       expect(puzzle.numbers).toHaveLength(numberCount);
       expect(puzzle.target).toBeGreaterThan(0);
       expect(judgeExpression(puzzle.solution, puzzle.numbers, puzzle.target).correct).toBe(true);
+    }
+  });
+});
+
+describe('수식완성N 대전 조기 판정승', () => {
+  it('7라운드 대전에서 한 플레이어가 4점을 선취하면 남은 라운드 없이 종료한다', async () => {
+    vi.useFakeTimers();
+    const roomId = 'formula-clinch-test';
+    const first: Player = {
+      id: 'formula-clinch-first',
+      nickname: '선취 플레이어',
+      isHost: true,
+      isReady: true,
+      joinedAt: Date.now(),
+    };
+    const second: Player = {
+      id: 'formula-clinch-second',
+      nickname: '상대 플레이어',
+      isHost: false,
+      isReady: true,
+      joinedAt: Date.now(),
+    };
+    const io = {
+      in: () => ({ fetchSockets: async () => [] }),
+    } as unknown as IO;
+    const socket = {
+      id: 'formula-clinch-socket',
+      emit: vi.fn(),
+    } as unknown as TypedSocket;
+    const onEnd = vi.fn();
+
+    sessions.linkToken(socket.id, first.id);
+    try {
+      initFormulaCompletion(io, roomId, [first, second], 'multi', Date.now(), null, onEnd, {
+        numberCount: 4,
+      });
+
+      for (let score = 1; score <= FC_WIN_SCORE; score++) {
+        const state = formulaCompletionStates.get(roomId)!;
+        handleFormulaCompletionAction(io, socket, roomId, {
+          type: 'submit',
+          expression: state.solution,
+        });
+        await vi.advanceTimersByTimeAsync(FC_REVEAL_MS);
+      }
+
+      const finished = formulaCompletionStates.get(roomId)!;
+      expect(finished.phase).toBe('finished');
+      expect(finished.round).toBe(FC_WIN_SCORE);
+      expect(finished.history).toHaveLength(FC_WIN_SCORE);
+      expect(finished.scores[first.id]).toBe(FC_WIN_SCORE);
+
+      await vi.advanceTimersByTimeAsync(FC_FINISH_DISPLAY_MS);
+      expect(onEnd).toHaveBeenCalledOnce();
+      expect(onEnd.mock.calls[0]?.[2]?.rankings?.[0]).toMatchObject({
+        playerId: first.id,
+        rank: 1,
+        score: FC_WIN_SCORE,
+      });
+    } finally {
+      cleanupFormulaCompletion(roomId);
+      sessions.removeSession(socket.id);
+      vi.clearAllTimers();
+      vi.useRealTimers();
     }
   });
 });

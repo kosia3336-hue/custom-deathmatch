@@ -8,7 +8,7 @@ INSERT INTO games (id, name, description, min_players, max_players,
                    supports_multi, supports_com, supports_solo,
                    is_active, sort_order, ranking_active)
 VALUES ('game-020', '수식완성N',
-        'N개의 자연수를 각각 한 번씩 사용해 타깃넘버를 먼저 만드는 7라운드 수식 대결. 정답은 +1점, 오답은 -1점!',
+        'N개의 자연수를 각각 한 번씩 사용해 타깃넘버를 먼저 만드는 최대 7라운드 수식 대결. 정답은 +1점, 오답은 -1점, 4점 선취 시 판정승!',
         2, 2, true, false, true, true, 200, false)
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,

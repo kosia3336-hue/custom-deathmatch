@@ -6,6 +6,7 @@ import {
   FC_MIN_NUMBER_COUNT,
   FC_REVEAL_MS,
   FC_TOTAL_ROUNDS,
+  FC_WIN_SCORE,
   type FormulaCompletionAction,
   type FormulaCompletionRoundResult,
 } from '@shared/types/formula-completion.js';
@@ -72,6 +73,10 @@ function rankingsFor(s: FormulaCompletionState) {
   ];
 }
 
+function hasClinchedMatch(s: FormulaCompletionState) {
+  return s.playMode !== 'solo' && Object.values(s.scores).some((score) => score >= FC_WIN_SCORE);
+}
+
 function finishGame(io: IO, s: FormulaCompletionState) {
   clearFormulaCompletionTimers(s);
   s.phase = 'finished';
@@ -128,7 +133,7 @@ function endRound(
 
   s.transitionTimer = setTimeout(() => {
     if (formulaCompletionStates.get(s.roomId) !== s || s.gameOver) return;
-    if (s.round >= FC_TOTAL_ROUNDS) {
+    if (hasClinchedMatch(s) || s.round >= FC_TOTAL_ROUNDS) {
       finishGame(io, s);
       return;
     }
