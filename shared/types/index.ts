@@ -227,6 +227,7 @@ export type {
 } from './transletter';
 export {
   FC_TOTAL_ROUNDS,
+  FC_WIN_SCORE,
   FC_MIN_NUMBER_COUNT,
   FC_MAX_NUMBER_COUNT,
   FC_DEFAULT_NUMBER_COUNT,
