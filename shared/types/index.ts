@@ -46,6 +46,7 @@ export type {
   CreateRoomData,
   JoinRoomData,
   UpdateRoomSettings,
+  UpdateRoomSettingsResult,
   ChatScope,
   ChatMessage,
   GameState,
