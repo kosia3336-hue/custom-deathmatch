@@ -7,7 +7,7 @@ import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS } from '@/shared/types';
-import type { Game, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
+import type { Game, PlayMode, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
   RoomModalShell,
@@ -23,10 +23,17 @@ interface Props {
   onClose: () => void;
 }
 
+function supportsPlayMode(game: Game, playMode: PlayMode): boolean {
+  if (playMode === 'multi') return game.supportsMulti;
+  if (playMode === 'com') return game.supportsCom;
+  return game.supportsSolo;
+}
+
 export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const { setFooterHidden } = useRoomLayout();
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [playMode, setPlayMode] = useState<PlayMode>('multi');
   const [title, setTitle] = useState('');
   const [roomType, setRoomType] = useState<RoomType>('public');
   const [password, setPassword] = useState('');
@@ -67,6 +74,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     setDetailOpen(false);
     setListOpen(false);
     setTitle(room.title);
+    setPlayMode(room.playMode);
     setRoomType(room.roomType);
     setMaxPlayers(room.maxPlayers);
 
@@ -80,13 +88,13 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       setTimeLimitSec(0);
     }
 
-    const chips = typeof room.gameOptions?.initialChips === 'number'
-      ? room.gameOptions.initialChips
-      : 25;
+    const chips =
+      typeof room.gameOptions?.initialChips === 'number' ? room.gameOptions.initialChips : 25;
     setInitialChips(chips);
-    const numberCount = typeof room.gameOptions?.numberCount === 'number'
-      ? room.gameOptions.numberCount
-      : FC_DEFAULT_NUMBER_COUNT;
+    const numberCount =
+      typeof room.gameOptions?.numberCount === 'number'
+        ? room.gameOptions.numberCount
+        : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
 
     fetchGames()
@@ -99,13 +107,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         setSelectedGame(current);
       })
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // ESC 닫기
   useEffect(() => {
     if (!open) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', handleKey);
     document.body.style.overflow = 'hidden';
     return () => {
@@ -114,9 +124,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     };
   }, [open, onClose]);
 
-  const computedTimeLimit = room.playMode === 'multi' && timeLimitEnabled
-    ? timeLimitMin * 60 + timeLimitSec
-    : null;
+  const computedTimeLimit =
+    playMode === 'multi' && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 
   const playerRange = selectedGame
     ? Array.from(
@@ -128,27 +137,69 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const selectGame = (g: Game) => {
     setListOpen(false);
     setSelectedGame(g);
+    let nextPlayMode = playMode;
+    if (!supportsPlayMode(g, nextPlayMode)) {
+      nextPlayMode = g.supportsMulti ? 'multi' : g.supportsCom ? 'com' : 'solo';
+      setPlayMode(nextPlayMode);
+    }
     // 새 게임의 인원 범위로 조정
-    setMaxPlayers(Math.max(Math.min(maxPlayers, g.maxPlayers), g.minPlayers));
+    setMaxPlayers(
+      nextPlayMode === 'multi'
+        ? Math.max(Math.min(maxPlayers, g.maxPlayers), g.minPlayers)
+        : nextPlayMode === 'com'
+          ? 2
+          : 1,
+    );
+    setError('');
+  };
+
+  const selectPlayMode = (nextPlayMode: PlayMode) => {
+    setPlayMode(nextPlayMode);
+    if (selectedGame) {
+      setMaxPlayers(
+        nextPlayMode === 'multi'
+          ? Math.max(Math.min(maxPlayers, selectedGame.maxPlayers), selectedGame.minPlayers)
+          : nextPlayMode === 'com'
+            ? 2
+            : 1,
+      );
+    }
     setError('');
   };
 
   const handleSave = () => {
     if (!selectedGame) return setError('게임을 선택해 주세요.');
     if (!title.trim() || title.length > 30) return setError('방 제목은 1~30자로 입력해 주세요.');
-    if (roomType === 'private') {
+    if (!supportsPlayMode(selectedGame, playMode)) {
+      return setError('선택한 게임은 이 플레이 모드를 지원하지 않습니다.');
+    }
+    const targetRoomType: RoomType = playMode === 'solo' ? 'public' : roomType;
+    if (targetRoomType === 'private') {
       const isBecomingPrivate = room.roomType === 'public';
       if (isBecomingPrivate && (password.length < 4 || password.length > 8)) {
         return setError('비밀번호는 4~8자리로 입력해 주세요.');
       }
-      if (!isBecomingPrivate && password.length > 0 && (password.length < 4 || password.length > 8)) {
+      if (
+        !isBecomingPrivate &&
+        password.length > 0 &&
+        (password.length < 4 || password.length > 8)
+      ) {
         return setError('비밀번호는 4~8자리로 입력해 주세요.');
       }
     }
-    if (timeLimitEnabled && (computedTimeLimit == null || computedTimeLimit < 10)) {
+    if (
+      playMode === 'multi' &&
+      timeLimitEnabled &&
+      (computedTimeLimit == null || computedTimeLimit < 10)
+    ) {
       return setError('시간제한은 최소 10초 이상이어야 합니다.');
     }
-    if (timeLimitEnabled && computedTimeLimit != null && computedTimeLimit > 600) {
+    if (
+      playMode === 'multi' &&
+      timeLimitEnabled &&
+      computedTimeLimit != null &&
+      computedTimeLimit > 600
+    ) {
       return setError('시간제한은 최대 10분까지 설정할 수 있습니다.');
     }
 
@@ -168,27 +219,25 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     const payload: UpdateRoomSettings = {
       title: title.trim(),
       gameId: isGameChanged ? selectedGame.id : undefined,
-      maxPlayers,
-      roomType,
+      playMode,
+      maxPlayers: playMode === 'multi' ? maxPlayers : playMode === 'com' ? 2 : 1,
+      roomType: targetRoomType,
       timeLimitSeconds: computedTimeLimit,
       gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
     };
 
     // 비밀번호 처리
-    if (roomType === 'public' && room.roomType === 'private') {
+    if (targetRoomType === 'public' && room.roomType === 'private') {
       payload.clearPassword = true;
-    } else if (roomType === 'private' && password.length >= 4) {
+    } else if (targetRoomType === 'private' && password.length >= 4) {
       payload.password = password;
     }
 
-    socket.emit('room:settings:update', payload);
-
-    // 서버가 에러를 보내도 useRoom 훅에서 toast로 처리하므로
-    // 짧은 딜레이 후 모달을 닫는다
-    setTimeout(() => {
+    socket.emit('room:settings:update', payload, (res) => {
       setLoading(false);
-      onClose();
-    }, 300);
+      if (res.success) onClose();
+      else setError(res.error ?? '방 설정 변경에 실패했습니다.');
+    });
   };
 
   // 방 설정에서는 언제나 방 유형·시간제한 중 하나는 있다
@@ -199,18 +248,22 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       open={open}
       title="방 설정 변경"
       onClose={onClose}
-      footer={(
+      footer={
         <>
           {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={onClose}>취소</Button>
-            <Button onClick={handleSave} loading={loading}>저장</Button>
+            <Button variant="secondary" onClick={onClose}>
+              취소
+            </Button>
+            <Button onClick={handleSave} loading={loading}>
+              저장
+            </Button>
           </div>
         </>
-      )}
+      }
     >
       <GameListPicker
-        games={games.filter((g) => g.supportsMulti)}
+        games={games}
         activeGameId={selectedGame?.id ?? null}
         onSelectGame={selectGame}
         onSelectMode={() => {}}
@@ -235,8 +288,39 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       <SettingsAccordion open={detailOpen} onToggle={() => setDetailOpen((v) => !v)}>
         {!hasDetailOptions ? null : (
           <>
-            {/* 방 유형 — 멀티 모드만 */}
-            {room.playMode === 'multi' && (
+            {/* 플레이 모드 */}
+            {selectedGame && (
+              <SettingField label="플레이 모드">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    {
+                      key: 'multi' as PlayMode,
+                      label: '멀티',
+                      supported: selectedGame.supportsMulti,
+                    },
+                    { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
+                    {
+                      key: 'solo' as PlayMode,
+                      label: '1:1 솔로',
+                      supported: selectedGame.supportsSolo,
+                    },
+                  ]
+                    .filter((mode) => mode.supported)
+                    .map((mode) => (
+                      <OptionButton
+                        key={mode.key}
+                        active={playMode === mode.key}
+                        onClick={() => selectPlayMode(mode.key)}
+                      >
+                        {mode.label}
+                      </OptionButton>
+                    ))}
+                </div>
+              </SettingField>
+            )}
+
+            {/* 방 유형 — 멀티/COM 모드 */}
+            {playMode !== 'solo' && (
               <>
                 <SettingField label="방 유형">
                   <div className="flex gap-2">
@@ -247,7 +331,10 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                       <OptionButton
                         key={rt.key}
                         active={roomType === rt.key}
-                        onClick={() => { setRoomType(rt.key); setPassword(''); }}
+                        onClick={() => {
+                          setRoomType(rt.key);
+                          setPassword('');
+                        }}
                       >
                         {rt.label}
                       </OptionButton>
@@ -258,11 +345,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                 {/* 비밀번호 */}
                 {roomType === 'private' && (
                   <Input
-                    label={room.roomType === 'private' ? '새 비밀번호 (변경 시만 입력)' : '비밀번호'}
+                    label={
+                      room.roomType === 'private' ? '새 비밀번호 (변경 시만 입력)' : '비밀번호'
+                    }
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
+                    placeholder={
+                      room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'
+                    }
                     maxLength={8}
                   />
                 )}
@@ -270,11 +361,16 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             )}
 
             {/* 최대 인원 */}
-            {selectedGame && playerRange.length > 1 && (
+            {playMode === 'multi' && selectedGame && playerRange.length > 1 && (
               <SettingField label="최대 인원">
                 <div className="flex flex-wrap gap-2">
                   {playerRange.map((n) => (
-                    <OptionButton key={n} size="square" active={maxPlayers === n} onClick={() => setMaxPlayers(n)}>
+                    <OptionButton
+                      key={n}
+                      size="square"
+                      active={maxPlayers === n}
+                      onClick={() => setMaxPlayers(n)}
+                    >
                       {n}
                     </OptionButton>
                   ))}
@@ -295,13 +391,18 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                     onChange={(e) => setInitialChips(Number(e.target.value))}
                     className="flex-1"
                   />
-                  <span className="w-12 text-right text-sm font-bold text-cdm-fg">
+                  <span className="text-cdm-fg w-12 text-right text-sm font-bold">
                     {initialChips}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {CHIPS_PRESETS.map((v) => (
-                    <OptionButton key={v} size="sm" active={initialChips === v} onClick={() => setInitialChips(v)}>
+                    <OptionButton
+                      key={v}
+                      size="sm"
+                      active={initialChips === v}
+                      onClick={() => setInitialChips(v)}
+                    >
                       {v}개
                     </OptionButton>
                   ))}
@@ -324,14 +425,14 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                     </OptionButton>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-cdm-fg-subtle">
+                <p className="text-cdm-fg-subtle mt-2 text-xs">
                   숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
                 </p>
               </SettingField>
             )}
 
             {/* 시간제한 */}
-            {room.playMode === 'multi' && (
+            {playMode === 'multi' && (
               <SettingField label="시간제한">
                 <div className="flex gap-2">
                   {[
@@ -354,23 +455,27 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                       <select
                         value={timeLimitMin}
                         onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
                       >
                         {Array.from({ length: 11 }, (_, i) => (
-                          <option key={i} value={i}>{i}</option>
+                          <option key={i} value={i}>
+                            {i}
+                          </option>
                         ))}
                       </select>
-                      <span className="text-sm text-cdm-fg-muted">분</span>
+                      <span className="text-cdm-fg-muted text-sm">분</span>
                       <select
                         value={timeLimitSec}
                         onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
                       >
                         {[0, 10, 15, 20, 30, 45].map((s) => (
-                          <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
+                          <option key={s} value={s}>
+                            {String(s).padStart(2, '0')}
+                          </option>
                         ))}
                       </select>
-                      <span className="text-sm text-cdm-fg-muted">초</span>
+                      <span className="text-cdm-fg-muted text-sm">초</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {[
