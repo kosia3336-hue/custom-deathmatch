@@ -16,7 +16,7 @@ export default function CompleteHapViewer({
   className?: string;
 }) {
   const data = record.gameRecord as CompleteHapArchiveRecord | null;
-  if (!data || !Array.isArray(data.boards) || !Array.isArray(data.problemClaims)) {
+  if (!data || !Array.isArray(data.rounds) || !Array.isArray(data.roundResults)) {
     return <p className="text-cdm-fg-muted text-sm">컴플릿 결! 합! 기록을 읽을 수 없습니다.</p>;
   }
   const players = Object.entries(data.players);
@@ -34,7 +34,7 @@ export default function CompleteHapViewer({
               <div key={playerId} className="text-right">
                 <p className="text-cdm-fg-muted text-xs font-semibold">{player.nickname}</p>
                 <p className="text-cdm-primary text-2xl font-black tabular-nums">
-                  {data.finalCorrectCounts[playerId] ?? 0}
+                  {data.finalScores[playerId] ?? 0}
                 </p>
               </div>
             ))}
@@ -42,79 +42,127 @@ export default function CompleteHapViewer({
         </div>
       </Card>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        {data.boards.map((board, boardIndex) => (
-          <Card key={boardIndex} className="p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-cdm-fg text-sm font-black">{boardIndex + 1}번 문제</p>
-              <p className="text-cdm-fg-muted text-[11px]">
-                {board.winnerId
-                  ? `${data.players[board.winnerId]?.nickname ?? '플레이어'} 완성`
-                  : '미완성'}
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {board.cards.map((card, cardIndex) => (
-                <ArchiveCard key={cardIndex} card={card} number={cardIndex + 1} />
-              ))}
-            </div>
-            <p className="text-cdm-fg-muted mt-2 text-[11px] leading-relaxed">
-              정답:{' '}
-              {board.allSets.map((set) => set.map((index) => index + 1).join('·')).join(' / ') ||
-                '없음'}
-            </p>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="p-3 sm:p-4">
-        <p className="text-cdm-fg mb-3 text-sm font-black">문제 완성 기록</p>
-        {data.problemClaims.length === 0 ? (
-          <p className="text-cdm-fg-muted text-xs">완성된 문제가 없습니다.</p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {data.problemClaims.map((claim, index) => (
-              <div
-                key={`${claim.boardIndex}-${claim.playerId}-${index}`}
-                className="rounded-cdm-md bg-cdm-bg-elev-1 px-3 py-2"
-              >
-                <p className="text-cdm-fg-subtle text-[10px] font-bold">
-                  {(claim.elapsedMs / 1000).toFixed(1)}초 ·{' '}
-                  {data.players[claim.playerId]?.nickname ?? claim.playerId}
-                </p>
-                <p className="text-cdm-fg mt-0.5 text-xs font-semibold">
-                  {claim.boardIndex + 1}번 문제의 모든 합 완성
-                </p>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {data.rounds.map((round) => {
+          const caller = round.result
+            ? (data.players[round.result.callerId]?.nickname ?? '플레이어')
+            : null;
+          const pointPlayer = round.result?.pointPlayerId
+            ? (data.players[round.result.pointPlayerId]?.nickname ?? '플레이어')
+            : null;
+          return (
+            <Card key={round.round} className="p-3 sm:p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.14em]">
+                    ROUND {round.round} / {data.totalRounds}
+                  </p>
+                  <p className="text-cdm-fg mt-0.5 text-sm font-black">
+                    {round.result
+                      ? round.result.correct
+                        ? `${caller} 정답`
+                        : `${caller} 오답`
+                      : '미진행'}
+                  </p>
+                </div>
+                {round.result && (
+                  <div className="text-right">
+                    <p
+                      className={cn(
+                        'text-xs font-black',
+                        round.result.correct ? 'text-cdm-success' : 'text-cdm-accent',
+                      )}
+                    >
+                      {pointPlayer ? `${pointPlayer} +1` : '득점 없음'}
+                    </p>
+                    <p className="text-cdm-fg-muted text-[10px] tabular-nums">
+                      {(round.result.elapsedMs / 1000).toFixed(1)}초
+                    </p>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+
+              <div className="mx-auto grid max-w-md grid-cols-3 gap-1.5 sm:gap-2">
+                {round.cards.map((card, cardIndex) => (
+                  <ArchiveCard key={cardIndex} card={card} />
+                ))}
+              </div>
+
+              <details className="border-cdm-border mt-3 border-t pt-3">
+                <summary className="text-cdm-fg-muted cursor-pointer text-xs font-bold">
+                  정답 합 {round.allSets.length}개 확인
+                </summary>
+                <SetList cards={round.cards} sets={round.allSets} className="mt-2" />
+              </details>
+
+              {round.result && (
+                <details className="border-cdm-border mt-3 border-t pt-3">
+                  <summary className="text-cdm-fg-muted cursor-pointer text-xs font-bold">
+                    제출한 합 {round.result.submittedSets.length}개 확인
+                  </summary>
+                  <SetList cards={round.cards} sets={round.result.submittedSets} className="mt-2" />
+                </details>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function ArchiveCard({ card, number }: { card: CompleteHapCard; number: number }) {
-  const shapeStyle = {
-    backgroundColor: FG[card.color],
-  };
+function SetList({
+  cards,
+  sets,
+  className,
+}: {
+  cards: CompleteHapCard[];
+  sets: number[][];
+  className?: string;
+}) {
+  if (sets.length === 0) {
+    return <p className={cn('text-cdm-fg-muted text-xs', className)}>저장된 합이 없습니다.</p>;
+  }
+  return (
+    <div className={cn('grid gap-2 sm:grid-cols-2', className)}>
+      {sets.map((set, setIndex) => (
+        <div
+          key={`${set.join('-')}-${setIndex}`}
+          className="bg-cdm-bg-elev-1 rounded-cdm-md grid grid-cols-3 gap-1.5 p-2"
+        >
+          {set.map((cardIndex, index) =>
+            cards[cardIndex] ? (
+              <ArchiveCard key={`${cardIndex}-${index}`} card={cards[cardIndex]} compact />
+            ) : (
+              <span
+                key={`${cardIndex}-${index}`}
+                className="border-cdm-accent bg-cdm-accent-soft rounded-cdm-sm aspect-square border"
+              />
+            ),
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ArchiveCard({ card, compact = false }: { card: CompleteHapCard; compact?: boolean }) {
+  const shapeStyle = { backgroundColor: FG[card.color] };
   return (
     <div
-      className="rounded-cdm-md border-cdm-border-strong relative flex aspect-[4/3] items-center justify-center border"
+      className={cn(
+        'rounded-cdm-md border-cdm-border-strong relative flex aspect-square items-center justify-center border',
+        compact && 'rounded-cdm-sm',
+      )}
       style={{ backgroundColor: BG[card.background] }}
     >
       <span
-        className="absolute top-1 left-1 text-[9px] font-black"
-        style={{ color: card.background === 'white' ? '#111318' : '#fff' }}
-      >
-        {number}
-      </span>
-      <span
         className={cn(
-          'block h-8 w-8',
+          'block h-[46%] w-[46%]',
           card.shape === 'circle' && 'rounded-full',
           card.shape === 'triangle' &&
-            'h-0 w-0 border-x-[18px] border-b-[32px] border-x-transparent bg-transparent',
+            'h-0 w-0 border-x-[1.4rem] border-b-[2.5rem] border-x-transparent bg-transparent',
+          compact && card.shape === 'triangle' && 'border-x-[0.75rem] border-b-[1.35rem]',
         )}
         style={card.shape === 'triangle' ? { borderBottomColor: FG[card.color] } : shapeStyle}
       />
