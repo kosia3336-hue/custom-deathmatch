@@ -13,22 +13,21 @@ export {
 } from './rank';
 export { AI_PLAYER_ID } from './room';
 export {
-  CH_BOARD_COUNT,
   CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,
+  CH_TOTAL_ROUNDS,
   completeHapCardKey,
 } from './complete-hap';
 export type {
   CompleteHapAction,
-  CompleteHapArchiveBoard,
   CompleteHapArchiveRecord,
+  CompleteHapArchiveRound,
   CompleteHapBoard,
-  CompleteHapCall,
   CompleteHapCard,
   CompleteHapCardColor,
   CompleteHapGameData,
   CompleteHapPhase,
-  CompleteHapProblemClaim,
+  CompleteHapRoundResult,
   CompleteHapShape,
   CompleteHapBackground,
   CompleteHapTiebreak,

@@ -1,14 +1,15 @@
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
 import {
+  CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,
+  CH_TOTAL_ROUNDS,
   type CompleteHapAction,
-  type CompleteHapCall,
-  type CompleteHapProblemClaim,
+  type CompleteHapRoundResult,
   type CompleteHapTiebreak,
 } from '@shared/types/complete-hap.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IO, TypedSocket } from '../../types.js';
-import { completeHapSetKey, dealCompleteHapBoards } from './generator.js';
+import { completeHapSetKey, dealCompleteHapRounds } from './generator.js';
 import {
   broadcastCompleteHapState,
   clearCompleteHapTimers,
@@ -18,17 +19,19 @@ import {
 } from './state.js';
 import type { CompleteHapEndGameFn, CompleteHapState } from './types.js';
 
+const ROUND_RESULT_MS = 2500;
 const FINISH_DISPLAY_MS = 3000;
-const AI_MIN_DELAY_MS = 3500;
-const AI_MAX_DELAY_MS = 9000;
+const AI_MIN_DELAY_PER_SET_MS = 3500;
+const AI_MAX_DELAY_PER_SET_MS = 9000;
+const MAX_SET_COMBINATIONS = 84;
 
-function problemClaimStats(state: CompleteHapState, playerId: string) {
-  const claims = state.problemClaims.filter((claim) => claim.playerId === playerId);
-  const lastClaim = claims.at(-1);
+function pointStats(state: CompleteHapState, playerId: string) {
+  const results = state.roundResults.filter((result) => result.pointPlayerId === playerId);
+  const lastResult = results.at(-1);
   return {
-    reachedAt: lastClaim?.elapsedMs ?? Number.POSITIVE_INFINITY,
-    totalElapsed: claims.reduce((sum, claim) => sum + claim.elapsedMs, 0),
-    reachedOrder: lastClaim ? state.problemClaims.indexOf(lastClaim) : Number.POSITIVE_INFINITY,
+    reachedAt: lastResult?.matchElapsedMs ?? Number.POSITIVE_INFINITY,
+    totalElapsed: results.reduce((sum, result) => sum + result.matchElapsedMs, 0),
+    reachedOrder: lastResult ? state.roundResults.indexOf(lastResult) : Number.POSITIVE_INFINITY,
   };
 }
 
@@ -37,16 +40,16 @@ export function completeHapRankings(state: CompleteHapState): {
   tiebreak: CompleteHapTiebreak;
 } {
   const [first, second] = state.players;
-  const firstCount = state.correctCounts[first.id] ?? 0;
+  const firstScore = state.scores[first.id] ?? 0;
   if (state.playMode === 'solo') {
     return {
-      rankings: [{ playerId: first.id, nickname: first.nickname, rank: 1, score: firstCount }],
+      rankings: [{ playerId: first.id, nickname: first.nickname, rank: 1, score: firstScore }],
       tiebreak: 'solo',
     };
   }
 
-  const secondCount = state.correctCounts[second.id] ?? 0;
-  if (firstCount === 0 && secondCount === 0) {
+  const secondScore = state.scores[second.id] ?? 0;
+  if (firstScore === 0 && secondScore === 0) {
     return {
       rankings: [
         { playerId: first.id, nickname: first.nickname, rank: 1, score: 0 },
@@ -59,13 +62,13 @@ export function completeHapRankings(state: CompleteHapState): {
   let winner: Player;
   let loser: Player;
   let tiebreak: CompleteHapTiebreak = 'count';
-  if (firstCount !== secondCount) {
-    winner = firstCount > secondCount ? first : second;
+  if (firstScore !== secondScore) {
+    winner = firstScore > secondScore ? first : second;
     loser = winner.id === first.id ? second : first;
   } else {
     tiebreak = 'speed';
-    const firstStats = problemClaimStats(state, first.id);
-    const secondStats = problemClaimStats(state, second.id);
+    const firstStats = pointStats(state, first.id);
+    const secondStats = pointStats(state, second.id);
     const firstWins =
       firstStats.reachedAt !== secondStats.reachedAt
         ? firstStats.reachedAt < secondStats.reachedAt
@@ -82,21 +85,12 @@ export function completeHapRankings(state: CompleteHapState): {
         playerId: winner.id,
         nickname: winner.nickname,
         rank: 1,
-        score: state.correctCounts[winner.id] ?? 0,
+        score: state.scores[winner.id] ?? 0,
       },
-      {
-        playerId: loser.id,
-        nickname: loser.nickname,
-        rank: 2,
-        score: state.correctCounts[loser.id] ?? 0,
-      },
+      { playerId: loser.id, nickname: loser.nickname, rank: 2, score: state.scores[loser.id] ?? 0 },
     ],
     tiebreak,
   };
-}
-
-function allProblemsClaimed(state: CompleteHapState) {
-  return state.boards.every((board) => board.winnerId != null);
 }
 
 function formatLimit(seconds: number) {
@@ -115,7 +109,7 @@ function finishGame(io: IO, state: CompleteHapState, baseReason: string) {
   state.winnerId = result.tiebreak === 'zero-draw' ? null : (winner?.playerId ?? null);
   state.finishReason =
     state.playMode === 'solo'
-      ? `${baseReason} 정답 ${state.correctCounts[state.players[0].id] ?? 0}문제를 완성했습니다.`
+      ? `${baseReason} ${state.scores[state.players[0].id] ?? 0}점을 획득했습니다.`
       : result.tiebreak === 'zero-draw'
         ? `${baseReason} 0:0 무승부입니다.`
         : `${baseReason} ${winner?.nickname ?? '플레이어'} 님이 승리했습니다.`;
@@ -123,7 +117,7 @@ function finishGame(io: IO, state: CompleteHapState, baseReason: string) {
 
   const payload = {
     rankings: result.rankings,
-    totalTurns: state.boards.reduce((sum, board) => sum + board.calls.length, 0),
+    totalTurns: state.roundResults.length,
     gameResultData: toCompleteHapRecord(state),
   };
   state.finishTimer = setTimeout(() => {
@@ -133,74 +127,100 @@ function finishGame(io: IO, state: CompleteHapState, baseReason: string) {
   }, FINISH_DISPLAY_MS);
 }
 
-function foundKeysFor(state: CompleteHapState, boardIndex: number, playerId: string) {
-  const board = state.boards[boardIndex];
-  let keys = board.foundSetKeysByPlayer.get(playerId);
-  if (!keys) {
-    keys = new Set<string>();
-    board.foundSetKeysByPlayer.set(playerId, keys);
-  }
-  return keys;
+function opponentId(state: CompleteHapState, callerId: string) {
+  if (state.playMode === 'solo') return null;
+  return state.players.find((player) => player.id !== callerId)?.id ?? null;
 }
 
-function remainingAnswersForPlayer(state: CompleteHapState, playerId: string) {
-  return state.boards.flatMap((board, boardIndex) => {
-    if (board.winnerId != null) return [];
-    const foundKeys = board.foundSetKeysByPlayer.get(playerId);
-    return board.allSets.flatMap((cardIndexes) =>
-      foundKeys?.has(completeHapSetKey(cardIndexes)) ? [] : [{ boardIndex, cardIndexes }],
+function parseSubmittedSets(value: unknown) {
+  if (!Array.isArray(value)) return { sets: [] as number[][], valid: false };
+  const rawSets = value.slice(0, MAX_SET_COMBINATIONS + 1);
+  let valid = value.length <= MAX_SET_COMBINATIONS;
+  const sets = rawSets.map((rawSet) => {
+    if (!Array.isArray(rawSet) || rawSet.length !== 3) valid = false;
+    const indexes = (Array.isArray(rawSet) ? rawSet.slice(0, 3) : []).map((rawIndex) =>
+      typeof rawIndex === 'number' && Number.isInteger(rawIndex) ? rawIndex : -1,
     );
+    if (
+      indexes.length !== 3 ||
+      new Set(indexes).size !== 3 ||
+      indexes.some((index) => index < 0 || index >= CH_CARDS_PER_BOARD)
+    ) {
+      valid = false;
+    }
+    return indexes.sort((a, b) => a - b);
   });
-}
-
-function recordHap(
-  io: IO,
-  state: CompleteHapState,
-  playerId: string,
-  boardIndex: number,
-  cardIndexes: number[],
-) {
-  if (state.gameOver || state.phase !== 'playing') return false;
-  const board = state.boards[boardIndex];
-  if (!board || board.winnerId != null) return false;
-  const sorted = [...cardIndexes].sort((a, b) => a - b);
-  const key = completeHapSetKey(sorted);
-  const foundKeys = foundKeysFor(state, boardIndex, playerId);
-  if (!board.allSetKeys.has(key) || foundKeys.has(key)) return false;
-
-  const elapsedMs = Math.max(0, Date.now() - state.matchStartedAt);
-  const call: CompleteHapCall = { boardIndex, cardIndexes: sorted, playerId, elapsedMs };
-  foundKeys.add(key);
-  board.calls.push(call);
-
-  if (foundKeys.size === board.allSetKeys.size) {
-    const problemClaim: CompleteHapProblemClaim = { boardIndex, playerId, elapsedMs };
-    board.winnerId = playerId;
-    board.claimedAtMs = elapsedMs;
-    state.correctCounts[playerId] = (state.correctCounts[playerId] ?? 0) + 1;
-    state.problemClaims.push(problemClaim);
-    state.lastProblemClaim = problemClaim;
-  }
-  void broadcastCompleteHapState(io, state);
-
-  if (allProblemsClaimed(state)) finishGame(io, state, '세 문제가 모두 완성되었습니다.');
-  return true;
+  const keys = sets.map(completeHapSetKey);
+  if (new Set(keys).size !== keys.length) valid = false;
+  return { sets, valid };
 }
 
 function scheduleAi(io: IO, state: CompleteHapState) {
   if (state.playMode !== 'com' || state.gameOver || state.phase !== 'playing') return;
-  const delay = AI_MIN_DELAY_MS + Math.random() * (AI_MAX_DELAY_MS - AI_MIN_DELAY_MS);
-  state.aiTimer = setTimeout(() => {
-    if (completeHapStates.get(state.roomId) !== state || state.gameOver) return;
-    const answers = remainingAnswersForPlayer(state, AI_PLAYER_ID);
-    if (answers.length === 0) {
-      if (allProblemsClaimed(state)) finishGame(io, state, '세 문제가 모두 완성되었습니다.');
-      return;
-    }
-    const answer = answers[Math.floor(Math.random() * answers.length)];
-    recordHap(io, state, AI_PLAYER_ID, answer.boardIndex, answer.cardIndexes);
-    if (!state.gameOver) scheduleAi(io, state);
-  }, delay);
+  const round = state.rounds[state.currentRoundIndex];
+  const delayPerSet =
+    AI_MIN_DELAY_PER_SET_MS + Math.random() * (AI_MAX_DELAY_PER_SET_MS - AI_MIN_DELAY_PER_SET_MS);
+  state.aiTimer = setTimeout(
+    () => {
+      if (
+        completeHapStates.get(state.roomId) !== state ||
+        state.gameOver ||
+        state.phase !== 'playing'
+      ) {
+        return;
+      }
+      resolveGyul(io, state, AI_PLAYER_ID, round.allSets);
+    },
+    Math.max(AI_MIN_DELAY_PER_SET_MS, round.allSets.length * delayPerSet),
+  );
+}
+
+function advanceAfterRound(io: IO, state: CompleteHapState) {
+  if (state.gameOver || completeHapStates.get(state.roomId) !== state) return;
+  if (state.currentRoundIndex + 1 >= state.totalRounds) {
+    finishGame(io, state, `${state.totalRounds}라운드가 종료되었습니다.`);
+    return;
+  }
+  state.currentRoundIndex += 1;
+  state.phase = 'playing';
+  state.roundStartedAt = Date.now();
+  state.lastRoundResult = null;
+  state.roundTimer = null;
+  void broadcastCompleteHapState(io, state);
+  scheduleAi(io, state);
+}
+
+function resolveGyul(io: IO, state: CompleteHapState, callerId: string, value: unknown) {
+  if (state.gameOver || state.phase !== 'playing') return;
+  const round = state.rounds[state.currentRoundIndex];
+  const submitted = parseSubmittedSets(value);
+  const submittedKeys = new Set(submitted.sets.map(completeHapSetKey));
+  const correct =
+    submitted.valid &&
+    submittedKeys.size === round.allSetKeys.size &&
+    [...round.allSetKeys].every((key) => submittedKeys.has(key));
+  const pointPlayerId = correct ? callerId : opponentId(state, callerId);
+  if (pointPlayerId) state.scores[pointPlayerId] = (state.scores[pointPlayerId] ?? 0) + 1;
+
+  const now = Date.now();
+  const result: CompleteHapRoundResult = {
+    round: state.currentRoundIndex + 1,
+    callerId,
+    pointPlayerId,
+    correct,
+    submittedSets: submitted.sets.map((set) => [...set]),
+    answerSets: round.allSets.map((set) => [...set]),
+    elapsedMs: Math.max(0, now - state.roundStartedAt),
+    matchElapsedMs: Math.max(0, now - state.matchStartedAt),
+  };
+  round.result = result;
+  state.roundResults.push(result);
+  state.lastRoundResult = result;
+  state.phase = 'round-result';
+  if (state.aiTimer) clearTimeout(state.aiTimer);
+  state.aiTimer = null;
+  void broadcastCompleteHapState(io, state);
+  state.roundTimer = setTimeout(() => advanceAfterRound(io, state), ROUND_RESULT_MS);
 }
 
 export function initCompleteHap(
@@ -217,7 +237,7 @@ export function initCompleteHap(
   completeHapStates.delete(roomId);
 
   const first = players[0];
-  if (!first) throw new Error('컴플릿 합!을 시작할 플레이어가 필요합니다.');
+  if (!first) throw new Error('컴플릿 결! 합!을 시작할 플레이어가 필요합니다.');
   const second = playMode === 'solo' ? first : players[1];
   if (!second) throw new Error('멀티/COM 모드에는 두 명의 플레이어가 필요합니다.');
   const matchStartedAt = Date.now();
@@ -226,18 +246,22 @@ export function initCompleteHap(
     roomId,
     playMode,
     players: [first, second],
-    boards: dealCompleteHapBoards(),
+    rounds: dealCompleteHapRounds(CH_TOTAL_ROUNDS),
+    currentRoundIndex: 0,
+    totalRounds: CH_TOTAL_ROUNDS,
     phase: 'playing',
-    correctCounts: { [first.id]: 0, [second.id]: 0 },
+    scores: { [first.id]: 0, [second.id]: 0 },
+    roundStartedAt: matchStartedAt,
     matchStartedAt,
     matchSeconds,
-    problemClaims: [],
-    lastProblemClaim: null,
+    roundResults: [],
+    lastRoundResult: null,
     tiebreak: playMode === 'solo' ? 'solo' : 'zero-draw',
     winnerId: null,
     finishReason: null,
     gameOver: false,
     matchTimer: null,
+    roundTimer: null,
     aiTimer: null,
     finishTimer: null,
     endGameCallback,
@@ -265,39 +289,8 @@ export function handleCompleteHapAction(
   if (!state.players.some((player) => player.id === playerId) || playerId === AI_PLAYER_ID) return;
 
   const action = rawData as CompleteHapAction;
-  if (action.type !== 'submit-hap') return;
-  const boardIndex = Number(action.boardIndex);
-  const cardIndexes = Array.isArray(action.cardIndexes) ? action.cardIndexes.map(Number) : [];
-  const validSelection =
-    Number.isInteger(boardIndex) &&
-    boardIndex >= 0 &&
-    boardIndex < state.boards.length &&
-    cardIndexes.length === 3 &&
-    new Set(cardIndexes).size === 3 &&
-    cardIndexes.every(
-      (index) =>
-        Number.isInteger(index) && index >= 0 && index < state.boards[boardIndex].cards.length,
-    );
-  if (!validSelection) {
-    socket.emit('error', { message: '같은 문제에서 카드 3장을 선택해 주세요.' });
-    return;
-  }
-
-  const board = state.boards[boardIndex];
-  const key = completeHapSetKey(cardIndexes);
-  if (board.winnerId != null) {
-    socket.emit('error', { message: '이미 완성된 문제입니다.' });
-    return;
-  }
-  if (foundKeysFor(state, boardIndex, playerId).has(key)) {
-    socket.emit('error', { message: '이 문제에서 이미 외친 합입니다.' });
-    return;
-  }
-  if (!board.allSetKeys.has(key)) {
-    socket.emit('error', { message: '선택한 세 카드는 합이 아닙니다. 다시 찾아보세요.' });
-    return;
-  }
-  recordHap(io, state, playerId, boardIndex, cardIndexes);
+  if (action.type !== 'call-gyul') return;
+  resolveGyul(io, state, playerId, action.sets);
 }
 
 export function cleanupCompleteHap(roomId: string) {
@@ -308,8 +301,7 @@ export function cleanupCompleteHap(roomId: string) {
 
 export function getCompleteHapState(roomId: string) {
   const state = completeHapStates.get(roomId);
-  const totalCalls = state?.boards.reduce((sum, board) => sum + board.calls.length, 0) ?? 0;
-  return state ? { gameOver: state.gameOver, totalTurns: totalCalls } : undefined;
+  return state ? { gameOver: state.gameOver, totalTurns: state.roundResults.length } : undefined;
 }
 
 export function getCompleteHapResultData(roomId: string) {

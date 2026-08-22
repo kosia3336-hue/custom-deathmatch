@@ -1,8 +1,4 @@
-import {
-  CH_BOARD_COUNT,
-  CH_CARDS_PER_BOARD,
-  type CompleteHapCard,
-} from '@shared/types/complete-hap.js';
+import { CH_CARDS_PER_BOARD, type CompleteHapCard } from '@shared/types/complete-hap.js';
 
 const SHAPES = ['circle', 'triangle', 'square'] as const;
 const BACKGROUNDS = ['black', 'gray', 'white'] as const;
@@ -49,34 +45,25 @@ function shuffle<T>(values: T[], random: () => number): T[] {
   return result;
 }
 
-function buildBoards(deck: CompleteHapCard[]) {
-  return Array.from({ length: CH_BOARD_COUNT }, (_, boardIndex) => {
-    const cards = deck.slice(
-      boardIndex * CH_CARDS_PER_BOARD,
-      (boardIndex + 1) * CH_CARDS_PER_BOARD,
-    );
-    const allSets = findCompleteHapSets(cards);
-    return {
-      cards,
-      allSets,
-      allSetKeys: new Set(allSets.map(completeHapSetKey)),
-      foundSetKeysByPlayer: new Map<string, Set<string>>(),
-      calls: [],
-      winnerId: null,
-      claimedAtMs: null,
-    };
-  });
+function buildBoard(cards: CompleteHapCard[]) {
+  const allSets = findCompleteHapSets(cards);
+  return {
+    cards,
+    allSets,
+    allSetKeys: new Set(allSets.map(completeHapSetKey)),
+  };
 }
 
-/**
- * 27장 전체를 한 번씩 섞어 9장짜리 보드 세 개로 나눈다.
- * 결 선언이 없는 선착순 규칙이므로 정답 없는 보드가 생기지 않게 각 보드에 합을 2개 이상 보장한다.
- */
-export function dealCompleteHapBoards(random: () => number = Math.random) {
+/** 9장짜리 문제 하나를 만들며, 모든 합을 찾는 게임이 성립하도록 합을 2개 이상 보장한다. */
+export function dealCompleteHapBoard(random: () => number = Math.random) {
   for (let attempt = 0; attempt < 200; attempt++) {
-    const boards = buildBoards(shuffle(createCompleteHapDeck(), random));
-    if (boards.every((board) => board.allSets.length >= 2)) return boards;
+    const board = buildBoard(shuffle(createCompleteHapDeck(), random).slice(0, CH_CARDS_PER_BOARD));
+    if (board.allSets.length >= 2) return board;
   }
-  // 주입된 난수가 항상 같은 값을 내는 테스트 환경에서도 유효한 보드를 반환한다.
-  return buildBoards(createCompleteHapDeck());
+  // 주입된 난수가 항상 같은 값을 내는 테스트 환경에서도 유효한 문제를 반환한다.
+  return buildBoard(createCompleteHapDeck().slice(0, CH_CARDS_PER_BOARD));
+}
+
+export function dealCompleteHapRounds(count: number, random: () => number = Math.random) {
+  return Array.from({ length: count }, () => dealCompleteHapBoard(random));
 }

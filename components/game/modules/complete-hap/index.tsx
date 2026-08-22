@@ -1,12 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { AI_PLAYER_ID } from '@/shared/types/room';
-import type {
-  CompleteHapBoard,
-  CompleteHapCard,
-  CompleteHapGameData,
-} from '@/shared/types/complete-hap';
+import { useEffect, useState } from 'react';
+import type { CompleteHapCard, CompleteHapGameData } from '@/shared/types/complete-hap';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
@@ -30,15 +25,15 @@ function formatClock(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+function setKey(indexes: number[]) {
+  return [...indexes].sort((a, b) => a - b).join('-');
+}
+
 export default function CompleteHapGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as CompleteHapGameData | undefined;
   const myId = useMySocketId();
   const [now, setNow] = useState(gameData?.matchStartedAt ?? 0);
-  const [selection, setSelection] = useState<{ boardIndex: number | null; indexes: number[] }>({
-    boardIndex: null,
-    indexes: [],
-  });
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 200);
@@ -62,54 +57,30 @@ export default function CompleteHapGame() {
           Math.ceil((gameData.matchStartedAt + gameData.matchSeconds * 1000 - now) / 1000),
         );
   const playerEntries = Object.entries(gameData.players);
-  const lastClaimPlayer = gameData.lastProblemClaim
-    ? (gameData.players[gameData.lastProblemClaim.playerId]?.nickname ??
-      (gameData.lastProblemClaim.playerId === AI_PLAYER_ID ? 'COM' : '플레이어'))
+  const roundResult = gameData.lastRoundResult;
+  const callerName = roundResult
+    ? (gameData.players[roundResult.callerId]?.nickname ?? '플레이어')
+    : null;
+  const pointPlayerName = roundResult?.pointPlayerId
+    ? (gameData.players[roundResult.pointPlayerId]?.nickname ?? '플레이어')
     : null;
 
-  function toggleCard(boardIndex: number, cardIndex: number) {
-    if (!isPlayer || gameData!.phase !== 'playing') return;
-    setSelection((current) => {
-      const indexes = current.boardIndex === boardIndex ? current.indexes : [];
-      if (indexes.includes(cardIndex)) {
-        return { boardIndex, indexes: indexes.filter((index) => index !== cardIndex) };
-      }
-      if (indexes.length >= 3) return { boardIndex, indexes };
-      return { boardIndex, indexes: [...indexes, cardIndex] };
-    });
-  }
-
-  function submitHap(boardIndex: number) {
-    if (
-      !isPlayer ||
-      gameData!.phase !== 'playing' ||
-      selection.boardIndex !== boardIndex ||
-      selection.indexes.length !== 3
-    ) {
-      return;
-    }
-    getSocket().emit('game:action', {
-      type: 'submit-hap',
-      boardIndex,
-      cardIndexes: selection.indexes,
-    });
-    setSelection({ boardIndex: null, indexes: [] });
-  }
-
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 p-3 sm:gap-4 sm:p-4">
       <header className="rounded-cdm-lg border-cdm-border bg-cdm-bg grid gap-3 border p-3 shadow-sm md:grid-cols-[1fr_auto_1fr] md:items-center">
         <div className="min-w-0">
           <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
-            REAL-TIME RACE
+            ROUND {gameData.round} / {gameData.totalRounds}
           </p>
           <p className="text-cdm-fg truncate text-sm font-extrabold">
-            {gameData.phase === 'finished' ? '게임 종료' : '세 문제 동시 선착순'}
+            {gameData.phase === 'finished' ? '게임 종료' : '모든 합을 저장하고 결을 외치세요'}
           </p>
           <p className="text-cdm-fg-muted truncate text-xs">
-            {gameData.lastProblemClaim
-              ? `${lastClaimPlayer} · ${gameData.lastProblemClaim.boardIndex + 1}번 문제 완성`
-              : '각 문제의 모든 합을 상대보다 먼저 완성하세요.'}
+            {roundResult
+              ? roundResult.correct
+                ? `${callerName} 정답`
+                : `${callerName} 오답${pointPlayerName ? ` · ${pointPlayerName} 득점` : ''}`
+              : '먼저 결을 외친 플레이어의 저장 목록을 한 번에 판정합니다.'}
           </p>
         </div>
 
@@ -142,38 +113,45 @@ export default function CompleteHapGame() {
                 {player.nickname}
                 {playerId === myId ? ' (나)' : ''}
               </p>
-              <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-wide">완성 문제</p>
+              <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-wide">득점</p>
               <p className="text-cdm-primary text-right text-xl font-black tabular-nums">
-                {gameData.correctCounts[playerId] ?? 0}
+                {gameData.scores[playerId] ?? 0}
               </p>
             </div>
           ))}
         </div>
       </header>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        {gameData.boards.map((board, boardIndex) => (
-          <BoardPanel
-            key={boardIndex}
-            board={board}
-            boardIndex={boardIndex}
-            players={gameData.players}
-            myId={myId}
-            selectable={isPlayer && gameData.phase === 'playing' && board.winnerId == null}
-            picked={selection.boardIndex === boardIndex ? selection.indexes : []}
-            onToggle={(cardIndex) => toggleCard(boardIndex, cardIndex)}
-            onSubmit={() => submitHap(boardIndex)}
-          />
-        ))}
-      </div>
+      <RoundWorkspace
+        key={`${gameData.matchStartedAt}:${gameData.round}`}
+        gameData={gameData}
+        isPlayer={isPlayer}
+      />
 
+      {gameData.phase === 'round-result' && roundResult && (
+        <div
+          className={cn(
+            'rounded-cdm-lg p-4 text-center',
+            roundResult.correct ? 'bg-cdm-success-soft' : 'bg-cdm-accent-soft',
+          )}
+        >
+          <p
+            className={cn(
+              'text-base font-black',
+              roundResult.correct ? 'text-cdm-success' : 'text-cdm-accent',
+            )}
+          >
+            {roundResult.correct ? '모든 합을 찾았습니다!' : '저장한 합이 정답과 다릅니다.'}
+          </p>
+          <p className="text-cdm-fg-muted mt-1 text-xs">
+            {pointPlayerName
+              ? `${pointPlayerName} 님이 1점을 획득합니다.`
+              : '다음 라운드로 넘어갑니다.'}
+          </p>
+        </div>
+      )}
       {!isPlayer && gameData.phase === 'playing' && (
         <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
-      )}
-      {gameData.playMode === 'com' && gameData.phase === 'playing' && (
-        <p className="text-cdm-fg-muted text-center text-xs">
-          COM도 동시에 보드를 탐색합니다. 각 문제의 모든 합을 먼저 완성하세요.
-        </p>
       )}
       {gameData.phase === 'finished' && (
         <div className="rounded-cdm-lg bg-cdm-primary-soft p-4 text-center">
@@ -185,142 +163,185 @@ export default function CompleteHapGame() {
   );
 }
 
-function BoardPanel({
-  board,
-  boardIndex,
-  players,
-  myId,
-  selectable,
-  picked,
-  onToggle,
-  onSubmit,
+function RoundWorkspace({
+  gameData,
+  isPlayer,
 }: {
-  board: CompleteHapBoard;
-  boardIndex: number;
-  players: CompleteHapGameData['players'];
-  myId: string;
-  selectable: boolean;
-  picked: number[];
-  onToggle: (cardIndex: number) => void;
-  onSubmit: () => void;
+  gameData: CompleteHapGameData;
+  isPlayer: boolean;
 }) {
+  const [selection, setSelection] = useState<number[]>([]);
+  const [savedSets, setSavedSets] = useState<number[][]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const canPlay = isPlayer && gameData.phase === 'playing' && !isSubmitting;
+
+  function toggleCard(cardIndex: number) {
+    if (!canPlay) return;
+    setSelection((current) => {
+      if (current.includes(cardIndex)) return current.filter((index) => index !== cardIndex);
+      if (current.length >= 3) return current;
+      return [...current, cardIndex];
+    });
+  }
+
+  function saveHap() {
+    if (!canPlay || selection.length !== 3) return;
+    const sorted = [...selection].sort((a, b) => a - b);
+    setSavedSets((current) =>
+      current.some((saved) => setKey(saved) === setKey(sorted)) ? current : [...current, sorted],
+    );
+    setSelection([]);
+  }
+
+  function removeSavedHap(savedIndex: number) {
+    if (!canPlay) return;
+    setSavedSets((current) => current.filter((_, index) => index !== savedIndex));
+  }
+
+  function callGyul() {
+    if (!canPlay) return;
+    setIsSubmitting(true);
+    getSocket().emit('game:action', { type: 'call-gyul', sets: savedSets });
+  }
+
   return (
-    <section
-      className={cn(
-        'rounded-cdm-lg bg-cdm-bg border-2 p-3 transition-colors',
-        picked.length > 0 ? 'border-cdm-primary shadow-lg' : 'border-cdm-border',
-      )}
-    >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-cdm-fg text-lg font-black">{boardIndex + 1}번 문제</h2>
-        <span
-          className={cn(
-            'rounded-full px-2.5 py-1 text-[11px] font-bold',
-            board.winnerId
-              ? 'bg-cdm-success-soft text-cdm-success'
-              : 'bg-cdm-bg-elev-1 text-cdm-fg-muted',
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="rounded-cdm-lg border-cdm-border bg-cdm-bg border p-3 sm:p-4">
+        <div className="mx-auto grid max-w-2xl grid-cols-3 gap-2 sm:gap-3">
+          {gameData.board.cards.map((card, cardIndex) => (
+            <PictureCard
+              key={cardIndex}
+              card={card}
+              cardIndex={cardIndex}
+              selected={selection.includes(cardIndex)}
+              selectable={canPlay}
+              onClick={() => toggleCard(cardIndex)}
+            />
+          ))}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <p className="text-cdm-fg-muted min-w-0 flex-1 text-xs font-semibold">
+            {selection.length === 0
+              ? '합이라고 생각하는 그림 3장을 선택하세요.'
+              : `${selection.length}장 선택됨`}
+          </p>
+          <button
+            type="button"
+            onClick={saveHap}
+            disabled={!canPlay || selection.length !== 3}
+            className="rounded-cdm-md bg-cdm-primary px-4 py-2.5 text-sm font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
+          >
+            합 저장
+          </button>
+        </div>
+      </section>
+
+      <aside className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex min-h-56 flex-col border p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-cdm-fg text-sm font-black">저장한 합</p>
+            <p className="text-cdm-fg-muted text-[11px]">결을 외치기 전까지 수정할 수 있습니다.</p>
+          </div>
+          <span className="bg-cdm-bg-elev-1 text-cdm-fg rounded-full px-2.5 py-1 text-xs font-black tabular-nums">
+            {savedSets.length}
+          </span>
+        </div>
+
+        <div className="mt-3 flex-1 space-y-2">
+          {savedSets.length === 0 ? (
+            <div className="border-cdm-border text-cdm-fg-muted rounded-cdm-md flex min-h-24 items-center justify-center border border-dashed px-4 text-center text-xs">
+              저장한 합이 없습니다.
+            </div>
+          ) : (
+            savedSets.map((set, savedIndex) => (
+              <button
+                key={setKey(set)}
+                type="button"
+                onClick={() => removeSavedHap(savedIndex)}
+                disabled={!canPlay}
+                className="border-cdm-border bg-cdm-bg-elev-1 hover:border-cdm-accent rounded-cdm-md grid w-full grid-cols-[1fr_1fr_1fr_auto] items-center gap-1.5 border p-2 text-left disabled:cursor-default"
+                aria-label={`저장한 합 ${savedIndex + 1} 삭제`}
+              >
+                {set.map((cardIndex) => (
+                  <PictureThumbnail key={cardIndex} card={gameData.board.cards[cardIndex]} />
+                ))}
+                <span className="text-cdm-fg-muted px-1 text-base" aria-hidden="true">
+                  ×
+                </span>
+              </button>
+            ))
           )}
-        >
-          {board.winnerId
-            ? `${players[board.winnerId]?.nickname ?? '플레이어'} 완성`
-            : `내 진행 ${board.progress[myId] ?? 0}`}
-        </span>
-      </div>
+        </div>
 
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-        {board.cards.map((card, cardIndex) => (
-          <PictureCard
-            key={cardIndex}
-            card={card}
-            number={cardIndex + 1}
-            selected={picked.includes(cardIndex)}
-            selectable={selectable}
-            onClick={() => onToggle(cardIndex)}
-          />
-        ))}
-      </div>
-
-      <div className="rounded-cdm-md bg-cdm-bg-elev-1 text-cdm-fg-muted mt-3 min-h-12 px-2.5 py-2 text-[11px] leading-relaxed">
-        <span className="text-cdm-fg-subtle font-bold">내가 찾은 합</span>{' '}
-        {board.myFoundSets.length === 0
-          ? '아직 없음'
-          : board.myFoundSets.map((set) => set.map((index) => index + 1).join('·')).join(' / ')}
-      </div>
-
-      <div className="mt-2 flex items-center gap-2">
-        <p className="text-cdm-fg-muted min-w-0 flex-1 truncate text-xs font-semibold">
-          {picked.length > 0
-            ? `선택 ${picked.map((index) => index + 1).join(' · ')}`
-            : '카드 3장을 선택하세요'}
-        </p>
         <button
           type="button"
-          onClick={onSubmit}
-          disabled={!selectable || picked.length !== 3}
-          className="rounded-cdm-md bg-cdm-primary px-4 py-2.5 text-sm font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
+          onClick={callGyul}
+          disabled={!canPlay}
+          className="rounded-cdm-md bg-cdm-accent mt-3 w-full px-4 py-3 text-base font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
         >
-          합 외치기
+          {isSubmitting ? '판정 중...' : '결 외치기'}
         </button>
-      </div>
-    </section>
+      </aside>
+    </div>
+  );
+}
+
+function PictureSvg({ card }: { card: CompleteHapCard }) {
+  const background = BACKGROUND_COLORS[card.background];
+  const fill = SHAPE_COLORS[card.color];
+  return (
+    <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+      <rect width="100" height="100" fill={background} />
+      {card.shape === 'circle' && <circle cx="50" cy="50" r="25" fill={fill} />}
+      {card.shape === 'triangle' && <polygon points="50,17 80,76 20,76" fill={fill} />}
+      {card.shape === 'square' && <rect x="27" y="27" width="46" height="46" rx="2" fill={fill} />}
+    </svg>
   );
 }
 
 function PictureCard({
   card,
-  number,
+  cardIndex,
   selected,
   selectable,
   onClick,
 }: {
   card: CompleteHapCard;
-  number: number;
+  cardIndex: number;
   selected: boolean;
   selectable: boolean;
   onClick: () => void;
 }) {
-  const background = BACKGROUND_COLORS[card.background];
-  const fill = SHAPE_COLORS[card.color];
-  const labelColor = card.background === 'white' ? '#111318' : '#ffffff';
-
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!selectable}
-      aria-label={`${number}번 카드`}
+      aria-label={`${cardIndex + 1}번째 그림`}
       aria-pressed={selected}
       className={cn(
-        'rounded-cdm-md relative aspect-[4/3] overflow-hidden border-2 transition-all',
+        'rounded-cdm-md relative aspect-square overflow-hidden border-2 transition-all',
         selected
-          ? 'border-cdm-primary ring-cdm-primary/30 z-[1] scale-[1.04] ring-2'
+          ? 'border-cdm-primary ring-cdm-primary/30 z-[1] scale-[1.035] ring-2'
           : 'border-cdm-border-strong',
         selectable && !selected && 'hover:border-cdm-primary cursor-pointer hover:-translate-y-0.5',
         !selectable && 'cursor-default',
       )}
     >
-      <svg viewBox="0 0 100 75" className="h-full w-full" aria-hidden="true">
-        <rect width="100" height="75" fill={background} />
-        {card.shape === 'circle' && <circle cx="50" cy="38" r="22" fill={fill} />}
-        {card.shape === 'triangle' && <polygon points="50,12 77,61 23,61" fill={fill} />}
-        {card.shape === 'square' && (
-          <rect x="27" y="15" width="46" height="46" rx="2" fill={fill} />
-        )}
-        <circle
-          cx="12"
-          cy="12"
-          r="8"
-          fill={card.background === 'white' ? 'rgba(255,255,255,.88)' : 'rgba(0,0,0,.48)'}
-        />
-        <text x="12" y="15.5" textAnchor="middle" fontSize="10" fontWeight="800" fill={labelColor}>
-          {number}
-        </text>
-      </svg>
+      <PictureSvg card={card} />
       {selected && (
-        <span className="bg-cdm-primary absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-white">
-          {number}
+        <span className="bg-cdm-primary absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-black text-white">
+          ✓
         </span>
       )}
     </button>
+  );
+}
+
+function PictureThumbnail({ card }: { card: CompleteHapCard }) {
+  return (
+    <span className="rounded-cdm-sm border-cdm-border-strong block aspect-square overflow-hidden border">
+      <PictureSvg card={card} />
+    </span>
   );
 }
