@@ -60,8 +60,10 @@ function buildBoards(deck: CompleteHapCard[]) {
       cards,
       allSets,
       allSetKeys: new Set(allSets.map(completeHapSetKey)),
-      claims: [],
-      claimedSetKeys: new Set<string>(),
+      foundSetKeysByPlayer: new Map<string, Set<string>>(),
+      calls: [],
+      winnerId: null,
+      claimedAtMs: null,
     };
   });
 }

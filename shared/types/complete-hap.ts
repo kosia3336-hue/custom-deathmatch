@@ -20,18 +20,29 @@ export function completeHapCardKey(card: CompleteHapCard): string {
 
 export type CompleteHapPhase = 'playing' | 'finished';
 
-export interface CompleteHapClaim {
+/** 한 플레이어가 보드 안의 합 하나를 맞힌 기록. 개별 합에는 점수가 없다. */
+export interface CompleteHapCall {
   boardIndex: number;
   cardIndexes: number[];
   playerId: string;
-  /** 매치 시작부터 정답 선점까지 걸린 시간. */
+  elapsedMs: number;
+}
+
+/** 보드의 모든 합을 먼저 완성해 문제 정답 1개를 획득한 기록. */
+export interface CompleteHapProblemClaim {
+  boardIndex: number;
+  playerId: string;
   elapsedMs: number;
 }
 
 export interface CompleteHapBoard {
   cards: CompleteHapCard[];
-  /** 서버가 인정한 합만 공개한다. 전체 정답 목록은 게임 종료 뒤 기록에만 포함된다. */
-  claims: CompleteHapClaim[];
+  winnerId: string | null;
+  claimedAtMs: number | null;
+  /** 플레이어별로 현재까지 찾은 서로 다른 합 개수. */
+  progress: Record<string, number>;
+  /** 현재 접속자 본인이 찾은 합만 공개한다. 관전자에게는 빈 배열이다. */
+  myFoundSets: number[][];
 }
 
 export type CompleteHapAction = {
@@ -43,13 +54,14 @@ export type CompleteHapAction = {
 export interface CompleteHapGameData {
   phase: CompleteHapPhase;
   boards: CompleteHapBoard[];
-  /** 점수가 아니라 플레이어별 선점 정답 수다. */
+  /** 플레이어별로 먼저 완성한 문제 수. */
   correctCounts: Record<string, number>;
   players: Record<string, { nickname: string }>;
   matchStartedAt: number;
-  matchSeconds: number;
-  claims: CompleteHapClaim[];
-  lastClaim: CompleteHapClaim | null;
+  /** null이면 멀티 무제한 방. COM·솔로는 기본 10분이다. */
+  matchSeconds: number | null;
+  problemClaims: CompleteHapProblemClaim[];
+  lastProblemClaim: CompleteHapProblemClaim | null;
   isSolo: boolean;
   playMode: 'multi' | 'com' | 'solo';
   winnerId: string | null;
@@ -58,10 +70,18 @@ export interface CompleteHapGameData {
 
 export type CompleteHapTiebreak = 'solo' | 'count' | 'speed' | 'zero-draw';
 
+export interface CompleteHapArchiveBoard {
+  cards: CompleteHapCard[];
+  allSets: number[][];
+  calls: CompleteHapCall[];
+  winnerId: string | null;
+  claimedAtMs: number | null;
+}
+
 export interface CompleteHapArchiveRecord {
-  boards: Array<CompleteHapBoard & { allSets: number[][] }>;
+  boards: CompleteHapArchiveBoard[];
   finalCorrectCounts: Record<string, number>;
-  claims: CompleteHapClaim[];
+  problemClaims: CompleteHapProblemClaim[];
   tiebreak: CompleteHapTiebreak;
   players: Record<string, { nickname: string }>;
   winnerId: string | null;
