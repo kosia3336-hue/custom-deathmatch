@@ -54,14 +54,17 @@ export default function CompleteHapGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const matchRemaining = Math.max(
-    0,
-    Math.ceil((gameData.matchStartedAt + gameData.matchSeconds * 1000 - now) / 1000),
-  );
+  const matchRemaining =
+    gameData.matchSeconds == null
+      ? null
+      : Math.max(
+          0,
+          Math.ceil((gameData.matchStartedAt + gameData.matchSeconds * 1000 - now) / 1000),
+        );
   const playerEntries = Object.entries(gameData.players);
-  const lastClaimPlayer = gameData.lastClaim
-    ? (gameData.players[gameData.lastClaim.playerId]?.nickname ??
-      (gameData.lastClaim.playerId === AI_PLAYER_ID ? 'COM' : '플레이어'))
+  const lastClaimPlayer = gameData.lastProblemClaim
+    ? (gameData.players[gameData.lastProblemClaim.playerId]?.nickname ??
+      (gameData.lastProblemClaim.playerId === AI_PLAYER_ID ? 'COM' : '플레이어'))
     : null;
 
   function toggleCard(boardIndex: number, cardIndex: number) {
@@ -104,26 +107,28 @@ export default function CompleteHapGame() {
             {gameData.phase === 'finished' ? '게임 종료' : '세 문제 동시 선착순'}
           </p>
           <p className="text-cdm-fg-muted truncate text-xs">
-            {gameData.lastClaim
-              ? `${lastClaimPlayer} · ${gameData.lastClaim.boardIndex + 1}번 문제 · ${gameData.lastClaim.cardIndexes.map((index) => index + 1).join('·')} 선점`
-              : '카드 3장을 고르고 합을 먼저 외치세요.'}
+            {gameData.lastProblemClaim
+              ? `${lastClaimPlayer} · ${gameData.lastProblemClaim.boardIndex + 1}번 문제 완성`
+              : '각 문제의 모든 합을 상대보다 먼저 완성하세요.'}
           </p>
         </div>
 
         <div
           className={cn(
             'rounded-cdm-md mx-auto min-w-28 px-4 py-2 text-center',
-            matchRemaining <= 30 ? 'bg-cdm-accent-soft' : 'bg-cdm-bg-elev-1',
+            matchRemaining != null && matchRemaining <= 30
+              ? 'bg-cdm-accent-soft'
+              : 'bg-cdm-bg-elev-1',
           )}
         >
           <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.16em]">TIME LEFT</p>
           <p
             className={cn(
               'text-2xl font-black tabular-nums',
-              matchRemaining <= 30 ? 'text-cdm-accent' : 'text-cdm-fg',
+              matchRemaining != null && matchRemaining <= 30 ? 'text-cdm-accent' : 'text-cdm-fg',
             )}
           >
-            {formatClock(matchRemaining)}
+            {matchRemaining == null ? '∞' : formatClock(matchRemaining)}
           </p>
         </div>
 
@@ -137,7 +142,7 @@ export default function CompleteHapGame() {
                 {player.nickname}
                 {playerId === myId ? ' (나)' : ''}
               </p>
-              <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-wide">정답</p>
+              <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-wide">완성 문제</p>
               <p className="text-cdm-primary text-right text-xl font-black tabular-nums">
                 {gameData.correctCounts[playerId] ?? 0}
               </p>
@@ -153,7 +158,8 @@ export default function CompleteHapGame() {
             board={board}
             boardIndex={boardIndex}
             players={gameData.players}
-            selectable={isPlayer && gameData.phase === 'playing'}
+            myId={myId}
+            selectable={isPlayer && gameData.phase === 'playing' && board.winnerId == null}
             picked={selection.boardIndex === boardIndex ? selection.indexes : []}
             onToggle={(cardIndex) => toggleCard(boardIndex, cardIndex)}
             onSubmit={() => submitHap(boardIndex)}
@@ -166,7 +172,7 @@ export default function CompleteHapGame() {
       )}
       {gameData.playMode === 'com' && gameData.phase === 'playing' && (
         <p className="text-cdm-fg-muted text-center text-xs">
-          COM도 동시에 보드를 탐색합니다. 먼저 정답을 선점하세요.
+          COM도 동시에 보드를 탐색합니다. 각 문제의 모든 합을 먼저 완성하세요.
         </p>
       )}
       {gameData.phase === 'finished' && (
@@ -183,6 +189,7 @@ function BoardPanel({
   board,
   boardIndex,
   players,
+  myId,
   selectable,
   picked,
   onToggle,
@@ -191,6 +198,7 @@ function BoardPanel({
   board: CompleteHapBoard;
   boardIndex: number;
   players: CompleteHapGameData['players'];
+  myId: string;
   selectable: boolean;
   picked: number[];
   onToggle: (cardIndex: number) => void;
@@ -204,12 +212,18 @@ function BoardPanel({
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div>
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">PROBLEM</p>
-          <h2 className="text-cdm-fg text-lg font-black">{boardIndex + 1}번 문제</h2>
-        </div>
-        <span className="bg-cdm-bg-elev-1 text-cdm-fg-muted rounded-full px-2.5 py-1 text-[11px] font-bold">
-          선점된 합 {board.claims.length}
+        <h2 className="text-cdm-fg text-lg font-black">{boardIndex + 1}번 문제</h2>
+        <span
+          className={cn(
+            'rounded-full px-2.5 py-1 text-[11px] font-bold',
+            board.winnerId
+              ? 'bg-cdm-success-soft text-cdm-success'
+              : 'bg-cdm-bg-elev-1 text-cdm-fg-muted',
+          )}
+        >
+          {board.winnerId
+            ? `${players[board.winnerId]?.nickname ?? '플레이어'} 완성`
+            : `내 진행 ${board.progress[myId] ?? 0}`}
         </span>
       </div>
 
@@ -227,15 +241,10 @@ function BoardPanel({
       </div>
 
       <div className="rounded-cdm-md bg-cdm-bg-elev-1 text-cdm-fg-muted mt-3 min-h-12 px-2.5 py-2 text-[11px] leading-relaxed">
-        <span className="text-cdm-fg-subtle font-bold">선점된 정답</span>{' '}
-        {board.claims.length === 0
+        <span className="text-cdm-fg-subtle font-bold">내가 찾은 합</span>{' '}
+        {board.myFoundSets.length === 0
           ? '아직 없음'
-          : board.claims
-              .map((claim) => {
-                const nickname = players[claim.playerId]?.nickname ?? '플레이어';
-                return `${claim.cardIndexes.map((index) => index + 1).join('·')} ${nickname}`;
-              })
-              .join(' / ')}
+          : board.myFoundSets.map((set) => set.map((index) => index + 1).join('·')).join(' / ')}
       </div>
 
       <div className="mt-2 flex items-center gap-2">
@@ -273,8 +282,6 @@ function PictureCard({
   const background = BACKGROUND_COLORS[card.background];
   const fill = SHAPE_COLORS[card.color];
   const labelColor = card.background === 'white' ? '#111318' : '#ffffff';
-  const stroke =
-    card.color === 'yellow' && card.background === 'white' ? '#a16207' : 'rgba(0,0,0,.28)';
 
   return (
     <button
@@ -294,29 +301,10 @@ function PictureCard({
     >
       <svg viewBox="0 0 100 75" className="h-full w-full" aria-hidden="true">
         <rect width="100" height="75" fill={background} />
-        {card.shape === 'circle' && (
-          <circle cx="50" cy="38" r="22" fill={fill} stroke={stroke} strokeWidth="2" />
-        )}
-        {card.shape === 'triangle' && (
-          <polygon
-            points="50,12 77,61 23,61"
-            fill={fill}
-            stroke={stroke}
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        )}
+        {card.shape === 'circle' && <circle cx="50" cy="38" r="22" fill={fill} />}
+        {card.shape === 'triangle' && <polygon points="50,12 77,61 23,61" fill={fill} />}
         {card.shape === 'square' && (
-          <rect
-            x="27"
-            y="15"
-            width="46"
-            height="46"
-            rx="2"
-            fill={fill}
-            stroke={stroke}
-            strokeWidth="2"
-          />
+          <rect x="27" y="15" width="46" height="46" rx="2" fill={fill} />
         )}
         <circle
           cx="12"

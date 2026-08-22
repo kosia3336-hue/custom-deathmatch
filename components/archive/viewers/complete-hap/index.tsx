@@ -16,7 +16,7 @@ export default function CompleteHapViewer({
   className?: string;
 }) {
   const data = record.gameRecord as CompleteHapArchiveRecord | null;
-  if (!data || !Array.isArray(data.boards) || !Array.isArray(data.claims)) {
+  if (!data || !Array.isArray(data.boards) || !Array.isArray(data.problemClaims)) {
     return <p className="text-cdm-fg-muted text-sm">컴플릿 결! 합! 기록을 읽을 수 없습니다.</p>;
   }
   const players = Object.entries(data.players);
@@ -48,7 +48,9 @@ export default function CompleteHapViewer({
             <div className="mb-2 flex items-center justify-between">
               <p className="text-cdm-fg text-sm font-black">{boardIndex + 1}번 문제</p>
               <p className="text-cdm-fg-muted text-[11px]">
-                선점 {board.claims.length}/{board.allSets.length}
+                {board.winnerId
+                  ? `${data.players[board.winnerId]?.nickname ?? '플레이어'} 완성`
+                  : '미완성'}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -66,14 +68,14 @@ export default function CompleteHapViewer({
       </div>
 
       <Card className="p-3 sm:p-4">
-        <p className="text-cdm-fg mb-3 text-sm font-black">정답 선점 기록</p>
-        {data.claims.length === 0 ? (
-          <p className="text-cdm-fg-muted text-xs">선점된 정답이 없습니다.</p>
+        <p className="text-cdm-fg mb-3 text-sm font-black">문제 완성 기록</p>
+        {data.problemClaims.length === 0 ? (
+          <p className="text-cdm-fg-muted text-xs">완성된 문제가 없습니다.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {data.claims.map((claim, index) => (
+            {data.problemClaims.map((claim, index) => (
               <div
-                key={`${claim.boardIndex}-${claim.cardIndexes.join('-')}-${index}`}
+                key={`${claim.boardIndex}-${claim.playerId}-${index}`}
                 className="rounded-cdm-md bg-cdm-bg-elev-1 px-3 py-2"
               >
                 <p className="text-cdm-fg-subtle text-[10px] font-bold">
@@ -81,8 +83,7 @@ export default function CompleteHapViewer({
                   {data.players[claim.playerId]?.nickname ?? claim.playerId}
                 </p>
                 <p className="text-cdm-fg mt-0.5 text-xs font-semibold">
-                  {claim.boardIndex + 1}번 · 합{' '}
-                  {claim.cardIndexes.map((cardIndex) => cardIndex + 1).join('·')}
+                  {claim.boardIndex + 1}번 문제의 모든 합 완성
                 </p>
               </div>
             ))}
@@ -96,7 +97,6 @@ export default function CompleteHapViewer({
 function ArchiveCard({ card, number }: { card: CompleteHapCard; number: number }) {
   const shapeStyle = {
     backgroundColor: FG[card.color],
-    borderColor: 'rgba(0,0,0,.25)',
   };
   return (
     <div
@@ -111,7 +111,7 @@ function ArchiveCard({ card, number }: { card: CompleteHapCard; number: number }
       </span>
       <span
         className={cn(
-          'block h-8 w-8 border',
+          'block h-8 w-8',
           card.shape === 'circle' && 'rounded-full',
           card.shape === 'triangle' &&
             'h-0 w-0 border-x-[18px] border-b-[32px] border-x-transparent bg-transparent',

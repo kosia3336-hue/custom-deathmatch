@@ -1,9 +1,9 @@
 import type { GameState } from '@shared/types/events.js';
-import {
-  CH_MATCH_SECONDS,
-  type CompleteHapArchiveRecord,
-  type CompleteHapClaim,
-  type CompleteHapGameData,
+import type {
+  CompleteHapArchiveRecord,
+  CompleteHapCall,
+  CompleteHapGameData,
+  CompleteHapProblemClaim,
 } from '@shared/types/complete-hap.js';
 import { sessions } from '../../../store/sessions.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
@@ -11,12 +11,17 @@ import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
+import { completeHapSetKey } from './generator.js';
 import type { CompleteHapState } from './types.js';
 
 export const completeHapStates = new Map<string, CompleteHapState>();
 
-function cloneClaim(claim: CompleteHapClaim): CompleteHapClaim {
-  return { ...claim, cardIndexes: [...claim.cardIndexes] };
+function cloneCall(call: CompleteHapCall): CompleteHapCall {
+  return { ...call, cardIndexes: [...call.cardIndexes] };
+}
+
+function cloneProblemClaim(claim: CompleteHapProblemClaim): CompleteHapProblemClaim {
+  return { ...claim };
 }
 
 function nicknameFor(
@@ -37,10 +42,25 @@ export function toCompleteHapGameData(
   const uniquePlayers = new Map(state.players.map((player) => [player.id, player]));
   return {
     phase: state.phase,
-    boards: state.boards.map((board) => ({
-      cards: board.cards.map((card) => ({ ...card })),
-      claims: board.claims.map(cloneClaim),
-    })),
+    boards: state.boards.map((board) => {
+      const myFoundKeys = viewerId ? board.foundSetKeysByPlayer.get(viewerId) : undefined;
+      return {
+        cards: board.cards.map((card) => ({ ...card })),
+        winnerId: board.winnerId,
+        claimedAtMs: board.claimedAtMs,
+        progress: Object.fromEntries(
+          [...uniquePlayers.keys()].map((playerId) => [
+            playerId,
+            board.foundSetKeysByPlayer.get(playerId)?.size ?? 0,
+          ]),
+        ),
+        myFoundSets: myFoundKeys
+          ? board.allSets
+              .filter((set) => myFoundKeys.has(completeHapSetKey(set)))
+              .map((set) => [...set])
+          : [],
+      };
+    }),
     correctCounts: { ...state.correctCounts },
     players: Object.fromEntries(
       [...uniquePlayers.values()].map((player) => [
@@ -49,9 +69,9 @@ export function toCompleteHapGameData(
       ]),
     ),
     matchStartedAt: state.matchStartedAt,
-    matchSeconds: CH_MATCH_SECONDS,
-    claims: state.claims.map(cloneClaim),
-    lastClaim: state.lastClaim ? cloneClaim(state.lastClaim) : null,
+    matchSeconds: state.matchSeconds,
+    problemClaims: state.problemClaims.map(cloneProblemClaim),
+    lastProblemClaim: state.lastProblemClaim ? cloneProblemClaim(state.lastProblemClaim) : null,
     isSolo: state.playMode === 'solo',
     playMode: state.playMode,
     winnerId: state.winnerId,
@@ -64,10 +84,10 @@ function toGameState(state: CompleteHapState, data: CompleteHapGameData): GameSt
     roomId: state.roomId,
     message:
       state.phase === 'playing'
-        ? '세 문제에서 아직 선점되지 않은 합을 먼저 외치세요!'
+        ? '각 문제의 모든 합을 상대보다 먼저 완성하세요!'
         : (state.finishReason ?? '게임 종료'),
     currentTurn: null,
-    turnNumber: state.claims.length + 1,
+    turnNumber: state.problemClaims.length + 1,
     startedAt: state.matchStartedAt,
     turnStartedAt: state.matchStartedAt,
     gameData: data as unknown as Record<string, unknown>,
@@ -112,11 +132,13 @@ export function toCompleteHapRecord(state: CompleteHapState): CompleteHapArchive
   return {
     boards: state.boards.map((board) => ({
       cards: board.cards.map((card) => ({ ...card })),
-      claims: board.claims.map(cloneClaim),
       allSets: board.allSets.map((set) => [...set]),
+      calls: board.calls.map(cloneCall),
+      winnerId: board.winnerId,
+      claimedAtMs: board.claimedAtMs,
     })),
     finalCorrectCounts: { ...state.correctCounts },
-    claims: state.claims.map(cloneClaim),
+    problemClaims: state.problemClaims.map(cloneProblemClaim),
     tiebreak: state.tiebreak,
     players: Object.fromEntries(
       [...uniquePlayers.values()].map((player) => [player.id, { nickname: player.nickname }]),

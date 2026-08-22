@@ -1,7 +1,8 @@
 import type {
+  CompleteHapCall,
   CompleteHapCard,
-  CompleteHapClaim,
   CompleteHapPhase,
+  CompleteHapProblemClaim,
   CompleteHapTiebreak,
 } from '@shared/types/complete-hap.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
@@ -22,8 +23,10 @@ export interface CompleteHapInternalBoard {
   cards: CompleteHapCard[];
   allSets: number[][];
   allSetKeys: Set<string>;
-  claims: CompleteHapClaim[];
-  claimedSetKeys: Set<string>;
+  foundSetKeysByPlayer: Map<string, Set<string>>;
+  calls: CompleteHapCall[];
+  winnerId: string | null;
+  claimedAtMs: number | null;
 }
 
 export interface CompleteHapState {
@@ -34,8 +37,9 @@ export interface CompleteHapState {
   phase: CompleteHapPhase;
   correctCounts: Record<string, number>;
   matchStartedAt: number;
-  claims: CompleteHapClaim[];
-  lastClaim: CompleteHapClaim | null;
+  matchSeconds: number | null;
+  problemClaims: CompleteHapProblemClaim[];
+  lastProblemClaim: CompleteHapProblemClaim | null;
   tiebreak: CompleteHapTiebreak;
   winnerId: string | null;
   finishReason: string | null;

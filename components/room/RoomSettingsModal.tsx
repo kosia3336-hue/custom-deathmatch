@@ -114,12 +114,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     };
   }, [open, onClose]);
 
-  const hasFixedMatchTime = selectedGame?.id === GAME_IDS.COMPLETE_HAP;
-  const computedTimeLimit = hasFixedMatchTime
-    ? 600
-    : timeLimitEnabled
-      ? timeLimitMin * 60 + timeLimitSec
-      : null;
+  const computedTimeLimit = room.playMode === 'multi' && timeLimitEnabled
+    ? timeLimitMin * 60 + timeLimitSec
+    : null;
 
   const playerRange = selectedGame
     ? Array.from(
@@ -334,74 +331,71 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             )}
 
             {/* 시간제한 */}
-            {hasFixedMatchTime ? (
+            {room.playMode === 'multi' && (
               <SettingField label="시간제한">
-                <div className="rounded-cdm-md bg-cdm-primary-soft px-3 py-2 text-sm font-bold text-cdm-primary">
-                  타임어택 고정 10분
+                <div className="flex gap-2">
+                  {[
+                    { enabled: false, label: '∞ 무제한' },
+                    { enabled: true, label: '시간제한' },
+                  ].map((opt) => (
+                    <OptionButton
+                      key={String(opt.enabled)}
+                      active={timeLimitEnabled === opt.enabled}
+                      onClick={() => setTimeLimitEnabled(opt.enabled)}
+                    >
+                      {opt.label}
+                    </OptionButton>
+                  ))}
                 </div>
-              </SettingField>
-            ) : (
-            <SettingField label="시간제한">
-              <div className="flex gap-2">
-                {[
-                  { enabled: false, label: '∞ 무제한' },
-                  { enabled: true, label: '시간제한' },
-                ].map((opt) => (
-                  <OptionButton
-                    key={String(opt.enabled)}
-                    active={timeLimitEnabled === opt.enabled}
-                    onClick={() => setTimeLimitEnabled(opt.enabled)}
-                  >
-                    {opt.label}
-                  </OptionButton>
-                ))}
-              </div>
 
-              {timeLimitEnabled && (
-                <div className="mt-3 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={timeLimitMin}
-                      onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                      className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
-                    >
-                      {Array.from({ length: 11 }, (_, i) => (
-                        <option key={i} value={i}>{i}</option>
-                      ))}
-                    </select>
-                    <span className="text-sm text-cdm-fg-muted">분</span>
-                    <select
-                      value={timeLimitSec}
-                      onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                      className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
-                    >
-                      {[0, 10, 15, 20, 30, 45].map((s) => (
-                        <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                    <span className="text-sm text-cdm-fg-muted">초</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { label: '30초', min: 0, sec: 30 },
-                      { label: '1분', min: 1, sec: 0 },
-                      { label: '2분', min: 2, sec: 0 },
-                      { label: '3분', min: 3, sec: 0 },
-                      { label: '5분', min: 5, sec: 0 },
-                    ].map((p) => (
-                      <OptionButton
-                        key={p.label}
-                        size="sm"
-                        active={timeLimitMin === p.min && timeLimitSec === p.sec}
-                        onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
+                {timeLimitEnabled && (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={timeLimitMin}
+                        onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
                       >
-                        {p.label}
-                      </OptionButton>
-                    ))}
+                        {Array.from({ length: 11 }, (_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                      <span className="text-sm text-cdm-fg-muted">분</span>
+                      <select
+                        value={timeLimitSec}
+                        onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                      >
+                        {[0, 10, 15, 20, 30, 45].map((s) => (
+                          <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                      <span className="text-sm text-cdm-fg-muted">초</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: '30초', min: 0, sec: 30 },
+                        { label: '1분', min: 1, sec: 0 },
+                        { label: '2분', min: 2, sec: 0 },
+                        { label: '3분', min: 3, sec: 0 },
+                        { label: '5분', min: 5, sec: 0 },
+                      ].map((p) => (
+                        <OptionButton
+                          key={p.label}
+                          size="sm"
+                          active={timeLimitMin === p.min && timeLimitSec === p.sec}
+                          onClick={() => {
+                            setTimeLimitMin(p.min);
+                            setTimeLimitSec(p.sec);
+                          }}
+                        >
+                          {p.label}
+                        </OptionButton>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </SettingField>
+                )}
+              </SettingField>
             )}
           </>
         )}

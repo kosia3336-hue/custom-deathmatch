@@ -20,13 +20,15 @@ export {
 } from './complete-hap';
 export type {
   CompleteHapAction,
+  CompleteHapArchiveBoard,
   CompleteHapArchiveRecord,
   CompleteHapBoard,
+  CompleteHapCall,
   CompleteHapCard,
   CompleteHapCardColor,
-  CompleteHapClaim,
   CompleteHapGameData,
   CompleteHapPhase,
+  CompleteHapProblemClaim,
   CompleteHapShape,
   CompleteHapBackground,
   CompleteHapTiebreak,
