@@ -52,6 +52,14 @@ export function normalizeExpression(input: string): string {
     .replace(/\s+/g, ' ');
 }
 
+/** 판정에 실패한 입력을 결과·기록에 남길 때 수식에서 허용하는 문자만 보존한다. */
+function sanitizeFailedExpression(input: string): string {
+  return input
+    .replace(/[^0-9+\-*\/() ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function tokenize(input: string): Token[] {
   const compact = input.replace(/\s+/g, '');
   if (!compact) throw new Error('수식을 입력해 주세요.');
@@ -190,7 +198,7 @@ export function judgeExpression(
       correct: false,
       evaluatedValue: null,
       reason: error instanceof Error ? error.message : '올바른 수식이 아닙니다.',
-      normalizedExpression,
+      normalizedExpression: sanitizeFailedExpression(normalizedExpression),
     };
   }
 }

@@ -1,6 +1,6 @@
 /** 수식완성N — 제시된 N개의 수를 각각 한 번씩 사용해 타깃넘버를 만드는 스피드 게임. */
 
-export const FC_TOTAL_ROUNDS = 9;
+export const FC_TOTAL_ROUNDS = 7;
 export const FC_MIN_NUMBER_COUNT = 4;
 export const FC_MAX_NUMBER_COUNT = 6;
 export const FC_DEFAULT_NUMBER_COUNT = 4;
@@ -44,7 +44,7 @@ export interface FormulaCompletionGameData {
   roundSeconds: number | null;
   lastResult: FormulaCompletionRoundResult | null;
   history: FormulaCompletionRoundResult[];
-  /** 1인 솔로 모드 — 상대 없이 혼자 9라운드를 푼다. */
+  /** 1인 솔로 모드 — 상대 없이 혼자 7라운드를 푼다. */
   isSolo: boolean;
 }
 

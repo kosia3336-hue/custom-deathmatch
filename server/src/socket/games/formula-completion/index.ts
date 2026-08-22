@@ -1,4 +1,4 @@
-/** 수식완성N — 동시 선착순 수식 제출, 9라운드 서버 모듈. */
+/** 수식완성N — 동시 선착순 수식 제출, 7라운드 서버 모듈. */
 import type { Player, PlayMode } from '@shared/types/room.js';
 import {
   FC_DEFAULT_NUMBER_COUNT,
