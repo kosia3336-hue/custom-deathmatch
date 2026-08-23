@@ -6,6 +6,7 @@ import type { OnlineUser } from '@shared/types/events.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
+import { listLiveDummyOnlineUsers } from '../dummy/live/online.js';
 
 function isDummyMatchRoom(roomId: string): boolean {
   const room = roomStore.get(roomId);
@@ -25,8 +26,25 @@ function emitOnlineUsers(socket: TypedSocket, users: OnlineUser[]) {
   socket.emit('lobby:users:online', onlineUsersPayload(sessions.getNickname(socket.id), users));
 }
 
+export function mergeOnlineUsers(fromSockets: OnlineUser[], extras: OnlineUser[]): OnlineUser[] {
+  const seen = new Set(fromSockets.map((u) => u.memberId));
+  const users = fromSockets.slice();
+  for (const extra of extras) {
+    if (seen.has(extra.memberId)) continue;
+    seen.add(extra.memberId);
+    users.push(extra);
+  }
+  users.sort((a, b) => {
+    const order = { playing: 0, waiting: 1, lobby: 2 };
+    const diff = order[a.status] - order[b.status];
+    if (diff !== 0) return diff;
+    return a.nickname.localeCompare(b.nickname, 'ko');
+  });
+  return users;
+}
+
 function getOnlineUsers(io: IO): OnlineUser[] {
-  const users: OnlineUser[] = [];
+  const fromSockets: OnlineUser[] = [];
 
   for (const [socketId] of io.sockets.sockets) {
     const memberId = sessions.getMemberIdBySocket(socketId);
@@ -44,17 +62,10 @@ function getOnlineUsers(io: IO): OnlineUser[] {
     }
 
     const isAnon = !!(roomId && token && isTokenAnonymized(roomId, token));
-    users.push({ memberId, nickname: isAnon ? ANONYMOUS_NICKNAME : nickname, status });
+    fromSockets.push({ memberId, nickname: isAnon ? ANONYMOUS_NICKNAME : nickname, status });
   }
 
-  users.sort((a, b) => {
-    const order = { playing: 0, waiting: 1, lobby: 2 };
-    const diff = order[a.status] - order[b.status];
-    if (diff !== 0) return diff;
-    return a.nickname.localeCompare(b.nickname, 'ko');
-  });
-
-  return users;
+  return mergeOnlineUsers(fromSockets, listLiveDummyOnlineUsers());
 }
 
 export function broadcastOnlineUsers(io: IO) {

@@ -35,3 +35,14 @@ export function isLiveDummyMemberId(memberId: string | null | undefined): boolea
 export function listLiveDummyMemberIds(): string[] {
   return [...memberIds];
 }
+
+/** startLiveDummy가 등록한 전원. 채팅 접속·식별은 이 맵을 돈다. */
+export function listRegisteredLiveDummies(): { memberId: string; dummy: LiveDummyRuntime }[] {
+  return [...byMemberId.entries()].map(([memberId, dummy]) => ({ memberId, dummy }));
+}
+
+export function resetLiveDummyStateForTests(): void {
+  memberIds.clear();
+  byMemberId.clear();
+  memberIdBySocket.clear();
+}

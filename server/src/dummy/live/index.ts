@@ -20,12 +20,22 @@ import {
 import type { LiveDummyRuntime } from './roster.js';
 import { LIVE_DUMMY_ROSTER, findRosterBySocketId, isLiveDummyWindowOpen } from './roster.js';
 import { isLiveDummyEnabled, rejoinDelayMs } from './window.js';
+import { liveDummyOnlineSignature } from './online.js';
 
 export { isLiveDummyMemberId } from './state.js';
 
 const joining = new Set<string>();
 let loopTimer: ReturnType<typeof setInterval> | null = null;
 let ioRef: IO | null = null;
+let lastOnlineSig = '';
+
+async function broadcastDummyPresence(io: IO): Promise<void> {
+  const sig = liveDummyOnlineSignature();
+  if (sig === lastOnlineSig) return;
+  lastOnlineSig = sig;
+  const { broadcastOnlineUsers } = await import('../../socket/lobby.js');
+  broadcastOnlineUsers(io);
+}
 
 export function isLiveDummySocketId(socketId: string): boolean {
   return !!findRosterBySocketId(socketId) || socketId.startsWith('live-dummy:');
@@ -44,6 +54,7 @@ async function sitInQueue(io: IO, dummy: LiveDummyRuntime, memberId: string): Pr
   if (joining.has(dummy.key)) return;
   if (!isLiveDummyWindowOpen(dummy.window)) {
     rankQueueStore.removeByMemberId(memberId);
+    await broadcastDummyPresence(io);
     return;
   }
   if (!isRankQueueAcceptingNewJoins()) return;
@@ -77,6 +88,7 @@ async function sitInQueue(io: IO, dummy: LiveDummyRuntime, memberId: string): Pr
       const { startRetryTimer } = await import('../../socket/rankQueue.js');
       startRetryTimer(io);
       console.log('[liveDummy] 큐 대기', dummy.nickname);
+      await broadcastDummyPresence(io);
       return;
     }
     const { createRankMatchedRoom } = await import('../../socket/rankQueue.js');
@@ -139,10 +151,12 @@ export async function startLiveDummy(io: IO): Promise<void> {
       const memberId = getLiveDummyMemberIdBySocket(dummy.socketId);
       if (memberId) void sitInQueue(ioRef, dummy, memberId);
     }
+    void broadcastDummyPresence(ioRef);
   }, 5_000);
 
   for (const dummy of LIVE_DUMMY_ROSTER) {
     const memberId = getLiveDummyMemberIdBySocket(dummy.socketId);
     if (memberId) void sitInQueue(io, dummy, memberId);
   }
+  await broadcastDummyPresence(io);
 }

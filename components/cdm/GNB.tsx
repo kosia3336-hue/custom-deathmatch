@@ -9,6 +9,7 @@ import { BgmButton } from './BgmButton';
 import { CdpBalanceChip } from './CdpBalanceChip';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
+import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import InventoryInit from '@/components/providers/InventoryInit';
 import { MobileTabBar } from './MobileTabBar';
@@ -42,6 +43,7 @@ const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
 export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNBProps) {
   const [open, setOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [devSwitchOpen, setDevSwitchOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -164,6 +166,19 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
                   <>
                     <hr className="border-cdm-border" />
                     <MenuLink href="/admin" label="관리자" />
+                    {member.nickname === '천하' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          setDevSwitchOpen(true);
+                        }}
+                        className="block w-full px-4 py-2.5 text-left text-sm text-cdm-fg hover:bg-cdm-bg-elev-1"
+                        role="menuitem"
+                      >
+                        데브 전환
+                      </button>
+                    )}
                   </>
                 )}
                 <div className="sm:hidden">
@@ -200,6 +215,9 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
         onClose={() => setInquiryOpen(false)}
         onSuccess={() => setInquiryOpen(false)}
       />
+    )}
+    {member?.nickname === '천하' && member.role === 'admin' && (
+      <DevSwitchModal open={devSwitchOpen} onClose={() => setDevSwitchOpen(false)} />
     )}
   </>
   );

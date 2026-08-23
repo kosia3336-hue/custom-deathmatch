@@ -1,3 +1,5 @@
+import type { DisplayedTitle } from './room';
+
 /**
  * 랭크게임 공통 타입·RP 산정 (기획 02·03·04).
  */
@@ -205,4 +207,29 @@ export function applyRankLoss(
   const prev = demoteMap[currentTier];
   if (!prev) return { tier: currentTier, rp: 0, demoted: false };
   return { tier: prev, rp: 100 + next, demoted: true };
+}
+
+/** 매칭 VS 에 실을 길드 스냅샷. 로고 없으면 markUrl null, 이름은 그대로. */
+export interface RankMatchGuildSnap {
+  name: string;
+  markUrl: string | null;
+}
+
+/** `rank:queue:matched` — 운영 오버레이·/dev 프리뷰 공통. 익명 물약이면 상대 식별 필드는 null/`???`. */
+export interface RankMatchedPayload {
+  roomId: string;
+  selfNickname: string;
+  selfDisplayedTitle: DisplayedTitle | null;
+  selfGuild: RankMatchGuildSnap | null;
+  selfWinStreak: number;
+  selfTier: RankTier;
+  selfRp: number;
+  selfIsPlacement: boolean;
+  opponentNickname: string;
+  opponentDisplayedTitle: DisplayedTitle | null;
+  opponentGuild: RankMatchGuildSnap | null;
+  opponentWinStreak: number | null;
+  opponentTier: RankTier | null;
+  opponentRp: number | null;
+  opponentIsPlacement: boolean | null;
 }

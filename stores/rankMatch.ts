@@ -1,18 +1,7 @@
 import { create } from 'zustand';
-import type { RankTier } from '@/shared/types/rank';
-import type { DisplayedTitle } from '@/shared/types/room';
+import type { RankMatchedPayload, RankTier } from '@/shared/types/rank';
 
-export interface RankMatchedPayload {
-  roomId: string;
-  opponentNickname: string;
-  opponentDisplayedTitle: DisplayedTitle | null;
-  opponentTier: RankTier | null;
-  opponentRp: number | null;
-  opponentIsPlacement: boolean | null;
-  selfTier: RankTier;
-  selfRp: number;
-  selfIsPlacement: boolean;
-}
+export type { RankMatchedPayload };
 
 export interface RankMatchTiers {
   selfTier: RankTier;

@@ -3,6 +3,7 @@ import { DEFAULT_PAGE_SIZE, getTotalPages, parsePageParam } from '@/lib/paginati
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
 import type { RankTier } from '@/shared/types/rank';
 import MemberSearch from './MemberSearch';
+import { fetchMemberGuilds } from './fetchMemberGuilds';
 import { MembersTableClient, type MemberTableRow } from './MembersTableClient';
 
 interface MemberListRow {
@@ -72,11 +73,12 @@ export default async function MembersTab({
 
   const ids = members.map((m) => m.id);
 
-  const [privsRes, seasonRes, cdpRes, gameStatsRes] = await Promise.all([
+  const [privsRes, seasonRes, cdpRes, gameStatsRes, guildMap] = await Promise.all([
     sb.from('members_private').select('member_id, status, role').in('member_id', ids),
     sb.from('rank_seasons').select('id').eq('is_active', true).maybeSingle(),
     sb.from('member_cdp').select('member_id, balance').in('member_id', ids),
     sb.from('member_game_stats').select('member_id, total_games').in('member_id', ids),
+    fetchMemberGuilds(sb, ids),
   ]);
 
   const activeSeason = (seasonRes.data as { id: number } | null)?.id;
@@ -128,6 +130,7 @@ export default async function MembersTab({
       rp: rank?.rp ?? 0,
       cdp: cdpMap.get(m.id) ?? 0,
       totalGames: gameStatsMap.get(m.id) ?? 0,
+      guild: guildMap.get(m.id) ?? null,
     };
   });
 

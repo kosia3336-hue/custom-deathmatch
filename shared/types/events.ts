@@ -8,7 +8,7 @@ import type {
   GuildMark,
   TurnOrderMode,
 } from './room';
-import type { RankTier } from './rank';
+import type { RankMatchedPayload, RankTier } from './rank';
 import type {
   BanPickStartPayload,
   BanPickUpdatePayload,
@@ -432,18 +432,7 @@ export interface ServerToClientEvents {
   'notice:published': (data: { noticeId: string; title: string; category: string }) => void;
 
   /** 랭크 매칭 성사 → VS 오버레이 후 방 입장 */
-  'rank:queue:matched': (data: {
-    roomId: string;
-    opponentNickname: string;
-    opponentDisplayedTitle: DisplayedTitle | null;
-    /** 익명 물약 적용 시 null */
-    opponentTier: RankTier | null;
-    opponentRp: number | null;
-    opponentIsPlacement: boolean | null;
-    selfTier: RankTier;
-    selfRp: number;
-    selfIsPlacement: boolean;
-  }) => void;
+  'rank:queue:matched': (data: RankMatchedPayload) => void;
   /** 큐 상태 (재연결 시 등) */
   'rank:queue:status': (data: { inQueue: boolean; waitSeconds: number }) => void;
 
