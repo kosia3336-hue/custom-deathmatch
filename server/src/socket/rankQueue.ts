@@ -15,8 +15,7 @@ import { getRoomShopState } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { makeDummySocket } from '../dummy/fakeSocket.js';
 import { isLiveDummySocketId, maybeStartLiveDummyAgent } from '../dummy/live/index.js';
-import { isLiveDummyMemberId } from '../dummy/live/state.js';
-import { LIVE_DUMMY_TIER } from '../dummy/live/window.js';
+import { getLiveDummyRuntime, isLiveDummyMemberId } from '../dummy/live/state.js';
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -246,7 +245,14 @@ async function buildRankMatchedRoom(
 
   const dummyPlayer = [hostPlayer, guestPlayer].find((p) => isLiveDummyMemberId(p.memberId));
   if (dummyPlayer?.memberId) {
-    maybeStartLiveDummyAgent(io, room.id, dummyPlayer.id, dummyPlayer.memberId, LIVE_DUMMY_TIER);
+    const rt = getLiveDummyRuntime(dummyPlayer.memberId);
+    maybeStartLiveDummyAgent(
+      io,
+      room.id,
+      dummyPlayer.id,
+      dummyPlayer.memberId,
+      rt?.defaultTier ?? '중',
+    );
   }
 }
 

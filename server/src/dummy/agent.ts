@@ -111,6 +111,8 @@ import type { AIMove } from '../socket/games/four-gravity/types.js';
 interface AgentCtx {
   dummyId: string;
   tier: DummyAiTier;
+  /** 있으면 그 게임만 기본 등급을 덮어씀. 운영 타이탄 사목 하 등. */
+  tierForGame?: (gameId: string) => DummyAiTier;
   timer: ReturnType<typeof setInterval>;
   busy: boolean;
   pendingFg: AIMove | null;
@@ -119,6 +121,10 @@ interface AgentCtx {
   keepSession: boolean;
   endedNotified: boolean;
   onGameOver?: () => void;
+}
+
+function effectiveTier(ctx: AgentCtx, gameId: string): DummyAiTier {
+  return ctx.tierForGame?.(gameId) ?? ctx.tier;
 }
 
 const agents = new Map<string, AgentCtx>();
@@ -143,7 +149,11 @@ export function startDummyAgent(
   roomId: string,
   dummyId: string,
   tier: DummyAiTier,
-  opts?: { keepSession?: boolean; onGameOver?: () => void },
+  opts?: {
+    keepSession?: boolean;
+    onGameOver?: () => void;
+    tierForGame?: (gameId: string) => DummyAiTier;
+  },
 ): void {
   const prev = agents.get(roomId);
   if (prev) {
@@ -154,6 +164,7 @@ export function startDummyAgent(
   const ctx: AgentCtx = {
     dummyId,
     tier,
+    tierForGame: opts?.tierForGame,
     busy: false,
     pendingFg: null,
     skipStarted: false,
@@ -339,7 +350,12 @@ async function actFourGravity(
     return;
   }
 
-  const picked = pickFourGravityAction(view, ctx.dummyId, ctx.tier, ctx.pendingFg);
+  const picked = pickFourGravityAction(
+    view,
+    ctx.dummyId,
+    effectiveTier(ctx, GAME_IDS.FOUR_GRAVITY),
+    ctx.pendingFg,
+  );
   if (!picked) {
     ctx.pendingFg = null;
     return;

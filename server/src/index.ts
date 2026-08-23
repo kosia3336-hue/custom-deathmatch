@@ -10,6 +10,7 @@ import { registerAdminRoutes } from './routes/admin.js';
 import { setupSocketHandlers } from './socket/index.js';
 import { preloadBiasTitlesCache } from './shop/biasTitlesCache.js';
 import { roomStore } from './store/rooms.js';
+import { startGuildRankSettleLoop } from './rank/settleGuildRankDueV4.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -68,6 +69,8 @@ async function main() {
   } catch (err) {
     app.log.warn({ err }, '[shop] bias titles cache preload failed');
   }
+
+  startGuildRankSettleLoop();
 
   app.log.info(`listening on http://${config.host}:${config.port}`);
 }

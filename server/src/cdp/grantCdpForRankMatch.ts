@@ -5,7 +5,7 @@ import type { IO } from '../socket/types.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import { sessions } from '../store/sessions.js';
 import type { CdpGrantInput } from './calc.js';
-import { applyGuildCdpBuff } from './guildBuff.js';
+import { applyGuildCdpBuffV4 } from './guildBuffV4.js';
 
 export type { CdpGrantInput } from './calc.js';
 
@@ -31,8 +31,8 @@ export async function grantCdpForRankMatch(
   const sb = getSupabaseAdmin();
   const out: CdpGrantResult[] = [];
 
-  // 길드 CDP 수완 버프(레벨당 +1%) 반영
-  const inputs = await applyGuildCdpBuff(rawInputs);
+  // 길드 CDP 수완 버프(레벨당 +2%) 반영
+  const inputs = await applyGuildCdpBuffV4(rawInputs);
 
   for (const inp of inputs) {
     if (inp.amount <= 0) {

@@ -17,7 +17,8 @@ import {
 import RankingTabs from './RankingTabs';
 import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
-import GuildLeaderboard from './GuildLeaderboard';
+import { loadGuildMarksForMembers } from './loadGuildMarks';
+import { GuildMark, type GuildMarkInfo } from '@/components/cdm/GuildMark';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { CONTAINER_READ } from '@/lib/layout';
 
@@ -106,8 +107,7 @@ export default async function RankingPage({ searchParams }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = sb as any;
 
-  const board: RankingBoard =
-    sp.board === 'game' ? 'game' : sp.board === 'guild' ? 'guild' : 'rank';
+  const board: RankingBoard = sp.board === 'game' ? 'game' : 'rank';
 
   let seasons: { id: number; name: string; is_active: boolean | null }[] = [];
   if (board === 'rank') {
@@ -142,6 +142,7 @@ export default async function RankingPage({ searchParams }: Props) {
 
   let rankings: RankRow[] = [];
   let totalCount = 0;
+  let guildMarks = new Map<string, GuildMarkInfo>();
 
   if (board === 'game') {
     try {
@@ -188,6 +189,10 @@ export default async function RankingPage({ searchParams }: Props) {
             : null,
         };
       });
+      guildMarks = await loadGuildMarksForMembers(
+        sb,
+        rankings.map((r) => r.member_id),
+      );
     }
   }
 
@@ -248,6 +253,7 @@ export default async function RankingPage({ searchParams }: Props) {
                       >
                         {r.rank}
                       </span>
+                      <GuildMark mark={guildMarks.get(r.member_id)} size="xl" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {r.title && (
@@ -287,9 +293,6 @@ export default async function RankingPage({ searchParams }: Props) {
           </>
         )}
 
-        {board === 'guild' && (
-          <GuildLeaderboard page={page} memberId={member?.id ?? null} />
-        )}
       </main>
     </>
   );

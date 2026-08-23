@@ -9,7 +9,7 @@ export interface GuildMarkInfo {
 
 interface GuildMarkProps {
   mark?: GuildMarkInfo | null;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 
@@ -17,6 +17,8 @@ const SIZE_CLASS = {
   sm: 'h-4 w-4',
   md: 'h-[18px] w-[18px]',
   lg: 'h-5 w-5',
+  /** 랭킹 유저 행 — 닉+전적 두 줄 높이에 맞춤 */
+  xl: 'h-10 w-10',
 };
 
 /**
@@ -34,7 +36,9 @@ export function GuildMark({ mark, size = 'md', className }: GuildMarkProps) {
       title={label}
       loading="lazy"
       className={cn(
-        'inline-block shrink-0 rounded-[4px] object-cover align-[-2px]',
+        size === 'xl'
+          ? 'inline-block shrink-0 rounded-cdm-sm object-cover'
+          : 'inline-block shrink-0 rounded-[4px] object-cover align-[-2px]',
         'ring-1 ring-cdm-border',
         SIZE_CLASS[size],
         className,

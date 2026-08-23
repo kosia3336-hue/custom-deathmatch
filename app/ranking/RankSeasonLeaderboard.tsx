@@ -4,6 +4,7 @@ import { compareRankRows, isChallengerSlot } from '@/lib/rank/leaderboard';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { DEFAULT_PAGE_SIZE, getTotalPages } from '@/lib/pagination';
 import RankLeaderRow from './RankLeaderRow';
+import { loadGuildMarksForMembers } from './loadGuildMarks';
 import type { RankTier } from '@/shared/types/rank';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -94,6 +95,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
 
   const nickMap = new Map(memberRows.map((m) => [m.id, m.nickname]));
   const titleMap = await loadResolvedDisplayedTitles(db, memberRows);
+  const guildMarks = await loadGuildMarksForMembers(db, ids);
 
   function titleFor(mid: string) {
     const t = titleMap.get(mid);
@@ -128,6 +130,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
             draws={row.season_draws}
             isChallenger={row.isChallenger}
             highlight={memberId != null && row.member_id === memberId}
+            guildMark={guildMarks.get(row.member_id)}
           />
         );
       })}
@@ -146,6 +149,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
             draws={stickyRow.season_draws}
             isChallenger={stickyRow.isChallenger}
             highlight
+            guildMark={guildMarks.get(stickyRow.member_id)}
           />
         </>
       ) : null}

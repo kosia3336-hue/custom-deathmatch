@@ -9,7 +9,7 @@ export interface SeasonOption {
   is_active: boolean | null;
 }
 
-export type RankingBoard = 'game' | 'rank' | 'guild';
+export type RankingBoard = 'game' | 'rank';
 
 interface Props {
   board: RankingBoard;
@@ -29,12 +29,7 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
     if (next === 'game') {
       p.delete('season');
       p.delete('tier');
-    } else if (next === 'rank') {
-      p.delete('game');
-      p.delete('period');
     } else {
-      p.delete('season');
-      p.delete('tier');
       p.delete('game');
       p.delete('period');
     }
@@ -64,7 +59,6 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
         tabs={[
           { id: 'rank', label: '랭크' },
           { id: 'game', label: '게임 랭킹' },
-          { id: 'guild', label: '길드' },
         ]}
         value={board}
         onChange={(id) => setBoard(id as RankingBoard)}

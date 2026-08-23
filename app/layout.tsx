@@ -6,6 +6,7 @@ import ToastProvider from '@/components/providers/ToastProvider';
 import NicknameModal from '@/components/lobby/NicknameModal';
 import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 import TitleGrantedModal from '@/components/TitleGrantedModal';
+import { GuildRankPayoutModal } from '@/components/guild-v4/GuildRankPayoutModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import BgmProvider from '@/components/providers/BgmProvider';
 import SiteFooter from '@/components/layout/SiteFooter';
@@ -135,6 +136,7 @@ export default async function RootLayout({
             <NicknameModal />
             <SessionTakeoverModal />
             <TitleGrantedModal />
+            <GuildRankPayoutModal />
             <NoticePublishedListener />
             <ToastProvider />
           </BgmProvider>
