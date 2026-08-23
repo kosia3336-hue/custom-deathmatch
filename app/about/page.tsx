@@ -29,9 +29,6 @@ export const viewport: Viewport = {
   interactiveWidget: 'resizes-content',
 };
 
-// 룰 본문은 관리자가 저장하면 갱신되므로 주기적 재검증
-export const revalidate = 300;
-
 export default function AboutPage() {
   return <IntroContent />;
 }

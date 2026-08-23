@@ -1,4 +1,4 @@
-/** 수식완성N — 동시 선착순 수식 제출, 9라운드 서버 모듈. */
+/** 수식완성N — 동시 선착순 수식 제출, 7라운드 서버 모듈. */
 import type { Player, PlayMode } from '@shared/types/room.js';
 import {
   FC_DEFAULT_NUMBER_COUNT,
@@ -6,6 +6,7 @@ import {
   FC_MIN_NUMBER_COUNT,
   FC_REVEAL_MS,
   FC_TOTAL_ROUNDS,
+  FC_WIN_SCORE,
   type FormulaCompletionAction,
   type FormulaCompletionRoundResult,
 } from '@shared/types/formula-completion.js';
@@ -72,6 +73,10 @@ function rankingsFor(s: FormulaCompletionState) {
   ];
 }
 
+function hasClinchedMatch(s: FormulaCompletionState) {
+  return s.playMode !== 'solo' && Object.values(s.scores).some((score) => score >= FC_WIN_SCORE);
+}
+
 function finishGame(io: IO, s: FormulaCompletionState) {
   clearFormulaCompletionTimers(s);
   s.phase = 'finished';
@@ -128,7 +133,7 @@ function endRound(
 
   s.transitionTimer = setTimeout(() => {
     if (formulaCompletionStates.get(s.roomId) !== s || s.gameOver) return;
-    if (s.round >= FC_TOTAL_ROUNDS) {
+    if (hasClinchedMatch(s) || s.round >= FC_TOTAL_ROUNDS) {
       finishGame(io, s);
       return;
     }

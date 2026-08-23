@@ -89,6 +89,23 @@ describe('roomStore.create', () => {
     expect(room.players.some((p) => p.id === 'AI')).toBe(true);
   });
 
+  it('COM 방도 비밀번호를 저장할 수 있다', () => {
+    const room = roomStore.create({
+      title: '비밀 COM 방',
+      gameId: 'four-gravity',
+      gameName: '사목',
+      playMode: 'com',
+      roomType: 'private',
+      password: '1234',
+      maxPlayers: 2,
+      minPlayers: 2,
+      host: makeHost(),
+    });
+
+    expect(room.roomType).toBe('private');
+    expect(roomStore.getPassword(room.id)).toBe('1234');
+  });
+
   it('비밀번호가 있으면 private 방에 저장된다', () => {
     const host = makeHost();
     const room = roomStore.create({
@@ -356,6 +373,85 @@ describe('roomStore.moveToSpectator / moveToPlayer', () => {
     const r = roomStore.get(room.id)!;
     expect(r.players.some((p) => p.id === 'player-2')).toBe(true);
     expect(r.spectators.some((p) => p.id === 'player-2')).toBe(false);
+  });
+});
+
+describe('roomStore.changePlayMode', () => {
+  beforeEach(resetRooms);
+
+  it('멀티에서 COM으로 바꾸면 방장 외 사람을 관전자로 이동하고 AI를 추가한다', () => {
+    const room = roomStore.create({
+      title: '모드 변경 방',
+      gameId: 'four-gravity',
+      gameName: '사목',
+      playMode: 'multi',
+      roomType: 'public',
+      maxPlayers: 4,
+      minPlayers: 2,
+      timeLimitSeconds: 120,
+      host: makeHost(),
+    });
+    roomStore.addPlayer(room.id, makePlayer('player-2', '둘째'));
+    roomStore.addPlayer(room.id, makePlayer('player-3', '셋째'));
+
+    const result = roomStore.changePlayMode(room.id, 'com', { minPlayers: 2, maxPlayers: 2 });
+    const changed = roomStore.get(room.id)!;
+
+    expect(result?.aiJoined).toBe(true);
+    expect(result?.movedPlayers.map((player) => player.id)).toEqual(['player-2', 'player-3']);
+    expect(changed.playMode).toBe('com');
+    expect(changed.maxPlayers).toBe(2);
+    expect(changed.players.map((player) => player.id)).toEqual(['host-socket-id', 'AI']);
+    expect(changed.spectators.map((player) => player.id)).toEqual(['player-2', 'player-3']);
+    expect(changed.timeLimitSeconds).toBeNull();
+  });
+
+  it('COM에서 멀티로 바꾸면 AI를 제거하고 기존 관전자는 관전자 상태를 유지한다', () => {
+    const room = roomStore.create({
+      title: 'COM 방',
+      gameId: 'four-gravity',
+      gameName: '사목',
+      playMode: 'com',
+      roomType: 'public',
+      maxPlayers: 2,
+      minPlayers: 2,
+      host: makeHost(),
+    });
+    roomStore.addSpectator(room.id, makePlayer('spectator-1', '관전자'));
+
+    const result = roomStore.changePlayMode(room.id, 'multi', { minPlayers: 2, maxPlayers: 4 });
+    const changed = roomStore.get(room.id)!;
+
+    expect(result?.aiLeft).toBe(true);
+    expect(changed.playMode).toBe('multi');
+    expect(changed.maxPlayers).toBe(4);
+    expect(changed.players.map((player) => player.id)).toEqual(['host-socket-id']);
+    expect(changed.spectators.map((player) => player.id)).toEqual(['spectator-1']);
+  });
+
+  it('솔로로 바꾸면 방장 한 자리로 정리되고 바로 시작 가능한 상태가 된다', () => {
+    const room = createMultiRoom();
+    roomStore.addPlayer(room.id, makePlayer('player-2'));
+
+    roomStore.changePlayMode(room.id, 'solo', { minPlayers: 2, maxPlayers: 1 });
+
+    expect(roomStore.get(room.id)?.players.map((player) => player.id)).toEqual(['host-socket-id']);
+    expect(roomStore.canStart(room.id).ok).toBe(true);
+  });
+});
+
+describe('roomStore.resetHumanReadiness', () => {
+  beforeEach(resetRooms);
+
+  it('일반 설정 변경 시 사람 참가자의 준비 상태를 해제한다', () => {
+    const room = createMultiRoom();
+    roomStore.addPlayer(room.id, makePlayer('player-2'));
+    roomStore.setPlayerReady(room.id, 'player-2', true);
+
+    const resetIds = roomStore.resetHumanReadiness(room.id);
+
+    expect(resetIds).toEqual(['player-2']);
+    expect(roomStore.get(room.id)?.players.find((player) => player.id === 'player-2')?.isReady).toBe(false);
   });
 });
 

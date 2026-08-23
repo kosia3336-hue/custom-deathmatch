@@ -12,6 +12,27 @@ export {
   applyRankLoss,
 } from './rank';
 export { AI_PLAYER_ID } from './room';
+export {
+  CH_CARDS_PER_BOARD,
+  CH_MATCH_SECONDS,
+  CH_TOTAL_ROUNDS,
+  CH_WIN_SCORE,
+  completeHapCardKey,
+} from './complete-hap';
+export type {
+  CompleteHapAction,
+  CompleteHapArchiveRecord,
+  CompleteHapArchiveRound,
+  CompleteHapBoard,
+  CompleteHapCard,
+  CompleteHapCardColor,
+  CompleteHapGameData,
+  CompleteHapPhase,
+  CompleteHapRoundResult,
+  CompleteHapShape,
+  CompleteHapBackground,
+  CompleteHapTiebreak,
+} from './complete-hap';
 export type {
   PlayMode,
   RoomStatus,
@@ -25,6 +46,7 @@ export type {
   CreateRoomData,
   JoinRoomData,
   UpdateRoomSettings,
+  UpdateRoomSettingsResult,
   ChatScope,
   ChatMessage,
   GameState,
@@ -206,6 +228,7 @@ export type {
 } from './transletter';
 export {
   FC_TOTAL_ROUNDS,
+  FC_WIN_SCORE,
   FC_MIN_NUMBER_COUNT,
   FC_MAX_NUMBER_COUNT,
   FC_DEFAULT_NUMBER_COUNT,

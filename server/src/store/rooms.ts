@@ -1,11 +1,29 @@
 import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
-import type { Room, RoomSummary, Player, PlayMode, RoomType, RoomStatus, TurnOrderMode } from '@shared/types/room.js';
+import type {
+  Room,
+  RoomSummary,
+  Player,
+  PlayMode,
+  RoomType,
+  RoomStatus,
+  TurnOrderMode,
+} from '@shared/types/room.js';
 import { isTokenAnonymized } from '../shop/roomShopState.js';
 
 function isNonHumanSeat(p: Player): boolean {
   return p.id === AI_PLAYER_ID || isDummyPlayerId(p.id);
+}
+
+function makeAiPlayer(): Player {
+  return {
+    id: AI_PLAYER_ID,
+    nickname: AI_PLAYER_ID,
+    isHost: false,
+    isReady: true,
+    joinedAt: Date.now(),
+  };
 }
 
 type RoomInternal = Room & { _password?: string; _minPlayers: number; _fromBanPick?: boolean };
@@ -77,14 +95,6 @@ export const roomStore = {
     do {
       id = uuid().slice(0, 8);
     } while (rooms.has(id));
-    const aiBot: Player = {
-      id: AI_PLAYER_ID,
-      nickname: AI_PLAYER_ID,
-      isHost: false,
-      isReady: true,
-      joinedAt: Date.now(),
-    };
-
     const room: RoomInternal = {
       id,
       title: opts.title,
@@ -93,7 +103,7 @@ export const roomStore = {
       playMode: opts.playMode,
       roomType: opts.roomType,
       maxPlayers: opts.playMode === 'multi' ? opts.maxPlayers : opts.playMode === 'com' ? 2 : 1,
-      players: opts.playMode === 'com' ? [opts.host, aiBot] : [opts.host],
+      players: opts.playMode === 'com' ? [opts.host, makeAiPlayer()] : [opts.host],
       spectators: [],
       status: opts.playMode === 'solo' ? 'playing' : 'waiting',
       hostId: opts.host.id,
@@ -171,7 +181,10 @@ export const roomStore = {
     return true;
   },
 
-  removePlayer(roomId: string, playerId: string): { removed: boolean; newHostId?: string; destroyed: boolean } {
+  removePlayer(
+    roomId: string,
+    playerId: string,
+  ): { removed: boolean; newHostId?: string; destroyed: boolean } {
     const room = rooms.get(roomId);
     if (!room) return { removed: false, destroyed: false };
 
@@ -210,12 +223,20 @@ export const roomStore = {
 
     const minPlayers = room._minPlayers;
     if (room.players.length < minPlayers) {
-      return { ok: false, reason: `최소 ${minPlayers}명이 필요합니다 (현재 ${room.players.length}명)` };
+      return {
+        ok: false,
+        reason: `최소 ${minPlayers}명이 필요합니다 (현재 ${room.players.length}명)`,
+      };
     }
 
-    const nonHostNotReady = room.players.filter((p) => p.id !== room.hostId && p.id !== AI_PLAYER_ID && !p.isReady);
+    const nonHostNotReady = room.players.filter(
+      (p) => p.id !== room.hostId && p.id !== AI_PLAYER_ID && !p.isReady,
+    );
     if (nonHostNotReady.length > 0) {
-      return { ok: false, reason: `모든 참여자가 준비해야 합니다 (${nonHostNotReady.length}명 대기 중)` };
+      return {
+        ok: false,
+        reason: `모든 참여자가 준비해야 합니다 (${nonHostNotReady.length}명 대기 중)`,
+      };
     }
 
     return { ok: true };
@@ -287,6 +308,64 @@ export const roomStore = {
     if (settings.turnOrderMode !== undefined) {
       room.turnOrderMode = settings.turnOrderMode;
     }
+  },
+
+  changePlayMode(
+    roomId: string,
+    playMode: PlayMode,
+    opts: { minPlayers: number; maxPlayers: number },
+  ): { movedPlayers: Player[]; aiJoined: boolean; aiLeft: boolean } | null {
+    const room = rooms.get(roomId);
+    if (!room || room.status !== 'waiting') return null;
+
+    const previousHadAi = room.players.some((p) => p.id === AI_PLAYER_ID);
+    const humanPlayers = room.players.filter((p) => p.id !== AI_PLAYER_ID);
+    const host = humanPlayers.find((p) => p.id === room.hostId);
+    if (!host) return null;
+
+    const targetMaxPlayers = playMode === 'multi' ? opts.maxPlayers : playMode === 'com' ? 2 : 1;
+    const allowedHumans = playMode === 'multi' ? targetMaxPlayers : 1;
+    const orderedHumans = [host, ...humanPlayers.filter((p) => p.id !== room.hostId)];
+    const keptHumans = orderedHumans.slice(0, allowedHumans);
+    const movedPlayers = orderedHumans.slice(allowedHumans);
+
+    for (const player of movedPlayers) {
+      player.isHost = false;
+      player.isReady = false;
+      if (!room.spectators.some((spectator) => spectator.id === player.id)) {
+        room.spectators.push(player);
+      }
+    }
+
+    for (const player of keptHumans) {
+      player.isReady = false;
+    }
+
+    room.players = playMode === 'com' ? [...keptHumans, makeAiPlayer()] : keptHumans;
+    room.playMode = playMode;
+    room.maxPlayers = targetMaxPlayers;
+    room._minPlayers = playMode === 'solo' ? 1 : opts.minPlayers;
+    room.turnOrderMode = 'random';
+    if (playMode !== 'multi') room.timeLimitSeconds = null;
+
+    return {
+      movedPlayers,
+      aiJoined: playMode === 'com' && !previousHadAi,
+      aiLeft: playMode !== 'com' && previousHadAi,
+    };
+  },
+
+  /** 설정 변경 후 기존 동의가 유효하지 않으므로 모든 사람 참가자의 준비를 해제한다. */
+  resetHumanReadiness(roomId: string): string[] {
+    const room = rooms.get(roomId);
+    if (!room) return [];
+    const resetPlayerIds: string[] = [];
+    for (const player of room.players) {
+      if (isNonHumanSeat(player) || !player.isReady) continue;
+      player.isReady = false;
+      resetPlayerIds.push(player.id);
+    }
+    return resetPlayerIds;
   },
 
   setTurnOrderMode(roomId: string, mode: TurnOrderMode): boolean {
@@ -383,8 +462,8 @@ export const roomStore = {
         (!isKicked || !isKicked(r.id)),
     );
     // 인원이 가장 많은 방 우선 (빠른 매칭), 동점이면 먼저 만들어진 방
-    return candidates.sort((a, b) =>
-      b.players.length - a.players.length || a.createdAt - b.createdAt,
+    return candidates.sort(
+      (a, b) => b.players.length - a.players.length || a.createdAt - b.createdAt,
     )[0];
   },
 

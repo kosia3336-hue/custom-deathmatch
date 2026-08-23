@@ -264,6 +264,16 @@ import {
   getFormulaCompletionResultData,
 } from './games/formula-completion/index.js';
 import {
+  initCompleteHap,
+  handleCompleteHapAction,
+  cleanupCompleteHap,
+  getCompleteHapState,
+  emitCompleteHapStateToSocket,
+  performCompleteHapUndo,
+  canCompleteHapUndo,
+  getCompleteHapResultData,
+} from './games/complete-hap/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -275,6 +285,16 @@ import {
 } from './games/quatro/index.js';
 
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.COMPLETE_HAP]: {
+    init: initCompleteHap,
+    handleAction: handleCompleteHapAction,
+    cleanup: cleanupCompleteHap,
+    getState: getCompleteHapState,
+    emitStateToSocket: emitCompleteHapStateToSocket,
+    performUndo: performCompleteHapUndo,
+    canUndo: canCompleteHapUndo,
+    getResultData: getCompleteHapResultData,
+  },
   [GAME_IDS.FORMULA_COMPLETION]: {
     init: initFormulaCompletion,
     handleAction: handleFormulaCompletionAction,

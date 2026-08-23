@@ -533,12 +533,25 @@ export default async function IntroContent() {
             <h2 className="text-2xl font-black tracking-tight text-cdm-ink-fg md:text-3xl">
               지금 바로 치열한 승부에 도전하라.
             </h2>
-            <Link
-              href="/login"
-              className="guide-cta mt-8 inline-block rounded-xl px-9 py-3.5 font-bold text-white transition"
-            >
-              로그인하기
-            </Link>
+            {/*
+              히어로와 같은 두 갈래를 그대로 둔다. 로그인 상태에 따라 하나만
+              보이게 하려면 이 페이지가 인증을 읽어야 하는데, /about 은
+              revalidate 로 캐시되는 검색 유입 문서라 그러면 캐시가 깨진다.
+            */}
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Link
+                href="/login"
+                className="w-full rounded-xl bg-[#FEE500] px-8 py-3.5 text-center font-bold text-[#191919] transition hover:brightness-95 sm:w-auto"
+              >
+                카카오로 시작
+              </Link>
+              <Link
+                href="/lobby"
+                className="guide-cta w-full rounded-xl px-8 py-3.5 text-center font-bold text-white transition sm:w-auto"
+              >
+                로비 둘러보기
+              </Link>
+            </div>
           </section>
         </div>
       </main>

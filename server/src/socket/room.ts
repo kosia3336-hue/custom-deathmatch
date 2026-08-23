@@ -1,16 +1,30 @@
 import { v4 as uuid } from 'uuid';
-import type { Player } from '@shared/types/room.js';
+import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById, getGames } from '../routes/games.js';
-import { broadcastRoomCreated, broadcastRoomUpdated, broadcastRoomRemoved, broadcastOnlineUsers } from './lobby.js';
+import {
+  broadcastRoomCreated,
+  broadcastRoomUpdated,
+  broadcastRoomRemoved,
+  broadcastOnlineUsers,
+} from './lobby.js';
 import { startGame, handleGameForfeit, clearAutoEnd, clearGameStartTime } from './game.js';
-import { clearRoomStartCountdown, setRoomStartCountdown, hasRoomStartCountdown } from './roomCountdown.js';
+import {
+  clearRoomStartCountdown,
+  setRoomStartCountdown,
+  hasRoomStartCountdown,
+} from './roomCountdown.js';
 import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket } from './utils.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
-import { isRoomSpectatorLocked, getRoomShopState, cleanupRoomShopState, isTokenAnonymized } from '../shop/roomShopState.js';
+import {
+  isRoomSpectatorLocked,
+  getRoomShopState,
+  cleanupRoomShopState,
+  isTokenAnonymized,
+} from '../shop/roomShopState.js';
 import { maskRoomForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { eventRoom } from './eventRoom.js';
 import { smsEventRoom, EVENT_SMS_ROOM_KEY } from './smsEventRoomHandlers.js';
@@ -74,6 +88,27 @@ function sendRoomState(io: IO, roomId: string) {
   emitRoomStateToRoom(io, roomId);
 }
 
+function supportsPlayMode(
+  game: NonNullable<ReturnType<typeof getGameById>>,
+  playMode: PlayMode,
+): boolean {
+  if (playMode === 'multi') return game.supportsMulti;
+  if (playMode === 'com') return game.supportsCom;
+  return game.supportsSolo;
+}
+
+function emitRoomSystemMessage(io: IO, roomId: string, message: string): void {
+  io.to(socketRoom(roomId)).emit('chat:message', {
+    id: uuid(),
+    sender: 'system',
+    senderNickname: '시스템',
+    message,
+    scope: 'room',
+    isSystem: true,
+    timestamp: Date.now(),
+  });
+}
+
 export function registerRoomHandlers(io: IO, socket: TypedSocket) {
   socket.on('room:create', (data, callback) => {
     const nickname = sessions.getNickname(socket.id);
@@ -88,8 +123,8 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     // ── 밴픽 모드 ─────────────────────────────────────────────────────────
     if (data.gameId === 'ban-pick') {
-      const bpPlayMode = data.playMode === 'com' ? 'com' as const : 'multi' as const;
-      if (bpPlayMode === 'multi' && data.roomType === 'private') {
+      const bpPlayMode = data.playMode === 'com' ? ('com' as const) : ('multi' as const);
+      if (data.roomType === 'private') {
         if (!data.password || data.password.length < 4 || data.password.length > 8) {
           return callback({ success: false, error: '비밀번호는 4~8자리로 입력해 주세요.' });
         }
@@ -98,14 +133,15 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
         return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
       }
-      const rawBanCount = typeof data.gameOptions?.banCount === 'number' ? data.gameOptions.banCount : 3;
+      const rawBanCount =
+        typeof data.gameOptions?.banCount === 'number' ? data.gameOptions.banCount : 3;
       const host = makePlayer(socket, true);
       const room = roomStore.create({
         title: data.title,
         gameId: 'ban-pick',
         gameName: '밴픽',
         playMode: bpPlayMode,
-        roomType: bpPlayMode === 'multi' ? data.roomType : 'public',
+        roomType: data.roomType,
         password: data.password,
         maxPlayers: 2,
         minPlayers: 2,
@@ -133,23 +169,29 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
     if (!game) return callback({ success: false, error: '게임을 찾을 수 없습니다.' });
 
-    const playMode = isRandom ? 'multi' as const : data.playMode;
+    const playMode = isRandom ? ('multi' as const) : data.playMode;
     const maxPlayers = isRandom ? game.maxPlayers : data.maxPlayers;
 
-    if (playMode === 'multi' && data.roomType === 'private') {
+    if (!supportsPlayMode(game, playMode)) {
+      return callback({
+        success: false,
+        error: '선택한 게임은 이 플레이 모드를 지원하지 않습니다.',
+      });
+    }
+
+    if (playMode !== 'solo' && data.roomType === 'private') {
       if (!data.password || data.password.length < 4 || data.password.length > 8) {
         return callback({ success: false, error: '비밀번호는 4~8자리로 입력해 주세요.' });
       }
     }
 
-    const tl = (playMode === 'multi' && !isRandom) ? data.timeLimitSeconds : null;
+    const tl = playMode === 'multi' && !isRandom ? data.timeLimitSeconds : null;
     if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
 
-    const gameOptions = (!isRandom && data.gameOptions && typeof data.gameOptions === 'object')
-      ? data.gameOptions
-      : {};
+    const gameOptions =
+      !isRandom && data.gameOptions && typeof data.gameOptions === 'object' ? data.gameOptions : {};
 
     const host = makePlayer(socket, true);
     const room = roomStore.create({
@@ -157,7 +199,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       gameId: game.id,
       gameName: game.name,
       playMode,
-      roomType: playMode === 'multi' ? data.roomType : 'public',
+      roomType: playMode === 'solo' ? 'public' : data.roomType,
       password: data.password,
       maxPlayers,
       minPlayers: game.minPlayers,
@@ -211,11 +253,21 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     if (room.status === 'playing') {
-      return callback({ success: false, error: '이미 게임이 진행 중입니다.', errorCode: 'GAME_IN_PROGRESS', isPrivate: room.roomType === 'private' });
+      return callback({
+        success: false,
+        error: '이미 게임이 진행 중입니다.',
+        errorCode: 'GAME_IN_PROGRESS',
+        isPrivate: room.roomType === 'private',
+      });
     }
 
     if (room.players.length >= room.maxPlayers) {
-      return callback({ success: false, error: '방이 가득 찼습니다.', errorCode: 'ROOM_FULL', isPrivate: room.roomType === 'private' });
+      return callback({
+        success: false,
+        error: '방이 가득 찼습니다.',
+        errorCode: 'ROOM_FULL',
+        isPrivate: room.roomType === 'private',
+      });
     }
 
     if (room.roomType === 'private' && !data.inviteToken) {
@@ -264,7 +316,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
 
-    const found = roomStore.findQuickJoinRoom(undefined, (roomId) => sessions.isKicked(nickname, roomId));
+    const found = roomStore.findQuickJoinRoom(undefined, (roomId) =>
+      sessions.isKicked(nickname, roomId),
+    );
     if (found) {
       const player = makePlayer(socket, false);
       const added = roomStore.addPlayer(found.id, player);
@@ -333,7 +387,9 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     if (kickResult.destroyed) {
       sessions.clearRoomFromAllKicks(roomId);
-      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+      io.to(socketRoom(roomId)).emit('room:disbanded', {
+        reason: '모든 플레이어가 나가 방이 종료되었습니다.',
+      });
       broadcastRoomRemoved(io, roomId);
       return;
     }
@@ -393,81 +449,121 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     setRoomStartCountdown(roomId, interval);
   });
 
-  socket.on('room:settings:update', (data) => {
+  socket.on('room:settings:update', (data, callback) => {
+    const fail = (message: string) => {
+      if (callback) callback({ success: false, error: message });
+      else socket.emit('error', { message });
+    };
+
     const roomId = sessions.getRoom(socket.id);
-    if (!roomId) return;
+    if (!roomId) return fail('방에 입장되어 있지 않습니다.');
     const room = roomStore.get(roomId);
     const myId = getPlayerId(socket);
-    if (!room || room.hostId !== myId) return;
+    if (!room) return fail('방을 찾을 수 없습니다.');
+    if (room.hostId !== myId) return fail('방장만 설정을 변경할 수 있습니다.');
 
     if (room.status !== 'waiting') {
-      socket.emit('error', { message: '게임 중에는 설정을 변경할 수 없습니다.' });
-      return;
+      return fail('게임 중에는 설정을 변경할 수 없습니다.');
+    }
+    if (room.isRanked) {
+      return fail('랭크 방의 설정은 변경할 수 없습니다.');
     }
 
     // 방 제목 검증
     if (data.title !== undefined && (data.title.length < 1 || data.title.length > 30)) {
-      socket.emit('error', { message: '방 제목은 1~30자로 입력해 주세요.' });
-      return;
+      return fail('방 제목은 1~30자로 입력해 주세요.');
     }
+
+    if (
+      data.playMode !== undefined &&
+      !(['multi', 'com', 'solo'] as const).includes(data.playMode)
+    ) {
+      return fail('지원하지 않는 플레이 모드입니다.');
+    }
+
+    const targetPlayMode = data.playMode ?? room.playMode;
+    const modeChanged = targetPlayMode !== room.playMode;
 
     // 게임 변경 검증
     let newGame: ReturnType<typeof getGameById> | undefined;
     if (data.gameId !== undefined && data.gameId !== room.gameId) {
       newGame = getGameById(data.gameId);
       if (!newGame) {
-        socket.emit('error', { message: '게임을 찾을 수 없습니다.' });
-        return;
-      }
-      if (!newGame.supportsMulti) {
-        socket.emit('error', { message: '이 게임은 멀티 모드를 지원하지 않습니다.' });
-        return;
+        return fail('게임을 찾을 수 없습니다.');
       }
     }
 
+    const targetGame = newGame ?? getGameById(room.gameId);
+    if (!targetGame) return fail('게임 정보를 찾을 수 없습니다.');
+    if (!supportsPlayMode(targetGame, targetPlayMode)) {
+      return fail('선택한 게임은 이 플레이 모드를 지원하지 않습니다.');
+    }
+
     // 최대 인원 검증
-    if (data.maxPlayers !== undefined) {
-      const humanCount = room.players.filter((p) => p.id !== AI_PLAYER_ID).length;
-      if (data.maxPlayers < humanCount) {
-        socket.emit('error', { message: '현재 참여자 수보다 작게 설정할 수 없습니다.' });
-        return;
+    const resolvedMaxPlayers =
+      targetPlayMode === 'com'
+        ? 2
+        : targetPlayMode === 'solo'
+          ? 1
+          : (data.maxPlayers ?? room.maxPlayers);
+    if (targetPlayMode === 'multi') {
+      if (
+        !Number.isInteger(resolvedMaxPlayers) ||
+        resolvedMaxPlayers < targetGame.minPlayers ||
+        resolvedMaxPlayers > targetGame.maxPlayers
+      ) {
+        return fail('선택한 게임의 인원 범위를 벗어났습니다.');
       }
-      if (newGame && (data.maxPlayers < newGame.minPlayers || data.maxPlayers > newGame.maxPlayers)) {
-        socket.emit('error', { message: '선택한 게임의 인원 범위를 벗어났습니다.' });
-        return;
+      const humanCount = room.players.filter((p) => p.id !== AI_PLAYER_ID).length;
+      if (!modeChanged && resolvedMaxPlayers < humanCount) {
+        return fail('현재 참여자 수보다 작게 설정할 수 없습니다.');
       }
     }
 
     // 비밀번호 검증
-    if (data.roomType === 'private' && !data.clearPassword) {
-      const isBecomingPrivate = room.roomType === 'public';
-      if (isBecomingPrivate && (!data.password || data.password.length < 4 || data.password.length > 8)) {
-        socket.emit('error', { message: '비밀번호는 4~8자리로 입력해 주세요.' });
-        return;
+    const targetRoomType = targetPlayMode === 'solo' ? 'public' : (data.roomType ?? room.roomType);
+    if (targetRoomType === 'private') {
+      const hasExistingPassword =
+        room.roomType === 'private' &&
+        !data.clearPassword &&
+        roomStore.getPassword(roomId) !== undefined;
+      const hasValidNewPassword =
+        data.password !== undefined && data.password.length >= 4 && data.password.length <= 8;
+      if (data.password !== undefined && !hasValidNewPassword) {
+        return fail('비밀번호는 4~8자리로 입력해 주세요.');
       }
-      if (!isBecomingPrivate && data.password !== undefined && (data.password.length < 4 || data.password.length > 8)) {
-        socket.emit('error', { message: '비밀번호는 4~8자리로 입력해 주세요.' });
-        return;
-      }
-    }
-
-    // 시간제한 검증
-    if (data.timeLimitSeconds !== undefined && data.timeLimitSeconds !== null) {
-      if (typeof data.timeLimitSeconds !== 'number' || data.timeLimitSeconds < 10 || data.timeLimitSeconds > 600) {
-        socket.emit('error', { message: '시간제한은 10초~10분 사이로 설정해 주세요.' });
-        return;
+      if (!hasExistingPassword && !hasValidNewPassword) {
+        return fail('비밀번호는 4~8자리로 입력해 주세요.');
       }
     }
 
-    // 게임 변경 시 최대 인원 클램핑
-    let resolvedMaxPlayers = data.maxPlayers;
-    if (newGame) {
-      const humanCount = room.players.filter((p) => p.id !== AI_PLAYER_ID).length;
-      const requested = data.maxPlayers ?? newGame.maxPlayers;
-      resolvedMaxPlayers = Math.max(
-        Math.min(requested, newGame.maxPlayers),
-        Math.max(newGame.minPlayers, humanCount),
-      );
+    // 시간제한은 멀티 모드에서만 사용한다. COM/솔로 전환 시에는 항상 제거한다.
+    if (
+      targetPlayMode === 'multi' &&
+      data.timeLimitSeconds !== undefined &&
+      data.timeLimitSeconds !== null
+    ) {
+      if (
+        typeof data.timeLimitSeconds !== 'number' ||
+        data.timeLimitSeconds < 10 ||
+        data.timeLimitSeconds > 600
+      ) {
+        return fail('시간제한은 10초~10분 사이로 설정해 주세요.');
+      }
+    }
+
+    const hadReadyPlayer = room.players.some(
+      (player) => player.id !== AI_PLAYER_ID && player.id !== room.hostId && player.isReady,
+    );
+
+    const modeResult = modeChanged
+      ? roomStore.changePlayMode(roomId, targetPlayMode, {
+          minPlayers: targetGame.minPlayers,
+          maxPlayers: resolvedMaxPlayers,
+        })
+      : null;
+    if (modeChanged && !modeResult) {
+      return fail('플레이 모드 변경에 실패했습니다.');
     }
 
     roomStore.updateSettings(roomId, {
@@ -476,33 +572,47 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       gameName: newGame?.name,
       minPlayers: newGame?.minPlayers,
       maxPlayers: resolvedMaxPlayers,
-      roomType: room.playMode === 'multi' ? data.roomType : 'public',
-      password: data.password,
-      clearPassword: data.clearPassword,
-      timeLimitSeconds: data.timeLimitSeconds,
+      roomType: targetRoomType,
+      password: targetRoomType === 'private' ? data.password : undefined,
+      clearPassword: targetRoomType === 'public',
+      timeLimitSeconds: targetPlayMode === 'multi' ? data.timeLimitSeconds : null,
       // 게임을 바꾸는 동시에 해당 게임의 상세 옵션을 보내는 경우에도 보존한다.
       gameOptions: data.gameOptions ?? (newGame ? {} : undefined),
     });
+    roomStore.resetHumanReadiness(roomId);
 
     // 게임 변경 시 시스템 채팅 전송
     if (newGame) {
-      const systemMsg = {
-        id: uuid(),
-        sender: 'system',
-        senderNickname: '시스템',
-        message: `방장이 게임을 ${newGame.name}(으)로 변경했습니다.`,
-        scope: 'room' as const,
-        isSystem: true,
-        timestamp: Date.now(),
-      };
-      io.to(socketRoom(roomId)).emit('chat:message', systemMsg);
+      emitRoomSystemMessage(io, roomId, `방장이 게임을 ${newGame.name}(으)로 변경했습니다.`);
+    }
+    if (modeChanged) {
+      const modeLabel =
+        targetPlayMode === 'multi' ? '멀티' : targetPlayMode === 'com' ? 'COM' : '1:1 솔로';
+      emitRoomSystemMessage(io, roomId, `방장이 플레이 모드를 ${modeLabel}(으)로 변경했습니다.`);
+    }
+    if (modeResult?.aiLeft) {
+      emitRoomSystemMessage(io, roomId, 'AI 님이 퇴장했습니다.');
+    }
+    if (modeResult?.aiJoined) {
+      emitRoomSystemMessage(io, roomId, 'AI 님이 들어왔습니다.');
+    }
+    for (const movedPlayer of modeResult?.movedPlayers ?? []) {
+      const nickname = isTokenAnonymized(roomId, movedPlayer.id)
+        ? ANONYMOUS_NICKNAME
+        : movedPlayer.nickname;
+      emitRoomSystemMessage(io, roomId, `${nickname} 님이 관전자로 이동했습니다.`);
+    }
+    if (hadReadyPlayer) {
+      emitRoomSystemMessage(io, roomId, '방 설정이 변경되어 준비 상태가 해제되었습니다.');
     }
 
     const updatedRoom = roomStore.getClientRoom(roomId);
     if (updatedRoom) {
       io.to(socketRoom(roomId)).emit('room:settings:updated', updatedRoom);
     }
+    sendRoomState(io, roomId);
     broadcastRoomUpdated(io, roomId);
+    callback?.({ success: true });
   });
 
   socket.on('room:swap:colors', () => {
@@ -582,9 +692,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     // (단, 본인이 그 방의 player 인 경우 — 위에서 currentRoom 검사로 차단됨)
     if (isRoomSpectatorLocked(roomId)) {
       const myToken = sessions.getToken(socket.id);
-      const isPlayerInRoom = myToken
-        ? room.players.some((p) => p.id === myToken)
-        : false;
+      const isPlayerInRoom = myToken ? room.players.some((p) => p.id === myToken) : false;
       if (!isPlayerInRoom) {
         return callback({ success: false, error: '이 방은 관전이 잠긴 방입니다.' });
       }
@@ -708,7 +816,9 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     stopDummyAgent(roomId);
     clearAutoEnd(roomId);
     clearGameStartTime(roomId);
-    io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '모든 플레이어가 나가 방이 종료되었습니다.' });
+    io.to(socketRoom(roomId)).emit('room:disbanded', {
+      reason: '모든 플레이어가 나가 방이 종료되었습니다.',
+    });
     // 관전자들도 LOBBY_ROOM으로 복귀
     spectatorsBefore.forEach((s) => {
       const specSocketId = sessions.getSocketByToken(s.id) ?? s.id;

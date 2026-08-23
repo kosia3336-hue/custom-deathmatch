@@ -118,7 +118,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   // ESC 닫기
   useEffect(() => {
     if (!open) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', handleKey);
     document.body.style.overflow = 'hidden';
     return () => {
@@ -129,9 +131,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
-  const computedTimeLimit = (timeLimitEnabled && playMode === 'multi' && !isRandom)
-    ? timeLimitMin * 60 + timeLimitSec
-    : null;
+  const computedTimeLimit =
+    timeLimitEnabled && playMode === 'multi' && !isRandom ? timeLimitMin * 60 + timeLimitSec : null;
 
   // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
   const hasDetailOptions =
@@ -168,13 +169,26 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     requireNickname(() => {
       if (!selectedGame) return setError('게임을 선택해 주세요.');
       if (!title.trim() || title.length > 30) return setError('방 제목은 1~30자로 입력해 주세요.');
-      if (playMode === 'multi' && roomType === 'private' && (password.length < 4 || password.length > 8)) {
+      if (
+        playMode !== 'solo' &&
+        roomType === 'private' &&
+        (password.length < 4 || password.length > 8)
+      ) {
         return setError('비밀번호는 4~8자리로 입력해 주세요.');
       }
-      if (timeLimitEnabled && (computedTimeLimit == null || computedTimeLimit < 10)) {
+      if (
+        playMode === 'multi' &&
+        timeLimitEnabled &&
+        (computedTimeLimit == null || computedTimeLimit < 10)
+      ) {
         return setError('시간제한은 최소 10초 이상이어야 합니다.');
       }
-      if (timeLimitEnabled && computedTimeLimit != null && computedTimeLimit > 600) {
+      if (
+        playMode === 'multi' &&
+        timeLimitEnabled &&
+        computedTimeLimit != null &&
+        computedTimeLimit > 600
+      ) {
         return setError('시간제한은 최대 10분까지 설정할 수 있습니다.');
       }
 
@@ -197,8 +211,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           gameId: selectedGame.id,
           title: title.trim(),
           playMode,
-          roomType: playMode === 'multi' ? roomType : 'public',
-          password: roomType === 'private' ? password : undefined,
+          roomType: playMode === 'solo' ? 'public' : roomType,
+          password: playMode !== 'solo' && roomType === 'private' ? password : undefined,
           maxPlayers,
           timeLimitSeconds: computedTimeLimit,
           gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
@@ -232,20 +246,24 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       open={open}
       title="새 방 만들기"
       onClose={onClose}
-      footer={(
+      footer={
         <>
           {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={onClose}>취소</Button>
-            <Button onClick={handleCreate} loading={loading}>만들기</Button>
+            <Button variant="secondary" onClick={onClose}>
+              취소
+            </Button>
+            <Button onClick={handleCreate} loading={loading}>
+              만들기
+            </Button>
           </div>
         </>
-      )}
+      }
     >
       <GameListPicker
         games={games}
         modes={MODES}
-        activeGameId={!isRandom && !isBanPick ? selectedGame?.id ?? null : null}
+        activeGameId={!isRandom && !isBanPick ? (selectedGame?.id ?? null) : null}
         activeModeId={isRandom ? GAME_IDS.RANDOM : isBanPick ? GAME_IDS.BAN_PICK : null}
         onSelectGame={selectGame}
         onSelectMode={selectMode}
@@ -282,13 +300,25 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               <SettingField label="플레이 모드">
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { key: 'multi' as PlayMode, label: '멀티', supported: selectedGame.supportsMulti },
+                    {
+                      key: 'multi' as PlayMode,
+                      label: '멀티',
+                      supported: selectedGame.supportsMulti,
+                    },
                     { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
-                    { key: 'solo' as PlayMode, label: '1:1 솔로', supported: selectedGame.supportsSolo },
+                    {
+                      key: 'solo' as PlayMode,
+                      label: '1:1 솔로',
+                      supported: selectedGame.supportsSolo,
+                    },
                   ]
                     .filter((m) => m.supported)
                     .map((m) => (
-                      <OptionButton key={m.key} active={playMode === m.key} onClick={() => setPlayMode(m.key)}>
+                      <OptionButton
+                        key={m.key}
+                        active={playMode === m.key}
+                        onClick={() => setPlayMode(m.key)}
+                      >
                         {m.label}
                       </OptionButton>
                     ))}
@@ -297,14 +327,18 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 방 유형 */}
-            {playMode === 'multi' && (
+            {playMode !== 'solo' && (
               <SettingField label="방 유형">
                 <div className="flex gap-2">
                   {[
                     { key: 'public' as RoomType, label: '공개' },
                     { key: 'private' as RoomType, label: '비밀' },
                   ].map((rt) => (
-                    <OptionButton key={rt.key} active={roomType === rt.key} onClick={() => setRoomType(rt.key)}>
+                    <OptionButton
+                      key={rt.key}
+                      active={roomType === rt.key}
+                      onClick={() => setRoomType(rt.key)}
+                    >
                       {rt.label}
                     </OptionButton>
                   ))}
@@ -313,7 +347,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 비밀번호 */}
-            {playMode === 'multi' && roomType === 'private' && (
+            {playMode !== 'solo' && roomType === 'private' && (
               <Input
                 label="비밀번호"
                 type="password"
@@ -329,7 +363,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               <SettingField label="최대 인원">
                 <div className="flex flex-wrap gap-2">
                   {playerRange.map((n) => (
-                    <OptionButton key={n} size="square" active={maxPlayers === n} onClick={() => setMaxPlayers(n)}>
+                    <OptionButton
+                      key={n}
+                      size="square"
+                      active={maxPlayers === n}
+                      onClick={() => setMaxPlayers(n)}
+                    >
                       {n}
                     </OptionButton>
                   ))}
@@ -350,13 +389,18 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     onChange={(e) => setInitialChips(Number(e.target.value))}
                     className="flex-1"
                   />
-                  <span className="w-12 text-right text-sm font-bold text-cdm-fg">
+                  <span className="text-cdm-fg w-12 text-right text-sm font-bold">
                     {initialChips}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {CHIPS_PRESETS.map((v) => (
-                    <OptionButton key={v} size="sm" active={initialChips === v} onClick={() => setInitialChips(v)}>
+                    <OptionButton
+                      key={v}
+                      size="sm"
+                      active={initialChips === v}
+                      onClick={() => setInitialChips(v)}
+                    >
                       {v}개
                     </OptionButton>
                   ))}
@@ -379,7 +423,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                     </OptionButton>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-cdm-fg-subtle">
+                <p className="text-cdm-fg-subtle mt-2 text-xs">
                   숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
                 </p>
               </SettingField>
@@ -392,17 +436,17 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   <button
                     onClick={() => setBanCount(Math.max(1, banCount - 1))}
                     disabled={banCount <= 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-cdm-border text-lg font-bold text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 disabled:opacity-30"
+                    className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
                   >
                     −
                   </button>
-                  <span className="w-8 text-center text-base font-bold text-cdm-ink-fg">
+                  <span className="text-cdm-ink-fg w-8 text-center text-base font-bold">
                     {banCount}
                   </span>
                   <button
                     onClick={() => setBanCount(Math.min(6, banCount + 1))}
                     disabled={banCount >= 6}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-cdm-border text-lg font-bold text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 disabled:opacity-30"
+                    className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
                   >
                     +
                   </button>
@@ -434,23 +478,27 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                       <select
                         value={timeLimitMin}
                         onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
                       >
                         {Array.from({ length: 11 }, (_, i) => (
-                          <option key={i} value={i}>{i}</option>
+                          <option key={i} value={i}>
+                            {i}
+                          </option>
                         ))}
                       </select>
-                      <span className="text-sm text-cdm-fg-muted">분</span>
+                      <span className="text-cdm-fg-muted text-sm">분</span>
                       <select
                         value={timeLimitSec}
                         onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-cdm-border px-3 text-sm focus:border-cdm-primary focus:outline-none"
+                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
                       >
                         {[0, 10, 15, 20, 30, 45].map((s) => (
-                          <option key={s} value={s}>{String(s).padStart(2, '0')}</option>
+                          <option key={s} value={s}>
+                            {String(s).padStart(2, '0')}
+                          </option>
                         ))}
                       </select>
-                      <span className="text-sm text-cdm-fg-muted">초</span>
+                      <span className="text-cdm-fg-muted text-sm">초</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {[
@@ -464,7 +512,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                           key={p.label}
                           size="sm"
                           active={timeLimitMin === p.min && timeLimitSec === p.sec}
-                          onClick={() => { setTimeLimitMin(p.min); setTimeLimitSec(p.sec); }}
+                          onClick={() => {
+                            setTimeLimitMin(p.min);
+                            setTimeLimitSec(p.sec);
+                          }}
                         >
                           {p.label}
                         </OptionButton>

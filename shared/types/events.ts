@@ -10,8 +10,11 @@ import type {
 } from './room';
 import type { RankMatchedPayload, RankTier } from './rank';
 import type {
-  BanPickStartPayload, BanPickUpdatePayload, BanPickLotteryPayload,
-  BanPickUnbanTurnPayload, BanPickUnbanUpdatePayload,
+  BanPickStartPayload,
+  BanPickUpdatePayload,
+  BanPickLotteryPayload,
+  BanPickUnbanTurnPayload,
+  BanPickUnbanUpdatePayload,
 } from './ban-pick';
 
 export interface CreateRoomData {
@@ -36,6 +39,7 @@ export interface JoinRoomData {
 export interface UpdateRoomSettings {
   title?: string;
   gameId?: string;
+  playMode?: PlayMode;
   maxPlayers?: number;
   roomType?: RoomType;
   /** 새로 설정할 비밀번호 (미전송 시 기존 값 유지) */
@@ -45,6 +49,11 @@ export interface UpdateRoomSettings {
   timeLimitSeconds?: number | null;
   /** 게임별 커스텀 옵션 */
   gameOptions?: Record<string, unknown>;
+}
+
+export interface UpdateRoomSettingsResult {
+  success: boolean;
+  error?: string;
 }
 
 export type ChatScope = 'lobby' | 'room' | 'game' | 'guild';
@@ -192,22 +201,13 @@ export interface JoinRoomResult {
 }
 
 export interface ClientToServerEvents {
-  'nickname:set': (
-    data: { nickname: string },
-    callback: (res: NicknameResult) => void,
-  ) => void;
+  'nickname:set': (data: { nickname: string }, callback: (res: NicknameResult) => void) => void;
 
   'lobby:join': () => void;
   'lobby:leave': () => void;
 
-  'room:create': (
-    data: CreateRoomData,
-    callback: (res: CreateRoomResult) => void,
-  ) => void;
-  'room:join': (
-    data: JoinRoomData,
-    callback: (res: JoinRoomResult) => void,
-  ) => void;
+  'room:create': (data: CreateRoomData, callback: (res: CreateRoomResult) => void) => void;
+  'room:join': (data: JoinRoomData, callback: (res: JoinRoomResult) => void) => void;
   'room:quickjoin': (callback: (res: JoinRoomResult) => void) => void;
   'room:leave': () => void;
   'room:ready': () => void;
@@ -215,12 +215,13 @@ export interface ClientToServerEvents {
   'room:kick': (data: { targetId: string }) => void;
   'room:delegate': (data: { targetId: string }) => void;
   'room:start': () => void;
-  'room:settings:update': (data: UpdateRoomSettings) => void;
+  'room:settings:update': (
+    data: UpdateRoomSettings,
+    callback?: (res: UpdateRoomSettingsResult) => void,
+  ) => void;
   'room:swap:colors': () => void;
   'room:set:turn-order': (data: { mode: 'first' | 'second' | 'random' }) => void;
-  'room:invite:create': (
-    callback: (res: { success: boolean; token?: string }) => void,
-  ) => void;
+  'room:invite:create': (callback: (res: { success: boolean; token?: string }) => void) => void;
 
   'chat:send': (data: { message: string; scope: ChatScope }) => void;
   /** 길드 채팅 히스토리 요청 — 응답은 'guild:chat:history' (본인에게만) */
@@ -253,12 +254,8 @@ export interface ClientToServerEvents {
     callback: (res: JoinRoomResult) => void,
   ) => void;
   'spectate:leave': () => void;
-  'room:to:spectate': (
-    callback: (res: { success: boolean; error?: string }) => void,
-  ) => void;
-  'spectate:to:player': (
-    callback: (res: { success: boolean; error?: string }) => void,
-  ) => void;
+  'room:to:spectate': (callback: (res: { success: boolean; error?: string }) => void) => void;
+  'spectate:to:player': (callback: (res: { success: boolean; error?: string }) => void) => void;
 
   /** 랭크 큐 진입 (회원 전용, 운영 시간·시즌 검증은 서버) */
   'rank:queue:join': (callback: (res: { success: boolean; error?: string }) => void) => void;
@@ -323,9 +320,26 @@ export interface ShopItemChangedPayload {
 
 /** 인벤토리(소모성) 변동 — 본인 전용 emit */
 export interface InventoryUpdatedPayload {
-  kind: 'nickname_change' | 'rank_reset' | 'spectator_lock' | 'anonymity' | 'magnifier' | 'ban_eraser' | 'gacha_box' | 'gacha_ticket' | 'guild_charter' | 'word_search';
+  kind:
+    | 'nickname_change'
+    | 'rank_reset'
+    | 'spectator_lock'
+    | 'anonymity'
+    | 'magnifier'
+    | 'ban_eraser'
+    | 'gacha_box'
+    | 'gacha_ticket'
+    | 'guild_charter'
+    | 'word_search';
   countAfter: number;
-  reason?: 'purchase' | 'sell' | 'auto_use' | 'manual_use' | 'admin_adjust' | 'daily_reward' | 'gacha_box_open';
+  reason?:
+    | 'purchase'
+    | 'sell'
+    | 'auto_use'
+    | 'manual_use'
+    | 'admin_adjust'
+    | 'daily_reward'
+    | 'gacha_box_open';
   ref?: { kind: string; id: string };
 }
 
@@ -350,11 +364,7 @@ export interface ServerToClientEvents {
 
   'room:state': (room: Room) => void;
   'room:player:joined': (player: Player) => void;
-  'room:player:left': (data: {
-    playerId: string;
-    nickname: string;
-    newHostId?: string;
-  }) => void;
+  'room:player:left': (data: { playerId: string; nickname: string; newHostId?: string }) => void;
   'room:player:ready': (data: { playerId: string }) => void;
   'room:player:unready': (data: { playerId: string }) => void;
   'room:player:kicked': (data: { playerId: string }) => void;
@@ -403,7 +413,11 @@ export interface ServerToClientEvents {
   'session:exists': (data: { nickname: string; roomId?: string }) => void;
   'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;
-  'player:reconnecting': (data: { playerId: string; nickname: string; secondsLeft: number }) => void;
+  'player:reconnecting': (data: {
+    playerId: string;
+    nickname: string;
+    secondsLeft: number;
+  }) => void;
   'player:reconnected': (data: { playerId: string; nickname: string }) => void;
 
   /** 관리자가 칭호 부여 시 대상 유저에게 emit. 게임 중이면 게임 종료 후, 미접속이면 다음 접속 시 */
@@ -415,11 +429,7 @@ export interface ServerToClientEvents {
   }) => void;
 
   /** 운영자가 공지를 발행할 때 접속 중인 모든 사용자에게 broadcast */
-  'notice:published': (data: {
-    noticeId: string;
-    title: string;
-    category: string;
-  }) => void;
+  'notice:published': (data: { noticeId: string; title: string; category: string }) => void;
 
   /** 랭크 매칭 성사 → VS 오버레이 후 방 입장 */
   'rank:queue:matched': (data: RankMatchedPayload) => void;
@@ -427,30 +437,24 @@ export interface ServerToClientEvents {
   'rank:queue:status': (data: { inQueue: boolean; waitSeconds: number }) => void;
 
   /** 인디언홀덤 (이벤트) 상태 — 본인 전용. role/좌석/게임데이터 포함. */
-  'event:state': (
-    payload: import('./indian-poker-event').IPEStatePayload,
-  ) => void;
+  'event:state': (payload: import('./indian-poker-event').IPEStatePayload) => void;
   /** 메타 변동 — 로비 등 connected 전체 broadcast. */
-  'event:meta:changed': (
-    payload: import('./indian-poker-event').IPEMetaPayload,
-  ) => void;
+  'event:meta:changed': (payload: import('./indian-poker-event').IPEMetaPayload) => void;
   /** 칩 잔액 변동 — 본인 전용 emit. */
-  'event:chip:changed': (
-    payload: import('./indian-poker-event').IPEChipChangedPayload,
-  ) => void;
+  'event:chip:changed': (payload: import('./indian-poker-event').IPEChipChangedPayload) => void;
   /** 대기열 → 좌석으로 승격됨. */
   'event:promoted': (payload: import('./indian-poker-event').IPEPromotedPayload) => void;
   /** 강퇴 (칩 0 등). */
   'event:kicked': (payload: import('./indian-poker-event').IPEKickedPayload) => void;
   /** 핸드 종료 결과 (참여자/관전자 모두 수신). */
-  'event:hand:result': (
-    payload: import('./indian-poker-event').IPEHandResultPayload,
-  ) => void;
+  'event:hand:result': (payload: import('./indian-poker-event').IPEHandResultPayload) => void;
 
   /** 해달별 (이벤트) 상태 */
   'smsEvent:state': (payload: import('./sun-moon-star-event').SmsStatePayload) => void;
   'smsEvent:meta:changed': (payload: import('./sun-moon-star-event').SmsMetaPayload) => void;
   'smsEvent:promoted': (payload: import('./sun-moon-star-event').SmsPromotedPayload) => void;
   'smsEvent:kicked': (payload: import('./sun-moon-star-event').SmsKickedPayload) => void;
-  'smsEvent:round:result': (payload: { result: import('./sun-moon-star-event').SmsRoundResultPayload }) => void;
+  'smsEvent:round:result': (payload: {
+    result: import('./sun-moon-star-event').SmsRoundResultPayload;
+  }) => void;
 }

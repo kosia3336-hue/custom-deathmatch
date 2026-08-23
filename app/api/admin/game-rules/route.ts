@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidateTag } from 'next/cache';
 import { requireAdminMember } from '@/lib/admin/require-admin';
 import {
   getSupabaseServiceRole,
   isSupabaseServiceRoleConfigured,
 } from '@/lib/supabase/service-role';
 import { getGameRule } from '@/lib/gameRules';
+import { GAME_RULES_TAG } from '@/lib/gameRulesServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,10 +75,9 @@ export async function POST(req: NextRequest) {
   }
 
   // 룰이 새로 등록/수정되면 소개 페이지와 룰 페이지에 즉시 반영한다.
-  // (각 페이지의 revalidate 주기를 기다리지 않도록 저장 시점에 캐시를 무효화)
-  revalidatePath('/about');
-  revalidatePath('/rules');
-  revalidatePath(`/rules/${gameId}`);
+  // 캐시는 페이지가 아니라 조회 함수에 걸려 있으므로 태그로 비운다.
+  // 'max' 는 남은 수명과 무관하게 태그가 붙은 항목을 모두 만료시킨다.
+  revalidateTag(GAME_RULES_TAG, 'max');
 
   return NextResponse.json({ ok: true });
 }
