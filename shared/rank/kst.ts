@@ -1,5 +1,7 @@
 /** 랭크 큐 운영 시간: 평일 21:00 ~ 익일 01:00 KST / 주말(토·일) 24시간 (서버·클라 공통) */
 
+const HOUR_MS = 60 * 60 * 1000;
+
 export function getKstHourMinute(d = new Date()): { hour: number; minute: number } {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Seoul',
@@ -66,3 +68,16 @@ export function isRankQueueLastMinuteKst(d = new Date()): boolean {
 export function isRankQueueAcceptingNewJoins(d = new Date()): boolean {
   return isRankQueueOpen(d) && !isRankQueueLastMinuteKst(d);
 }
+
+/** 길드 랭킹 기간 앵커. 랭크 종료 01:00 이전이면 전날(전 주/전 달). */
+export function guildRankPeriodAnchor(d = new Date()): Date {
+  return new Date(d.getTime() - HOUR_MS);
+}
+
+/** 길드 랭킹 정산 시각: 01:00~01:59 KST (랭크 종료). */
+export function isGuildRankSettleHourKst(d = new Date()): boolean {
+  return getKstHourMinute(d).hour === 1;
+}
+
+/** 이 키부터 주간 GP·뽑기권 지급. 이전 주(`w:2026-08-17`)는 스킵. */
+export const GUILD_RANK_FIRST_WEEKLY_PAYOUT_KEY = 'w:2026-08-24';

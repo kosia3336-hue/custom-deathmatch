@@ -1,11 +1,12 @@
 import { createHmac } from 'node:crypto';
 import { getSupabaseAdmin } from '../../db/supabase.js';
-import { LIVE_DUMMY_EMAIL, LIVE_DUMMY_NICKNAME } from './window.js';
+import type { LiveDummyRuntime } from './roster.js';
+import { LIVE_DUMMY_ROSTER, findRosterByKey } from './roster.js';
 
-function titanPassword(): string {
+function dummyPassword(seed: string): string {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error('[liveDummy] SUPABASE_SERVICE_ROLE_KEY 없음');
-  return createHmac('sha256', key).update('dummy:titan').digest('hex');
+  return createHmac('sha256', key).update(seed).digest('hex');
 }
 
 async function findAuthUserIdByEmail(
@@ -22,35 +23,35 @@ async function findAuthUserIdByEmail(
   return null;
 }
 
-/** 닉네임 타이탄 회원. 없으면 auth 유저 + members + members_private. */
-export async function ensureTitanMember(): Promise<string> {
+/** 닉이 있으면 그 id. 없으면 auth + members + members_private. */
+export async function ensureLiveDummyMember(dummy: LiveDummyRuntime): Promise<string> {
   const sb = getSupabaseAdmin();
 
   const { data: byNick, error: nickErr } = await sb
     .from('members')
     .select('id')
-    .eq('nickname', LIVE_DUMMY_NICKNAME)
+    .eq('nickname', dummy.nickname)
     .maybeSingle();
   if (nickErr) throw nickErr;
   if (byNick?.id) return byNick.id as string;
 
-  let userId = await findAuthUserIdByEmail(sb, LIVE_DUMMY_EMAIL);
+  let userId = await findAuthUserIdByEmail(sb, dummy.email);
   if (!userId) {
     const created = await sb.auth.admin.createUser({
-      email: LIVE_DUMMY_EMAIL,
-      password: titanPassword(),
+      email: dummy.email,
+      password: dummyPassword(dummy.passwordSeed),
       email_confirm: true,
-      user_metadata: { dummy: true, nickname: LIVE_DUMMY_NICKNAME },
+      user_metadata: { dummy: true, nickname: dummy.nickname },
     });
     if (created.error || !created.data.user) {
-      throw created.error ?? new Error('[liveDummy] createUser 실패');
+      throw created.error ?? new Error(`[liveDummy] createUser 실패 ${dummy.nickname}`);
     }
     userId = created.data.user.id;
   }
 
   const { error: memErr } = await sb.from('members').insert({
     id: userId,
-    nickname: LIVE_DUMMY_NICKNAME,
+    nickname: dummy.nickname,
   });
   if (memErr && !String(memErr.message).toLowerCase().includes('duplicate')) {
     throw memErr;
@@ -66,4 +67,19 @@ export async function ensureTitanMember(): Promise<string> {
   }
 
   return userId;
+}
+
+export async function ensureTitanMember(): Promise<string> {
+  return ensureLiveDummyMember(findRosterByKey('titan'));
+}
+
+export async function ensureAllLiveDummyMembers(): Promise<
+  Array<{ dummy: LiveDummyRuntime; memberId: string }>
+> {
+  const out: Array<{ dummy: LiveDummyRuntime; memberId: string }> = [];
+  for (const dummy of LIVE_DUMMY_ROSTER) {
+    const memberId = await ensureLiveDummyMember(dummy);
+    out.push({ dummy, memberId });
+  }
+  return out;
 }

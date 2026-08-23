@@ -7,6 +7,7 @@ import {
   powderCandidates,
   powderSoftCap,
   secondBetCandidates,
+  stageKeepSpend,
   type SunMoonStar2DummyView,
 } from '../dummy/ai/sun-moon-star-2.js';
 import { sumBet, sumPowder, zeroPowder } from '@shared/types/sun-moon-star-2.js';
@@ -75,11 +76,31 @@ describe('해달별2 더미 기보 축', () => {
     expect(leftoverTotals([])).toEqual({ sun: 0, moon: 0, star: 0 });
   });
 
-  it('초반 빛가루 상한은 기보 p90 (R1에 100 없음)', () => {
-    expect(powderSoftCap(100, 10)).toBeLessThanOrEqual(28);
+  it('초반 빛가루 상한은 기보 p90 (R1에 100·28 몰아넣기 없음)', () => {
+    expect(powderSoftCap(100, 10)).toBeLessThanOrEqual(27);
+    expect(stageKeepSpend(100)).toBe(19);
     const cands = powderCandidates(view());
-    expect(cands.every((c) => sumPowder(c.powder) <= 28)).toBe(true);
-    expect(cands.some((c) => sumPowder(c.powder) === 0)).toBe(true);
+    const tots = cands.map((c) => sumPowder(c.powder));
+    expect(tots.every((t) => t <= 27)).toBe(true);
+    expect(tots).toContain(0);
+    expect(tots).toContain(1);
+    expect(tots).toContain(19);
+    expect(tots).toContain(20);
+    expect(tots).not.toContain(28);
+    expect(cands.some((c) => c.powder.sun === 1 && c.powder.moon === 0 && c.powder.star === 0)).toBe(true);
+  });
+
+  it('선 0이면 후 후보에 8칩 잼이 있다 (0·2·3만 아님)', () => {
+    const v = view({
+      phase: 'betSecond',
+      mySide: 'p2',
+      firstPlayerSide: 'p1',
+      opp: { chips: 8, powderStage: 5, submittedPowder: true, betConfirmed: true, publicBet: { sun: 0, moon: 0, star: 0 } },
+    });
+    const totals = new Set(secondBetCandidates(v).map((c) => sumBet(c.bet)));
+    expect(totals.has(0)).toBe(true);
+    expect(totals.has(8)).toBe(true);
+    expect(totals.has(4)).toBe(true);
   });
 
   it('선 베팅 후보는 0 또는 상한뿐 (8칩 상대면 4)', () => {
@@ -105,7 +126,7 @@ describe('해달별2 더미 pick', () => {
     expect(action?.type).toBe('submitPowder');
     if (action?.type === 'submitPowder') {
       expect(sumPowder(action.powder)).toBeGreaterThanOrEqual(0);
-      expect(sumPowder(action.powder)).toBeLessThanOrEqual(28);
+      expect(sumPowder(action.powder)).toBeLessThanOrEqual(27);
     }
   });
 

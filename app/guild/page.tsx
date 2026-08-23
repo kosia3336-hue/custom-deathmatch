@@ -3,8 +3,7 @@ import { redirect } from 'next/navigation';
 import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
 import { isSupabaseServiceRoleConfigured } from '@/lib/supabase/service-role';
-import { listGuilds, getMyGuildState } from '@/lib/guild/server';
-import GuildClient from './GuildClient';
+import { GuildDashboard } from '@/components/guild-v4/GuildDashboard';
 
 export const metadata: Metadata = { title: '길드' };
 export const dynamic = 'force-dynamic';
@@ -24,13 +23,17 @@ export default async function GuildPage() {
     );
   }
 
-  const [guilds, my] = await Promise.all([listGuilds(), getMyGuildState(member.id)]);
-
   return (
     <div className="flex flex-1 flex-col bg-cdm-page">
       <GNB member={member} />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-10">
-        <GuildClient initialGuilds={guilds} initialMy={my} myMemberId={member.id} />
+        <GuildDashboard
+          me={{
+            id: member.id,
+            nickname: member.nickname,
+            displayedTitle: member.displayedTitle,
+          }}
+        />
       </main>
     </div>
   );

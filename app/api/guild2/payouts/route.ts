@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getActiveMember } from '@/lib/auth/server';
 import { isSupabaseServiceRoleConfigured } from '@/lib/supabase/service-role';
-import { listGuilds, getMyGuildState } from '@/lib/guild/server';
+import { loadUnseenGuildRankPayouts } from '@/lib/guild-v4/server';
 
 export const dynamic = 'force-dynamic';
 
-/** GET /api/guild — 길드 목록 + 내 길드 상태 */
 export async function GET() {
   if (!isSupabaseServiceRoleConfigured()) {
     return NextResponse.json({ error: '서비스 설정이 없습니다.' }, { status: 503 });
   }
   const member = await getActiveMember();
-  if (!member) {
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  if (!member) return NextResponse.json({ payouts: [] });
+  try {
+    const payouts = await loadUnseenGuildRankPayouts(member.id);
+    return NextResponse.json({ payouts });
+  } catch (err) {
+    console.error('[guild2:payouts]', (err as Error).message);
+    return NextResponse.json({ payouts: [] });
   }
-  const [guilds, my] = await Promise.all([listGuilds(), getMyGuildState(member.id)]);
-  return NextResponse.json({ guilds, my });
 }

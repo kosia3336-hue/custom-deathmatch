@@ -3,6 +3,7 @@
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { Card } from '@/components/cdm/Card';
+import { GuildMark, type GuildMarkInfo } from '@/components/cdm/GuildMark';
 import type { DisplayRankTier, RankTier } from '@/shared/types/rank';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -18,6 +19,7 @@ interface Props {
   draws: number;
   isChallenger: boolean;
   highlight: boolean;
+  guildMark?: GuildMarkInfo | null;
 }
 
 export default function RankLeaderRow({
@@ -32,6 +34,7 @@ export default function RankLeaderRow({
   draws,
   isChallenger,
   highlight,
+  guildMark,
 }: Props) {
   const displayTier: DisplayRankTier = isChallenger ? 'challenger' : tier;
   const placement = !placementDone;
@@ -52,6 +55,7 @@ export default function RankLeaderRow({
       >
         {rank}
       </span>
+      <GuildMark mark={guildMark} size="xl" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate font-semibold text-cdm-fg">{nickname}</p>

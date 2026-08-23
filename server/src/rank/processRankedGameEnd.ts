@@ -29,6 +29,7 @@ import type { IO } from '../socket/types.js';
 import { sessions } from '../store/sessions.js';
 import { grantCdpForRankMatch } from '../cdp/grantCdpForRankMatch.js';
 import { grantGuildPoints, GUILD_POINTS } from '../guild/grantGuildPoints.js';
+import { applyGuildRankDeltaV4, guildRankScoreMaterial } from './applyGuildRankDeltaV4.js';
 import { claimDailyRankWin } from '../cdp/claimDailyRankWin.js';
 import { computeWinLossInputs, makeDrawInput } from '../cdp/calc.js';
 
@@ -427,6 +428,26 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     }
   } catch (err) {
     console.warn('[guild:points] 적립 실패(무시):', (err as Error).message);
+  }
+
+  // 길드 랭킹 점수 (양수 M / n^0.65). 배치전으로 RP가 안 움직이면 승·패는 0.
+  try {
+    if (ctx.isDraw) {
+      const drawM = guildRankScoreMaterial('draw', 0);
+      await applyGuildRankDeltaV4(ctx.idA, drawM);
+      await applyGuildRankDeltaV4(ctx.idB, drawM);
+    } else if (ctx.cdpWinnerId && ctx.cdpLoserId) {
+      const winDelta = ctx.beforeWinnerPlacementDone
+        ? guildRankScoreMaterial('win', ctx.winnerGain)
+        : 0;
+      const lossDelta = ctx.beforeLoserPlacementDone
+        ? guildRankScoreMaterial('loss', ctx.loserLoss)
+        : 0;
+      await applyGuildRankDeltaV4(ctx.cdpWinnerId, winDelta);
+      await applyGuildRankDeltaV4(ctx.cdpLoserId, lossDelta);
+    }
+  } catch (err) {
+    console.warn('[guild:rankDelta] 적립 실패(무시):', (err as Error).message);
   }
 
   // #3 일일 랭크 승리 보너스 (하루 첫 승리 1회 100 CDP) — 승자만, 무승부 제외

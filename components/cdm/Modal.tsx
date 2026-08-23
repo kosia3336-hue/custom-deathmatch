@@ -20,7 +20,7 @@ interface ModalProps {
   inline?: boolean;
   /** 닫기 버튼. onClose 가 있으면 항상 표시, 없으면 장식용 */
   showClose?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 
@@ -28,6 +28,7 @@ const SIZE: Record<NonNullable<ModalProps['size']>, string> = {
   sm: 'sm:max-w-sm',
   md: 'sm:max-w-md',
   lg: 'sm:max-w-lg',
+  xl: 'sm:max-w-3xl',
 };
 
 /**
