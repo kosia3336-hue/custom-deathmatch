@@ -3237,6 +3237,437 @@ body {
   --cdm-border-strong: rgba(255, 255, 255, 0.2);
 }
 
+/* ── 랭크 매칭 VS (`RankVsView`) ────────────────────────────────
+   페이지 톤 + 티어별 초상 카드. 길드 마크 / [칭호]닉 / 전적 바. */
+@property --rank-vs-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.rank-vs {
+  --rank-vs-in: 480ms;
+  --rank-vs-glow: var(--cdm-fg-subtle);
+  overflow-y: auto;
+  background:
+    radial-gradient(
+      ellipse 50% 60% at 18% 45%,
+      color-mix(in srgb, var(--cdm-primary-soft) 80%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 60% at 82% 55%,
+      color-mix(in srgb, var(--cdm-highlight-soft) 70%, transparent),
+      transparent 70%
+    ),
+    var(--cdm-page);
+}
+.rank-vs-card {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--cdm-border);
+  border-radius: var(--cdm-radius-lg);
+  background: var(--cdm-bg);
+  padding: 0.95rem 1rem 0.8rem;
+  box-shadow: var(--cdm-shadow-md);
+}
+.rank-vs-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.rank-vs-layer {
+  position: relative;
+  z-index: 1;
+}
+.rank-vs-card > .rank-vs-layer:last-child {
+  border-color: color-mix(in srgb, var(--rank-vs-glow) 32%, var(--cdm-border));
+}
+.rank-vs-fighter {
+  animation: rank-vs-in-left var(--rank-vs-in) var(--cdm-ease-out) both;
+}
+.rank-vs-fighter--right {
+  animation-name: rank-vs-in-right;
+  animation-delay: 80ms;
+}
+.rank-vs-guild-mark {
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--rank-vs-glow) 32%, transparent));
+}
+.rank-vs-emblem-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.rank-vs-emblem-wrap::before {
+  content: '';
+  position: absolute;
+  width: 72%;
+  height: 72%;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--rank-vs-glow) 30%, transparent);
+  filter: blur(18px);
+  z-index: -1;
+}
+.rank-vs-emblem {
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--rank-vs-glow) 34%, transparent));
+  animation: rank-vs-emblem-float 4.8s ease-in-out infinite;
+}
+.rank-vs-vs {
+  font-family: var(--font-display), var(--font-sans);
+  animation: rank-vs-vs-in var(--rank-vs-in) var(--cdm-ease-out) 0.1s both;
+}
+.rank-vs-bar {
+  transition: width 1s linear;
+}
+
+/* 언랭 — 옅은 슬레이트, 점선 */
+.rank-vs-tier--unranked {
+  --rank-vs-glow: var(--cdm-fg-subtle);
+  background: var(--cdm-bg-elev-1);
+  border-style: dashed;
+  border-color: var(--cdm-border-strong);
+  box-shadow: var(--cdm-shadow-sm);
+}
+.rank-vs-tier--unranked::before {
+  background: radial-gradient(
+    ellipse 70% 50% at 50% 0%,
+    color-mix(in srgb, var(--cdm-fg-subtle) 14%, transparent),
+    transparent 70%
+  );
+}
+
+/* 브론즈 — 구리·앰버 아래서 올라오는 온기 */
+.rank-vs-tier--bronze {
+  --rank-vs-glow: var(--title-bronze);
+  background: color-mix(in srgb, var(--cdm-highlight-soft) 42%, var(--cdm-bg));
+  border-color: color-mix(in srgb, var(--title-copper) 50%, var(--cdm-border));
+  box-shadow:
+    0 14px 36px color-mix(in srgb, var(--title-copper) 22%, transparent),
+    inset 0 -48px 64px color-mix(in srgb, var(--cdm-highlight-soft) 55%, transparent);
+}
+.rank-vs-tier--bronze::before {
+  background:
+    radial-gradient(
+      ellipse 95% 55% at 50% 118%,
+      color-mix(in srgb, var(--title-copper) 32%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 45% 32% at 8% 0%,
+      color-mix(in srgb, var(--cdm-highlight-soft) 85%, transparent),
+      transparent 70%
+    );
+}
+
+/* 실버 — 강철 쉬머 */
+.rank-vs-tier--silver {
+  --rank-vs-glow: var(--title-silver);
+  background: color-mix(in srgb, var(--cdm-bg-elev-2) 80%, var(--cdm-bg));
+  border-color: color-mix(in srgb, var(--title-silver) 42%, var(--cdm-border));
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--title-silver) 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--cdm-fg-inverse) 80%, transparent);
+}
+.rank-vs-tier--silver::before {
+  background:
+    radial-gradient(
+      ellipse 80% 48% at 50% -18%,
+      color-mix(in srgb, var(--cdm-fg-inverse) 70%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--cdm-fg-inverse) 35%, transparent),
+      transparent 42%,
+      color-mix(in srgb, var(--title-silver) 12%, transparent)
+    );
+}
+.rank-vs-tier--silver::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    color-mix(in srgb, var(--cdm-fg-inverse) 55%, transparent) 50%,
+    transparent 62%
+  );
+  background-size: 220% 100%;
+  animation: rank-vs-sheen 6.5s ease-in-out infinite;
+}
+
+/* 골드 — 앰버 왕관빛 */
+.rank-vs-tier--gold {
+  --rank-vs-glow: var(--title-gold);
+  background: color-mix(in srgb, var(--cdm-highlight-soft) 55%, var(--cdm-bg));
+  border-color: color-mix(in srgb, var(--title-gold) 58%, var(--cdm-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--cdm-highlight) 28%, transparent),
+    0 16px 42px color-mix(in srgb, var(--title-gold) 30%, transparent);
+}
+.rank-vs-tier--gold::before {
+  background:
+    radial-gradient(
+      ellipse 85% 48% at 50% -8%,
+      color-mix(in srgb, var(--cdm-highlight) 22%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 100% 100%,
+      color-mix(in srgb, var(--title-honey) 24%, transparent),
+      transparent 55%
+    );
+  animation: rank-vs-gold-breathe 4.5s ease-in-out infinite;
+}
+.rank-vs-tier--gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    color-mix(in srgb, var(--cdm-highlight-soft) 80%, transparent) 50%,
+    transparent 64%
+  );
+  background-size: 220% 100%;
+  animation: rank-vs-sheen 5.2s ease-in-out infinite;
+}
+
+/* 다이아 — 빙정 시안 */
+.rank-vs-tier--diamond {
+  --rank-vs-glow: var(--title-cyan);
+  background: color-mix(in srgb, var(--cdm-info-soft) 48%, var(--cdm-bg));
+  border-color: color-mix(in srgb, var(--title-cyan) 52%, var(--cdm-border));
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--cdm-info) 20%, transparent),
+    0 16px 40px color-mix(in srgb, var(--title-sky) 16%, transparent);
+}
+.rank-vs-tier--diamond::before {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 18% 0%,
+      color-mix(in srgb, var(--cdm-info-soft) 95%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 92% 100%,
+      color-mix(in srgb, var(--title-cyan) 22%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--title-sky) 8%, transparent),
+      transparent 55%
+    );
+}
+.rank-vs-tier--diamond::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    125deg,
+    transparent 32%,
+    color-mix(in srgb, var(--cdm-fg-inverse) 65%, transparent) 48%,
+    color-mix(in srgb, var(--title-cyan) 25%, transparent) 52%,
+    transparent 68%
+  );
+  background-size: 240% 100%;
+  animation: rank-vs-sheen 4.8s ease-in-out infinite;
+}
+
+/* 챌린저 — 바이올렛 오로라 + 회전 보더 + 스파크 */
+.rank-vs-tier--challenger {
+  --rank-vs-glow: var(--title-violet);
+  background: color-mix(in srgb, var(--title-violet) 6%, var(--cdm-bg));
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--title-violet) 42%, var(--cdm-border)),
+    0 0 52px color-mix(in srgb, var(--title-violet) 32%, transparent),
+    0 22px 54px color-mix(in srgb, var(--title-grape) 20%, transparent);
+}
+.rank-vs-tier--challenger::before {
+  background:
+    radial-gradient(
+      ellipse 95% 58% at 50% -16%,
+      color-mix(in srgb, var(--title-lavender) 55%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 55% 42% at 112% 18%,
+      color-mix(in srgb, var(--title-fuchsia) 30%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 52% 48% at -12% 92%,
+      color-mix(in srgb, var(--title-grape) 26%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 42% 32% at 72% 112%,
+      color-mix(in srgb, var(--title-cyan) 18%, transparent),
+      transparent 50%
+    );
+  animation: rank-vs-challenger-aurora 7s ease-in-out infinite;
+}
+.rank-vs-tier--challenger::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--rank-vs-angle),
+    var(--title-violet),
+    var(--title-lavender),
+    var(--title-cyan),
+    var(--title-fuchsia),
+    var(--title-grape),
+    var(--title-violet)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: rank-vs-challenger-spin 9s linear infinite;
+}
+.rank-vs-tier--challenger .rank-vs-emblem-wrap::before {
+  width: 95%;
+  height: 95%;
+  background: color-mix(in srgb, var(--title-violet) 45%, transparent);
+  animation: rank-vs-challenger-halo 3s ease-in-out infinite;
+}
+.rank-vs-tier--challenger .rank-vs-emblem {
+  animation:
+    rank-vs-emblem-float 3.6s ease-in-out infinite,
+    rank-vs-challenger-emblem-glow 2.8s ease-in-out infinite;
+}
+
+.rank-vs-challenger-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.rank-vs-challenger-fx span {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--title-lavender);
+  box-shadow: 0 0 10px var(--title-violet);
+  animation: rank-vs-spark 3.2s ease-in-out infinite;
+}
+.rank-vs-challenger-fx span:nth-child(1) { top: 11%; left: 16%; animation-delay: 0s; }
+.rank-vs-challenger-fx span:nth-child(2) { top: 20%; right: 14%; width: 6px; height: 6px; animation-delay: 0.45s; }
+.rank-vs-challenger-fx span:nth-child(3) { top: 48%; left: 8%; animation-delay: 0.9s; }
+.rank-vs-challenger-fx span:nth-child(4) { top: 58%; right: 10%; animation-delay: 1.3s; }
+.rank-vs-challenger-fx span:nth-child(5) { bottom: 22%; left: 22%; width: 4px; height: 4px; animation-delay: 1.7s; }
+.rank-vs-challenger-fx span:nth-child(6) { bottom: 16%; right: 20%; animation-delay: 2.1s; }
+.rank-vs-challenger-fx span:nth-child(7) { top: 34%; left: 46%; width: 3px; height: 3px; animation-delay: 0.6s; }
+.rank-vs-challenger-fx span:nth-child(8) { bottom: 36%; left: 62%; animation-delay: 2.5s; }
+
+@keyframes rank-vs-in-left {
+  from { opacity: 0; transform: translate3d(-28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rank-vs-in-right {
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rank-vs-vs-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes rank-vs-emblem-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes rank-vs-sheen {
+  0% { background-position: 120% 0; }
+  100% { background-position: -40% 0; }
+}
+@keyframes rank-vs-gold-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.68; }
+}
+@keyframes rank-vs-challenger-aurora {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 1; }
+  40% { transform: scale(1.08) translate(2%, -1%); opacity: 0.88; }
+  70% { transform: scale(1.04) translate(-2%, 2%); opacity: 1; }
+}
+@keyframes rank-vs-challenger-spin {
+  to { --rank-vs-angle: 360deg; }
+}
+@keyframes rank-vs-challenger-halo {
+  0%, 100% { transform: scale(1); opacity: 0.65; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+@keyframes rank-vs-challenger-emblem-glow {
+  0%, 100% {
+    filter: drop-shadow(0 12px 20px color-mix(in srgb, var(--title-violet) 42%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 18px 38px color-mix(in srgb, var(--title-lavender) 72%, transparent));
+  }
+}
+@keyframes rank-vs-spark {
+  0%, 100% { opacity: 0.12; transform: scale(0.55); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+@media (min-width: 768px) {
+  .rank-vs-card {
+    min-height: 28rem;
+    padding: 2.25rem 2rem 1.75rem;
+    border-radius: var(--cdm-radius-xl);
+    box-shadow: var(--cdm-shadow-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-vs-fighter,
+  .rank-vs-emblem,
+  .rank-vs-vs,
+  .rank-vs-bar,
+  .rank-vs-tier--gold::before,
+  .rank-vs-tier--silver::after,
+  .rank-vs-tier--gold::after,
+  .rank-vs-tier--diamond::after,
+  .rank-vs-tier--challenger::before,
+  .rank-vs-tier--challenger::after,
+  .rank-vs-tier--challenger .rank-vs-emblem-wrap::before,
+  .rank-vs-challenger-fx span {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* 무극의 백호: 평소엔 은빛으로 은은히 빛나고, 주기마다 한 번 청록 플라즈마가
    전기 방전처럼 '펑' 터져 바깥으로 확산했다 사라진다. (단색 — 청록만)
    - shimmer : 은/백색 그라데이션이 천천히 흐르는 기본 광택

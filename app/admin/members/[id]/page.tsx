@@ -7,6 +7,9 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { MemberStatusChip } from '@/components/cdm/StatusChip';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
 import MemberAdminActions from '@/app/admin/MemberAdminActions';
+import { AdminGuildLabel } from '@/app/admin/AdminGuildLabel';
+import { fetchMemberGuilds } from '@/app/admin/fetchMemberGuilds';
+import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
 import MemberDetailClient from './MemberDetailClient';
 import {
   DEFAULT_PAGE_SIZE,
@@ -147,6 +150,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
     receivedReportsRawRes,
     sentReportsRawRes,
     inquiriesRes,
+    guildMap,
   ] = await Promise.all([
     sb
       .from('members')
@@ -204,6 +208,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
       .eq('author_id', id)
       .order('created_at', { ascending: false })
       .range(inquiriesRange.from, inquiriesRange.to),
+    fetchMemberGuilds(getSupabaseServiceRole(), [id]),
   ]);
 
   const nicknameTotal = nicknameHistoryRes.count ?? 0;
@@ -369,7 +374,10 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
               </div>
 
               {/* 메타 정보 */}
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-cdm-fg-muted">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-cdm-fg-muted">
+                <span className="inline-flex items-center gap-1">
+                  길드 <AdminGuildLabel guild={guildMap.get(id) ?? null} />
+                </span>
                 <span>가입 {new Date(member.created_at).toLocaleDateString('ko-KR')}</span>
                 {priv?.last_login_at && (
                   <span>

@@ -7,6 +7,7 @@ import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '../rank/kst.js';
 import { startGame } from './game.js';
 import { socketRoom, emitRoomStateToRoom } from './utils.js';
 import type { Player, DisplayedTitle } from '@shared/types/room.js';
+import type { RankMatchGuildSnap, RankMatchedPayload } from '@shared/types/rank.js';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import type { IO, TypedSocket } from './types.js';
@@ -80,6 +81,69 @@ async function fetchFreshDisplayedTitle(memberId: string): Promise<DisplayedTitl
   }
 }
 
+async function fetchGuildSnaps(memberIds: string[]): Promise<Map<string, RankMatchGuildSnap>> {
+  const map = new Map<string, RankMatchGuildSnap>();
+  if (!isSupabaseConfigured() || memberIds.length === 0) return map;
+  try {
+    const sb = getSupabaseAdmin();
+    const { data: memberships } = await sb
+      .from('guild_members')
+      .select('member_id, guild_id')
+      .in('member_id', memberIds);
+    const rows = (memberships ?? []) as { member_id: string; guild_id: string }[];
+    if (rows.length === 0) return map;
+
+    const guildIds = [...new Set(rows.map((r) => r.guild_id))];
+    const { data: guilds } = await sb
+      .from('guilds')
+      .select('id, name, mark_url')
+      .in('id', guildIds)
+      .is('disbanded_at', null);
+    const guildMap = new Map<string, { name: string; mark_url: string | null }>();
+    for (const g of (guilds ?? []) as { id: string; name: string; mark_url: string | null }[]) {
+      guildMap.set(g.id, { name: g.name, mark_url: g.mark_url });
+    }
+    for (const row of rows) {
+      const g = guildMap.get(row.guild_id);
+      if (!g) continue;
+      map.set(row.member_id, { name: g.name, markUrl: g.mark_url ?? null });
+    }
+  } catch {
+    /* 길드 조회 실패해도 매칭은 진행 */
+  }
+  return map;
+}
+
+function buildMatchedPayload(args: {
+  roomId: string;
+  self: RankQueueEntry;
+  selfTitle: DisplayedTitle | null;
+  selfGuild: RankMatchGuildSnap | null;
+  opponent: RankQueueEntry;
+  opponentTitle: DisplayedTitle | null;
+  opponentNickname: string;
+  opponentGuild: RankMatchGuildSnap | null;
+  opponentAnon: boolean;
+}): RankMatchedPayload {
+  return {
+    roomId: args.roomId,
+    selfNickname: args.self.nickname,
+    selfDisplayedTitle: args.selfTitle,
+    selfGuild: args.selfGuild,
+    selfWinStreak: args.self.winStreak,
+    selfTier: args.self.tier,
+    selfRp: args.self.rp,
+    selfIsPlacement: !args.self.placementDone,
+    opponentNickname: args.opponentNickname,
+    opponentDisplayedTitle: args.opponentTitle,
+    opponentGuild: args.opponentGuild,
+    opponentWinStreak: args.opponentAnon ? null : args.opponent.winStreak,
+    opponentTier: args.opponentAnon ? null : args.opponent.tier,
+    opponentRp: args.opponentAnon ? null : args.opponent.rp,
+    opponentIsPlacement: args.opponentAnon ? null : !args.opponent.placementDone,
+  };
+}
+
 /**
  * 매칭된 두 사람으로 랭크 방을 만든다.
  *
@@ -126,9 +190,10 @@ async function buildRankMatchedRoom(
   if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
 
   // 표시 칭호를 DB 기준으로 갱신 — 웹에서 칭호 변경 후 소켓 세션이 낡은 값을 들고 있는 문제 방지
-  const [hostTitle, guestTitle] = await Promise.all([
+  const [hostTitle, guestTitle, guilds] = await Promise.all([
     fetchFreshDisplayedTitle(hostPlayer.memberId),
     fetchFreshDisplayedTitle(guestPlayer.memberId),
+    fetchGuildSnaps([hostPlayer.memberId, guestPlayer.memberId]),
   ]);
   hostPlayer.displayedTitle = hostTitle;
   guestPlayer.displayedTitle = guestTitle;
@@ -218,28 +283,34 @@ async function buildRankMatchedRoom(
   const guestIsAnon = anon.has(guestPlayer.id);
   const hostIsAnon = anon.has(hostPlayer.id);
 
-  hostSock.emit('rank:queue:matched', {
-    roomId: room.id,
-    opponentNickname: guestForHost.nickname,
-    opponentDisplayedTitle: guestForHost.title,
-    opponentTier: guestIsAnon ? null : guestEntry.tier,
-    opponentRp: guestIsAnon ? null : guestEntry.rp,
-    opponentIsPlacement: guestIsAnon ? null : !guestEntry.placementDone,
-    selfTier: hostEntry.tier,
-    selfRp: hostEntry.rp,
-    selfIsPlacement: !hostEntry.placementDone,
-  });
-  guestSock.emit('rank:queue:matched', {
-    roomId: room.id,
-    opponentNickname: hostForGuest.nickname,
-    opponentDisplayedTitle: hostForGuest.title,
-    opponentTier: hostIsAnon ? null : hostEntry.tier,
-    opponentRp: hostIsAnon ? null : hostEntry.rp,
-    opponentIsPlacement: hostIsAnon ? null : !hostEntry.placementDone,
-    selfTier: guestEntry.tier,
-    selfRp: guestEntry.rp,
-    selfIsPlacement: !guestEntry.placementDone,
-  });
+  hostSock.emit(
+    'rank:queue:matched',
+    buildMatchedPayload({
+      roomId: room.id,
+      self: hostEntry,
+      selfTitle: hostPlayer.displayedTitle ?? null,
+      selfGuild: guilds.get(hostPlayer.memberId) ?? null,
+      opponent: guestEntry,
+      opponentTitle: guestForHost.title,
+      opponentNickname: guestForHost.nickname,
+      opponentGuild: guestIsAnon ? null : (guilds.get(guestPlayer.memberId) ?? null),
+      opponentAnon: guestIsAnon,
+    }),
+  );
+  guestSock.emit(
+    'rank:queue:matched',
+    buildMatchedPayload({
+      roomId: room.id,
+      self: guestEntry,
+      selfTitle: guestPlayer.displayedTitle ?? null,
+      selfGuild: guilds.get(guestPlayer.memberId) ?? null,
+      opponent: hostEntry,
+      opponentTitle: hostForGuest.title,
+      opponentNickname: hostForGuest.nickname,
+      opponentGuild: hostIsAnon ? null : (guilds.get(hostPlayer.memberId) ?? null),
+      opponentAnon: hostIsAnon,
+    }),
+  );
 
   startGame(io, room.id);
 

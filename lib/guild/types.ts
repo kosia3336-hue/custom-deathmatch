@@ -4,8 +4,8 @@ export const GUILD_INITIAL_CAPACITY = 3;
 export const GUILD_MAX_CAPACITY = 30;
 /** 길드원 추가 모집권 가격 (길드 포인트) */
 export const GUILD_EXPANSION_COST_GP = 500;
-/** 길드 창설권 가격 (CDP) — db/guilds.sql 의 shop_items 와 동일해야 함 */
-export const GUILD_CHARTER_PRICE_CDP = 1500;
+/** 길드 창설권 가격 (CDP) — shop_items 와 동일해야 함 */
+export const GUILD_CHARTER_PRICE_CDP = 800;
 
 /** 랭크 게임 길드 포인트 적립량 */
 export const GUILD_POINTS = { rankWin: 10, rankDraw: 5, rankLoss: 4 } as const;

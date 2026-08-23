@@ -6,7 +6,8 @@ export const DEV_DUMMY_ID_PREFIX = 'dev-dummy:' as const;
 
 export type DummyAiTier = '상' | '중' | '하';
 
-export type LiveDummyKey = 'titan' | 'yeonseung';
+/** 운영 더미 식별. 유니온으로 고정하지 않는다 — 로스터에 키를 추가하면 된다. */
+export type LiveDummyKey = string;
 
 export interface LiveDummyAiSpec {
   key: LiveDummyKey;
