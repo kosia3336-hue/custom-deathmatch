@@ -41,6 +41,19 @@ export function MarkdownWysiwyg({
 
   const editor = useEditor({
     immediatelyRender: false,
+    /*
+      마크다운 입력 규칙(input rules)을 전부 끈다.
+
+      켜져 있으면 '- ' 를 치는 순간 글머리 기호로, '---' 뒤에 공백/엔터를 치면
+      구분선으로 바뀐다. 대시로 시작하는 평범한 문장을 쓸 수 없다는 뜻이라
+      글 쓰는 사람 입장에서는 글자를 빼앗기는 셈이다. '# ', '1. ', '> ',
+      코드블록 백틱도 같은 규칙 묶음이다.
+
+      이 에디터는 애초에 '보이는 그대로' 편집기다. 서식은 툴바와 단축키로
+      넣으므로 규칙이 없어도 기능이 줄지 않는다. 붙여넣기 변환은 그대로 둔다 —
+      다른 곳에서 복사해 온 마크다운은 서식으로 바뀌는 편이 낫다.
+    */
+    enableInputRules: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [3, 4] }, link: false }),
       TiptapLink.configure({ openOnClick: false, autolink: true, protocols: ['http', 'https'] }),

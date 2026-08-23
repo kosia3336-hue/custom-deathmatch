@@ -292,7 +292,7 @@ export default function AdminGameRulesEditor({
         <p className="mt-2 text-[11px] text-cdm-fg-subtle">
           보이는 그대로 저장됩니다. 단축키: Ctrl+B 굵게 · Ctrl+I 기울임 · Ctrl+Shift+X 취소선 ·
           Ctrl+S 저장. 이미지는 [사진] 버튼 또는 클립보드 붙여넣기로 업로드됩니다. 저장하면 룰
-          페이지와 인게임 룰 모달에 바로 반영됩니다 (최대 1분 캐시).
+          페이지에 즉시 반영되고, 인게임 룰 모달은 최대 1분 뒤 반영됩니다.
         </p>
       </Card>
     </div>

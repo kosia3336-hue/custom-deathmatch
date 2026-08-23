@@ -172,9 +172,6 @@ export default function NoticeForm({ mode, initial, afterSaveHref, onDone, onCan
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-cdm-fg">
           본문 ({bodyLen.toLocaleString()} / 10,000자)
-          <span className="ml-2 text-xs font-normal text-cdm-fg-subtle">
-            보이는 그대로 저장됩니다 — 툴바 또는 Ctrl+B/I 단축키 사용
-          </span>
         </label>
         <MarkdownWysiwyg
           value={body}
