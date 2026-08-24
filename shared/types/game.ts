@@ -10,6 +10,9 @@ export interface Game {
   /** 랭킹 페이지 노출 + 랭크 매칭 밴픽 풀 포함 여부. false 면 새 게임을 검증 기간 동안
    *  캐주얼(비랭크) 방에서만 플레이하게 하고 랭크 큐에서는 제외할 수 있다. */
   rankingActive: boolean;
+  /** 게임이 등록된 시각(ISO). 방 만들기에서 'NEW' 표시를 붙일지 판단한다.
+   *  랜덤·밴픽처럼 실제 게임이 아닌 항목에는 없다. */
+  createdAt?: string;
 }
 
 export const GAME_IDS = {

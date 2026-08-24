@@ -281,10 +281,52 @@ export function ModeCard({
 }
 
 /** 게임 카드 — 갈래는 목록 머리글/필터 칩이 이미 말해 주므로 이름만 둔다 */
+/** 등록 한 달 안이면 새 게임으로 본다. */
+const NEW_GAME_DAYS = 30;
+
+export function isNewGame(createdAt: string | undefined, now = Date.now()): boolean {
+  if (!createdAt) return false;
+  const t = Date.parse(createdAt);
+  if (Number.isNaN(t)) return false;
+  return now - t < NEW_GAME_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * 카드 모서리에 비스듬히 덧대는 띠.
+ *
+ * 카드가 overflow-hidden 이라 45도로 눕힌 띠의 양 끝이 잘려 나가고, 모서리에
+ * 포장지를 덧댄 듯한 모양만 남는다.
+ *
+ * 오른쪽 아래를 쓴다. 위쪽 두 모서리는 각각 게임 이름(왼쪽)과 선택 체크
+ * 표시(오른쪽)가 차지하고 있어서, 거기에 띠를 얹으면 글자를 가린다.
+ * 오른쪽 아래는 흐릿한 대표 이미지 위라 무엇도 가리지 않는다.
+ */
+function CornerRibbon({ label, tone }: { label: string; tone: 'rank' | 'new' }) {
+  return (
+    <span
+      className={cn(
+        'pointer-events-none absolute -right-7 bottom-2.5 w-24 -rotate-45 py-[3px] text-center',
+        'text-[10px] leading-none font-bold tracking-wider text-white shadow-sm',
+        tone === 'rank' ? 'bg-cdm-primary' : 'bg-cdm-accent',
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function GameCard({ game, active, onClick, className }: { game: Game; active: boolean; onClick: () => void; className?: string }) {
+  /* 랭크 종목이면 랭크 표시가 우선이다 — 둘 다 붙이면 모서리가 겹친다. */
+  const ribbon = game.rankingActive
+    ? ({ label: 'RANK', tone: 'rank' } as const)
+    : isNewGame(game.createdAt)
+      ? ({ label: 'NEW', tone: 'new' } as const)
+      : null;
+
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
       <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
+      {ribbon && <CornerRibbon label={ribbon.label} tone={ribbon.tone} />}
       {active && <CheckMark />}
       <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
         <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
