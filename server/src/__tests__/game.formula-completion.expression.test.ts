@@ -112,13 +112,16 @@ describe('수식완성N 실패 수식 공개 범위', () => {
 describe('수식완성N 출제기', () => {
   it.each([4, 5, 6])('N=%i 퍼즐에 검증 가능한 해답을 포함한다', (numberCount) => {
     const used = new Set<string>();
+    const patterns = new Set<string>();
     for (let index = 0; index < 20; index++) {
       const puzzle = generatePuzzle(numberCount, used);
       used.add(puzzle.key);
+      patterns.add(puzzle.pattern);
       expect(puzzle.numbers).toHaveLength(numberCount);
       expect(puzzle.target).toBeGreaterThan(0);
       expect(judgeExpression(puzzle.solution, puzzle.numbers, puzzle.target).correct).toBe(true);
     }
+    expect(patterns).toEqual(new Set(['balanced', 'left-chain', 'right-chain']));
   });
 });
 

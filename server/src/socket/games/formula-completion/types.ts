@@ -18,6 +18,7 @@ export interface FormulaPuzzle {
   target: number;
   solution: string;
   key: string;
+  pattern: 'balanced' | 'left-chain' | 'right-chain';
 }
 
 export interface FormulaCompletionState {

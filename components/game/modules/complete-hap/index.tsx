@@ -66,8 +66,8 @@ export default function CompleteHapGame() {
     : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 p-3 sm:gap-4 sm:p-4">
-      <header className="rounded-cdm-lg border-cdm-border bg-cdm-bg grid gap-3 border p-3 shadow-sm md:grid-cols-[1fr_auto_1fr] md:items-center">
+    <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-3 lg:p-4">
+      <header className="rounded-cdm-lg border-cdm-border bg-cdm-bg grid grid-cols-[minmax(0,1fr)_auto] gap-2 border p-2 shadow-sm sm:p-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
         <div className="min-w-0">
           <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
             ROUND {gameData.round} / {gameData.totalRounds}
@@ -75,7 +75,7 @@ export default function CompleteHapGame() {
           <p className="text-cdm-fg truncate text-sm font-extrabold">
             {gameData.phase === 'finished' ? '게임 종료' : '모든 합을 저장하고 결을 외치세요'}
           </p>
-          <p className="text-cdm-fg-muted truncate text-xs">
+          <p className="text-cdm-fg-muted hidden truncate text-xs sm:block">
             {roundResult
               ? roundResult.correct
                 ? `${callerName} 정답`
@@ -86,7 +86,7 @@ export default function CompleteHapGame() {
 
         <div
           className={cn(
-            'rounded-cdm-md mx-auto min-w-28 px-4 py-2 text-center',
+            'rounded-cdm-md mx-auto min-w-20 px-2 py-1.5 text-center sm:min-w-28 sm:px-4 sm:py-2',
             matchRemaining != null && matchRemaining <= 30
               ? 'bg-cdm-accent-soft'
               : 'bg-cdm-bg-elev-1',
@@ -95,7 +95,7 @@ export default function CompleteHapGame() {
           <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.16em]">TIME LEFT</p>
           <p
             className={cn(
-              'text-2xl font-black tabular-nums',
+              'text-xl font-black tabular-nums sm:text-2xl',
               matchRemaining != null && matchRemaining <= 30 ? 'text-cdm-accent' : 'text-cdm-fg',
             )}
           >
@@ -103,11 +103,11 @@ export default function CompleteHapGame() {
           </p>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="col-span-2 grid grid-cols-2 justify-end gap-2 md:col-span-1 md:flex">
           {playerEntries.map(([playerId, player]) => (
             <div
               key={playerId}
-              className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 min-w-24 border px-3 py-2"
+              className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 min-w-0 border px-2 py-1.5 sm:min-w-24 sm:px-3 sm:py-2"
             >
               <p className="text-cdm-fg-muted max-w-28 truncate text-[11px] font-semibold">
                 {player.nickname}
@@ -205,9 +205,9 @@ function RoundWorkspace({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="rounded-cdm-lg border-cdm-border bg-cdm-bg border p-3 sm:p-4">
-        <div className="mx-auto grid max-w-2xl grid-cols-3 gap-2 sm:gap-3">
+    <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,30rem)_minmax(17rem,20rem)] lg:justify-center">
+      <section className="rounded-cdm-lg border-cdm-border bg-cdm-bg border p-2 sm:p-3">
+        <div className="mx-auto grid w-[min(100%,44dvh)] max-w-[30rem] grid-cols-3 gap-1.5 sm:w-[min(100%,56dvh)] sm:gap-2 lg:w-full">
           {gameData.board.cards.map((card, cardIndex) => (
             <PictureCard
               key={cardIndex}
@@ -219,8 +219,8 @@ function RoundWorkspace({
             />
           ))}
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <p className="text-cdm-fg-muted min-w-0 flex-1 text-xs font-semibold">
+        <div className="mt-3 hidden items-center gap-2 lg:flex">
+          <p className="text-cdm-fg-muted min-w-0 flex-1 text-xs font-semibold" aria-live="polite">
             {selection.length === 0
               ? '합이라고 생각하는 그림 3장을 선택하세요.'
               : `${selection.length}장 선택됨`}
@@ -234,9 +234,38 @@ function RoundWorkspace({
             합 저장
           </button>
         </div>
+
+        <div className="rounded-cdm-md border-cdm-border bg-cdm-bg/95 mt-2 border p-2 shadow-lg backdrop-blur lg:hidden">
+          <p
+            className="text-cdm-fg-muted mb-1.5 truncate text-center text-[11px] font-semibold"
+            aria-live="polite"
+          >
+            {selection.length === 0
+              ? '합이라고 생각하는 그림 3장을 선택하세요.'
+              : `${selection.length}장 선택됨`}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={saveHap}
+              disabled={!canPlay || selection.length !== 3}
+              className="rounded-cdm-md bg-cdm-primary min-h-11 px-3 py-2 text-sm font-black text-white disabled:opacity-40"
+            >
+              합 저장
+            </button>
+            <button
+              type="button"
+              onClick={callGyul}
+              disabled={!canPlay}
+              className="rounded-cdm-md bg-cdm-accent min-h-11 px-3 py-2 text-sm font-black text-white disabled:opacity-40"
+            >
+              {isSubmitting ? '판정 중...' : '결 외치기'}
+            </button>
+          </div>
+        </div>
       </section>
 
-      <aside className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex min-h-56 flex-col border p-3 sm:p-4">
+      <aside className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex min-h-0 flex-col border p-2 sm:p-3 lg:min-h-56">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-cdm-fg text-sm font-black">저장한 합</p>
@@ -247,9 +276,18 @@ function RoundWorkspace({
           </span>
         </div>
 
-        <div className="mt-3 flex-1 space-y-2">
+        <button
+          type="button"
+          onClick={callGyul}
+          disabled={!canPlay}
+          className="rounded-cdm-md bg-cdm-accent mt-3 hidden w-full px-4 py-3 text-base font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40 lg:block"
+        >
+          {isSubmitting ? '판정 중...' : '결 외치기'}
+        </button>
+
+        <div className="mt-2 max-h-52 flex-1 space-y-2 overflow-y-auto lg:mt-3 lg:max-h-none">
           {savedSets.length === 0 ? (
-            <div className="border-cdm-border text-cdm-fg-muted rounded-cdm-md flex min-h-24 items-center justify-center border border-dashed px-4 text-center text-xs">
+            <div className="border-cdm-border text-cdm-fg-muted rounded-cdm-md flex min-h-16 items-center justify-center border border-dashed px-4 text-center text-xs lg:min-h-24">
               저장한 합이 없습니다.
             </div>
           ) : (
@@ -272,15 +310,6 @@ function RoundWorkspace({
             ))
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={callGyul}
-          disabled={!canPlay}
-          className="rounded-cdm-md bg-cdm-accent mt-3 w-full px-4 py-3 text-base font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
-        >
-          {isSubmitting ? '판정 중...' : '결 외치기'}
-        </button>
       </aside>
     </div>
   );

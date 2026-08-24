@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/cdm/Button';
 import { cn } from '@/lib/utils';
 
@@ -33,21 +34,38 @@ export default function FormulaPad({
   disabled = false,
   className,
 }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const numberGridClass = numbers.length === 4
     ? 'grid-cols-4'
     : numbers.length === 5
       ? 'grid-cols-5'
       : 'grid-cols-6';
+
+  const focusInput = () => {
+    inputRef.current?.focus({ preventScroll: true });
+  };
+
+  useEffect(() => {
+    if (disabled) return;
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [disabled]);
+
   const append = (value: string) => {
     if (disabled) return;
     onExpressionChange(`${expression}${value}`.slice(0, 160));
+    focusInput();
   };
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
       <label className="sr-only" htmlFor="formula-completion-input">수식 입력</label>
       <input
+        ref={inputRef}
         id="formula-completion-input"
+        autoFocus
         value={expression}
         onChange={(event) => onExpressionChange(cleanInput(event.target.value))}
         onKeyDown={(event) => {
@@ -93,7 +111,10 @@ export default function FormulaPad({
       <div className="grid grid-cols-[auto_auto_1fr] gap-2">
         <Button
           variant="tertiary"
-          onClick={() => onExpressionChange(expression.slice(0, -1))}
+          onClick={() => {
+            onExpressionChange(expression.slice(0, -1));
+            focusInput();
+          }}
           disabled={disabled || !expression}
           aria-label="마지막 글자 지우기"
         >
@@ -101,7 +122,10 @@ export default function FormulaPad({
         </Button>
         <Button
           variant="tertiary"
-          onClick={() => onExpressionChange('')}
+          onClick={() => {
+            onExpressionChange('');
+            focusInput();
+          }}
           disabled={disabled || !expression}
         >
           초기화

@@ -58,9 +58,6 @@ export default function FormulaCompletionGame() {
             </span>
           ))}
         </div>
-        <p className="mt-3 text-xs text-cdm-fg-muted">
-          모든 숫자를 한 번씩 · 사칙연산과 괄호 사용 가능
-        </p>
       </Card>
 
       {gameData.phase === 'playing' ? (
