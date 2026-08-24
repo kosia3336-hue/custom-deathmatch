@@ -292,41 +292,57 @@ export function isNewGame(createdAt: string | undefined, now = Date.now()): bool
 }
 
 /**
- * 카드 모서리에 비스듬히 덧대는 띠.
+ * 새 게임 표시 — 왼쪽 위 모서리에 비스듬히 덧대는 띠.
  *
  * 카드가 overflow-hidden 이라 45도로 눕힌 띠의 양 끝이 잘려 나가고, 모서리에
- * 포장지를 덧댄 듯한 모양만 남는다.
+ * 포장지를 덧댄 모양만 남는다. 폭을 좁게 잡아 게임 이름을 침범하지 않는다 —
+ * 이름은 카드 높이 가운데에 있어서, 띠가 모서리에만 머무르면 겹치지 않는다.
  *
- * 오른쪽 아래를 쓴다. 위쪽 두 모서리는 각각 게임 이름(왼쪽)과 선택 체크
- * 표시(오른쪽)가 차지하고 있어서, 거기에 띠를 얹으면 글자를 가린다.
- * 오른쪽 아래는 흐릿한 대표 이미지 위라 무엇도 가리지 않는다.
+ * 색은 하늘색이다. 강조색(붉은색)은 목록에서 혼자 튀어 경고처럼 읽혔다.
+ * 랭크 모서리(남색)와는 밝기가 달라 나란히 놓여도 구분된다.
  */
-function CornerRibbon({ label, tone }: { label: string; tone: 'rank' | 'new' }) {
+function NewRibbon() {
   return (
     <span
       className={cn(
-        'pointer-events-none absolute -right-7 bottom-2.5 w-24 -rotate-45 py-[3px] text-center',
-        'text-[10px] leading-none font-bold tracking-wider text-white shadow-sm',
-        tone === 'rank' ? 'bg-cdm-primary' : 'bg-cdm-accent',
+        'pointer-events-none absolute -left-6 top-1.5 w-[72px] -rotate-45 py-[2px] text-center',
+        'bg-sky-500 text-[9px] leading-none font-bold tracking-wider text-white',
       )}
     >
-      {label}
+      NEW
     </span>
   );
 }
 
+/**
+ * 랭크 종목 표시 — 왼쪽 위 모서리를 아주 작게 칠한다.
+ *
+ * 띠처럼 읽히면 안 된다. 랭크 여부는 이미 아는 사람이 확인차 보는 정보라서,
+ * 눈에 띄기보다 알아볼 수 있으면 충분하다. 테두리로 삼각형을 그려 모서리
+ * 안쪽만 채운다.
+ */
+function RankCorner() {
+  return (
+    <span
+      aria-hidden
+      title="랭크 종목"
+      className={cn(
+        'pointer-events-none absolute left-0 top-0 h-0 w-0',
+        'border-t-[11px] border-r-[11px] border-t-cdm-primary border-r-transparent',
+      )}
+    />
+  );
+}
+
 export function GameCard({ game, active, onClick, className }: { game: Game; active: boolean; onClick: () => void; className?: string }) {
-  /* 랭크 종목이면 랭크 표시가 우선이다 — 둘 다 붙이면 모서리가 겹친다. */
-  const ribbon = game.rankingActive
-    ? ({ label: 'RANK', tone: 'rank' } as const)
-    : isNewGame(game.createdAt)
-      ? ({ label: 'NEW', tone: 'new' } as const)
-      : null;
+  /* 둘 다 왼쪽 위 모서리를 쓰므로 하나만 붙인다. 랭크가 우선이다. */
+  const mark = game.rankingActive ? 'rank' : isNewGame(game.createdAt) ? 'new' : null;
 
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
       <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
-      {ribbon && <CornerRibbon label={ribbon.label} tone={ribbon.tone} />}
+      {mark === 'rank' && <RankCorner />}
+      {mark === 'new' && <NewRibbon />}
       {active && <CheckMark />}
       <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
         <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
