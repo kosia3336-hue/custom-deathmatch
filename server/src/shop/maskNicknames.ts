@@ -67,6 +67,9 @@ export function maskChatMessageForViewer(
     senderNickname: ANONYMOUS_NICKNAME,
     senderTitle: null,
     senderGuildMark: null,
+    // 길드명도 지운다. 마크만 가리면 채팅에 '??? [길드명]' 으로 남아,
+    // 길드원이 몇 안 되는 방에서는 닉네임을 가린 의미가 없다.
+    senderGuildName: null,
     senderMemberId: null,
   };
 }

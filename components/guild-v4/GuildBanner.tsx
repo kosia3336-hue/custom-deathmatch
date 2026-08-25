@@ -208,6 +208,46 @@ export function GuildBannerStyles() {
         }
       }
       @media (max-width: 639px) {
+        /*
+          좁은 화면에서는 제목 줄이 장식·Lv 배지와 폭을 다투다가 길드명만
+          줄어든다. h2 는 min-width:0 이라 끝까지 쪼그라들고, 한글은 글자
+          단위로 끊겨 결국 세로로 늘어선다. 장식을 접고 글자를 줄여 이름에
+          폭을 몰아준다.
+
+          아래 .guild-banner-in-modal 규칙과 같은 처방인데, 그동안 모달 안에만
+          걸려 있어서 길드 페이지 본체 배너는 그대로 깨지고 있었다.
+        */
+        .guild-banner-flourish {
+          display: none;
+        }
+        /*
+          마크를 등록한 길드는 문장(108px)이 가로로 붙어 이름 폭을 더 빼앗는다.
+          제보가 마크 등록 길드에서 나온 이유다. 좁은 화면에서는 문장을 위로
+          올려 이름이 한 줄을 통째로 쓰게 한다.
+        */
+        .guild-banner-body {
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .guild-banner-copy {
+          width: 100%;
+        }
+        .guild-banner-crest {
+          width: 5.5rem;
+        }
+        .guild-banner-title {
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.4rem 0.5rem;
+        }
+        .guild-banner-title h2 {
+          font-size: 1.35rem;
+          letter-spacing: 0.03em;
+          /* 한글이 글자 단위로 끊기지 않게 — 이게 '세로로 보이던' 직접 원인 */
+          word-break: keep-all;
+          overflow-wrap: anywhere;
+        }
         .guild-banner-in-modal {
           padding: 1.1rem 0.85rem 1rem;
         }
