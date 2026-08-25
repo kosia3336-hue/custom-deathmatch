@@ -387,6 +387,14 @@ function toAction(view: NumberFourDummyView, plan: Plan): NumberFourAction | nul
   return { type: 'submit', white, black, number };
 }
 
+/** 잔여 7장 = 타일 자동. 넘버만 고른다. */
+export function isNumberFourLastRound(view: NumberFourDummyView): boolean {
+  return (
+    view.round >= TOTAL_ROUNDS
+    || view.my.remainingWhite + view.my.remainingBlack <= TILES_PER_ROUND
+  );
+}
+
 /**
  * 공개 뷰만. `budgetMs`(심리 5~90초 예산) 동안 상대 타일 MC 샘플로 성공확률을 쌓은 뒤 제출.
  * idle sleep 금지 — runPsychologySearch 가 예산을 탐색으로 채운다.

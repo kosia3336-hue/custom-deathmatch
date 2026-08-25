@@ -70,6 +70,10 @@ export function isWinningStreakHopeless(view: WinningStreakDummyView): boolean {
   return false;
 }
 
+export function isWinningStreakLastRound(view: WinningStreakDummyView): boolean {
+  return view.round >= view.totalRounds;
+}
+
 function availableCards(cards: WSCardCount, lastPlayed: WSCardType | null): WSCardType[] {
   const available: WSCardType[] = [];
   for (const ct of CARD_TYPES) {
@@ -334,7 +338,10 @@ export async function pickWinningStreakActionAsync(
 
   const candidates = availableCards(view.my.remainingCards, view.my.lastPlayedCard);
   if (candidates.length === 0) return null;
-  if (candidates.length === 1) return { type: 'selectCard', card: candidates[0]! };
+  if (candidates.length === 1) {
+    await runPsychologySearch(budgetMs, () => {});
+    return { type: 'selectCard', card: candidates[0]! };
+  }
 
   const legal = legalBag(view.opp.remainingCards, view.opp.lastPlayedCard);
   const full = fullBag(view.opp.remainingCards);

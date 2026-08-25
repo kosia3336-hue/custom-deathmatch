@@ -33,13 +33,31 @@ const RUNTIME: Record<
     passwordSeed: 'dummy:yeonseung',
     window: { kind: 'daily', startMin: 21 * 60, endMin: 22 * 60 + 30 },
   },
+  jack: {
+    key: 'jack',
+    email: 'dummy_jack@dummy.internal',
+    socketId: 'live-dummy:jack',
+    passwordSeed: 'dummy:jack',
+    window: { kind: 'daily', startMin: 23 * 60 + 30, endMin: 1 * 60 },
+  },
+  ironhyunseong: {
+    key: 'ironhyunseong',
+    email: 'dummy_ironhyunseong@dummy.internal',
+    socketId: 'live-dummy:ironhyunseong',
+    passwordSeed: 'dummy:ironhyunseong',
+    window: { kind: 'daily', startMin: 22 * 60 + 30, endMin: 30 },
+  },
 };
 
-export const LIVE_DUMMY_ROSTER: readonly LiveDummyRuntime[] = LIVE_DUMMY_AI.map((ai) => ({
-  ...RUNTIME[ai.key],
-  nickname: ai.nickname,
-  defaultTier: ai.defaultTier,
-}));
+export const LIVE_DUMMY_ROSTER: readonly LiveDummyRuntime[] = LIVE_DUMMY_AI.map((ai) => {
+  const runtime = RUNTIME[ai.key];
+  if (!runtime) throw new Error(`[liveDummy] RUNTIME 없음: ${ai.key}`);
+  return {
+    ...runtime,
+    nickname: ai.nickname,
+    defaultTier: ai.defaultTier,
+  };
+});
 
 export function kstClock(d = new Date()): { ymd: string; mins: number } {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -66,13 +84,17 @@ export function kstClock(d = new Date()): { ymd: string; mins: number } {
   return { ymd: `${year}-${month}-${day}`, mins: hour * 60 + minute };
 }
 
+/** startMin > endMin 이면 자정 넘김 (23:30–01:00). end 는 미포함. */
+export function isMinsInLiveWindow(mins: number, startMin: number, endMin: number): boolean {
+  if (startMin < endMin) return mins >= startMin && mins < endMin;
+  if (startMin > endMin) return mins >= startMin || mins < endMin;
+  return false;
+}
+
 export function isLiveDummyWindowOpen(window: LiveDummyWindow, d = new Date()): boolean {
   const { ymd, mins } = kstClock(d);
-  if (window.kind === 'dated') {
-    if (!window.dates.has(ymd)) return false;
-    return mins >= window.startMin && mins < window.endMin;
-  }
-  return mins >= window.startMin && mins < window.endMin;
+  if (window.kind === 'dated' && !window.dates.has(ymd)) return false;
+  return isMinsInLiveWindow(mins, window.startMin, window.endMin);
 }
 
 export function findRosterByKey(key: LiveDummyKey): LiveDummyRuntime {

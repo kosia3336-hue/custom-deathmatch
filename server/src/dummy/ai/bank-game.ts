@@ -92,6 +92,10 @@ function isLastRound(view: BankGameDummyView): boolean {
   return view.round >= view.maxRound;
 }
 
+export function isBankGameLastRound(view: BankGameDummyView): boolean {
+  return isLastRound(view);
+}
+
 function myIsFirst(view: BankGameDummyView): boolean {
   return view.firstSide === view.mySide;
 }
