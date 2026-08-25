@@ -7,7 +7,8 @@ import {
 import { GUILD_NAME_REGEX } from '@/lib/guild/types';
 import { DEV_GUILD_DESC_MAX, DEV_GUILD_NAME_MAX, DEV_GUILD_NAME_MIN } from '@/components/guild-v4/limits';
 import { mapGuildV4Error } from '@/lib/guild-v4/errors';
-import { notifyGuildMembershipChanged, notifyGuildMembers } from '@/lib/guild-v4/notify';
+import { notifyGuildMembershipChanged, notifyGuildMembers, notifyGuildScoutInvite } from '@/lib/guild-v4/notify';
+import { parseScoutBatchResult } from '@/lib/guild-v4/scout';
 import {
   findGuildIdForMember,
   listGuildMemberIds,
@@ -26,6 +27,7 @@ type Body = {
   requestId?: string;
   approve?: boolean;
   targetMemberId?: string;
+  targetMemberIds?: string[];
   promote?: boolean;
   markUrl?: string;
   logoId?: string;
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
       }
       case 'join': {
         if (!body.guildId) return jsonError('잘못된 요청입니다.', 400);
-        const { error } = await rpc('request_guild_join', {
+        const { error } = await rpc('request_guild_join_v4', {
           p_member: member.id,
           p_guild: body.guildId,
         });
@@ -352,6 +354,32 @@ export async function POST(req: NextRequest) {
         if (error) {
           const e = mapGuildV4Error(error.message);
           return jsonError(e.msg, e.status);
+        }
+        return NextResponse.json({ ok: true });
+      }
+      case 'scout': {
+        const ids = [
+          ...new Set(
+            (Array.isArray(body.targetMemberIds) ? body.targetMemberIds : [])
+              .concat(body.targetMemberId ? [body.targetMemberId] : [])
+              .map((id) => String(id).trim())
+              .filter(Boolean),
+          ),
+        ];
+        if (ids.length === 0) return jsonError('잘못된 요청입니다.', 400);
+        const { data, error } = await rpc('scout_guild_members_v4', {
+          p_actor: member.id,
+          p_targets: ids,
+        });
+        if (error) {
+          const e = mapGuildV4Error(error.message);
+          return jsonError(e.msg, e.status);
+        }
+        const batch = parseScoutBatchResult(data);
+        if (batch) {
+          await Promise.all(
+            batch.invites.map((invite) => notifyGuildScoutInvite(invite.toMemberId, invite)),
+          );
         }
         return NextResponse.json({ ok: true });
       }

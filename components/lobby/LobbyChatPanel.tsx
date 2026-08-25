@@ -9,26 +9,37 @@ import { useNicknameStore } from '@/stores/nickname';
 import { LobbyChatList } from './LobbyChatList';
 import { LobbyChatInput } from './LobbyChatInput';
 import { OnlineUsersList } from './OnlineUsersList';
+import { MailboxPanel } from './MailboxPanel';
+import { mailboxUnreadCount, useMailboxStore } from '@/stores/mailbox';
 
 function TabButton({
   active,
   onClick,
   children,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  badge?: number;
 }) {
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        'relative flex h-11 flex-1 items-center justify-center gap-1.5 text-sm font-medium transition-colors',
+        'relative flex h-11 flex-1 items-center justify-center gap-1.5 text-sm font-medium transition-colors max-sm:min-w-0 max-sm:px-1',
         active ? 'text-cdm-fg' : 'text-cdm-fg-muted hover:text-cdm-fg',
       )}
     >
       {children}
+      {typeof badge === 'number' && badge > 0 && (
+        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
       {active && (
         <span
           aria-hidden
@@ -40,7 +51,7 @@ function TabButton({
 }
 
 /**
- * 로비 채팅 패널. 채팅은 전원. 접속자 탭만 천하.
+ * 로비 패널. 채팅·우편함은 전원. 접속자 탭만 천하.
  */
 export function LobbyChatPanel() {
   const isOpen = useLobbyChatStore((s) => s.isOpen);
@@ -50,8 +61,15 @@ export function LobbyChatPanel() {
   const onlineCount = useOnlineUsersStore((s) => s.count);
   const myNickname = useNicknameStore((s) => s.nickname);
   const canSeeUsers = myNickname === '천하';
+  const mailItems = useMailboxStore((s) => s.items);
+  const mailUnread = mailboxUnreadCount(mailItems);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) return;
+    useMailboxStore.getState().setFocusId(null);
+  }, [isOpen]);
 
   // ESC 닫기
   useEffect(() => {
@@ -72,6 +90,10 @@ export function LobbyChatPanel() {
       document.body.style.overflow = prev;
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    useMailboxStore.getState().hydrate();
+  }, []);
 
   useEffect(() => {
     if (!canSeeUsers && activeTab === 'users') setActiveTab('chat');
@@ -106,10 +128,8 @@ export function LobbyChatPanel() {
       <div
         className={cn(
           'relative flex w-full flex-col overflow-hidden bg-cdm-bg shadow-(--cdm-shadow-lg)',
-          // 모바일: 풀시트 (top-12로 GNB 노출)
-          'h-[calc(100dvh-3rem)] rounded-t-cdm-xl',
-          // 데스크탑: 중앙 카드
-          'sm:h-[min(640px,calc(100vh-4rem))] sm:max-w-[560px] sm:rounded-cdm-xl',
+          'h-[calc(100dvh-3.5rem)] min-h-0 rounded-t-cdm-xl pb-[env(safe-area-inset-bottom)]',
+          'sm:h-[min(640px,calc(100vh-4rem))] sm:max-w-[560px] sm:rounded-cdm-xl sm:pb-0',
           'animate-[modal-in_200ms_var(--cdm-ease-out)]',
         )}
       >
@@ -134,8 +154,15 @@ export function LobbyChatPanel() {
         </header>
 
         <div className="flex border-b border-cdm-border" role="tablist">
-          <TabButton active={activeTab !== 'users'} onClick={() => onTabChange('chat')}>
-            <span>채팅({onlineCount}명)</span>
+          <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
+            <span className="max-sm:truncate">채팅({onlineCount}명)</span>
+          </TabButton>
+          <TabButton
+            active={activeTab === 'mailbox'}
+            onClick={() => onTabChange('mailbox')}
+            badge={mailUnread}
+          >
+            <span>우편함</span>
           </TabButton>
           {canSeeUsers && (
             <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
@@ -146,8 +173,12 @@ export function LobbyChatPanel() {
 
         {canSeeUsers && activeTab === 'users' ? (
           <OnlineUsersList />
+        ) : activeTab === 'mailbox' ? (
+          <div className="flex flex-1 flex-col overflow-hidden max-sm:min-h-0">
+            <MailboxPanel />
+          </div>
         ) : (
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden max-sm:min-h-0">
             <LobbyChatList />
             <LobbyChatInput ref={inputRef} />
           </div>

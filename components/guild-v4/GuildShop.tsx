@@ -16,6 +16,7 @@ import {
   guildBuffCost,
   type MyGuildState,
 } from '@/lib/guild/types';
+import { GUILD_SCOUT_COST_GP, type GuildScoutTarget } from '@/lib/guild-v4/scoutTypes';
 import type { GuildConfirm } from './GuildConfirmModal';
 import { catalogLogoIdFromUrl, DEV_GUILD_LOGOS, devGuildLogoSrc } from './logoCatalog';
 import { DEV_GUILD_NAME_MAX, DEV_GUILD_BUFF_PCT_PER_LEVEL, devExpansionCost, isValidDevGuildName } from './limits';
@@ -25,12 +26,24 @@ type Act = (payload: Record<string, unknown>, successMsg?: string) => Promise<bo
 const SHOP_TABS = [
   { id: 'enhance', label: '길드 강화' },
   { id: 'logo', label: '로고' },
+  { id: 'misc', label: '기타' },
 ] as const;
 
 const SHOP_DENY = '길드장·부길드장만 구매할 수 있습니다.';
 
 function formatGp(n: number) {
   return `${n.toLocaleString('ko-KR')} GP`;
+}
+
+function formatPrice(n: number, currency: 'gp' | 'cdp') {
+  return currency === 'cdp' ? formatCdpWithUnit(n) : formatGp(n);
+}
+
+async function defaultLoadScout(): Promise<GuildScoutTarget[]> {
+  const res = await fetch('/api/guild2/scout', { method: 'POST' });
+  const json = (await res.json()) as { rows?: GuildScoutTarget[]; error?: string };
+  if (!res.ok) throw new Error(json.error ?? '대상을 불러오지 못했습니다.');
+  return json.rows ?? [];
 }
 
 function buyOrToast(canBuy: boolean, run: () => void) {
@@ -47,21 +60,31 @@ export function GuildShopSection({
   act,
   askConfirm,
   onBuyNameChange,
+  onScoutOpenChange,
+  loadScoutTargets,
 }: {
   my: MyGuildState;
   busy: boolean;
   act: Act;
   askConfirm: (confirm: GuildConfirm) => void;
   onBuyNameChange: () => void;
+  onScoutOpenChange?: (open: boolean) => void;
+  loadScoutTargets?: () => Promise<GuildScoutTarget[]>;
 }) {
   const g = my.guild!;
   const [tab, setTab] = useState<string>('enhance');
+  const [scoutOpen, setScoutOpen] = useState(false);
   const canBuy = my.role === 'owner' || my.role === 'vice_owner';
 
   const buffMax = g.buffCdpLevel >= GUILD_BUFF_MAX_LEVEL;
   const buffCost = buffMax ? 0 : guildBuffCost(g.buffCdpLevel);
   const capMax = g.capacity >= GUILD_MAX_CAPACITY;
   const expandCost = capMax ? 0 : devExpansionCost(g.capacity);
+
+  function openScout(open: boolean) {
+    setScoutOpen(open);
+    onScoutOpenChange?.(open);
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -191,6 +214,54 @@ export function GuildShopSection({
           })}
         </ul>
       )}
+      {tab === 'misc' && (
+        <ul role="list" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <li>
+            <GuildShopCard
+              name="스카우트"
+              description="우편으로 길드 초대를 보냅니다. 1명당 50 GP."
+              price={GUILD_SCOUT_COST_GP}
+              insufficient={g.points < GUILD_SCOUT_COST_GP}
+              points={g.points}
+              busy={busy}
+              onBuy={() => {
+                buyOrToast(canBuy, () => {
+                  if (g.points < GUILD_SCOUT_COST_GP) {
+                    toast.error('길드 포인트가 부족합니다.');
+                    return;
+                  }
+                  openScout(true);
+                });
+              }}
+            />
+          </li>
+        </ul>
+      )}
+
+      <GuildScoutPicker
+        open={scoutOpen}
+        busy={busy}
+        points={g.points}
+        load={loadScoutTargets ?? defaultLoadScout}
+        onClose={() => openScout(false)}
+        onSend={(picked) => {
+          const cost = picked.length * GUILD_SCOUT_COST_GP;
+          askConfirm({
+            title: '스카우트',
+            message: `${picked.length}명에게 초대를 보내시겠습니까? (${formatGp(cost)})`,
+            confirmLabel: '보내기',
+            variant: 'primary',
+            run: async () => {
+              const ok = await act(
+                { action: 'scout', targetMemberIds: picked.map((t) => t.memberId) },
+                '초대를 보냈습니다.',
+              );
+              if (ok) openScout(false);
+              return ok;
+            },
+          });
+        }}
+      />
     </div>
   );
 }
@@ -269,6 +340,141 @@ export function GuildNameChangeModal({
   );
 }
 
+function GuildScoutPicker({
+  open,
+  busy,
+  points,
+  load,
+  onClose,
+  onSend,
+}: {
+  open: boolean;
+  busy: boolean;
+  points: number;
+  load: () => Promise<GuildScoutTarget[]>;
+  onClose: () => void;
+  onSend: (picked: GuildScoutTarget[]) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [rows, setRows] = useState<GuildScoutTarget[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+      setRows([]);
+      setPicked(new Set());
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void load()
+      .then((next) => {
+        if (!cancelled) setRows(next);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setRows([]);
+          toast.error((err as Error).message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, load]);
+
+  const q = query.trim().toLowerCase();
+  const shown = q ? rows.filter((r) => r.nickname.toLowerCase().includes(q)) : rows;
+  const selected = rows.filter((r) => picked.has(r.memberId) && !r.alreadyInvited);
+  const cost = selected.length * GUILD_SCOUT_COST_GP;
+  const canSend = selected.length > 0 && points >= cost && !busy;
+
+  function toggle(id: string, invited: boolean) {
+    if (invited || busy) return;
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={busy ? undefined : onClose}
+      title="스카우트"
+      size="md"
+      closeOnBackdrop={!busy}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            닫기
+          </Button>
+          <Button
+            disabled={!canSend}
+            onClick={() => onSend(selected)}
+          >
+            {selected.length === 0
+              ? '보내기'
+              : `보내기 · ${selected.length}명 · ${formatGp(cost)}`}
+          </Button>
+        </>
+      }
+    >
+      <TextInput
+        label="필터"
+        value={query}
+        onChange={(e) => setQuery(e.target.value.slice(0, 20))}
+        placeholder="닉네임"
+      />
+      <ul className="mt-3 max-h-72 divide-y divide-cdm-border overflow-y-auto rounded-cdm-md border border-cdm-border">
+        {loading ? (
+          <li className="px-3 py-4 text-center text-xs text-cdm-fg-muted">불러오는 중…</li>
+        ) : shown.length === 0 ? (
+          <li className="px-3 py-4 text-center text-xs text-cdm-fg-muted">대상이 없습니다.</li>
+        ) : (
+          shown.map((row) => {
+            const on = picked.has(row.memberId);
+            return (
+              <li key={row.memberId}>
+                <label
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 px-3 py-2.5',
+                    row.alreadyInvited && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-cdm-primary"
+                    checked={on}
+                    disabled={busy || row.alreadyInvited}
+                    onChange={() => toggle(row.memberId, row.alreadyInvited)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-cdm-fg">{row.nickname}</span>
+                    <span className="block text-xs text-cdm-fg-muted">
+                      {row.alreadyInvited
+                        ? '초대됨'
+                        : row.hasGuild
+                          ? `길드 있음${row.guildName ? ` · ${row.guildName}` : ''}`
+                          : '미가입'}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </Modal>
+  );
+}
+
 function GuildShopCard({
   name,
   level,
@@ -280,6 +486,7 @@ function GuildShopCard({
   points,
   busy,
   buyLabel = '구매',
+  currency = 'gp',
   onBuy,
 }: {
   name: string;
@@ -292,6 +499,7 @@ function GuildShopCard({
   points: number;
   busy: boolean;
   buyLabel?: string;
+  currency?: 'gp' | 'cdp';
   onBuy: () => void;
 }) {
   let ctaLabel = buyLabel;
@@ -303,7 +511,7 @@ function GuildShopCard({
     ctaVariant = 'secondary';
     ctaDisabled = true;
   } else if (insufficient) {
-    ctaLabel = `${formatGp(price - points)} 부족`;
+    ctaLabel = `${formatPrice(price - points, currency)} 부족`;
     ctaVariant = 'secondary';
   }
 
@@ -319,7 +527,7 @@ function GuildShopCard({
           </h3>
           {!maxed && (
             <span className="shrink-0 text-sm font-bold tabular-nums whitespace-nowrap text-cdm-fg">
-              {formatGp(price)}
+              {formatPrice(price, currency)}
             </span>
           )}
         </div>

@@ -13,6 +13,7 @@ import {
 import { useGuildDevApi } from './useGuildDevApi';
 import { CreateGuildModal } from './CreateGuildModal';
 import { GuildBackLink } from './GuildBackLink';
+import { GuildInfoModal } from './GuildInfoModal';
 import type { DevGuildMe } from './dummy';
 import {
   assignGuildRanks,
@@ -42,7 +43,9 @@ export function GuildListPanel({
   variant?: 'page' | 'modal';
 }) {
   const [createOpen, setCreateOpen] = useState(false);
-  const canJoin = !my.guild && !my.myRequest;
+  const [infoGuild, setInfoGuild] = useState<GuildSummary | null>(null);
+  const canBrowse = !my.guild;
+  const canApply = canBrowse && !my.myRequest;
   const page = variant === 'page';
   const rankScores = useGuildDevStore((s) => s.rankScores);
   const [period, setPeriod] = useState<string>('weekly');
@@ -126,9 +129,8 @@ export function GuildListPanel({
                 rank={rank}
                 score={score}
                 guild={g}
-                canJoin={canJoin}
-                busy={busy}
-                onJoin={() => act({ action: 'join', guildId: g.id }, '가입 신청을 보냈어요.')}
+                showInfo={canBrowse}
+                onInfo={() => setInfoGuild(g)}
               />
             ))}
             <style>{`
@@ -157,6 +159,19 @@ export function GuildListPanel({
           </>
         )}
       </section>
+
+      {infoGuild && (
+        <GuildInfoModal
+          guild={infoGuild}
+          busy={busy}
+          canApply={canApply}
+          onClose={() => setInfoGuild(null)}
+          onJoin={async () => {
+            const ok = await act({ action: 'join', guildId: infoGuild.id }, '가입 신청을 보냈어요.');
+            if (ok) setInfoGuild(null);
+          }}
+        />
+      )}
 
       {createOpen && (
         <CreateGuildModal
@@ -199,19 +214,15 @@ function GuildRow({
   rank,
   score,
   guild,
-  canJoin,
-  busy,
-  onJoin,
+  showInfo,
+  onInfo,
 }: {
   rank: number;
   score: number;
   guild: GuildSummary;
-  canJoin: boolean;
-  busy: boolean;
-  onJoin: () => void;
+  showInfo: boolean;
+  onInfo: () => void;
 }) {
-  const full = guild.memberCount >= guild.capacity;
-
   return (
     <Card className="px-3 py-2 sm:px-3.5 sm:py-2">
       <div className="flex items-center gap-4">
@@ -247,9 +258,9 @@ function GuildRow({
           {formatGuildRankScore(score)}
         </span>
 
-        {canJoin ? (
-          <Button size="sm" variant="secondary" disabled={busy || full} onClick={onJoin}>
-            {full ? '정원 마감' : '가입 신청'}
+        {showInfo ? (
+          <Button size="sm" variant="secondary" onClick={onInfo}>
+            정보
           </Button>
         ) : null}
       </div>

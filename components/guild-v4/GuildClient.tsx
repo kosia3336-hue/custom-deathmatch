@@ -14,14 +14,7 @@ import {
   DEV_VICE_LIMIT_HINT,
 } from './limits';
 import { useGuildDevStore } from './store';
-import {
-  BannerFlourish,
-  CrownIcon,
-  GuildBannerCrest,
-  GuildBannerFrame,
-  GuildBannerStyles,
-  PeopleIcon,
-} from './GuildBanner';
+import { GuildPublicBanner } from './GuildBanner';
 import {
   DEV_DEFAULT_TILE_ORDER,
   DEV_TILE_LABEL,
@@ -52,61 +45,32 @@ export function GuildIdentityCard({
 }) {
   const g = my.guild!;
   const { isOwner, canManage } = roleFlags(my);
-  const hasMark = Boolean(g.markUrl);
 
   return (
-    <GuildBannerFrame>
-      <div className="guild-banner-body" data-bare={hasMark ? undefined : ''}>
-        {g.markUrl ? <GuildBannerCrest src={g.markUrl} name={g.name} /> : null}
-
-        <div className="guild-banner-copy">
-          <div className="guild-banner-title">
-            <BannerFlourish />
-            <h2>{g.name}</h2>
-            <span className="guild-banner-lv">Lv.{g.buffCdpLevel}</span>
-            <BannerFlourish flip />
-          </div>
-
-          <div className="guild-banner-plates">
-            <span className="guild-banner-plate">
-              <CrownIcon />
-              <em>길드장</em>
-              {g.ownerNickname || '—'}
-            </span>
-            <span className="guild-banner-plate">
-              <PeopleIcon />
-              <em>정원</em>
-              <span className="tabular-nums">
-                {g.memberCount}/{g.capacity}
-              </span>
-            </span>
-          </div>
-
-          <GuildDescription g={g} canManage={canManage} busy={busy} act={act} banner />
-        </div>
-      </div>
-
-      {!isOwner && (
-        <button
-          type="button"
-          disabled={busy}
-          className="guild-banner-leave"
-          onClick={() => {
-            askConfirm({
-              title: '길드 탈퇴',
-              message: '길드에서 탈퇴하시겠습니까?',
-              confirmLabel: '탈퇴',
-              variant: 'danger',
-              run: () => act({ action: 'leave' }, '길드에서 탈퇴했습니다.'),
-            });
-          }}
-        >
-          길드 탈퇴
-        </button>
-      )}
-
-      <GuildBannerStyles />
-    </GuildBannerFrame>
+    <GuildPublicBanner
+      guild={g}
+      motto={<GuildDescription g={g} canManage={canManage} busy={busy} act={act} banner />}
+      extra={
+        !isOwner ? (
+          <button
+            type="button"
+            disabled={busy}
+            className="guild-banner-leave"
+            onClick={() => {
+              askConfirm({
+                title: '길드 탈퇴',
+                message: '길드에서 탈퇴하시겠습니까?',
+                confirmLabel: '탈퇴',
+                variant: 'danger',
+                run: () => act({ action: 'leave' }, '길드에서 탈퇴했습니다.'),
+              });
+            }}
+          >
+            길드 탈퇴
+          </button>
+        ) : null
+      }
+    />
   );
 }
 

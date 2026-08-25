@@ -6,6 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import { sessions } from '../store/sessions.js';
 import type { CdpGrantInput } from './calc.js';
 import { applyGuildCdpBuffV4 } from './guildBuffV4.js';
+import { applyGuildRoleCdpV4 } from './guildRoleCdpV4.js';
 
 export type { CdpGrantInput } from './calc.js';
 
@@ -31,8 +32,8 @@ export async function grantCdpForRankMatch(
   const sb = getSupabaseAdmin();
   const out: CdpGrantResult[] = [];
 
-  // 길드 CDP 수완 버프(레벨당 +2%) 반영
-  const inputs = await applyGuildCdpBuffV4(rawInputs);
+  const buffed = await applyGuildCdpBuffV4(rawInputs);
+  const inputs = await applyGuildRoleCdpV4(buffed);
 
   for (const inp of inputs) {
     if (inp.amount <= 0) {
@@ -68,6 +69,12 @@ export async function grantCdpForRankMatch(
             ? {
                 guild_buff_level: inp.breakdown.guildBuffLevel,
                 guild_buff_bonus: inp.breakdown.guildBuffBonus,
+              }
+            : {}),
+          ...(inp.breakdown.guildRoleBonus
+            ? {
+                guild_role: inp.breakdown.guildRole,
+                guild_role_bonus: inp.breakdown.guildRoleBonus,
               }
             : {}),
         },

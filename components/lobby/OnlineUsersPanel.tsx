@@ -1,26 +1,45 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { mailboxUnreadCount, useMailboxStore } from '@/stores/mailbox';
 
 /**
  * GNB 버튼.
  * 클릭 시 글로벌 LobbyChatPanel(루트 SocketProvider 마운트)을 연다.
- * 미읽음 메시지가 있으면 우상단에 빨간 배지를 표시한다.
+ * 채팅·우편 미읽음이 있으면 우상단에 빨간 배지를 표시한다.
  */
 export function OnlineUsersModalButton() {
   const setOpen = useLobbyChatStore((s) => s.setOpen);
+  const setActiveTab = useLobbyChatStore((s) => s.setActiveTab);
   const isOpen = useLobbyChatStore((s) => s.isOpen);
   const messagesLen = useLobbyChatStore((s) => s.messages.length);
   const lastSeenMsgCount = useLobbyChatStore((s) => s.lastSeenMsgCount);
-  const unreadCount = isOpen ? 0 : Math.max(0, messagesLen - lastSeenMsgCount);
+  const mailItems = useMailboxStore((s) => s.items);
+  const chatUnread = Math.max(0, messagesLen - lastSeenMsgCount);
+  const mailUnread = mailboxUnreadCount(mailItems);
+  const unreadCount = isOpen ? 0 : chatUnread + mailUnread;
+
+  useEffect(() => {
+    useMailboxStore.getState().hydrate();
+  }, []);
 
   return (
     <button
       type="button"
-      onClick={() => setOpen(true)}
+      onClick={() => {
+        setOpen(true);
+        if (mailUnread > 0) setActiveTab('mailbox');
+      }}
       className="relative inline-flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
-      aria-label="로비 채팅"
-      title="로비 채팅"
+      aria-label={
+        mailUnread > 0
+          ? `로비, 안 읽은 편지 ${mailUnread}통`
+          : chatUnread > 0
+            ? `로비, 안 읽은 채팅 ${chatUnread}`
+            : '로비'
+      }
+      title={mailUnread > 0 ? `안 읽은 편지 ${mailUnread}통` : '로비'}
     >
       <svg
         width="18"

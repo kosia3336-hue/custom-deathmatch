@@ -28,6 +28,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
   const [noticesOpen, setNoticesOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [nameChangeOpen, setNameChangeOpen] = useState(false);
+  const [scoutOpen, setScoutOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [contribOpen, setContribOpen] = useState(false);
   const [investOpen, setInvestOpen] = useState(false);
@@ -145,7 +146,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
         onClose={() => setShopOpen(false)}
         title="상점"
         size="xl"
-        closeOnEscape={!pending && !nameChangeOpen}
+        closeOnEscape={!pending && !nameChangeOpen && !scoutOpen}
         className="guild-shop-modal-panel"
       >
         <div className="guild-shop-modal-body">
@@ -155,6 +156,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
             act={act}
             askConfirm={setPending}
             onBuyNameChange={() => setNameChangeOpen(true)}
+            onScoutOpenChange={setScoutOpen}
           />
         </div>
       </Modal>
