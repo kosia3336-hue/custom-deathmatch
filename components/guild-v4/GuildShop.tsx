@@ -35,10 +35,6 @@ function formatGp(n: number) {
   return `${n.toLocaleString('ko-KR')} GP`;
 }
 
-function formatPrice(n: number, currency: 'gp' | 'cdp') {
-  return currency === 'cdp' ? formatCdpWithUnit(n) : formatGp(n);
-}
-
 async function defaultLoadScout(): Promise<GuildScoutTarget[]> {
   const res = await fetch('/api/guild2/scout', { method: 'POST' });
   const json = (await res.json()) as { rows?: GuildScoutTarget[]; error?: string };
@@ -486,7 +482,6 @@ function GuildShopCard({
   points,
   busy,
   buyLabel = '구매',
-  currency = 'gp',
   onBuy,
 }: {
   name: string;
@@ -499,7 +494,6 @@ function GuildShopCard({
   points: number;
   busy: boolean;
   buyLabel?: string;
-  currency?: 'gp' | 'cdp';
   onBuy: () => void;
 }) {
   let ctaLabel = buyLabel;
@@ -511,7 +505,7 @@ function GuildShopCard({
     ctaVariant = 'secondary';
     ctaDisabled = true;
   } else if (insufficient) {
-    ctaLabel = `${formatPrice(price - points, currency)} 부족`;
+    ctaLabel = `${formatGp(price - points)} 부족`;
     ctaVariant = 'secondary';
   }
 
@@ -527,7 +521,7 @@ function GuildShopCard({
           </h3>
           {!maxed && (
             <span className="shrink-0 text-sm font-bold tabular-nums whitespace-nowrap text-cdm-fg">
-              {formatPrice(price, currency)}
+              {formatGp(price)}
             </span>
           )}
         </div>
