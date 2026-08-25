@@ -39,6 +39,17 @@ interface NotifyNoticePublishedBody {
   category: string;
 }
 
+interface NotifyGuildScoutInviteBody {
+  secret: string;
+  memberId: string;
+  inviteId: string;
+  guildId: string;
+  guildName: string;
+  fromNickname: string;
+  targetHadGuild: boolean;
+  targetGuildName: string | null;
+}
+
 interface NotifyCdpAdjustedBody {
   secret: string;
   memberId: string;
@@ -107,6 +118,36 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
       // 소켓이 직전 disconnect (경쟁 조건): pending 저장
       sessions.addPendingTitle(token, payload);
       return reply.send({ status: 'pending_race' });
+    },
+  );
+
+  app.post<{ Body: NotifyGuildScoutInviteBody }>(
+    '/internal/notify-guild-scout-invite',
+    async (req, reply) => {
+      const { secret, memberId, ...payload } = req.body;
+      if (!isValidInternalSecret(secret)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      if (typeof memberId !== 'string' || !memberId || typeof payload.inviteId !== 'string') {
+        return reply.status(400).send({ error: 'invalid payload' });
+      }
+
+      const io = getIO();
+      const token = sessions.getTokenByMemberId(memberId);
+      const socketId = token ? sessions.getSocketByToken(token) : null;
+      const sock = io && socketId ? io.sockets.sockets.get(socketId) : null;
+      if (sock) {
+        sock.emit('guild:scout-invite', {
+          inviteId: payload.inviteId,
+          guildId: payload.guildId,
+          guildName: payload.guildName,
+          fromNickname: payload.fromNickname,
+          targetHadGuild: payload.targetHadGuild === true,
+          targetGuildName: payload.targetGuildName ?? null,
+        });
+        return reply.send({ status: 'emitted' });
+      }
+      return reply.send({ status: 'no_session' });
     },
   );
 

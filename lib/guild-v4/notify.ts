@@ -23,3 +23,30 @@ export async function notifyGuildMembers(memberIds: string[]): Promise<void> {
     await notifyGuildMembershipChanged(id);
   }
 }
+
+export async function notifyGuildScoutInvite(
+  memberId: string,
+  payload: {
+    inviteId: string;
+    guildId: string;
+    guildName: string;
+    fromNickname: string;
+    targetHadGuild: boolean;
+    targetGuildName: string | null;
+  },
+): Promise<void> {
+  const socketServerUrl =
+    process.env.SOCKET_SERVER_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_SOCKET_URL ??
+    'http://localhost:4001';
+  const internalSecret = process.env.INTERNAL_SECRET ?? 'dev-internal-secret';
+  try {
+    await fetch(`${socketServerUrl}/internal/notify-guild-scout-invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: internalSecret, memberId, ...payload }),
+    });
+  } catch {
+    // 소켓 다운 — 다음 접속 시 GET /api/guild2/scout
+  }
+}

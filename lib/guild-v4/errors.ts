@@ -28,6 +28,9 @@ export const GUILD_V4_ERROR_MSG: Record<string, { status: number; msg: string }>
   invalid_title: { status: 400, msg: '제목은 2~80자입니다.' },
   invalid_body: { status: 400, msg: '본문·댓글 길이를 확인해 주세요.' },
   notice_not_found: { status: 404, msg: '공지를 찾을 수 없습니다.' },
+  same_guild: { status: 409, msg: '우리 길드원은 스카우트할 수 없습니다.' },
+  target_is_owner: { status: 409, msg: '길드장은 스카우트할 수 없습니다.' },
+  already_scouted: { status: 409, msg: '이미 초대를 보낸 대상입니다.' },
 };
 
 export function mapGuildV4Error(message: string | undefined | null): { status: number; msg: string } {

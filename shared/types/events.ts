@@ -420,6 +420,16 @@ export interface ServerToClientEvents {
   }) => void;
   'player:reconnected': (data: { playerId: string; nickname: string }) => void;
 
+  /** 길드 스카우트 초대 — 대상 본인 */
+  'guild:scout-invite': (data: {
+    inviteId: string;
+    guildId: string;
+    guildName: string;
+    fromNickname: string;
+    targetHadGuild: boolean;
+    targetGuildName: string | null;
+  }) => void;
+
   /** 관리자가 칭호 부여 시 대상 유저에게 emit. 게임 중이면 게임 종료 후, 미접속이면 다음 접속 시 */
   'title:granted': (data: {
     titleId: string;

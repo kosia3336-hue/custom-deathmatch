@@ -8,6 +8,7 @@ import SessionTakeoverModal from '@/components/providers/SessionTakeoverModal';
 import TitleGrantedModal from '@/components/TitleGrantedModal';
 import { GuildRankPayoutModal } from '@/components/guild-v4/GuildRankPayoutModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
+import { GuildScoutMailListener } from '@/components/guild-v4/GuildScoutMailListener';
 import BgmProvider from '@/components/providers/BgmProvider';
 import SiteFooter from '@/components/layout/SiteFooter';
 import { getAccountSettings } from '@/lib/auth/server';
@@ -138,6 +139,7 @@ export default async function RootLayout({
             <TitleGrantedModal />
             <GuildRankPayoutModal />
             <NoticePublishedListener />
+            <GuildScoutMailListener />
             <ToastProvider />
           </BgmProvider>
         </SocketProvider>

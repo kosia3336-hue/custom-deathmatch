@@ -1,6 +1,7 @@
-/** 길드 현판. 대시보드 정보 카드만. 목록은 `GuildListClient` 밝은 카드. */
+/** 길드 현판. 대시보드 정보 카드 + 미가입 정보 모달. 목록 행은 `GuildListClient` 밝은 카드. */
 
 import type { ReactNode } from 'react';
+import type { GuildSummary } from '@/lib/guild/types';
 
 export function GuildBannerStyles() {
   return (
@@ -206,6 +207,43 @@ export function GuildBannerStyles() {
           height: 8.7rem;
         }
       }
+      @media (max-width: 639px) {
+        .guild-banner-in-modal {
+          padding: 1.1rem 0.85rem 1rem;
+        }
+        .guild-banner-in-modal .guild-banner-body {
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .guild-banner-in-modal .guild-banner-copy {
+          width: 100%;
+        }
+        .guild-banner-in-modal .guild-banner-flourish {
+          display: none;
+        }
+        .guild-banner-in-modal .guild-banner-title {
+          justify-content: center;
+        }
+        .guild-banner-in-modal .guild-banner-title h2 {
+          font-size: 1.35rem;
+          letter-spacing: 0.03em;
+          word-break: keep-all;
+        }
+        .guild-banner-in-modal .guild-banner-plates {
+          justify-content: center;
+        }
+        .guild-banner-in-modal .guild-banner-crest {
+          width: 4.5rem;
+        }
+        .guild-banner-in-modal .guild-banner-crest-inner img {
+          height: 5.05rem;
+        }
+        .guild-info-modal > .px-5 {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+        }
+      }
     `}</style>
   );
 }
@@ -282,14 +320,69 @@ export function GuildBannerCrest({ src, name }: { src: string; name: string }) {
   );
 }
 
-export function GuildBannerFrame({ children }: { children: ReactNode }) {
+export function GuildBannerFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className="guild-banner">
+    <section className={className ? `guild-banner ${className}` : 'guild-banner'}>
       <CornerOrnament className="guild-banner-corner guild-banner-corner-tl" />
       <CornerOrnament className="guild-banner-corner guild-banner-corner-tr" />
       <CornerOrnament className="guild-banner-corner guild-banner-corner-bl" />
       <CornerOrnament className="guild-banner-corner guild-banner-corner-br" />
       {children}
     </section>
+  );
+}
+
+/** 운영 길드 한 줄(마크·이름·Lv·길드장·정원·소개). 대시보드 현판과 같다. */
+export function GuildPublicBanner({
+  guild,
+  motto,
+  extra,
+  inModal = false,
+}: {
+  guild: GuildSummary;
+  motto?: ReactNode;
+  extra?: ReactNode;
+  inModal?: boolean;
+}) {
+  const hasMark = Boolean(guild.markUrl);
+  return (
+    <GuildBannerFrame className={inModal ? 'guild-banner-in-modal' : undefined}>
+      <div className="guild-banner-body" data-bare={hasMark ? undefined : ''}>
+        {guild.markUrl ? <GuildBannerCrest src={guild.markUrl} name={guild.name} /> : null}
+
+        <div className="guild-banner-copy">
+          <div className="guild-banner-title">
+            <BannerFlourish />
+            <h2>{guild.name}</h2>
+            <span className="guild-banner-lv">Lv.{guild.buffCdpLevel}</span>
+            <BannerFlourish flip />
+          </div>
+
+          <div className="guild-banner-plates">
+            <span className="guild-banner-plate">
+              <CrownIcon />
+              <em>길드장</em>
+              {guild.ownerNickname || '—'}
+            </span>
+            <span className="guild-banner-plate">
+              <PeopleIcon />
+              <em>정원</em>
+              <span className="tabular-nums">
+                {guild.memberCount}/{guild.capacity}
+              </span>
+            </span>
+          </div>
+
+          {motto ??
+            (guild.description ? (
+              <p className="guild-banner-motto">
+                <span>{guild.description}</span>
+              </p>
+            ) : null)}
+        </div>
+      </div>
+      {extra}
+      <GuildBannerStyles />
+    </GuildBannerFrame>
   );
 }
