@@ -87,24 +87,30 @@ import {
   quatroQuickThinkMs,
   capThinkToTurnLimit,
   turnTimeExpired,
+  psychologyThinkKind,
+  msForPsychologyThinkKind,
 } from './thinkTime.js';
 import { getDummyRecords, recordDummyResult, forgetDummyRecords } from './records.js';
 import { makeDummySocket } from './fakeSocket.js';
 import { isDummyGameImplemented } from './ai/index.js';
 import { pickFourGravityAction } from './ai/four-gravity.js';
 import { pickDoubleSidedChessActionAsync } from './ai/double-sided-chess.js';
-import { pickNumberFourActionAsync } from './ai/number4.js';
+import { pickNumberFourActionAsync, isNumberFourLastRound } from './ai/number4.js';
 import { pickIndianPokerActionAsync } from './ai/indian-poker.js';
 import { pickInvestDonateActionAsync } from './ai/invest-donate.js';
 import { pickBettingRpsActionAsync } from './ai/betting-rps.js';
-import { pickMultipleBnwActionAsync } from './ai/multiple-bnw.js';
-import { pickWinningStreakActionAsync, isWinningStreakHopeless } from './ai/winning-streak.js';
+import { pickMultipleBnwActionAsync, isMultipleBnwLastTile } from './ai/multiple-bnw.js';
+import {
+  pickWinningStreakActionAsync,
+  isWinningStreakHopeless,
+  isWinningStreakLastRound,
+} from './ai/winning-streak.js';
 import { pickBnw2ActionAsync } from './ai/bnw2.js';
 import { pickSilperBnwActionAsync, isSilperBnwScoreDecided } from './ai/silper-bnw.js';
 import { pickFiveTowersActionAsync, justUsedInfoThisTurn } from './ai/five-towers.js';
 import { pickGrapeSugar2ActionAsync } from './ai/grape-sugar-2.js';
 import { pickSunMoonStar2ActionAsync } from './ai/sun-moon-star-2.js';
-import { pickBankGameActionAsync } from './ai/bank-game.js';
+import { pickBankGameActionAsync, isBankGameLastRound } from './ai/bank-game.js';
 import { pickQuatroActionAsync } from './ai/quatro.js';
 import type { AIMove } from '../socket/games/four-gravity/types.js';
 
@@ -133,15 +139,37 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function stopDummyAgent(roomId: string): void {
-  const ctx = agents.get(roomId);
-  if (!ctx) return;
+function agentKey(roomId: string, dummyId: string): string {
+  return `${roomId}::${dummyId}`;
+}
+
+function isAgentRunning(roomId: string, dummyId: string): boolean {
+  return agents.has(agentKey(roomId, dummyId));
+}
+
+function forgetAgent(key: string, ctx: AgentCtx): void {
   clearInterval(ctx.timer);
-  agents.delete(roomId);
+  agents.delete(key);
   forgetDummyRecords(ctx.dummyId);
   if (!ctx.keepSession) {
     sessions.removeSession(ctx.dummyId);
   }
+}
+
+export function stopDummyAgent(roomId: string): void {
+  const prefix = `${roomId}::`;
+  for (const [key, ctx] of [...agents.entries()]) {
+    if (key === roomId || key.startsWith(prefix)) {
+      forgetAgent(key, ctx);
+    }
+  }
+}
+
+function stopThisAgent(roomId: string, dummyId: string): void {
+  const key = agentKey(roomId, dummyId);
+  const ctx = agents.get(key);
+  if (!ctx) return;
+  forgetAgent(key, ctx);
 }
 
 export function startDummyAgent(
@@ -155,10 +183,11 @@ export function startDummyAgent(
     tierForGame?: (gameId: string) => DummyAiTier;
   },
 ): void {
-  const prev = agents.get(roomId);
+  const key = agentKey(roomId, dummyId);
+  const prev = agents.get(key);
   if (prev) {
     clearInterval(prev.timer);
-    agents.delete(roomId);
+    agents.delete(key);
   }
   const sock = makeDummySocket(dummyId);
   const ctx: AgentCtx = {
@@ -176,12 +205,12 @@ export function startDummyAgent(
       void tick(io, roomId, ctx, sock);
     }, 400),
   };
-  agents.set(roomId, ctx);
+  agents.set(key, ctx);
 }
 
 async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<typeof makeDummySocket>): Promise<void> {
   if (ctx.busy) return;
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const room = roomStore.get(roomId);
   if (!room) {
@@ -189,7 +218,7 @@ async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<type
       ctx.endedNotified = true;
       ctx.onGameOver?.();
     }
-    stopDummyAgent(roomId);
+    stopThisAgent(roomId, ctx.dummyId);
     return;
   }
   if (room.status === 'finished') {
@@ -197,7 +226,7 @@ async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<type
       ctx.endedNotified = true;
       ctx.onGameOver?.();
     }
-    stopDummyAgent(roomId);
+    stopThisAgent(roomId, ctx.dummyId);
     return;
   }
   if (room.status !== 'playing') return;
@@ -271,9 +300,11 @@ async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<type
     if (!isDummyGameImplemented(room.gameId) && !ctx.skipStarted) {
       ctx.skipStarted = true;
       await sleep(1500);
-      if (!agents.has(roomId)) return;
+      if (!isAgentRunning(roomId, ctx.dummyId)) return;
       const still = roomStore.get(roomId);
       if (!still || still.status !== 'playing') return;
+      const host = still.players.find((p) => p.isHost);
+      if (host && host.id !== ctx.dummyId) return;
       const rankings = still.players.map((p) => ({
         playerId: p.id,
         nickname: p.nickname,
@@ -304,7 +335,7 @@ async function actBanPick(
 
   if (view.myBanTurn) {
     await sleep(thinkDelayMs(ctx.tier, 'ban'));
-    if (!agents.has(roomId)) return;
+    if (!isAgentRunning(roomId, ctx.dummyId)) return;
     const again = getBanPickDummyView(roomId, ctx.dummyId);
     if (!again?.myBanTurn) return;
     const banned = new Set(again.bannedGameIds);
@@ -317,14 +348,14 @@ async function actBanPick(
 
   if (view.myUnbanTurn) {
     await sleep(thinkDelayMs(ctx.tier, 'short'));
-    if (!agents.has(roomId)) return;
+    if (!isAgentRunning(roomId, ctx.dummyId)) return;
     handleBanPickUnbanSkip(sock, roomId, io);
     return;
   }
 
   if (view.lotteryReady) {
     await sleep(thinkDelayMs(ctx.tier, 'short'));
-    if (!agents.has(roomId)) return;
+    if (!isAgentRunning(roomId, ctx.dummyId)) return;
     handleBanPickReady(io, roomId, ctx.dummyId);
   }
 }
@@ -369,7 +400,7 @@ async function actFourGravity(
     )
     : boardGameFollowUpMs();
   if (waitMs > 0) await sleep(waitMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getFourGravityDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.data.currentPlayer !== ctx.dummyId) return;
@@ -414,14 +445,14 @@ async function actDoubleSidedChess(
     3000,
   );
   if (waitMs > 0) await sleep(waitMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getDoubleSidedChessDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.data.currentPlayer !== ctx.dummyId) return;
   if (turnTimeExpired(latest.turnStartedAt, latest.timeLimitSeconds)) return;
 
   const action = await pickDoubleSidedChessActionAsync(latest, ctx.dummyId, ctx.tier, roomId);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const after = getDoubleSidedChessDummyView(roomId, ctx.dummyId);
   if (!after || after.gameOver || after.data.currentPlayer !== ctx.dummyId) return;
@@ -465,14 +496,14 @@ async function actNumberFour(
   if (view.phase !== 'submit' || view.my.submitted) return;
   if (turnTimeExpired(view.turnStartedAt, view.timeLimitSeconds)) return;
 
-  // 심리 공통: 5~90초는 sleep 이 아니라 탐색 예산
+  // 심리 공통: 5~90초는 sleep 이 아니라 탐색 예산. 마지막(타일 자동)은 5~30.
   const budgetMs = capThinkToTurnLimit(
-    psychologyThinkMs(),
+    msForPsychologyThinkKind(psychologyThinkKind({ lastRound: isNumberFourLastRound(view) })),
     view.turnStartedAt,
     view.timeLimitSeconds,
   );
   const action = await pickNumberFourActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getNumberFourDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.phase !== 'submit' || latest.my.submitted) return;
@@ -512,7 +543,7 @@ async function actIndianPoker(
     view.timeLimitSeconds,
   );
   const action = await pickIndianPokerActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getIndianPokerDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.phase !== 'betting') return;
@@ -553,7 +584,7 @@ async function actInvestDonate(
     view.timeLimitSeconds,
   );
   const action = await pickInvestDonateActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getInvestDonateDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.phase !== 'submit' || latest.my.submitted) return;
@@ -596,7 +627,7 @@ async function actBettingRps(
     view.timeLimitSeconds,
   );
   const action = await pickBettingRpsActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getBettingRpsDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -646,12 +677,15 @@ async function actMultipleBnw(
   const isSuspect =
     view.phase === 'suspectFirst' || view.phase === 'suspectSecond';
   const budgetMs = capThinkToTurnLimit(
-    isSuspect ? shortPsychologyThinkMs() : psychologyThinkMs(),
+    msForPsychologyThinkKind(psychologyThinkKind({
+      lastRound: isMultipleBnwLastTile(view) && !isSuspect,
+      short: isSuspect,
+    })),
     view.turnStartedAt,
     view.timeLimitSeconds,
   );
   const action = await pickMultipleBnwActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getMultipleBnwDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -698,12 +732,15 @@ async function actWinningStreak(
   if (turnTimeExpired(view.turnStartedAt, view.timeLimitSeconds)) return;
 
   const budgetMs = capThinkToTurnLimit(
-    isWinningStreakHopeless(view) ? hopelessThinkMs() : psychologyThinkMs(),
+    msForPsychologyThinkKind(psychologyThinkKind({
+      hopeless: isWinningStreakHopeless(view),
+      lastRound: isWinningStreakLastRound(view),
+    })),
     view.turnStartedAt,
     view.timeLimitSeconds,
   );
   const action = await pickWinningStreakActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getWinningStreakDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver || latest.phase !== 'cardSelect' || latest.my.submitted) return;
@@ -746,7 +783,7 @@ async function actBnw2(
     view.timeLimitSeconds,
   );
   const action = await pickBnw2ActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getBnw2DummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -797,7 +834,7 @@ async function actSilperBnw(
     view.timeLimitSeconds,
   );
   const action = await pickSilperBnwActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getSilperBnwDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -842,7 +879,7 @@ async function actFiveTowers(
   const thinkMs = justUsedInfoThisTurn(view) ? shortPsychologyThinkMs() : psychologyThinkMs();
   const budgetMs = capThinkToTurnLimit(thinkMs, view.turnStartedAt, view.timeLimitSeconds);
   const action = await pickFiveTowersActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getFiveTowersDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -883,7 +920,7 @@ async function actGrapeSugar2(
     view.timeLimitSeconds,
   );
   const action = await pickGrapeSugar2ActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getGrapeSugar2DummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -929,7 +966,7 @@ async function actSunMoonStar2(
     view.timeLimitSeconds,
   );
   const action = await pickSunMoonStar2ActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getSunMoonStar2DummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -979,12 +1016,12 @@ async function actBankGame(
   if (turnTimeExpired(view.turnStartedAt, view.timeLimitSeconds)) return;
 
   const budgetMs = capThinkToTurnLimit(
-    psychologyThinkMs(),
+    msForPsychologyThinkKind(psychologyThinkKind({ lastRound: isBankGameLastRound(view) })),
     view.turnStartedAt,
     view.timeLimitSeconds,
   );
   const action = await pickBankGameActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getBankGameDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;
@@ -1041,7 +1078,7 @@ async function actQuatro(
     view.timeLimitSeconds,
   );
   const action = await pickQuatroActionAsync(view, ctx.dummyId, ctx.tier, budgetMs);
-  if (!agents.has(roomId)) return;
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
 
   const latest = getQuatroDummyView(roomId, ctx.dummyId);
   if (!latest || latest.gameOver) return;

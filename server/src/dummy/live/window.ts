@@ -1,7 +1,6 @@
 /**
  * 운영 더미 창·식별. 로스터는 roster.ts.
- * 타이탄: 매일 22:00 ≤ t < 24:00 KST.
- * 최연승: 매일 21:00 ≤ t < 22:30 KST.
+ * 타이탄 22:00–24:00 / 최연승 21:00–22:30 / Jack 23:30–01:00 / 아이언현성 22:30–00:30 (매일 KST).
  */
 
 export {
@@ -35,6 +34,14 @@ export function isTitanLiveWindow(d = new Date()): boolean {
 
 export function isYeonseungLiveWindow(d = new Date()): boolean {
   return isLiveDummyWindowOpen(findRosterByKey('yeonseung').window, d);
+}
+
+export function isJackLiveWindow(d = new Date()): boolean {
+  return isLiveDummyWindowOpen(findRosterByKey('jack').window, d);
+}
+
+export function isIronhyunseongLiveWindow(d = new Date()): boolean {
+  return isLiveDummyWindowOpen(findRosterByKey('ironhyunseong').window, d);
 }
 
 export function rejoinDelayMs(): number {

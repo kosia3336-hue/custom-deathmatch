@@ -46,6 +46,9 @@ describe('운영 더미 로비 접속 합성', () => {
       new Date('2026-08-23T12:10:00.000Z'),
       new Date('2026-08-23T13:10:00.000Z'),
       new Date('2026-08-23T13:40:00.000Z'),
+      new Date('2026-08-23T14:40:00.000Z'),
+      new Date('2026-08-23T15:10:00.000Z'),
+      new Date('2026-08-23T15:40:00.000Z'),
     ];
     for (const now of samples) {
       expect(nicknames(now)).toEqual(rosterOpenNicknames(now));

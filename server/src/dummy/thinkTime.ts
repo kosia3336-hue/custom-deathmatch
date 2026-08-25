@@ -51,7 +51,8 @@ export function psychologyThinkMs(): number {
 
 /**
  * 짧은 심리 판단: 5~30초, 10초 근처.
- * 인디언홀덤Q 액션, 배수 흑과백 **의심 여부** 등.
+ * 인디언홀덤Q 액션, 배수 흑과백 **의심 여부**·**마지막 1장**,
+ * 넘버4·연승·은행놀이 **마지막 라운드**, 5개의 탑 정보 직후.
  */
 export function shortPsychologyThinkSeconds(): number {
   return sampleUnimodalSecond(5, 30, 10);
@@ -119,4 +120,23 @@ export function capThinkToTurnLimit(
       : Number.POSITIVE_INFINITY;
   const target = Math.min(deadline, turnEnd);
   return Math.max(0, target - Date.now());
+}
+
+export type PsychologyThinkKind = 'hopeless' | 'short' | 'full';
+
+/** 절망 > 마지막 라운드/짧은 심리 > 기본 5~90. */
+export function psychologyThinkKind(opts: {
+  hopeless?: boolean;
+  lastRound?: boolean;
+  short?: boolean;
+}): PsychologyThinkKind {
+  if (opts.hopeless) return 'hopeless';
+  if (opts.lastRound || opts.short) return 'short';
+  return 'full';
+}
+
+export function msForPsychologyThinkKind(kind: PsychologyThinkKind): number {
+  if (kind === 'hopeless') return hopelessThinkMs();
+  if (kind === 'short') return shortPsychologyThinkMs();
+  return psychologyThinkMs();
 }

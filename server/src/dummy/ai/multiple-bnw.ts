@@ -58,6 +58,11 @@ function ofColor(tiles: MBNWTile[], color: MBNWTileColor): MBNWTile[] {
   return tiles.filter((t) => MBNW_TILE_COLOR[t] === color);
 }
 
+/** 마지막 1장 — 선택은 확정. 의심은 별도. */
+export function isMultipleBnwLastTile(view: MultipleBnwDummyView): boolean {
+  return view.my.remainingTiles.length <= 1 || view.round >= view.totalRounds;
+}
+
 /**
  * 공개 색 이력만으로 상대 잔여 타일 한 세계를 샘플.
  * COM처럼 실제 remainingTiles 를 읽지 않는다.

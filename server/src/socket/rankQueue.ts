@@ -314,14 +314,14 @@ async function buildRankMatchedRoom(
 
   startGame(io, room.id);
 
-  const dummyPlayer = [hostPlayer, guestPlayer].find((p) => isLiveDummyMemberId(p.memberId));
-  if (dummyPlayer?.memberId) {
-    const rt = getLiveDummyRuntime(dummyPlayer.memberId);
+  for (const p of [hostPlayer, guestPlayer]) {
+    if (!p.memberId || !isLiveDummyMemberId(p.memberId)) continue;
+    const rt = getLiveDummyRuntime(p.memberId);
     maybeStartLiveDummyAgent(
       io,
       room.id,
-      dummyPlayer.id,
-      dummyPlayer.memberId,
+      p.id,
+      p.memberId,
       rt?.defaultTier ?? '중',
     );
   }

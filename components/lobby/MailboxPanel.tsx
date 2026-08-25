@@ -148,50 +148,70 @@ function KindGlyph({ kind }: { kind: MailKind }) {
   );
 }
 
-function MailListRow({ mail, onOpen }: { mail: MailItem; onOpen: (id: string) => void }) {
+function MailListRow({
+  mail,
+  onOpen,
+  onDelete,
+}: {
+  mail: MailItem;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   const meta = KIND_META[mail.kind];
   const unread = !mail.readAt;
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(mail.id)}
+    <div
       className={cn(
-        'relative flex w-full gap-3 overflow-hidden px-3 py-3 text-left transition-colors',
+        'relative flex items-stretch overflow-hidden transition-colors',
         'hover:bg-cdm-bg-elev-1',
         unread ? 'bg-cdm-primary-soft/60' : 'bg-cdm-bg',
       )}
     >
       <span aria-hidden className={cn('absolute inset-y-0 left-0 w-0.5', meta.bar)} />
-      <span
-        className={cn(
-          'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-cdm-md',
-          meta.soft,
-          meta.fg,
-        )}
+      <button
+        type="button"
+        onClick={() => onOpen(mail.id)}
+        className="flex min-w-0 flex-1 gap-3 px-3 py-3 text-left"
       >
-        <KindGlyph kind={mail.kind} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-start justify-between gap-2">
+        <span
+          className={cn(
+            'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-cdm-md',
+            meta.soft,
+            meta.fg,
+          )}
+        >
+          <KindGlyph kind={mail.kind} />
+        </span>
+        <span className="min-w-0 flex-1">
           <span
             className={cn(
-              'truncate text-sm',
+              'block truncate text-sm',
               unread ? 'font-bold text-cdm-fg' : 'font-medium text-cdm-fg',
             )}
           >
             {mail.title}
           </span>
-          <span className="shrink-0 text-[11px] text-cdm-fg-subtle">{formatMailTime(mail.createdAt)}</span>
+          <span className="mt-0.5 block truncate text-xs text-cdm-fg-muted">{mail.body}</span>
+          <span className="mt-1.5 flex items-center gap-1.5">
+            {unread && (
+              <span className="h-1.5 w-1.5 rounded-full bg-cdm-primary" aria-label="미읽음" />
+            )}
+            <span className={cn('text-[11px] font-semibold', meta.fg)}>{meta.label}</span>
+          </span>
         </span>
-        <span className="mt-0.5 block truncate text-xs text-cdm-fg-muted">{mail.body}</span>
-        <span className="mt-1.5 flex items-center gap-1.5">
-          {unread && (
-            <span className="h-1.5 w-1.5 rounded-full bg-cdm-primary" aria-label="미읽음" />
-          )}
-          <span className={cn('text-[11px] font-semibold', meta.fg)}>{meta.label}</span>
-        </span>
-      </span>
-    </button>
+      </button>
+      <div className="flex shrink-0 flex-col items-end px-3 py-3">
+        <span className="text-[11px] text-cdm-fg-subtle">{formatMailTime(mail.createdAt)}</span>
+        <button
+          type="button"
+          onClick={() => onDelete(mail.id)}
+          className="mt-1 text-sm font-medium text-cdm-accent hover:text-cdm-accent-strong"
+          aria-label="이 편지 삭제"
+        >
+          삭제
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -295,7 +315,7 @@ function MailDetail({
             remove(mail.id);
             onBack();
           }}
-          className="mt-4 text-xs text-cdm-fg-subtle underline-offset-2 hover:text-cdm-accent hover:underline"
+          className="mt-4 text-sm font-medium text-cdm-accent hover:text-cdm-accent-strong"
         >
           이 편지 삭제
         </button>
@@ -310,6 +330,7 @@ export function MailboxPanel() {
   const hydrate = useMailboxStore((s) => s.hydrate);
   const markRead = useMailboxStore((s) => s.markRead);
   const markAllRead = useMailboxStore((s) => s.markAllRead);
+  const remove = useMailboxStore((s) => s.remove);
   const focusId = useMailboxStore((s) => s.focusId);
   const [openId, setOpenId] = useState<string | null>(null);
   const [scoutInfo, setScoutInfo] = useState<{
@@ -401,24 +422,22 @@ export function MailboxPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-cdm-bg-elev-1">
-      <div className="flex items-center justify-between gap-2 border-b border-cdm-border bg-cdm-bg px-4 py-2.5">
-        <p className="text-xs text-cdm-fg-muted">
-          {items.length === 0
-            ? '받은 편지 없음'
-            : unread > 0
-              ? `미읽음 ${unread}통`
-              : `전체 ${items.length}통`}
-        </p>
-        {unread > 0 && (
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="text-xs font-semibold text-cdm-primary hover:underline"
-          >
-            모두 읽음
-          </button>
-        )}
-      </div>
+      {items.length > 0 && (
+        <div className="flex items-center justify-between gap-2 border-b border-cdm-border bg-cdm-bg px-4 py-2.5">
+          <p className="text-xs text-cdm-fg-muted">
+            {unread > 0 ? `미읽음 ${unread}통` : `전체 ${items.length}통`}
+          </p>
+          {unread > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-xs font-semibold text-cdm-primary hover:underline"
+            >
+              모두 읽음
+            </button>
+          )}
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
@@ -426,11 +445,6 @@ export function MailboxPanel() {
             <EnvelopeIcon className="h-8 w-8" />
           </span>
           <p className="text-sm font-semibold text-cdm-fg">우편함이 비어 있습니다</p>
-          <p className="text-xs leading-relaxed text-cdm-fg-muted">
-            칭호를 얻거나 길드 보상을 받으면
-            <br />
-            여기에 남습니다.
-          </p>
         </div>
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-cdm-border overflow-y-auto bg-cdm-bg">
@@ -442,6 +456,7 @@ export function MailboxPanel() {
                   markRead(id);
                   setOpenId(id);
                 }}
+                onDelete={remove}
               />
             </li>
           ))}

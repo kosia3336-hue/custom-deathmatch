@@ -4,9 +4,12 @@ import { liveDummyTierFor, LIVE_DUMMY_TIER } from '@shared/dummy.js';
 import {
   isTitanLiveWindow,
   isYeonseungLiveWindow,
+  isJackLiveWindow,
+  isIronhyunseongLiveWindow,
   isLiveDummyEnabled,
   liveDummyTierForGame,
 } from '../dummy/live/window.js';
+import { isMinsInLiveWindow } from '../dummy/live/roster.js';
 
 describe('타이탄 활동 창', () => {
   it('2026-08-21 22:00 KST는 켜짐, 21:59는 꺼짐, 24:00(다음날 0시)는 꺼짐', () => {
@@ -59,5 +62,47 @@ describe('최연승 활동 창', () => {
     expect(liveDummyTierFor('최연승', GAME_IDS.DOUBLE_SIDED_CHESS)).toBe('중');
     expect(liveDummyTierFor('최연승', GAME_IDS.QUATRO)).toBe('중');
     expect(liveDummyTierFor('최연승', GAME_IDS.BAN_PICK)).toBe('중');
+  });
+});
+
+describe('자정 넘는 창', () => {
+  it('start > end 이면 밤과 다음날 새벽이 켜진다', () => {
+    expect(isMinsInLiveWindow(23 * 60 + 29, 23 * 60 + 30, 60)).toBe(false);
+    expect(isMinsInLiveWindow(23 * 60 + 30, 23 * 60 + 30, 60)).toBe(true);
+    expect(isMinsInLiveWindow(0, 23 * 60 + 30, 60)).toBe(true);
+    expect(isMinsInLiveWindow(59, 23 * 60 + 30, 60)).toBe(true);
+    expect(isMinsInLiveWindow(60, 23 * 60 + 30, 60)).toBe(false);
+  });
+});
+
+describe('Jack 활동 창', () => {
+  it('매일 23:30 KST는 켜짐, 23:29·01:00은 꺼짐', () => {
+    expect(isJackLiveWindow(new Date('2026-08-24T14:29:00.000Z'))).toBe(false);
+    expect(isJackLiveWindow(new Date('2026-08-24T14:30:00.000Z'))).toBe(true);
+    expect(isJackLiveWindow(new Date('2026-08-24T15:59:00.000Z'))).toBe(true);
+    expect(isJackLiveWindow(new Date('2026-08-24T16:00:00.000Z'))).toBe(false);
+  });
+
+  it('사목만 중, 나머지는 상', () => {
+    expect(liveDummyTierFor('Jack', GAME_IDS.FOUR_GRAVITY)).toBe('중');
+    expect(liveDummyTierFor('Jack', GAME_IDS.DOUBLE_SIDED_CHESS)).toBe('상');
+    expect(liveDummyTierFor('Jack', GAME_IDS.QUATRO)).toBe('상');
+    expect(liveDummyTierFor('Jack', GAME_IDS.BAN_PICK)).toBe('상');
+  });
+});
+
+describe('아이언현성 활동 창', () => {
+  it('매일 22:30 KST는 켜짐, 22:29·00:30은 꺼짐', () => {
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T13:29:00.000Z'))).toBe(false);
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T13:30:00.000Z'))).toBe(true);
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T15:29:00.000Z'))).toBe(true);
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T15:30:00.000Z'))).toBe(false);
+  });
+
+  it('사목만 하, 나머지는 중', () => {
+    expect(liveDummyTierFor('아이언현성', GAME_IDS.FOUR_GRAVITY)).toBe('하');
+    expect(liveDummyTierFor('아이언현성', GAME_IDS.DOUBLE_SIDED_CHESS)).toBe('중');
+    expect(liveDummyTierFor('아이언현성', GAME_IDS.QUATRO)).toBe('중');
+    expect(liveDummyTierFor('아이언현성', GAME_IDS.BAN_PICK)).toBe('중');
   });
 });

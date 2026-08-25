@@ -3,6 +3,8 @@ import type { DisplayedTitle } from '@shared/types/room.js';
 import { isLiveDummyMemberId } from '../dummy/live/state.js';
 
 const COOLDOWN_MS = 60_000;
+/** 더미끼리 붙으려면 양쪽 모두 이번 큐에 이 시간 이상 앉아 있어야 한다. 사람↔더미는 즉시. */
+export const DUMMY_VS_DUMMY_WAIT_MS = 10 * 60 * 1000;
 
 export interface RankQueueEntry {
   socketId: string;
@@ -64,11 +66,17 @@ function cooldownOk(a: RankQueueEntry, b: RankQueueEntry, now: number): boolean 
   return true;
 }
 
+function dummyVsDummyWaitOk(a: RankQueueEntry, b: RankQueueEntry, now: number): boolean {
+  return now - a.joinedAt >= DUMMY_VS_DUMMY_WAIT_MS && now - b.joinedAt >= DUMMY_VS_DUMMY_WAIT_MS;
+}
+
 function pickOpponent(self: RankQueueEntry, now: number): RankQueueEntry | null {
   const all = [...byMemberId.values()].filter((e) => e.memberId !== self.memberId);
   const pool = all.filter((e) => {
     if (!cooldownOk(self, e, now)) return false;
-    if (isLiveDummyMemberId(self.memberId) && isLiveDummyMemberId(e.memberId)) return false;
+    if (isLiveDummyMemberId(self.memberId) && isLiveDummyMemberId(e.memberId)) {
+      return dummyVsDummyWaitOk(self, e, now);
+    }
     return true;
   });
   console.log(

@@ -179,7 +179,7 @@ export const useMailboxStore = create<MailboxState>((set, get) => ({
     set((s) => {
       const items = s.items.filter((m) => m.id !== id);
       saveItems(items);
-      return { items };
+      return { items, focusId: s.focusId === id ? null : s.focusId };
     }),
 
   clearAll: () => {

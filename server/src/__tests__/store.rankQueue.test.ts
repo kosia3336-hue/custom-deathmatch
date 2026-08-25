@@ -1,5 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { rankQueueStore, type RankQueueEntry } from '../store/rankQueue.js';
+import { rankQueueStore, DUMMY_VS_DUMMY_WAIT_MS, type RankQueueEntry } from '../store/rankQueue.js';
+import { registerLiveDummy, resetLiveDummyStateForTests } from '../dummy/live/state.js';
+import { LIVE_DUMMY_ROSTER } from '../dummy/live/roster.js';
 
 function entry(name: string, rp: number, joinedAt: number): RankQueueEntry {
   return {
@@ -19,10 +21,11 @@ function entry(name: string, rp: number, joinedAt: number): RankQueueEntry {
 
 /** 각 테스트가 서로 영향을 주지 않도록 큐를 비운다 */
 function drain() {
-  for (const n of ['a', 'b', 'c']) {
+  for (const n of ['a', 'b', 'c', 'd1', 'd2']) {
     rankQueueStore.removeByMemberId(`member-${n}`);
     rankQueueStore.releaseMatch(`member-${n}`);
   }
+  resetLiveDummyStateForTests();
 }
 
 describe('rankQueueStore', () => {
@@ -76,5 +79,30 @@ describe('rankQueueStore', () => {
     rankQueueStore.enqueue(entry('a', 50, 1));
     rankQueueStore.removeBySocket('sock-a');
     expect(rankQueueStore.enqueue(entry('b', 50, 2)).matched).toBe(false);
+  });
+
+  it('더미끼리는 둘 다 10분 대기 전이면 안 붙고, 사람과는 즉시 붙는다', () => {
+    registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
+    registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
+    const now = Date.now();
+    rankQueueStore.enqueue(entry('d1', 50, now));
+    expect(rankQueueStore.enqueue(entry('d2', 50, now)).matched).toBe(false);
+    expect(rankQueueStore.enqueue(entry('a', 50, now + 1)).matched).toBe(true);
+  });
+
+  it('더미끼리는 둘 다 큐에서 10분을 기다리면 붙는다', () => {
+    registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
+    registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
+    const t = Date.now() - DUMMY_VS_DUMMY_WAIT_MS;
+    rankQueueStore.enqueue(entry('d1', 50, t));
+    expect(rankQueueStore.enqueue(entry('d2', 50, t)).matched).toBe(true);
+  });
+
+  it('더미 한 명만 10분을 채우면 더미끼리 안 붙는다', () => {
+    registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
+    registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
+    const now = Date.now();
+    rankQueueStore.enqueue(entry('d1', 50, now - DUMMY_VS_DUMMY_WAIT_MS));
+    expect(rankQueueStore.enqueue(entry('d2', 50, now)).matched).toBe(false);
   });
 });

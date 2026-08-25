@@ -29,6 +29,18 @@ export const LIVE_DUMMY_AI: readonly LiveDummyAiSpec[] = [
     defaultTier: '중',
     tierOverrides: { [GAME_IDS.FOUR_GRAVITY]: '하' },
   },
+  {
+    key: 'jack',
+    nickname: 'Jack',
+    defaultTier: '상',
+    tierOverrides: { [GAME_IDS.FOUR_GRAVITY]: '중' },
+  },
+  {
+    key: 'ironhyunseong',
+    nickname: '아이언현성',
+    defaultTier: '중',
+    tierOverrides: { [GAME_IDS.FOUR_GRAVITY]: '하' },
+  },
 ];
 
 export function getLiveDummyAi(nickname: string): LiveDummyAiSpec | undefined {
