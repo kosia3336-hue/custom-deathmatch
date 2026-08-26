@@ -16,6 +16,7 @@ import InfoPanel from './InfoPanel';
 import PlayerBadge from './PlayerBadge';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import TutorialCoach from './TutorialCoach';
 import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
 import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
@@ -42,6 +43,7 @@ export default function FourGravityGame() {
   const isAIMode = isSpecialSolo && !!gameData && (
     gameData.players.black.id === 'AI' || gameData.players.white.id === 'AI'
   );
+  const tutorial = gameData?.tutorial ?? null;
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
   const { remaining: timerRemaining } = useTurnTimer();
@@ -51,6 +53,7 @@ export default function FourGravityGame() {
   const shownWinnerRef = useRef<string | null>(null);
   useEffect(() => {
     if (!gameData?.winner || !gameData?.winType) return;
+    if (tutorial) return;
     if (shownWinnerRef.current === gameData.winner) return;
     shownWinnerRef.current = gameData.winner;
 
@@ -67,7 +70,7 @@ export default function FourGravityGame() {
     } else {
       toast.error(message, { duration: 5000 });
     }
-  }, [gameData, myId]);
+  }, [gameData, myId, tutorial]);
 
   if (!gameData) {
     return (
@@ -89,7 +92,7 @@ export default function FourGravityGame() {
   const handleGravity = (direction: Direction) => {
     if (!isMyTurn || gameData.phase !== 'gravity') return;
 
-    if (direction !== 'none' && gameData.placedPosition) {
+    if (!tutorial && direction !== 'none' && gameData.placedPosition) {
       const newBoard = applyGravity(gameData.board, direction);
       const movedPos = findMovedPosition(gameData.placedPosition, direction, gameData.board, newBoard);
       const candidates = calcNeutralCandidates(gameData.placedPosition, movedPos, newBoard);
@@ -108,6 +111,10 @@ export default function FourGravityGame() {
       getSocket().emit('game:action', { type: 'gravity', direction: pendingGravity });
       setPendingGravity(null);
     }
+  };
+
+  const ackTutorial = () => {
+    getSocket().emit('game:action', { type: 'tutorial-ack' });
   };
 
   return (
@@ -133,33 +140,41 @@ export default function FourGravityGame() {
           </Button>
         </div>
       </Modal>
-      <div className="flex h-full">
-        <div className="flex flex-1 flex-col lg:flex-row">
-          {/* 메인 영역: 보드 + 컨트롤 */}
-          <div className="flex flex-1 flex-col items-center justify-center gap-1 p-2 lg:p-4">
-            {/* 모바일: 플레이어 바 */}
-            <div className="mb-1 flex w-full max-w-md justify-between lg:hidden">
-              <PlayerBadge
-                player={gameData.players.black}
-                color="black"
-                isCurrent={gameData.currentColor === 'black'}
-                remaining={gameData.currentColor === 'black' ? timerRemaining : null}
-              />
-              <PlayerBadge
-                player={gameData.players.white}
-                color="white"
-                isCurrent={gameData.currentColor === 'white'}
-                remaining={gameData.currentColor === 'white' ? timerRemaining : null}
-              />
-            </div>
+      <div className="flex h-full min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          {/* 메인 영역: 보드 + 컨트롤. 튜토리얼 안내는 판을 밀지 않는다. */}
+          <div
+            className={`flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-2 lg:p-4 ${
+              tutorial ? 'justify-start lg:justify-center' : 'justify-center'
+            }`}
+          >
+            {/* 모바일: 플레이어 바 (튜토리얼은 안내가 대신하므로 숨김) */}
+            {!tutorial && (
+              <div className="mb-1 flex w-full max-w-md justify-between lg:hidden">
+                <PlayerBadge
+                  player={gameData.players.black}
+                  color="black"
+                  isCurrent={gameData.currentColor === 'black'}
+                  remaining={gameData.currentColor === 'black' ? timerRemaining : null}
+                />
+                <PlayerBadge
+                  player={gameData.players.white}
+                  color="white"
+                  isCurrent={gameData.currentColor === 'white'}
+                  remaining={gameData.currentColor === 'white' ? timerRemaining : null}
+                />
+              </div>
+            )}
 
             {/* 모바일: 상태 바 */}
-            <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
-              <span>턴 #{turnNumber}</span>
-              {gameData.lastGravity && (
-                <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
-              )}
-            </div>
+            {!tutorial && (
+              <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
+                <span>턴 #{turnNumber}</span>
+                {gameData.lastGravity && (
+                  <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
+                )}
+              </div>
+            )}
 
             <Board
               board={gameData.board}
@@ -170,16 +185,25 @@ export default function FourGravityGame() {
               placedPosition={gameData.placedPosition}
               winLine={gameData.winLine}
               winner={gameData.winner}
+              highlightCells={tutorial?.highlightCells}
               skin={skin}
               onCellClick={handleCellClick}
             />
 
-            <PhaseIndicator
-              phase={gameData.phase}
-              isMyTurn={isMyTurn}
-              winner={gameData.winner}
-              serverMessage={gameState?.message}
-            />
+            {tutorial ? (
+              <TutorialCoach
+                hint={tutorial}
+                onAck={ackTutorial}
+                className="mt-2 max-w-[min(100%,500px)]"
+              />
+            ) : (
+              <PhaseIndicator
+                phase={gameData.phase}
+                isMyTurn={isMyTurn}
+                winner={gameData.winner}
+                serverMessage={gameState?.message}
+              />
+            )}
 
             <GravitySelector
               phase={gameData.phase}
@@ -187,6 +211,7 @@ export default function FourGravityGame() {
               lastGravity={gameData.lastGravity}
               onSelect={handleGravity}
               winner={gameData.winner}
+              highlightGravity={tutorial?.highlightGravity}
             />
 
             {isSpecialSolo && !gameData.winner && (
@@ -204,7 +229,7 @@ export default function FourGravityGame() {
           </div>
 
           {/* 데스크탑: 정보 패널 */}
-          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
+          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-l lg:border-gray-200 lg:p-4">
             <InfoPanel
               turnNumber={turnNumber}
               players={gameData.players}

@@ -12,6 +12,7 @@ import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import InventoryInit from '@/components/providers/InventoryInit';
+import MailboxInit from '@/components/providers/MailboxInit';
 import { MobileTabBar } from './MobileTabBar';
 import type { CurrentMember } from '@/lib/auth/server';
 
@@ -63,6 +64,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
   return (
     <>
     <InventoryInit hasMember={Boolean(member)} />
+    <MailboxInit memberId={member?.id ?? null} ready={!loadingRight} />
     <header className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
         <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
@@ -162,11 +164,11 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
                   문의
                 </button>
                 <MenuLink href="/me?tab=settings" label="환경 설정" />
-                {member.role === 'admin' && (
+                {(member.role === 'admin' || member.canDevSwitch) && (
                   <>
                     <hr className="border-cdm-border" />
-                    <MenuLink href="/admin" label="관리자" />
-                    {member.nickname === '천하' && (
+                    {member.role === 'admin' && <MenuLink href="/admin" label="관리자" />}
+                    {member.canDevSwitch && (
                       <button
                         type="button"
                         onClick={() => {
@@ -216,7 +218,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
         onSuccess={() => setInquiryOpen(false)}
       />
     )}
-    {member?.nickname === '천하' && member.role === 'admin' && (
+    {member?.canDevSwitch && (
       <DevSwitchModal open={devSwitchOpen} onClose={() => setDevSwitchOpen(false)} />
     )}
   </>

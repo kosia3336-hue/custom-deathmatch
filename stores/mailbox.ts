@@ -1,109 +1,74 @@
 import { create } from 'zustand';
+import type { MailItem } from '@/lib/mailbox/types';
 
-export type MailKind = 'title' | 'guild' | 'notice' | 'reward' | 'system';
-
-export interface GuildScoutMail {
-  inviteId: string;
-  guildId: string;
-  guildName: string;
-  fromNickname: string;
-  targetHadGuild: boolean;
-  targetGuildName: string | null;
-}
-
-/** title:granted 페이로드. 예전 획득 모달과 같은 칸. */
-export interface TitleGrantedMail {
-  titleId: string;
-  name: string;
-  color: string;
-  description: string | null;
-  effect?: string | null;
-}
-
-export interface MailItem {
-  id: string;
-  kind: MailKind;
-  title: string;
-  body: string;
-  sender: string;
-  createdAt: number;
-  readAt: number | null;
-  titleGrant?: TitleGrantedMail;
-  scoutInvite?: GuildScoutMail;
-}
-
-export interface MailDraft {
-  id?: string;
-  kind: MailKind;
-  title: string;
-  body: string;
-  sender: string;
-  titleGrant?: TitleGrantedMail;
-  scoutInvite?: GuildScoutMail;
-}
+export type {
+  GuildScoutMail,
+  MailItem,
+  MailKind,
+  TitleGrantedMail,
+} from '@/lib/mailbox/types';
 
 interface MailboxState {
   items: MailItem[];
   hydrated: boolean;
-  /** 우편함 탭이 이 편지를 본문으로 연다. persist 안 함. */
   focusId: string | null;
   hydrate: () => void;
-  addMail: (draft: MailDraft) => MailItem | null;
+  refresh: () => Promise<void>;
   markRead: (id: string) => void;
   markAllRead: () => void;
   remove: (id: string) => void;
-  clearAll: () => void;
+  reset: () => void;
   setFocusId: (id: string | null) => void;
 }
 
-const STORAGE_KEY = 'cdm-mailbox-v1';
-const MAX_MAILS = 80;
+let fetchSeq = 0;
+const pendingReads = new Set<string>();
+const pendingDeletes = new Set<string>();
+let pendingAllRead = false;
 
-function loadItems(): MailItem[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as MailItem[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((m) => ({
-      id: String(m.id),
-      kind: m.kind,
-      title: m.title,
-      body: m.body,
-      sender: m.sender,
-      createdAt: m.createdAt,
-      readAt: m.readAt ?? null,
-      titleGrant: m.titleGrant,
-      scoutInvite: m.scoutInvite,
-    }));
-  } catch {
-    return [];
-  }
+function clearPending(): void {
+  pendingReads.clear();
+  pendingDeletes.clear();
+  pendingAllRead = false;
 }
 
-function saveItems(items: MailItem[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    /* quota / private mode */
+function mergeFetched(items: MailItem[]): MailItem[] {
+  const now = Date.now();
+  const visible = items.filter((m) => !pendingDeletes.has(m.id));
+  const fetchedIds = new Set(items.map((m) => m.id));
+
+  for (const id of [...pendingDeletes]) {
+    if (!fetchedIds.has(id)) pendingDeletes.delete(id);
   }
-}
+  for (const m of items) {
+    if (m.readAt) pendingReads.delete(m.id);
+  }
+  if (pendingAllRead && visible.every((m) => m.readAt || pendingReads.has(m.id))) {
+    pendingAllRead = false;
+  }
 
-let storageBound = false;
-
-function bindStorageSync() {
-  if (storageBound || typeof window === 'undefined') return;
-  storageBound = true;
-  window.addEventListener('storage', (e) => {
-    if (e.key !== STORAGE_KEY) return;
-    try {
-      const items = e.newValue ? (JSON.parse(e.newValue) as MailItem[]) : [];
-      useMailboxStore.setState({ items: Array.isArray(items) ? loadItems() : [] });
-    } catch {
-      /* ignore */
-    }
+  return visible.map((m) => {
+    if (m.readAt) return m;
+    if (pendingAllRead || pendingReads.has(m.id)) return { ...m, readAt: now };
+    return m;
   });
+}
+
+async function fetchList(): Promise<MailItem[]> {
+  const r = await fetch('/api/me/mailbox', { cache: 'no-store' });
+  const data = (await r.json()) as { items?: MailItem[]; error?: string };
+  if (!r.ok) throw new Error(data.error ?? '우편함을 불러오지 못했습니다.');
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+async function postAction(action: string, id?: string): Promise<void> {
+  const r = await fetch('/api/me/mailbox', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(id ? { action, id } : { action }),
+  });
+  const data = (await r.json()) as { error?: string };
+  if (!r.ok) throw new Error(data.error ?? '우편함 저장에 실패했습니다.');
 }
 
 export function mailboxUnreadCount(items: MailItem[]): number {
@@ -117,73 +82,65 @@ export const useMailboxStore = create<MailboxState>((set, get) => ({
 
   setFocusId: (id) => set({ focusId: id }),
 
+  reset: () => {
+    fetchSeq += 1;
+    clearPending();
+    set({ items: [], hydrated: false, focusId: null });
+  },
+
   hydrate: () => {
-    bindStorageSync();
     if (get().hydrated) return;
-    set({ items: loadItems(), hydrated: true });
+    void get().refresh();
   },
 
-  addMail: (draft) => {
-    const title = draft.title.trim();
-    const body = draft.body.trim();
-    if (!title || !body) return null;
-    const id =
-      draft.id?.trim() ||
-      (typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `mail-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  refresh: async () => {
+    const seq = ++fetchSeq;
+    try {
+      const items = await fetchList();
+      if (seq !== fetchSeq) return;
+      set({ items: mergeFetched(items), hydrated: true });
+    } catch {
+      if (seq !== fetchSeq) return;
+      set({ hydrated: true });
+    }
+  },
 
-    const existing = get().items.find((m) => m.id === id);
-    if (existing) return existing;
-
-    const item: MailItem = {
-      id,
-      kind: draft.kind,
-      title,
-      body,
-      sender: draft.sender.trim() || '시스템',
-      createdAt: Date.now(),
-      readAt: null,
-      titleGrant: draft.titleGrant,
-      scoutInvite: draft.scoutInvite,
-    };
-    set((s) => {
-      const items = [item, ...s.items].slice(0, MAX_MAILS);
-      saveItems(items);
-      return { items };
+  markRead: (id) => {
+    const prev = get().items;
+    if (!prev.some((m) => m.id === id && !m.readAt)) return;
+    pendingReads.add(id);
+    set({
+      items: prev.map((m) => (m.id === id && !m.readAt ? { ...m, readAt: Date.now() } : m)),
     });
-    return item;
+    void postAction('read', id).catch(() => {
+      pendingReads.delete(id);
+      void get().refresh();
+    });
   },
 
-  markRead: (id) =>
-    set((s) => {
-      if (!s.items.some((m) => m.id === id && !m.readAt)) return s;
-      const now = Date.now();
-      const items = s.items.map((m) =>
-        m.id === id && !m.readAt ? { ...m, readAt: now } : m,
-      );
-      saveItems(items);
-      return { items };
-    }),
+  markAllRead: () => {
+    const prev = get().items;
+    if (!prev.some((m) => !m.readAt)) return;
+    pendingAllRead = true;
+    const now = Date.now();
+    set({ items: prev.map((m) => (m.readAt ? m : { ...m, readAt: now })) });
+    void postAction('read_all').catch(() => {
+      pendingAllRead = false;
+      void get().refresh();
+    });
+  },
 
-  markAllRead: () =>
-    set((s) => {
-      if (!s.items.some((m) => !m.readAt)) return s;
-      const now = Date.now();
-      const items = s.items.map((m) => (m.readAt ? m : { ...m, readAt: now }));
-      saveItems(items);
-      return { items };
-    }),
-
-  remove: (id) =>
-    set((s) => {
-      const items = s.items.filter((m) => m.id !== id);
-      saveItems(items);
-      return { items, focusId: s.focusId === id ? null : s.focusId };
-    }),
-
-  clearAll: () => {
-    saveItems([]);
-    set({ items: [] });
+  remove: (id) => {
+    const s = get();
+    pendingDeletes.add(id);
+    pendingReads.delete(id);
+    set({
+      items: s.items.filter((m) => m.id !== id),
+      focusId: s.focusId === id ? null : s.focusId,
+    });
+    void postAction('delete', id).catch(() => {
+      pendingDeletes.delete(id);
+      void get().refresh();
+    });
   },
 }));

@@ -203,7 +203,8 @@ export default function GameShell({ children }: Props) {
     const isEventRoom =
       room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
       room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT;
-    const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom;
+    const showUndo =
+      !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
 
     setFooter(
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">

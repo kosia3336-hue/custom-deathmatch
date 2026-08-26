@@ -23,6 +23,7 @@ export const GUILD_V4_ERROR_MSG: Record<string, { status: number; msg: string }>
   cannot_target_self: { status: 400, msg: '본인은 대상으로 지정할 수 없습니다.' },
   member_not_found: { status: 404, msg: '길드원을 찾을 수 없습니다.' },
   invalid_logo: { status: 400, msg: '로고를 찾을 수 없습니다.' },
+  invalid_skin: { status: 400, msg: '판매 중인 랭킹 카드가 아닙니다.' },
   vice_full: { status: 409, msg: '부길드장 최대 정원이 모두 찼습니다.' },
   invalid_amount: { status: 400, msg: '금액이 올바르지 않습니다.' },
   invalid_title: { status: 400, msg: '제목은 2~80자입니다.' },

@@ -92,8 +92,9 @@ export function LobbyChatPanel() {
   }, [isOpen]);
 
   useEffect(() => {
-    useMailboxStore.getState().hydrate();
-  }, []);
+    if (!isOpen) return;
+    void useMailboxStore.getState().refresh();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!canSeeUsers && activeTab === 'users') setActiveTab('chat');

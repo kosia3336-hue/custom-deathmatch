@@ -26,7 +26,7 @@ export function GuildInfoModal({
       size="lg"
       className="guild-info-modal"
       footer={
-        <>
+        <div className={`flex w-full gap-2 ${canApply ? 'justify-between' : 'justify-end'}`}>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             닫기
           </Button>
@@ -35,7 +35,7 @@ export function GuildInfoModal({
               가입 신청
             </Button>
           ) : null}
-        </>
+        </div>
       }
     >
       <GuildPublicBanner guild={guild} inModal />

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import type { GuildV4UnseenPayout } from '@/lib/guild-v4/types';
-import { ingestGuildRankPayoutMail } from '@/lib/mailbox/ingest';
+import { useMailboxStore } from '@/stores/mailbox';
 
 async function ackPayout(p: GuildV4UnseenPayout): Promise<void> {
   await fetch('/api/guild2', {
@@ -30,8 +30,10 @@ export function GuildRankPayoutModal() {
         const payouts = json.payouts ?? [];
         if (cancelled || payouts.length === 0) return;
 
+        // 먼저 우편을 넣는다. ack를 먼저 하면 첫 INSERT가 읽음이 된다.
+        await useMailboxStore.getState().refresh();
+        if (cancelled) return;
         for (const p of payouts) {
-          ingestGuildRankPayoutMail(p);
           try {
             await ackPayout(p);
           } catch {

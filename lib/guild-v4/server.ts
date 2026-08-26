@@ -4,6 +4,7 @@ import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
 import { loadResolvedDisplayedTitles } from '@shared/titles/resolve-displayed';
 import { getMyGuildState } from '@/lib/guild/server';
 import type { GuildSummary } from '@/lib/guild/types';
+import { guildRankSizeDivisor } from '@/components/guild-v4/rankScore';
 import { DEV_DEFAULT_TILE_ORDER, normalizeTileOrder } from '@/components/guild-v4/tiles';
 import { guildRankPeriodAnchor, isGuildRankSettleHourKst } from '@shared/rank/kst';
 import type {
@@ -11,11 +12,13 @@ import type {
   GuildV4GrantLog,
   GuildV4InvestLog,
   GuildV4Notice,
+  GuildV4PersonalRank,
   GuildV4RankScores,
   GuildV4Snapshot,
   GuildV4Sponsor,
   GuildV4UnseenPayout,
 } from './types';
+import { parseRankCardShopSkinId } from '@shared/rank-card-skins';
 import { formatGuildRankPeriodLabel } from './payoutFormat';
 
 type Sb = ReturnType<typeof getSupabaseServiceRole>;
@@ -84,6 +87,13 @@ async function listActiveGuilds(sb: Sb): Promise<GuildSummary[]> {
     markUrl: g.mark_url ?? null,
     buffCdpLevel: Number(g.buff_cdp_level ?? 0),
   }));
+}
+
+export async function loadActiveGuildSummary(guildId: string): Promise<GuildSummary | null> {
+  if (!guildId) return null;
+  const sb = getSupabaseServiceRole();
+  const guilds = await listActiveGuilds(sb);
+  return guilds.find((g) => g.id === guildId) ?? null;
 }
 
 function seoulYmd(date = new Date()): string {
@@ -180,42 +190,158 @@ function emptyContrib(): GuildV4ContribScores {
   return { daily: 0, weekly: 0, all: 0 };
 }
 
-async function loadContribs(
+/** 길드 랭킹 점수 적립이 시작된 주(w:2026-08-24) 01:00 KST. 그 전 경기는 점수에 안 들어갔다. */
+const GUILD_RANK_SCORE_SINCE = '2026-08-24T01:00:00+09:00';
+
+type RankRosterRow = {
+  memberId: string;
+  guildId: string;
+  joinedAt: string;
+};
+
+async function loadMemberRankScores(
   sb: Sb,
-  guildId: string,
-  memberIds: string[],
+  roster: RankRosterRow[],
 ): Promise<Record<string, GuildV4ContribScores>> {
   const out: Record<string, GuildV4ContribScores> = {};
-  for (const id of memberIds) out[id] = emptyContrib();
+  const joinedAt = new Map<string, number>();
+  const guildOf = new Map<string, string>();
+  const byGuild = new Map<string, RankRosterRow[]>();
+  for (const m of roster) {
+    out[m.memberId] = emptyContrib();
+    joinedAt.set(m.memberId, Date.parse(m.joinedAt));
+    guildOf.set(m.memberId, m.guildId);
+    const list = byGuild.get(m.guildId) ?? [];
+    list.push(m);
+    byGuild.set(m.guildId, list);
+  }
+  if (roster.length === 0) return out;
 
-  const { data } = await sb
-    .from('guild_point_ledger')
-    .select('member_id, delta, created_at, reason')
-    .eq('guild_id', guildId)
-    .gt('delta', 0)
-    .in('reason', ['rank_win', 'rank_loss', 'rank_draw']);
+  const memberIds = roster.map((m) => m.memberId);
+  const guildIds = [...byGuild.keys()];
+  const [winRes, lossRes, drawRes] = await Promise.all([
+    sb
+      .from('rank_match_history')
+      .select('winner_id, winner_rp_gain, played_at')
+      .in('winner_id', memberIds)
+      .gte('played_at', GUILD_RANK_SCORE_SINCE)
+      .limit(5000),
+    sb
+      .from('rank_match_history')
+      .select('loser_id, loser_rp_loss, played_at')
+      .in('loser_id', memberIds)
+      .gte('played_at', GUILD_RANK_SCORE_SINCE)
+      .limit(5000),
+    sb
+      .from('guild_point_ledger')
+      .select('member_id, created_at')
+      .in('guild_id', guildIds)
+      .eq('reason', 'rank_draw')
+      .gte('created_at', GUILD_RANK_SCORE_SINCE)
+      .limit(5000),
+  ]);
 
   const today = seoulYmd();
   const weekStart = mondayOf(today);
   const dayStart = Date.parse(`${today}T00:00:00+09:00`);
   const weekStartMs = Date.parse(`${weekStart}T00:00:00+09:00`);
 
-  for (const row of (data ?? []) as {
+  const nAt = (guildId: string, t: number) => {
+    let n = 0;
+    for (const m of byGuild.get(guildId) ?? []) {
+      if (Date.parse(m.joinedAt) <= t) n += 1;
+    }
+    return n;
+  };
+
+  const add = (memberId: string, material: number, at: string) => {
+    const slot = out[memberId];
+    const guildId = guildOf.get(memberId);
+    if (!slot || !guildId || material <= 0) return;
+    const t = Date.parse(at);
+    const joined = joinedAt.get(memberId);
+    if (!Number.isFinite(t) || joined == null || t < joined) return;
+    const score = material / guildRankSizeDivisor(nAt(guildId, t));
+    if (score <= 0) return;
+    slot.all += score;
+    if (t >= weekStartMs) slot.weekly += score;
+    if (t >= dayStart) slot.daily += score;
+  };
+
+  for (const row of (winRes.data ?? []) as {
+    winner_id: string;
+    winner_rp_gain: number;
+    played_at: string;
+  }[]) {
+    add(row.winner_id, Math.max(0, Math.round(Number(row.winner_rp_gain))), row.played_at);
+  }
+  for (const row of (lossRes.data ?? []) as {
+    loser_id: string;
+    loser_rp_loss: number;
+    played_at: string;
+  }[]) {
+    const loss = Number(row.loser_rp_loss);
+    if (loss <= 0) continue;
+    add(row.loser_id, Math.max(1, Math.round(loss * 0.2)), row.played_at);
+  }
+  for (const row of (drawRes.data ?? []) as {
     member_id: string | null;
-    delta: number;
     created_at: string;
-    reason: string;
   }[]) {
     if (!row.member_id) continue;
-    const slot = out[row.member_id] ?? emptyContrib();
-    const gp = Number(row.delta);
-    slot.all += gp;
-    const t = Date.parse(row.created_at);
-    if (t >= weekStartMs) slot.weekly += gp;
-    if (t >= dayStart) slot.daily += gp;
-    out[row.member_id] = slot;
+    add(row.member_id, 5, row.created_at);
   }
   return out;
+}
+
+async function loadPersonalRanks(
+  sb: Sb,
+  guilds: GuildSummary[],
+  roster: RankRosterRow[],
+  scores: Record<string, GuildV4ContribScores>,
+): Promise<GuildV4PersonalRank[]> {
+  const guildById = new Map(guilds.map((g) => [g.id, g]));
+  const candidates = roster
+    .map((m) => {
+      const g = guildById.get(m.guildId);
+      return {
+        memberId: m.memberId,
+        guildId: m.guildId,
+        guildName: g?.name ?? '',
+        markUrl: g?.markUrl ?? null,
+        score: scores[m.memberId]?.all ?? 0,
+      };
+    })
+    .filter((m) => Math.round(m.score) > 0);
+  if (candidates.length === 0) return [];
+
+  const ids = candidates.map((c) => c.memberId);
+  const [nicknames, titleRows] = await Promise.all([
+    fetchNicknames(sb, ids),
+    sb.from('members').select('id, displayed_title_id, displayed_effect_id').in('id', ids),
+  ]);
+  const titleMap = await loadResolvedDisplayedTitles(
+    sb,
+    (titleRows.data ?? []) as Array<{
+      id: string;
+      displayed_title_id: string | null;
+      displayed_effect_id: string | null;
+    }>,
+  );
+
+  return candidates
+    .map((c) => {
+      const t = titleMap.get(c.memberId);
+      return {
+        ...c,
+        nickname: nicknames.get(c.memberId) ?? '',
+        title: t ? { id: t.id, name: t.name, color: t.color, effect: t.effect } : null,
+      };
+    })
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.nickname.localeCompare(b.nickname, 'ko');
+    });
 }
 
 async function loadInvest(
@@ -320,6 +446,21 @@ async function loadRankScores(
   return out;
 }
 
+async function loadActiveRankCard(
+  sb: Sb,
+  guildId: string,
+): Promise<GuildV4Snapshot['rankCard']> {
+  const { data } = await from(sb, 'guild_rank_card_skins')
+    .select('skin_id, expires_at')
+    .eq('guild_id', guildId)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+  const row = data as { skin_id?: string; expires_at?: string } | null;
+  const skinId = parseRankCardShopSkinId(row?.skin_id ?? null);
+  if (!skinId || !row?.expires_at) return null;
+  return { skinId, expiresAt: row.expires_at };
+}
+
 export async function loadGuildV4Snapshot(memberId: string, nickname: string): Promise<GuildV4Snapshot> {
   const sb = getSupabaseServiceRole();
   const keys = await currentPeriodKeys(sb);
@@ -331,12 +472,24 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     sb.from('member_cdp').select('balance').eq('member_id', memberId).maybeSingle(),
   ]);
   const myCdp = Number((cdpRow.data as { balance?: number } | null)?.balance ?? 0);
-  const rankScores = await loadRankScores(
-    sb,
-    guilds.map((g) => g.id),
-    keys.weekly,
-    keys.monthly,
-  );
+  const guildIds = guilds.map((g) => g.id);
+  const rankScores = await loadRankScores(sb, guildIds, keys.weekly, keys.monthly);
+
+  const { data: rosterData } =
+    guildIds.length === 0
+      ? { data: [] }
+      : await sb.from('guild_members').select('guild_id, member_id, joined_at').in('guild_id', guildIds);
+  const roster: RankRosterRow[] = ((rosterData ?? []) as {
+    guild_id: string;
+    member_id: string;
+    joined_at: string;
+  }[]).map((r) => ({
+    memberId: r.member_id,
+    guildId: r.guild_id,
+    joinedAt: r.joined_at,
+  }));
+  const allContribs = await loadMemberRankScores(sb, roster);
+  const personalRanks = await loadPersonalRanks(sb, guilds, roster, allContribs);
 
   const empty: GuildV4Snapshot = {
     meId: memberId,
@@ -350,8 +503,10 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     investLogs: [],
     grantLogs: [],
     rankScores,
+    personalRanks,
     myCdp,
     tileOrder: [...DEV_DEFAULT_TILE_ORDER],
+    rankCard: null,
   };
 
   if (!my.guild) return empty;
@@ -382,11 +537,14 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     titles[id] = t ? { id: t.id, name: t.name, color: t.color, effect: t.effect } : null;
   }
 
-  const [notices, contribs, invest, grantLogs] = await Promise.all([
+  const contribs: Record<string, GuildV4ContribScores> = {};
+  for (const id of memberIds) contribs[id] = allContribs[id] ?? emptyContrib();
+
+  const [notices, invest, grantLogs, rankCard] = await Promise.all([
     loadNotices(sb, guildId),
-    loadContribs(sb, guildId, memberIds),
     loadInvest(sb, guildId, memberIds),
     loadGrants(sb, guildId),
+    loadActiveRankCard(sb, guildId),
   ]);
 
   return {
@@ -398,6 +556,7 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     investLogs: invest.logs,
     grantLogs,
     tileOrder,
+    rankCard,
   };
 }
 

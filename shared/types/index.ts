@@ -11,7 +11,7 @@ export {
   applyRankWin,
   applyRankLoss,
 } from './rank';
-export { AI_PLAYER_ID } from './room';
+export { AI_PLAYER_ID, PLAY_MODES, PLAY_MODE_LABEL, isSoloLikePlayMode, isPlayMode, gameSupportsPlayMode } from './room';
 export {
   CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,

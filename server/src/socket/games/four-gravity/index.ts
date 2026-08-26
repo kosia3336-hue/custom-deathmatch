@@ -3,7 +3,7 @@ import type { Player, PlayMode } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import { BOARD_SIZE } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { Direction, EndGameFn } from './types.js';
+import type { Direction, EndGameFn, InternalState } from './types.js';
 import { createEmptyBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
 import { checkWin } from './win.js';
 import type { FourGravityPlayerInfo } from './types.js';
@@ -23,6 +23,16 @@ import {
   hasPartialTurnFourGravity,
   toGameData,
 } from './state.js';
+import {
+  TUTORIAL_GUIDE_ID,
+  applyTutorialLesson,
+  clearTutorialComTimer,
+  tickTutorialCom,
+  tutorialAck,
+  tutorialPlace,
+  tutorialGravity,
+  tutorialNeutral,
+} from './tutorial.js';
 
 export type { EndGameFn };
 
@@ -50,6 +60,9 @@ export function initFourGravity(
     const p1 = players[1];
     blackPlayer = { id: p0.id, nickname: p0.nickname, stoneCount: 0 };
     whitePlayer = { id: p1.id, nickname: p1.nickname, stoneCount: 0 };
+  } else if (playMode === 'tutorial') {
+    blackPlayer = { id: TUTORIAL_GUIDE_ID, nickname: 'COM', stoneCount: 0 };
+    whitePlayer = { id: players[0].id, nickname: players[0].nickname, stoneCount: 0 };
   } else if (playMode === 'solo') {
     blackPlayer = { id: players[0].id, nickname: `${players[0].nickname} (흑)`, stoneCount: 0 };
     whitePlayer = { id: players[0].id, nickname: `${players[0].nickname} (백)`, stoneCount: 0 };
@@ -87,9 +100,17 @@ export function initFourGravity(
     actionLog: [],
     undoSnapshots: [],
     ownerToken,
+    tutorialStep: playMode === 'tutorial' ? 'intro' : null,
+    tutorialCom: null,
+    tutorialComTimer: null,
   });
 
   const s = gameStates.get(roomId)!;
+  if (playMode === 'tutorial') {
+    applyTutorialLesson(s, 'intro');
+    broadcastState(io, s);
+    return;
+  }
   startTurnTimer(io, s);
   broadcastState(io, s);
 
@@ -109,6 +130,10 @@ export function handleFourGravityAction(
   if (!s || s.gameOver) return;
 
   const myId = sessions.getToken(socket.id) ?? socket.id;
+  if (s.playMode === 'tutorial') {
+    handleTutorialAction(io, socket, s, myId, data);
+    return;
+  }
   if (myId !== s.currentPlayer) {
     socket.emit('error', { message: '상대 턴입니다.' });
     return;
@@ -222,9 +247,97 @@ export function handleFourGravityAction(
   }
 }
 
+function armTutorialComTick(io: IO, s: InternalState) {
+  clearTutorialComTimer(s);
+  if (!s.tutorialCom) return;
+  s.tutorialComTimer = setTimeout(() => {
+    s.tutorialComTimer = null;
+    if (!gameStates.has(s.roomId) || s.gameOver || !s.tutorialCom) return;
+    tickTutorialCom(s);
+    broadcastState(io, s);
+    if (s.tutorialCom) armTutorialComTick(io, s);
+  }, 1000);
+}
+
+function handleTutorialAction(
+  io: IO,
+  socket: TypedSocket,
+  s: InternalState,
+  myId: string,
+  data: Record<string, unknown>,
+) {
+  if (myId !== s.whitePlayer.id) {
+    socket.emit('error', { message: '튜토리얼은 플레이어만 진행할 수 있습니다.' });
+    return;
+  }
+
+  switch (data.type) {
+    case 'tutorial-ack': {
+      const result = tutorialAck(s);
+      if ('error' in result) {
+        socket.emit('error', { message: result.error });
+      } else if (result.complete) {
+        handleWin(io, s, { winner: 'current', type: 'white', line: s.winLine ?? [] });
+      } else {
+        broadcastState(io, s);
+        armTutorialComTick(io, s);
+      }
+      return;
+    }
+    case 'place': {
+      const row = data.row;
+      const col = data.col;
+      if (
+        typeof row !== 'number' ||
+        typeof col !== 'number' ||
+        !Number.isInteger(row) ||
+        !Number.isInteger(col)
+      ) {
+        return;
+      }
+      const err = tutorialPlace(s, row, col);
+      if (err) socket.emit('error', { message: err });
+      else broadcastState(io, s);
+      return;
+    }
+    case 'gravity': {
+      const dir = data.direction as Direction;
+      if (!['up', 'down', 'left', 'right', 'none'].includes(dir)) return;
+      const result = tutorialGravity(s, dir);
+      if (result === 'broadcast') {
+        broadcastState(io, s);
+      } else {
+        socket.emit('error', { message: result });
+      }
+      return;
+    }
+    case 'neutral': {
+      const row = data.row;
+      const col = data.col;
+      if (
+        typeof row !== 'number' ||
+        typeof col !== 'number' ||
+        !Number.isInteger(row) ||
+        !Number.isInteger(col)
+      ) {
+        return;
+      }
+      const err = tutorialNeutral(s, row, col);
+      if (err) socket.emit('error', { message: err });
+      else {
+        broadcastState(io, s);
+        armTutorialComTick(io, s);
+      }
+    }
+  }
+}
+
 export function cleanupFourGravity(roomId: string) {
   const s = gameStates.get(roomId);
-  if (s) clearTurnTimer(s);
+  if (s) {
+    clearTurnTimer(s);
+    clearTutorialComTimer(s);
+  }
   gameStates.delete(roomId);
   terminateAIWorker(roomId);
 }
@@ -259,6 +372,7 @@ export { performFourGravityUndo } from './state.js';
 export function canFourGravityUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
   if (!s) return false;
+  if (s.playMode === 'tutorial') return false;
   if (s.gameOver && !s.ownerToken) return false;
   if (hasPartialTurnFourGravity(s)) return s.undoSnapshots.length >= 1;
   const wantDouble = s.playMode === 'com' && s.currentPlayer !== AI_PLAYER_ID;
@@ -273,6 +387,7 @@ export function handleFourGravityToggleAI(
 ) {
   const s = gameStates.get(roomId);
   if (!s || !s.ownerToken || s.gameOver) return;
+  if (s.playMode === 'tutorial') return;
 
   const myId = sessions.getToken(socket.id) ?? socket.id;
   if (myId !== s.ownerToken) return;

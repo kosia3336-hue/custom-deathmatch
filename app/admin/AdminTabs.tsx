@@ -6,6 +6,7 @@ import { Tabs, type TabItem } from '@/components/cdm/Tabs';
 const TABS: TabItem[] = [
   { id: 'dashboard', label: '대시보드' },
   { id: 'members', label: '회원' },
+  { id: 'guilds', label: '길드' },
   { id: 'titles', label: '칭호' },
   { id: 'rank', label: '랭크' },
   { id: 'shop', label: '상점' },

@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { AI_PLAYER_ID, isSoloLikePlayMode } from '@shared/types/room.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
 import type {
   Room,
@@ -105,7 +105,7 @@ export const roomStore = {
       maxPlayers: opts.playMode === 'multi' ? opts.maxPlayers : opts.playMode === 'com' ? 2 : 1,
       players: opts.playMode === 'com' ? [opts.host, makeAiPlayer()] : [opts.host],
       spectators: [],
-      status: opts.playMode === 'solo' ? 'playing' : 'waiting',
+      status: isSoloLikePlayMode(opts.playMode) ? 'playing' : 'waiting',
       hostId: opts.host.id,
       inviteToken: null,
       timeLimitSeconds: opts.timeLimitSeconds ?? null,
@@ -344,7 +344,7 @@ export const roomStore = {
     room.players = playMode === 'com' ? [...keptHumans, makeAiPlayer()] : keptHumans;
     room.playMode = playMode;
     room.maxPlayers = targetMaxPlayers;
-    room._minPlayers = playMode === 'solo' ? 1 : opts.minPlayers;
+    room._minPlayers = isSoloLikePlayMode(playMode) ? 1 : opts.minPlayers;
     room.turnOrderMode = 'random';
     if (playMode !== 'multi') room.timeLimitSeconds = null;
 

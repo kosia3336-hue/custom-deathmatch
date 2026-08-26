@@ -66,7 +66,7 @@ describe('운영 더미 로비 접속 합성', () => {
       window: { kind: 'daily', startMin: 0, endMin: 24 * 60 },
     };
     registerLiveDummy('mem-extra', extra);
-    const atNightOffHours = new Date('2026-08-23T11:00:00.000Z');
+    const atNightOffHours = new Date('2026-08-24T11:00:00.000Z');
     expect(rosterOpenNicknames(atNightOffHours)).not.toContain('추가더미');
     expect(nicknames(atNightOffHours)).toContain('추가더미');
   });
@@ -74,7 +74,7 @@ describe('운영 더미 로비 접속 합성', () => {
   it('소켓 명단과 memberId가 겹치면 한 번만', () => {
     const first = LIVE_DUMMY_ROSTER[0];
     if (!first) throw new Error('로스터가 비어 있다');
-    const now = new Date('2026-08-23T13:10:00.000Z');
+    const now = new Date('2026-08-24T13:10:00.000Z');
     const fromSockets: OnlineUser[] = [
       { memberId: `mem-${first.key}`, nickname: first.nickname, status: 'lobby' },
     ];

@@ -7,6 +7,7 @@ import type {
   InvestDonateAction,
 } from '@shared/types/invest-donate.js';
 import { coinValue, stockTotal } from '@shared/types/invest-donate.js';
+import { dummyStyle, pickWeighted } from '../style.js';
 import { runPsychologySearch } from '../psychologySearch.js';
 
 /**
@@ -389,18 +390,32 @@ function applyTierNoise(best: Plan, pool: Plan[], tier: DummyAiTier): Plan {
     return best;
   }
   if (tier === '중') {
-    if (r < 0.18) {
-      const band = sorted.filter((p) => p.score >= best.score - 0.45).slice(0, 4);
+    if (r < 0.08) {
+      const band = sorted.filter((p) => p.score >= best.score - 0.32).slice(0, 3);
       const alts = band.filter((p) => !same(p, best));
       return alts.length > 0 ? alts[Math.floor(Math.random() * alts.length)]! : best;
     }
     return best;
   }
-  if (r < 0.05) {
+  if (r < 0.03) {
     const second = sorted.find((p) => !same(p, best));
     return second && second.score >= best.score - 0.28 ? second : best;
   }
   return best;
+}
+
+function pickOpeningPlan(pool: Plan[], dummyId: string): Plan {
+  const sorted = [...pool].sort((a, b) => b.score - a.score);
+  const top = sorted.slice(0, Math.min(4, sorted.length));
+  if (top.length <= 1) return top[0] ?? pool[0]!;
+  const style = dummyStyle(dummyId);
+  const bestS = top[0]!.score;
+  return pickWeighted(
+    top.map((p, i) => ({
+      item: p,
+      w: Math.exp((p.score - bestS) / 0.4) * (i === 0 ? 1.15 + style.aggression : 0.8 + style.dump),
+    })),
+  );
 }
 
 /**
@@ -464,6 +479,14 @@ export async function pickInvestDonateActionAsync(
         else s -= 1.4;
       }
 
+      if (roundsLeft <= 2 && view.my.score <= view.opp.score + 1) {
+        if (p.donateTotal > opp.donate) s += 1.2;
+        else s -= 1.1;
+      }
+      if (roundsLeft <= 1 && view.my.score === view.opp.score) {
+        if (p.donateTotal > opp.donate) s += 1.5;
+      }
+
       if (oppHistI.length === 0 && p.invest.coin1 >= 2 && p.invest.coin10 === 0 && p.invest.coin50 === 0) {
         s -= 0.15;
       }
@@ -477,7 +500,9 @@ export async function pickInvestDonateActionAsync(
   }
 
   const best = plans.reduce((a, b) => (b.score > a.score ? b : a));
-  const chosen = applyTierNoise(best, plans, tier);
+  const chosen = view.round <= 2
+    ? pickOpeningPlan(plans, dummyId)
+    : applyTierNoise(best, plans, tier);
 
   if (!clampAlloc(view.my.coinStock, chosen.invest, chosen.donate)) {
     return { type: 'submit', invest: emptyAlloc(), donate: emptyAlloc() };

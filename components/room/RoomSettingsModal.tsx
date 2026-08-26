@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS } from '@/shared/types';
+import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS, PLAY_MODES, PLAY_MODE_LABEL, gameSupportsPlayMode, isSoloLikePlayMode } from '@/shared/types';
 import type { Game, PlayMode, Room, RoomType, UpdateRoomSettings } from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
@@ -24,9 +24,7 @@ interface Props {
 }
 
 function supportsPlayMode(game: Game, playMode: PlayMode): boolean {
-  if (playMode === 'multi') return game.supportsMulti;
-  if (playMode === 'com') return game.supportsCom;
-  return game.supportsSolo;
+  return gameSupportsPlayMode(game, playMode);
 }
 
 export default function RoomSettingsModal({ open, room, onClose }: Props) {
@@ -139,7 +137,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     setSelectedGame(g);
     let nextPlayMode = playMode;
     if (!supportsPlayMode(g, nextPlayMode)) {
-      nextPlayMode = g.supportsMulti ? 'multi' : g.supportsCom ? 'com' : 'solo';
+      nextPlayMode = g.supportsMulti ? 'multi' : g.supportsCom ? 'com' : g.supportsSolo ? 'solo' : 'tutorial';
       setPlayMode(nextPlayMode);
     }
     // 새 게임의 인원 범위로 조정
@@ -173,7 +171,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     if (!supportsPlayMode(selectedGame, playMode)) {
       return setError('선택한 게임은 이 플레이 모드를 지원하지 않습니다.');
     }
-    const targetRoomType: RoomType = playMode === 'solo' ? 'public' : roomType;
+    const targetRoomType: RoomType = isSoloLikePlayMode(playMode) ? 'public' : roomType;
     if (targetRoomType === 'private') {
       const isBecomingPrivate = room.roomType === 'public';
       if (isBecomingPrivate && (password.length < 4 || password.length > 8)) {
@@ -292,35 +290,21 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             {selectedGame && (
               <SettingField label="플레이 모드">
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    {
-                      key: 'multi' as PlayMode,
-                      label: '멀티',
-                      supported: selectedGame.supportsMulti,
-                    },
-                    { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
-                    {
-                      key: 'solo' as PlayMode,
-                      label: '1:1 솔로',
-                      supported: selectedGame.supportsSolo,
-                    },
-                  ]
-                    .filter((mode) => mode.supported)
-                    .map((mode) => (
-                      <OptionButton
-                        key={mode.key}
-                        active={playMode === mode.key}
-                        onClick={() => selectPlayMode(mode.key)}
-                      >
-                        {mode.label}
-                      </OptionButton>
-                    ))}
+                  {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
+                    <OptionButton
+                      key={key}
+                      active={playMode === key}
+                      onClick={() => selectPlayMode(key)}
+                    >
+                      {PLAY_MODE_LABEL[key]}
+                    </OptionButton>
+                  ))}
                 </div>
               </SettingField>
             )}
 
             {/* 방 유형 — 멀티/COM 모드 */}
-            {playMode !== 'solo' && (
+            {!isSoloLikePlayMode(playMode) && (
               <>
                 <SettingField label="방 유형">
                   <div className="flex gap-2">

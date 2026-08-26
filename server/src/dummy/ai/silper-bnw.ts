@@ -86,9 +86,9 @@ export interface SilperDummyView {
 type Pool = Record<SBNWTile, number>;
 
 function tierKnobs(tier: DummyAiTier): { uniformMix: number; softmaxTemp: number } {
-  if (tier === '하') return { uniformMix: 0.4, softmaxTemp: 0.06 };
-  if (tier === '중') return { uniformMix: 0.14, softmaxTemp: 0.028 };
-  return { uniformMix: 0.04, softmaxTemp: 0.01 };
+  if (tier === '하') return { uniformMix: 0.36, softmaxTemp: 0.05 };
+  if (tier === '중') return { uniformMix: 0.07, softmaxTemp: 0.016 };
+  return { uniformMix: 0.025, softmaxTemp: 0.008 };
 }
 
 function poolCopy(p: Pool): Pool {

@@ -1,6 +1,12 @@
 import { v4 as uuid } from 'uuid';
 import type { Player, PlayMode } from '@shared/types/room.js';
-import { AI_PLAYER_ID } from '@shared/types/room.js';
+import {
+  AI_PLAYER_ID,
+  PLAY_MODE_LABEL,
+  gameSupportsPlayMode,
+  isPlayMode,
+  isSoloLikePlayMode,
+} from '@shared/types/room.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { getGameById, getGames } from '../routes/games.js';
@@ -92,9 +98,7 @@ function supportsPlayMode(
   game: NonNullable<ReturnType<typeof getGameById>>,
   playMode: PlayMode,
 ): boolean {
-  if (playMode === 'multi') return game.supportsMulti;
-  if (playMode === 'com') return game.supportsCom;
-  return game.supportsSolo;
+  return gameSupportsPlayMode(game, playMode);
 }
 
 function emitRoomSystemMessage(io: IO, roomId: string, message: string): void {
@@ -179,7 +183,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       });
     }
 
-    if (playMode !== 'solo' && data.roomType === 'private') {
+    if (!isSoloLikePlayMode(playMode) && data.roomType === 'private') {
       if (!data.password || data.password.length < 4 || data.password.length > 8) {
         return callback({ success: false, error: '비밀번호는 4~8자리로 입력해 주세요.' });
       }
@@ -199,7 +203,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       gameId: game.id,
       gameName: game.name,
       playMode,
-      roomType: playMode === 'solo' ? 'public' : data.roomType,
+      roomType: isSoloLikePlayMode(playMode) ? 'public' : data.roomType,
       password: data.password,
       maxPlayers,
       minPlayers: game.minPlayers,
@@ -213,7 +217,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     sessions.setRoom(socket.id, room.id);
     broadcastRoomCreated(io, room.id);
 
-    if (room.playMode === 'solo') {
+    if (isSoloLikePlayMode(room.playMode)) {
       startGame(io, room.id);
     }
 
@@ -474,10 +478,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       return fail('방 제목은 1~30자로 입력해 주세요.');
     }
 
-    if (
-      data.playMode !== undefined &&
-      !(['multi', 'com', 'solo'] as const).includes(data.playMode)
-    ) {
+    if (data.playMode !== undefined && !isPlayMode(data.playMode)) {
       return fail('지원하지 않는 플레이 모드입니다.');
     }
 
@@ -503,7 +504,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const resolvedMaxPlayers =
       targetPlayMode === 'com'
         ? 2
-        : targetPlayMode === 'solo'
+        : isSoloLikePlayMode(targetPlayMode)
           ? 1
           : (data.maxPlayers ?? room.maxPlayers);
     if (targetPlayMode === 'multi') {
@@ -521,7 +522,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     // 비밀번호 검증
-    const targetRoomType = targetPlayMode === 'solo' ? 'public' : (data.roomType ?? room.roomType);
+    const targetRoomType = isSoloLikePlayMode(targetPlayMode) ? 'public' : (data.roomType ?? room.roomType);
     if (targetRoomType === 'private') {
       const hasExistingPassword =
         room.roomType === 'private' &&
@@ -586,8 +587,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       emitRoomSystemMessage(io, roomId, `방장이 게임을 ${newGame.name}(으)로 변경했습니다.`);
     }
     if (modeChanged) {
-      const modeLabel =
-        targetPlayMode === 'multi' ? '멀티' : targetPlayMode === 'com' ? 'COM' : '1:1 솔로';
+      const modeLabel = PLAY_MODE_LABEL[targetPlayMode];
       emitRoomSystemMessage(io, roomId, `방장이 플레이 모드를 ${modeLabel}(으)로 변경했습니다.`);
     }
     if (modeResult?.aiLeft) {
@@ -621,7 +621,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     const myId = getPlayerId(socket);
     if (!room || room.hostId !== myId || room.status !== 'waiting') return;
-    if (room.playMode === 'solo') return;
+    if (isSoloLikePlayMode(room.playMode)) return;
     roomStore.swapPlayers(roomId);
     sendRoomState(io, roomId);
   });
@@ -632,7 +632,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     const myId = getPlayerId(socket);
     if (!room || room.hostId !== myId || room.status !== 'waiting') return;
-    if (room.playMode === 'solo') return;
+    if (isSoloLikePlayMode(room.playMode)) return;
 
     if (mode === 'random') {
       roomStore.setTurnOrderMode(roomId, 'random');

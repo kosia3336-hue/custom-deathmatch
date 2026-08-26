@@ -10,7 +10,7 @@ async function loadGamesFromDb(): Promise<Game[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('games')
-    .select('id, name, description, min_players, max_players, supports_multi, supports_com, supports_solo, ranking_active, created_at')
+    .select('id, name, description, min_players, max_players, supports_multi, supports_com, supports_solo, supports_tutorial, ranking_active, created_at')
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
 
@@ -26,6 +26,7 @@ async function loadGamesFromDb(): Promise<Game[]> {
     supportsMulti: row.supports_multi,
     supportsCom: row.supports_com,
     supportsSolo: row.supports_solo,
+    supportsTutorial: row.supports_tutorial ?? false,
     rankingActive: row.ranking_active ?? true,
     createdAt: row.created_at,
   }));

@@ -2,6 +2,7 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 @import 'tailwindcss';
+@import './rank-card-skins.css';
 
 /* ??????????????????????????????????????????????
    Custom Deathmatch ??v2 ?붿옄???좏겙 (?⑥씪 ?쇱씠???뚮쭏)
@@ -346,6 +347,27 @@ body {
 }
 .skin-cosmos-win {
   animation: cosmos-supernova 1.1s ease-out infinite !important;
+}
+
+/* 사중력 사목 튜토리얼 목표 칸·중력 — 정적, 약한 강조 */
+.fg-tutorial-target {
+  pointer-events: none;
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  border-radius: 4px;
+  background: var(--cdm-primary-soft);
+  box-shadow: inset 0 0 0 2px var(--cdm-primary);
+}
+
+.fg-tutorial-gravity {
+  border-color: var(--cdm-primary) !important;
+  background: var(--cdm-primary-soft) !important;
+  color: var(--cdm-primary) !important;
+}
+
+.fg-tutorial-dim {
+  opacity: 0.72;
 }
 
 /* ??????????????????????????????????????????????

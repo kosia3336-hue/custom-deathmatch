@@ -60,6 +60,7 @@ export default function GNB({ minimal: _minimal }: GNBProps) {
             }
           : null,
         displayedEffectId: null,
+        canDevSwitch: member.canDevSwitch,
       }
     : null;
 

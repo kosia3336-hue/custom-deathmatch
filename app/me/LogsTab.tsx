@@ -13,6 +13,7 @@ import {
   parsePageParam,
 } from '@/lib/pagination';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { PLAY_MODE_LABEL } from '@/shared/types';
 import { formatTime } from '@/lib/utils';
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -31,7 +32,7 @@ interface LogParticipant {
 interface LogRow {
   id: string;
   game_id: string;
-  mode: 'multi' | 'com' | 'solo';
+  mode: 'multi' | 'com' | 'solo' | 'tutorial';
   played_at: string;
   play_time_seconds: number;
   total_turns: number;
@@ -133,7 +134,7 @@ export default async function LogsTab({
                   <span>{new Date(log.played_at).toLocaleString('ko-KR')}</span>
                   <Tag>{log.room_snapshot?.gameName ?? log.game_id}</Tag>
                   {log.mode !== 'multi' && (
-                    <Tag>{log.mode === 'com' ? 'COM' : '솔로'}</Tag>
+                    <Tag>{PLAY_MODE_LABEL[log.mode]}</Tag>
                   )}
                   {!log.counts_for_stats && (
                     <span className="text-cdm-fg-subtle">* 통계 미반영</span>

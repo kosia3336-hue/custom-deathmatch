@@ -35,6 +35,16 @@ export const ACTION_LABELS: Record<string, { label: string; variant: string }> =
   'shop.item_create':      { label: '아이템 등록',  variant: 'accent'  },
   'shop.item_update':      { label: '아이템 편집',  variant: 'accent'  },
   'shop.item_set_active':  { label: '아이템 노출',  variant: 'default' },
+  'guild.adjust_gp':       { label: '길드 GP',      variant: 'accent'  },
+  'guild.kick':            { label: '길드 추방',    variant: 'danger'  },
+  'guild.disband':         { label: '길드 해체',    variant: 'danger'  },
+  'guild.set_vice':        { label: '부길드장',     variant: 'default' },
+  'guild.transfer_owner':  { label: '길드장 위임',  variant: 'default' },
+  'guild.set_profile':     { label: '길드 프로필',  variant: 'default' },
+  'guild.set_mark':        { label: '길드 마크',    variant: 'default' },
+  'guild.set_capacity':    { label: '길드 정원',    variant: 'default' },
+  'guild.resolve_join':    { label: '길드 가입',    variant: 'default' },
+  'guild.add_member':      { label: '길드 강제가입', variant: 'accent'  },
 };
 
 export const ACTION_KINDS = Object.keys(ACTION_LABELS);

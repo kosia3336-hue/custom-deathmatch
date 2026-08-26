@@ -14,12 +14,21 @@ import { useGuildChatStore } from '@/stores/guildChat';
 import { useGuildDevStore } from './store';
 
 /** 대시보드가 열려 있는 동안 길드 채팅 히스토리·실시간 메시지를 받는다. */
-export function GuildChatSync({ enabled }: { enabled: boolean }) {
+export function GuildChatSync({
+  enabled,
+  memberId,
+  guildId,
+}: {
+  enabled: boolean;
+  memberId: string;
+  guildId: string;
+}) {
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !memberId || !guildId) {
       useGuildChatStore.getState().clearAll();
       return;
     }
+    useGuildChatStore.getState().bindSeenScope(memberId, guildId);
     const s = getSocket();
     const onHistory = (payload: { messages: ChatMessage[] }) => {
       useGuildChatStore.getState().setHistory(payload.messages);
@@ -41,7 +50,7 @@ export function GuildChatSync({ enabled }: { enabled: boolean }) {
       s.off('connect', onConnect);
       useGuildChatStore.getState().clearAll();
     };
-  }, [enabled]);
+  }, [enabled, memberId, guildId]);
   return null;
 }
 
@@ -98,9 +107,15 @@ export function GuildChatModal({
     return () => {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
+      clearChatUnread();
       clearTimeout(t);
     };
   }, [open, onClose, clearChatUnread]);
+
+  useEffect(() => {
+    if (!open) return;
+    clearChatUnread();
+  }, [open, messages.length, clearChatUnread]);
 
   useLayoutEffect(() => {
     if (!open) return;

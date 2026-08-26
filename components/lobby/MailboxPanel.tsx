@@ -327,7 +327,7 @@ function MailDetail({
 /** 로비 모달 우편함 탭. 부모는 flex column + overflow hidden. */
 export function MailboxPanel() {
   const items = useMailboxStore((s) => s.items);
-  const hydrate = useMailboxStore((s) => s.hydrate);
+  const refresh = useMailboxStore((s) => s.refresh);
   const markRead = useMailboxStore((s) => s.markRead);
   const markAllRead = useMailboxStore((s) => s.markAllRead);
   const remove = useMailboxStore((s) => s.remove);
@@ -340,8 +340,8 @@ export function MailboxPanel() {
   const [scoutBusy, setScoutBusy] = useState(false);
 
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    void refresh();
+  }, [refresh]);
 
   useEffect(() => {
     if (!focusId) return;

@@ -2,7 +2,46 @@ import type { EquippedSkin } from './skin';
 
 export const AI_PLAYER_ID = 'AI' as const;
 
-export type PlayMode = 'multi' | 'com' | 'solo';
+export const PLAY_MODES = ['multi', 'com', 'solo', 'tutorial'] as const;
+export type PlayMode = (typeof PLAY_MODES)[number];
+
+export const PLAY_MODE_LABEL: Record<PlayMode, string> = {
+  multi: '멀티',
+  com: 'COM',
+  solo: '1:1 솔로',
+  tutorial: '튜토리얼',
+};
+
+/** 1인·즉시 시작. 대기실·비밀번호·시간제한 없음. */
+export function isSoloLikePlayMode(mode: PlayMode): boolean {
+  return mode === 'solo' || mode === 'tutorial';
+}
+
+export function isPlayMode(value: unknown): value is PlayMode {
+  return typeof value === 'string' && (PLAY_MODES as readonly string[]).includes(value);
+}
+
+export function gameSupportsPlayMode(
+  game: {
+    supportsMulti: boolean;
+    supportsCom: boolean;
+    supportsSolo: boolean;
+    supportsTutorial: boolean;
+  },
+  playMode: PlayMode,
+): boolean {
+  switch (playMode) {
+    case 'multi':
+      return game.supportsMulti;
+    case 'com':
+      return game.supportsCom;
+    case 'solo':
+      return game.supportsSolo;
+    case 'tutorial':
+      return game.supportsTutorial;
+  }
+}
+
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type RoomType = 'public' | 'private' | 'rank';
 

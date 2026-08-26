@@ -73,6 +73,23 @@ describe('roomStore.create', () => {
     expect(room.maxPlayers).toBe(1);
   });
 
+  it('튜토리얼 방은 솔로처럼 즉시 playing 이고 인원 1이다', () => {
+    const host = makeHost();
+    const room = roomStore.create({
+      title: '튜토리얼 방',
+      gameId: 'game-001',
+      gameName: '사중력 사목',
+      playMode: 'tutorial',
+      roomType: 'public',
+      maxPlayers: 1,
+      minPlayers: 1,
+      host,
+    });
+    expect(room.status).toBe('playing');
+    expect(room.maxPlayers).toBe(1);
+    expect(room.players).toHaveLength(1);
+  });
+
   it('COM 방은 AI 플레이어가 자동 추가된다', () => {
     const host = makeHost();
     const room = roomStore.create({

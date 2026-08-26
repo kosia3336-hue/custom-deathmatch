@@ -18,6 +18,7 @@ import { cache } from 'react';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed';
+import { canUseDevSwitch } from '@/lib/auth/dev-users';
 
 export type AuthState =
   | { kind: 'LOGGED_OUT' }
@@ -35,6 +36,8 @@ export interface CurrentMember {
   createdAt: string;
   displayedTitle: { id: string; name: string; color: TitleColor; effect: string | null } | null;
   displayedEffectId: string | null;
+  /** 천하 또는 더미 세션. GNB 데브 전환. */
+  canDevSwitch: boolean;
 }
 
 interface MemberRowSel {
@@ -136,14 +139,16 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
       }
     : null;
 
+  const role = privRow?.role ?? 'user';
   const member: CurrentMember = {
     id: memberRow.id,
     nickname: memberRow.nickname,
     status: privRow?.status ?? 'active',
-    role: privRow?.role ?? 'user',
+    role,
     createdAt: memberRow.created_at,
     displayedTitle,
     displayedEffectId: memberRow.displayed_effect_id,
+    canDevSwitch: canUseDevSwitch({ nickname: memberRow.nickname, role }, user),
   };
 
   if (privRow?.status === 'banned') {

@@ -15,6 +15,7 @@ import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { tutorialHint } from './tutorial.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -48,6 +49,7 @@ export function toGameData(s: InternalState, viewerToken: string): FourGravityGa
     winner: s.winner,
     winLine: s.winLine,
     winType: s.winType,
+    tutorial: tutorialHint(s),
   };
 }
 

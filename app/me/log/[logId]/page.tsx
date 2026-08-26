@@ -8,6 +8,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import GameLogView from '@/components/game/GameLogView';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
 import type { GameRecordFile } from '@/shared/types/archive';
+import type { PlayMode } from '@/shared/types/room';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = { title: '게임 로그' };
@@ -30,7 +31,7 @@ interface ParticipantRow {
 interface LogRow {
   id: string;
   game_id: string;
-  mode: 'multi' | 'com' | 'solo';
+  mode: 'multi' | 'com' | 'solo' | 'tutorial';
   played_at: string;
   play_time_seconds: number;
   total_turns: number;
@@ -98,7 +99,7 @@ export default async function MeLogPage({ params }: Props) {
     gameId: log.game_id,
     gameName: log.room_snapshot?.gameName ?? log.game_id,
     playedAt: log.played_at,
-    playMode: (log.room_snapshot?.playMode ?? log.mode) as 'multi' | 'com' | 'solo',
+    playMode: (log.room_snapshot?.playMode ?? log.mode) as PlayMode,
     players: participants.reduce<Record<string, { nickname: string }>>((acc, p) => {
       const masked = p.anonymized && p.member_id !== member.id;
       const nick = masked ? '???' : p.nickname_snapshot;

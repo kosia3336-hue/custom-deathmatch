@@ -269,14 +269,14 @@ function applyTierNoise(best: Plan, pool: Plan[], tier: DummyAiTier): Plan {
     return best;
   }
   if (tier === '중') {
-    if (r < 0.18) {
-      const band = nearBestBand(sorted, best, 0.35, 4);
+    if (r < 0.08) {
+      const band = nearBestBand(sorted, best, 0.25, 3);
       const alts = band.filter((p) => !samePlan(p, best));
       return alts.length > 0 ? pickUniform(alts) : best;
     }
     return best;
   }
-  if (r < 0.04) {
+  if (r < 0.03) {
     const second = sorted.find((p) => !samePlan(p, best));
     return second && second.ev >= best.ev - 0.25 ? second : best;
   }

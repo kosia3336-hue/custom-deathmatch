@@ -3,6 +3,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { RoomLayoutContext } from '@/contexts/RoomLayoutContext';
+import { PLAY_MODE_LABEL } from '@/shared/types';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 
 export default function RoomLayout({ children }: { children: ReactNode }) {
@@ -31,7 +32,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
                   <p className="text-xs text-cdm-fg-muted md:text-sm">
                     {room.gameName}
                     {' · '}
-                    {room.playMode === 'multi' ? '멀티' : room.playMode === 'com' ? 'COM' : '솔로'}
+                    {PLAY_MODE_LABEL[room.playMode]}
                   </p>
                 </>
               ) : (

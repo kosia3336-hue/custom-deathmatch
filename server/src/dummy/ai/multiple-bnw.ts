@@ -49,9 +49,9 @@ function tierKnobs(tier: DummyAiTier): {
   bestRate: number;
   suspectSlack: number;
 } {
-  if (tier === '하') return { sampleNoise: 0.35, bestRate: 0.55, suspectSlack: 0.08 };
-  if (tier === '중') return { sampleNoise: 0.2, bestRate: 0.8, suspectSlack: 0.03 };
-  return { sampleNoise: 0.1, bestRate: 0.94, suspectSlack: 0 };
+  if (tier === '하') return { sampleNoise: 0.32, bestRate: 0.62, suspectSlack: 0.06 };
+  if (tier === '중') return { sampleNoise: 0.12, bestRate: 0.9, suspectSlack: 0.015 };
+  return { sampleNoise: 0.06, bestRate: 0.97, suspectSlack: 0 };
 }
 
 function ofColor(tiles: MBNWTile[], color: MBNWTileColor): MBNWTile[] {

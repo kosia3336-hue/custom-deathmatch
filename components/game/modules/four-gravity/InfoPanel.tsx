@@ -11,6 +11,7 @@ interface Props {
   currentColor: 'black' | 'white';
   neutralCount: number;
   lastGravity: Direction | null;
+  hideWhite?: boolean;
 }
 
 function PlayerCard({
@@ -51,6 +52,7 @@ export default function InfoPanel({
   currentColor,
   neutralCount,
   lastGravity,
+  hideWhite = false,
 }: Props) {
   const { remaining } = useTurnTimer();
 
@@ -59,7 +61,9 @@ export default function InfoPanel({
       <div className="text-sm font-medium text-gray-500">턴 #{turnNumber}</div>
 
       <PlayerCard player={players.black} color="black" isCurrent={currentColor === 'black'} remaining={currentColor === 'black' ? remaining : null} />
-      <PlayerCard player={players.white} color="white" isCurrent={currentColor === 'white'} remaining={currentColor === 'white' ? remaining : null} />
+      {!hideWhite && (
+        <PlayerCard player={players.white} color="white" isCurrent={currentColor === 'white'} remaining={currentColor === 'white' ? remaining : null} />
+      )}
 
       <div className="border-t border-gray-200 pt-3">
         <div className="text-xs text-gray-500">중립 돌: {neutralCount}개</div>

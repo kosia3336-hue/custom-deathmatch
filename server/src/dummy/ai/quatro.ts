@@ -11,6 +11,7 @@ import {
   QUATRO_SUIT_PRIORITY,
   QUATRO_VP_COUNT,
 } from '@shared/types/quatro.js';
+import { dummyStyle, pickWeighted } from '../style.js';
 import { runPsychologySearch } from '../psychologySearch.js';
 
 /**
@@ -215,7 +216,7 @@ function worstClosed(hand: QuatroCard[], openIds: Set<string>): QuatroCard | nul
   let best: { card: QuatroCard; score: number } | null = null;
   for (const c of closed) {
     const rest = hand.filter((x) => x.id !== c.id);
-    const s = (isQuatro(rest) ? 500 : distinctSize(rest) * 20) + handSum(rest) - c.num;
+    const s = (isQuatro(rest) ? 800 : distinctSize(rest) * 35) + handSum(rest) * 0.4 - c.num;
     if (!best || s > best.score) best = { card: c, score: s };
   }
   return best?.card ?? null;
@@ -235,7 +236,7 @@ const GIBO_OPEN_NUM: Record<number, Record<number, number>> = {
 const GIBO_MULLIGAN = { skip: 114, use: 112 };
 const GIBO_EXCHANGE = { 1: 20, 2: 61, 3: 819 };
 const GIBO_STOP = { 1: 130, 2: 89 };
-const GIBO_PRIOR = 0.08;
+const GIBO_PRIOR = 0.045;
 
 interface SampledBoard {
   myHand: QuatroCard[];
@@ -445,7 +446,12 @@ function evalActionOnBoard(board: SampledBoard, view: QuatroDummyView, action: Q
   const b = cloneBoard(board);
   if (!applyAction(b, action)) return 0;
   const skipMyEarly = action.type === 'stop' || action.type === 'exchange';
-  return playout(b, view, skipMyEarly);
+  let p = playout(b, view, skipMyEarly);
+  if (isQuatro(b.myHand) && !isQuatro(b.oppHand)) p = Math.min(1, p + 0.2);
+  if (!isQuatro(b.myHand) && isQuatro(b.oppHand)) p = Math.max(0, p - 0.24);
+  p += (distinctSize(b.myHand) - distinctSize(b.oppHand)) * 0.035;
+  p += (handSum(b.myHand) - handSum(b.oppHand)) * 0.004;
+  return p;
 }
 
 function giboPrior(view: QuatroDummyView, action: QuatroAction): number {
@@ -467,9 +473,9 @@ function giboPrior(view: QuatroDummyView, action: QuatroAction): number {
 }
 
 function tierKnobs(tier: DummyAiTier): { softmaxTemp: number } {
-  if (tier === '하') return { softmaxTemp: 0.08 };
-  if (tier === '중') return { softmaxTemp: 0.03 };
-  return { softmaxTemp: 0.012 };
+  if (tier === '하') return { softmaxTemp: 0.07 };
+  if (tier === '중') return { softmaxTemp: 0.018 };
+  return { softmaxTemp: 0.008 };
 }
 
 function pickSoftmax<T>(scored: Array<{ cand: T; score: number }>, tier: DummyAiTier, temp: number): T {
@@ -588,6 +594,25 @@ export async function pickQuatroActionAsync(
       score: a.sum / a.n + giboPrior(view, a.cand.action),
     }));
   if (scored.length === 0) return cands[0]!.action;
+
+  if (view.phase === 'open' && view.round === 1) {
+    const style = dummyStyle(dummyId);
+    const hasKeeper = view.my.hand.some((c) => c.num >= 5 && !view.my.openIds.includes(c.id));
+    return pickWeighted(
+      scored.map((s) => {
+        const act = s.cand.action;
+        const card = act.type === 'open' ? view.my.hand.find((c) => c.id === act.cardId) : null;
+        let w = Math.exp(s.score / 0.06);
+        const n = card?.num ?? 0;
+        if (n === 6) w *= 1.7 + style.aggression * 0.3;
+        else if (n === 5) w *= 0.85 + style.dump * 0.45;
+        else if (n === 4) w *= 0.4;
+        else if (n <= 2 && card?.suit !== 'black') w *= hasKeeper ? 0.001 : 0.15;
+        else if (card?.suit === 'black') w *= 0.35;
+        return { item: act, w };
+      }),
+    );
+  }
 
   return pickSoftmax(scored, tier, knobs.softmaxTemp).action;
 }

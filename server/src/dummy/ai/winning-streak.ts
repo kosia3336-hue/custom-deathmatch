@@ -9,6 +9,7 @@ import type {
 } from '@shared/types/winning-streak.js';
 import { CARD_TYPES } from '@shared/types/winning-streak.js';
 import { getMatchupResult } from '../../socket/games/winning-streak/judge.js';
+import { dummyStyle, pickWeighted, type DummyStyle } from '../style.js';
 import { runPsychologySearch } from '../psychologySearch.js';
 
 export interface WinningStreakDummyView {
@@ -178,9 +179,21 @@ function colorSavePenalty(view: WinningStreakDummyView, suitCount: number): numb
   const streak = view.my.currentStreak;
   const left = roundsLeft(view);
   let p = streak >= 3 ? -0.5 : streak === 2 ? -2.3 : -2.6;
+  if (breakWindow(view) && streak < 3) p = -0.2;
   if (left <= 2 && view.my.maxStreak < view.opp.maxStreak) p += 1.05;
   if (view.my.maxStreak >= view.opp.maxStreak + 2 && streak < 3) p -= 0.25;
   return p;
+}
+
+/** R1~2 털기: ♥/♠ 위주, ♣/♦ 섞고, 흑백은 드묾. 컬러는 거의 안 냄. */
+function openingWeight(card: WSCardType, style: DummyStyle): number {
+  if (card === 'heart') return 1.3 + style.dump * 0.35;
+  if (card === 'spade') return 1.15 + style.dump * 0.25;
+  if (card === 'club') return 0.55 + Math.max(0, style.aggression) * 0.7;
+  if (card === 'diamond') return 0.5 + Math.max(0, style.aggression) * 0.65;
+  if (card === 'blackJoker') return 0.07 + style.dump * 0.1;
+  if (card === 'colorJoker') return 0.02;
+  return 0.4;
 }
 
 function dumpWindow(view: WinningStreakDummyView): boolean {
@@ -245,7 +258,7 @@ function blackSituational(
     && suitCandidates.every((c) => !isWinResult(getMatchupResult(c, oppCard)));
   const oppStrong = oppCard === 'colorJoker' || allSuitsLose;
 
-  if (dumpWindow(view) && !breakWindow(view)) m += 0.85;
+  if (dumpWindow(view) && !breakWindow(view)) m += 0.18;
   if (canAfford && oppStrong) m += 1.1;
   else if (oppStrong && streak <= 1) m += 0.55;
   return m;
@@ -256,9 +269,9 @@ function tierKnobs(tier: DummyAiTier): {
   bestRate: number;
   softTemp: number;
 } {
-  if (tier === '하') return { policyMix: 0.25, bestRate: 0.55, softTemp: 0.35 };
-  if (tier === '중') return { policyMix: 0.55, bestRate: 0.8, softTemp: 0.2 };
-  return { policyMix: 0.85, bestRate: 0.94, softTemp: 0.12 };
+  if (tier === '하') return { policyMix: 0.25, bestRate: 0.7, softTemp: 0.28 };
+  if (tier === '중') return { policyMix: 0.6, bestRate: 0.9, softTemp: 0.14 };
+  return { policyMix: 0.88, bestRate: 0.97, softTemp: 0.08 };
 }
 
 function scoreVsOpp(
@@ -299,9 +312,9 @@ function scoreVsOpp(
 
   // 약한 패를 털 타이밍 vs 강한 패를 쓸 타이밍
   if (dumpWindow(view) && !breakWindow(view)) {
-    s += (0.55 - strength) * 1.35;
+    s += (0.45 - strength) * 0.7;
   } else if (breakWindow(view) || extendWindow(view)) {
-    s += (strength - 0.45) * 0.55;
+    s += (strength - 0.4) * 0.75;
   } else {
     s += (0.4 - strength) * 0.35;
   }
@@ -359,7 +372,7 @@ export async function pickWinningStreakActionAsync(
     if (!oppCard) {
       for (const c of candidates) {
         const st = strength.get(c) ?? 0.5;
-        let s = dumpWindow(view) && !breakWindow(view) ? (0.55 - st) * 1.35 : (st - 0.45) * 0.2;
+        let s = dumpWindow(view) && !breakWindow(view) ? (0.45 - st) * 0.7 : (st - 0.45) * 0.2;
         if (c === 'colorJoker') s += colorSavePenalty(view, suits.length);
         acc.set(c, (acc.get(c) ?? 0) + s);
       }
@@ -374,5 +387,16 @@ export async function pickWinningStreakActionAsync(
   });
 
   const scored = candidates.map((card) => ({ card, score: acc.get(card) ?? 0 }));
+  const openingMix = view.round <= 2 && dumpWindow(view) && !breakWindow(view);
+  if (openingMix) {
+    const style = dummyStyle(dummyId);
+    const card = pickWeighted(
+      scored.map((x) => ({
+        item: x.card,
+        w: openingWeight(x.card, style) * Math.max(0.2, 1 + x.score * 0.05),
+      })),
+    );
+    return { type: 'selectCard', card };
+  }
   return { type: 'selectCard', card: pickFromScores(scored, tier) };
 }

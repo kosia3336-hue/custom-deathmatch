@@ -13,6 +13,7 @@ import GameStatsTab from './GameStatsTab';
 import GameRulesTab from './GameRulesTab';
 import AuditTab from './AuditTab';
 import AdminShopTab from './AdminShopTab';
+import AdminGuildTab from './AdminGuildTab';
 
 export const metadata: Metadata = { title: '관리자', robots: { index: false } };
 
@@ -27,6 +28,7 @@ interface Props {
     shopSubTab?: string;
     shopLogsPage?: string;
     inquiryStatus?: string;
+    guildStatus?: string;
   }>;
 }
 
@@ -48,6 +50,9 @@ export default async function AdminPage({ searchParams }: Props) {
         <section className="mt-4">
           {tab === 'dashboard' && <DashboardTab />}
           {tab === 'members' && <MembersTab query={sp.q ?? ''} page={sp.page} sort={sp.sort} />}
+          {tab === 'guilds' && (
+            <AdminGuildTab query={sp.q ?? ''} page={sp.page} status={sp.guildStatus} />
+          )}
           {tab === 'titles' && <TitlesTab page={sp.page} />}
           {tab === 'rank' && <AdminRankTab />}
           {tab === 'shop' && <AdminShopTab subTab={sp.shopSubTab} shopLogsPage={sp.shopLogsPage} />}

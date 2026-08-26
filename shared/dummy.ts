@@ -19,7 +19,7 @@ export interface LiveDummyAiSpec {
 export const LIVE_DUMMY_AI: readonly LiveDummyAiSpec[] = [
   {
     key: 'titan',
-    nickname: '타이탄',
+    nickname: '캡틴영준',
     defaultTier: '상',
     tierOverrides: { [GAME_IDS.FOUR_GRAVITY]: '하' },
   },
