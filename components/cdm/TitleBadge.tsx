@@ -131,20 +131,21 @@ function TitleJujakMark({ name }: { name: string }) {
       <span className="title-jujak-label" data-text={name}>{name}</span>
       <span className="title-jujak-fx" aria-hidden>
         <span className="title-jujak-feather">
-          <svg viewBox="0 0 12 28" role="presentation">
-            <path className="title-jujak-feather-vane" d="M6.2 1C2.1 4.6.2 10.7 1.5 16.8c.7 3.2 2.2 5.7 4 8.1 1.7-3.8 4.8-6.2 5.3-11.8C11.2 7.9 9.3 3.8 6.2 1Z" />
-            <path className="title-jujak-feather-cut" d="m2.1 9.2 3.5 1.4-3.9 1.5m.2 4.5 3.1.7-2 2.2m7-12.2-3.7 2.3 4.2.8m-.5 4.3-4.3 2.1 3.3.8" />
-            <path className="title-jujak-feather-shaft" d="M6.6 4.2c-.3 7.5-.8 14.9-2.5 22.8" />
+          <svg viewBox="0 0 40 14" role="presentation">
+            <path className="title-jujak-feather-vane" d="M1 7.7C5.3 3.1 11.2.7 18.1.7c6.1.1 10.5 2.1 13.8 5.6-7.7.2-15.7 1.4-23.7 4.7C5.2 10.7 2.5 9.4 1 7.7Z" />
+            <path className="title-jujak-feather-light" d="M2.8 7.1C7 3.5 12.6 1.7 18.5 1.7c4.5.1 8.1 1.3 11 3.8-7.7-.8-15.8-.1-23.1 2.8-1.5.1-2.7-.3-3.6-1.2Z" />
+            <path className="title-jujak-feather-cut" d="m7.2 6.3 1.5-3m2.6 2.1 2.1-4m2.2 3.6 2-4m2.2 4 2.5-3.6m1.7 4 2.7-2.6M8.5 8.7l-2 2m6.1-3 1 3.9m3-4.5 1.7 3.8m2.1-4.2 2.3 3.1m1.5-3.5 3 2.2" />
+            <path className="title-jujak-feather-shaft" d="M1 7.9c11.6-.5 24-1.3 38-.5" />
           </svg>
         </span>
         <span className="title-jujak-impact" />
         <span className="title-jujak-flames">
-          {Array.from({ length: 12 }, (_, i) => (
+          {Array.from({ length: 9 }, (_, i) => (
             <span key={`flame-${i}`} className="title-jujak-flame" />
           ))}
         </span>
         <span className="title-jujak-embers">
-          {Array.from({ length: 8 }, (_, i) => (
+          {Array.from({ length: 4 }, (_, i) => (
             <span key={`ember-${i}`} className="title-jujak-ember" />
           ))}
         </span>
