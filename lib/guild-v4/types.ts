@@ -1,5 +1,6 @@
 import type { DisplayedTitle } from '@/shared/types/room';
 import type { GuildSummary, MyGuildState } from '@/lib/guild/types';
+import type { RankCardShopSkinId } from '@shared/rank-card-skins';
 
 export type GuildV4NoticeComment = {
   id: string;
@@ -20,10 +21,22 @@ export type GuildV4Notice = {
   comments: GuildV4NoticeComment[];
 };
 
+/** 길드 랭킹에 넣은 점수(점). GP가 아님. */
 export type GuildV4ContribScores = {
   daily: number;
   weekly: number;
   all: number;
+};
+
+/** 길드 랭킹 개인 탭. 점수 적립 시작 이후 합. 0점은 안 넣음. */
+export type GuildV4PersonalRank = {
+  memberId: string;
+  nickname: string;
+  guildId: string;
+  guildName: string;
+  markUrl: string | null;
+  score: number;
+  title: DisplayedTitle | null;
 };
 
 export type GuildV4Sponsor = {
@@ -80,6 +93,9 @@ export type GuildV4Snapshot = {
   investLogs: GuildV4InvestLog[];
   grantLogs: GuildV4GrantLog[];
   rankScores: Record<string, GuildV4RankScores>;
+  personalRanks: GuildV4PersonalRank[];
   myCdp: number;
   tileOrder: string[];
+  /** 내 길드에 켜진 랭킹 카드. 만료되면 null. */
+  rankCard: { skinId: RankCardShopSkinId; expiresAt: string } | null;
 };

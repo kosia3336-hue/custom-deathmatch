@@ -5,12 +5,14 @@ import { getBrowserSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { useNicknameStore } from '@/stores/nickname';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed';
+import { canUseDevSwitch } from '@/lib/auth/dev-users';
 
 export interface CurrentMemberClient {
   id: string;
   nickname: string;
   role: 'user' | 'admin';
   displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
+  canDevSwitch: boolean;
 }
 
 interface State {
@@ -77,6 +79,7 @@ export function useCurrentMember(): State {
               id: member.id,
               nickname: member.nickname,
               role,
+              canDevSwitch: canUseDevSwitch({ nickname: member.nickname, role }, sessionRes.session.user),
               displayedTitle: displayedTitle
                 ? {
                     id: displayedTitle.id,

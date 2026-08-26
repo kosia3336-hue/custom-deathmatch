@@ -1,5 +1,6 @@
 import Badge from '@/components/ui/Badge';
 import type { Room } from '@/shared/types';
+import { PLAY_MODE_LABEL } from '@/shared/types';
 import { formatTimeLimit } from '@/lib/utils';
 
 interface Props {
@@ -18,7 +19,7 @@ export default function RoomInfo({ room }: Props) {
         <div className="flex justify-between">
           <span>모드</span>
           <Badge>
-            {room.playMode === 'multi' ? '멀티' : room.playMode === 'com' ? 'COM' : '솔로'}
+            {PLAY_MODE_LABEL[room.playMode]}
           </Badge>
         </div>
         <div className="flex justify-between">

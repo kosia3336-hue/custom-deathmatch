@@ -10,6 +10,7 @@ interface Props {
   isNeutralCandidate: boolean;
   isWinCell: boolean;
   isLastPlaced: boolean;
+  isTutorialTarget?: boolean;
   isDimmed: boolean;
   previewColor: 'black' | 'white' | null;
   gameOver: boolean;
@@ -23,6 +24,7 @@ export default function Cell({
   isNeutralCandidate,
   isWinCell,
   isLastPlaced,
+  isTutorialTarget = false,
   isDimmed,
   previewColor,
   gameOver,
@@ -33,12 +35,12 @@ export default function Cell({
 
   const bg = isCosmos
     ? 'skin-cosmos-cell'
-    : isWinCell && gameOver
-      ? 'bg-red-50'
+    : isWinCell
+      ? 'bg-cdm-highlight-soft'
       : isNeutralCandidate
         ? 'bg-blue-50'
         : isDimmed
-          ? 'bg-gray-100/50'
+          ? 'bg-cdm-bg-elev-2'
           : 'bg-[#f9fafb]';
 
   const border = isCosmos
@@ -66,6 +68,7 @@ export default function Cell({
         relative flex items-center justify-center
         ${bg} ${border}
         ${clickable ? 'cursor-pointer' : ''}
+        ${isDimmed ? 'fg-tutorial-dim' : ''}
         group
       `}
       onClick={clickable ? onClick : undefined}
@@ -80,7 +83,7 @@ export default function Cell({
             ${cellType === 'neutral' ? '' : 'rounded-full'}
             ${stoneClass}
             ${isLastPlaced && !gameOver ? (isCosmos ? 'ring-2 ring-violet-300 ring-offset-1 ring-offset-transparent' : 'ring-2 ring-yellow-400 ring-offset-1') : ''}
-            ${isWinCell && gameOver ? (isCosmos ? 'skin-cosmos-win' : 'ring-2 ring-red-500') : ''}
+            ${isWinCell ? (isCosmos ? 'skin-cosmos-win' : 'ring-2 ring-cdm-highlight') : ''}
           `}
         >
           {cellType === 'neutral' && (
@@ -102,8 +105,12 @@ export default function Cell({
         />
       )}
 
-      {isNeutralCandidate && cellType === 'empty' && (
+      {isNeutralCandidate && cellType === 'empty' && !isTutorialTarget && (
         <div className={`absolute h-[40%] w-[40%] rotate-45 rounded-sm opacity-40 ${isCosmos ? 'bg-amber-300' : 'bg-blue-300'}`} />
+      )}
+
+      {isTutorialTarget && cellType === 'empty' && (
+        <span className="fg-tutorial-target" aria-hidden />
       )}
     </div>
   );

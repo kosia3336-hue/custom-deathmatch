@@ -73,12 +73,12 @@ function tierKnobs(tier: DummyAiTier): {
   remSupport: number;
 } {
   if (tier === '하') {
-    return { uniformMix: 0.42, styleSigma: 0.2, softmaxTemp: 0.07, remSupport: 4 };
+    return { uniformMix: 0.38, styleSigma: 0.18, softmaxTemp: 0.06, remSupport: 4 };
   }
   if (tier === '중') {
-    return { uniformMix: 0.14, styleSigma: 0.08, softmaxTemp: 0.03, remSupport: 8 };
+    return { uniformMix: 0.07, styleSigma: 0.05, softmaxTemp: 0.018, remSupport: 8 };
   }
-  return { uniformMix: 0.04, styleSigma: 0.03, softmaxTemp: 0.012, remSupport: 12 };
+  return { uniformMix: 0.025, styleSigma: 0.02, softmaxTemp: 0.01, remSupport: 12 };
 }
 
 export function stageRange(stage: number): { lo: number; hi: number } {

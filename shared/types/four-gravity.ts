@@ -32,9 +32,44 @@ export interface FourGravityGameData {
   winner: string | null;
   winLine: Position[] | null;
   winType: 'black' | 'white' | 'neutral' | 'no-space' | 'no-neutral' | 'timeout' | null;
+  tutorial?: FourGravityTutorialHint | null;
 }
 
 export type FourGravityAction =
   | { type: 'place'; row: number; col: number }
   | { type: 'gravity'; direction: Direction }
-  | { type: 'neutral'; row: number; col: number };
+  | { type: 'neutral'; row: number; col: number }
+  | { type: 'tutorial-ack' };
+
+export const FG_TUTORIAL_TOTAL = 16;
+
+export type FgTutorialStepId =
+  | 'intro'
+  | 'turn-order'
+  | 'place'
+  | 'gravity'
+  | 'gravity-move'
+  | 'neutral'
+  | 'com-down'
+  | 'place-2'
+  | 'no-repeat'
+  | 'none-skip'
+  | 'win-intro'
+  | 'win-own'
+  | 'win-opp'
+  | 'win-both'
+  | 'win-neutral'
+  | 'win-no-space';
+
+export interface FourGravityTutorialHint {
+  step: number;
+  total: number;
+  id: FgTutorialStepId;
+  title: string;
+  body: string;
+  highlightCells: Position[];
+  highlightGravity: Direction | null;
+  canAck: boolean;
+  ackLabel: string;
+  comCountdown: number | null;
+}

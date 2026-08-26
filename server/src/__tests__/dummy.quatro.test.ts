@@ -244,7 +244,7 @@ describe('콰트로 더미 pick', () => {
     expect(action).toEqual({ type: 'mulligan', use: true });
   });
 
-  it.each(['하', '중', '상'] as const)('%s R1 오픈은 6(키퍼)', async (tier) => {
+  it.each(['하', '중', '상'] as const)('%s R1 오픈은 6이 가장 많고 2는 거의 안 연다', async (tier) => {
     const v = view({
       phase: 'open',
       round: 1,
@@ -262,11 +262,19 @@ describe('콰트로 더미 pick', () => {
         usedVps: [],
       },
     });
-    const action = await pickQuatroActionAsync(v, 'dummy', tier, 80);
-    expect(action?.type).toBe('open');
-    if (action?.type === 'open') {
-      expect(action.cardId.endsWith('-6')).toBe(true);
+    const counts: Record<string, number> = { '6': 0, '5': 0, '2': 0, other: 0 };
+    for (let i = 0; i < 24; i++) {
+      const action = await pickQuatroActionAsync(v, 'dummy', tier, 0);
+      expect(action?.type).toBe('open');
+      if (action?.type !== 'open') continue;
+      if (action.cardId.endsWith('-6')) counts['6'] += 1;
+      else if (action.cardId.endsWith('-5')) counts['5'] += 1;
+      else if (action.cardId.endsWith('-2')) counts['2'] += 1;
+      else counts.other += 1;
     }
+    expect(counts['6']).toBeGreaterThan(counts['5']!);
+    expect(counts['6']).toBeGreaterThanOrEqual(10);
+    expect(counts['2']).toBe(0);
   });
 
   it.each(['하', '중', '상'] as const)('%s R1 교환은 스탑', async (tier) => {

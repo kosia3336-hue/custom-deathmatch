@@ -3,8 +3,8 @@ import { loadResolvedDisplayedTitles } from '@shared/titles/resolve-displayed';
 import { compareRankRows, isChallengerSlot } from '@/lib/rank/leaderboard';
 import { RoutePagination } from '@/components/cdm/Pagination';
 import { DEFAULT_PAGE_SIZE, getTotalPages } from '@/lib/pagination';
-import RankLeaderRow from './RankLeaderRow';
-import { loadGuildMarksForMembers } from './loadGuildMarks';
+import RankLeaderRow from '@/components/ranking/RankLeaderRow';
+import { loadGuildMarksForMembers, loadRankCardSkinsForMembers } from './loadGuildMarks';
 import type { RankTier } from '@/shared/types/rank';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -95,7 +95,10 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
 
   const nickMap = new Map(memberRows.map((m) => [m.id, m.nickname]));
   const titleMap = await loadResolvedDisplayedTitles(db, memberRows);
-  const guildMarks = await loadGuildMarksForMembers(db, ids);
+  const [guildMarks, rankCardSkins] = await Promise.all([
+    loadGuildMarksForMembers(db, ids),
+    loadRankCardSkinsForMembers(db, ids),
+  ]);
 
   function titleFor(mid: string) {
     const t = titleMap.get(mid);
@@ -131,6 +134,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
             isChallenger={row.isChallenger}
             highlight={memberId != null && row.member_id === memberId}
             guildMark={guildMarks.get(row.member_id)}
+            skin={rankCardSkins.get(row.member_id)}
           />
         );
       })}
@@ -150,6 +154,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
             isChallenger={stickyRow.isChallenger}
             highlight
             guildMark={guildMarks.get(stickyRow.member_id)}
+            skin={rankCardSkins.get(stickyRow.member_id)}
           />
         </>
       ) : null}

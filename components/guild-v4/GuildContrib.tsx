@@ -6,6 +6,7 @@ import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import type { MyGuildState } from '@/lib/guild/types';
 import type { DevGuildContribPeriod } from './dummy';
+import { formatGuildRankScore } from './rankScore';
 import { useGuildDevStore } from './store';
 
 const PERIOD_TABS = [
@@ -14,8 +15,8 @@ const PERIOD_TABS = [
   { id: 'all', label: '전체' },
 ] as const;
 
-function formatGp(n: number) {
-  return `${n.toLocaleString('ko-KR')} GP`;
+function formatContribScore(n: number) {
+  return `${formatGuildRankScore(n)}점`;
 }
 
 export function GuildContribSection({
@@ -38,7 +39,7 @@ export function GuildContribSection({
         score: contribs[m.memberId]?.[key] ?? 0,
         title: titles[m.memberId] ?? null,
       }))
-      .filter((m) => m.score > 0)
+      .filter((m) => Math.round(m.score) > 0)
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return a.nickname.localeCompare(b.nickname, 'ko');
@@ -49,7 +50,7 @@ export function GuildContribSection({
     <div className="flex flex-col gap-3">
       <Tabs tabs={[...PERIOD_TABS]} value={key} onChange={setPeriod} />
       {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-cdm-fg-muted">이 기간에 공헌도가 없습니다.</p>
+        <p className="py-6 text-center text-sm text-cdm-fg-muted">이 기간에 획득한 점수가 없습니다.</p>
       ) : (
         <ol className="flex flex-col gap-0.5">
           {rows.map((m, i) => {
@@ -87,7 +88,7 @@ export function GuildContribSection({
                   ) : null}
                 </span>
                 <span className="shrink-0 font-semibold tabular-nums text-cdm-fg">
-                  {formatGp(m.score)}
+                  {formatContribScore(m.score)}
                 </span>
               </li>
             );

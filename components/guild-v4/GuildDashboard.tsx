@@ -36,6 +36,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
   const chatLen = useGuildChatStore((s) => s.messages.length);
   const lastSeen = useGuildChatStore((s) => s.lastSeenMsgCount);
   const tileOrder = useGuildDevStore((s) => s.tileOrder);
+  const rankCard = useGuildDevStore((s) => s.rankCard);
 
   useEffect(() => {
     if (my.role !== 'owner' && my.role !== 'vice_owner') setOpsOpen(false);
@@ -53,7 +54,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
 
   return (
     <>
-      <GuildChatSync enabled />
+      <GuildChatSync enabled memberId={meId} guildId={my.guild.id} />
       <GuildIdentityCard my={my} busy={busy} act={act} askConfirm={setPending} />
 
       <ul className="guild-dash-grid">
@@ -157,6 +158,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
             askConfirm={setPending}
             onBuyNameChange={() => setNameChangeOpen(true)}
             onScoutOpenChange={setScoutOpen}
+            rankCard={rankCard}
           />
         </div>
       </Modal>

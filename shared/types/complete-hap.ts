@@ -1,5 +1,7 @@
 /** 컴플릿 결! 합! — 9장 문제의 모든 합을 저장한 뒤 결로 일괄 제출하는 7라운드 게임. */
 
+import type { PlayMode } from './room';
+
 export const CH_TOTAL_ROUNDS = 7;
 /** 7라운드 대전에서 승리를 확정하는 선취 점수. 솔로에는 적용하지 않는다. */
 export const CH_WIN_SCORE = 4;
@@ -60,7 +62,7 @@ export interface CompleteHapGameData {
   matchSeconds: number | null;
   lastRoundResult: CompleteHapRoundResult | null;
   isSolo: boolean;
-  playMode: 'multi' | 'com' | 'solo';
+  playMode: PlayMode;
   winnerId: string | null;
   finishReason: string | null;
 }

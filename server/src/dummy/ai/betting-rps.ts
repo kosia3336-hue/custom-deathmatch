@@ -93,21 +93,21 @@ function tierKnobs(tier: DummyAiTier): {
   }
   if (tier === '중') {
     return {
-      historyWeight: 0.85,
-      priorMix: 0.28,
-      sampleNoise: 0.28,
-      bestRate: 0.82,
-      softTemp: 0.75,
-      kellyFactor: 0.4,
+      historyWeight: 0.95,
+      priorMix: 0.2,
+      sampleNoise: 0.18,
+      bestRate: 0.9,
+      softTemp: 0.55,
+      kellyFactor: 0.42,
     };
   }
   return {
-    historyWeight: 1.15,
-    priorMix: 0.12,
-    sampleNoise: 0.16,
-    bestRate: 0.95,
-    softTemp: 0.45,
-    kellyFactor: 0.45,
+    historyWeight: 1.2,
+    priorMix: 0.1,
+    sampleNoise: 0.12,
+    bestRate: 0.97,
+    softTemp: 0.35,
+    kellyFactor: 0.48,
   };
 }
 

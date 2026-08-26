@@ -31,7 +31,7 @@ const RUNTIME: Record<
     email: 'dummy_yeonseung@dummy.internal',
     socketId: 'live-dummy:yeonseung',
     passwordSeed: 'dummy:yeonseung',
-    window: { kind: 'daily', startMin: 21 * 60, endMin: 22 * 60 + 30 },
+    window: { kind: 'daily', startMin: 21 * 60, endMin: 30 },
   },
   jack: {
     key: 'jack',
@@ -91,7 +91,16 @@ export function isMinsInLiveWindow(mins: number, startMin: number, endMin: numbe
   return false;
 }
 
+/** KST 달력 기준 토·일. 금 밤 창은 토 0시에 끊는다. */
+export function isKstWeekend(d = new Date()): boolean {
+  const { ymd } = kstClock(d);
+  const [y, mo, da] = ymd.split('-').map(Number);
+  const wd = new Date(Date.UTC(y, mo - 1, da)).getUTCDay();
+  return wd === 0 || wd === 6;
+}
+
 export function isLiveDummyWindowOpen(window: LiveDummyWindow, d = new Date()): boolean {
+  if (isKstWeekend(d)) return false;
   const { ymd, mins } = kstClock(d);
   if (window.kind === 'dated' && !window.dates.has(ymd)) return false;
   return isMinsInLiveWindow(mins, window.startMin, window.endMin);

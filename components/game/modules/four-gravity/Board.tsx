@@ -16,6 +16,7 @@ interface Props {
   placedPosition: Position | null;
   winLine: Position[] | null;
   winner: string | null;
+  highlightCells?: Position[];
   skin?: SkinTheme | null;
   onCellClick: (row: number, col: number) => void;
 }
@@ -29,6 +30,7 @@ export default function Board({
   placedPosition,
   winLine,
   winner,
+  highlightCells = [],
   skin,
   onCellClick,
 }: Props) {
@@ -42,13 +44,19 @@ export default function Board({
     () => new Set((winLine ?? []).map((p) => `${p.row},${p.col}`)),
     [winLine],
   );
+  const highlightSet = useMemo(
+    () => new Set(highlightCells.map((p) => `${p.row},${p.col}`)),
+    [highlightCells],
+  );
 
   const isPlacePhase = isMyTurn && phase === 'place' && !winner;
   const isNeutralPhase = isMyTurn && phase === 'neutral' && !winner;
+  const hasActionHighlight = highlightCells.some((p) => board[p.row]?.[p.col] === 'empty');
+  const hasNeutralHighlight = hasActionHighlight && phase === 'neutral';
 
   return (
     <div
-      className={`grid rounded-lg border shadow-sm ${isCosmos ? 'skin-cosmos-board' : 'border-gray-300 bg-white'}`}
+      className={`grid rounded-lg border shadow-sm ${isCosmos ? 'skin-cosmos-board' : 'border-gray-300 bg-white'} ${hasActionHighlight ? 'gap-px bg-cdm-border' : ''}`}
       style={{
         gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
         width: 'min(100%, min(60vh, 500px))',
@@ -63,9 +71,15 @@ export default function Board({
           const isWinCell = winLineSet.has(key);
           const isLastPlaced = placedPosition?.row === r && placedPosition?.col === c;
 
+          const isTutorialTarget = highlightSet.has(key);
+
           let clickable = false;
-          if (isPlacePhase && cell === 'empty') clickable = true;
-          if (isNeutralPhase && isNeutralCandidate) clickable = true;
+          if (isPlacePhase && cell === 'empty') {
+            clickable = !hasActionHighlight || isTutorialTarget;
+          }
+          if (isNeutralPhase && isNeutralCandidate) {
+            clickable = !hasNeutralHighlight || isTutorialTarget;
+          }
 
           return (
             <Cell
@@ -75,7 +89,12 @@ export default function Board({
               isNeutralCandidate={isNeutralCandidate}
               isWinCell={isWinCell}
               isLastPlaced={isLastPlaced}
-              isDimmed={isNeutralPhase && !isNeutralCandidate && cell === 'empty'}
+              isTutorialTarget={isTutorialTarget}
+              isDimmed={
+                (isNeutralPhase && !isNeutralCandidate && cell === 'empty') ||
+                (hasNeutralHighlight && isNeutralCandidate && !isTutorialTarget) ||
+                (hasActionHighlight && cell === 'empty' && !isTutorialTarget)
+              }
               previewColor={isPlacePhase && cell === 'empty' ? previewColor : null}
               gameOver={!!winner}
               skin={skin}

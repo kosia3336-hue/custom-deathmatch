@@ -17,7 +17,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type MemberStatus = 'active' | 'suspended' | 'banned' | 'withdrawn';
 export type MemberRole = 'user' | 'admin';
-export type PlayMode = 'multi' | 'com' | 'solo';
+export type PlayMode = 'multi' | 'com' | 'solo' | 'tutorial';
 export type TurnPosition = 'first' | 'second';
 import type { TitleColor } from '@shared/titles/colors';
 export type { TitleColor };
@@ -268,6 +268,7 @@ export interface GameRow {
   supports_multi: boolean;
   supports_com: boolean;
   supports_solo: boolean;
+  supports_tutorial: boolean;
   is_active: boolean;
   sort_order: number;
   bayesian_c: number;

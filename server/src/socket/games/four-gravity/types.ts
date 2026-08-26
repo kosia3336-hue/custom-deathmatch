@@ -7,6 +7,7 @@ import type {
   Position,
   FourGravityPlayerInfo,
   FourGravityAction,
+  FgTutorialStepId,
 } from '@shared/types/four-gravity.js';
 import type { IO } from './constants.js';
 
@@ -78,6 +79,18 @@ export interface InternalState {
   actionLog: TurnActionLog[];
   undoSnapshots: FourGravityUndoSnapshot[];
   ownerToken: string | null;
+  tutorialStep: FgTutorialStepId | null;
+  tutorialCom: TutorialComPlayback | null;
+  tutorialComTimer: ReturnType<typeof setTimeout> | null;
+}
+
+export type TutorialComScript = 'first' | 'down' | 'down-neutral';
+export type TutorialComBeat = 'place' | 'gravity' | 'neutral';
+
+export interface TutorialComPlayback {
+  script: TutorialComScript;
+  beat: TutorialComBeat;
+  left: number;
 }
 
 export interface WinResult {

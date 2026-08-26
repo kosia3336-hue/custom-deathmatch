@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireCheonhaAdmin } from '@/lib/auth/require-cheonha';
-import { isDevAuthUser, listDevMembers } from '@/lib/auth/dev-users';
+import { requireDevSwitchActor } from '@/lib/auth/require-cheonha';
+import {
+  DEV_SWITCH_OWNER_NICK,
+  isDevAuthUser,
+  listDevSwitchTargets,
+} from '@/lib/auth/dev-users';
 import { getServerSupabase } from '@/lib/supabase/server';
 import {
   getSupabaseServiceRole,
@@ -13,24 +17,24 @@ function err(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
 }
 
-/** GET /api/admin/dev-switch — 데브 유저 목록. 닉 천하만. */
+/** GET /api/admin/dev-switch — 천하 + 더미 목록. 천하·더미 세션만. */
 export async function GET() {
-  const me = await requireCheonhaAdmin();
+  const me = await requireDevSwitchActor();
   if (!me) return err('권한이 없습니다.', 403);
   if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없습니다.', 503);
 
   try {
-    const users = await listDevMembers(getSupabaseServiceRole());
-    return NextResponse.json({ users });
+    const all = await listDevSwitchTargets(getSupabaseServiceRole());
+    return NextResponse.json({ users: all.filter((u) => u.id !== me.id) });
   } catch (e) {
     console.warn('[dev-switch:list]', (e as Error).message);
     return err('목록을 불러오지 못했습니다.', 500);
   }
 }
 
-/** POST /api/admin/dev-switch `{ memberId }` — 그 데브 유저로 세션 교체. */
+/** POST /api/admin/dev-switch `{ memberId }` — 천하 또는 더미로 세션 교체. */
 export async function POST(req: NextRequest) {
-  const me = await requireCheonhaAdmin();
+  const me = await requireDevSwitchActor();
   if (!me) return err('권한이 없습니다.', 403);
   if (!isSupabaseServiceRoleConfigured()) return err('서비스 설정이 없습니다.', 503);
 
@@ -48,7 +52,20 @@ export async function POST(req: NextRequest) {
     const admin = getSupabaseServiceRole();
     const { data: got, error: getErr } = await admin.auth.admin.getUserById(memberId);
     if (getErr || !got.user) return err('회원을 찾을 수 없습니다.', 404);
-    if (!isDevAuthUser(got.user)) return err('데브 유저가 아닙니다.', 403);
+
+    const { data: targetMem, error: memErr } = await admin
+      .from('members')
+      .select('nickname, withdrawn_at')
+      .eq('id', memberId)
+      .maybeSingle();
+    if (memErr) throw memErr;
+    const target = targetMem as { nickname: string; withdrawn_at: string | null } | null;
+    if (!target || target.withdrawn_at) return err('회원을 찾을 수 없습니다.', 404);
+
+    const isOwner = target.nickname === DEV_SWITCH_OWNER_NICK;
+    if (!isDevAuthUser(got.user) && !isOwner) {
+      return err('데브 전환 대상이 아닙니다.', 403);
+    }
 
     const email = got.user.email;
     if (!email) return err('이메일이 없는 계정입니다.', 400);

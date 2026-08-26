@@ -1,0 +1,367 @@
+/* 랭크 카드 스킨 — /dev/rank-card 프리뷰. 길드 상점 상품 후보.
+   스킨 블록이므로 hex 허용 (handover/design.md §0.1). */
+
+.rank-card-skin {
+  isolation: isolate;
+  background-color: var(--cdm-bg) !important;
+  border-color: var(--cdm-border) !important;
+}
+
+.rank-card-skin .rank-card-skin-fx,
+.rank-card-skin .rank-card-skin-fx2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.rank-card-skin .rank-card-skin-body {
+  position: relative;
+  z-index: 1;
+}
+
+/* ——— 금박 ——— */
+.rank-card-skin-gilt {
+  --cdm-bg: #fbf6ea;
+  --cdm-border: #d4b56a;
+  --cdm-fg: #3f2f12;
+  --cdm-fg-muted: #8a7040;
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.28),
+    0 10px 28px -14px rgba(168, 120, 24, 0.55);
+  background-image:
+    linear-gradient(135deg, rgba(255, 248, 220, 0.9) 0%, transparent 42%),
+    linear-gradient(180deg, #fffaf0 0%, #f3e6c4 100%);
+}
+.rank-card-skin-gilt .rank-card-skin-fx {
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 64%
+  );
+  transform: translateX(-130%) skewX(-18deg);
+  animation: rank-card-shine 5.2s ease-in-out infinite;
+}
+
+/* ——— 흑요석 ——— */
+.rank-card-skin-obsidian {
+  --cdm-bg: #121018;
+  --cdm-border: #c9a227;
+  --cdm-fg: #f4efe4;
+  --cdm-fg-muted: #b8a57a;
+  --cdm-highlight: #e8c547;
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.35),
+    inset 0 1px 0 rgba(255, 236, 180, 0.12),
+    0 14px 32px -16px rgba(0, 0, 0, 0.65);
+  background-image:
+    radial-gradient(120% 80% at 0% 0%, rgba(201, 162, 39, 0.18), transparent 55%),
+    linear-gradient(180deg, #1a1622 0%, #0c0b10 100%);
+}
+.rank-card-skin-obsidian .rank-card-skin-fx {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(232, 197, 71, 0.18) 50%,
+    transparent 60%
+  );
+  animation: rank-card-shine 6.4s ease-in-out infinite;
+}
+
+/* ——— 오로라 ——— */
+.rank-card-skin-aurora {
+  --cdm-bg: #0e1a24;
+  --cdm-border: #7ee0c8;
+  --cdm-fg: #f2fbff;
+  --cdm-fg-muted: #9ec9c4;
+  box-shadow:
+    0 0 24px -8px rgba(94, 234, 212, 0.45),
+    0 12px 28px -16px rgba(129, 140, 248, 0.4);
+  background-size: 220% 220%;
+  background-image: linear-gradient(
+    120deg,
+    #0b1c28 0%,
+    #134e4a 28%,
+    #3730a3 55%,
+    #9d174d 78%,
+    #0b1c28 100%
+  );
+  animation: rank-card-aurora-shift 14s ease-in-out infinite;
+}
+.rank-card-skin-aurora .rank-card-skin-fx {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    transparent 40%,
+    rgba(94, 234, 212, 0.12)
+  );
+  mix-blend-mode: screen;
+}
+
+/* ——— 성운 ——— */
+.rank-card-skin-nebula {
+  --cdm-bg: #12081f;
+  --cdm-border: #c4b5fd;
+  --cdm-fg: #f5f3ff;
+  --cdm-fg-muted: #c4b5fd;
+  box-shadow:
+    0 0 28px -10px rgba(167, 139, 250, 0.55),
+    inset 0 0 40px rgba(88, 28, 135, 0.35);
+  background-image:
+    radial-gradient(90% 120% at 80% -10%, rgba(244, 114, 182, 0.35), transparent 50%),
+    radial-gradient(70% 90% at 0% 110%, rgba(99, 102, 241, 0.45), transparent 55%),
+    linear-gradient(180deg, #1e1033 0%, #0b0614 100%);
+}
+.rank-card-skin-nebula .rank-card-skin-fx2 {
+  background-image:
+    radial-gradient(1.2px 1.2px at 8% 22%, #fff 70%, transparent),
+    radial-gradient(1px 1px at 22% 68%, #fff 70%, transparent),
+    radial-gradient(1.4px 1.4px at 41% 18%, #fde68a 70%, transparent),
+    radial-gradient(1px 1px at 58% 74%, #fff 70%, transparent),
+    radial-gradient(1.2px 1.2px at 73% 32%, #e9d5ff 70%, transparent),
+    radial-gradient(1px 1px at 86% 58%, #fff 70%, transparent),
+    radial-gradient(1.3px 1.3px at 93% 14%, #fff 70%, transparent),
+    radial-gradient(1px 1px at 14% 88%, #c4b5fd 70%, transparent);
+  animation: rank-card-twinkle 3.6s ease-in-out infinite;
+}
+
+/* ——— 벚꽃 ——— */
+.rank-card-skin-sakura {
+  --cdm-bg: #fff7f8;
+  --cdm-border: #f9a8d4;
+  --cdm-fg: #4a2040;
+  --cdm-fg-muted: #b56b8c;
+  box-shadow: 0 10px 26px -14px rgba(244, 114, 182, 0.45);
+  background-image:
+    radial-gradient(90% 80% at 100% 0%, rgba(251, 207, 232, 0.7), transparent 50%),
+    linear-gradient(180deg, #fffafb 0%, #fce7f3 100%);
+}
+.rank-card-skin-sakura .rank-card-skin-fx2 {
+  background-image:
+    radial-gradient(circle at 12% 30%, #fb7185 0 3px, transparent 4px),
+    radial-gradient(circle at 28% 78%, #f9a8d4 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 62% 22%, #fda4af 0 3px, transparent 4px),
+    radial-gradient(circle at 78% 64%, #fb7185 0 2px, transparent 3px),
+    radial-gradient(circle at 91% 40%, #fbcfe8 0 3.5px, transparent 4.5px);
+  animation: rank-card-drift 9s ease-in-out infinite;
+  opacity: 0.85;
+}
+
+/* ——— 잔불 ——— */
+.rank-card-skin-ember {
+  --cdm-bg: #1a0c08;
+  --cdm-border: #f97316;
+  --cdm-fg: #fff7ed;
+  --cdm-fg-muted: #fdba74;
+  --cdm-highlight: #fb923c;
+  box-shadow:
+    0 0 22px -8px rgba(249, 115, 22, 0.55),
+    inset 0 -24px 40px rgba(127, 29, 29, 0.35);
+  background-image:
+    radial-gradient(80% 70% at 50% 120%, rgba(249, 115, 22, 0.55), transparent 55%),
+    linear-gradient(180deg, #2a120c 0%, #120805 100%);
+}
+.rank-card-skin-ember .rank-card-skin-fx {
+  background: radial-gradient(40% 80% at 20% 100%, rgba(251, 146, 60, 0.35), transparent 70%);
+  animation: rank-card-ember-breathe 3.2s ease-in-out infinite;
+}
+.rank-card-skin-ember .rank-card-skin-fx2 {
+  background-image:
+    radial-gradient(circle at 18% 82%, #fb923c 0 2px, transparent 3px),
+    radial-gradient(circle at 44% 88%, #f97316 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 71% 80%, #fdba74 0 2px, transparent 3px),
+    radial-gradient(circle at 88% 90%, #ea580c 0 1.5px, transparent 2.5px);
+  animation: rank-card-sparks 2.8s ease-in-out infinite;
+}
+
+/* ——— 서리 ——— */
+.rank-card-skin-frost {
+  --cdm-bg: #f4fbff;
+  --cdm-border: #7dd3fc;
+  --cdm-fg: #0c4a6e;
+  --cdm-fg-muted: #38bdf8;
+  box-shadow:
+    0 0 20px -10px rgba(56, 189, 248, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background-image:
+    linear-gradient(135deg, rgba(186, 230, 253, 0.7) 0%, transparent 40%),
+    linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+.rank-card-skin-frost .rank-card-skin-fx {
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  opacity: 0.5;
+  animation: rank-card-frost-veil 7s ease-in-out infinite;
+}
+.rank-card-skin-frost .rank-card-skin-fx2 {
+  background-image:
+    linear-gradient(115deg, transparent 48%, rgba(125, 211, 252, 0.45) 50%, transparent 52%),
+    linear-gradient(65deg, transparent 48%, rgba(186, 230, 253, 0.4) 50%, transparent 52%);
+  opacity: 0.55;
+}
+
+/* ——— 섬광 ——— */
+.rank-card-skin-volt {
+  --cdm-bg: #070b16;
+  --cdm-border: #22d3ee;
+  --cdm-fg: #ecfeff;
+  --cdm-fg-muted: #67e8f9;
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.28),
+    0 0 26px -8px rgba(34, 211, 238, 0.55);
+  background-image:
+    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, #0b1224 0%, #05070f 100%);
+  background-size: 18px 100%, auto;
+}
+.rank-card-skin-volt .rank-card-skin-fx {
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(165, 243, 252, 0.95) 49.5%,
+    rgba(34, 211, 238, 0.15) 50.5%,
+    transparent 58%
+  );
+  opacity: 0;
+  animation: rank-card-bolt 3.8s ease-in-out infinite;
+}
+
+/* ——— 비취 ——— */
+.rank-card-skin-jade {
+  --cdm-bg: #ecfdf5;
+  --cdm-border: #34d399;
+  --cdm-fg: #064e3b;
+  --cdm-fg-muted: #059669;
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.25),
+    0 12px 28px -16px rgba(5, 150, 105, 0.4);
+  background-image:
+    radial-gradient(80% 120% at 100% 0%, rgba(167, 243, 208, 0.8), transparent 50%),
+    linear-gradient(180deg, #f0fdf4 0%, #d1fae5 100%);
+}
+.rank-card-skin-jade .rank-card-skin-fx2 {
+  background:
+    repeating-linear-gradient(
+      -32deg,
+      transparent 0 14px,
+      rgba(16, 185, 129, 0.09) 14px 15px
+    );
+}
+.rank-card-skin-jade .rank-card-skin-fx {
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 62%
+  );
+  animation: rank-card-shine 7s ease-in-out infinite;
+}
+
+/* ——— 황실 ——— */
+.rank-card-skin-imperial {
+  --cdm-bg: #1a0508;
+  --cdm-border: #e8b84a;
+  --cdm-fg: #fff7e8;
+  --cdm-fg-muted: #e8c07a;
+  --cdm-highlight: #f5d76e;
+  --cdm-primary: #e8b84a;
+  box-shadow:
+    0 0 0 1px rgba(232, 184, 74, 0.4),
+    0 0 32px -10px rgba(155, 20, 20, 0.7),
+    inset 0 1px 0 rgba(255, 220, 140, 0.18);
+  background-image:
+    radial-gradient(90% 80% at 0% 0%, rgba(185, 28, 28, 0.45), transparent 50%),
+    linear-gradient(180deg, #3b0a10 0%, #120306 100%);
+}
+.rank-card-skin-imperial .rank-card-skin-fx {
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgba(255, 220, 140, 0.35) 50%,
+    transparent 62%
+  );
+  animation: rank-card-shine 5.6s ease-in-out infinite;
+}
+.rank-card-skin-imperial .rank-card-skin-fx2 {
+  box-shadow: inset 0 0 0 1px rgba(232, 184, 74, 0.2);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 28px,
+      rgba(232, 184, 74, 0.07) 28px 29px
+    );
+}
+
+@keyframes rank-card-shine {
+  0%, 18% { transform: translateX(-140%) skewX(-18deg); }
+  48%, 100% { transform: translateX(160%) skewX(-18deg); }
+}
+
+@keyframes rank-card-aurora-shift {
+  0%, 100% { background-position: 0% 40%; }
+  50% { background-position: 80% 60%; }
+}
+
+@keyframes rank-card-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes rank-card-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+@keyframes rank-card-ember-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes rank-card-sparks {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(-7px); opacity: 1; }
+}
+
+@keyframes rank-card-frost-veil {
+  0%, 100% { transform: translateX(-8%); }
+  50% { transform: translateX(8%); }
+}
+
+@keyframes rank-card-bolt {
+  0%, 72%, 100% { opacity: 0; }
+  76% { opacity: 1; }
+  80% { opacity: 0.15; }
+  84% { opacity: 0.85; }
+  90% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-card-skin-gilt .rank-card-skin-fx,
+  .rank-card-skin-obsidian .rank-card-skin-fx,
+  .rank-card-skin-aurora,
+  .rank-card-skin-nebula .rank-card-skin-fx2,
+  .rank-card-skin-sakura .rank-card-skin-fx2,
+  .rank-card-skin-ember .rank-card-skin-fx,
+  .rank-card-skin-ember .rank-card-skin-fx2,
+  .rank-card-skin-frost .rank-card-skin-fx,
+  .rank-card-skin-volt .rank-card-skin-fx,
+  .rank-card-skin-jade .rank-card-skin-fx,
+  .rank-card-skin-imperial .rank-card-skin-fx {
+    animation: none;
+  }
+  .rank-card-skin-gilt .rank-card-skin-fx,
+  .rank-card-skin-obsidian .rank-card-skin-fx,
+  .rank-card-skin-jade .rank-card-skin-fx,
+  .rank-card-skin-imperial .rank-card-skin-fx {
+    transform: none;
+    opacity: 0.25;
+  }
+  .rank-card-skin-volt .rank-card-skin-fx {
+    opacity: 0.35;
+  }
+  .rank-card-skin-aurora {
+    background-position: 40% 50%;
+  }
+}

@@ -56,7 +56,7 @@ export function DevSwitchModal({
   return (
     <Modal open={open} onClose={onClose} title="데브 전환" size="sm" showClose>
       <p className="mb-3 text-sm text-cdm-fg-muted">
-        데브 유저로 접속합니다. 소켓·잔액이 그 계정으로 바뀝니다.
+        천하와 더미 회원 사이를 전환합니다. 소켓·잔액이 그 계정으로 바뀝니다.
       </p>
       {users === null ? (
         <p className="text-sm text-cdm-fg-muted">불러오는 중…</p>

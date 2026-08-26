@@ -430,9 +430,9 @@ function filterCompetent(
 function pickWeighted(scored: ScoredAction[], tier: DummyAiTier): IndianPokerAction {
   const sorted = [...scored].sort((a, b) => b.score - a.score);
   const best = sorted[0]!;
-  const slack = tier === '하' ? 0.9 : tier === '중' ? 0.45 : 0.22;
+  const slack = tier === '하' ? 0.8 : tier === '중' ? 0.22 : 0.12;
   const band = sorted.filter((s) => s.score >= best.score - slack);
-  const temp = tier === '하' ? 0.55 : tier === '중' ? 0.28 : 0.14;
+  const temp = tier === '하' ? 0.5 : tier === '중' ? 0.16 : 0.1;
   const weights = band.map((s) => Math.exp((s.score - best.score) / Math.max(0.05, temp)));
   let total = 0;
   for (const w of weights) total += w;

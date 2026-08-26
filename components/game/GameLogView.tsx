@@ -6,6 +6,7 @@ import { Card } from '@/components/cdm/Card';
 import LogViewer from '@/components/archive/LogViewer';
 import { formatTime } from '@/lib/utils';
 import type { GameRecordFile } from '@/shared/types/archive';
+import { PLAY_MODE_LABEL, type PlayMode } from '@/shared/types/room';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export interface GameLogPlayer {
@@ -23,7 +24,7 @@ export interface GameLogMeta {
   playedAt: string;
   playTimeMs: number;
   totalTurns: number;
-  mode: 'multi' | 'com' | 'solo';
+  mode: PlayMode;
   countsForStats: boolean;
 }
 
@@ -50,11 +51,13 @@ export default function GameLogView({
   const isDraw = players.every((p) => p.isDraw) || players.some((p) => p.isDraw);
   const winner = !isDraw ? players.find((p) => p.isWinner) : null;
 
-  const resultLabel = isDraw
-    ? '무승부'
-    : winner
-      ? `${winner.nickname} 승리`
-      : '게임 종료';
+  const resultLabel = meta.mode === 'tutorial'
+    ? '튜토리얼 완료'
+    : isDraw
+      ? '무승부'
+      : winner
+        ? `${winner.nickname} 승리`
+        : '게임 종료';
 
   const accent = isDraw ? 'highlight' : winner ? 'accent' : 'primary';
 
@@ -68,7 +71,7 @@ export default function GameLogView({
             <span>{meta.gameName}</span>
             {meta.mode !== 'multi' && (
               <span className="rounded bg-cdm-bg-elev-2 px-1.5 py-0.5">
-                {meta.mode === 'com' ? 'COM' : '솔로'}
+                {PLAY_MODE_LABEL[meta.mode]}
               </span>
             )}
             {!meta.countsForStats && (

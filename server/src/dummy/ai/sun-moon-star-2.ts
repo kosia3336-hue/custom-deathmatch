@@ -89,9 +89,9 @@ const GIBO_POWDER_TOT: Array<{ tot: number; n: number }> = [
 const GIBO_PRIOR = 0.08;
 
 function tierKnobs(tier: DummyAiTier): { uniformMix: number; softmaxTemp: number } {
-  if (tier === '하') return { uniformMix: 0.4, softmaxTemp: 0.08 };
-  if (tier === '중') return { uniformMix: 0.16, softmaxTemp: 0.03 };
-  return { uniformMix: 0.05, softmaxTemp: 0.012 };
+  if (tier === '하') return { uniformMix: 0.36, softmaxTemp: 0.07 };
+  if (tier === '중') return { uniformMix: 0.08, softmaxTemp: 0.016 };
+  return { uniformMix: 0.03, softmaxTemp: 0.01 };
 }
 
 function sigmoid(x: number): number {

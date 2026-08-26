@@ -18,7 +18,8 @@ import RankingTabs from './RankingTabs';
 import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
 import { loadGuildMarksForMembers } from './loadGuildMarks';
-import { GuildMark, type GuildMarkInfo } from '@/components/cdm/GuildMark';
+import type { GuildMarkInfo } from '@/components/cdm/GuildMark';
+import { OpenGuildInfoMark } from '@/components/guild-v4/OpenGuildInfoMark';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { CONTAINER_READ } from '@/lib/layout';
 
@@ -253,7 +254,7 @@ export default async function RankingPage({ searchParams }: Props) {
                       >
                         {r.rank}
                       </span>
-                      <GuildMark mark={guildMarks.get(r.member_id)} size="xl" />
+                      <OpenGuildInfoMark mark={guildMarks.get(r.member_id)} size="xl" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           {r.title && (

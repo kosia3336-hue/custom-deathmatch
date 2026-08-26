@@ -7,7 +7,14 @@ import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRouter } from 'next/navigation';
-import { FC_DEFAULT_NUMBER_COUNT, GAME_IDS } from '@/shared/types';
+import {
+  FC_DEFAULT_NUMBER_COUNT,
+  GAME_IDS,
+  PLAY_MODES,
+  PLAY_MODE_LABEL,
+  gameSupportsPlayMode,
+  isSoloLikePlayMode,
+} from '@/shared/types';
 import type { Game, PlayMode, RoomType } from '@/shared/types';
 import type { GameCategory } from '@/lib/gameRules';
 import {
@@ -34,6 +41,7 @@ const RANDOM_GAME: Game = {
   supportsMulti: true,
   supportsCom: false,
   supportsSolo: false,
+  supportsTutorial: false,
   rankingActive: true,
 };
 
@@ -46,6 +54,7 @@ const BAN_PICK_GAME: Game = {
   supportsMulti: true,
   supportsCom: true,
   supportsSolo: false,
+  supportsTutorial: false,
   rankingActive: true,
 };
 
@@ -147,6 +156,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     if (g.supportsMulti) setPlayMode('multi');
     else if (g.supportsCom) setPlayMode('com');
     else if (g.supportsSolo) setPlayMode('solo');
+    else if (g.supportsTutorial) setPlayMode('tutorial');
     setMaxPlayers(g.maxPlayers);
     setError('');
   };
@@ -170,7 +180,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       if (!selectedGame) return setError('게임을 선택해 주세요.');
       if (!title.trim() || title.length > 30) return setError('방 제목은 1~30자로 입력해 주세요.');
       if (
-        playMode !== 'solo' &&
+        !isSoloLikePlayMode(playMode) &&
         roomType === 'private' &&
         (password.length < 4 || password.length > 8)
       ) {
@@ -211,8 +221,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           gameId: selectedGame.id,
           title: title.trim(),
           playMode,
-          roomType: playMode === 'solo' ? 'public' : roomType,
-          password: playMode !== 'solo' && roomType === 'private' ? password : undefined,
+          roomType: isSoloLikePlayMode(playMode) ? 'public' : roomType,
+          password:
+            !isSoloLikePlayMode(playMode) && roomType === 'private' ? password : undefined,
           maxPlayers,
           timeLimitSeconds: computedTimeLimit,
           gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
@@ -221,7 +232,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           setLoading(false);
           if (res.success && res.roomId) {
             onClose();
-            if (playMode === 'solo') {
+            if (isSoloLikePlayMode(playMode)) {
               router.push(`/room/${res.roomId}/play`);
             } else {
               router.push(`/room/${res.roomId}`);
@@ -299,35 +310,21 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             {selectedGame && !isRandom && (
               <SettingField label="플레이 모드">
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    {
-                      key: 'multi' as PlayMode,
-                      label: '멀티',
-                      supported: selectedGame.supportsMulti,
-                    },
-                    { key: 'com' as PlayMode, label: 'COM', supported: selectedGame.supportsCom },
-                    {
-                      key: 'solo' as PlayMode,
-                      label: '1:1 솔로',
-                      supported: selectedGame.supportsSolo,
-                    },
-                  ]
-                    .filter((m) => m.supported)
-                    .map((m) => (
-                      <OptionButton
-                        key={m.key}
-                        active={playMode === m.key}
-                        onClick={() => setPlayMode(m.key)}
-                      >
-                        {m.label}
-                      </OptionButton>
-                    ))}
+                  {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
+                    <OptionButton
+                      key={key}
+                      active={playMode === key}
+                      onClick={() => setPlayMode(key)}
+                    >
+                      {PLAY_MODE_LABEL[key]}
+                    </OptionButton>
+                  ))}
                 </div>
               </SettingField>
             )}
 
             {/* 방 유형 */}
-            {playMode !== 'solo' && (
+            {!isSoloLikePlayMode(playMode) && (
               <SettingField label="방 유형">
                 <div className="flex gap-2">
                   {[
@@ -347,7 +344,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 비밀번호 */}
-            {playMode !== 'solo' && roomType === 'private' && (
+            {!isSoloLikePlayMode(playMode) && roomType === 'private' && (
               <Input
                 label="비밀번호"
                 type="password"

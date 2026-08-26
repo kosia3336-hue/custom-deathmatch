@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 
 export interface AdminMemberGuild {
+  id: string;
   name: string;
   markUrl: string | null;
 }
@@ -35,7 +36,7 @@ export async function fetchMemberGuilds(
 
   const guildMap = new Map<string, AdminMemberGuild>();
   for (const g of (guilds ?? []) as { id: string; name: string; mark_url: string | null }[]) {
-    guildMap.set(g.id, { name: g.name, markUrl: g.mark_url ?? null });
+    guildMap.set(g.id, { id: g.id, name: g.name, markUrl: g.mark_url ?? null });
   }
   for (const row of rows) {
     const g = guildMap.get(row.guild_id);

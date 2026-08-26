@@ -5,11 +5,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { Card } from '@/components/cdm/Card';
 import { Tabs } from '@/components/cdm/Tabs';
+import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
+import type { GuildV4PersonalRank } from '@/lib/guild-v4/types';
 import {
   GUILD_CHARTER_PRICE_CDP,
   type GuildSummary,
   type MyGuildState,
 } from '@/lib/guild/types';
+import type { TitleColor } from '@/lib/supabase/database.types';
 import { useGuildDevApi } from './useGuildDevApi';
 import { CreateGuildModal } from './CreateGuildModal';
 import { GuildBackLink } from './GuildBackLink';
@@ -22,10 +25,13 @@ import {
 } from './rankScore';
 import { useGuildDevStore } from './store';
 
-const PERIOD_TABS = [
+const RANK_TABS = [
   { id: 'weekly', label: '주간' },
   { id: 'monthly', label: '월간' },
+  { id: 'personal', label: '개인' },
 ] as const;
+
+type RankTab = (typeof RANK_TABS)[number]['id'];
 
 type Act = (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
 
@@ -44,16 +50,18 @@ export function GuildListPanel({
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [infoGuild, setInfoGuild] = useState<GuildSummary | null>(null);
-  const canBrowse = !my.guild;
-  const canApply = canBrowse && !my.myRequest;
+  const canApply = !my.guild && !my.myRequest;
   const page = variant === 'page';
   const rankScores = useGuildDevStore((s) => s.rankScores);
-  const [period, setPeriod] = useState<string>('weekly');
-  const key = (PERIOD_TABS.some((t) => t.id === period) ? period : 'weekly') as DevGuildRankPeriod;
+  const personalRanks = useGuildDevStore((s) => s.personalRanks);
+  const meId = useGuildDevStore((s) => s.meId);
+  const [tab, setTab] = useState<string>('weekly');
+  const key = (RANK_TABS.some((t) => t.id === tab) ? tab : 'weekly') as RankTab;
+  const period = key === 'personal' ? 'weekly' : (key as DevGuildRankPeriod);
   const ranked = useMemo(() => {
     const periodScores: Record<string, number> = {};
     for (const g of guilds) {
-      periodScores[g.id] = rankScores[g.id]?.[key] ?? 0;
+      periodScores[g.id] = rankScores[g.id]?.[period] ?? 0;
     }
     const ranks = assignGuildRanks(guilds, periodScores);
     return [...guilds]
@@ -68,7 +76,7 @@ export function GuildListPanel({
         rank: ranks.get(g.id) ?? 0,
         score: periodScores[g.id] ?? 0,
       }));
-  }, [guilds, rankScores, key]);
+  }, [guilds, rankScores, period]);
 
   return (
     <>
@@ -115,49 +123,67 @@ export function GuildListPanel({
 
       <section className="flex flex-col gap-2">
         {guilds.length > 0 ? (
-          <Tabs tabs={[...PERIOD_TABS]} value={key} onChange={setPeriod} />
+          <Tabs tabs={[...RANK_TABS]} value={key} onChange={setTab} />
         ) : null}
         {guilds.length === 0 ? (
           <Card className="py-10 text-center text-sm text-cdm-fg-muted">
             아직 창설된 길드가 없습니다. 창설권으로 첫 길드를 만들어 보세요.
           </Card>
-        ) : (
-          <>
-            {ranked.map(({ guild: g, rank, score }) => (
-              <GuildRow
-                key={g.id}
-                rank={rank}
-                score={score}
-                guild={g}
-                showInfo={canBrowse}
-                onInfo={() => setInfoGuild(g)}
+        ) : key === 'personal' ? (
+          personalRanks.length === 0 ? (
+            <Card className="py-10 text-center text-sm text-cdm-fg-muted">
+              아직 점수를 획득한 길드원이 없습니다.
+            </Card>
+          ) : (
+            personalRanks.map((row, i) => (
+              <PersonalRow
+                key={row.memberId}
+                rank={i + 1}
+                row={row}
+                isMe={row.memberId === meId}
+                onMark={() => {
+                  const g = guilds.find((x) => x.id === row.guildId);
+                  if (g) setInfoGuild(g);
+                }}
               />
-            ))}
-            <style>{`
-              .guild-list-crest {
-                flex-shrink: 0;
-                width: 2.35rem;
-                filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--title-midnight) 16%, transparent));
-              }
-              .guild-list-crest-metal {
-                padding: 2px;
-                background: linear-gradient(160deg, var(--cdm-highlight-soft), var(--cdm-highlight) 35%, var(--cdm-highlight-strong) 70%, var(--cdm-highlight-soft));
-                clip-path: polygon(50% 0, 100% 16%, 100% 64%, 50% 100%, 0 64%, 0 16%);
-              }
-              .guild-list-crest-inner {
-                overflow: hidden;
-                background: var(--title-midnight);
-                clip-path: polygon(50% 0, 100% 16%, 100% 64%, 50% 100%, 0 64%, 0 16%);
-              }
-              .guild-list-crest-inner img {
-                display: block;
-                width: 100%;
-                height: 2.65rem;
-                object-fit: cover;
-              }
-            `}</style>
-          </>
+            ))
+          )
+        ) : (
+          ranked.map(({ guild: g, rank, score }) => (
+            <GuildRow
+              key={g.id}
+              rank={rank}
+              score={score}
+              guild={g}
+              onInfo={() => setInfoGuild(g)}
+            />
+          ))
         )}
+        {guilds.length > 0 ? (
+          <style>{`
+            .guild-list-crest {
+              flex-shrink: 0;
+              width: 2.35rem;
+              filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--title-midnight) 16%, transparent));
+            }
+            .guild-list-crest-metal {
+              padding: 2px;
+              background: linear-gradient(160deg, var(--cdm-highlight-soft), var(--cdm-highlight) 35%, var(--cdm-highlight-strong) 70%, var(--cdm-highlight-soft));
+              clip-path: polygon(50% 0, 100% 16%, 100% 64%, 50% 100%, 0 64%, 0 16%);
+            }
+            .guild-list-crest-inner {
+              overflow: hidden;
+              background: var(--title-midnight);
+              clip-path: polygon(50% 0, 100% 16%, 100% 64%, 50% 100%, 0 64%, 0 16%);
+            }
+            .guild-list-crest-inner img {
+              display: block;
+              width: 100%;
+              height: 2.65rem;
+              object-fit: cover;
+            }
+          `}</style>
+        ) : null}
       </section>
 
       {infoGuild && (
@@ -197,8 +223,16 @@ export default function GuildListClient({ me }: { me: DevGuildMe }) {
   return <GuildListPanel guilds={guilds} my={my} busy={busy} act={act} variant="page" />;
 }
 
-function GuildListCrest({ src, name }: { src: string; name: string }) {
-  return (
+function GuildListCrest({
+  src,
+  name,
+  onOpen,
+}: {
+  src: string;
+  name: string;
+  onOpen?: () => void;
+}) {
+  const crest = (
     <div className="guild-list-crest">
       <div className="guild-list-crest-metal">
         <div className="guild-list-crest-inner">
@@ -208,19 +242,80 @@ function GuildListCrest({ src, name }: { src: string; name: string }) {
       </div>
     </div>
   );
+  if (!onOpen) return crest;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${name} 길드 정보`}
+      className="shrink-0 cursor-pointer rounded-cdm-sm bg-transparent p-0 focus:outline-none focus-visible:[box-shadow:var(--cdm-ring-primary)]"
+    >
+      {crest}
+    </button>
+  );
+}
+
+function PersonalRow({
+  rank,
+  row,
+  isMe,
+  onMark,
+}: {
+  rank: number;
+  row: GuildV4PersonalRank;
+  isMe: boolean;
+  onMark: () => void;
+}) {
+  const title = row.title;
+  return (
+    <Card className={`px-3 py-2 sm:px-3.5 sm:py-2${isMe ? ' bg-cdm-primary-soft' : ''}`}>
+      <div className="flex items-center gap-4">
+        <span
+          className={`w-5 shrink-0 text-center text-xs font-bold tabular-nums ${
+            rank === 1 ? 'text-cdm-highlight-strong' : 'text-cdm-fg-muted'
+          }`}
+        >
+          {rank}
+        </span>
+        {row.markUrl ? (
+          <GuildListCrest src={row.markUrl} name={row.guildName} onOpen={onMark} />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-cdm-fg">
+              {row.nickname}
+              {isMe ? (
+                <span className="ml-1 text-[11px] font-normal text-cdm-fg-subtle">(나)</span>
+              ) : null}
+            </p>
+            {title ? (
+              <TitleBadge
+                name={title.name}
+                color={title.color as TitleColor}
+                effect={title.effect as TitleEffect | null}
+                size="sm"
+              />
+            ) : null}
+          </div>
+          <p className="mt-px truncate text-xs text-cdm-fg-muted">{row.guildName}</p>
+        </div>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-cdm-fg">
+          {formatGuildRankScore(row.score)}점
+        </span>
+      </div>
+    </Card>
+  );
 }
 
 function GuildRow({
   rank,
   score,
   guild,
-  showInfo,
   onInfo,
 }: {
   rank: number;
   score: number;
   guild: GuildSummary;
-  showInfo: boolean;
   onInfo: () => void;
 }) {
   return (
@@ -233,7 +328,9 @@ function GuildRow({
         >
           {rank}
         </span>
-        {guild.markUrl ? <GuildListCrest src={guild.markUrl} name={guild.name} /> : null}
+        {guild.markUrl ? (
+          <GuildListCrest src={guild.markUrl} name={guild.name} onOpen={onInfo} />
+        ) : null}
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -258,11 +355,9 @@ function GuildRow({
           {formatGuildRankScore(score)}
         </span>
 
-        {showInfo ? (
-          <Button size="sm" variant="secondary" onClick={onInfo}>
-            정보
-          </Button>
-        ) : null}
+        <Button size="sm" variant="secondary" onClick={onInfo}>
+          정보
+        </Button>
       </div>
     </Card>
   );

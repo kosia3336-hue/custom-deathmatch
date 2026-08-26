@@ -52,6 +52,16 @@ const PAYLOAD_KEY_LABELS: Record<string, string> = {
   stock:           '재고',
   type:            '유형',
   active:          '노출',
+  guildId:         '길드',
+  logoId:          '마크',
+  markUrl:         '마크 주소',
+  capacity:        '정원',
+  memberCount:     '인원',
+  memberIds:       '길드원',
+  promote:         '임명',
+  approve:         '승인',
+  requestId:       '신청',
+  description:     '소개',
 };
 
 const HIDDEN_PAYLOAD_KEYS = new Set(['report_id', 'len', 'title_id', 'body']);

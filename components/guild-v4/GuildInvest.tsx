@@ -150,11 +150,16 @@ function InvestRankList({ my, myMemberId }: { my: MyGuildState; myMemberId: stri
         gp: sponsors[m.memberId]?.gp ?? 0,
         title: titles[m.memberId] ?? null,
       }))
+      .filter((m) => m.gp > 0)
       .sort((a, b) => {
         if (b.gp !== a.gp) return b.gp - a.gp;
         return a.nickname.localeCompare(b.nickname, 'ko');
       });
   }, [my.members, sponsors, titles]);
+
+  if (rows.length === 0) {
+    return <p className="py-6 text-center text-sm text-cdm-fg-muted">아직 투자한 길드원이 없습니다.</p>;
+  }
 
   return (
     <ol className="flex flex-col gap-0.5">

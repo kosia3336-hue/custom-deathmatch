@@ -20,12 +20,20 @@ import { GUILD_SCOUT_COST_GP, type GuildScoutTarget } from '@/lib/guild-v4/scout
 import type { GuildConfirm } from './GuildConfirmModal';
 import { catalogLogoIdFromUrl, DEV_GUILD_LOGOS, devGuildLogoSrc } from './logoCatalog';
 import { DEV_GUILD_NAME_MAX, DEV_GUILD_BUFF_PCT_PER_LEVEL, devExpansionCost, isValidDevGuildName } from './limits';
+import RankLeaderRow from '@/components/ranking/RankLeaderRow';
+import {
+  RANK_CARD_SHOP_SKINS,
+  RANK_CARD_SKIN_COST_GP,
+  isRankCardActive,
+  type RankCardShopSkinId,
+} from '@shared/rank-card-skins';
 
 type Act = (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
 
 const SHOP_TABS = [
   { id: 'enhance', label: '길드 강화' },
   { id: 'logo', label: '로고' },
+  { id: 'rank-card', label: '랭킹카드' },
   { id: 'misc', label: '기타' },
 ] as const;
 
@@ -58,6 +66,7 @@ export function GuildShopSection({
   onBuyNameChange,
   onScoutOpenChange,
   loadScoutTargets,
+  rankCard,
 }: {
   my: MyGuildState;
   busy: boolean;
@@ -66,11 +75,16 @@ export function GuildShopSection({
   onBuyNameChange: () => void;
   onScoutOpenChange?: (open: boolean) => void;
   loadScoutTargets?: () => Promise<GuildScoutTarget[]>;
+  rankCard?: { skinId: RankCardShopSkinId; expiresAt: string } | null;
 }) {
   const g = my.guild!;
   const [tab, setTab] = useState<string>('enhance');
   const [scoutOpen, setScoutOpen] = useState(false);
   const canBuy = my.role === 'owner' || my.role === 'vice_owner';
+  const activeCard = isRankCardActive(rankCard) ? rankCard : null;
+  const previewMark = g.markUrl
+    ? { url: g.markUrl, name: g.name, guildId: g.id }
+    : null;
 
   const buffMax = g.buffCdpLevel >= GUILD_BUFF_MAX_LEVEL;
   const buffCost = buffMax ? 0 : guildBuffCost(g.buffCdpLevel);
@@ -209,6 +223,72 @@ export function GuildShopSection({
             );
           })}
         </ul>
+      )}
+      {tab === 'rank-card' && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-cdm-fg-muted">
+            길드원 전원의 랭킹 카드에 7일 동안 적용됩니다. 하나만 적용할 수 있습니다.
+          </p>
+          <ul role="list" className="flex flex-col gap-3">
+            {RANK_CARD_SHOP_SKINS.map((skin) => {
+              const active = activeCard?.skinId === skin.id;
+              const insufficient = g.points < RANK_CARD_SKIN_COST_GP;
+              return (
+                <li key={skin.id}>
+                  <article className="flex flex-col gap-2">
+                    <RankLeaderRow
+                      rank={1}
+                      nickname="미리보기"
+                      title={{ name: '전설', color: 'gold', effect: 'legend' }}
+                      tier="diamond"
+                      rp={120}
+                      placementDone
+                      wins={48}
+                      losses={12}
+                      draws={4}
+                      isChallenger
+                      highlight={false}
+                      guildMark={previewMark}
+                      skin={skin.id}
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="min-w-0 truncate text-sm font-semibold text-cdm-fg">
+                        {skin.name}
+                        {active ? (
+                          <span className="ml-1.5 font-semibold text-cdm-primary">적용 중</span>
+                        ) : null}
+                      </h3>
+                      <Button
+                        size="sm"
+                        variant={insufficient ? 'secondary' : 'primary'}
+                        disabled={busy}
+                        onClick={() => {
+                          buyOrToast(canBuy, () => {
+                            askConfirm({
+                              title: '랭킹카드',
+                              message: '랭킹카드 스킨을 적용하시겠습니까?',
+                              confirmLabel: '적용',
+                              variant: 'primary',
+                              run: () =>
+                                act(
+                                  { action: 'buy_rank_card', skinId: skin.id },
+                                  '랭킹카드 스킨을 적용했습니다.',
+                                ),
+                            });
+                          });
+                        }}
+                      >
+                        {insufficient
+                          ? `${formatGp(RANK_CARD_SKIN_COST_GP - g.points)} 부족`
+                          : formatGp(RANK_CARD_SKIN_COST_GP)}
+                      </Button>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
       {tab === 'misc' && (
         <ul role="list" className="grid grid-cols-1 gap-2 sm:grid-cols-3">

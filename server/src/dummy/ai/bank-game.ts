@@ -57,9 +57,9 @@ export interface BankGameDummyView {
 type Cand = { bet: BankBet; key: string };
 
 function tierKnobs(tier: DummyAiTier): { uniformMix: number; softmaxTemp: number; amountNoise: number } {
-  if (tier === '하') return { uniformMix: 0.42, softmaxTemp: 0.08, amountNoise: 0.45 };
-  if (tier === '중') return { uniformMix: 0.16, softmaxTemp: 0.03, amountNoise: 0.28 };
-  return { uniformMix: 0.05, softmaxTemp: 0.012, amountNoise: 0.16 };
+  if (tier === '하') return { uniformMix: 0.38, softmaxTemp: 0.07, amountNoise: 0.4 };
+  if (tier === '중') return { uniformMix: 0.08, softmaxTemp: 0.016, amountNoise: 0.2 };
+  return { uniformMix: 0.03, softmaxTemp: 0.01, amountNoise: 0.12 };
 }
 
 function cloneBet(b: BankBet): BankBet {

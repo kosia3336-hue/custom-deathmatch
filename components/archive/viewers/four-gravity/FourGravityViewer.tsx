@@ -7,6 +7,7 @@ import { computeFrames } from './replayUtils';
 import ReplayBoard from './ReplayBoard';
 import MoveList from './MoveList';
 import { formatTime } from '@/lib/utils';
+import { PLAY_MODE_LABEL } from '@/shared/types';
 
 const DIR_LABEL: Record<Direction, string> = {
   up: '▲ 상',
@@ -230,7 +231,7 @@ export default function FourGravityViewer({ record }: Props) {
           <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">
             <dt className="text-gray-400">모드</dt>
             <dd className="font-medium text-gray-800">
-              {record.playMode === 'multi' ? '멀티' : record.playMode === 'com' ? '1:COM' : '1:1 솔로'}
+              {PLAY_MODE_LABEL[record.playMode]}
             </dd>
           </div>
           <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-1">

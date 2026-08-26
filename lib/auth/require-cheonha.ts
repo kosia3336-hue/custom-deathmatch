@@ -1,8 +1,8 @@
 import { getActiveMember, type CurrentMember } from '@/lib/auth/server';
 
-/** GNB 데브 전환. 닉 천하 + 관리자만. */
-export async function requireCheonhaAdmin(): Promise<CurrentMember | null> {
+/** GNB 데브 전환. 천하(관리자) 또는 더미 세션. */
+export async function requireDevSwitchActor(): Promise<CurrentMember | null> {
   const m = await getActiveMember();
-  if (!m || m.role !== 'admin' || m.nickname !== '천하') return null;
+  if (!m?.canDevSwitch) return null;
   return m;
 }

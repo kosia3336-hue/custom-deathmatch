@@ -7,6 +7,7 @@ import type {
   GS2RoundRecord,
 } from '@shared/types/grape-sugar-2.js';
 import { resolveRound } from '../../socket/games/grape-sugar-2/resolve.js';
+import { dummyStyle, pickWeighted, type DummyStyle } from '../style.js';
 import { runPsychologySearch } from '../psychologySearch.js';
 
 /**
@@ -76,9 +77,9 @@ const SUGAR_TYPICAL: Record<GS2CardId, { mode: number; spread: number }> = {
 const CHEAP: ReadonlySet<GS2CardId> = new Set(['spaceCrush', 'noAction', 'breath']);
 
 function tierKnobs(tier: DummyAiTier): { uniformMix: number; softmaxTemp: number; sugarNoise: number } {
-  if (tier === '하') return { uniformMix: 0.42, softmaxTemp: 0.08, sugarNoise: 0.45 };
-  if (tier === '중') return { uniformMix: 0.16, softmaxTemp: 0.03, sugarNoise: 0.28 };
-  return { uniformMix: 0.05, softmaxTemp: 0.012, sugarNoise: 0.16 };
+  if (tier === '하') return { uniformMix: 0.38, softmaxTemp: 0.07, sugarNoise: 0.4 };
+  if (tier === '중') return { uniformMix: 0.08, softmaxTemp: 0.016, sugarNoise: 0.2 };
+  return { uniformMix: 0.03, softmaxTemp: 0.01, sugarNoise: 0.12 };
 }
 
 function clampInt(n: number, lo: number, hi: number): number {
@@ -196,6 +197,9 @@ export function sugarCandidates(
     set.delete(0);
   }
   if (card === 'spaceCrush' && remain >= 1) {
+    set.delete(0);
+  }
+  if ((card === 'dice' || card === 'grapeBless') && remain >= 2 && roundsLeft > 2) {
     set.delete(0);
   }
 
@@ -340,8 +344,8 @@ function pWinAfter(
   if (oppHr && !mySc) x -= 0.4;
   if (myHand.includes('copy') && !oppSc && !oppHr) x += 0.18;
   if (oppHand.includes('copy') && !mySc && !myHr) x -= 0.18;
-  if (myNa && oppSc) x += 0.12;
-  if (oppNa && mySc) x -= 0.12;
+  if (myNa && oppSc) x += 0.32;
+  if (oppNa && mySc) x -= 0.32;
   if (roundsLeft <= 2) x *= 1.15;
   return sigmoid(x);
 }
@@ -383,7 +387,68 @@ function evalSubmit(
   if (roundsLeft <= 0 && !CHEAP.has(mine.card)) {
     p += mine.sugar * 0.00012;
   }
+  p += sugarPacing(view, mine, roundsLeft);
   return p;
+}
+
+function sugarPacing(
+  view: GrapeSugar2DummyView,
+  mine: GS2PlayerAction,
+  roundsLeftAfter: number,
+): number {
+  const card = mine.card;
+  const sugar = mine.sugar;
+  let d = 0;
+  if (view.round <= 2) {
+    if (card === 'grapeBless' || card === 'noAction' || card === 'spaceCrush') d += 0.07;
+    if (card === 'plus5' || card === 'minus3') d += 0.03;
+    if (card === 'highRisk') d -= 0.05;
+    if (card === 'copy') d -= 0.08;
+    if (card === 'dice') d -= 0.24;
+    if (card === 'breath') d -= 0.04;
+  }
+  if (roundsLeftAfter > 2 && (card === 'dice' || card === 'grapeBless') && sugar <= 1) d -= 0.26;
+  if (roundsLeftAfter > 2 && card === 'dice' && sugar === 0) d -= 0.18;
+  if (roundsLeftAfter >= 3 && view.my.sugarRemain >= 18 && (card === 'copy' || card === 'highRisk') && sugar >= 12) {
+    d -= 0.12;
+  }
+  if (
+    roundsLeftAfter <= 2
+    && view.my.sugarRemain >= 8
+    && CHEAP.has(card)
+    && view.my.hand.some((c) => c === 'copy' || c === 'highRisk' || c === 'dice')
+  ) {
+    d -= 0.1;
+  }
+  if (roundsLeftAfter <= 1 && (card === 'copy' || card === 'highRisk' || card === 'dice')) {
+    d += sugar * 0.012;
+  }
+  return d;
+}
+
+function openingMixPick(
+  scored: Array<{ cand: Cand; score: number }>,
+  dummyId: string,
+): Cand {
+  const style: DummyStyle = dummyStyle(dummyId);
+  return pickWeighted(
+    scored.map((x) => {
+      const card = x.cand.action.card;
+      let w = Math.exp(x.score / 0.05);
+      if (card === 'grapeBless' || card === 'noAction' || card === 'spaceCrush') {
+        w *= 1.35 + style.dump * 0.25;
+      } else if (card === 'plus5' || card === 'minus3') {
+        w *= 0.85 + Math.max(0, style.aggression) * 0.4;
+      } else if (card === 'highRisk') {
+        w *= 0.45 + Math.max(0, style.aggression) * 0.55;
+      } else if (card === 'dice') {
+        w *= 0.08;
+      } else if (card === 'copy') {
+        w *= 0.35;
+      }
+      return { item: x.cand, w };
+    }),
+  );
 }
 
 function pickSoftmax(scored: Array<{ cand: Cand; score: number }>, tier: DummyAiTier, temp: number): Cand {
@@ -445,7 +510,11 @@ export async function pickGrapeSugar2ActionAsync(
     return { type: 'submit', card, sugar: Math.min(view.my.sugarRemain, 1) };
   }
 
-  const picked = pickSoftmax(scored, tier, knobs.softmaxTemp).action;
+  const picked = (
+    view.round <= 2
+      ? openingMixPick(scored, dummyId)
+      : pickSoftmax(scored, tier, knobs.softmaxTemp)
+  ).action;
   if (!view.my.hand.includes(picked.card)) {
     return { type: 'submit', card: view.my.hand[0]!, sugar: 0 };
   }
