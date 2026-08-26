@@ -4,12 +4,13 @@ import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
-export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang';
+export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang';
 
 const EFFECT_CLASS: Record<TitleEffect, string> = {
   legend: 'title-legend',
   xuanwu: 'title-xuanwu',
   baekho: 'title-baekho',
+  jujak: 'title-jujak',
   eternal: 'title-eternal',
   issen: 'title-issen',
   seongha: 'title-seongha',
@@ -115,10 +116,33 @@ export function TitleBadge({ name, color, effect, size = 'md', className }: Titl
         </>
       ) : effect === 'wave' ? (
         <TitleWaveMark name={name} />
+      ) : effect === 'jujak' ? (
+        <TitleJujakMark name={name} />
       ) : (
         name
       )}
     </span>
+  );
+}
+
+function TitleJujakMark({ name }: { name: string }) {
+  return (
+    <>
+      <span className="title-jujak-label" data-text={name}>{name}</span>
+      <span className="title-jujak-fx" aria-hidden>
+        {/* 내려온 깃털이 하단에 닿은 뒤 불씨로 바뀌는 시간차를 만든다. */}
+        {Array.from({ length: 7 }, (_, i) => (
+          <span key={`feather-${i}`} className="title-jujak-feather" />
+        ))}
+        {/* 하단 중심에서 점화되어 좌우로 번지는 실제 화염 혀. */}
+        {Array.from({ length: 9 }, (_, i) => (
+          <span key={`flame-${i}`} className="title-jujak-flame" />
+        ))}
+        {Array.from({ length: 7 }, (_, i) => (
+          <span key={`ember-${i}`} className="title-jujak-ember" />
+        ))}
+      </span>
+    </>
   );
 }
 
