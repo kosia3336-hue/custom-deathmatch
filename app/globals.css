@@ -3757,210 +3757,248 @@ body {
 
 /* 홍련의 주작 -----------------------------------------------------------
    1) 글자는 중앙의 백금색 심지에서 시작해 붉은 불꽃이 양끝으로 번진다.
-   2) 금빛 깃털이 위에서 내려와 하단에 닿는 순간 사그라든다.
-   3) 같은 타이밍에 하단 중앙에서 화염 혀와 불씨가 좌우로 퍼져 나간다.
+   2) 한 장의 금빛 깃털이 위에서 내려와 상단 중앙에 닿아 점화된다.
+   3) 불길은 점화점에서 좌우 외곽을 타고 내려와 아래 중앙에서 합쳐진다.
 
    모든 장식은 aria-hidden인 별도 레이어다. 실제 칭호 텍스트는 label 하나라
    복사·검색·스크린리더에서 중복되지 않는다. */
 @keyframes title-jujak-core {
-  0%, 12% {
-    background-size: 18% 100%;
-    filter: drop-shadow(0 0 2px rgba(255, 220, 120, .65));
+  0%, 29% { background-size: 0% 100%; filter: drop-shadow(0 0 1px rgba(127, 29, 29, .4)); }
+  36% { background-size: 18% 100%; filter: drop-shadow(0 0 3px rgba(255, 236, 169, .85)); }
+  51% { background-size: 58% 100%; }
+  64% { background-size: 112% 100%; }
+  72%, 88% {
+    background-size: 160% 100%;
+    filter: drop-shadow(0 0 3px rgba(255, 210, 79, .95)) drop-shadow(0 0 8px rgba(225, 40, 18, .78));
   }
-  45%, 72% {
-    background-size: 155% 100%;
-    filter:
-      drop-shadow(0 0 3px rgba(255, 184, 55, .95))
-      drop-shadow(0 0 7px rgba(231, 45, 21, .72));
-  }
-  100% {
-    background-size: 18% 100%;
-    filter: drop-shadow(0 0 2px rgba(255, 220, 120, .65));
-  }
+  100% { background-size: 0% 100%; filter: drop-shadow(0 0 1px rgba(127, 29, 29, .4)); }
 }
 @keyframes title-jujak-aura {
-  0%, 15%, 100% {
-    border-color: #831313;
-    box-shadow: 0 0 4px rgba(127, 29, 29, .55), inset 0 -2px 5px rgba(127, 29, 29, .18);
-  }
-  48%, 70% {
-    border-color: #f97316;
-    box-shadow:
-      0 0 7px rgba(249, 115, 22, .9),
-      0 0 16px rgba(220, 38, 38, .5),
-      inset 0 -4px 8px rgba(251, 146, 60, .3);
-  }
+  0%, 30%, 100% { border-color: #6f1518; box-shadow: 0 0 3px rgba(127, 29, 29, .42), inset 0 0 5px rgba(127, 29, 29, .14); }
+  40% { border-color: #d94a1b; box-shadow: 0 0 6px rgba(234, 88, 12, .7), inset 0 0 7px rgba(251, 146, 60, .2); }
+  72%, 88% { border-color: #fb7b22; box-shadow: 0 0 8px rgba(249, 115, 22, .88), 0 0 18px rgba(220, 38, 38, .52), inset 0 0 9px rgba(251, 146, 60, .28); }
 }
 @keyframes title-jujak-feather-fall {
-  0%, 7% {
-    opacity: 0;
-    transform: translate3d(var(--jx), -13px, 0) rotate(var(--jr)) scale(.65);
-  }
-  14% { opacity: .95; }
-  38% {
-    opacity: .8;
-    transform: translate3d(calc(var(--jx) + var(--jdrift)), 8px, 0)
-      rotate(calc(var(--jr) + 105deg)) scale(1);
-    background: #ffd36b;
-    box-shadow: 0 0 5px rgba(255, 184, 49, .85);
-  }
-  48% {
-    opacity: 0;
-    transform: translate3d(calc(var(--jx) + var(--jdrift)), 13px, 0)
-      rotate(calc(var(--jr) + 155deg)) scale(.25);
-    background: #ef3d24;
-    box-shadow: 0 0 8px rgba(239, 61, 36, .9);
-  }
+  0%, 6% { opacity: 0; transform: translate3d(-50%, -21px, 0) rotate(-22deg) scale(.78); }
+  10% { opacity: .96; }
+  17% { transform: translate3d(calc(-50% + 5px), -6px, 0) rotate(13deg) scale(.9); }
+  24% { transform: translate3d(calc(-50% - 3px), 7px, 0) rotate(-9deg) scale(.96); }
+  30% { opacity: 1; transform: translate3d(-50%, 15px, 0) rotate(5deg) scale(1); filter: drop-shadow(0 0 4px rgba(255, 195, 58, .9)); }
+  34% { opacity: 0; transform: translate3d(-50%, 16px, 0) rotate(12deg) scale(.18); filter: drop-shadow(0 0 9px rgba(255, 82, 24, .95)); }
   100% { opacity: 0; }
 }
-@keyframes title-jujak-flame-spread {
-  0%, 36% {
-    opacity: 0;
-    transform: translate3d(-50%, 4px, 0) rotate(45deg) scale(.2, .1);
-  }
-  43% { opacity: .95; }
-  68% {
-    opacity: .85;
-    transform: translate3d(calc(-50% + var(--jfire-x)), var(--jfire-y), 0)
-      rotate(calc(45deg + var(--jfire-r))) scale(var(--jfire-s), 1.45);
-  }
-  84% {
-    opacity: 0;
-    transform: translate3d(calc(-50% + var(--jfire-x)), calc(var(--jfire-y) - 4px), 0)
-      rotate(calc(45deg + var(--jfire-r) + 18deg)) scale(.2, .75);
-  }
+@keyframes title-jujak-impact {
+  0%, 29% { opacity: 0; transform: translate(-50%, -50%) scale(.1); }
+  32% { opacity: .95; transform: translate(-50%, -50%) scale(.45); }
+  39% { opacity: 0; transform: translate(-50%, -50%) scale(3.4, 1.8); }
   100% { opacity: 0; }
+}
+@keyframes title-jujak-fire-reveal {
+  0%, 31% { opacity: 0; clip-path: ellipse(0% 0% at 50% 17%); }
+  35% { opacity: 1; clip-path: ellipse(10% 12% at 50% 17%); }
+  48% { opacity: 1; clip-path: ellipse(34% 24% at 50% 17%); }
+  61% { opacity: 1; clip-path: ellipse(72% 61% at 50% 17%); }
+  76%, 88% { opacity: 1; clip-path: ellipse(106% 118% at 50% 17%); }
+  97%, 100% { opacity: 0; clip-path: ellipse(106% 118% at 50% 17%); }
+}
+@keyframes title-jujak-flame-flicker {
+  0% { transform: translate(-50%, -50%) rotate(var(--jfire-r)) scaleX(.78) scaleY(calc(var(--jfire-s) * .88)); filter: brightness(.94) saturate(1.08); }
+  45% { transform: translate(calc(-50% + 1px), calc(-50% - 1px)) rotate(calc(var(--jfire-r) + 5deg)) scaleX(1.02) scaleY(calc(var(--jfire-s) * 1.08)); filter: brightness(1.12) saturate(1.16); }
+  100% { transform: translate(calc(-50% - 1px), calc(-50% + 1px)) rotate(calc(var(--jfire-r) - 4deg)) scaleX(.88) scaleY(var(--jfire-s)); filter: brightness(1.02) saturate(1.2); }
 }
 @keyframes title-jujak-ember-flight {
-  0%, 42% { opacity: 0; transform: translate3d(-50%, 0, 0) scale(.4); }
-  48% { opacity: 1; }
-  77% {
-    opacity: .75;
-    transform: translate3d(calc(-50% + var(--jember-x)), var(--jember-y), 0) scale(1);
-  }
-  90%, 100% {
-    opacity: 0;
-    transform: translate3d(calc(-50% + var(--jember-x)), calc(var(--jember-y) - 5px), 0) scale(.2);
-  }
+  0% { opacity: 0; transform: translate3d(0, 3px, 0) scale(.35); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--jember-drift), -13px, 0) scale(.08); }
+}
+@keyframes title-jujak-embers-reveal {
+  0%, 38% { opacity: 0; }
+  45%, 86% { opacity: 1; }
+  96%, 100% { opacity: 0; }
 }
 .title-jujak {
   position: relative;
   isolation: isolate;
   overflow: visible;
-  color: #ffb347;
-  border-color: #9f1717;
-  background: linear-gradient(180deg, rgba(69, 7, 7, .28), rgba(20, 2, 2, .08));
-  animation: title-jujak-aura 5.4s ease-in-out infinite;
+  color: #bd2420;
+  border-color: #76171a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(122, 22, 14, .26), transparent 58%),
+    linear-gradient(180deg, rgba(56, 5, 7, .32), rgba(17, 2, 3, .08));
+  animation: title-jujak-aura 8.4s ease-in-out infinite;
 }
 .title-jujak-label {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: inline-block;
   background:
     linear-gradient(
       90deg,
-      #7f1010 0%, #d82219 23%, #ff7a1a 40%, #fff3bd 49%,
-      #fff9dc 50%,
-      #fff3bd 51%, #ff7a1a 60%, #d82219 77%, #7f1010 100%
-    ) center / 18% 100% no-repeat;
-  background-color: #a81414;
+      #a11216 0%, #e42b18 18%, #ff7b18 36%, #ffd35e 46%,
+      #fffbe0 50%,
+      #ffd35e 54%, #ff7b18 64%, #e42b18 82%, #a11216 100%
+    ) center / 0% 100% no-repeat;
+  background-color: #9e171b;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: title-jujak-core 5.4s cubic-bezier(.3, .05, .23, 1) infinite;
+  animation: title-jujak-core 8.4s cubic-bezier(.28, .05, .2, 1) infinite;
 }
 .title-jujak-fx {
   position: absolute;
-  z-index: 1;
-  inset: -14px -18px -15px;
+  z-index: 2;
+  inset: -17px -17px -21px;
   overflow: visible;
   pointer-events: none;
 }
 .title-jujak-feather {
-  --jx: 50%;
-  --jdrift: 0px;
-  --jr: 12deg;
   position: absolute;
+  z-index: 5;
   top: 0;
-  left: 0;
-  width: 4px;
-  height: 10px;
-  border-radius: 100% 0 100% 0;
-  background: linear-gradient(150deg, #fff9cf 0 18%, #ffc247 42%, #d91f16 100%);
-  box-shadow: 0 0 3px rgba(255, 184, 49, .5);
-  transform-origin: 50% 100%;
+  left: 50%;
+  width: 14px;
+  height: 32px;
   opacity: 0;
-  animation: title-jujak-feather-fall 5.4s ease-in infinite;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 3px rgba(255, 180, 38, .68));
+  animation: title-jujak-feather-fall 8.4s cubic-bezier(.4, .03, .48, .98) infinite;
 }
-.title-jujak-feather:nth-child(1) { --jx: 16%; --jdrift: 7px;  --jr: -28deg; animation-delay: -.1s; }
-.title-jujak-feather:nth-child(2) { --jx: 29%; --jdrift: -5px; --jr: 18deg;  animation-delay: .18s; }
-.title-jujak-feather:nth-child(3) { --jx: 41%; --jdrift: 5px;  --jr: -12deg; animation-delay: -.3s; }
-.title-jujak-feather:nth-child(4) { --jx: 52%; --jdrift: -3px; --jr: 30deg;  animation-delay: .06s; }
-.title-jujak-feather:nth-child(5) { --jx: 64%; --jdrift: 4px;  --jr: -20deg; animation-delay: .3s; }
-.title-jujak-feather:nth-child(6) { --jx: 76%; --jdrift: -7px; --jr: 16deg;  animation-delay: -.18s; }
-.title-jujak-feather:nth-child(7) { --jx: 87%; --jdrift: 5px;  --jr: -8deg;  animation-delay: .12s; }
+.title-jujak-feather svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.title-jujak-feather-vane {
+  fill: #d52818;
+  stroke: #ffb42a;
+  stroke-width: .6;
+  paint-order: stroke fill;
+}
+.title-jujak-feather-cut {
+  fill: none;
+  stroke: #ffd96d;
+  stroke-width: .7;
+  stroke-linecap: round;
+  opacity: .88;
+}
+.title-jujak-feather-shaft {
+  fill: none;
+  stroke: #fff1a8;
+  stroke-width: .85;
+  stroke-linecap: round;
+}
+.title-jujak-impact {
+  position: absolute;
+  z-index: 4;
+  top: 15px;
+  left: 50%;
+  width: 12px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fffbd8 0 12%, #ffd33d 28%, #ff5b17 55%, transparent 74%);
+  box-shadow: 0 0 7px #ff8a1e, 0 0 13px rgba(220, 38, 38, .85);
+  opacity: 0;
+  animation: title-jujak-impact 8.4s ease-out infinite;
+}
+.title-jujak-flames {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  opacity: 0;
+  animation: title-jujak-fire-reveal 8.4s cubic-bezier(.24, .02, .18, 1) infinite;
+}
+.title-jujak-flames::before,
+.title-jujak-flames::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.title-jujak-flames::before {
+  inset: 14px 12px 18px;
+  border: 3px solid rgba(239, 54, 20, .88);
+  box-shadow:
+    0 0 4px rgba(255, 193, 43, .9),
+    0 0 10px rgba(239, 54, 20, .78),
+    inset 0 0 6px rgba(255, 114, 24, .66);
+  filter: blur(.45px);
+}
+.title-jujak-flames::after {
+  inset: 15px 14px 20px;
+  border: 1px solid rgba(255, 225, 105, .9);
+  box-shadow: 0 0 4px rgba(255, 152, 25, .7);
+  opacity: .82;
+}
 .title-jujak-flame {
-  --jfire-x: 0px;
-  --jfire-y: -4px;
   --jfire-r: 0deg;
   --jfire-s: 1;
   position: absolute;
-  left: 50%;
-  bottom: 5px;
-  width: 6px;
-  height: 11px;
-  border-radius: 80% 0 75% 25%;
-  background: linear-gradient(135deg, #fffbd0 0 16%, #ffc236 34%, #ff641c 60%, #bd1018 86%);
-  box-shadow: 0 0 5px rgba(255, 101, 28, .9), 0 0 9px rgba(201, 20, 24, .55);
-  opacity: 0;
-  transform-origin: 50% 100%;
-  animation: title-jujak-flame-spread 5.4s ease-out infinite;
+  width: 12px;
+  height: 20px;
+  clip-path: polygon(50% 0%, 65% 20%, 62% 34%, 84% 23%, 95% 54%, 86% 82%, 68% 100%, 30% 100%, 8% 78%, 12% 48%, 30% 27%, 34% 49%);
+  border-radius: 46% 54% 58% 42% / 72% 68% 32% 28%;
+  background:
+    radial-gradient(ellipse 44% 44% at 50% 84%, #fff2a3 0 6%, #ffbd32 15%, transparent 31%),
+    linear-gradient(180deg, rgba(157, 17, 28, .1) 0%, #d9231d 31%, #ff5d18 65%, #ffae24 100%);
+  box-shadow: 0 0 4px rgba(255, 174, 34, .88), 0 0 10px rgba(223, 42, 21, .68);
+  transform-origin: 50% 88%;
+  animation: title-jujak-flame-flicker .72s ease-in-out infinite alternate;
 }
-.title-jujak-flame:nth-child(8)  { --jfire-x: -44px; --jfire-y: -2px; --jfire-r: -38deg; --jfire-s: .75; }
-.title-jujak-flame:nth-child(9)  { --jfire-x: -33px; --jfire-y: -7px; --jfire-r: -24deg; --jfire-s: .9; animation-delay: .08s; }
-.title-jujak-flame:nth-child(10) { --jfire-x: -22px; --jfire-y: -4px; --jfire-r: -16deg; --jfire-s: 1.05; animation-delay: -.06s; }
-.title-jujak-flame:nth-child(11) { --jfire-x: -11px; --jfire-y: -9px; --jfire-r: -8deg;  --jfire-s: .9; animation-delay: .12s; }
-.title-jujak-flame:nth-child(12) { --jfire-x: 0px;   --jfire-y: -12px; --jfire-r: 0deg;   --jfire-s: 1.2; animation-delay: -.08s; }
-.title-jujak-flame:nth-child(13) { --jfire-x: 11px;  --jfire-y: -8px; --jfire-r: 8deg;   --jfire-s: .95; animation-delay: .06s; }
-.title-jujak-flame:nth-child(14) { --jfire-x: 22px;  --jfire-y: -5px; --jfire-r: 16deg;  --jfire-s: 1.05; animation-delay: -.04s; }
-.title-jujak-flame:nth-child(15) { --jfire-x: 33px;  --jfire-y: -7px; --jfire-r: 25deg;  --jfire-s: .88; animation-delay: .1s; }
-.title-jujak-flame:nth-child(16) { --jfire-x: 44px;  --jfire-y: -2px; --jfire-r: 38deg;  --jfire-s: .72; }
-.title-jujak-ember {
-  --jember-x: 0px;
-  --jember-y: -14px;
+.title-jujak-flame:nth-child(1)  { left: 50%; top: 13px; --jfire-s: 1.08; }
+.title-jujak-flame:nth-child(2)  { left: 47%; top: 17px; --jfire-r: -13deg; --jfire-s: .9; animation-delay: -.21s; }
+.title-jujak-flame:nth-child(3)  { left: 40%; top: 18px; --jfire-r: -22deg; --jfire-s: .82; animation-delay: -.53s; }
+.title-jujak-flame:nth-child(4)  { left: 60%; top: 18px; --jfire-r: 22deg; --jfire-s: .88; animation-delay: -.34s; }
+.title-jujak-flame:nth-child(5)  { left: 31%; top: 21px; --jfire-r: -29deg; --jfire-s: .98; animation-delay: -.08s; }
+.title-jujak-flame:nth-child(6)  { left: 69%; top: 21px; --jfire-r: 29deg; --jfire-s: .84; animation-delay: -.47s; }
+.title-jujak-flame:nth-child(7)  { left: 22%; top: 25px; --jfire-r: -30deg; --jfire-s: .9; animation-delay: -.64s; }
+.title-jujak-flame:nth-child(8)  { left: 78%; top: 25px; --jfire-r: 30deg; --jfire-s: 1.02; animation-delay: -.15s; }
+.title-jujak-flame:nth-child(9)  { left: 13%; top: 31px; --jfire-r: -25deg; --jfire-s: .84; animation-delay: -.39s; }
+.title-jujak-flame:nth-child(10) { left: 87%; top: 31px; --jfire-r: 25deg; --jfire-s: .9; animation-delay: -.57s; }
+.title-jujak-flame:nth-child(11) { left: 17%; top: 34px; --jfire-r: -18deg; --jfire-s: .78; animation-delay: -.19s; }
+.title-jujak-flame:nth-child(12) { left: 83%; top: 34px; --jfire-r: 18deg; --jfire-s: .88; animation-delay: -.45s; }
+.title-jujak-flame:nth-child(n+11) {
+  background: linear-gradient(180deg, rgba(151, 16, 28, .08) 0%, #d7241d 34%, #ff5b18 69%, #ff9d21 100%);
+  box-shadow: 0 0 4px rgba(255, 135, 28, .8), 0 0 9px rgba(218, 39, 22, .62);
+}
+.title-jujak-embers {
   position: absolute;
-  left: 50%;
-  bottom: 7px;
+  inset: 0;
+  opacity: 0;
+  animation: title-jujak-embers-reveal 8.4s ease-in-out infinite;
+}
+.title-jujak-ember {
+  --jember-drift: 3px;
+  position: absolute;
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  background: #fff1a8;
-  box-shadow: 0 0 4px #ff7a1a;
-  opacity: 0;
-  animation: title-jujak-ember-flight 5.4s ease-out infinite;
+  background: #fff5b8;
+  box-shadow: 0 0 3px #ff9b21, 0 0 6px rgba(239, 57, 24, .8);
+  animation: title-jujak-ember-flight 1.15s ease-out infinite;
 }
-.title-jujak-ember:nth-child(17) { --jember-x: -52px; --jember-y: -12px; animation-delay: .04s; }
-.title-jujak-ember:nth-child(18) { --jember-x: -35px; --jember-y: -23px; animation-delay: .16s; }
-.title-jujak-ember:nth-child(19) { --jember-x: -17px; --jember-y: -17px; animation-delay: -.04s; }
-.title-jujak-ember:nth-child(20) { --jember-x: 4px;   --jember-y: -29px; animation-delay: .1s; }
-.title-jujak-ember:nth-child(21) { --jember-x: 20px;  --jember-y: -19px; animation-delay: -.08s; }
-.title-jujak-ember:nth-child(22) { --jember-x: 38px;  --jember-y: -25px; animation-delay: .2s; }
-.title-jujak-ember:nth-child(23) { --jember-x: 53px;  --jember-y: -13px; animation-delay: .02s; }
+.title-jujak-ember:nth-child(1) { left: 48%; top: 15px; --jember-drift: -4px; animation-delay: -.2s; }
+.title-jujak-ember:nth-child(2) { left: 35%; top: 21px; --jember-drift: 3px; animation-delay: -.72s; }
+.title-jujak-ember:nth-child(3) { left: 65%; top: 22px; --jember-drift: -3px; animation-delay: -.46s; }
+.title-jujak-ember:nth-child(4) { left: 17%; top: 31px; --jember-drift: 5px; animation-delay: -.9s; }
+.title-jujak-ember:nth-child(5) { left: 84%; top: 32px; --jember-drift: -5px; animation-delay: -.12s; }
+.title-jujak-ember:nth-child(6) { left: 28%; top: 42px; --jember-drift: 4px; animation-delay: -.6s; }
+.title-jujak-ember:nth-child(7) { left: 71%; top: 42px; --jember-drift: -4px; animation-delay: -.34s; }
+.title-jujak-ember:nth-child(8) { left: 51%; top: 46px; --jember-drift: 2px; animation-delay: -.8s; }
 @media (prefers-reduced-motion: reduce) {
   .title-jujak,
   .title-jujak-label,
   .title-jujak-feather,
+  .title-jujak-impact,
+  .title-jujak-flames,
+  .title-jujak-embers,
   .title-jujak-flame,
   .title-jujak-ember { animation: none; }
   .title-jujak {
     border-color: #ea580c;
     box-shadow: 0 0 7px rgba(234, 88, 12, .72), 0 0 14px rgba(185, 28, 28, .35);
   }
-  .title-jujak-label { background-size: 155% 100%; }
+  .title-jujak-label { background-size: 160% 100%; }
   .title-jujak-feather,
-  .title-jujak-flame,
-  .title-jujak-ember { display: none; }
+  .title-jujak-impact,
+  .title-jujak-flames,
+  .title-jujak-embers { display: none; }
 }
 
 

@@ -130,17 +130,24 @@ function TitleJujakMark({ name }: { name: string }) {
     <>
       <span className="title-jujak-label" data-text={name}>{name}</span>
       <span className="title-jujak-fx" aria-hidden>
-        {/* 내려온 깃털이 하단에 닿은 뒤 불씨로 바뀌는 시간차를 만든다. */}
-        {Array.from({ length: 7 }, (_, i) => (
-          <span key={`feather-${i}`} className="title-jujak-feather" />
-        ))}
-        {/* 하단 중심에서 점화되어 좌우로 번지는 실제 화염 혀. */}
-        {Array.from({ length: 9 }, (_, i) => (
-          <span key={`flame-${i}`} className="title-jujak-flame" />
-        ))}
-        {Array.from({ length: 7 }, (_, i) => (
-          <span key={`ember-${i}`} className="title-jujak-ember" />
-        ))}
+        <span className="title-jujak-feather">
+          <svg viewBox="0 0 12 28" role="presentation">
+            <path className="title-jujak-feather-vane" d="M6.2 1C2.1 4.6.2 10.7 1.5 16.8c.7 3.2 2.2 5.7 4 8.1 1.7-3.8 4.8-6.2 5.3-11.8C11.2 7.9 9.3 3.8 6.2 1Z" />
+            <path className="title-jujak-feather-cut" d="m2.1 9.2 3.5 1.4-3.9 1.5m.2 4.5 3.1.7-2 2.2m7-12.2-3.7 2.3 4.2.8m-.5 4.3-4.3 2.1 3.3.8" />
+            <path className="title-jujak-feather-shaft" d="M6.6 4.2c-.3 7.5-.8 14.9-2.5 22.8" />
+          </svg>
+        </span>
+        <span className="title-jujak-impact" />
+        <span className="title-jujak-flames">
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={`flame-${i}`} className="title-jujak-flame" />
+          ))}
+        </span>
+        <span className="title-jujak-embers">
+          {Array.from({ length: 8 }, (_, i) => (
+            <span key={`ember-${i}`} className="title-jujak-ember" />
+          ))}
+        </span>
       </span>
     </>
   );
