@@ -250,13 +250,13 @@ export function GuildShopSection({
                       buyOrToast(canBuy, () => {
                         askConfirm({
                           title: '랭킹카드',
-                          message: '랭킹카드 스킨을 적용하시겠습니까?',
+                          message: `길드 포인트 ${RANK_CARD_SKIN_COST_GP.toLocaleString()} GP로 랭킹카드 스킨을 적용하시겠습니까?`,
                           confirmLabel: '적용',
                           variant: 'primary',
                           run: () =>
                             act(
                               { action: 'buy_rank_card', skinId: skin.id },
-                              '랭킹카드 스킨을 적용했습니다.',
+                              `랭킹카드 스킨을 적용했습니다. (-${RANK_CARD_SKIN_COST_GP} GP)`,
                             ),
                         });
                       });
