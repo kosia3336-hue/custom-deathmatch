@@ -49,8 +49,8 @@ export const GAME_RULES: GameRule[] = [
   { id: 'game-012', name: '포도설탕2', category: '심리', rules: '' },
   { id: 'game-013', name: '해달별2', category: '심리', rules: '' },
   { id: 'game-014', name: '은행놀이', category: '심리', rules: '' },
-  { id: 'game-015', name: '인디언 홀덤 (이벤트)', category: '기타', rules: '' },
-  { id: 'game-016', name: '해달별 (이벤트)', category: '기타', rules: '' },
+  { id: 'game-015', name: '인디언 홀덤 (이벤트)', category: '심리', rules: '' },
+  { id: 'game-016', name: '해달별 (이벤트)', category: '심리', rules: '' },
   { id: 'game-017', name: '콰트로', category: '심리', rules: '' },
   { id: 'game-018', name: '단어조합', category: '언어', rules: '' },
   { id: 'game-019', name: '트랜스레터', category: '언어', rules: '' },
@@ -126,12 +126,30 @@ export const GAME_RULES: GameRule[] = [
 
 /**
  * 갈래별 색상(HSL 색상환 각도). 룰 목록(사다리)·소개 페이지·룰지가 같은 값을 써서
- * 어느 화면에서 보든 '심리는 빨강, 언어는 초록' 이 일치한다.
- *   심리 0(빨강) · 추상전략 50 · 수리 100 · 언어 150(초록) · 관찰 200 · 기타 250
+ * 어느 화면에서 보든 갈래 색이 일치한다.
+ * 원래 쓰던 여섯 값(0·50·100·150·200·250)을 그대로 쓴다. 심리·추상전략·수리는
+ * 예전 색 그대로이고, '기타' 칸이 빠지면서 언어와 관찰만 한 칸씩 옮겨 앉았다.
+ *   심리 0(빨) · 추상전략 50 · 수리 100 · 언어 200(하늘) · 관찰 250(보라)
+ *
+ * 기타는 룰 표에서 칸을 차지하지 않는다 — 분류를 기다리는 게임이 있을 때만
+ * 잠깐 나타난다. 다만 방 만들기 모달에서는 갈래가 없는 항목(랜덤·밴픽)까지
+ * 받는 칸으로 계속 쓰이므로 색은 남겨 둔다.
+ *
+ * 순서대로 계산하지 않고 값을 직접 적는다. 갈래를 하나 넣고 빼는 것만으로
+ * 나머지 색이 전부 밀리면, 어제 본 색과 오늘 본 색이 달라진다.
  */
+const CATEGORY_HUE: Record<GameCategory, number> = {
+  심리: 0,
+  추상전략: 50,
+  수리: 100,
+  언어: 200,
+  관찰: 250,
+  /* 룰 표에 나오지 않는 칸이라, 관찰이 비우고 간 초록을 준다 (모달 필터의 점 색). */
+  기타: 150,
+};
+
 export function categoryHue(category: string): number {
-  const idx = GAME_CATEGORIES.indexOf(category as GameCategory);
-  return Math.round(((idx < 0 ? 0 : idx) / GAME_CATEGORIES.length) * 300);
+  return CATEGORY_HUE[category as GameCategory] ?? CATEGORY_HUE['기타'];
 }
 
 export function getGameRule(id: string): GameRule | undefined {
