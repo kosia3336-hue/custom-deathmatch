@@ -6,7 +6,7 @@ import { getMyGuildState } from '@/lib/guild/server';
 import type { GuildSummary } from '@/lib/guild/types';
 import { guildRankSizeDivisor } from '@/components/guild-v4/rankScore';
 import { DEV_DEFAULT_TILE_ORDER, normalizeTileOrder } from '@/components/guild-v4/tiles';
-import { guildRankPeriodAnchor, isGuildRankSettleHourKst } from '@shared/rank/kst';
+import { guildContribDailyRange, guildRankPeriodAnchor, isGuildRankSettleHourKst } from '@shared/rank/kst';
 import type {
   GuildV4ContribScores,
   GuildV4GrantLog,
@@ -243,7 +243,9 @@ async function loadMemberRankScores(
 
   const today = seoulYmd();
   const weekStart = mondayOf(today);
-  const dayStart = Date.parse(`${today}T00:00:00+09:00`);
+  const { start: dailyStart, end: dailyEnd } = guildContribDailyRange();
+  const dailyStartMs = dailyStart.getTime();
+  const dailyEndMs = dailyEnd.getTime();
   const weekStartMs = Date.parse(`${weekStart}T00:00:00+09:00`);
 
   const nAt = (guildId: string, t: number) => {
@@ -265,7 +267,7 @@ async function loadMemberRankScores(
     if (score <= 0) return;
     slot.all += score;
     if (t >= weekStartMs) slot.weekly += score;
-    if (t >= dayStart) slot.daily += score;
+    if (t >= dailyStartMs && t < dailyEndMs) slot.daily += score;
   };
 
   for (const row of (winRes.data ?? []) as {

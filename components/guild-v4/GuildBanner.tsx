@@ -1,7 +1,52 @@
+'use client';
+
 /** 길드 현판. 대시보드 정보 카드 + 미가입 정보 모달. 목록 행은 `GuildListClient` 밝은 카드. */
 
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { GuildSummary } from '@/lib/guild/types';
+
+const TITLE_MIN_PX = 10;
+
+/** 제목 줄 폭에 한 줄로 들어가게 글자 크기만 줄인다. 길면 더 작아진다. */
+function GuildBannerName({ name }: { name: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let cancelled = false;
+
+    const fit = () => {
+      if (cancelled) return;
+      el.style.fontSize = '';
+      const maxPx = parseFloat(getComputedStyle(el).fontSize);
+      const width = el.clientWidth;
+      if (!Number.isFinite(maxPx) || maxPx <= 0 || width <= 0) return;
+      if (el.scrollWidth <= width + 1) return;
+      let next = Math.max(TITLE_MIN_PX, maxPx * (width / el.scrollWidth));
+      el.style.fontSize = `${next}px`;
+      if (el.scrollWidth > width + 1) {
+        next = Math.max(TITLE_MIN_PX, next * (width / el.scrollWidth));
+        el.style.fontSize = `${next}px`;
+      }
+    };
+
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    fit();
+    void document.fonts?.ready.then(fit);
+
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      el.style.fontSize = '';
+    };
+  }, [name]);
+
+  return <h2 ref={ref}>{name}</h2>;
+}
 
 export function GuildBannerStyles() {
   return (
@@ -75,6 +120,7 @@ export function GuildBannerStyles() {
         line-height: 1.1;
         color: var(--cdm-fg-inverse);
         text-shadow: 0 1px 0 color-mix(in srgb, var(--title-midnight) 70%, transparent);
+        white-space: nowrap;
       }
       .guild-banner-lv {
         flex-shrink: 0;
@@ -393,7 +439,7 @@ export function GuildPublicBanner({
         <div className="guild-banner-copy">
           <div className="guild-banner-title">
             <BannerFlourish />
-            <h2>{guild.name}</h2>
+            <GuildBannerName name={guild.name} />
             <span className="guild-banner-lv">Lv.{guild.buffCdpLevel}</span>
             <BannerFlourish flip />
           </div>

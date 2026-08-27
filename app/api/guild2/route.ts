@@ -9,6 +9,7 @@ import { DEV_GUILD_DESC_MAX, DEV_GUILD_NAME_MAX, DEV_GUILD_NAME_MIN } from '@/co
 import { mapGuildV4Error } from '@/lib/guild-v4/errors';
 import { notifyGuildMembershipChanged, notifyGuildMembers, notifyGuildScoutInvite } from '@/lib/guild-v4/notify';
 import { parseScoutBatchResult } from '@/lib/guild-v4/scout';
+import { parseRankCardShopSkinId } from '@shared/rank-card-skins';
 import {
   findGuildIdForMember,
   listGuildMemberIds,
@@ -385,8 +386,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
       case 'buy_rank_card': {
-        const skinId = String(body.skinId ?? '').trim();
-        if (!skinId) return jsonError('잘못된 요청입니다.', 400);
+        const skinId = parseRankCardShopSkinId(String(body.skinId ?? '').trim());
+        if (!skinId) return jsonError('판매 중인 랭킹 카드가 아닙니다.', 400);
         const { error } = await rpc('buy_guild_rank_card_v4', {
           p_actor: member.id,
           p_skin_id: skinId,

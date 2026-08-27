@@ -81,3 +81,83 @@ export function isGuildRankSettleHourKst(d = new Date()): boolean {
 
 /** 이 키부터 주간 GP·뽑기권 지급. 이전 주(`w:2026-08-17`)는 스킵. */
 export const GUILD_RANK_FIRST_WEEKLY_PAYOUT_KEY = 'w:2026-08-24';
+
+const KST_DOW: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+export function kstYmd(d = new Date()): string {
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+
+function kstDowSun0(d: Date): number {
+  const w = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    weekday: 'short',
+  }).format(d);
+  return KST_DOW[w] ?? 0;
+}
+
+function addDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
+
+function kstInstant(ymd: string, hour: number, minute = 0): Date {
+  const hh = String(hour).padStart(2, '0');
+  const mm = String(minute).padStart(2, '0');
+  return new Date(`${ymd}T${hh}:${mm}:00+09:00`);
+}
+
+/**
+ * 길드 공헌도 일간 창. 달력 00:00이 아니라 직전 랭크 세션.
+ * - 평일: 전날 21:00 ~ 그날 01:00 KST. 21:00가 되어도 오늘 세션으로 안 바뀜(다음날 01:00에 교체).
+ * - 토요일: 금요일 밤(금 21:00 ~ 토 01:00).
+ * - 일요일~월요일 01:00 전: 토·일을 하루(토 01:00 ~ 지금).
+ * - 월요일 01:00 ~ 화요일 01:00: 끝난 주말(토 01:00 ~ 월 01:00).
+ */
+export function guildContribDailyRange(now = new Date()): { start: Date; end: Date } {
+  const ymd = kstYmd(now);
+  const { hour } = getKstHourMinute(now);
+  const dow = kstDowSun0(now);
+
+  if (dow === 0 || (dow === 1 && hour < 1)) {
+    const sunYmd = dow === 0 ? ymd : addDaysYmd(ymd, -1);
+    return { start: kstInstant(addDaysYmd(sunYmd, -1), 1), end: now };
+  }
+
+  if (dow === 1 || (dow === 2 && hour < 1)) {
+    const monYmd = dow === 1 ? ymd : addDaysYmd(ymd, -1);
+    return {
+      start: kstInstant(addDaysYmd(monYmd, -2), 1),
+      end: kstInstant(monYmd, 1),
+    };
+  }
+
+  if (dow === 6 && hour >= 1) {
+    return {
+      start: kstInstant(addDaysYmd(ymd, -1), 21),
+      end: kstInstant(ymd, 1),
+    };
+  }
+
+  const endYmd = hour < 1 ? addDaysYmd(ymd, -1) : ymd;
+  return {
+    start: kstInstant(addDaysYmd(endYmd, -1), 21),
+    end: kstInstant(endYmd, 1),
+  };
+}
+
+export function inGuildContribDaily(at: Date | string | number, now = new Date()): boolean {
+  const t = typeof at === 'number' ? at : Date.parse(String(at));
+  if (!Number.isFinite(t)) return false;
+  const { start, end } = guildContribDailyRange(now);
+  return t >= start.getTime() && t < end.getTime();
+}

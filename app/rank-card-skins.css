@@ -294,6 +294,90 @@
     );
 }
 
+/* ——— 유자 ——— */
+.rank-card-skin-yuzu {
+  --cdm-bg: #fef9c3;
+  --cdm-border: #ca8a04;
+  --cdm-fg: #4a3b08;
+  --cdm-fg-muted: #a16207;
+  box-shadow: 0 10px 24px -16px rgba(161, 98, 7, 0.35);
+  background-image: linear-gradient(180deg, #fefce8 0%, #fde047 100%);
+}
+.rank-card-skin-yuzu .rank-card-skin-fx {
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 64%
+  );
+  transform: translateX(-130%) skewX(-18deg);
+  animation: rank-card-shine 6s ease-in-out infinite;
+}
+
+/* ——— 황토 ——— */
+.rank-card-skin-loess {
+  --cdm-bg: #edc8a3;
+  --cdm-border: #9a4d1c;
+  --cdm-fg: #4a2714;
+  --cdm-fg-muted: #9a5b32;
+  box-shadow: 0 10px 24px -16px rgba(154, 77, 28, 0.4);
+  background-image:
+    linear-gradient(180deg, #f3d7bb 0%, #d4a574 100%);
+}
+.rank-card-skin-loess .rank-card-skin-fx2 {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 11px,
+      rgba(74, 39, 20, 0.06) 11px 12px
+    );
+}
+
+/* ——— 쪽빛 ——— */
+.rank-card-skin-woad {
+  --cdm-bg: #c5d0e8;
+  --cdm-border: #314a78;
+  --cdm-fg: #152038;
+  --cdm-fg-muted: #3d5278;
+  box-shadow: 0 10px 24px -16px rgba(49, 74, 120, 0.4);
+  background-image: linear-gradient(180deg, #d5dceb 0%, #7d93c4 100%);
+}
+.rank-card-skin-woad .rank-card-skin-fx2 {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 16px,
+      rgba(21, 32, 56, 0.08) 16px 17px
+    );
+}
+
+/* ——— 포도 ——— */
+.rank-card-skin-grape {
+  --cdm-bg: #e4d0ef;
+  --cdm-border: #6b3d8a;
+  --cdm-fg: #3b1d52;
+  --cdm-fg-muted: #7c4d9a;
+  box-shadow: 0 10px 24px -16px rgba(107, 61, 138, 0.38);
+  background-image:
+    radial-gradient(90% 80% at 100% 0%, rgba(147, 51, 164, 0.22), transparent 55%),
+    linear-gradient(180deg, #efe0f6 0%, #c4a3d8 100%);
+}
+
+/* ——— 수묵 ——— */
+.rank-card-skin-ink {
+  --cdm-bg: #d4d0c8;
+  --cdm-border: #4a453e;
+  --cdm-fg: #1f1d1a;
+  --cdm-fg-muted: #5c574e;
+  box-shadow: 0 10px 24px -16px rgba(31, 29, 26, 0.35);
+  background-image:
+    radial-gradient(70% 120% at 0% 80%, rgba(45, 42, 38, 0.18), transparent 55%),
+    linear-gradient(180deg, #e4e0d8 0%, #b8b2a8 100%);
+}
+.rank-card-skin-ink .rank-card-skin-fx {
+  background: radial-gradient(45% 90% at 8% 70%, rgba(31, 29, 26, 0.16), transparent 70%);
+}
+
 @keyframes rank-card-shine {
   0%, 18% { transform: translateX(-140%) skewX(-18deg); }
   48%, 100% { transform: translateX(160%) skewX(-18deg); }
@@ -348,13 +432,15 @@
   .rank-card-skin-frost .rank-card-skin-fx,
   .rank-card-skin-volt .rank-card-skin-fx,
   .rank-card-skin-jade .rank-card-skin-fx,
-  .rank-card-skin-imperial .rank-card-skin-fx {
+  .rank-card-skin-imperial .rank-card-skin-fx,
+  .rank-card-skin-yuzu .rank-card-skin-fx {
     animation: none;
   }
   .rank-card-skin-gilt .rank-card-skin-fx,
   .rank-card-skin-obsidian .rank-card-skin-fx,
   .rank-card-skin-jade .rank-card-skin-fx,
-  .rank-card-skin-imperial .rank-card-skin-fx {
+  .rank-card-skin-imperial .rank-card-skin-fx,
+  .rank-card-skin-yuzu .rank-card-skin-fx {
     transform: none;
     opacity: 0.25;
   }

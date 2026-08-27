@@ -4,7 +4,8 @@
 CREATE TABLE IF NOT EXISTS guild_rank_card_skins (
   guild_id     uuid PRIMARY KEY REFERENCES guilds(id) ON DELETE CASCADE,
   skin_id      text NOT NULL CHECK (skin_id IN (
-    'obsidian', 'aurora', 'nebula', 'sakura', 'ember', 'jade'
+    'gilt', 'aurora', 'sakura', 'frost', 'jade',
+    'yuzu', 'loess', 'woad', 'grape', 'ink'
   )),
   expires_at   timestamptz NOT NULL,
   purchased_at timestamptz NOT NULL DEFAULT now(),
@@ -30,7 +31,8 @@ DECLARE
   v_exp timestamptz;
 BEGIN
   IF p_skin_id IS NULL OR p_skin_id NOT IN (
-    'obsidian', 'aurora', 'nebula', 'sakura', 'ember', 'jade'
+    'gilt', 'aurora', 'sakura', 'frost', 'jade',
+    'yuzu', 'loess', 'woad', 'grape', 'ink'
   ) THEN
     RAISE EXCEPTION 'invalid_skin';
   END IF;

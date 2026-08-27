@@ -229,13 +229,47 @@ export function GuildShopSection({
           <p className="text-xs text-cdm-fg-muted">
             길드원 전원의 랭킹 카드에 7일 동안 적용됩니다. 하나만 적용할 수 있습니다.
           </p>
-          <ul role="list" className="flex flex-col gap-3">
+          <ul role="list" className="flex flex-col gap-2">
             {RANK_CARD_SHOP_SKINS.map((skin) => {
               const active = activeCard?.skinId === skin.id;
               const insufficient = g.points < RANK_CARD_SKIN_COST_GP;
               return (
                 <li key={skin.id}>
-                  <article className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={active ? `${skin.name} 적용 중` : skin.name}
+                    title={
+                      active
+                        ? '적용 중'
+                        : insufficient
+                          ? `${formatGp(RANK_CARD_SKIN_COST_GP - g.points)} 부족`
+                          : skin.name
+                    }
+                    onClick={() => {
+                      buyOrToast(canBuy, () => {
+                        askConfirm({
+                          title: '랭킹카드',
+                          message: '랭킹카드 스킨을 적용하시겠습니까?',
+                          confirmLabel: '적용',
+                          variant: 'primary',
+                          run: () =>
+                            act(
+                              { action: 'buy_rank_card', skinId: skin.id },
+                              '랭킹카드 스킨을 적용했습니다.',
+                            ),
+                        });
+                      });
+                    }}
+                    className={cn(
+                      'w-full rounded-cdm-lg text-left',
+                      active
+                        ? 'ring-2 ring-cdm-primary ring-offset-1'
+                        : busy
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'cursor-pointer hover:ring-2 hover:ring-cdm-border-strong',
+                    )}
+                  >
                     <RankLeaderRow
                       rank={1}
                       nickname="미리보기"
@@ -248,42 +282,14 @@ export function GuildShopSection({
                       draws={4}
                       isChallenger
                       highlight={false}
-                      guildMark={previewMark}
+                      guildMark={
+                        previewMark
+                          ? { url: previewMark.url, name: previewMark.name }
+                          : null
+                      }
                       skin={skin.id}
                     />
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="min-w-0 truncate text-sm font-semibold text-cdm-fg">
-                        {skin.name}
-                        {active ? (
-                          <span className="ml-1.5 font-semibold text-cdm-primary">적용 중</span>
-                        ) : null}
-                      </h3>
-                      <Button
-                        size="sm"
-                        variant={insufficient ? 'secondary' : 'primary'}
-                        disabled={busy}
-                        onClick={() => {
-                          buyOrToast(canBuy, () => {
-                            askConfirm({
-                              title: '랭킹카드',
-                              message: '랭킹카드 스킨을 적용하시겠습니까?',
-                              confirmLabel: '적용',
-                              variant: 'primary',
-                              run: () =>
-                                act(
-                                  { action: 'buy_rank_card', skinId: skin.id },
-                                  '랭킹카드 스킨을 적용했습니다.',
-                                ),
-                            });
-                          });
-                        }}
-                      >
-                        {insufficient
-                          ? `${formatGp(RANK_CARD_SKIN_COST_GP - g.points)} 부족`
-                          : formatGp(RANK_CARD_SKIN_COST_GP)}
-                      </Button>
-                    </div>
-                  </article>
+                  </button>
                 </li>
               );
             })}

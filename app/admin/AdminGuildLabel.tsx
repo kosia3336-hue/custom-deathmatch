@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { GuildMark } from '@/components/cdm/GuildMark';
 import type { AdminMemberGuild } from './fetchMemberGuilds';
