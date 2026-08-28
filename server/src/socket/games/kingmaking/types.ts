@@ -29,6 +29,8 @@ export interface KingmakingState {
   playMode: PlayMode;
   board: KingmakingBoard;
   initialBoard: KingmakingBoard;
+  /** 현재 판을 포함해 경기 중 한 번이라도 나온 판 배치 키. */
+  positionHistory: Set<string>;
   reserves: Record<string, KingmakingReserve>;
   currentPlayerId: string;
   firstPlayerId: string;

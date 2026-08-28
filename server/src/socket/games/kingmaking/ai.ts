@@ -1,4 +1,8 @@
-import { applyKingmakingAction, canMoveKingmakingStack } from '@shared/logic/kingmaking.js';
+import {
+  applyKingmakingAction,
+  canMoveKingmakingStack,
+  kingmakingBoardPositionKey,
+} from '@shared/logic/kingmaking.js';
 import {
   KM_BOARD_SIZE,
   type KingmakingAction,
@@ -20,14 +24,25 @@ function emptyPositions(board: KingmakingBoard) {
 export function enumerateKingmakingActions(
   board: KingmakingBoard,
   reserve: { normal: number; special: number },
+  actorId = 'simulated-player',
+  forbiddenPositionKeys: ReadonlySet<string> = new Set(),
 ) {
   const actions: KingmakingAction[] = [];
+  const addUnlessRepeated = (action: KingmakingAction) => {
+    // 배치는 판 위 말 수가 늘어나므로 과거 배치를 재현할 수 없다.
+    if (action.type === 'place' || forbiddenPositionKeys.size === 0) {
+      actions.push(action);
+      return;
+    }
+    const next = simulate(board, action, actorId);
+    if (!forbiddenPositionKeys.has(kingmakingBoardPositionKey(next))) actions.push(action);
+  };
   const empty = emptyPositions(board);
   if (reserve.normal > 0) {
-    for (const to of empty) actions.push({ type: 'place', kind: 'normal', to });
+    for (const to of empty) addUnlessRepeated({ type: 'place', kind: 'normal', to });
   }
   if (reserve.special > 0) {
-    for (const to of empty) actions.push({ type: 'place', kind: 'special', to });
+    for (const to of empty) addUnlessRepeated({ type: 'place', kind: 'special', to });
   }
   for (let row = 0; row < KM_BOARD_SIZE; row += 1) {
     for (let col = 0; col < KM_BOARD_SIZE; col += 1) {
@@ -39,7 +54,7 @@ export function enumerateKingmakingActions(
           for (let toCol = 0; toCol < KM_BOARD_SIZE; toCol += 1) {
             const to = { row: toRow, col: toCol };
             if (canMoveKingmakingStack(board, from, to, count)) {
-              actions.push({ type: 'move', from, to, count });
+              addUnlessRepeated({ type: 'move', from, to, count });
             }
           }
         }
@@ -92,8 +107,14 @@ export function chooseKingmakingAiAction(
   reserves: Record<string, KingmakingReserve>,
   aiId: string,
   opponentId: string,
+  forbiddenPositionKeys: ReadonlySet<string> = new Set(),
 ) {
-  const actions = enumerateKingmakingActions(board, reserveCounts(reserves[aiId]));
+  const actions = enumerateKingmakingActions(
+    board,
+    reserveCounts(reserves[aiId]),
+    aiId,
+    forbiddenPositionKeys,
+  );
   if (actions.length === 0) return null;
 
   let best: { action: KingmakingAction; score: number } | null = null;
@@ -104,7 +125,14 @@ export function chooseKingmakingAiAction(
     if (winner === opponentId) continue;
 
     let score = evaluateBoard(next, aiId, opponentId);
-    const opponentActions = enumerateKingmakingActions(next, reserveCounts(reserves[opponentId]));
+    const nextPositionHistory = new Set(forbiddenPositionKeys);
+    nextPositionHistory.add(kingmakingBoardPositionKey(next));
+    const opponentActions = enumerateKingmakingActions(
+      next,
+      reserveCounts(reserves[opponentId]),
+      opponentId,
+      nextPositionHistory,
+    );
     const opponentCanWin = opponentActions.some((reply) => {
       const replied = simulate(next, reply, opponentId);
       return winnerAfter(replied, reply) === opponentId;

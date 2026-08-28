@@ -186,7 +186,7 @@ function KingmakingWorkspace({
     if (stack.length > 0) {
       setMode('move');
       setSource(position);
-      setMoveCount(1);
+      setMoveCount(Math.min(5, stack.length));
     }
   }
 
@@ -258,24 +258,31 @@ function KingmakingWorkspace({
                 : '이동할 탑을 선택하세요.'}
             </p>
             {source && (
-              <div className="mt-2 grid grid-cols-5 gap-1">
-                {Array.from({ length: Math.min(5, sourceHeight) }, (_, index) => index + 1).map(
-                  (count) => (
-                    <button
-                      key={count}
-                      type="button"
-                      onClick={() => setMoveCount(count)}
-                      className={cn(
-                        'rounded-cdm-sm border-cdm-border min-h-10 border text-xs font-black',
-                        moveCount === count
-                          ? 'border-cdm-primary bg-cdm-primary text-white'
-                          : 'bg-cdm-bg-elev-1 text-cdm-fg',
-                      )}
-                    >
-                      {count}
-                    </button>
-                  ),
-                )}
+              <div className="mt-2 grid grid-cols-6 gap-1">
+                {Array.from(
+                  { length: Math.min(5, sourceHeight) },
+                  (_, index) => Math.min(5, sourceHeight) - index,
+                ).map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setMoveCount(count)}
+                    aria-label={
+                      count === sourceHeight
+                        ? `${count}층 전체 이동, 떼지 않음`
+                        : `위에서 ${count}층 떼어 이동`
+                    }
+                    className={cn(
+                      'rounded-cdm-sm border-cdm-border min-h-10 border px-1 text-[11px] font-black',
+                      count === sourceHeight && 'col-span-2',
+                      moveCount === count
+                        ? 'border-cdm-primary bg-cdm-primary text-white'
+                        : 'bg-cdm-bg-elev-1 text-cdm-fg',
+                    )}
+                  >
+                    {count === sourceHeight ? `${count}(떼지 않음)` : count}
+                  </button>
+                ))}
               </div>
             )}
             {source && (
@@ -301,6 +308,9 @@ function KingmakingWorkspace({
           </div>
           <p className="text-cdm-fg-muted mt-2 text-[11px] leading-4">
             ◆ 특수말이 맨 위인 탑에는 다른 말을 올릴 수 없습니다.
+          </p>
+          <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
+            ◆ 경기 중 이미 나온 판 배치는 다시 만들 수 없습니다.
           </p>
         </div>
       </aside>

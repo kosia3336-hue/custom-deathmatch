@@ -3,6 +3,7 @@ import {
   applyKingmakingAction,
   canMoveKingmakingStack,
   createKingmakingBoard,
+  kingmakingBoardPositionKey,
 } from '@shared/logic/kingmaking.js';
 import type {
   KingmakingBoard,
@@ -155,6 +156,15 @@ describe('킹메이킹 이동 규칙', () => {
       false,
     );
   });
+
+  it('고유 ID가 달라도 소유자·종류·층 순서가 같으면 같은 판 배치로 본다', () => {
+    const first = createKingmakingBoard();
+    const second = createKingmakingBoard();
+    first[1][1] = [piece('normal-a', 'owner'), piece('special-a', 'owner', 'special')];
+    second[1][1] = [piece('normal-b', 'owner'), piece('special-b', 'owner', 'special')];
+
+    expect(kingmakingBoardPositionKey(first)).toBe(kingmakingBoardPositionKey(second));
+  });
 });
 
 describe('킹메이킹 경기 진행', () => {
@@ -228,6 +238,45 @@ describe('킹메이킹 경기 진행', () => {
     expect(state.winType).toBe('timeout');
   });
 
+  it('경기 중 앞서 나온 판 배치를 다시 만드는 수를 거부한다', () => {
+    const roomId = 'kingmaking-repetition';
+    roomIds.add(roomId);
+    const first = player('first', '첫 번째');
+    const second = player('second', '두 번째');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
+    const io = ioStub();
+    initKingmaking(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = kingmakingStates.get(roomId)!;
+    const original = createKingmakingBoard();
+    original[2][1] = [piece('base', first.id), piece('shuttle', second.id)];
+    original[2][2] = [piece('target', first.id)];
+    state.board = original;
+    state.positionHistory = new Set([kingmakingBoardPositionKey(original)]);
+
+    handleKingmakingAction(io, firstSocket, roomId, {
+      type: 'move',
+      from: { row: 2, col: 1 },
+      to: { row: 2, col: 2 },
+      count: 1,
+    });
+    const afterFirstMove = kingmakingBoardPositionKey(state.board);
+
+    handleKingmakingAction(io, secondSocket, roomId, {
+      type: 'move',
+      from: { row: 2, col: 2 },
+      to: { row: 2, col: 1 },
+      count: 1,
+    });
+
+    expect(secondSocket.emit).toHaveBeenCalledWith('error', {
+      message: '이전에 나온 판 배치를 반복할 수 없습니다.',
+    });
+    expect(kingmakingBoardPositionKey(state.board)).toBe(afterFirstMove);
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(state.actionLog).toHaveLength(1);
+  });
+
   it('COM은 즉시 6층을 완성할 수 있는 수를 선택한다', () => {
     const board: KingmakingBoard = createKingmakingBoard();
     board[2][1] = [piece('ai-top', AI_PLAYER_ID)];
@@ -243,6 +292,32 @@ describe('킹메이킹 경기 진행', () => {
       to: { row: 2, col: 2 },
       count: 1,
     });
+  });
+
+  it('COM은 과거 판 배치를 재현하는 후보를 탐색에서 제외한다', () => {
+    const original = createKingmakingBoard();
+    original[2][1] = [piece('base', 'human'), piece('shuttle', AI_PLAYER_ID)];
+    original[2][2] = [piece('target', 'human')];
+    const current = applyKingmakingAction(original, {
+      type: 'move',
+      from: { row: 2, col: 1 },
+      to: { row: 2, col: 2 },
+      count: 1,
+    });
+    const history = new Set([
+      kingmakingBoardPositionKey(original),
+      kingmakingBoardPositionKey(current),
+    ]);
+    const reserves: Record<string, KingmakingReserve> = {
+      [AI_PLAYER_ID]: { normal: [], special: null },
+      human: { normal: [], special: null },
+    };
+
+    const action = chooseKingmakingAiAction(current, reserves, AI_PLAYER_ID, 'human', history);
+
+    expect(action).not.toBeNull();
+    const next = applyKingmakingAction(current, action!);
+    expect(history.has(kingmakingBoardPositionKey(next))).toBe(false);
   });
 
   it('COM이 선 플레이어라면 예약된 시간 뒤 실제 행동하고 턴을 넘긴다', async () => {

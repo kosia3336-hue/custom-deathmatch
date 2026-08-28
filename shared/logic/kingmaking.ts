@@ -17,6 +17,18 @@ export function cloneKingmakingBoard(board: KingmakingBoard): KingmakingBoard {
   return board.map((row) => row.map((stack) => stack.map((piece) => ({ ...piece }))));
 }
 
+/**
+ * 반복 수 판정을 위한 판 배치 키.
+ * 일반말은 고유 ID가 달라도 규칙상 같은 말이므로 소유자와 종류, 층 순서만 비교한다.
+ */
+export function kingmakingBoardPositionKey(board: KingmakingBoard) {
+  return JSON.stringify(
+    board.map((row) =>
+      row.map((stack) => stack.map((piece) => [piece.ownerId, piece.kind] as const)),
+    ),
+  );
+}
+
 export function kingmakingPositionKey(position: KingmakingPosition) {
   return `${position.row}:${position.col}`;
 }

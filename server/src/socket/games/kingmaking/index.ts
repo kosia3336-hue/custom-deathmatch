@@ -4,6 +4,7 @@ import {
   cloneKingmakingBoard,
   createKingmakingBoard,
   isKingmakingPosition,
+  kingmakingBoardPositionKey,
 } from '@shared/logic/kingmaking.js';
 import {
   KM_NORMAL_PIECES,
@@ -49,7 +50,12 @@ function reserveCounts(reserve: KingmakingReserve) {
 
 function hasAnyAction(state: KingmakingState, playerId: string) {
   return (
-    enumerateKingmakingActions(state.board, reserveCounts(state.reserves[playerId])).length > 0
+    enumerateKingmakingActions(
+      state.board,
+      reserveCounts(state.reserves[playerId]),
+      playerId,
+      state.positionHistory,
+    ).length > 0
   );
 }
 
@@ -109,7 +115,13 @@ function scheduleAi(io: IO, state: KingmakingState) {
       return;
     }
     const opponent = otherPlayer(state, AI_PLAYER_ID);
-    const action = chooseKingmakingAiAction(state.board, state.reserves, AI_PLAYER_ID, opponent.id);
+    const action = chooseKingmakingAiAction(
+      state.board,
+      state.reserves,
+      AI_PLAYER_ID,
+      opponent.id,
+      state.positionHistory,
+    );
     if (!action) {
       finishGame(io, state, opponent.id, 'no-action');
       return;
@@ -129,6 +141,11 @@ function finishTurn(io: IO, state: KingmakingState) {
   armTurnTimer(io, state);
   void broadcastKingmakingState(io, state);
   scheduleAi(io, state);
+}
+
+function peekPiece(reserve: KingmakingReserve, kind: KingmakingPieceKind) {
+  if (kind === 'normal') return reserve.normal.at(-1) ?? null;
+  return reserve.special;
 }
 
 function takePiece(reserve: KingmakingReserve, kind: KingmakingPieceKind) {
@@ -155,7 +172,7 @@ function validateAndApply(
     const available =
       action.kind === 'normal' ? reserve.normal.length > 0 : Boolean(reserve.special);
     if (!available) return { error: '남은 말이 없습니다.' };
-    return { error: null, placedPiece: takePiece(reserve, action.kind)! };
+    return { error: null, placedPiece: peekPiece(reserve, action.kind)! };
   }
   if (!isKingmakingPosition(action.from) || !isKingmakingPosition(action.to)) {
     return { error: '올바르지 않은 위치입니다.' };
@@ -180,12 +197,20 @@ function applyAction(
     socket?.emit('error', { message: validated.error });
     return;
   }
+  const nextBoard = applyKingmakingAction(state.board, action, validated.placedPiece);
+  const nextPositionKey = kingmakingBoardPositionKey(nextBoard);
+  if (state.positionHistory.has(nextPositionKey)) {
+    socket?.emit('error', { message: '이전에 나온 판 배치를 반복할 수 없습니다.' });
+    return;
+  }
+  if (action.type === 'place') takePiece(state.reserves[actorId], action.kind);
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
   if (state.aiTimer) clearTimeout(state.aiTimer);
   state.aiTimer = null;
 
-  state.board = applyKingmakingAction(state.board, action, validated.placedPiece);
+  state.board = nextBoard;
+  state.positionHistory.add(nextPositionKey);
   const target = state.board[action.to.row][action.to.col];
   const winnerId = target.length === 6 ? (target.at(-1)?.ownerId ?? null) : null;
   const logEntry = {
@@ -225,6 +250,7 @@ export function initKingmaking(
     playMode,
     board,
     initialBoard: cloneKingmakingBoard(board),
+    positionHistory: new Set([kingmakingBoardPositionKey(board)]),
     reserves: { [first.id]: createReserve(first.id), [second.id]: createReserve(second.id) },
     currentPlayerId: first.id,
     firstPlayerId: first.id,
