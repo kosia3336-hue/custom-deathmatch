@@ -22,6 +22,7 @@ import BankGameViewer from '@/components/archive/viewers/bank-game';
 import FormulaCompletionViewer from '@/components/archive/viewers/formula-completion';
 import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
 import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
+import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 
 export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -42,6 +43,7 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionViewer,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapViewer,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourViewer,
+  [GAME_IDS.KINGMAKING]: KingmakingViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {

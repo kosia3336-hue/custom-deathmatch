@@ -75,6 +75,19 @@ async function main() {
   app.log.info(`listening on http://${config.host}:${config.port}`);
 }
 
+// 이 서버는 방·게임 상태를 전부 메모리에 들고 있다(위 /health 주석 참고).
+// socket.io 는 리스너에서 던진 예외를 잡지 않고 process.nextTick 밖으로
+// 흘려보내므로, 게임 모듈의 예외 하나가 프로세스를 죽이고 진행 중이던 모든
+// 방을 함께 날린다. 개별 핸들러의 방어를 뚫고 올라온 예외까지 여기서 받아
+// 기록만 남기고 계속 살려 둔다 — 한 방의 버그 때문에 전체를 잃지 않기 위해
+// 프로세스 상태가 흐트러졌을 가능성보다 가동 유지를 우선한다.
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException] 프로세스를 유지한다', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection] 프로세스를 유지한다', reason);
+});
+
 main().catch((err) => {
   console.error(err);
   process.exit(1);

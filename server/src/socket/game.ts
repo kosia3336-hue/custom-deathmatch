@@ -284,6 +284,16 @@ import {
   getKnightTourResultData,
 } from './games/knights-tour/index.js';
 import {
+  initKingmaking,
+  handleKingmakingAction,
+  cleanupKingmaking,
+  getKingmakingState,
+  emitKingmakingStateToSocket,
+  performKingmakingUndo,
+  canKingmakingUndo,
+  getKingmakingResultData,
+} from './games/kingmaking/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -304,6 +314,16 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performKnightTourUndo,
     canUndo: canKnightTourUndo,
     getResultData: getKnightTourResultData,
+  },
+  [GAME_IDS.KINGMAKING]: {
+    init: initKingmaking,
+    handleAction: handleKingmakingAction,
+    cleanup: cleanupKingmaking,
+    getState: getKingmakingState,
+    emitStateToSocket: emitKingmakingStateToSocket,
+    performUndo: performKingmakingUndo,
+    canUndo: canKingmakingUndo,
+    getResultData: getKingmakingResultData,
   },
   [GAME_IDS.COMPLETE_HAP]: {
     init: initCompleteHap,
@@ -716,7 +736,19 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     // 시스템 룸은 eventRoomHandlers 의 'game:action' 핸들러가 처리
     if (roomStore.isSystemRoom(roomId)) return;
 
-    gameModules[room.gameId]?.handleAction(io, socket, roomId, data);
+    // 게임 모듈은 대부분 data 를 자기 액션 타입으로 캐스팅한 뒤 곧바로 .type 을
+    // 읽는다. 클라이언트가 null 이나 문자열을 보내면 거기서 TypeError 가 나고,
+    // socket.io 는 리스너 예외를 잡지 않아(process.nextTick 안에서 던진다)
+    // 서버 프로세스가 통째로 죽는다 — 메모리에 있던 모든 방의 게임이 사라진다.
+    // 모듈마다 막는 대신 이 길목에서 한 번에 막는다.
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+
+    try {
+      gameModules[room.gameId]?.handleAction(io, socket, roomId, data);
+    } catch (err) {
+      console.error('[game:action] 게임 모듈 예외', { roomId, gameId: room.gameId }, err);
+      socket.emit('error', { message: '행동을 처리하지 못했습니다.' });
+    }
   });
 
   socket.on('game:undo:request', () => {

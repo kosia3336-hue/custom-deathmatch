@@ -8,6 +8,7 @@ insert into games (
   supports_multi,
   supports_com,
   supports_solo,
+  supports_tutorial,
   is_active,
   sort_order,
   ranking_active,
@@ -21,6 +22,7 @@ insert into games (
   true,
   true,
   true,
+  false,
   true,
   220,
   false,
@@ -34,6 +36,7 @@ on conflict (id) do update set
   supports_multi = excluded.supports_multi,
   supports_com = excluded.supports_com,
   supports_solo = excluded.supports_solo,
+  supports_tutorial = excluded.supports_tutorial,
   is_active = excluded.is_active,
   sort_order = excluded.sort_order,
   ranking_active = excluded.ranking_active;

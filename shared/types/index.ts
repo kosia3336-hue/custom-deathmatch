@@ -32,6 +32,19 @@ export type {
   KnightTourRoundResult,
   KnightTourTiebreak,
 } from './knights-tour';
+export { KM_BOARD_SIZE, KM_MAX_HEIGHT, KM_NORMAL_PIECES } from './kingmaking';
+export type {
+  KingmakingAction,
+  KingmakingArchiveRecord,
+  KingmakingBoard,
+  KingmakingGameData,
+  KingmakingLastAction,
+  KingmakingPiece,
+  KingmakingPieceKind,
+  KingmakingPosition,
+  KingmakingStack,
+  KingmakingWinType,
+} from './kingmaking';
 export type {
   CompleteHapAction,
   CompleteHapArchiveRecord,

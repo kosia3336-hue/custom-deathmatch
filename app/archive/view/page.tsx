@@ -24,6 +24,8 @@ import SunMoonStar2Viewer from '@/components/archive/viewers/sun-moon-star-2';
 import BankGameViewer from '@/components/archive/viewers/bank-game';
 import FormulaCompletionViewer from '@/components/archive/viewers/formula-completion';
 import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
+import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
+import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -43,6 +45,8 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.BANK_GAME]: BankGameViewer,
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionViewer,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapViewer,
+  [GAME_IDS.KNIGHTS_TOUR]: KnightsTourViewer,
+  [GAME_IDS.KINGMAKING]: KingmakingViewer,
 };
 
 export default function ArchiveViewPage() {

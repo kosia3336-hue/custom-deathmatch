@@ -18,6 +18,7 @@ import TransletterGame from '@/components/game/modules/transletter';
 import FormulaCompletionGame from '@/components/game/modules/formula-completion';
 import CompleteHapGame from '@/components/game/modules/complete-hap';
 import KnightsTourGame from '@/components/game/modules/knights-tour';
+import KingmakingGame from '@/components/game/modules/kingmaking';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -57,6 +58,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionGame,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapGame,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourGame,
+  [GAME_IDS.KINGMAKING]: KingmakingGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 
