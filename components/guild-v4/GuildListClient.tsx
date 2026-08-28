@@ -5,14 +5,13 @@ import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { Card } from '@/components/cdm/Card';
 import { Tabs } from '@/components/cdm/Tabs';
-import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
-import type { GuildV4PersonalRank } from '@/lib/guild-v4/types';
+import { RankCardShell } from '@/components/ranking/RankCardShell';
 import {
   GUILD_CHARTER_PRICE_CDP,
   type GuildSummary,
   type MyGuildState,
 } from '@/lib/guild/types';
-import type { TitleColor } from '@/lib/supabase/database.types';
+import type { RankCardShopSkinId } from '@shared/rank-card-skins';
 import { useGuildDevApi } from './useGuildDevApi';
 import { CreateGuildModal } from './CreateGuildModal';
 import { GuildBackLink } from './GuildBackLink';
@@ -28,7 +27,6 @@ import { useGuildDevStore } from './store';
 const RANK_TABS = [
   { id: 'weekly', label: '주간' },
   { id: 'monthly', label: '월간' },
-  { id: 'personal', label: '개인' },
 ] as const;
 
 type RankTab = (typeof RANK_TABS)[number]['id'];
@@ -53,11 +51,10 @@ export function GuildListPanel({
   const canApply = !my.guild && !my.myRequest;
   const page = variant === 'page';
   const rankScores = useGuildDevStore((s) => s.rankScores);
-  const personalRanks = useGuildDevStore((s) => s.personalRanks);
-  const meId = useGuildDevStore((s) => s.meId);
+  const rankCards = useGuildDevStore((s) => s.rankCards);
   const [tab, setTab] = useState<string>('weekly');
   const key = (RANK_TABS.some((t) => t.id === tab) ? tab : 'weekly') as RankTab;
-  const period = key === 'personal' ? 'weekly' : (key as DevGuildRankPeriod);
+  const period = key as DevGuildRankPeriod;
   const ranked = useMemo(() => {
     const periodScores: Record<string, number> = {};
     for (const g of guilds) {
@@ -129,25 +126,6 @@ export function GuildListPanel({
           <Card className="py-10 text-center text-sm text-cdm-fg-muted">
             아직 창설된 길드가 없습니다. 창설권으로 첫 길드를 만들어 보세요.
           </Card>
-        ) : key === 'personal' ? (
-          personalRanks.length === 0 ? (
-            <Card className="py-10 text-center text-sm text-cdm-fg-muted">
-              아직 점수를 획득한 길드원이 없습니다.
-            </Card>
-          ) : (
-            personalRanks.map((row, i) => (
-              <PersonalRow
-                key={row.memberId}
-                rank={i + 1}
-                row={row}
-                isMe={row.memberId === meId}
-                onMark={() => {
-                  const g = guilds.find((x) => x.id === row.guildId);
-                  if (g) setInfoGuild(g);
-                }}
-              />
-            ))
-          )
         ) : (
           ranked.map(({ guild: g, rank, score }) => (
             <GuildRow
@@ -155,6 +133,7 @@ export function GuildListPanel({
               rank={rank}
               score={score}
               guild={g}
+              skin={rankCards[g.id] ?? null}
               onInfo={() => setInfoGuild(g)}
             />
           ))
@@ -255,110 +234,62 @@ function GuildListCrest({
   );
 }
 
-function PersonalRow({
-  rank,
-  row,
-  isMe,
-  onMark,
-}: {
-  rank: number;
-  row: GuildV4PersonalRank;
-  isMe: boolean;
-  onMark: () => void;
-}) {
-  const title = row.title;
-  return (
-    <Card className={`px-3 py-2 sm:px-3.5 sm:py-2${isMe ? ' bg-cdm-primary-soft' : ''}`}>
-      <div className="flex items-center gap-4">
-        <span
-          className={`w-5 shrink-0 text-center text-xs font-bold tabular-nums ${
-            rank === 1 ? 'text-cdm-highlight-strong' : 'text-cdm-fg-muted'
-          }`}
-        >
-          {rank}
-        </span>
-        {row.markUrl ? (
-          <GuildListCrest src={row.markUrl} name={row.guildName} onOpen={onMark} />
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <p className="truncate text-sm font-semibold text-cdm-fg">
-              {row.nickname}
-              {isMe ? (
-                <span className="ml-1 text-[11px] font-normal text-cdm-fg-subtle">(나)</span>
-              ) : null}
-            </p>
-            {title ? (
-              <TitleBadge
-                name={title.name}
-                color={title.color as TitleColor}
-                effect={title.effect as TitleEffect | null}
-                size="sm"
-              />
-            ) : null}
-          </div>
-          <p className="mt-px truncate text-xs text-cdm-fg-muted">{row.guildName}</p>
-        </div>
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-cdm-fg">
-          {formatGuildRankScore(row.score)}점
-        </span>
-      </div>
-    </Card>
-  );
-}
-
 function GuildRow({
   rank,
   score,
   guild,
+  skin,
   onInfo,
 }: {
   rank: number;
   score: number;
   guild: GuildSummary;
+  skin?: RankCardShopSkinId | null;
   onInfo: () => void;
 }) {
   return (
-    <Card className="px-3 py-2 sm:px-3.5 sm:py-2">
-      <div className="flex items-center gap-4">
-        <span
-          className={`w-5 shrink-0 text-center text-xs font-bold tabular-nums ${
-            rank === 1 ? 'text-cdm-highlight-strong' : 'text-cdm-fg-muted'
-          }`}
-        >
-          {rank}
-        </span>
-        {guild.markUrl ? (
-          <GuildListCrest src={guild.markUrl} name={guild.name} onOpen={onInfo} />
-        ) : null}
+    <RankCardShell
+      skin={skin}
+      className="px-3 py-2 sm:px-3.5 sm:py-2"
+      bodyClassName="flex items-center gap-4"
+    >
+      <span
+        className={`w-5 shrink-0 text-center text-xs font-bold tabular-nums ${
+          rank === 1 ? 'text-cdm-highlight-strong' : 'text-cdm-fg-muted'
+        }`}
+      >
+        {rank}
+      </span>
+      {guild.markUrl ? (
+        <GuildListCrest src={guild.markUrl} name={guild.name} onOpen={onInfo} />
+      ) : null}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <p className="truncate text-sm font-semibold text-cdm-fg">{guild.name}</p>
-            <span className="shrink-0 rounded-full bg-cdm-bg-elev-2 px-1.5 py-px text-[10px] font-bold text-cdm-fg-muted">
-              Lv.{guild.buffCdpLevel}
-            </span>
-            <span className="min-w-0 truncate text-xs text-cdm-fg-muted">
-              <span className="font-semibold text-cdm-fg-subtle">길드장</span>{' '}
-              {guild.ownerNickname || '—'}
-            </span>
-            <span className="shrink-0 text-xs tabular-nums text-cdm-fg-muted">
-              {guild.memberCount}/{guild.capacity}
-            </span>
-          </div>
-          {guild.description ? (
-            <p className="mt-px truncate text-xs text-cdm-fg-muted">{guild.description}</p>
-          ) : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="truncate text-sm font-semibold text-cdm-fg">{guild.name}</p>
+          <span className="shrink-0 rounded-full bg-cdm-bg-elev-2 px-1.5 py-px text-[10px] font-bold text-cdm-fg-muted">
+            Lv.{guild.buffCdpLevel}
+          </span>
+          <span className="min-w-0 truncate text-xs text-cdm-fg-muted">
+            <span className="font-semibold text-cdm-fg-subtle">길드장</span>{' '}
+            {guild.ownerNickname || '—'}
+          </span>
+          <span className="shrink-0 text-xs tabular-nums text-cdm-fg-muted">
+            {guild.memberCount}/{guild.capacity}
+          </span>
         </div>
-
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-cdm-fg">
-          {formatGuildRankScore(score)}
-        </span>
-
-        <Button size="sm" variant="secondary" onClick={onInfo}>
-          정보
-        </Button>
+        {guild.description ? (
+          <p className="mt-px truncate text-xs text-cdm-fg-muted">{guild.description}</p>
+        ) : null}
       </div>
-    </Card>
+
+      <span className="shrink-0 text-sm font-semibold tabular-nums text-cdm-fg">
+        {formatGuildRankScore(score)}
+      </span>
+
+      <Button size="sm" variant="secondary" onClick={onInfo}>
+        정보
+      </Button>
+    </RankCardShell>
   );
 }

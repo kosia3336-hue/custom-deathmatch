@@ -12,13 +12,12 @@ import type {
   GuildV4GrantLog,
   GuildV4InvestLog,
   GuildV4Notice,
-  GuildV4PersonalRank,
   GuildV4RankScores,
   GuildV4Snapshot,
   GuildV4Sponsor,
   GuildV4UnseenPayout,
 } from './types';
-import { parseRankCardShopSkinId } from '@shared/rank-card-skins';
+import { parseRankCardShopSkinId, type RankCardShopSkinId } from '@shared/rank-card-skins';
 import { formatGuildRankPeriodLabel } from './payoutFormat';
 
 type Sb = ReturnType<typeof getSupabaseServiceRole>;
@@ -263,7 +262,7 @@ async function loadMemberRankScores(
     const t = Date.parse(at);
     const joined = joinedAt.get(memberId);
     if (!Number.isFinite(t) || joined == null || t < joined) return;
-    const score = material / guildRankSizeDivisor(nAt(guildId, t));
+    const score = material / guildRankSizeDivisor(nAt(guildId, t), t);
     if (score <= 0) return;
     slot.all += score;
     if (t >= weekStartMs) slot.weekly += score;
@@ -294,56 +293,6 @@ async function loadMemberRankScores(
     add(row.member_id, 5, row.created_at);
   }
   return out;
-}
-
-async function loadPersonalRanks(
-  sb: Sb,
-  guilds: GuildSummary[],
-  roster: RankRosterRow[],
-  scores: Record<string, GuildV4ContribScores>,
-): Promise<GuildV4PersonalRank[]> {
-  const guildById = new Map(guilds.map((g) => [g.id, g]));
-  const candidates = roster
-    .map((m) => {
-      const g = guildById.get(m.guildId);
-      return {
-        memberId: m.memberId,
-        guildId: m.guildId,
-        guildName: g?.name ?? '',
-        markUrl: g?.markUrl ?? null,
-        score: scores[m.memberId]?.all ?? 0,
-      };
-    })
-    .filter((m) => Math.round(m.score) > 0);
-  if (candidates.length === 0) return [];
-
-  const ids = candidates.map((c) => c.memberId);
-  const [nicknames, titleRows] = await Promise.all([
-    fetchNicknames(sb, ids),
-    sb.from('members').select('id, displayed_title_id, displayed_effect_id').in('id', ids),
-  ]);
-  const titleMap = await loadResolvedDisplayedTitles(
-    sb,
-    (titleRows.data ?? []) as Array<{
-      id: string;
-      displayed_title_id: string | null;
-      displayed_effect_id: string | null;
-    }>,
-  );
-
-  return candidates
-    .map((c) => {
-      const t = titleMap.get(c.memberId);
-      return {
-        ...c,
-        nickname: nicknames.get(c.memberId) ?? '',
-        title: t ? { id: t.id, name: t.name, color: t.color, effect: t.effect } : null,
-      };
-    })
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.nickname.localeCompare(b.nickname, 'ko');
-    });
 }
 
 async function loadInvest(
@@ -463,6 +412,23 @@ async function loadActiveRankCard(
   return { skinId, expiresAt: row.expires_at };
 }
 
+async function loadActiveRankCardsByGuild(
+  sb: Sb,
+  guildIds: string[],
+): Promise<Record<string, RankCardShopSkinId>> {
+  const out: Record<string, RankCardShopSkinId> = {};
+  if (guildIds.length === 0) return out;
+  const { data } = await from(sb, 'guild_rank_card_skins')
+    .select('guild_id, skin_id')
+    .in('guild_id', guildIds)
+    .gt('expires_at', new Date().toISOString());
+  for (const row of (data ?? []) as { guild_id: string; skin_id: string }[]) {
+    const id = parseRankCardShopSkinId(row.skin_id);
+    if (id) out[row.guild_id] = id;
+  }
+  return out;
+}
+
 export async function loadGuildV4Snapshot(memberId: string, nickname: string): Promise<GuildV4Snapshot> {
   const sb = getSupabaseServiceRole();
   const keys = await currentPeriodKeys(sb);
@@ -475,23 +441,10 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
   ]);
   const myCdp = Number((cdpRow.data as { balance?: number } | null)?.balance ?? 0);
   const guildIds = guilds.map((g) => g.id);
-  const rankScores = await loadRankScores(sb, guildIds, keys.weekly, keys.monthly);
-
-  const { data: rosterData } =
-    guildIds.length === 0
-      ? { data: [] }
-      : await sb.from('guild_members').select('guild_id, member_id, joined_at').in('guild_id', guildIds);
-  const roster: RankRosterRow[] = ((rosterData ?? []) as {
-    guild_id: string;
-    member_id: string;
-    joined_at: string;
-  }[]).map((r) => ({
-    memberId: r.member_id,
-    guildId: r.guild_id,
-    joinedAt: r.joined_at,
-  }));
-  const allContribs = await loadMemberRankScores(sb, roster);
-  const personalRanks = await loadPersonalRanks(sb, guilds, roster, allContribs);
+  const [rankScores, rankCards] = await Promise.all([
+    loadRankScores(sb, guildIds, keys.weekly, keys.monthly),
+    loadActiveRankCardsByGuild(sb, guildIds),
+  ]);
 
   const empty: GuildV4Snapshot = {
     meId: memberId,
@@ -505,16 +458,23 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     investLogs: [],
     grantLogs: [],
     rankScores,
-    personalRanks,
     myCdp,
     tileOrder: [...DEV_DEFAULT_TILE_ORDER],
+    rankCards,
     rankCard: null,
+    chatSeenMessageId: null,
   };
 
   if (!my.guild) return empty;
 
   const guildId = my.guild.id;
   const memberIds = my.members.map((m) => m.memberId);
+  const roster: RankRosterRow[] = my.members.map((m) => ({
+    memberId: m.memberId,
+    guildId,
+    joinedAt: m.joinedAt,
+  }));
+  const allContribs = await loadMemberRankScores(sb, roster);
   const { data: layoutRow } = await from(sb, 'guild_menu_layout')
     .select('tile_order')
     .eq('guild_id', guildId)
@@ -542,12 +502,19 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
   const contribs: Record<string, GuildV4ContribScores> = {};
   for (const id of memberIds) contribs[id] = allContribs[id] ?? emptyContrib();
 
-  const [notices, invest, grantLogs, rankCard] = await Promise.all([
+  const [notices, invest, grantLogs, rankCard, seenRow] = await Promise.all([
     loadNotices(sb, guildId),
     loadInvest(sb, guildId, memberIds),
     loadGrants(sb, guildId),
     loadActiveRankCard(sb, guildId),
+    from(sb, 'guild_chat_seen_v4')
+      .select('last_message_id')
+      .eq('member_id', memberId)
+      .eq('guild_id', guildId)
+      .maybeSingle(),
   ]);
+  const chatSeenMessageId =
+    (seenRow.data as { last_message_id?: string } | null)?.last_message_id ?? null;
 
   return {
     ...empty,
@@ -559,6 +526,7 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     grantLogs,
     tileOrder,
     rankCard,
+    chatSeenMessageId,
   };
 }
 

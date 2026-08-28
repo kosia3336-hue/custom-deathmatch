@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { DisplayedTitle } from '@/shared/types/room';
 import type { GuildSummary, MyGuildState } from '@/lib/guild/types';
-import type { GuildV4PersonalRank, GuildV4Snapshot } from '@/lib/guild-v4/types';
+import type { GuildV4Snapshot } from '@/lib/guild-v4/types';
 import type { RankCardShopSkinId } from '@shared/rank-card-skins';
 import type {
   DevGuildContribScores,
@@ -37,9 +37,9 @@ export type GuildLiveState = {
   investLogs: DevGuildInvestLog[];
   grantLogs: DevGuildGrantLog[];
   rankScores: Record<string, DevGuildRankScores>;
-  personalRanks: GuildV4PersonalRank[];
   myCdp: number;
   tileOrder: DevTileId[];
+  rankCards: Record<string, RankCardShopSkinId>;
   rankCard: { skinId: RankCardShopSkinId; expiresAt: string } | null;
   hydrate: (snap: GuildV4Snapshot) => void;
 };
@@ -57,9 +57,9 @@ export const useGuildDevStore = create<GuildLiveState>()((set) => ({
   investLogs: [],
   grantLogs: [],
   rankScores: {},
-  personalRanks: [],
   myCdp: 0,
   tileOrder: [...DEV_DEFAULT_TILE_ORDER],
+  rankCards: {},
   rankCard: null,
   hydrate: (snap) =>
     set({
@@ -75,9 +75,9 @@ export const useGuildDevStore = create<GuildLiveState>()((set) => ({
       investLogs: snap.investLogs,
       grantLogs: snap.grantLogs,
       rankScores: snap.rankScores,
-      personalRanks: snap.personalRanks ?? [],
       myCdp: snap.myCdp,
       tileOrder: normalizeTileOrder(snap.tileOrder),
+      rankCards: snap.rankCards ?? {},
       rankCard: snap.rankCard ?? null,
     }),
 }));

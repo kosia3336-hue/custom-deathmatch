@@ -2,6 +2,7 @@ import type { DummyAiTier, LiveDummyKey } from '@shared/dummy.js';
 import { LIVE_DUMMY_AI } from '@shared/dummy.js';
 
 export type LiveDummyWindow =
+  | { kind: 'off' }
   | { kind: 'dated'; dates: ReadonlySet<string>; startMin: number; endMin: number }
   | { kind: 'daily'; startMin: number; endMin: number };
 
@@ -24,14 +25,14 @@ const RUNTIME: Record<
     email: 'dummy_titan@dummy.internal',
     socketId: 'live-dummy:titan',
     passwordSeed: 'dummy:titan',
-    window: { kind: 'daily', startMin: 22 * 60, endMin: 24 * 60 },
+    window: { kind: 'off' },
   },
   yeonseung: {
     key: 'yeonseung',
     email: 'dummy_yeonseung@dummy.internal',
     socketId: 'live-dummy:yeonseung',
     passwordSeed: 'dummy:yeonseung',
-    window: { kind: 'daily', startMin: 21 * 60, endMin: 30 },
+    window: { kind: 'daily', startMin: 21 * 60, endMin: 23 * 60 },
   },
   jack: {
     key: 'jack',
@@ -45,7 +46,7 @@ const RUNTIME: Record<
     email: 'dummy_ironhyunseong@dummy.internal',
     socketId: 'live-dummy:ironhyunseong',
     passwordSeed: 'dummy:ironhyunseong',
-    window: { kind: 'daily', startMin: 22 * 60 + 30, endMin: 30 },
+    window: { kind: 'off' },
   },
 };
 
@@ -100,6 +101,7 @@ export function isKstWeekend(d = new Date()): boolean {
 }
 
 export function isLiveDummyWindowOpen(window: LiveDummyWindow, d = new Date()): boolean {
+  if (window.kind === 'off') return false;
   if (isKstWeekend(d)) return false;
   const { ymd, mins } = kstClock(d);
   if (window.kind === 'dated' && !window.dates.has(ymd)) return false;

@@ -16,8 +16,24 @@ export function formatGuildRankScore(n: number): string {
 /** 1이면 평균(인원 무관), 0이면 합(인원 압승). 0.65면 같은 실력일 때 인원 2배 ≈ 1.27배. */
 export const GUILD_RANK_SIZE_EXP = 0.65;
 
-export function guildRankSizeDivisor(memberCount: number): number {
-  return Math.max(1, memberCount) ** GUILD_RANK_SIZE_EXP;
+/** 창설 기본 정원. 이 수 미만도 이 수로 나눈다. */
+export const GUILD_RANK_SIZE_FLOOR = 3;
+
+/**
+ * 이 시각 이전 경기는 바닥 1 (옛 공식). 이미 쌓인 길드 점수는 다시 나누지 않음.
+ * 운영 적립 RPC도 이 시각 이후부터 `max(n, 3)`.
+ */
+export const GUILD_RANK_SIZE_FLOOR_SINCE = '2026-08-28T11:20:00+09:00';
+
+const FLOOR_SINCE_MS = Date.parse(GUILD_RANK_SIZE_FLOOR_SINCE);
+
+export function guildRankSizeFloor(playedAtMs?: number): number {
+  if (playedAtMs != null && playedAtMs < FLOOR_SINCE_MS) return 1;
+  return GUILD_RANK_SIZE_FLOOR;
+}
+
+export function guildRankSizeDivisor(memberCount: number, playedAtMs?: number): number {
+  return Math.max(guildRankSizeFloor(playedAtMs), memberCount) ** GUILD_RANK_SIZE_EXP;
 }
 
 /** 시드 전용. 이후 로스터가 바뀌어도 이 값으로 다시 나누지 않는다. */

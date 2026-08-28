@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useCdpStore } from '@/stores/cdp';
+import { useGuildChatStore } from '@/stores/guildChat';
 import type { GuildV4Snapshot } from '@/lib/guild-v4/types';
 import { useGuildDevStore } from './store';
 import type { DevGuildMe } from './dummy';
@@ -18,6 +19,7 @@ export function useGuildDevApi(me: DevGuildMe) {
     (snap: GuildV4Snapshot) => {
       hydrate(snap);
       useCdpStore.getState().setBalance(snap.myCdp);
+      useGuildChatStore.getState().setSeenMessageId(snap.chatSeenMessageId);
     },
     [hydrate],
   );

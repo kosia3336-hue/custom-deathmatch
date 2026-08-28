@@ -430,7 +430,7 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     console.warn('[guild:points] 적립 실패(무시):', (err as Error).message);
   }
 
-  // 길드 랭킹 점수 (양수 M / n^0.65). 배치전으로 RP가 안 움직이면 승·패는 0.
+  // 길드 랭킹 점수 (양수 M / max(n, 3)^0.65). 배치전으로 RP가 안 움직이면 승·패는 0.
   try {
     if (ctx.isDraw) {
       const drawM = guildRankScoreMaterial('draw', 0);

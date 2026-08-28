@@ -12,19 +12,10 @@ import {
 import { isMinsInLiveWindow } from '../dummy/live/roster.js';
 
 describe('타이탄 활동 창', () => {
-  it('2026-08-21 22:00 KST는 켜짐, 21:59는 꺼짐, 24:00(다음날 0시)는 꺼짐', () => {
-    expect(isTitanLiveWindow(new Date('2026-08-21T12:59:00.000Z'))).toBe(false);
-    expect(isTitanLiveWindow(new Date('2026-08-21T13:00:00.000Z'))).toBe(true);
-    expect(isTitanLiveWindow(new Date('2026-08-21T14:59:00.000Z'))).toBe(true);
-    expect(isTitanLiveWindow(new Date('2026-08-21T15:00:00.000Z'))).toBe(false);
-  });
-
-  it('평일 밤만, 토·일은 꺼짐', () => {
-    expect(isTitanLiveWindow(new Date('2026-08-21T13:00:00.000Z'))).toBe(true);
+  it('off — 예전 창 시각에도 꺼짐', () => {
+    expect(isTitanLiveWindow(new Date('2026-08-21T13:00:00.000Z'))).toBe(false);
+    expect(isTitanLiveWindow(new Date('2026-08-24T13:00:00.000Z'))).toBe(false);
     expect(isTitanLiveWindow(new Date('2026-08-22T13:00:00.000Z'))).toBe(false);
-    expect(isTitanLiveWindow(new Date('2026-08-23T13:30:00.000Z'))).toBe(false);
-    expect(isTitanLiveWindow(new Date('2026-08-24T13:00:00.000Z'))).toBe(true);
-    expect(isTitanLiveWindow(new Date('2026-08-24T12:59:00.000Z'))).toBe(false);
   });
 
   it('사중력 사목만 하, 나머지는 기본 상', () => {
@@ -44,17 +35,17 @@ describe('타이탄 활동 창', () => {
 });
 
 describe('최연승 활동 창', () => {
-  it('평일 21:00 KST는 켜짐, 20:59·00:30은 꺼짐', () => {
+  it('평일 21:00–23:00 KST. 20:59·23:00은 꺼짐', () => {
     expect(isYeonseungLiveWindow(new Date('2026-08-24T11:59:00.000Z'))).toBe(false);
     expect(isYeonseungLiveWindow(new Date('2026-08-24T12:00:00.000Z'))).toBe(true);
     expect(isYeonseungLiveWindow(new Date('2026-08-24T13:30:00.000Z'))).toBe(true);
-    expect(isYeonseungLiveWindow(new Date('2026-08-24T15:29:00.000Z'))).toBe(true);
-    expect(isYeonseungLiveWindow(new Date('2026-08-24T15:30:00.000Z'))).toBe(false);
+    expect(isYeonseungLiveWindow(new Date('2026-08-24T13:59:00.000Z'))).toBe(true);
+    expect(isYeonseungLiveWindow(new Date('2026-08-24T14:00:00.000Z'))).toBe(false);
   });
 
   it('토·일은 꺼짐. 금 밤은 켜지고 토 새벽은 끊긴다', () => {
     expect(isYeonseungLiveWindow(new Date('2026-08-21T12:10:00.000Z'))).toBe(true);
-    expect(isYeonseungLiveWindow(new Date('2026-08-21T15:10:00.000Z'))).toBe(false);
+    expect(isYeonseungLiveWindow(new Date('2026-08-21T14:00:00.000Z'))).toBe(false);
     expect(isYeonseungLiveWindow(new Date('2026-08-22T12:10:00.000Z'))).toBe(false);
     expect(isYeonseungLiveWindow(new Date('2026-08-24T12:10:00.000Z'))).toBe(true);
   });
@@ -94,11 +85,9 @@ describe('Jack 활동 창', () => {
 });
 
 describe('아이언현성 활동 창', () => {
-  it('평일 22:30 KST는 켜짐, 22:29·00:30은 꺼짐', () => {
-    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T13:29:00.000Z'))).toBe(false);
-    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T13:30:00.000Z'))).toBe(true);
-    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T15:29:00.000Z'))).toBe(true);
-    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T15:30:00.000Z'))).toBe(false);
+  it('off — 예전 창 시각에도 꺼짐', () => {
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T13:30:00.000Z'))).toBe(false);
+    expect(isIronhyunseongLiveWindow(new Date('2026-08-24T15:00:00.000Z'))).toBe(false);
   });
 
   it('사목만 하, 나머지는 중', () => {

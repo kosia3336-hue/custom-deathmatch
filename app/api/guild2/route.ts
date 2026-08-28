@@ -41,6 +41,7 @@ type Body = {
   periodKey?: string;
   order?: unknown;
   skinId?: string;
+  messageId?: string;
 };
 
 function jsonError(message: string, status: number) {
@@ -391,6 +392,21 @@ export async function POST(req: NextRequest) {
         const { error } = await rpc('buy_guild_rank_card_v4', {
           p_actor: member.id,
           p_skin_id: skinId,
+        });
+        if (error) {
+          const e = mapGuildV4Error(error.message);
+          return jsonError(e.msg, e.status);
+        }
+        return NextResponse.json({ ok: true });
+      }
+      case 'mark_chat_seen': {
+        const messageId = String(body.messageId ?? '').trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId)) {
+          return jsonError('잘못된 요청입니다.', 400);
+        }
+        const { error } = await rpc('set_guild_chat_seen_v4', {
+          p_member: member.id,
+          p_message: messageId,
         });
         if (error) {
           const e = mapGuildV4Error(error.message);
