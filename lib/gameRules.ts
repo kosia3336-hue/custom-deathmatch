@@ -32,6 +32,14 @@ export interface GameRule {
   category: GameCategory;
   /** 마크다운 룰 텍스트 (여기를 채우세요) */
   rules: string;
+  /**
+   * 룰 표(사다리)에서 감춘다.
+   *
+   * 이벤트판처럼 정규 갈래 어디에도 넣기 애매한 게임을 위한 예외다. 갈래를
+   * 억지로 정하면 표에서 그 갈래가 부풀고, '기타' 로 두면 없앤 칸이 되살아난다.
+   * 방 만들기 모달에서는 그대로 고를 수 있다.
+   */
+  hiddenInLadder?: boolean;
 }
 
 export const GAME_RULES: GameRule[] = [
@@ -49,8 +57,8 @@ export const GAME_RULES: GameRule[] = [
   { id: 'game-012', name: '포도설탕2', category: '심리', rules: '' },
   { id: 'game-013', name: '해달별2', category: '심리', rules: '' },
   { id: 'game-014', name: '은행놀이', category: '심리', rules: '' },
-  { id: 'game-015', name: '인디언 홀덤 (이벤트)', category: '심리', rules: '' },
-  { id: 'game-016', name: '해달별 (이벤트)', category: '심리', rules: '' },
+  { id: 'game-015', name: '인디언 홀덤 (이벤트)', category: '기타', rules: '', hiddenInLadder: true },
+  { id: 'game-016', name: '해달별 (이벤트)', category: '기타', rules: '', hiddenInLadder: true },
   { id: 'game-017', name: '콰트로', category: '심리', rules: '' },
   { id: 'game-018', name: '단어조합', category: '언어', rules: '' },
   { id: 'game-019', name: '트랜스레터', category: '언어', rules: '' },

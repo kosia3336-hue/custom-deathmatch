@@ -19,7 +19,7 @@ export default function RulesClient() {
           심리 게임이 많아 두 칸으로 분할 */}
       <div className="flex items-stretch">
         {GAME_CATEGORIES.flatMap((cat, catIdx) => {
-          const all = GAME_RULES.filter((g) => g.category === cat);
+          const all = GAME_RULES.filter((g) => g.category === cat && !g.hiddenInLadder);
           if (cat === '심리' && all.length > 4) {
             const half = Math.ceil(all.length / 2);
             return [
