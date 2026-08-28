@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GNB } from '@/components/cdm/GNB';
-import { Card } from '@/components/cdm/Card';
 import { EmptyState } from '@/components/cdm/EmptyState';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { RoutePagination } from '@/components/cdm/Pagination';
+import { RankCardShell } from '@/components/ranking/RankCardShell';
 import { getAuthState } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { callRpc } from '@/lib/supabase/rpc';
@@ -17,11 +17,12 @@ import {
 import RankingTabs from './RankingTabs';
 import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
-import { loadGuildMarksForMembers } from './loadGuildMarks';
+import { loadGuildMarksForMembers, loadRankCardSkinsForMembers } from './loadGuildMarks';
 import type { GuildMarkInfo } from '@/components/cdm/GuildMark';
 import { OpenGuildInfoMark } from '@/components/guild-v4/OpenGuildInfoMark';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { CONTAINER_READ } from '@/lib/layout';
+import type { RankCardShopSkinId } from '@shared/rank-card-skins';
 
 export const metadata: Metadata = {
   title: '랭킹',
@@ -144,6 +145,7 @@ export default async function RankingPage({ searchParams }: Props) {
   let rankings: RankRow[] = [];
   let totalCount = 0;
   let guildMarks = new Map<string, GuildMarkInfo>();
+  let rankCardSkins = new Map<string, RankCardShopSkinId>();
 
   if (board === 'game') {
     try {
@@ -190,10 +192,11 @@ export default async function RankingPage({ searchParams }: Props) {
             : null,
         };
       });
-      guildMarks = await loadGuildMarksForMembers(
-        sb,
-        rankings.map((r) => r.member_id),
-      );
+      const memberIds = rankings.map((r) => r.member_id);
+      [guildMarks, rankCardSkins] = await Promise.all([
+        loadGuildMarksForMembers(sb, memberIds),
+        loadRankCardSkinsForMembers(sb, memberIds),
+      ]);
     }
   }
 
@@ -237,11 +240,12 @@ export default async function RankingPage({ searchParams }: Props) {
                 {rankings.map((r) => {
                   const isMe = member != null && r.member_id === member.id;
                   return (
-                    <Card
+                    <RankCardShell
                       key={r.member_id}
-                      variant={isMe ? 'highlight' : 'default'}
-                      accent="primary"
-                      className="!p-3 flex items-center gap-3"
+                      skin={rankCardSkins.get(r.member_id)}
+                      highlight={isMe}
+                      className="!p-3"
+                      bodyClassName="flex items-center gap-3"
                     >
                       <span
                         className={`w-10 text-center text-lg font-bold tabular-nums ${
@@ -270,7 +274,7 @@ export default async function RankingPage({ searchParams }: Props) {
                           {Math.round((r.win_rate ?? 0) * 1000) / 10}%
                         </p>
                       </div>
-                    </Card>
+                    </RankCardShell>
                   );
                 })}
                 <RoutePagination totalPages={totalPages} />

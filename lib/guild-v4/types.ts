@@ -28,17 +28,6 @@ export type GuildV4ContribScores = {
   all: number;
 };
 
-/** 길드 랭킹 개인 탭. 점수 적립 시작 이후 합. 0점은 안 넣음. */
-export type GuildV4PersonalRank = {
-  memberId: string;
-  nickname: string;
-  guildId: string;
-  guildName: string;
-  markUrl: string | null;
-  score: number;
-  title: DisplayedTitle | null;
-};
-
 export type GuildV4Sponsor = {
   cdp: number;
   gp: number;
@@ -93,9 +82,12 @@ export type GuildV4Snapshot = {
   investLogs: GuildV4InvestLog[];
   grantLogs: GuildV4GrantLog[];
   rankScores: Record<string, GuildV4RankScores>;
-  personalRanks: GuildV4PersonalRank[];
   myCdp: number;
   tileOrder: string[];
+  /** 활성 길드별 랭킹 카드. 만료된 길드는 없음. */
+  rankCards: Record<string, RankCardShopSkinId>;
   /** 내 길드에 켜진 랭킹 카드. 만료되면 null. */
   rankCard: { skinId: RankCardShopSkinId; expiresAt: string } | null;
+  /** 마지막으로 읽은 길드 채팅 메시지 id. 없으면 히스토리 전부 안 읽음. */
+  chatSeenMessageId: string | null;
 };

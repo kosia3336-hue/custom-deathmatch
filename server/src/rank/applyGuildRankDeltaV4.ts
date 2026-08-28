@@ -1,6 +1,6 @@
 /**
  * 길드 랭킹 점수 v4 — 양수 재료 M을 인원 보정해서 주간/월간에 더한다.
- * S += M / n^0.65. M ≤ 0 이면 no-op. 미가입이면 RPC no-op.
+ * S += M / max(n, 3)^0.65. M ≤ 0 이면 no-op. 미가입이면 RPC no-op.
  */
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 

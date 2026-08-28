@@ -72,14 +72,14 @@ describe('운영 더미 로비 접속 합성', () => {
   });
 
   it('소켓 명단과 memberId가 겹치면 한 번만', () => {
-    const first = LIVE_DUMMY_ROSTER[0];
-    if (!first) throw new Error('로스터가 비어 있다');
     const now = new Date('2026-08-24T13:10:00.000Z');
+    const open = LIVE_DUMMY_ROSTER.find((d) => isLiveDummyWindowOpen(d.window, now));
+    if (!open) throw new Error('이 시각에 열린 더미가 없다');
     const fromSockets: OnlineUser[] = [
-      { memberId: `mem-${first.key}`, nickname: first.nickname, status: 'lobby' },
+      { memberId: `mem-${open.key}`, nickname: open.nickname, status: 'lobby' },
     ];
     const merged = mergeOnlineUsers(fromSockets, listLiveDummyOnlineUsers(now));
-    expect(merged.filter((u) => u.memberId === `mem-${first.key}`)).toHaveLength(1);
+    expect(merged.filter((u) => u.memberId === `mem-${open.key}`)).toHaveLength(1);
     expect(merged.map((u) => u.nickname).sort()).toEqual(rosterOpenNicknames(now));
   });
 });

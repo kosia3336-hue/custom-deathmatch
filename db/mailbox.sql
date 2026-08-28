@@ -232,9 +232,10 @@ BEGIN
     ) <> ''
   ON CONFLICT (member_id, source_key) DO NOTHING;
 
-  DELETE FROM mailbox_items
-   WHERE member_id = v_me
-     AND created_at < (
+  -- RETURNS TABLE 의 created_at 과 안 겹치게 한정. 미한정이면 42702 로 전부 롤백.
+  DELETE FROM mailbox_items i
+   WHERE i.member_id = v_me
+     AND i.created_at < (
        SELECT pref.notice_since FROM mailbox_prefs pref WHERE pref.member_id = v_me
      );
 
