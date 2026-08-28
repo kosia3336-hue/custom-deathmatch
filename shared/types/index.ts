@@ -19,6 +19,19 @@ export {
   CH_WIN_SCORE,
   completeHapCardKey,
 } from './complete-hap';
+export { KT_TOTAL_ROUNDS, KT_WIN_SCORE } from './knights-tour';
+export type {
+  KnightTourAction,
+  KnightTourArchiveRecord,
+  KnightTourArchiveRound,
+  KnightTourBoard,
+  KnightTourCell,
+  KnightTourGameData,
+  KnightTourPhase,
+  KnightTourPlayerProgress,
+  KnightTourRoundResult,
+  KnightTourTiebreak,
+} from './knights-tour';
 export type {
   CompleteHapAction,
   CompleteHapArchiveRecord,

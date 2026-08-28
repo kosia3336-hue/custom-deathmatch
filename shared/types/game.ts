@@ -38,6 +38,7 @@ export const GAME_IDS = {
   TRANSLETTER: 'game-019',
   FORMULA_COMPLETION: 'game-020',
   COMPLETE_HAP: 'game-021',
+  KNIGHTS_TOUR: 'game-022',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

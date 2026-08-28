@@ -274,6 +274,16 @@ import {
   getCompleteHapResultData,
 } from './games/complete-hap/index.js';
 import {
+  initKnightTour,
+  handleKnightTourAction,
+  cleanupKnightTour,
+  getKnightTourState,
+  emitKnightTourStateToSocket,
+  performKnightTourUndo,
+  canKnightTourUndo,
+  getKnightTourResultData,
+} from './games/knights-tour/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -285,6 +295,16 @@ import {
 } from './games/quatro/index.js';
 
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.KNIGHTS_TOUR]: {
+    init: initKnightTour,
+    handleAction: handleKnightTourAction,
+    cleanup: cleanupKnightTour,
+    getState: getKnightTourState,
+    emitStateToSocket: emitKnightTourStateToSocket,
+    performUndo: performKnightTourUndo,
+    canUndo: canKnightTourUndo,
+    getResultData: getKnightTourResultData,
+  },
   [GAME_IDS.COMPLETE_HAP]: {
     init: initCompleteHap,
     handleAction: handleCompleteHapAction,
