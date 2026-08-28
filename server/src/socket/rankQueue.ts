@@ -157,19 +157,29 @@ export async function createRankMatchedRoom(
   guestEntry: RankQueueEntry,
   seasonId: number,
 ): Promise<void> {
+  let requeued: string[] = [];
   try {
-    await buildRankMatchedRoom(io, hostEntry, guestEntry, seasonId);
+    requeued = await buildRankMatchedRoom(io, hostEntry, guestEntry, seasonId);
   } finally {
-    rankQueueStore.releaseMatch(hostEntry.memberId, guestEntry.memberId);
+    /*
+      큐로 돌려보낸 사람은 그 사이 다른 상대와 새로 매칭됐을 수 있다. 그 사람의
+      '매칭 확정' 은 이제 새 짝의 것이라 여기서 풀면 안 된다 — 풀어 버리면 큐에
+      또 들어가 방 두 개에 동시에 배정된다.
+    */
+    const toRelease = [hostEntry.memberId, guestEntry.memberId].filter(
+      (id) => !requeued.includes(id),
+    );
+    if (toRelease.length > 0) rankQueueStore.releaseMatch(...toRelease);
   }
 }
 
+/** 성사시키지 못해 큐로 돌려보낸 회원 ID 목록을 반환한다. */
 async function buildRankMatchedRoom(
   io: IO,
   hostEntry: RankQueueEntry,
   guestEntry: RankQueueEntry,
   seasonId: number,
-): Promise<void> {
+): Promise<string[]> {
   // 큐는 '방에 들어갔다' 를 알 수 없다 — 대기 중 일반 방에 입장해도 큐에 그대로
   // 남는다(room.ts 는 랭크 큐를 건드리지 않는다). 그대로 방을 만들면 아래 로직이
   // 그 사람을 원래 방에서 끌어내 두 방이 함께 깨진다. 그래서 만들기 직전에 확인한다.
@@ -179,15 +189,32 @@ async function buildRankMatchedRoom(
     console.warn(
       `[rankQueue] 매칭 취소 — 이미 방에 있음: ${hostBusy ? hostEntry.nickname : ''}${hostBusy && guestBusy ? ', ' : ''}${guestBusy ? guestEntry.nickname : ''}`,
     );
-    // 멀쩡한 쪽은 큐로 돌려보내 다음 상대를 찾게 한다 (조용히 사라지지 않도록)
-    if (!hostBusy) rankQueueStore.enqueue(hostEntry);
-    if (!guestBusy) rankQueueStore.enqueue(guestEntry);
-    return;
+    /*
+      멀쩡한 쪽은 큐로 돌려보내 다음 상대를 찾게 한다 (조용히 사라지지 않도록).
+      돌려보내기 전에 '매칭 확정' 을 먼저 풀어야 한다 — 안 그러면 enqueue 가
+      첫 줄에서 그대로 되돌아 나가, 주석과 달리 큐에 들어가지 않고 사라진다.
+    */
+    const requeued: string[] = [];
+    for (const [busy, entry] of [
+      [hostBusy, hostEntry],
+      [guestBusy, guestEntry],
+    ] as const) {
+      if (busy) continue;
+      rankQueueStore.releaseMatch(entry.memberId);
+      requeued.push(entry.memberId);
+      const res = rankQueueStore.enqueue(entry);
+      if (res.matched) {
+        void createRankMatchedRoom(io, res.host, res.guest, res.host.seasonId).catch((err) => {
+          console.warn('[rankQueue] 재매칭 방 생성 실패:', (err as Error).message);
+        });
+      }
+    }
+    return requeued;
   }
 
   const hostPlayer = buildPlayer(hostEntry.socketId, true);
   const guestPlayer = buildPlayer(guestEntry.socketId, false);
-  if (!hostPlayer?.memberId || !guestPlayer?.memberId) return;
+  if (!hostPlayer?.memberId || !guestPlayer?.memberId) return [];
 
   // 표시 칭호를 DB 기준으로 갱신 — 웹에서 칭호 변경 후 소켓 세션이 낡은 값을 들고 있는 문제 방지
   const [hostTitle, guestTitle, guilds] = await Promise.all([
@@ -219,14 +246,14 @@ async function buildRankMatchedRoom(
 
   if (!roomStore.addPlayer(room.id, guestPlayer)) {
     roomStore.delete(room.id);
-    return;
+    return [];
   }
 
   const hostSock = resolveQueueSocket(io, hostEntry.socketId);
   const guestSock = resolveQueueSocket(io, guestEntry.socketId);
   if (!hostSock || !guestSock) {
     roomStore.delete(room.id);
-    return;
+    return [];
   }
 
   // 큐 대기 중 관전방에 들어갔다면, 이전 소켓 채널을 떠나고 spectator 목록도 정리
@@ -325,6 +352,9 @@ async function buildRankMatchedRoom(
       rt?.defaultTier ?? '중',
     );
   }
+
+  /* 정상적으로 방까지 만들었다 — 큐로 돌려보낸 사람은 없다. */
+  return [];
 }
 
 export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
