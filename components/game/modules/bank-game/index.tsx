@@ -4,6 +4,7 @@ import PhaseTransitionOverlay from './PhaseTransitionOverlay';
 import MobileLayout from './MobileLayout';
 import DesktopLayout from './DesktopLayout';
 import { useBankContext } from './hooks/useBankContext';
+import TreasuryFieldFx from './skins/TreasuryFieldFx';
 
 /* ════════════════════════════════════════════════════════════
  * 은행놀이 — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -24,6 +25,7 @@ export default function BankGame() {
     firstPlayer,
     secondPlayer,
     myIsFirst,
+    isTreasury,
   } = ctx;
 
   if (!gameData) {
@@ -35,7 +37,11 @@ export default function BankGame() {
   }
 
   return (
-    <>
+    <div
+      className={`relative flex h-full min-w-0 flex-1 flex-col overflow-hidden ${
+        isTreasury ? 'skin-treasury-field' : ''
+      }`}
+    >
       <style>{`
         @keyframes bankFadeIn {
           from { opacity: 0; transform: translateY(4px); }
@@ -70,6 +76,8 @@ export default function BankGame() {
         }
       `}</style>
 
+      {isTreasury && <TreasuryFieldFx />}
+
       <PhaseTransitionOverlay
         phase={phase ?? 'firstSubmit'}
         isMyTurn={stepperActiveTurn}
@@ -88,6 +96,6 @@ export default function BankGame() {
       <div className="hidden h-full min-w-0 flex-1 lg:flex lg:flex-col">
         <DesktopLayout ctx={ctx} />
       </div>
-    </>
+    </div>
   );
 }

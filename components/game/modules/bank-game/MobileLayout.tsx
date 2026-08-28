@@ -100,8 +100,8 @@ export default function MobileLayout({ ctx }: Props) {
   const showBanner = (isFirstReveal || isSecondSubmit) && firstBetCount != null;
 
   return (
-    <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-auto">
-      <div className="flex w-full min-w-0 flex-col gap-3 p-3">
+    <div className="bank-layout bank-layout-mobile flex h-full w-full max-w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto">
+      <div className="bank-mobile-content flex w-full min-w-0 flex-col gap-3 p-3">
         <MobileHeader
           round={gameData.round}
           maxRound={gameData.maxRound}
@@ -150,7 +150,7 @@ export default function MobileLayout({ ctx }: Props) {
 
         {/* 라운드 기록 (details) */}
         {gameData.history.length > 0 && !isFinished && (
-          <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
+          <details className="bank-collapse w-full min-w-0 rounded-xl border border-gray-200 bg-white">
             <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
               라운드 기록 ({gameData.history.length})
             </summary>
@@ -167,7 +167,7 @@ export default function MobileLayout({ ctx }: Props) {
 
         {/* 상대 금액 추리 (details) */}
         {showOpponentTracker && (
-          <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
+          <details className="bank-collapse w-full min-w-0 rounded-xl border border-gray-200 bg-white">
             <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
               상대 잔여 추리
             </summary>
@@ -186,7 +186,7 @@ export default function MobileLayout({ ctx }: Props) {
         <>
           {/* dim overlay — 터치로 닫기 */}
           <div
-            className={`fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
+            className={`bank-sheet-overlay fixed inset-0 z-(--cdm-z-overlay) bg-black/40 transition-opacity duration-300 lg:hidden ${
               showSheet ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
             onClick={() => setSheetOpen(false)}
@@ -194,11 +194,11 @@ export default function MobileLayout({ ctx }: Props) {
 
           {/* sheet */}
           <div
-            className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[80dvh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
+            className={`bank-bet-sheet fixed inset-x-0 bottom-0 z-(--cdm-z-modal) flex max-h-[80dvh] flex-col rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl transition-transform duration-300 lg:hidden ${
               showSheet ? 'translate-y-0' : 'translate-y-full'
             }`}
           >
-            <div className="flex shrink-0 justify-center pb-2 pt-3">
+            <div className="flex shrink-0 justify-center pt-3 pb-2">
               <div className="h-1 w-10 rounded-full bg-gray-300" />
             </div>
             {myPlayer?.inventory && myPlayer.inventoryAmount != null && (
@@ -228,7 +228,7 @@ export default function MobileLayout({ ctx }: Props) {
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
+              className="bank-primary-action fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
             >
               베팅 입력하기 →
             </button>

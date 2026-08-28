@@ -62,11 +62,8 @@ export default function BetInput({
   const accentBg = turn === 'first' ? 'bg-indigo-50' : 'bg-amber-50';
   const accentText = turn === 'first' ? 'text-indigo-700' : 'text-amber-700';
   const accentBtn =
-    turn === 'first'
-      ? 'bg-indigo-600 hover:bg-indigo-700'
-      : 'bg-amber-600 hover:bg-amber-700';
-  const accentRing =
-    turn === 'first' ? 'focus:ring-indigo-400' : 'focus:ring-amber-400';
+    turn === 'first' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700';
+  const accentRing = turn === 'first' ? 'focus:ring-indigo-400' : 'focus:ring-amber-400';
 
   const submitLabel =
     totalCount === 0
@@ -75,12 +72,12 @@ export default function BetInput({
 
   return (
     <div
-      className={`space-y-3 rounded-xl border-2 ${accentBorder} ${accentBg} p-3 ${
+      className={`bank-bet-panel bank-bet-panel--${turn} space-y-3 rounded-xl border-2 ${accentBorder} ${accentBg} p-3 ${
         disabled ? 'opacity-60' : ''
       }`}
     >
       <div className="flex items-center justify-between">
-        <p className={`text-sm font-semibold ${accentText}`}>
+        <p className={`bank-bet-title text-sm font-semibold ${accentText}`}>
           {turn === 'first' ? '선 베팅' : '후 베팅'}
         </p>
         <p className="text-[11px] text-gray-500">
@@ -108,7 +105,7 @@ export default function BetInput({
       </div>
 
       {/* 합계 + 검증 */}
-      <div className="flex items-center justify-between text-xs">
+      <div className="bank-bet-total flex items-center justify-between text-xs">
         <span className="text-gray-600">
           합계{' '}
           <span className={`font-bold tabular-nums ${accentText}`}>
@@ -128,7 +125,7 @@ export default function BetInput({
           type="button"
           disabled={disabled || totalCount === 0}
           onClick={onReset}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+          className="bank-reset-action rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
         >
           초기화
         </button>
@@ -136,7 +133,7 @@ export default function BetInput({
           type="button"
           disabled={!canSubmit}
           onClick={onSubmit}
-          className={`flex-1 rounded-lg py-2 text-sm font-bold text-white disabled:opacity-40 whitespace-nowrap ${accentBtn}`}
+          className={`bank-primary-action flex-1 rounded-lg py-2 text-sm font-bold whitespace-nowrap text-white disabled:opacity-40 ${accentBtn}`}
         >
           {submitLabel}
         </button>
@@ -171,9 +168,11 @@ function BetRow({
   const clamp = (v: number) => Math.max(0, Math.min(invMax, Math.floor(v)));
 
   return (
-    <div className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1">
+    <div
+      className={`bank-bet-row bank-bet-row--${denom} flex items-center gap-1.5 rounded-lg bg-white px-2 py-1`}
+    >
       <span
-        className={`${labelW} shrink-0 truncate text-xs font-bold ${style.text}`}
+        className={`bank-bet-denom ${labelW} shrink-0 truncate text-xs font-bold ${style.text}`}
       >
         {style.label}
       </span>
@@ -181,7 +180,7 @@ function BetRow({
         type="button"
         disabled={disabled || value <= 0}
         onClick={() => onChange(clamp(value - 1))}
-        className={`${stepSize} shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40`}
+        className={`bank-step-action ${stepSize} shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40`}
         aria-label={`${style.label} 1장 빼기`}
       >
         −
@@ -197,13 +196,13 @@ function BetRow({
           const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
-        className={`${inputSize} min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold tabular-nums text-gray-800 focus:outline-none focus:ring-2 ${accentRing} disabled:bg-gray-100`}
+        className={`bank-quantity-input ${inputSize} min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:outline-none ${accentRing} disabled:bg-gray-100`}
       />
       <button
         type="button"
         disabled={disabled || value >= invMax}
         onClick={() => onChange(clamp(value + 1))}
-        className={`${stepSize} shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40`}
+        className={`bank-step-action ${stepSize} shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40`}
         aria-label={`${style.label} 1장 더`}
       >
         +

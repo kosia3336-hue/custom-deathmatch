@@ -226,6 +226,40 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'treasury') {
+    const denoms = [
+      { value: 1000, label: '1천', count: 12 },
+      { value: 3000, label: '3천', count: 8 },
+      { value: 5000, label: '5천', count: 6 },
+      { value: 10000, label: '1만', count: 4 },
+    ] as const;
+    return (
+      <div className="skin-treasury-field skin-treasury-preview relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg">
+        <span
+          className="bank-score-emblem bank-score-emblem--player absolute top-2 left-2 z-10"
+          aria-hidden
+        />
+        <span
+          className="bank-score-emblem bank-score-emblem--opponent absolute top-2 right-2 z-10"
+          aria-hidden
+        />
+        <div className="bank-inventory">
+          <div className="bank-inventory-grid grid grid-cols-4 gap-1">
+            {denoms.map((denom) => (
+              <div
+                key={denom.value}
+                className={`bank-denom-card bank-denom-card--${denom.value} flex flex-col items-center justify-center`}
+              >
+                <span className="bank-denom-label font-semibold">{denom.label}</span>
+                <span className="bank-denom-count font-extrabold tabular-nums">{denom.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="skin-imperial-board relative flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg">
       <span

@@ -17,26 +17,19 @@ interface Props {
   myId: string | null;
 }
 
-export default function FinalResult({
-  finalWinner,
-  winType,
-  players,
-  myId,
-}: Props) {
+export default function FinalResult({ finalWinner, winType, players, myId }: Props) {
   const winnerLabel =
     finalWinner === 'draw'
       ? '무승부!'
       : finalWinner
         ? `${players[finalWinner].id === myId ? '나' : players[finalWinner].nickname} 승리!`
         : '게임 종료';
-  const reason = winType
-    ? (WIN_TYPE_LABELS as Record<string, string>)[winType] ?? ''
-    : '';
+  const reason = winType ? ((WIN_TYPE_LABELS as Record<string, string>)[winType] ?? '') : '';
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-indigo-300 bg-linear-to-br from-indigo-50 via-violet-50 to-fuchsia-50 p-5 text-center shadow-lg">
+    <div className="bank-final-result flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-indigo-300 bg-linear-to-br from-indigo-50 via-violet-50 to-fuchsia-50 p-5 text-center shadow-lg">
       <p className="text-xl font-bold text-indigo-900">{winnerLabel}</p>
-      <p className="text-sm tabular-nums text-indigo-700">
+      <p className="text-sm text-indigo-700 tabular-nums">
         최종 {players.p1.score} - {players.p2.score}
       </p>
       {reason && <p className="text-xs text-indigo-600">{reason}</p>}
@@ -49,7 +42,7 @@ export default function FinalResult({
           return (
             <div
               key={s}
-              className={`rounded-lg border-2 p-3 text-left ${
+              className={`bank-final-player bank-score-card--${isMe ? 'player' : 'opponent'} rounded-lg border-2 p-3 text-left ${
                 isWinner
                   ? 'border-emerald-400 bg-emerald-50 shadow-[0_0_14px_rgba(52,211,153,0.35)]'
                   : isMe
@@ -61,18 +54,18 @@ export default function FinalResult({
                 <span className="truncate text-xs font-bold text-gray-700">
                   {isMe ? '나' : p.nickname}
                 </span>
-                <span className="text-xl font-extrabold tabular-nums text-gray-800">
+                <span className="text-xl font-extrabold text-gray-800 tabular-nums">
                   {p.score}점
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[11px]">
                 <span className="text-gray-500">잔여</span>
                 <span className="text-right">
-                  <span className="block font-bold tabular-nums text-gray-700">
+                  <span className="block font-bold text-gray-700 tabular-nums">
                     {p.inventoryCount}장
                   </span>
                   {p.inventoryAmount != null && (
-                    <span className="block text-[10px] tabular-nums text-gray-500">
+                    <span className="block text-[10px] text-gray-500 tabular-nums">
                       {formatKRW(p.inventoryAmount)}원
                     </span>
                   )}

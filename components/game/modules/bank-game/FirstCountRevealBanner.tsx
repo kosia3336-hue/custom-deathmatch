@@ -15,11 +15,7 @@ interface Props {
   isMyTurn: boolean;
 }
 
-export default function FirstCountRevealBanner({
-  firstNick,
-  firstBetCount,
-  isMyTurn,
-}: Props) {
+export default function FirstCountRevealBanner({ firstNick, firstBetCount, isMyTurn }: Props) {
   const [pulse, setPulse] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setPulse(false), 700);
@@ -30,7 +26,7 @@ export default function FirstCountRevealBanner({
     <div
       role="status"
       aria-live="polite"
-      className={`flex items-center justify-between gap-3 rounded-2xl border-2 p-3 shadow-md transition-shadow lg:p-4 ${
+      className={`bank-reveal-banner flex items-center justify-between gap-3 rounded-2xl border-2 p-3 shadow-md transition-shadow lg:p-4 ${
         isMyTurn
           ? 'border-amber-300 bg-linear-to-br from-amber-50 to-orange-100/70'
           : 'border-amber-200 bg-amber-50'
@@ -44,8 +40,8 @@ export default function FirstCountRevealBanner({
         </div>
       </div>
       <div className="text-right">
-        <p className="text-[10px] uppercase tracking-wide text-amber-600">제출 장수</p>
-        <p className="text-3xl font-extrabold tabular-nums text-amber-700 lg:text-4xl">
+        <p className="text-[10px] tracking-wide text-amber-600 uppercase">제출 장수</p>
+        <p className="text-3xl font-extrabold text-amber-700 tabular-nums lg:text-4xl">
           {firstBetCount}
           <span className="ml-0.5 text-sm font-bold">장</span>
         </p>

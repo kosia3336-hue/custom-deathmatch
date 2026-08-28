@@ -20,14 +20,14 @@ export default function MobileHeader({
 }: Props) {
   const phaseLabel = PHASE_LABELS[phase] ?? '';
   return (
-    <div className="sticky top-0 z-10 -mx-3 -mt-3 mb-1 flex flex-col gap-1 border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur">
+    <div className="bank-mobile-header sticky top-0 z-10 -mx-3 -mt-3 mb-1 flex flex-col gap-1 border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur">
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-base font-extrabold tabular-nums text-gray-800">
+        <span className="shrink-0 text-base font-extrabold text-gray-800 tabular-nums">
           R{round}
         </span>
-        <span className="shrink-0 text-[10px] tabular-nums text-gray-400">/{maxRound}</span>
+        <span className="shrink-0 text-[10px] text-gray-400 tabular-nums">/{maxRound}</span>
         {phaseLabel && (
-          <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+          <span className="bank-phase-pill shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
             {phaseLabel}
           </span>
         )}
@@ -38,7 +38,7 @@ export default function MobileHeader({
       {loserAmountTotal > 0 && (
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-gray-500">누적 패자 금액</span>
-          <span className="text-[11px] font-bold tabular-nums text-rose-700">
+          <span className="text-[11px] font-bold text-rose-700 tabular-nums">
             {formatKRW(loserAmountTotal)}원
           </span>
         </div>

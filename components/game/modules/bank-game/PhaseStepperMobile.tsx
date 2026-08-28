@@ -15,14 +15,18 @@ interface Props {
 
 function stepIndexFromPhase(phase: BankPhase): number {
   switch (phase) {
-    case 'firstSubmit': return 0;
-    case 'firstReveal': return 1;
-    case 'secondSubmit': return 2;
+    case 'firstSubmit':
+      return 0;
+    case 'firstReveal':
+      return 1;
+    case 'secondSubmit':
+      return 2;
     case 'reveal':
     case 'roundEnd':
     case 'finished':
       return 3;
-    default: return -1;
+    default:
+      return -1;
   }
 }
 
@@ -51,7 +55,7 @@ export default function PhaseStepperMobile({
       aria-valuemax={STEPPER_PHASE_LABELS.length}
       aria-valuenow={Math.max(0, activeIndex + 1)}
       aria-valuetext={turnLabel ?? STEPPER_PHASE_LABELS[Math.max(0, activeIndex)]?.label}
-      className="flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden px-2 py-1"
+      className="bank-phase-stepper bank-phase-stepper-mobile flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden px-2 py-1"
     >
       <div className="flex w-full max-w-xs items-center justify-between">
         {STEPPER_PHASE_LABELS.map((step, i) => {
@@ -67,9 +71,9 @@ export default function PhaseStepperMobile({
             <Fragment key={step.key}>
               <DotNode state={state} />
               {i < STEPPER_PHASE_LABELS.length - 1 && (
-                <div className="mx-0.5 h-0.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                <div className="bank-step-connector mx-0.5 h-0.5 flex-1 overflow-hidden rounded-full bg-gray-200">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
+                    className={`bank-step-fill h-full rounded-full transition-all duration-500 ${
                       i < activeIndex
                         ? 'w-full bg-indigo-400'
                         : i === activeIndex
@@ -100,13 +104,14 @@ export default function PhaseStepperMobile({
 function DotNode({ state }: { state: 'done' | 'active' | 'pending' }) {
   return (
     <div
-      className={`h-4 w-4 shrink-0 rounded-full transition-all duration-300 ${
+      className={`bank-step-dot h-4 w-4 shrink-0 rounded-full transition-all duration-300 ${
         state === 'done'
           ? 'bg-indigo-500'
           : state === 'active'
-            ? 'bg-amber-500 ring-2 ring-amber-300 ring-offset-1 ring-offset-white animate-[bankStepPulse_1.6s_ease-in-out_infinite]'
+            ? 'animate-[bankStepPulse_1.6s_ease-in-out_infinite] bg-amber-500 ring-2 ring-amber-300 ring-offset-1 ring-offset-white'
             : 'bg-gray-200'
       }`}
+      data-state={state}
     />
   );
 }

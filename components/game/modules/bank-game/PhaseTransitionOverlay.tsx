@@ -86,10 +86,8 @@ export default function PhaseTransitionOverlay({
       key={overlay.key}
     >
       <div
-        className={`pointer-events-none flex flex-col items-center gap-1 rounded-2xl border px-6 py-3 shadow-lg backdrop-blur-sm transition-all ${accentClass} ${
-          visible
-            ? 'translate-y-0 scale-100 opacity-100'
-            : '-translate-y-2 scale-95 opacity-0'
+        className={`bank-phase-overlay pointer-events-none flex flex-col items-center gap-1 rounded-2xl border px-6 py-3 shadow-lg backdrop-blur-sm transition-all ${accentClass} ${
+          visible ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-2 scale-95 opacity-0'
         }`}
         style={{ transitionDuration: `${FADE_MS}ms` }}
       >

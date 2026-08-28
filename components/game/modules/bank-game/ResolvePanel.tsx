@@ -26,7 +26,10 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
   const [step, setStep] = useState(instant ? 4 : 0);
 
   useEffect(() => {
-    if (instant) { setStep(4); return; }
+    if (instant) {
+      setStep(4);
+      return;
+    }
     setStep(0);
     const t1 = setTimeout(() => setStep(1), 400);
     const t2 = setTimeout(() => setStep(2), 1600);
@@ -38,8 +41,8 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  // round가 바뀌면 재실행
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // round가 바뀌면 재실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r?.round, instant]);
 
   if (!r) return null;
@@ -49,15 +52,16 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
   const firstSide = r.firstSide;
   const secondSide = firstSide === 'p1' ? 'p2' : 'p1';
 
-  const titleText = step < 4
-    ? null
-    : isDraw
-      ? '동률'
-      : winnerSide === mySide
-        ? '라운드 승리!'
-        : winnerSide === null
-          ? '결과'
-          : '라운드 패배';
+  const titleText =
+    step < 4
+      ? null
+      : isDraw
+        ? '동률'
+        : winnerSide === mySide
+          ? '라운드 승리!'
+          : winnerSide === null
+            ? '결과'
+            : '라운드 패배';
 
   const titleColor = isDraw
     ? 'text-gray-700'
@@ -66,8 +70,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
       : 'text-rose-700';
 
   return (
-    <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-
+    <div className="bank-resolve-panel space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {/* 결과 타이틀 — step 4 */}
       <div
         className="text-center transition-all duration-500"
@@ -102,17 +105,18 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
           const cardStep = idx === 0 ? 1 : 2;
           const cardVisible = step >= cardStep;
 
-          const cardBg = step >= 4 && isWinner
-            ? 'border-emerald-300 bg-emerald-50'
-            : isMe
-              ? 'border-indigo-200 bg-indigo-50'
-              : 'border-amber-200 bg-amber-50';
+          const cardBg =
+            step >= 4 && isWinner
+              ? 'border-emerald-300 bg-emerald-50'
+              : isMe
+                ? 'border-indigo-200 bg-indigo-50'
+                : 'border-amber-200 bg-amber-50';
           const accentText = isMe ? 'text-indigo-700' : 'text-amber-700';
 
           return (
             <div
               key={side}
-              className={`flex flex-col gap-1 rounded-lg border-2 p-2 transition-all duration-500 ${cardBg}`}
+              className={`bank-resolve-card bank-score-card--${isMe ? 'player' : 'opponent'} flex flex-col gap-1 rounded-lg border-2 p-2 transition-all duration-500 ${cardBg}`}
               style={{
                 opacity: cardVisible ? 1 : 0,
                 transform: cardVisible
@@ -155,8 +159,10 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                     </p>
                   ) : (
                     <p
-                      className="text-base font-extrabold tabular-nums text-rose-700"
-                      style={step === 3 ? { animation: 'bankAmountReveal 0.4s ease-out' } : undefined}
+                      className="text-base font-extrabold text-rose-700 tabular-nums"
+                      style={
+                        step === 3 ? { animation: 'bankAmountReveal 0.4s ease-out' } : undefined
+                      }
                     >
                       {formatKRW(amount)}
                       <span className="ml-0.5 text-[10px] font-bold">원</span>
@@ -165,9 +171,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                 </div>
               </div>
 
-              {auto && (
-                <p className="text-right text-[10px] text-amber-600">시간초과 자동제출</p>
-              )}
+              {auto && <p className="text-right text-[10px] text-amber-600">시간초과 자동제출</p>}
             </div>
           );
         })}
@@ -183,14 +187,13 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
       >
         <span className="text-gray-600">
           승점{' '}
-          <b className="tabular-nums text-gray-900">
+          <b className="text-gray-900 tabular-nums">
             {r.scoreAfter.p1} : {r.scoreAfter.p2}
           </b>
         </span>
         {r.loserAmountThisRound != null && (
           <span className="text-rose-700">
-            패자 금액{' '}
-            <b className="tabular-nums">+{formatKRW(r.loserAmountThisRound)}원</b>
+            패자 금액 <b className="tabular-nums">+{formatKRW(r.loserAmountThisRound)}원</b>
           </span>
         )}
       </div>

@@ -10,7 +10,16 @@
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 지원하는 스킨 테마 식별자 */
-export type SkinTheme = 'cosmos' | 'imperial' | 'nocturne' | 'citadel' | 'duality' | 'showdown' | 'meow' | 'candy';
+export type SkinTheme =
+  | 'cosmos'
+  | 'imperial'
+  | 'nocturne'
+  | 'citadel'
+  | 'duality'
+  | 'showdown'
+  | 'meow'
+  | 'candy'
+  | 'treasury';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -75,6 +84,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'candy',
     description: '설탕서리가 앉은 유리 과자점. 파스텔 유리 카드와 얼음 결정 라운드 보드.',
     swatch: 'linear-gradient(135deg, #e7defa 0%, #d8ecfb 45%, #fbe3f1 100%)',
+  },
+  'skin-g014-01': {
+    id: 'skin-g014-01',
+    gameId: GAME_IDS.BANK_GAME,
+    name: '심야금고',
+    theme: 'treasury',
+    description: '한밤의 비밀 금고. 황동 장부와 가상 지폐 위에서 펼쳐지는 은행가의 심리전.',
+    swatch: 'linear-gradient(135deg, #07111d 0%, #12382f 48%, #b8873f 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',

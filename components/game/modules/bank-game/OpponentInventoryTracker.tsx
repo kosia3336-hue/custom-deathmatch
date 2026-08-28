@@ -33,7 +33,7 @@ export default function OpponentInventoryTracker() {
   };
 
   return (
-    <div className="space-y-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3">
+    <div className="bank-tracker space-y-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-gray-600">상대 잔여 추리</p>
         <button
@@ -51,15 +51,18 @@ export default function OpponentInventoryTracker() {
           const max = BANK_INITIAL_INVENTORY[denom];
           const style = DENOM_STYLES[denom];
           return (
-            <div key={denom} className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1">
-              <span className="w-16 shrink-0 truncate text-xs font-bold text-gray-500">
+            <div
+              key={denom}
+              className={`bank-bet-row bank-bet-row--${denom} flex items-center gap-1.5 rounded-lg bg-white px-2 py-1`}
+            >
+              <span className="bank-bet-denom w-16 shrink-0 truncate text-xs font-bold text-gray-500">
                 {style.label}
               </span>
               <button
                 type="button"
                 disabled={val <= 0}
                 onClick={() => adjust(denom, -1)}
-                className="h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="bank-step-action h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
                 −
               </button>
@@ -72,13 +75,13 @@ export default function OpponentInventoryTracker() {
                   const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
                   setDenom(denom, isNaN(n) ? 0 : n);
                 }}
-                className="h-9 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold tabular-nums text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="bank-quantity-input h-9 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:ring-gray-300 focus:outline-none"
               />
               <button
                 type="button"
                 disabled={val >= max}
                 onClick={() => adjust(denom, +1)}
-                className="h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="bank-step-action h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
                 +
               </button>

@@ -1,10 +1,6 @@
 'use client';
 
-import type {
-  BankPlayerInfo,
-  BankRoundResult,
-  BankSide,
-} from '@/shared/types/bank-game';
+import type { BankPlayerInfo, BankRoundResult, BankSide } from '@/shared/types/bank-game';
 import { formatKRW } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -21,25 +17,16 @@ interface Props {
   variant?: 'mobile' | 'desktop';
 }
 
-export default function RoundHistoryTable({
-  history,
-  mySide,
-  players,
-  variant = 'mobile',
-}: Props) {
+export default function RoundHistoryTable({ history, mySide, players, variant = 'mobile' }: Props) {
   if (history.length === 0) {
     return <p className="text-[11px] text-gray-400">아직 기록이 없습니다.</p>;
   }
   return (
-    <ul className={variant === 'mobile' ? 'space-y-2 text-[11px]' : 'space-y-1 text-[11px]'}>
+    <ul
+      className={`bank-history ${variant === 'mobile' ? 'space-y-2 text-[11px]' : 'space-y-1 text-[11px]'}`}
+    >
       {history.map((r) => (
-        <RoundEntry
-          key={r.round}
-          r={r}
-          mySide={mySide}
-          players={players}
-          variant={variant}
-        />
+        <RoundEntry key={r.round} r={r} mySide={mySide} players={players} variant={variant} />
       ))}
     </ul>
   );
@@ -65,10 +52,12 @@ function RoundEntry({
   const winLabel = isDraw ? '무승부' : r.winnerSide === 'p1' ? 'P1 승' : 'P2 승';
 
   return (
-    <li className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-      <div className={`flex items-center justify-between px-2.5 py-1.5 ${
-        isDraw ? 'bg-gray-50' : r.winnerSide === mySide ? 'bg-emerald-50' : 'bg-rose-50'
-      }`}>
+    <li className="bank-history-entry overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div
+        className={`flex items-center justify-between px-2.5 py-1.5 ${
+          isDraw ? 'bg-gray-50' : r.winnerSide === mySide ? 'bg-emerald-50' : 'bg-rose-50'
+        }`}
+      >
         <div className="flex items-center gap-1.5">
           <span className="font-bold text-gray-700 tabular-nums">R{r.round}</span>
           <span className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold ${winColor}`}>
@@ -78,7 +67,7 @@ function RoundEntry({
             선 {r.firstSide === 'p1' ? players.p1.nickname : players.p2.nickname}
           </span>
         </div>
-        <span className="text-[10px] tabular-nums text-gray-500">
+        <span className="text-[10px] text-gray-500 tabular-nums">
           {r.scoreAfter.p1} : {r.scoreAfter.p2}
         </span>
       </div>
@@ -129,13 +118,13 @@ function PlayerRow({
   const rowBg = isMe ? 'bg-indigo-50' : 'bg-amber-50';
   const labelColor = isMe ? 'text-indigo-700' : 'text-amber-700';
   return (
-    <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 ${rowBg}`}>
+    <div
+      className={`bank-history-player bank-score-card--${isMe ? 'player' : 'opponent'} flex items-center gap-1.5 rounded-lg px-2 py-1 ${rowBg}`}
+    >
       <span className={`min-w-0 flex-1 truncate font-bold ${labelColor}`}>
         {isMe ? '나' : nickname}
       </span>
-      <span className="shrink-0 tabular-nums text-gray-700 font-semibold">
-        {count}장
-      </span>
+      <span className="shrink-0 font-semibold text-gray-700 tabular-nums">{count}장</span>
       <span className="ml-auto shrink-0 tabular-nums">
         {amount == null ? (
           <span className="text-gray-400" />

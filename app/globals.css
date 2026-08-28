@@ -5542,3 +5542,671 @@ body {
   .intro-rank-slot:hover,
   .intro-title-card:hover { transform: none; }
 }
+
+/* ──────────────────────────────────────────────
+   게임 스킨 — 심야금고 (은행놀이 / skin-g014-01)
+   래스터는 배경·지폐·문장에만 사용하고 UI 구조와 텍스트는 CSS/HTML로 유지한다.
+   ────────────────────────────────────────────── */
+
+.skin-treasury-field {
+  --tr-night: #050c14;
+  --tr-panel: rgba(7, 17, 29, 0.94);
+  --tr-panel-soft: rgba(11, 27, 39, 0.9);
+  --tr-panel-raised: rgba(15, 34, 45, 0.96);
+  --tr-brass: #c79a52;
+  --tr-brass-bright: #f1d08a;
+  --tr-brass-dim: #765b35;
+  --tr-ivory: #f4e8cb;
+  --tr-muted: #aeb6bb;
+  --tr-indigo: #6a91d8;
+  --tr-amber: #d6a447;
+  --tr-emerald: #4fa47d;
+  isolation: isolate;
+  color: var(--tr-ivory);
+  background-color: var(--tr-night);
+  background-image:
+    linear-gradient(180deg, rgba(2, 7, 12, 0.18), rgba(2, 7, 12, 0.72)),
+    url('/skins/treasury/vault-background.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.skin-treasury-field::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 86%, rgba(43, 116, 86, 0.18), transparent 35%),
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.32),
+      transparent 18%,
+      transparent 82%,
+      rgba(0, 0, 0, 0.38)
+    );
+}
+
+.skin-treasury-field .bank-layout {
+  position: relative;
+  z-index: 1;
+}
+
+.skin-treasury-fx {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.skin-treasury-glint {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  opacity: 0;
+  background: var(--tr-brass-bright);
+  box-shadow: 0 0 7px 2px rgba(241, 208, 138, 0.52);
+  animation: treasury-glint 5.4s ease-in-out infinite;
+}
+
+@keyframes treasury-glint {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  79% {
+    opacity: 0.9;
+    transform: scale(1.4);
+  }
+  87% {
+    opacity: 0.15;
+    transform: scale(0.75);
+  }
+}
+
+.skin-treasury-field .bank-main {
+  scrollbar-color: var(--tr-brass-dim) rgba(3, 10, 17, 0.55);
+}
+
+.skin-treasury-field .bank-round-header {
+  position: relative;
+  padding: 0.55rem 1rem 0.65rem;
+  border: 1px solid rgba(199, 154, 82, 0.48);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(10, 24, 36, 0.9), rgba(4, 13, 22, 0.94));
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.skin-treasury-field .bank-round-header::after {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 50%;
+  width: 4rem;
+  height: 1px;
+  content: '';
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--tr-brass), transparent);
+}
+
+.skin-treasury-field .bank-round-header :is(.text-gray-800, .text-gray-400) {
+  color: var(--tr-ivory) !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
+}
+
+.skin-treasury-field .bank-round-header .text-amber-600 {
+  color: var(--tr-brass-bright) !important;
+}
+
+.skin-treasury-field .bank-phase-pill {
+  color: var(--tr-night) !important;
+  border: 1px solid rgba(241, 208, 138, 0.75);
+  background: linear-gradient(180deg, #f0cf86, #a97836) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.skin-treasury-field .bank-phase-stepper,
+.skin-treasury-field .bank-bet-panel,
+.skin-treasury-field .bank-tracker,
+.skin-treasury-field .bank-waiting-card,
+.skin-treasury-field .bank-resolve-panel,
+.skin-treasury-field .bank-final-result,
+.skin-treasury-field .bank-reveal-banner,
+.skin-treasury-field .bank-collapse,
+.skin-treasury-field .bank-score-bar {
+  border-color: rgba(199, 154, 82, 0.52) !important;
+  background: linear-gradient(155deg, var(--tr-panel-raised), var(--tr-panel)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.skin-treasury-field .bank-phase-stepper {
+  color: var(--tr-muted);
+}
+
+.skin-treasury-field .bank-step-connector {
+  background: rgba(118, 91, 53, 0.42) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.skin-treasury-field .bank-step-fill {
+  background: linear-gradient(90deg, var(--tr-brass-dim), var(--tr-brass-bright)) !important;
+}
+
+.skin-treasury-field .bank-step-dot,
+.skin-treasury-field .bank-step-node .bank-step-dot {
+  border: 1px solid rgba(199, 154, 82, 0.58);
+  color: var(--tr-muted) !important;
+  background: #111c27 !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.skin-treasury-field .bank-step-node[data-state='done'] .bank-step-dot,
+.skin-treasury-field .bank-step-dot[data-state='done'] {
+  color: #07111d !important;
+  background: var(--tr-brass) !important;
+}
+
+.skin-treasury-field .bank-step-node[data-state='active'] .bank-step-dot,
+.skin-treasury-field .bank-step-dot[data-state='active'] {
+  color: #07111d !important;
+  background: var(--tr-brass-bright) !important;
+  box-shadow:
+    0 0 0 2px rgba(199, 154, 82, 0.24),
+    0 0 15px rgba(241, 208, 138, 0.48) !important;
+}
+
+.skin-treasury-field .bank-step-node[data-state='active'] .bank-step-label,
+.skin-treasury-field .bank-phase-stepper .text-amber-600 {
+  color: var(--tr-brass-bright) !important;
+}
+
+.skin-treasury-field .bank-step-node[data-state='done'] .bank-step-label {
+  color: var(--tr-brass) !important;
+}
+
+.skin-treasury-field .bank-phase-stepper :is(.text-gray-500, .text-gray-400) {
+  color: var(--tr-muted) !important;
+}
+
+.skin-treasury-field .bank-inventory {
+  padding: 0.45rem;
+  border: 1px solid rgba(199, 154, 82, 0.42);
+  border-radius: 1rem;
+  background: rgba(3, 11, 18, 0.72);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.skin-treasury-field .bank-denom-card {
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 5.2rem;
+  padding: 0.65rem 0.25rem !important;
+  border-color: transparent !important;
+  background-color: rgba(4, 12, 19, 0.8) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.36));
+}
+
+.skin-treasury-field .bank-denom-card--1000 {
+  background-image: url('/skins/treasury/note-1000.webp') !important;
+}
+.skin-treasury-field .bank-denom-card--3000 {
+  background-image: url('/skins/treasury/note-3000.webp') !important;
+}
+.skin-treasury-field .bank-denom-card--5000 {
+  background-image: url('/skins/treasury/note-5000.webp') !important;
+}
+.skin-treasury-field .bank-denom-card--10000 {
+  background-image: url('/skins/treasury/note-10000.webp') !important;
+}
+
+.skin-treasury-field .bank-denom-card.bg-gray-50 {
+  opacity: 0.58;
+  filter: grayscale(0.82) drop-shadow(0 4px 5px rgba(0, 0, 0, 0.26));
+}
+
+.skin-treasury-field .bank-denom-label,
+.skin-treasury-field .bank-denom-count,
+.skin-treasury-field .bank-denom-pending {
+  position: relative;
+  z-index: 1;
+}
+
+.skin-treasury-field .bank-denom-label {
+  color: var(--tr-ivory) !important;
+  text-shadow: 0 1px 4px #000;
+}
+
+.skin-treasury-field .bank-denom-count {
+  color: #fff3d6 !important;
+  text-shadow:
+    0 2px 2px rgba(0, 0, 0, 0.9),
+    0 0 10px rgba(241, 208, 138, 0.26);
+}
+
+.skin-treasury-field .bank-denom-pending {
+  color: #ffe8c0 !important;
+  background: rgba(107, 25, 30, 0.88) !important;
+}
+
+.skin-treasury-field .bank-inventory > p,
+.skin-treasury-field .bank-inventory > p b {
+  color: var(--tr-muted) !important;
+}
+
+.skin-treasury-field .bank-bet-panel {
+  position: relative;
+  padding: 0.9rem;
+}
+
+.skin-treasury-field .bank-bet-panel::before,
+.skin-treasury-field .bank-tracker::before {
+  position: absolute;
+  inset: 0.3rem;
+  content: '';
+  pointer-events: none;
+  border: 1px solid rgba(199, 154, 82, 0.18);
+  border-radius: 0.55rem;
+}
+
+.skin-treasury-field .bank-bet-title,
+.skin-treasury-field .bank-tracker > div:first-child > p {
+  color: var(--tr-brass-bright) !important;
+  letter-spacing: 0.06em;
+}
+
+.skin-treasury-field .bank-bet-row {
+  position: relative;
+  border: 1px solid rgba(199, 154, 82, 0.18);
+  background: linear-gradient(90deg, rgba(8, 19, 29, 0.98), rgba(13, 29, 39, 0.94)) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.skin-treasury-field .bank-bet-denom {
+  display: flex;
+  width: 4.4rem !important;
+  min-height: 2.15rem;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  color: #fff3d6 !important;
+  text-shadow: 0 1px 3px #000;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.skin-treasury-field .bank-bet-row--1000 .bank-bet-denom {
+  background-image: url('/skins/treasury/note-1000.webp');
+}
+.skin-treasury-field .bank-bet-row--3000 .bank-bet-denom {
+  background-image: url('/skins/treasury/note-3000.webp');
+}
+.skin-treasury-field .bank-bet-row--5000 .bank-bet-denom {
+  background-image: url('/skins/treasury/note-5000.webp');
+}
+.skin-treasury-field .bank-bet-row--10000 .bank-bet-denom {
+  background-image: url('/skins/treasury/note-10000.webp');
+}
+
+.skin-treasury-field .bank-step-action,
+.skin-treasury-field .bank-reset-action,
+.skin-treasury-field .bank-tracker button {
+  border-color: rgba(199, 154, 82, 0.62) !important;
+  color: var(--tr-brass-bright) !important;
+  background: linear-gradient(180deg, #24303a, #0b151f) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.08),
+    0 2px 5px rgba(0, 0, 0, 0.28);
+}
+
+.skin-treasury-field .bank-step-action:hover:not(:disabled),
+.skin-treasury-field .bank-reset-action:hover:not(:disabled),
+.skin-treasury-field .bank-tracker button:hover:not(:disabled) {
+  border-color: var(--tr-brass-bright) !important;
+  background: linear-gradient(180deg, #354451, #111f2a) !important;
+}
+
+.skin-treasury-field .bank-quantity-input {
+  border-color: rgba(199, 154, 82, 0.42) !important;
+  color: var(--tr-ivory) !important;
+  background: #06101a !important;
+  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.66);
+}
+
+.skin-treasury-field .bank-quantity-input:focus {
+  border-color: var(--tr-brass-bright) !important;
+  box-shadow:
+    inset 0 2px 7px rgba(0, 0, 0, 0.66),
+    0 0 0 2px rgba(199, 154, 82, 0.28) !important;
+}
+
+.skin-treasury-field .bank-bet-row > span:last-child,
+.skin-treasury-field
+  .bank-bet-panel
+  :is(.text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800),
+.skin-treasury-field
+  .bank-tracker
+  :is(.text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800) {
+  color: var(--tr-muted) !important;
+}
+
+.skin-treasury-field .bank-bet-total {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(199, 154, 82, 0.25);
+}
+
+.skin-treasury-field .bank-primary-action {
+  border: 1px solid var(--tr-brass) !important;
+  color: #fff4d8 !important;
+  background: linear-gradient(180deg, #17345a, #091932) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.13),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.38),
+    0 7px 18px rgba(0, 0, 0, 0.34) !important;
+}
+
+.skin-treasury-field .bank-primary-action:hover:not(:disabled) {
+  border-color: var(--tr-brass-bright) !important;
+  filter: brightness(1.1);
+}
+
+.skin-treasury-field .bank-primary-action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.skin-treasury-field .bank-sidebar {
+  border-color: rgba(199, 154, 82, 0.32) !important;
+  background: linear-gradient(180deg, rgba(4, 12, 20, 0.94), rgba(5, 14, 22, 0.98));
+  box-shadow: -14px 0 34px rgba(0, 0, 0, 0.2);
+}
+
+.skin-treasury-field .bank-sidebar-heading {
+  color: var(--tr-brass) !important;
+  letter-spacing: 0.12em;
+}
+
+.skin-treasury-field .bank-score-card,
+.skin-treasury-field .bank-score-row,
+.skin-treasury-field .bank-resolve-card,
+.skin-treasury-field .bank-final-player,
+.skin-treasury-field .bank-history-player {
+  border-color: rgba(199, 154, 82, 0.34) !important;
+  background: linear-gradient(145deg, rgba(13, 31, 48, 0.96), rgba(5, 15, 25, 0.96)) !important;
+}
+
+.skin-treasury-field .bank-score-card--opponent {
+  background: linear-gradient(145deg, rgba(57, 38, 14, 0.94), rgba(23, 16, 8, 0.97)) !important;
+}
+
+.skin-treasury-field .bank-score-emblem {
+  display: block;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+}
+
+.skin-treasury-field .bank-score-emblem--player {
+  background-image: url('/skins/treasury/emblem-player.webp');
+}
+.skin-treasury-field .bank-score-emblem--opponent {
+  background-image: url('/skins/treasury/emblem-opponent.webp');
+}
+
+.skin-treasury-field .bank-score-card--player :is(.text-indigo-700, .text-indigo-500),
+.skin-treasury-field
+  .bank-score-row.bank-score-card--player
+  :is(.text-indigo-700, .text-indigo-500) {
+  color: #9dc0ff !important;
+}
+
+.skin-treasury-field .bank-score-card--opponent :is(.text-amber-700, .text-amber-500),
+.skin-treasury-field
+  .bank-score-row.bank-score-card--opponent
+  :is(.text-amber-700, .text-amber-500) {
+  color: #f2c66f !important;
+}
+
+.skin-treasury-field
+  .bank-score-card
+  :is(.text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700),
+.skin-treasury-field
+  .bank-score-row
+  :is(.text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700) {
+  color: var(--tr-muted) !important;
+}
+
+.skin-treasury-field .bank-score-track > span {
+  background: rgba(2, 8, 13, 0.78) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.skin-treasury-field .bank-score-card--player .bank-score-track > .bg-indigo-500,
+.skin-treasury-field .bank-score-row.bank-score-card--player .bank-score-track > .bg-indigo-500 {
+  background: linear-gradient(180deg, #91b5ff, #315fa5) !important;
+  box-shadow: 0 0 5px rgba(106, 145, 216, 0.55);
+}
+
+.skin-treasury-field .bank-score-card--opponent .bank-score-track > .bg-amber-500,
+.skin-treasury-field .bank-score-row.bank-score-card--opponent .bank-score-track > .bg-amber-500 {
+  background: linear-gradient(180deg, #f2c66f, #9b661e) !important;
+  box-shadow: 0 0 5px rgba(214, 164, 71, 0.52);
+}
+
+.skin-treasury-field .bank-score-row {
+  border-color: rgba(199, 154, 82, 0.22) !important;
+}
+
+.skin-treasury-field .bank-score-row .bank-score-emblem {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.skin-treasury-field .bank-mobile-header {
+  border-color: rgba(199, 154, 82, 0.42) !important;
+  background: rgba(5, 15, 24, 0.94) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.skin-treasury-field .bank-mobile-header :is(.text-gray-800, .text-gray-400) {
+  color: var(--tr-ivory) !important;
+}
+
+.skin-treasury-field .bank-mobile-header .text-amber-600 {
+  color: var(--tr-brass-bright) !important;
+}
+
+.skin-treasury-field .bank-collapse > summary {
+  color: var(--tr-brass-bright) !important;
+}
+
+.skin-treasury-field .bank-collapse > div {
+  border-color: rgba(199, 154, 82, 0.22) !important;
+}
+
+.skin-treasury-field .bank-waiting-card :is(.text-gray-500, .text-gray-400),
+.skin-treasury-field .bank-reveal-banner :is(.text-amber-700, .text-amber-600),
+.skin-treasury-field
+  .bank-resolve-panel
+  :is(.text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800),
+.skin-treasury-field
+  .bank-final-result
+  :is(
+    .text-gray-500,
+    .text-gray-600,
+    .text-gray-700,
+    .text-gray-800,
+    .text-indigo-600,
+    .text-indigo-700,
+    .text-indigo-900
+  ) {
+  color: var(--tr-ivory) !important;
+}
+
+.skin-treasury-field .bank-waiting-dots > span {
+  background: var(--tr-brass) !important;
+  box-shadow: 0 0 7px rgba(241, 208, 138, 0.42);
+}
+
+.skin-treasury-field .bank-reveal-banner {
+  border-color: rgba(241, 208, 138, 0.74) !important;
+}
+
+.skin-treasury-field .bank-reveal-banner p:last-child,
+.skin-treasury-field .bank-resolve-panel .text-rose-700 {
+  color: #f0c46b !important;
+}
+
+.skin-treasury-field .bank-history-entry {
+  border-color: rgba(199, 154, 82, 0.28) !important;
+  background: rgba(5, 15, 24, 0.88) !important;
+}
+
+.skin-treasury-field .bank-history-entry > div:first-child {
+  background: rgba(14, 31, 41, 0.94) !important;
+}
+
+.skin-treasury-field .bank-history-entry :is(.text-gray-400, .text-gray-500, .text-gray-700) {
+  color: var(--tr-muted) !important;
+}
+
+.skin-treasury-field .bank-history-entry .text-rose-700 {
+  color: #e7b257 !important;
+}
+
+.skin-treasury-field .bank-bet-sheet {
+  border-color: var(--tr-brass-dim) !important;
+  color: var(--tr-ivory);
+  background: linear-gradient(180deg, rgba(14, 31, 42, 0.99), rgba(4, 12, 20, 0.995)) !important;
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.55) !important;
+}
+
+.skin-treasury-field .bank-bet-sheet > div:first-child > div {
+  background: linear-gradient(
+    90deg,
+    var(--tr-brass-dim),
+    var(--tr-brass-bright),
+    var(--tr-brass-dim)
+  ) !important;
+}
+
+.skin-treasury-field .bank-sheet-overlay {
+  background: rgba(0, 5, 10, 0.68) !important;
+  backdrop-filter: blur(2px);
+}
+
+.skin-treasury-field .bank-phase-overlay {
+  border-color: rgba(241, 208, 138, 0.75) !important;
+  color: var(--tr-ivory) !important;
+  background: linear-gradient(155deg, rgba(20, 41, 52, 0.95), rgba(5, 15, 24, 0.96)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.08),
+    0 14px 36px rgba(0, 0, 0, 0.42) !important;
+}
+
+.skin-treasury-field .bank-resolve-panel > div:last-child {
+  color: var(--tr-muted) !important;
+  background: rgba(3, 10, 17, 0.7) !important;
+}
+
+.skin-treasury-field .bank-final-result {
+  border-color: var(--tr-brass) !important;
+}
+
+/* 마이페이지의 작은 스킨 프리뷰 */
+.skin-treasury-preview {
+  min-height: 6rem;
+  background-position: center 30%;
+}
+
+.skin-treasury-preview .bank-inventory {
+  position: relative;
+  z-index: 1;
+  width: min(76%, 18rem);
+  padding: 0.2rem;
+}
+
+.skin-treasury-preview .bank-denom-card {
+  min-height: 2.65rem;
+  padding: 0.2rem !important;
+  font-size: 0.58rem;
+}
+
+.skin-treasury-preview .bank-denom-count {
+  font-size: 0.78rem;
+}
+.skin-treasury-preview .bank-score-emblem {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+@media (max-width: 1023px) {
+  .skin-treasury-field {
+    background-position: center top;
+    background-size: auto 100%;
+  }
+
+  .skin-treasury-field .bank-mobile-content {
+    background: linear-gradient(180deg, rgba(2, 9, 15, 0.08), rgba(2, 9, 15, 0.5));
+  }
+
+  .skin-treasury-field .bank-denom-card {
+    min-height: 4.5rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .skin-treasury-field .bank-inventory-grid {
+    gap: 0.25rem;
+  }
+  .skin-treasury-field .bank-denom-card {
+    min-height: 4.1rem;
+    padding-inline: 0.1rem !important;
+  }
+  .skin-treasury-field .bank-denom-count {
+    font-size: 1.25rem;
+  }
+  .skin-treasury-field .bank-denom-label {
+    font-size: 0.58rem;
+  }
+  .skin-treasury-field .bank-score-emblem {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+  .skin-treasury-field .bank-score-row {
+    gap: 0.3rem;
+    padding-inline: 0.45rem;
+  }
+  .skin-treasury-field .bank-bet-denom {
+    width: 3.8rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-treasury-glint {
+    animation: none;
+    opacity: 0;
+  }
+  .skin-treasury-field .bank-step-dot,
+  .skin-treasury-field .bank-step-node .bank-step-dot,
+  .skin-treasury-field .bank-primary-action {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

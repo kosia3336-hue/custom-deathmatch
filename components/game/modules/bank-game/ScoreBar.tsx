@@ -14,7 +14,7 @@ interface Props {
 
 export default function ScoreBar({ p1, p2, firstSide, myId }: Props) {
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <div className="bank-score-bar overflow-hidden rounded-xl border border-gray-200 bg-white">
       {([p1, p2] as const).map((p, i) => {
         const isMe = !!myId && p.id === myId;
         const isFirst = p.side === firstSide;
@@ -59,28 +59,25 @@ function ScoreRow({
 
   return (
     <div
-      className={`flex min-w-0 items-center gap-2 px-3 py-1.5 ${tone} ${
+      className={`bank-score-row bank-score-card--${isMe ? 'player' : 'opponent'} flex min-w-0 items-center gap-2 px-3 py-1.5 ${tone} ${
         isFirstRow ? 'border-b border-white' : ''
       }`}
     >
-      <span className={`min-w-0 max-w-20 shrink-0 truncate text-xs font-bold ${accent}`}>
+      <span
+        className={`bank-score-emblem bank-score-emblem--${isMe ? 'player' : 'opponent'}`}
+        aria-hidden
+      />
+      <span className={`max-w-20 min-w-0 shrink-0 truncate text-xs font-bold ${accent}`}>
         {nickname}
       </span>
-      <div className="grid min-w-0 flex-1 grid-cols-9 gap-0.5" aria-hidden>
+      <div className="bank-score-track grid min-w-0 flex-1 grid-cols-9 gap-0.5" aria-hidden>
         {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 rounded-sm ${i < score ? cellWon : cellDim}`}
-          />
+          <span key={i} className={`h-1.5 rounded-sm ${i < score ? cellWon : cellDim}`} />
         ))}
       </div>
-      <span className={`shrink-0 text-sm font-extrabold tabular-nums ${accent}`}>
-        {score}점
-      </span>
-      <span className="shrink-0 text-[10px] tabular-nums text-gray-500">
-        {inventoryCount}장
-      </span>
-      <span className="shrink-0 text-[10px] tabular-nums text-gray-500">
+      <span className={`shrink-0 text-sm font-extrabold tabular-nums ${accent}`}>{score}점</span>
+      <span className="shrink-0 text-[10px] text-gray-500 tabular-nums">{inventoryCount}장</span>
+      <span className="shrink-0 text-[10px] text-gray-500 tabular-nums">
         {inventoryAmount != null ? `${formatKRW(inventoryAmount)}원` : ''}
       </span>
     </div>

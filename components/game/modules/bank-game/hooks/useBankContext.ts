@@ -6,12 +6,9 @@ import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
-import type {
-  BankBet,
-  BankGameData,
-  BankPlayerInfo,
-  BankSide,
-} from '@/shared/types/bank-game';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
+import type { BankBet, BankGameData, BankPlayerInfo, BankSide } from '@/shared/types/bank-game';
 import {
   BANK_DENOMINATIONS,
   sumBetAmount,
@@ -27,6 +24,8 @@ export function useBankContext() {
   const gameState = useRoomStore((s) => s.gameState);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as BankGameData | undefined;
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.BANK_GAME);
+  const isTreasury = skin === 'treasury';
   const myId = useMySocketId();
   useTurnTimer();
 
@@ -80,7 +79,7 @@ export function useBankContext() {
     const winner = gameData.players[gameData.finalWinner];
     const isMe = winner.id === myId;
     const reason = gameData.winType
-      ? (WIN_TYPE_LABELS as Record<string, string>)[gameData.winType] ?? ''
+      ? ((WIN_TYPE_LABELS as Record<string, string>)[gameData.winType] ?? '')
       : '';
     if (isMe) toast.success(`${winner.nickname} 승리! (${reason})`, { duration: 5000 });
     else toast.error(`${winner.nickname} 승리! (${reason})`, { duration: 5000 });
@@ -106,10 +105,7 @@ export function useBankContext() {
   const stepperActiveTurn =
     !isSpectator &&
     !!myPlayer &&
-    (
-      (isFirstSubmit && myIsFirst) ||
-      (isSecondSubmit && !myIsFirst)
-    ) &&
+    ((isFirstSubmit && myIsFirst) || (isSecondSubmit && !myIsFirst)) &&
     !myPlayer.betConfirmed;
 
   /* 모바일 자동 스크롤 트리거 — 본인 입력턴 진입 또는 reveal */
@@ -153,12 +149,13 @@ export function useBankContext() {
   const myConfirmed = myPlayer?.betConfirmed ?? false;
   const opponentConfirmed = opponent?.betConfirmed ?? false;
 
-  const isMyInventoryEmpty =
-    !!myPlayer && (myPlayer.inventoryCount ?? 0) === 0;
+  const isMyInventoryEmpty = !!myPlayer && (myPlayer.inventoryCount ?? 0) === 0;
 
   return {
     /* raw */
     gameData,
+    skin,
+    isTreasury,
     isSpectator,
     myId,
     myPlayer,

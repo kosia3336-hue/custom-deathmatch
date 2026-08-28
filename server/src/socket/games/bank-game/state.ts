@@ -50,6 +50,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, BankInternalState>();
 
@@ -359,6 +360,7 @@ function buildGameState(s: BankInternalState, gameData: BankGameData, viewerToke
     turnNumber: s.round,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds && isInputPhase ? s.turnStartedAt : null,
+    activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
 }

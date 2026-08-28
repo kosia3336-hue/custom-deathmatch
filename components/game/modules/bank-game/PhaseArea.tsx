@@ -70,7 +70,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
           <button
             type="button"
             onClick={handleNextRoundReady}
-            className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]"
+            className="bank-primary-action w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]"
           >
             다음 라운드로 →
           </button>
@@ -89,11 +89,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
       return (
         <div ref={ref}>
           <WaitingCard
-            text={
-              isFirstSubmit
-                ? `${firstNick} (선) 베팅 중...`
-                : `${secondNick} (후) 베팅 중...`
-            }
+            text={isFirstSubmit ? `${firstNick} (선) 베팅 중...` : `${secondNick} (후) 베팅 중...`}
           />
         </div>
       );
@@ -105,10 +101,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
       if (isMyInventoryEmpty) {
         return (
           <div ref={ref}>
-            <WaitingCard
-              text="인벤토리가 비었습니다"
-              subtext="자동 0장 베팅으로 진행됩니다..."
-            />
+            <WaitingCard text="인벤토리가 비었습니다" subtext="자동 0장 베팅으로 진행됩니다..." />
           </div>
         );
       }
@@ -153,11 +146,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
 
     return (
       <div ref={ref}>
-        <WaitingCard
-          text={
-            isFirstSubmit ? '선의 베팅 대기 중...' : '후의 베팅 대기 중...'
-          }
-        />
+        <WaitingCard text={isFirstSubmit ? '선의 베팅 대기 중...' : '후의 베팅 대기 중...'} />
       </div>
     );
   }
@@ -166,10 +155,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
   if (isFirstReveal) {
     return (
       <div ref={ref}>
-        <WaitingCard
-          text="후의 추리·베팅 입력 대기 중..."
-          subtext="선의 장수가 공개되었습니다"
-        />
+        <WaitingCard text="후의 추리·베팅 입력 대기 중..." subtext="선의 장수가 공개되었습니다" />
       </div>
     );
   }
