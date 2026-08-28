@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ActionBar from '@/components/lobby/ActionBar';
+import MobileHomeHeader from '@/components/lobby/MobileHomeHeader';
 import RoomTable from '@/components/lobby/RoomTable';
 import RoomCardList from '@/components/lobby/RoomCard';
 import EmptyState from '@/components/lobby/EmptyState';
@@ -36,7 +37,11 @@ export default function LobbyClient() {
     <>
       <RankAutoRejoinListener />
       <div className="space-y-4">
-        <ActionBar onCreateRoom={() => setShowCreate(true)} />
+        {/* 모바일은 앱 재설계안 헤더(랭크 카드 + 행동 줄 + 필터 칩), 데스크톱은 기존 ActionBar */}
+        <MobileHomeHeader onCreateRoom={() => setShowCreate(true)} />
+        <div className="hidden sm:block">
+          <ActionBar onCreateRoom={() => setShowCreate(true)} />
+        </div>
 
         {filteredRooms.length === 0 ? (
           <EmptyState hasFilter={hasFilter} onCreate={() => setShowCreate(true)} />

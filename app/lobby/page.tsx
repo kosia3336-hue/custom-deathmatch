@@ -27,8 +27,9 @@ export default function LobbyPage() {
 
       <h1 className="sr-only">커스텀 데스매치 로비</h1>
 
-      {/* 히어로 — GNB 와 이어지는 다크 섹션 */}
-      <section className="bg-cdm-ink py-1">
+      {/* 히어로 — GNB 와 이어지는 다크 섹션.
+          모바일은 앱 재설계안의 랭크 카드 헤더가 이 자리를 대신하므로 감춘다. */}
+      <section className="hidden bg-cdm-ink py-1 sm:block">
         <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
           <MainBillboard />
         </div>

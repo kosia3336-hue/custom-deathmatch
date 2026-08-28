@@ -38,8 +38,27 @@ function Icon({ d }: { d: string }) {
  * '메뉴' 시트에 들어갈 부메뉴 — 상단 바가 없는 모바일에서 접근 경로 확보.
  * 하단 기본 탭은 랭킹/로비/메뉴 3개로 줄이고, 게임 룰·칭호·상점은 이 시트로 모은다.
  */
+/** 게임 도감 탭 아이콘 — rect + path 조합이라 path 전용인 Icon 으로는 못 그린다. */
+function GameIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M8 9h4M8 14h8" />
+    </svg>
+  );
+}
+
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOnly?: boolean }[] = [
-  { href: '/rules', label: '게임 룰', icon: <Icon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" /> },
   { href: '/titles', label: '칭호', icon: <Icon d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM8.2 13.9 7 23l5-3 5 3-1.2-9.1" /> },
   { href: '/shop', label: '상점', icon: <Icon d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon d="M3 11v3a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1zM15 8a5 5 0 0 1 0 8M18 5a9 9 0 0 1 0 14" /> },
@@ -58,6 +77,13 @@ export function MobileTabBar({ isMember }: Props) {
     setMenuOpen((v) => (v ? false : v));
   }, [pathname]);
 
+  // 하단 탭은 재설계안대로 4개만 둔다. 시트는 홈 헤더의 메뉴 버튼이 연다.
+  useEffect(() => {
+    const open = () => setMenuOpen(true);
+    window.addEventListener('cdm:open-menu', open);
+    return () => window.removeEventListener('cdm:open-menu', open);
+  }, []);
+
   // 게임 화면(방/게임)에서는 표시하지 않음
   if (pathname?.startsWith('/room') || pathname?.startsWith('/game')) return null;
 
@@ -66,10 +92,13 @@ export function MobileTabBar({ isMember }: Props) {
 
   const menuItems = MENU_ITEMS.filter((m) => isMember || !m.memberOnly);
 
-  // 기본 탭은 랭킹 / 로비 / 메뉴 3개 (로비를 가운데로 — 앱 홈 버튼 관례)
+  // 앱 재설계안의 하단 탭 4개 — 홈 · 랭크 · 게임 · 내정보.
+  // '메뉴' 시트는 그대로 둔다: 길드·출석판·공지는 아직 다른 진입점이 없다.
   const tabs: Tab[] = [
-    { href: '/ranking', label: '랭킹', icon: <Icon d="M8 21V10M12 21V3M16 21v-7M4 21h16" /> },
-    { href: '/lobby', label: '로비', icon: <Icon d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /> },
+    { href: '/lobby', label: '홈', icon: <Icon d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /> },
+    { href: '/ranking', label: '랭크', icon: <Icon d="M8 21V10M12 21V3M16 21v-7M4 21h16" /> },
+    { href: '/rules', label: '게임', icon: <GameIcon /> },
+    { href: '/me', label: '내정보', icon: <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" /> },
   ];
 
   const menuActive = menuItems.some((m) => pathname?.startsWith(m.href));
@@ -136,22 +165,6 @@ export function MobileTabBar({ isMember }: Props) {
               </li>
             );
           })}
-          {/* 더보기(메뉴) — 상단 바 없는 모바일에서 길드·출석판·상점·공지 접근 */}
-          <li className="min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-haspopup="dialog"
-              aria-expanded={menuOpen}
-              className={cn(
-                'flex w-full flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
-                menuOpen || menuActive ? 'text-white' : 'text-cdm-ink-fg-muted hover:text-white',
-              )}
-            >
-              <Icon d="M4 6h16M4 12h16M4 18h16" />
-              <span className="truncate">메뉴</span>
-            </button>
-          </li>
         </ul>
       </nav>
     </>
