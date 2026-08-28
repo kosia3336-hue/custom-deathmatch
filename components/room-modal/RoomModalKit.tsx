@@ -418,15 +418,12 @@ export function GameListPicker({
 }) {
   const query = search.trim();
 
-  /**
-   * '기타' 는 갈래가 붙지 않은 것까지 모두 받는다 — 랜덤·밴픽처럼 룰 표에 없는
-   * 항목이나 갈래를 아직 안 정한 새 게임이 어느 필터에도 안 걸려 사라지지 않게.
-   */
-  const matchesCat = (category?: string) => {
-    if (!catFilter) return true;
-    if (catFilter === '기타') return !category || category === '기타';
-    return category === catFilter;
-  };
+  /*
+    갈래가 없는 항목(랜덤·밴픽)은 필터를 걸면 빠진다. 갈래를 고르는 건 '그
+    성격의 게임을 보겠다' 는 뜻이라, 성격이 없는 항목까지 끼워 넣을 자리가 없다.
+    필터를 풀면 맨 위에 그대로 보인다.
+  */
+  const matchesCat = (category?: string) => !catFilter || category === catFilter;
   const matchesQuery = (name: string) => !query || name.includes(query);
 
   const filteredGames = games.filter(
