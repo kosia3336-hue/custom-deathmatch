@@ -12,6 +12,7 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
+import { Board3D, BoardCellButton3D } from '@/components/game/abstract-strategy';
 import { StackVisual } from './StackVisual';
 
 const MOVE_LABELS = ['한 칸 직선', '룩', '나이트', '비숍', '퀸'];
@@ -73,8 +74,8 @@ export default function KingmakingGame() {
                 'rounded-cdm-md min-w-0 border px-2.5 py-1.5 sm:min-w-28',
                 gameData.currentPlayerId === playerId && gameData.phase === 'playing'
                   ? index === 0
-                    ? 'border-indigo-400 bg-indigo-50'
-                    : 'border-amber-400 bg-amber-50'
+                    ? 'border-cdm-primary bg-cdm-primary-soft'
+                    : 'border-cdm-highlight bg-cdm-highlight-soft'
                   : 'border-cdm-border bg-cdm-bg-elev-1',
               )}
             >
@@ -192,10 +193,7 @@ function KingmakingWorkspace({
   return (
     <div className="grid min-h-0 flex-1 items-start gap-3 lg:grid-cols-[minmax(0,34rem)_minmax(16rem,19rem)] lg:justify-center">
       <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2.5 sm:p-3">
-        <div
-          className="mx-auto grid aspect-square w-[min(100%,62dvh)] max-w-[34rem] grid-cols-5 gap-1.5 sm:gap-2"
-          aria-label="5 곱하기 5 킹메이킹 보드"
-        >
+        <Board3D columns={5} ariaLabel="5 곱하기 5 킹메이킹 보드" maxWidth="min(34rem, 62dvh)">
           {gameData.board.flatMap((row, rowIndex) =>
             row.map((stack, colIndex) => {
               const position = { row: rowIndex, col: colIndex };
@@ -204,36 +202,29 @@ function KingmakingWorkspace({
               const legal = legalTargetKeys.has(key);
               const placeable = mode !== 'move' && stack.length === 0 && canPlay;
               return (
-                <button
+                <BoardCellButton3D
                   key={key}
-                  type="button"
                   onClick={() => clickCell(position)}
                   disabled={!canPlay || pending || (!placeable && stack.length === 0 && !legal)}
                   aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${stack.length ? `, ${stack.length}층` : ', 빈칸'}`}
-                  className={cn(
-                    'border-cdm-border rounded-cdm-md relative aspect-square overflow-hidden border transition-all',
-                    (rowIndex + colIndex) % 2 ? 'bg-cdm-bg-elev-2' : 'bg-cdm-bg-elev-1',
-                    selected && 'border-cdm-primary ring-cdm-primary/30 ring-2',
-                    legal &&
-                      'border-cdm-success bg-cdm-success-soft ring-cdm-success/30 cursor-pointer ring-2',
-                    placeable && 'hover:border-cdm-primary cursor-pointer',
-                    !canPlay && 'cursor-default',
-                  )}
+                  tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
+                  state={selected ? 'selected' : legal ? 'available' : 'idle'}
+                  className={cn(!canPlay && 'cursor-default')}
                 >
                   <StackVisual stack={stack} playerIds={playerIds} />
                   {legal && (
-                    <span className="bg-cdm-success absolute inset-0 m-auto h-2.5 w-2.5 rounded-full opacity-70" />
+                    <span className="bg-cdm-success absolute top-1 left-1 h-2.5 w-2.5 rounded-full shadow-sm" />
                   )}
                   {placeable && (
                     <span className="text-cdm-fg-subtle absolute inset-0 flex items-center justify-center text-xl font-light opacity-35">
                       ＋
                     </span>
                   )}
-                </button>
+                </BoardCellButton3D>
               );
             }),
           )}
-        </div>
+        </Board3D>
       </section>
 
       <aside className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">

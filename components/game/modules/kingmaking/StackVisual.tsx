@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { GamePiece3D } from '@/components/game/abstract-strategy';
 import type { KingmakingStack } from '@/shared/types/kingmaking';
 
 export function StackVisual({
@@ -14,28 +14,23 @@ export function StackVisual({
     <div className="relative h-full w-full" aria-hidden="true">
       {stack.map((piece, index) => {
         const first = piece.ownerId === playerIds[0];
+        const special = piece.kind === 'special';
         return (
           <span
             key={piece.id}
-            className={cn(
-              'absolute left-1/2 -translate-x-1/2 border shadow-sm',
-              first ? 'border-indigo-700 bg-indigo-500' : 'border-amber-700 bg-amber-400',
-              piece.kind === 'special'
-                ? 'rounded-t-full rounded-b-[30%] ring-1 ring-white/70'
-                : 'rounded-full',
-            )}
+            className="absolute left-1/2 -translate-x-1/2"
             style={{
-              bottom: `${10 + index * (compact ? 10 : 11)}%`,
-              width: compact ? '62%' : '68%',
-              height: compact ? '15%' : '17%',
+              bottom: `${8 + index * (compact ? 10.2 : 11.1)}%`,
+              width: compact ? '66%' : '72%',
+              height: special ? (compact ? '21%' : '23%') : compact ? '17%' : '19%',
               zIndex: index + 1,
             }}
           >
-            {piece.kind === 'special' && (
-              <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white sm:text-[10px]">
-                ◆
-              </span>
-            )}
+            <GamePiece3D
+              tone={first ? 'primary' : 'highlight'}
+              shape={special ? 'crown' : 'disc'}
+              label={special ? '◆' : undefined}
+            />
           </span>
         );
       })}

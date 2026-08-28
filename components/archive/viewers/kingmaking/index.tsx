@@ -5,6 +5,7 @@ import { applyKingmakingAction, createKingmakingBoard } from '@/shared/logic/kin
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { KingmakingArchiveRecord, KingmakingBoard } from '@/shared/types/kingmaking';
 import { Card } from '@/components/cdm/Card';
+import { Board3D, BoardCell3D } from '@/components/game/abstract-strategy';
 import { cn } from '@/lib/utils';
 import { StackVisual } from '@/components/game/modules/kingmaking/StackVisual';
 
@@ -120,21 +121,18 @@ function buildFrames(data: KingmakingArchiveRecord | null) {
 
 function ArchiveBoard({ board, playerIds }: { board: KingmakingBoard; playerIds: string[] }) {
   return (
-    <div className="mx-auto grid aspect-square w-full max-w-[30rem] grid-cols-5 gap-1.5">
+    <Board3D columns={5} ariaLabel="킹메이킹 기록 보드" maxWidth="30rem" density="compact">
       {board.flatMap((row, rowIndex) =>
         row.map((stack, colIndex) => (
-          <div
+          <BoardCell3D
             key={`${rowIndex}:${colIndex}`}
-            className={cn(
-              'border-cdm-border rounded-cdm-md relative aspect-square border',
-              (rowIndex + colIndex) % 2 ? 'bg-cdm-bg-elev-2' : 'bg-cdm-bg-elev-1',
-            )}
+            tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
           >
             <StackVisual stack={stack} playerIds={playerIds} compact />
-          </div>
+          </BoardCell3D>
         )),
       )}
-    </div>
+    </Board3D>
   );
 }
 
