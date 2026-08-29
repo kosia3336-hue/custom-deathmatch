@@ -1,4 +1,5 @@
 import {
+  KT_ROUND_SECONDS,
   KT_TOTAL_ROUNDS,
   KT_WIN_SCORE,
   type KnightTourAction,
@@ -17,12 +18,16 @@ import {
   knightTourStates,
   toKnightTourRecord,
 } from './state.js';
-import type { KnightTourEndGameFn, KnightTourState } from './types.js';
+import type { KnightTourEndGameFn, KnightTourState, KnightTourSubmission } from './types.js';
 
 const ROUND_RESULT_MS = 2300;
 const FINISH_DISPLAY_MS = 3000;
 const AI_STEP_MIN_MS = 420;
 const AI_STEP_MAX_MS = 760;
+
+function uniquePlayerIds(state: KnightTourState) {
+  return [...new Set(state.players.map((player) => player.id))];
+}
 
 function scoreStats(state: KnightTourState, playerId: string) {
   const wins = state.roundResults.filter((result) => result.winnerId === playerId);
@@ -96,7 +101,7 @@ function finishGame(io: IO, state: KnightTourState, baseReason: string) {
   state.winnerId = ranked.tiebreak === 'zero-draw' ? null : (winner?.playerId ?? null);
   state.finishReason =
     state.playMode === 'solo'
-      ? `${baseReason} ${state.scores[state.players[0].id] ?? 0}개 보드를 완주했습니다.`
+      ? `${baseReason} 총 ${state.scores[state.players[0].id] ?? 0}칸을 방문했습니다.`
       : ranked.tiebreak === 'zero-draw'
         ? `${baseReason} 0:0 무승부입니다.`
         : `${baseReason} ${winner?.nickname ?? '플레이어'} 님이 승리했습니다.`;
@@ -119,35 +124,39 @@ function hasClinched(state: KnightTourState) {
   );
 }
 
-function scheduleRoundTimer(io: IO, state: KnightTourState) {
-  if (state.roundSeconds == null) return;
-  state.roundTimer = setTimeout(
-    () => resolveRound(io, state, null, 'timeout'),
-    state.roundSeconds * 1000,
-  );
+function allPlayersSubmitted(state: KnightTourState) {
+  return uniquePlayerIds(state).every((playerId) => Boolean(state.submissions[playerId]));
 }
 
-function scheduleAiStep(io: IO, state: KnightTourState) {
-  if (state.playMode !== 'com' || state.gameOver || state.phase !== 'playing') return;
-  state.aiTimer = setTimeout(
-    () => {
-      if (
-        knightTourStates.get(state.roomId) !== state ||
-        state.phase !== 'playing' ||
-        state.gameOver
-      )
-        return;
-      const solution = state.rounds[state.currentRoundIndex].solution;
-      const path = state.paths[AI_PLAYER_ID] ?? [];
-      const next = solution[path.length];
-      if (!next) return;
-      path.push({ ...next });
-      void broadcastKnightTourState(io, state);
-      if (path.length === solution.length) resolveRound(io, state, AI_PLAYER_ID, 'completed');
-      else scheduleAiStep(io, state);
-    },
-    AI_STEP_MIN_MS + Math.random() * (AI_STEP_MAX_MS - AI_STEP_MIN_MS),
-  );
+function storeSubmission(
+  state: KnightTourState,
+  playerId: string,
+  submittedAt: number,
+  auto: boolean,
+) {
+  if (state.submissions[playerId]) return false;
+  state.submissions[playerId] = {
+    path: (state.paths[playerId] ?? []).map((cell) => ({ ...cell })),
+    submittedAt,
+    order: auto ? null : ++state.submissionSequence,
+    auto,
+  };
+  return true;
+}
+
+function selectRoundWinner(state: KnightTourState) {
+  const playerIds = uniquePlayerIds(state);
+  if (playerIds.length === 1) return playerIds[0];
+  const [firstId, secondId] = playerIds;
+  const first = state.submissions[firstId]!;
+  const second = state.submissions[secondId]!;
+  if (first.path.length !== second.path.length) {
+    return first.path.length > second.path.length ? firstId : secondId;
+  }
+  if (first.order == null && second.order == null) return null;
+  if (first.order == null) return secondId;
+  if (second.order == null) return firstId;
+  return first.order < second.order ? firstId : secondId;
 }
 
 function advanceRound(io: IO, state: KnightTourState) {
@@ -157,9 +166,9 @@ function advanceRound(io: IO, state: KnightTourState) {
     return finishGame(io, state, `${state.totalRounds}라운드가 종료되었습니다.`);
   state.currentRoundIndex += 1;
   state.phase = 'playing';
-  state.paths = Object.fromEntries(
-    [...new Set(state.players.map((player) => player.id))].map((id) => [id, []]),
-  );
+  state.paths = Object.fromEntries(uniquePlayerIds(state).map((id) => [id, []]));
+  state.submissions = Object.fromEntries(uniquePlayerIds(state).map((id) => [id, null]));
+  state.submissionSequence = 0;
   state.roundStartedAt = Date.now();
   state.lastRoundResult = null;
   state.transitionTimer = null;
@@ -168,27 +177,56 @@ function advanceRound(io: IO, state: KnightTourState) {
   scheduleAiStep(io, state);
 }
 
-function resolveRound(
-  io: IO,
-  state: KnightTourState,
-  winnerId: string | null,
-  reason: 'completed' | 'timeout',
-) {
-  if (state.gameOver || state.phase !== 'playing') return;
+function cloneSubmissionPath(submission: KnightTourSubmission) {
+  return submission.path.map((cell) => ({ ...cell }));
+}
+
+function resolveRound(io: IO, state: KnightTourState, reason: 'submitted' | 'timeout') {
+  if (state.gameOver || state.phase !== 'playing' || !allPlayersSubmitted(state)) return;
   if (state.roundTimer) clearTimeout(state.roundTimer);
   if (state.aiTimer) clearTimeout(state.aiTimer);
   state.roundTimer = null;
   state.aiTimer = null;
-  if (winnerId) state.scores[winnerId] = (state.scores[winnerId] ?? 0) + 1;
-  const now = Date.now();
+  const playerIds = uniquePlayerIds(state);
+  const winnerId = selectRoundWinner(state);
+  if (state.playMode === 'solo') {
+    const soloId = playerIds[0];
+    state.scores[soloId] = (state.scores[soloId] ?? 0) + state.submissions[soloId]!.path.length;
+  } else if (winnerId) {
+    state.scores[winnerId] = (state.scores[winnerId] ?? 0) + 1;
+  }
   const round = state.rounds[state.currentRoundIndex];
+  const paths = Object.fromEntries(
+    playerIds.map((playerId) => [playerId, cloneSubmissionPath(state.submissions[playerId]!)]),
+  );
+  const visitedCounts = Object.fromEntries(
+    playerIds.map((playerId) => [playerId, state.submissions[playerId]!.path.length]),
+  );
+  const submissionElapsedMs = Object.fromEntries(
+    playerIds.map((playerId) => [
+      playerId,
+      Math.max(0, state.submissions[playerId]!.submittedAt - state.roundStartedAt),
+    ]),
+  );
+  const autoSubmitted = Object.fromEntries(
+    playerIds.map((playerId) => [playerId, state.submissions[playerId]!.auto]),
+  );
+  const winnerSubmission = winnerId ? state.submissions[winnerId] : null;
   const result: KnightTourRoundResult = {
     round: state.currentRoundIndex + 1,
     winnerId,
     reason,
-    elapsedMs: winnerId ? Math.max(0, now - state.roundStartedAt) : null,
-    matchElapsedMs: winnerId ? Math.max(0, now - state.matchStartedAt) : null,
-    winningPath: winnerId ? (state.paths[winnerId] ?? []).map((cell) => ({ ...cell })) : [],
+    elapsedMs: winnerSubmission
+      ? Math.max(0, winnerSubmission.submittedAt - state.roundStartedAt)
+      : null,
+    matchElapsedMs: winnerSubmission
+      ? Math.max(0, winnerSubmission.submittedAt - state.matchStartedAt)
+      : null,
+    winningPath: winnerId ? cloneSubmissionPath(state.submissions[winnerId]!) : [],
+    paths,
+    visitedCounts,
+    submissionElapsedMs,
+    autoSubmitted,
     solution: round.solution.map((cell) => ({ ...cell })),
     scoresAfter: { ...state.scores },
   };
@@ -200,11 +238,61 @@ function resolveRound(
   state.transitionTimer = setTimeout(() => advanceRound(io, state), ROUND_RESULT_MS);
 }
 
+function submitPlayer(io: IO, state: KnightTourState, playerId: string) {
+  if (!storeSubmission(state, playerId, Date.now(), false)) return;
+  if (allPlayersSubmitted(state)) resolveRound(io, state, 'submitted');
+  else void broadcastKnightTourState(io, state);
+}
+
+function scheduleRoundTimer(io: IO, state: KnightTourState) {
+  state.roundTimer = setTimeout(() => {
+    if (knightTourStates.get(state.roomId) !== state || state.gameOver || state.phase !== 'playing')
+      return;
+    const submittedAt = Date.now();
+    for (const playerId of uniquePlayerIds(state))
+      storeSubmission(state, playerId, submittedAt, true);
+    resolveRound(io, state, 'timeout');
+  }, state.roundSeconds * 1000);
+}
+
+function scheduleAiStep(io: IO, state: KnightTourState) {
+  if (
+    state.playMode !== 'com' ||
+    state.gameOver ||
+    state.phase !== 'playing' ||
+    state.submissions[AI_PLAYER_ID]
+  )
+    return;
+  state.aiTimer = setTimeout(
+    () => {
+      if (
+        knightTourStates.get(state.roomId) !== state ||
+        state.phase !== 'playing' ||
+        state.gameOver ||
+        state.submissions[AI_PLAYER_ID]
+      )
+        return;
+      const solution = state.rounds[state.currentRoundIndex].solution;
+      const path = state.paths[AI_PLAYER_ID] ?? [];
+      const next = solution[path.length];
+      if (!next) return submitPlayer(io, state, AI_PLAYER_ID);
+      path.push({ ...next });
+      if (path.length === solution.length) submitPlayer(io, state, AI_PLAYER_ID);
+      else {
+        void broadcastKnightTourState(io, state);
+        scheduleAiStep(io, state);
+      }
+    },
+    AI_STEP_MIN_MS + Math.random() * (AI_STEP_MAX_MS - AI_STEP_MIN_MS),
+  );
+}
+
 function activeCellSet(state: KnightTourState) {
   return new Set(state.rounds[state.currentRoundIndex].board.activeCells.map(knightTourCellKey));
 }
 
 function handleMove(io: IO, state: KnightTourState, playerId: string, cell: KnightTourCell) {
+  if (state.submissions[playerId]) return;
   if (!Number.isInteger(cell.row) || !Number.isInteger(cell.col)) return;
   if (!activeCellSet(state).has(knightTourCellKey(cell))) return;
   const path = state.paths[playerId];
@@ -214,8 +302,6 @@ function handleMove(io: IO, state: KnightTourState, playerId: string, cell: Knig
   if (current && !isKnightMove(current, cell)) return;
   path.push({ ...cell });
   void broadcastKnightTourState(io, state);
-  if (path.length === state.rounds[state.currentRoundIndex].board.activeCells.length)
-    resolveRound(io, state, playerId, 'completed');
 }
 
 export function initKnightTour(
@@ -224,7 +310,7 @@ export function initKnightTour(
   players: Player[],
   playMode: PlayMode,
   _startedAt: number,
-  timeLimitSeconds: number | null,
+  _timeLimitSeconds: number | null,
   endGameCallback: KnightTourEndGameFn,
 ) {
   const previous = knightTourStates.get(roomId);
@@ -245,9 +331,11 @@ export function initKnightTour(
     phase: 'playing',
     scores: Object.fromEntries(uniqueIds.map((id) => [id, 0])),
     paths: Object.fromEntries(uniqueIds.map((id) => [id, []])),
+    submissions: Object.fromEntries(uniqueIds.map((id) => [id, null])),
+    submissionSequence: 0,
     roundStartedAt: now,
     matchStartedAt: now,
-    roundSeconds: playMode === 'multi' ? timeLimitSeconds : null,
+    roundSeconds: KT_ROUND_SECONDS,
     roundResults: [],
     lastRoundResult: null,
     tiebreak: playMode === 'solo' ? 'solo' : 'zero-draw',
@@ -277,6 +365,8 @@ export function handleKnightTourAction(
   const playerId = sessions.getToken(socket.id) ?? socket.id;
   if (!state.players.some((player) => player.id === playerId) || playerId === AI_PLAYER_ID) return;
   const action = rawData as KnightTourAction;
+  if (action.type === 'submit') return submitPlayer(io, state, playerId);
+  if (state.submissions[playerId]) return;
   if (action.type === 'move')
     return handleMove(io, state, playerId, { row: action.row, col: action.col });
   const path = state.paths[playerId];

@@ -41,17 +41,18 @@ export default function KnightsTourGame() {
     );
   }
 
-  const remaining =
-    gameData.roundSeconds == null
-      ? null
-      : Math.max(
-          0,
-          Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
-        );
+  const remaining = Math.max(
+    0,
+    Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
+  );
   const entries = Object.entries(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
+  const hasSubmitted = Boolean(gameData.progress[myId]?.submitted);
   const result = gameData.lastRoundResult;
   const resultName = result?.winnerId ? gameData.players[result.winnerId]?.nickname : null;
+  const winningCount = result?.winnerId
+    ? (result.visitedCounts[result.winnerId] ?? result.winningPath.length)
+    : null;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
@@ -60,9 +61,11 @@ export default function KnightsTourGame() {
           <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
             ROUND {gameData.round} / {gameData.totalRounds}
           </p>
-          <p className="text-cdm-fg truncate text-sm font-black">모든 칸을 먼저 방문하세요</p>
+          <p className="text-cdm-fg truncate text-sm font-black">
+            60초 동안 최대한 멀리 이동하세요
+          </p>
           <p className="text-cdm-fg-muted hidden text-xs sm:block">
-            어느 칸에서든 시작할 수 있습니다.
+            원하는 때 제출할 수 있으며, 동률이면 먼저 제출한 플레이어가 승리합니다.
           </p>
         </div>
         <div className="bg-cdm-bg-elev-1 rounded-cdm-md min-w-20 px-3 py-1.5 text-center">
@@ -70,10 +73,10 @@ export default function KnightsTourGame() {
           <p
             className={cn(
               'text-cdm-fg text-xl font-black tabular-nums',
-              remaining != null && remaining <= 10 && 'text-cdm-accent',
+              remaining <= 10 && 'text-cdm-accent',
             )}
           >
-            {remaining == null ? '∞' : formatClock(remaining)}
+            {formatClock(remaining)}
           </p>
         </div>
         <div className="col-span-2 grid grid-cols-2 gap-2 sm:col-span-1 sm:flex sm:justify-end">
@@ -87,7 +90,9 @@ export default function KnightsTourGame() {
                 {playerId === myId ? ' (나)' : ''}
               </p>
               <div className="flex items-end justify-between gap-2">
-                <span className="text-cdm-fg-subtle text-[9px] font-bold">완주</span>
+                <span className="text-cdm-fg-subtle text-[9px] font-bold">
+                  {gameData.isSolo ? '누적 칸' : '승점'}
+                </span>
                 <span className="text-cdm-primary text-xl font-black tabular-nums">
                   {gameData.scores[playerId] ?? 0}
                 </span>
@@ -102,7 +107,8 @@ export default function KnightsTourGame() {
           key={`${gameData.roundStartedAt}:${myId}`}
           gameData={gameData}
           myId={myId}
-          canPlay={isPlayer && gameData.phase === 'playing'}
+          canPlay={isPlayer && gameData.phase === 'playing' && !hasSubmitted}
+          submitted={hasSubmitted}
         />
         <aside className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
           <p className="text-cdm-fg text-sm font-black">진행 상황</p>
@@ -113,10 +119,15 @@ export default function KnightsTourGame() {
               return (
                 <div key={playerId}>
                   <div className="text-cdm-fg-muted mb-1 flex justify-between text-xs font-semibold">
-                    <span className="truncate">{player.nickname}</span>
-                    <span className="tabular-nums">
-                      {count} / {total}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate">{player.nickname}</span>
+                      {gameData.progress[playerId]?.submitted && (
+                        <span className="bg-cdm-success-soft text-cdm-success rounded-full px-1.5 text-[9px] font-black">
+                          제출
+                        </span>
+                      )}
                     </span>
+                    <span className="tabular-nums">{count}칸</span>
                   </div>
                   <div className="bg-cdm-bg-elev-2 h-2 overflow-hidden rounded-full">
                     <div
@@ -134,6 +145,7 @@ export default function KnightsTourGame() {
               세로 2칸
             </p>
             <p className="mt-1">방문한 칸은 다시 밟을 수 없습니다.</p>
+            <p className="mt-1">검은 칸은 이동할 수 없는 구멍입니다.</p>
           </div>
         </aside>
       </div>
@@ -151,10 +163,16 @@ export default function KnightsTourGame() {
               result.winnerId ? 'text-cdm-success' : 'text-cdm-accent',
             )}
           >
-            {resultName ? `${resultName} 님이 보드를 완주했습니다!` : '제한 시간이 종료되었습니다.'}
+            {gameData.isSolo
+              ? `${winningCount ?? 0}칸 기록을 제출했습니다.`
+              : resultName
+                ? `${resultName} 님이 ${winningCount ?? 0}칸으로 승리했습니다!`
+                : '동일한 칸 수로 라운드가 무승부입니다.'}
           </p>
           <p className="text-cdm-fg-muted mt-0.5 text-xs">
-            정답 경로를 확인한 뒤 다음 라운드로 넘어갑니다.
+            {result.reason === 'timeout'
+              ? '1분 종료 시점의 경로를 제출 기록으로 사용했습니다.'
+              : '제출 경로를 확인한 뒤 다음 라운드로 넘어갑니다.'}
           </p>
         </div>
       )}
@@ -174,10 +192,12 @@ function TourBoard({
   gameData,
   myId,
   canPlay,
+  submitted,
 }: {
   gameData: KnightTourGameData;
   myId: string;
   canPlay: boolean;
+  submitted: boolean;
 }) {
   const serverPath = useMemo(() => gameData.progress[myId]?.path ?? [], [gameData.progress, myId]);
   const [path, setPath] = useState<KnightTourCell[]>(serverPath);
@@ -191,12 +211,15 @@ function TourBoard({
     [gameData.board.activeCells],
   );
   const order = useMemo(() => {
+    const resultPaths = Object.values(gameData.lastRoundResult?.paths ?? {}).sort(
+      (first, second) => second.length - first.length,
+    );
     const shownPath =
       gameData.phase === 'playing'
         ? path
         : ((gameData.lastRoundResult?.winningPath.length
             ? gameData.lastRoundResult.winningPath
-            : gameData.lastRoundResult?.solution) ?? []);
+            : (resultPaths[0] ?? gameData.lastRoundResult?.solution)) ?? []);
     return new Map(shownPath.map((cell, index) => [cellKey(cell), index + 1]));
   }, [gameData.lastRoundResult, gameData.phase, path]);
   const visited = useMemo(() => new Set(path.map(cellKey)), [path]);
@@ -220,6 +243,11 @@ function TourBoard({
     getSocket().emit('game:action', { type: 'reset' });
   }
 
+  function submit() {
+    if (!canPlay) return;
+    getSocket().emit('game:action', { type: 'submit' });
+  }
+
   return (
     <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2.5 sm:p-3">
       <div
@@ -233,7 +261,15 @@ function TourBoard({
             col: index % gameData.board.size,
           };
           const key = cellKey(cell);
-          if (!active.has(key)) return <div key={key} aria-hidden="true" />;
+          if (!active.has(key))
+            return (
+              <div
+                key={key}
+                role="img"
+                aria-label={`${cell.row + 1}행 ${cell.col + 1}열, 이동할 수 없는 구멍`}
+                className="bg-cdm-fg rounded-cdm-sm aspect-square opacity-80"
+              />
+            );
           const step = order.get(key);
           const isCurrent = canPlay && current && cellKey(current) === key;
           const isLegal = canPlay && !visited.has(key) && (!current || isKnightMove(current, cell));
@@ -267,15 +303,17 @@ function TourBoard({
           );
         })}
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <p className="text-cdm-fg-muted min-w-0 flex-1 text-xs font-semibold">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <p className="text-cdm-fg-muted min-w-0 flex-1 basis-full text-xs font-semibold sm:basis-auto">
           {canPlay
             ? path.length
-              ? `${path.length} / ${gameData.board.activeCells.length}칸 방문`
+              ? `${path.length}칸 방문 · 더 이동하거나 제출하세요.`
               : '시작할 칸을 선택하세요.'
-            : gameData.phase === 'playing'
-              ? '관전 중입니다.'
-              : '정답 경로'}
+            : submitted && gameData.phase === 'playing'
+              ? `${path.length}칸 제출 완료 · 상대를 기다리는 중입니다.`
+              : gameData.phase === 'playing'
+                ? '관전 중입니다.'
+                : '제출 경로'}
         </p>
         <button
           type="button"
@@ -298,6 +336,14 @@ function TourBoard({
             ⟳
           </span>
           처음부터
+        </button>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!canPlay}
+          className="bg-cdm-primary hover:bg-cdm-primary-strong rounded-cdm-md min-h-10 px-4 text-xs font-black text-white disabled:opacity-35"
+        >
+          {submitted ? '제출 완료' : `${path.length}칸 제출`}
         </button>
       </div>
     </section>

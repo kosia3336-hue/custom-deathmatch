@@ -140,8 +140,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
+  const canConfigureTimeLimit =
+    playMode === 'multi' && !isRandom && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
   const computedTimeLimit =
-    timeLimitEnabled && playMode === 'multi' && !isRandom ? timeLimitMin * 60 + timeLimitSec : null;
+    timeLimitEnabled && canConfigureTimeLimit ? timeLimitMin * 60 + timeLimitSec : null;
 
   // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
   const hasDetailOptions =
@@ -187,14 +189,14 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         return setError('비밀번호는 4~8자리로 입력해 주세요.');
       }
       if (
-        playMode === 'multi' &&
+        canConfigureTimeLimit &&
         timeLimitEnabled &&
         (computedTimeLimit == null || computedTimeLimit < 10)
       ) {
         return setError('시간제한은 최소 10초 이상이어야 합니다.');
       }
       if (
-        playMode === 'multi' &&
+        canConfigureTimeLimit &&
         timeLimitEnabled &&
         computedTimeLimit != null &&
         computedTimeLimit > 600
@@ -452,7 +454,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 시간제한 */}
-            {playMode === 'multi' && !isRandom && (
+            {canConfigureTimeLimit && (
               <SettingField label="시간제한">
                 <div className="flex gap-2">
                   {[

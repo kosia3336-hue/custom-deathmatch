@@ -1,7 +1,8 @@
-/** 나이트의 여행 — 같은 판의 모든 칸을 먼저 방문하는 7라운드 레이스. */
+/** 나이트의 여행 — 60초 동안 같은 판에서 더 많은 칸을 방문하는 7라운드 레이스. */
 
 export const KT_TOTAL_ROUNDS = 7;
 export const KT_WIN_SCORE = 4;
+export const KT_ROUND_SECONDS = 60;
 
 export interface KnightTourCell {
   row: number;
@@ -19,6 +20,8 @@ export type KnightTourPhase = 'playing' | 'round-result' | 'finished';
 export interface KnightTourPlayerProgress {
   current: KnightTourCell | null;
   visitedCount: number;
+  submitted: boolean;
+  submittedElapsedMs: number | null;
   /** 자신의 경로와 라운드 결과에서만 공개된다. */
   path?: KnightTourCell[];
 }
@@ -26,15 +29,21 @@ export interface KnightTourPlayerProgress {
 export type KnightTourAction =
   | { type: 'move'; row: number; col: number }
   | { type: 'backtrack' }
-  | { type: 'reset' };
+  | { type: 'reset' }
+  | { type: 'submit' };
 
 export interface KnightTourRoundResult {
   round: number;
   winnerId: string | null;
-  reason: 'completed' | 'timeout';
+  reason: 'submitted' | 'timeout' | 'completed';
   elapsedMs: number | null;
   matchElapsedMs: number | null;
   winningPath: KnightTourCell[];
+  paths: Record<string, KnightTourCell[]>;
+  visitedCounts: Record<string, number>;
+  submissionElapsedMs: Record<string, number>;
+  autoSubmitted: Record<string, boolean>;
+  /** COM이 참고하는 유효 경로. 모든 열린 칸을 포함하지 않을 수 있다. */
   solution: KnightTourCell[];
   scoresAfter: Record<string, number>;
 }
@@ -48,7 +57,7 @@ export interface KnightTourGameData {
   players: Record<string, { nickname: string }>;
   progress: Record<string, KnightTourPlayerProgress>;
   roundStartedAt: number;
-  roundSeconds: number | null;
+  roundSeconds: number;
   lastRoundResult: KnightTourRoundResult | null;
   isSolo: boolean;
   playMode: 'multi' | 'com' | 'solo';

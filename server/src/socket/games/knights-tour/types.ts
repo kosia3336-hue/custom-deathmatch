@@ -23,6 +23,14 @@ export interface KnightTourInternalRound extends KnightTourRoundDefinition {
   result: KnightTourRoundResult | null;
 }
 
+export interface KnightTourSubmission {
+  path: KnightTourCell[];
+  submittedAt: number;
+  /** 직접 제출 순서. 시간 종료 자동 제출은 null이라 서로 우열을 만들지 않는다. */
+  order: number | null;
+  auto: boolean;
+}
+
 export interface KnightTourState {
   roomId: string;
   playMode: PlayMode;
@@ -33,9 +41,11 @@ export interface KnightTourState {
   phase: KnightTourPhase;
   scores: Record<string, number>;
   paths: Record<string, KnightTourCell[]>;
+  submissions: Record<string, KnightTourSubmission | null>;
+  submissionSequence: number;
   roundStartedAt: number;
   matchStartedAt: number;
-  roundSeconds: number | null;
+  roundSeconds: number;
   roundResults: KnightTourRoundResult[];
   lastRoundResult: KnightTourRoundResult | null;
   tiebreak: KnightTourTiebreak;

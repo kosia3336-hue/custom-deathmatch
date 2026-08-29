@@ -23,6 +23,12 @@ function cloneResult(result: KnightTourRoundResult): KnightTourRoundResult {
   return {
     ...result,
     winningPath: cloneCells(result.winningPath),
+    paths: Object.fromEntries(
+      Object.entries(result.paths).map(([playerId, path]) => [playerId, cloneCells(path)]),
+    ),
+    visitedCounts: { ...result.visitedCounts },
+    submissionElapsedMs: { ...result.submissionElapsedMs },
+    autoSubmitted: { ...result.autoSubmitted },
     solution: cloneCells(result.solution),
     scoresAfter: { ...result.scoresAfter },
   };
@@ -63,12 +69,17 @@ export function toKnightTourGameData(
     progress: Object.fromEntries(
       [...uniquePlayers.keys()].map((playerId) => {
         const path = state.paths[playerId] ?? [];
+        const submission = state.submissions[playerId];
         const maySeePath = playerId === viewerId || state.phase !== 'playing';
         return [
           playerId,
           {
             current: path.at(-1) ? { ...path.at(-1)! } : null,
             visitedCount: path.length,
+            submitted: Boolean(submission),
+            submittedElapsedMs: submission
+              ? Math.max(0, submission.submittedAt - state.roundStartedAt)
+              : null,
             ...(maySeePath ? { path: cloneCells(path) } : {}),
           },
         ];
@@ -87,11 +98,11 @@ export function toKnightTourGameData(
 function toGameState(state: KnightTourState, data: KnightTourGameData): GameState {
   const message =
     state.phase === 'playing'
-      ? '나이트로 모든 칸을 먼저 방문하세요!'
+      ? '60초 동안 최대한 많은 칸을 방문한 뒤 제출하세요!'
       : state.phase === 'round-result'
-        ? state.lastRoundResult?.reason === 'timeout'
-          ? '시간이 종료되었습니다.'
-          : '보드를 완주했습니다!'
+        ? state.lastRoundResult?.winnerId
+          ? '더 많은 칸을 방문한 플레이어가 라운드에서 승리했습니다.'
+          : '동일한 기록으로 라운드가 무승부가 되었습니다.'
         : (state.finishReason ?? '게임 종료');
   return {
     roomId: state.roomId,

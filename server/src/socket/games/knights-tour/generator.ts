@@ -3,73 +3,86 @@ import type { KnightTourBoard, KnightTourCell } from '@shared/types/knights-tour
 interface Template {
   id: string;
   size: number;
+  /** 이동할 수 없는 구멍 칸의 1차원 인덱스. */
+  holes: number[];
+  /** COM이 따라갈 유효 경로. 모든 열린 칸을 방문할 필요는 없다. */
   path: number[];
 }
 
+/**
+ * 모든 보드에 내부 구멍을 두고, 일부 보드는 나이트 이동 그래프가 여러 덩어리로
+ * 나뉘도록 구성했다. 더 이상 모든 열린 칸을 잇는 완주 해답을 전제하지 않는다.
+ */
 const TEMPLATES: Template[] = [
   {
-    id: 'full-5',
+    id: 'center-eye-5',
     size: 5,
-    path: [
-      0, 7, 4, 13, 24, 17, 20, 11, 2, 5, 16, 23, 14, 3, 6, 15, 22, 19, 8, 1, 10, 21, 12, 9, 18,
-    ],
+    holes: [6, 8, 16, 18],
+    path: [4, 7, 0, 11, 20, 17, 24, 13, 2, 5, 12, 9],
   },
   {
-    id: 'notch-5',
+    id: 'cross-hole-5',
     size: 5,
-    path: [0, 7, 18, 21, 10, 1, 8, 11, 2, 5, 16, 23, 12, 19, 22, 13, 24, 17, 6, 3, 14],
+    holes: [7, 11, 13, 17],
+    path: [6, 15, 22, 19, 8, 1, 10, 21, 18, 9, 2, 5, 16, 23, 14, 3, 12],
   },
   {
-    id: 'corners-5',
-    size: 5,
-    path: [1, 8, 19, 22, 15, 6, 3, 14, 17, 20, 11, 2, 5, 12, 9, 18, 21, 10, 7, 4, 13, 16, 23],
-  },
-  {
-    id: 'full-6',
+    id: 'diagonal-pits-6',
     size: 6,
+    holes: [7, 14, 21, 28],
     path: [
-      0, 8, 4, 17, 28, 32, 24, 13, 2, 6, 19, 30, 26, 34, 21, 10, 23, 15, 11, 3, 7, 18, 31, 27, 35,
-      22, 14, 1, 9, 5, 16, 29, 33, 20, 12, 25,
+      18, 31, 27, 35, 22, 11, 3, 16, 5, 9, 17, 4, 8, 0, 13, 24, 32, 19, 30, 26, 34, 23, 10, 2, 15,
     ],
   },
   {
-    id: 'corners-6',
+    id: 'core-block-6',
     size: 6,
+    holes: [14, 15, 20, 21],
+    path: [28, 17, 4, 8, 0, 13, 24, 32, 19, 6, 2, 10, 23, 34, 26, 30],
+  },
+  {
+    id: 'twin-wells-6',
+    size: 6,
+    holes: [8, 9, 26, 27],
     path: [
-      1, 12, 25, 33, 29, 16, 3, 11, 22, 9, 17, 4, 8, 19, 6, 2, 10, 14, 27, 23, 34, 21, 13, 24, 32,
-      28, 15, 26, 18, 7, 20, 31,
+      0, 13, 24, 32, 28, 17, 4, 15, 11, 3, 7, 18, 31, 20, 12, 1, 14, 6, 2, 10, 23, 34, 21, 25, 33,
+      29, 16, 5,
     ],
   },
   {
-    id: 'edge-mids-6',
+    id: 'broken-ring-6',
     size: 6,
+    holes: [8, 13, 14, 21],
     path: [
-      0, 13, 24, 20, 7, 18, 31, 27, 35, 22, 11, 15, 28, 17, 4, 8, 12, 1, 9, 5, 16, 29, 21, 25, 14,
-      6, 19, 30, 26, 34, 23, 10,
+      25, 12, 1, 9, 5, 16, 29, 33, 22, 35, 27, 31, 18, 7, 3, 11, 15, 4, 17, 28, 20, 24, 32, 19, 6,
+      2, 10, 23, 34, 26, 30,
     ],
   },
   {
-    id: 'cross-6',
-    size: 6,
-    path: [
-      2, 6, 19, 8, 12, 25, 33, 29, 16, 27, 23, 10, 14, 3, 11, 22, 9, 17, 21, 13, 24, 32, 28, 20, 7,
-      15, 26, 18,
-    ],
-  },
-  {
-    id: 'corner-cut-7',
+    id: 'center-moat-7',
     size: 7,
+    holes: [9, 11, 15, 19, 29, 33, 37, 39],
     path: [
-      2, 15, 28, 43, 38, 47, 34, 19, 6, 11, 20, 5, 10, 23, 14, 9, 4, 13, 18, 3, 12, 27, 40, 25, 16,
-      21, 36, 45, 30, 35, 22, 17, 32, 41, 26, 31, 44, 29, 42, 37, 46, 33, 24, 39, 48,
+      46, 41, 26, 13, 4, 17, 2, 7, 22, 35, 44, 31, 40, 27, 12, 3, 8, 21, 36, 45, 30, 43, 28, 23, 14,
+      1, 16, 25, 38, 47, 34,
     ],
   },
   {
-    id: 'double-cut-7',
+    id: 'vertical-fissure-7',
     size: 7,
+    holes: [10, 17, 24, 31, 38],
     path: [
-      2, 15, 28, 43, 38, 33, 46, 37, 42, 29, 14, 9, 4, 13, 26, 11, 6, 19, 24, 39, 34, 25, 20, 5, 10,
-      23, 18, 3, 12, 27, 32, 17, 22, 35, 44, 31, 16, 21, 30, 45, 36,
+      37, 42, 29, 44, 35, 22, 7, 2, 15, 0, 9, 14, 1, 16, 3, 12, 27, 40, 45, 36, 21, 8, 23, 28, 43,
+      30, 25, 34, 47, 32, 41, 46, 33, 48, 39, 26, 11, 6, 19, 4, 13, 18, 5, 20,
+    ],
+  },
+  {
+    id: 'corner-island-7',
+    size: 7,
+    holes: [9, 15, 23, 25, 31],
+    path: [
+      40, 27, 12, 3, 8, 21, 36, 45, 30, 43, 28, 37, 42, 29, 14, 1, 16, 7, 22, 35, 44, 39, 48, 33,
+      38, 47, 34, 19, 10, 5, 18, 13, 4, 17, 2, 11, 24,
     ],
   },
 ];
@@ -91,13 +104,16 @@ export function isKnightMove(from: KnightTourCell, to: KnightTourCell) {
   return (rowDistance === 1 && colDistance === 2) || (rowDistance === 2 && colDistance === 1);
 }
 
-export function validateKnightTour(board: KnightTourBoard, path: KnightTourCell[]) {
+/** 열린 칸 안에서 중복 없이 이어지는 유효 경로인지 확인한다. 완주는 요구하지 않는다. */
+export function validateKnightTourPath(board: KnightTourBoard, path: KnightTourCell[]) {
   const cells = new Set(board.activeCells.map(knightTourCellKey));
-  if (path.length !== cells.size || new Set(path.map(knightTourCellKey)).size !== cells.size)
-    return false;
+  if (path.length === 0 || new Set(path.map(knightTourCellKey)).size !== path.length) return false;
   if (path.some((cell) => !cells.has(knightTourCellKey(cell)))) return false;
   return path.every((cell, index) => index === 0 || isKnightMove(path[index - 1], cell));
 }
+
+/** 기존 호출부 호환용 별칭. */
+export const validateKnightTour = validateKnightTourPath;
 
 function transformCell(cell: KnightTourCell, size: number, transform: number): KnightTourCell {
   let row = cell.row;
@@ -120,6 +136,17 @@ export function dealKnightTourRounds(count: number, random: () => number = Math.
     .slice(0, count)
     .map((template, roundIndex) => {
       const transform = Math.floor(random() * 8);
+      const holes = new Set(template.holes);
+      const activeCells = Array.from({ length: template.size ** 2 }, (_, index) => index)
+        .filter((index) => !holes.has(index))
+        .map((index) =>
+          transformCell(
+            { row: Math.floor(index / template.size), col: index % template.size },
+            template.size,
+            transform,
+          ),
+        )
+        .sort((a, b) => a.row - b.row || a.col - b.col);
       let solution = template.path.map((index) =>
         transformCell(
           { row: Math.floor(index / template.size), col: index % template.size },
@@ -130,13 +157,11 @@ export function dealKnightTourRounds(count: number, random: () => number = Math.
       if (random() < 0.5) solution = solution.reverse();
       const board: KnightTourBoard = {
         size: template.size,
-        activeCells: solution
-          .map((cell) => ({ ...cell }))
-          .sort((a, b) => a.row - b.row || a.col - b.col),
+        activeCells,
         shapeId: `${template.id}-${transform}-${roundIndex}`,
       };
-      if (!validateKnightTour(board, solution))
-        throw new Error(`유효하지 않은 나이트 보드: ${template.id}`);
+      if (!validateKnightTourPath(board, solution))
+        throw new Error(`유효하지 않은 나이트 보드 경로: ${template.id}`);
       return { board, solution };
     });
 }

@@ -122,8 +122,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     };
   }, [open, onClose]);
 
+  const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
   const computedTimeLimit =
-    playMode === 'multi' && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
+    canConfigureTimeLimit && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 
   const playerRange = selectedGame
     ? Array.from(
@@ -186,14 +187,14 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       }
     }
     if (
-      playMode === 'multi' &&
+      canConfigureTimeLimit &&
       timeLimitEnabled &&
       (computedTimeLimit == null || computedTimeLimit < 10)
     ) {
       return setError('시간제한은 최소 10초 이상이어야 합니다.');
     }
     if (
-      playMode === 'multi' &&
+      canConfigureTimeLimit &&
       timeLimitEnabled &&
       computedTimeLimit != null &&
       computedTimeLimit > 600
@@ -416,7 +417,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
             )}
 
             {/* 시간제한 */}
-            {playMode === 'multi' && (
+            {canConfigureTimeLimit && (
               <SettingField label="시간제한">
                 <div className="flex gap-2">
                   {[

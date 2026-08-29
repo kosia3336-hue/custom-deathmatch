@@ -41,6 +41,12 @@ export default function KnightsTourViewer({ record }: { record: GameRecordFile }
           const winner = round.result?.winnerId
             ? data.players[round.result.winnerId]?.nickname
             : null;
+          const recordedPaths = Object.values(round.result?.paths ?? {}).sort(
+            (first, second) => second.length - first.length,
+          );
+          const shownPath = round.result?.winningPath.length
+            ? round.result.winningPath
+            : (recordedPaths[0] ?? round.solution);
           return (
             <Card key={round.round} className="p-3 sm:p-4">
               <div className="mb-3 flex items-start justify-between gap-3">
@@ -49,7 +55,7 @@ export default function KnightsTourViewer({ record }: { record: GameRecordFile }
                     ROUND {round.round} / {data.totalRounds}
                   </p>
                   <p className="text-cdm-fg mt-0.5 text-sm font-black">
-                    {round.result ? (winner ? `${winner} 완주` : '시간 종료') : '미진행'}
+                    {round.result ? (winner ? `${winner} 라운드 승리` : '라운드 무승부') : '미진행'}
                   </p>
                 </div>
                 {round.result?.elapsedMs != null && (
@@ -58,10 +64,22 @@ export default function KnightsTourViewer({ record }: { record: GameRecordFile }
                   </p>
                 )}
               </div>
+              {round.result && (
+                <div className="text-cdm-fg-muted mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                  {players.map(([playerId, player]) => (
+                    <span key={playerId}>
+                      <b className="text-cdm-fg">{player.nickname}</b>{' '}
+                      {round.result?.visitedCounts?.[playerId] ?? 0}칸
+                      {round.result?.submissionElapsedMs?.[playerId] != null &&
+                        ` · ${(round.result.submissionElapsedMs[playerId] / 1000).toFixed(1)}초`}
+                    </span>
+                  ))}
+                </div>
+              )}
               <ArchiveBoard
                 size={round.board.size}
                 activeCells={round.board.activeCells}
-                path={round.result?.winningPath.length ? round.result.winningPath : round.solution}
+                path={shownPath}
               />
             </Card>
           );
@@ -90,7 +108,14 @@ function ArchiveBoard({
       {Array.from({ length: size ** 2 }, (_, index) => {
         const cell = { row: Math.floor(index / size), col: index % size };
         const cellKey = key(cell);
-        if (!active.has(cellKey)) return <div key={cellKey} />;
+        if (!active.has(cellKey))
+          return (
+            <div
+              key={cellKey}
+              className="bg-cdm-fg rounded-cdm-sm aspect-square opacity-80"
+              aria-label="이동할 수 없는 구멍"
+            />
+          );
         return (
           <div
             key={cellKey}
