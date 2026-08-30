@@ -112,7 +112,12 @@ export const roomStore = {
       gameOptions: opts.gameOptions ?? {},
       turnOrderMode: opts.turnOrderMode ?? 'random',
       createdAt: Date.now(),
-      _minPlayers: opts.minPlayers,
+      /*
+        솔로·튜토리얼은 혼자 하는 모드다. 게임 정의상 최소 인원(대개 2)을 그대로
+        들고 있으면 canStart 가 '최소 2명이 필요합니다' 로 막는다.
+        changePlayMode 는 이미 이 규칙을 쓰는데 생성 경로에만 빠져 있었다.
+      */
+      _minPlayers: isSoloLikePlayMode(opts.playMode) ? 1 : opts.minPlayers,
       ...(opts.isRanked === true ? { isRanked: true as const } : {}),
       ...(opts.rankSeasonId != null ? { rankSeasonId: opts.rankSeasonId } : {}),
       ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
@@ -271,7 +276,10 @@ export const roomStore = {
     if (settings.gameId !== undefined) {
       room.gameId = settings.gameId;
       room.gameName = settings.gameName ?? room.gameName;
-      if (settings.minPlayers !== undefined) room._minPlayers = settings.minPlayers;
+      if (settings.minPlayers !== undefined) {
+        // 솔로 방에서 게임만 바꾼 경우, 새 게임의 최소 인원(2)이 덮어써서는 안 된다.
+        room._minPlayers = isSoloLikePlayMode(room.playMode) ? 1 : settings.minPlayers;
+      }
       room.gameOptions = settings.gameOptions ?? {};
       // 게임 변경 시 방장 제외 전원 준비 해제
       room.players.forEach((p) => {

@@ -488,3 +488,40 @@ describe('roomStore.resetForRematch', () => {
     expect(r.players.every((p) => !p.isReady)).toBe(true);
   });
 });
+
+describe('솔로 방의 최소 인원', () => {
+  beforeEach(resetRooms);
+
+  /*
+    솔로·튜토리얼은 혼자 하는 모드인데, 방이 게임 정의상 최소 인원(대개 2)을
+    들고 있으면 canStart 가 '최소 2명이 필요합니다' 로 막는다. 방을 만들 때와
+    설정을 바꿀 때 둘 다 이 규칙이 빠져 있었다.
+  */
+  function makeSoloRoom(id: string) {
+    const room = roomStore.create({
+      title: 't',
+      gameId: 'game-020',
+      gameName: '수식완성N',
+      playMode: 'solo',
+      roomType: 'public',
+      maxPlayers: 1,
+      minPlayers: 2, // 게임 정의는 2인
+      host: { id, nickname: '나', isHost: true, isReady: true, joinedAt: Date.now() } as Player,
+      timeLimitSeconds: null,
+      gameOptions: {},
+    });
+    roomStore.setStatus(room.id, 'waiting');
+    return room;
+  }
+
+  it('솔로로 만든 방은 혼자서도 시작할 수 있다', () => {
+    const room = makeSoloRoom('solo-host-1');
+    expect(roomStore.canStart(room.id)).toEqual({ ok: true });
+  });
+
+  it('솔로 방에서 게임만 바꿔도 최소 인원이 1로 유지된다', () => {
+    const room = makeSoloRoom('solo-host-2');
+    roomStore.updateSettings(room.id, { minPlayers: 2 });
+    expect(roomStore.canStart(room.id)).toEqual({ ok: true });
+  });
+});
