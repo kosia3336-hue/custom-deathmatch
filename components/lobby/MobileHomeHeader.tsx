@@ -25,6 +25,7 @@ import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst'
 import type { RankTier } from '@shared/types/rank';
 import type { JoinRoomResult } from '@/shared/types';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/cdm';
 
 interface Props {
   onCreateRoom: () => void;
@@ -167,18 +168,14 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
               onClick={() => window.dispatchEvent(new Event('cdm:open-menu'))}
               className="flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <Icon name="menu" />
             </button>
             <Link
               href="/notice"
               aria-label="공지사항"
               className="flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
-              </svg>
+              <Icon name="notice" />
             </Link>
           </div>
         </div>
@@ -232,9 +229,7 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
               disabled={queuing}
               className="flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-cdm-md bg-cdm-primary text-[15px] font-bold text-white disabled:opacity-60"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
-              </svg>
+              <Icon name="bolt" size="sm" />
               {queuing ? '매칭 중…' : '랭크 매칭'}
             </button>
             <Link
