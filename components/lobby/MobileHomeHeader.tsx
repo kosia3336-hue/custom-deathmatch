@@ -73,22 +73,16 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const { tabFilters, toggleTabFilter, clearFilters, rooms } = useLobbyStore();
 
   const [rank, setRank] = useState<RankResponse | null>(null);
-  const [cdp, setCdp] = useState<number | null>(null);
   const [quickJoining, setQuickJoining] = useState(false);
 
   useEffect(() => {
     if (!member) {
       setRank(null);
-      setCdp(null);
       return;
     }
     fetch('/api/me/rank')
       .then((r) => r.json())
       .then((d: RankResponse) => setRank(d))
-      .catch(() => {});
-    fetch('/api/me/cdp')
-      .then((r) => r.json())
-      .then((d: { balance?: number }) => setCdp(d.balance ?? 0))
       .catch(() => {});
   }, [member?.id]);
 
@@ -159,17 +153,13 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
           </Link>
           <div className="flex items-center gap-2">
             {/*
-              비로그인에게는 CDP 자리에 로그인을 둔다. GNB 헤더가 숨겨져
-              이 줄이 유일한 상단바라, 로그인 진입점이 여기 없으면 사라진다.
+              GNB 헤더가 모바일 로비에서 숨겨지므로, 거기 있던 소리·로비 채팅·
+              로그인만 이 줄로 옮겨 온다. 메뉴 시트는 하단 탭바의 '메뉴' 가,
+              공지는 그 시트 안 항목이 맡는다.
             */}
-            {member ? (
-              <Link
-                href="/shop"
-                className="flex h-8 items-center gap-1.5 rounded-cdm-md bg-white/10 px-2.5 text-xs font-bold text-cdm-ink-fg tabular-nums"
-              >
-                CDP {cdp?.toLocaleString() ?? '—'}
-              </Link>
-            ) : (
+            <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
+            <OnlineUsersModalButton />
+            {!member && (
               <Link
                 href="/login"
                 className="flex h-8 items-center rounded-cdm-md bg-white px-3 text-xs font-semibold whitespace-nowrap text-cdm-ink"
@@ -177,27 +167,6 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
                 로그인
               </Link>
             )}
-            {/*
-              모바일 로비에서는 GNB 헤더가 숨겨진다. 거기 있던 소리·로비 채팅은
-              다른 진입점이 없으므로 이 줄로 옮겨 온다.
-            */}
-            <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
-            <OnlineUsersModalButton />
-            <button
-              type="button"
-              aria-label="메뉴"
-              onClick={() => window.dispatchEvent(new Event('cdm:open-menu'))}
-              className="flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted"
-            >
-              <Icon name="menu" />
-            </button>
-            <Link
-              href="/notice"
-              aria-label="공지사항"
-              className="flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted"
-            >
-              <Icon name="notice" />
-            </Link>
           </div>
         </div>
 

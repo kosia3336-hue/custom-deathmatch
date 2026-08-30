@@ -128,6 +128,25 @@ export function MobileTabBar({ isMember }: Props) {
               </li>
             );
           })}
+
+          {/*
+            메뉴 시트 진입점. 홈 헤더에 있던 햄버거를 여기로 옮겼다 —
+            로비 밖(랭킹·룰 등)에서도 같은 자리에서 열 수 있다.
+          */}
+          <li className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-expanded={menuOpen}
+              className={cn(
+                'flex w-full flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
+                menuOpen || menuActive ? 'text-white' : 'text-cdm-ink-fg-muted hover:text-white',
+              )}
+            >
+              <Icon name="menu" size="lg" />
+              <span className="truncate">메뉴</span>
+            </button>
+          </li>
         </ul>
       </nav>
     </>
