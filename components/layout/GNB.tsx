@@ -8,6 +8,8 @@ import type { TitleColor } from '@/lib/supabase/database.types';
 interface GNBProps {
   /** 룸/인게임 등에서 minimal=true 면 좁은 GNB */
   minimal?: boolean;
+  /** 모바일에서 상단 헤더를 감춘다 (로비 — 화면 자체 헤더가 대신한다) */
+  hideHeaderOnMobile?: boolean;
 }
 
 /**
@@ -16,7 +18,7 @@ interface GNBProps {
  * - 로딩 중이면 스켈레톤.
  * - 회원 없음 (예: Supabase 미설정 데모 모드) 이면 로고만 표시 + 로그인 버튼.
  */
-export default function GNB({ minimal: _minimal }: GNBProps) {
+export default function GNB({ minimal: _minimal, hideHeaderOnMobile }: GNBProps) {
   const { member, loading } = useCurrentMember();
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
 
@@ -67,9 +69,15 @@ export default function GNB({ minimal: _minimal }: GNBProps) {
   // 로딩 중에도 nav(로비/랭킹/문의)는 보여야 함 — 우측만 스켈레톤 처리
   if (loading) {
     return (
-      <CdmGNB member={null} loadingRight />
+      <CdmGNB member={null} loadingRight hideHeaderOnMobile={hideHeaderOnMobile} />
     );
   }
 
-  return <CdmGNB member={cdmMember} unreadNoticeCount={unreadNoticeCount} />;
+  return (
+    <CdmGNB
+      member={cdmMember}
+      unreadNoticeCount={unreadNoticeCount}
+      hideHeaderOnMobile={hideHeaderOnMobile}
+    />
+  );
 }

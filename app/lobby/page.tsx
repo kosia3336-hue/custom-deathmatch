@@ -23,7 +23,8 @@ export const dynamic = 'force-dynamic';
 export default function LobbyPage() {
   return (
     <div className="flex flex-1 flex-col bg-cdm-page">
-      <GNB />
+      {/* 모바일은 MobileHomeHeader 가 상단바를 대신한다 (시안 1b) */}
+      <GNB hideHeaderOnMobile />
 
       <h1 className="sr-only">커스텀 데스매치 로비</h1>
 

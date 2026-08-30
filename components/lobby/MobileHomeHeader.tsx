@@ -25,7 +25,9 @@ import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst'
 import type { RankTier } from '@shared/types/rank';
 import type { JoinRoomResult } from '@/shared/types';
 import { cn } from '@/lib/utils';
-import { Icon } from '@/components/cdm';
+import { Icon, BgmButton } from '@/components/cdm';
+import { Logo } from '@/components/cdm/Logo';
+import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 
 interface Props {
   onCreateRoom: () => void;
@@ -148,20 +150,39 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   ];
 
   return (
-    <div className="-mx-4 mb-3 sm:hidden">
+    <div className="-mx-4 -mt-4 mb-3 sm:hidden">
       {/* ── ink 헤더: 재화 스트립 + 랭크 카드 ── */}
       <div className="bg-cdm-ink px-4 pb-4 pt-3">
         <div className="mb-3 flex items-center justify-between">
-          <span className="font-display text-sm font-bold tracking-tight text-white">
-            커스텀 데스매치
-          </span>
+          <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
+            <Logo size="md" className="h-5 w-auto" />
+          </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/shop"
-              className="flex h-8 items-center gap-1.5 rounded-cdm-md bg-white/10 px-2.5 text-xs font-bold text-cdm-ink-fg tabular-nums"
-            >
-              CDP {cdp?.toLocaleString() ?? '—'}
-            </Link>
+            {/*
+              비로그인에게는 CDP 자리에 로그인을 둔다. GNB 헤더가 숨겨져
+              이 줄이 유일한 상단바라, 로그인 진입점이 여기 없으면 사라진다.
+            */}
+            {member ? (
+              <Link
+                href="/shop"
+                className="flex h-8 items-center gap-1.5 rounded-cdm-md bg-white/10 px-2.5 text-xs font-bold text-cdm-ink-fg tabular-nums"
+              >
+                CDP {cdp?.toLocaleString() ?? '—'}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="flex h-8 items-center rounded-cdm-md bg-white px-3 text-xs font-semibold whitespace-nowrap text-cdm-ink"
+              >
+                로그인
+              </Link>
+            )}
+            {/*
+              모바일 로비에서는 GNB 헤더가 숨겨진다. 거기 있던 소리·로비 채팅은
+              다른 진입점이 없으므로 이 줄로 옮겨 온다.
+            */}
+            <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
+            <OnlineUsersModalButton />
             <button
               type="button"
               aria-label="메뉴"

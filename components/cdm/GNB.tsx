@@ -17,6 +17,11 @@ import { MobileTabBar } from './MobileTabBar';
 import type { CurrentMember } from '@/lib/auth/server';
 
 interface GNBProps {
+  /**
+   * 모바일에서 상단 헤더를 감춘다. 로비처럼 화면 자체 헤더가 그 자리를
+   * 대신하는 페이지용 — 하단 탭바는 그대로 렌더한다.
+   */
+  hideHeaderOnMobile?: boolean;
   member: CurrentMember | null;
   /** true이면 우측(로그인/닉네임) 영역을 스켈레톤으로 표시 */
   loadingRight?: boolean;
@@ -41,7 +46,7 @@ const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/attendance', label: '출석판' },
 ];
 
-export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNBProps) {
+export function GNB({ member, loadingRight = false, unreadNoticeCount = 0, hideHeaderOnMobile = false }: GNBProps) {
   const [open, setOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [devSwitchOpen, setDevSwitchOpen] = useState(false);
@@ -65,7 +70,12 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0 }: GNB
     <>
     <InventoryInit hasMember={Boolean(member)} />
     <MailboxInit memberId={member?.id ?? null} ready={!loadingRight} />
-    <header className="sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
+    <header
+      className={cn(
+        'sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur',
+        hideHeaderOnMobile && 'hidden sm:block',
+      )}
+    >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
         <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
           <Logo size="md" className="h-5 w-auto sm:h-8" />
