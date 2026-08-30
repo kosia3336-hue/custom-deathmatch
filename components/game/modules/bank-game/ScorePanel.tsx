@@ -1,9 +1,10 @@
 'use client';
 
-import type { BankPlayerInfo, BankSide } from '@/shared/types/bank-game';
+import { BANK_TOTAL_ROUNDS, type BankPlayerInfo, type BankSide } from '@/shared/types/bank-game';
 import { formatKRW } from './constants';
 
-const TOTAL_ROUNDS = 9;
+/* 승점 칸 수 = 도달 가능한 최대 점수. 근거는 ScoreBar.tsx 주석 참고. */
+const WIN_SCORE = Math.floor(BANK_TOTAL_ROUNDS / 2) + 1;
 
 interface Props {
   p1: BankPlayerInfo;
@@ -49,8 +50,12 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                 {p.score}점
               </span>
             </div>
-            <div className="bank-score-track grid grid-cols-9 gap-0.5" aria-hidden>
-              {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
+            <div
+              className="bank-score-track grid gap-0.5"
+              style={{ gridTemplateColumns: `repeat(${WIN_SCORE}, minmax(0, 1fr))` }}
+              aria-hidden
+            >
+              {Array.from({ length: WIN_SCORE }).map((_, i) => (
                 <span
                   key={i}
                   className={`h-2 rounded-sm ${

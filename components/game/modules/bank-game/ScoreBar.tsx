@@ -1,9 +1,17 @@
 'use client';
 
-import type { BankPlayerInfo, BankSide } from '@/shared/types/bank-game';
+import { BANK_TOTAL_ROUNDS, type BankPlayerInfo, type BankSide } from '@/shared/types/bank-game';
 import { formatKRW } from './constants';
 
-const TOTAL_ROUNDS = 9;
+/*
+  승점 칸 수 = 실제로 도달할 수 있는 최대 점수.
+
+  9라운드를 다 치르는 게임이 아니라, '점수 > 상대 + 남은 라운드' 가 되는 순간
+  끝난다(server state.ts checkEarlyWin). 그래서 9라운드 기준으로는 5점이 상한이고
+  5점을 채우면 남은 라운드와 무관하게 이긴다. 칸을 9개 두면 절대 채워지지 않는
+  칸이 4개 남아 진행도가 실제보다 덜 찬 것처럼 보였다.
+*/
+const WIN_SCORE = Math.floor(BANK_TOTAL_ROUNDS / 2) + 1;
 
 interface Props {
   p1: BankPlayerInfo;
@@ -70,8 +78,12 @@ function ScoreRow({
       <span className={`max-w-20 min-w-0 shrink-0 truncate text-xs font-bold ${accent}`}>
         {nickname}
       </span>
-      <div className="bank-score-track grid min-w-0 flex-1 grid-cols-9 gap-0.5" aria-hidden>
-        {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
+      <div
+        className="bank-score-track grid min-w-0 flex-1 gap-0.5"
+        style={{ gridTemplateColumns: `repeat(${WIN_SCORE}, minmax(0, 1fr))` }}
+        aria-hidden
+      >
+        {Array.from({ length: WIN_SCORE }).map((_, i) => (
           <span key={i} className={`h-1.5 rounded-sm ${i < score ? cellWon : cellDim}`} />
         ))}
       </div>
