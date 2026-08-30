@@ -21,7 +21,10 @@ export type SBNWPhase =
   | 'finished';
 
 export type SBNWWinType =
+  /** 선승 점수(SBNW_MAX_SCORE)를 먼저 채워서 이김 */
   | 'score'
+  /** 라운드를 다 치른 뒤 승점이 더 높아서 이김 — 'score' 와 문구가 달라야 한다 */
+  | 'roundsScore'
   | 'tiebreakTile'
   | 'rematch'
   | 'autoLoss'
