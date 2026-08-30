@@ -496,7 +496,8 @@ function buildFinishReasonText(
   const p2 = s.player2;
   if (resolution === 'score') {
     const winner = winnerId === p1.id ? p1 : p2;
-    return `승점 ${p1.score}:${p2.score} — ${winner.nickname} 승`;
+    /* 선승으로 끝난 게 아니라 라운드를 다 치르고 이긴 경우다 — 그렇게 읽히게 쓴다. */
+    return `${SBNW_TOTAL_ROUNDS}라운드 종료 — 승점 ${p1.score}:${p2.score} 로 ${winner.nickname} 승`;
   }
   if (resolution === 'tiebreakTile') {
     const winner = winnerId === p1.id ? p1 : p2;
@@ -631,7 +632,10 @@ function endSegment(io: IO, s: InternalState) {
     const loser = res.winner === 'p1' ? p2 : p1;
     pushSegmentSummary(s, res.kind, winner.id);
     s.finishReason = buildFinishReasonText(res.kind, winner.id, s);
-    const winType: SBNWWinType = s.rematchIndex > 0 ? 'rematch' : res.kind;
+    /* res.kind === 'score' 는 '라운드 소진 후 승점 우세' 다. 선승(checkGameOver)과
+       같은 'score' 로 넘기면 클라이언트가 '6선승' 으로 잘못 적는다. */
+    const winType: SBNWWinType =
+      s.rematchIndex > 0 ? 'rematch' : res.kind === 'score' ? 'roundsScore' : res.kind;
     resolveGame(io, s, winner.id, winner.nickname, loser.id, loser.nickname, winType);
     return;
   }
