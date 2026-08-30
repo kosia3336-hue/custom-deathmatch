@@ -39,6 +39,27 @@ export type {
   KnightTourTiebreak,
 } from './knights-tour';
 export { KM_BOARD_SIZE, KM_MAX_HEIGHT, KM_NORMAL_PIECES } from './kingmaking';
+export {
+  TG_BOARD_RADIUS,
+  TG_LINE_LENGTH,
+  TG_MAX_HEIGHT,
+  TG_SETUP_SEQUENCE,
+  TG_STONES_PER_PLAYER,
+  TG_TOP_CLUSTER_WIN,
+  TG_TOP_LAYER_WIN,
+} from './triple-gomoku';
+export type {
+  TripleGomokuAction,
+  TripleGomokuArchiveRecord,
+  TripleGomokuBoard,
+  TripleGomokuCell,
+  TripleGomokuGameData,
+  TripleGomokuLastAction,
+  TripleGomokuPhase,
+  TripleGomokuStack,
+  TripleGomokuWin,
+  TripleGomokuWinType,
+} from './triple-gomoku';
 export type {
   KingmakingAction,
   KingmakingArchiveRecord,

@@ -294,6 +294,16 @@ import {
   getKingmakingResultData,
 } from './games/kingmaking/index.js';
 import {
+  initTripleGomoku,
+  handleTripleGomokuAction,
+  cleanupTripleGomoku,
+  getTripleGomokuState,
+  emitTripleGomokuStateToSocket,
+  performTripleGomokuUndo,
+  canTripleGomokuUndo,
+  getTripleGomokuResultData,
+} from './games/triple-gomoku/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -305,6 +315,16 @@ import {
 } from './games/quatro/index.js';
 
 const gameModules: Record<string, GameModuleHandlers> = {
+  [GAME_IDS.TRIPLE_GOMOKU]: {
+    init: initTripleGomoku,
+    handleAction: handleTripleGomokuAction,
+    cleanup: cleanupTripleGomoku,
+    getState: getTripleGomokuState,
+    emitStateToSocket: emitTripleGomokuStateToSocket,
+    performUndo: performTripleGomokuUndo,
+    canUndo: canTripleGomokuUndo,
+    getResultData: getTripleGomokuResultData,
+  },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,
     handleAction: handleKnightTourAction,
