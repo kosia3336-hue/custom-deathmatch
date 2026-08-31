@@ -22,7 +22,7 @@ interface SendResult {
 }
 
 /**
- * 우편함 선물 발송.
+ * 우편 발송.
  *
  * 보상은 편지에 매달아 보내고 받는 사람이 눌러서 받는다. 여기서 잔액을 직접
  * 건드리지 않는다 — 지급은 수령 시점에 RPC 안에서 한 번만 일어난다.
@@ -35,13 +35,40 @@ export default function MailboxGiftTab() {
   const [giftKey, setGiftKey] = useState('');
   const [seasonId, setSeasonId] = useState(3);
   const [tiers, setTiers] = useState<string[]>([]);
-  const [memberIdsText, setMemberIdsText] = useState('');
+  const [search, setSearch] = useState('');
+  const [found, setFound] = useState<{ id: string; nickname: string }[]>([]);
+  const [picked, setPicked] = useState<{ id: string; nickname: string }[]>([]);
+  const [searching, setSearching] = useState(false);
   const [mode, setMode] = useState<'tier' | 'members'>('tier');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<SendResult | null>(null);
 
   function toggleTier(id: string) {
     setTiers((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
+  }
+
+  async function runSearch() {
+    const q = search.trim();
+    if (!q) return;
+    setSearching(true);
+    try {
+      const r = await fetch(`/api/admin/member-search?q=${encodeURIComponent(q)}`);
+      const data = (await r.json()) as {
+        items?: { id: string; nickname: string }[];
+        error?: string;
+      };
+      if (!r.ok) throw new Error(data.error ?? '검색에 실패했습니다.');
+      setFound(data.items ?? []);
+      if ((data.items ?? []).length === 0) toast.info('일치하는 회원이 없습니다.');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function pick(m: { id: string; nickname: string }) {
+    setPicked((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
   }
 
   async function send() {
@@ -51,13 +78,7 @@ export default function MailboxGiftTab() {
       const target =
         mode === 'tier'
           ? { kind: 'tier' as const, seasonId, tiers }
-          : {
-              kind: 'members' as const,
-              memberIds: memberIdsText
-                .split(/[\s,]+/)
-                .map((s) => s.trim())
-                .filter(Boolean),
-            };
+          : { kind: 'members' as const, memberIds: picked.map((m) => m.id) };
       const r = await fetch('/api/admin/mailbox-gift', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,12 +99,12 @@ export default function MailboxGiftTab() {
     !sending &&
     title.trim().length > 0 &&
     /^[a-z0-9-]{3,60}$/.test(giftKey) &&
-    (mode === 'tier' ? tiers.length > 0 : memberIdsText.trim().length > 0);
+    (mode === 'tier' ? tiers.length > 0 : picked.length > 0);
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       <div>
-        <h2 className="text-cdm-fg text-lg font-bold">우편함 선물 발송</h2>
+        <h2 className="text-cdm-fg text-lg font-bold">우편 발송</h2>
         <p className="text-cdm-fg-muted mt-1 text-sm">
           편지에 CDP 를 매달아 보냅니다. 받는 사람이 우편함에서 눌러 받을 때 지급됩니다.
         </p>
@@ -133,7 +154,7 @@ export default function MailboxGiftTab() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-cdm-fg text-sm font-semibold">선물 키</span>
+          <span className="text-cdm-fg text-sm font-semibold">우편 키</span>
           <input
             value={giftKey}
             onChange={(e) => setGiftKey(e.target.value)}
@@ -143,7 +164,7 @@ export default function MailboxGiftTab() {
         </label>
       </div>
       <p className="text-cdm-fg-muted -mt-3 text-xs">
-        선물 키는 중복 발송을 막는 열쇠입니다. 같은 키로 다시 보내면 이미 받은 사람은 건너뜁니다.
+        우편 키는 중복 발송을 막는 열쇠입니다. 같은 키로 다시 보내면 이미 받은 사람은 건너뜁니다.
         티어별로 금액이 다르면 <b>키도 티어마다 다르게</b> 주세요.
       </p>
 
@@ -161,7 +182,7 @@ export default function MailboxGiftTab() {
                   : 'border-cdm-border text-cdm-fg',
               )}
             >
-              {m === 'tier' ? '티어로 보내기' : '회원 ID 로 보내기'}
+              {m === 'tier' ? '티어로 보내기' : '닉네임으로 보내기'}
             </button>
           ))}
         </div>
@@ -196,13 +217,68 @@ export default function MailboxGiftTab() {
             </div>
           </div>
         ) : (
-          <textarea
-            value={memberIdsText}
-            onChange={(e) => setMemberIdsText(e.target.value)}
-            rows={4}
-            placeholder="회원 UUID 를 줄바꿈이나 쉼표로 구분해 붙여넣으세요."
-            className="border-cdm-border rounded-cdm-md mt-4 w-full border px-3 py-2 font-mono text-xs"
-          />
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex gap-2">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void runSearch();
+                  }
+                }}
+                placeholder="닉네임으로 검색"
+                className="border-cdm-border rounded-cdm-md h-10 flex-1 border px-3 text-sm"
+              />
+              <Button size="sm" onClick={runSearch} disabled={searching || !search.trim()}>
+                {searching ? '찾는 중...' : '검색'}
+              </Button>
+            </div>
+
+            {found.length > 0 && (
+              <div className="border-cdm-border rounded-cdm-md max-h-48 overflow-y-auto border">
+                {found.map((m) => {
+                  const already = picked.some((x) => x.id === m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => pick(m)}
+                      disabled={already}
+                      className={cn(
+                        'border-cdm-border flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-b-0',
+                        already ? 'text-cdm-fg-subtle' : 'hover:bg-cdm-bg-elev-1 text-cdm-fg',
+                      )}
+                    >
+                      <span>{m.nickname}</span>
+                      <span className="text-xs">{already ? '추가됨' : '추가'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div>
+              <p className="text-cdm-fg-muted text-xs font-semibold">받는 사람 {picked.length}명</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {picked.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPicked((prev) => prev.filter((x) => x.id !== m.id))}
+                    className="bg-cdm-bg-elev-1 text-cdm-fg rounded-full px-3 py-1 text-xs font-semibold"
+                    aria-label={`${m.nickname} 빼기`}
+                  >
+                    {m.nickname} ×
+                  </button>
+                ))}
+                {picked.length === 0 && (
+                  <span className="text-cdm-fg-subtle text-xs">검색해서 추가하세요.</span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

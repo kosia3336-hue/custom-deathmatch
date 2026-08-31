@@ -29,7 +29,7 @@ function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-/** POST /api/admin/mailbox-gift — 우편함으로 선물(CDP) 발송 */
+/** POST /api/admin/mailbox-gift — 우편으로 보상(CDP) 발송 */
 export async function POST(req: NextRequest) {
   const admin = await requireAdminMember();
   if (!admin) return bad('권한이 없습니다.', 403);
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     return bad(`CDP 는 0 이상 ${MAX_CDP.toLocaleString()} 이하로 적어 주세요.`);
   }
   if (!giftKey || !/^[a-z0-9-]{3,60}$/.test(giftKey)) {
-    return bad('선물 키는 영소문자·숫자·하이픈 3~60자로 적어 주세요.');
+    return bad('우편 키는 영소문자·숫자·하이픈 3~60자로 적어 주세요.');
   }
 
   const target = payload.target;
