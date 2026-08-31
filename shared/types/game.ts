@@ -40,6 +40,7 @@ export const GAME_IDS = {
   COMPLETE_HAP: 'game-021',
   KNIGHTS_TOUR: 'game-022',
   KINGMAKING: 'game-023',
+  TRIPLE_GOMOKU: 'game-024',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

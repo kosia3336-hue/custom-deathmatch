@@ -26,6 +26,7 @@ import FormulaCompletionViewer from '@/components/archive/viewers/formula-comple
 import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
 import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
 import KingmakingViewer from '@/components/archive/viewers/kingmaking';
+import TripleGomokuViewer from '@/components/archive/viewers/triple-gomoku';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -47,6 +48,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.COMPLETE_HAP]: CompleteHapViewer,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourViewer,
   [GAME_IDS.KINGMAKING]: KingmakingViewer,
+  [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuViewer,
 };
 
 export default function ArchiveViewPage() {
