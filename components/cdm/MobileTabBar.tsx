@@ -22,6 +22,9 @@ interface Tab {
  * 하단 기본 탭은 랭킹/로비/메뉴 3개로 줄이고, 게임 룰·칭호·상점은 이 시트로 모은다.
  */
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOnly?: boolean }[] = [
+  // 하단 탭에서 내려온 둘 — 자주 쓰므로 시트 맨 앞에 둔다
+  { href: '/ranking', label: '랭크', icon: <Icon name="rank" size="lg" /> },
+  { href: '/me', label: '내정보', icon: <Icon name="me" size="lg" />, memberOnly: true },
   { href: '/titles', label: '칭호', icon: <Icon name="title" size="lg" /> },
   { href: '/shop', label: '상점', icon: <Icon name="shop" size="lg" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon name="notice" size="lg" /> },
@@ -57,11 +60,14 @@ export function MobileTabBar({ isMember }: Props) {
 
   // 앱 재설계안의 하단 탭 4개 — 홈 · 랭크 · 게임 · 내정보.
   // '메뉴' 시트는 그대로 둔다: 길드·출석판·공지는 아직 다른 진입점이 없다.
+  /*
+    하단은 게임 · 홈 · 메뉴 셋만 둔다. 다섯 칸일 때는 무엇이 중심인지 흐렸다.
+    랭크·내정보는 메뉴 시트로 옮겼다 — 매번 누르는 곳은 아니다.
+    (메뉴는 시트를 여는 버튼이라 Link 가 아니고, 아래 렌더에서 직접 붙인다.)
+  */
   const tabs: Tab[] = [
-    { href: '/lobby', label: '홈', icon: <Icon name="home" size="lg" /> },
-    { href: '/ranking', label: '랭크', icon: <Icon name="rank" size="lg" /> },
     { href: '/rules', label: '게임', icon: <Icon name="game" size="lg" /> },
-    { href: '/me', label: '내정보', icon: <Icon name="me" size="lg" /> },
+    { href: '/lobby', label: '홈', icon: <Icon name="home" size="lg" /> },
   ];
 
   const menuActive = menuItems.some((m) => pathname?.startsWith(m.href));
