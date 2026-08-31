@@ -3758,7 +3758,7 @@ body {
 /* 홍련의 주작 -----------------------------------------------------------
    1) 글자는 중앙의 백금색 심지에서 시작해 붉은 불꽃이 양끝으로 번진다.
    2) 한 장의 금빛 깃털이 위에서 내려와 상단 중앙에 닿아 점화된다.
-   3) 하나로 이어진 화염막이 솟고, 검붉은 연기와 작은 불티가 뒤따른다.
+   3) 실제 화염 프레임이 상단 중앙에서 테두리를 타고 양쪽 아래로 번진다.
 
    모든 장식은 aria-hidden인 별도 레이어다. 실제 칭호 텍스트는 label 하나라
    복사·검색·스크린리더에서 중복되지 않는다. */
@@ -3775,8 +3775,8 @@ body {
 }
 @keyframes title-jujak-aura {
   0%, 30%, 100% { border-color: #6f1518; box-shadow: 0 0 3px rgba(127, 29, 29, .42), inset 0 0 5px rgba(127, 29, 29, .14); }
-  40% { border-color: #d94a1b; box-shadow: 0 0 6px rgba(234, 88, 12, .7), inset 0 0 7px rgba(251, 146, 60, .2); }
-  72%, 88% { border-color: #ea681f; box-shadow: 0 0 5px rgba(249, 115, 22, .62), 0 0 11px rgba(185, 28, 28, .28), inset 0 0 6px rgba(251, 146, 60, .2); }
+  40% { border-color: #7f1c19; box-shadow: 0 0 3px rgba(153, 27, 27, .34), inset 0 0 5px rgba(127, 29, 29, .14); }
+  72%, 88% { border-color: #8d251c; box-shadow: 0 0 3px rgba(153, 27, 27, .38), inset 0 0 5px rgba(127, 29, 29, .16); }
 }
 @keyframes title-jujak-feather-fall {
   0%, 6% { opacity: 0; transform: translate3d(calc(-50% - 5px), -20px, 0) rotate(-8deg) scale(.84); }
@@ -3793,46 +3793,6 @@ body {
   39% { opacity: 0; transform: translate(-50%, -50%) scale(3.4, 1.8); }
   100% { opacity: 0; }
 }
-@keyframes title-jujak-fire-rise {
-  0%, 31%, 100% { opacity: 0; transform: translate3d(0, 4px, 0) scale(.48, .34); }
-  35% { opacity: .36; transform: translate3d(0, 2px, 0) scale(.7, .58); }
-  42% { opacity: .68; transform: translate3d(0, 0, 0) scale(.96, .9); }
-  58% { opacity: .76; transform: translate3d(0, -1px, 0) scale(1, 1.02); }
-  76%, 88% { opacity: .7; transform: translate3d(0, -1px, 0) scale(1.015, .98); }
-  97% { opacity: 0; transform: translate3d(0, -4px, 0) scale(1.04, .84); }
-}
-@keyframes title-jujak-fire-outer-drift {
-  0% { transform: skewX(-1.5deg) scaleY(.96); }
-  46% { transform: translateY(-1px) skewX(1.4deg) scaleY(1.035); }
-  100% { transform: skewX(-.6deg) scaleY(.98); }
-}
-@keyframes title-jujak-fire-inner-drift {
-  0% { transform: skewX(1deg) scaleY(.94); }
-  55% { transform: translateY(-.7px) skewX(-1.8deg) scaleY(1.04); }
-  100% { transform: skewX(.4deg) scaleY(.97); }
-}
-@keyframes title-jujak-smoke-reveal {
-  0%, 48%, 100% { opacity: 0; }
-  57% { opacity: .82; }
-  82% { opacity: .7; }
-  96% { opacity: 0; }
-}
-@keyframes title-jujak-smoke-rise {
-  0% { opacity: 0; transform: translate3d(0, 4px, 0) scale(.52); }
-  20% { opacity: .34; }
-  64% { opacity: .2; }
-  100% { opacity: 0; transform: translate3d(var(--jsmoke-drift), -18px, 0) scale(1.55, 1.3); }
-}
-@keyframes title-jujak-ember-flight {
-  0% { opacity: 0; transform: translate3d(0, 3px, 0) scale(.35); }
-  25% { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(var(--jember-drift), -13px, 0) scale(.08); }
-}
-@keyframes title-jujak-embers-reveal {
-  0%, 38% { opacity: 0; }
-  45%, 86% { opacity: 1; }
-  96%, 100% { opacity: 0; }
-}
 .title-jujak {
   position: relative;
   isolation: isolate;
@@ -3843,6 +3803,17 @@ body {
     radial-gradient(circle at 50% 0%, rgba(122, 22, 14, .26), transparent 58%),
     linear-gradient(180deg, rgba(56, 5, 7, .32), rgba(17, 2, 3, .08));
   animation: title-jujak-aura 8.4s ease-in-out infinite;
+}
+.title-jujak::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(91, 17, 13, .25), transparent 60%),
+    rgba(19, 2, 4, .9);
 }
 .title-jujak-label {
   position: relative;
@@ -3864,7 +3835,7 @@ body {
 }
 .title-jujak-fx {
   position: absolute;
-  z-index: 2;
+  z-index: auto;
   inset: -17px -17px -21px;
   overflow: visible;
   pointer-events: none;
@@ -3874,36 +3845,13 @@ body {
   z-index: 5;
   top: 0;
   left: 50%;
-  width: 32px;
-  height: 12px;
+  width: 50px;
+  height: 16px;
   opacity: 0;
+  background: url('/effects/titles/jujak/phoenix-feather.webp') center / contain no-repeat;
   transform-origin: 50% 100%;
-  filter: drop-shadow(0 0 3px rgba(255, 180, 38, .68));
+  filter: drop-shadow(0 0 1.5px rgba(255, 168, 39, .45));
   animation: title-jujak-feather-fall 8.4s cubic-bezier(.4, .03, .48, .98) infinite;
-}
-.title-jujak-feather svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.title-jujak-feather-vane {
-  fill: #b91f1b;
-  stroke: #ffb52f;
-  stroke-width: .55;
-  paint-order: stroke fill;
-}
-.title-jujak-feather-light {
-  fill: #ef5620;
-  opacity: .74;
-}
-.title-jujak-feather-cut {
-  fill: none;
-  stroke: #ffd96d;
-  stroke-width: .55;
-  stroke-linecap: round;
-  opacity: .88;
-}
-.title-jujak-feather-shaft {
-  fill: none;
-  stroke: #fff1a8;
-  stroke-width: .72;
-  stroke-linecap: round;
 }
 .title-jujak-impact {
   position: absolute;
@@ -3918,109 +3866,21 @@ body {
   opacity: 0;
   animation: title-jujak-impact 8.4s ease-out infinite;
 }
-.title-jujak-fire-field {
+.title-jujak-fire-canvas {
   position: absolute;
-  z-index: 2;
-  inset: 1px 12px 21px;
-  opacity: 0;
-  transform-origin: 50% 78%;
-  filter:
-    drop-shadow(0 0 1.5px rgba(255, 218, 132, .4))
-    drop-shadow(0 0 4px rgba(185, 42, 27, .36));
-  animation: title-jujak-fire-rise 8.4s cubic-bezier(.24, .02, .18, 1) infinite;
-  will-change: transform, opacity;
-}
-.title-jujak-fire-svg {
+  z-index: 0;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
-  overflow: visible;
-}
-.title-jujak-fire-outer,
-.title-jujak-fire-inner,
-.title-jujak-fire-core {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  will-change: transform;
-}
-.title-jujak-fire-outer {
-  animation: title-jujak-fire-outer-drift 1.7s ease-in-out infinite alternate;
-}
-.title-jujak-fire-inner {
-  animation: title-jujak-fire-inner-drift 1.28s ease-in-out -.63s infinite alternate;
-}
-.title-jujak-fire-core {
   mix-blend-mode: screen;
-  animation: title-jujak-fire-outer-drift 1.05s ease-in-out -.31s infinite alternate-reverse;
+  filter: saturate(1.08) contrast(1.02);
 }
-.title-jujak-smoke-field {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  opacity: 0;
-  animation: title-jujak-smoke-reveal 8.4s ease-in-out infinite;
-}
-.title-jujak-smoke {
-  --jsmoke-drift: 2px;
-  position: absolute;
-  top: 17px;
-  left: 50%;
-  width: 26px;
-  height: 12px;
-  margin-left: -13px;
-  border-radius: 50%;
-  opacity: 0;
-  background:
-    radial-gradient(ellipse at 42% 54%, rgba(145, 48, 52, .3), rgba(73, 34, 40, .13) 46%, transparent 72%);
-  filter: blur(3px);
-  animation: title-jujak-smoke-rise 2.8s ease-out infinite;
-  will-change: transform, opacity;
-}
-.title-jujak-smoke:nth-child(2) {
-  --jsmoke-drift: -7px;
-  left: 38%;
-  width: 22px;
-  animation-delay: -.92s;
-}
-.title-jujak-smoke:nth-child(3) {
-  --jsmoke-drift: 7px;
-  left: 63%;
-  width: 20px;
-  animation-delay: -1.76s;
-}
-.title-jujak-embers {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  animation: title-jujak-embers-reveal 8.4s ease-in-out infinite;
-}
-.title-jujak-ember {
-  --jember-drift: 3px;
-  position: absolute;
-  width: 1.5px;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 248, 195, 0), #ffd55c 52%, #f04a1e 100%);
-  box-shadow: 0 0 3px rgba(255, 137, 27, .76);
-  animation: title-jujak-ember-flight 1.35s ease-out infinite;
-}
-.title-jujak-ember:nth-child(1) { left: 43%; top: 17px; --jember-drift: -3px; animation-delay: -.18s; }
-.title-jujak-ember:nth-child(2) { left: 62%; top: 21px; --jember-drift: 2px; animation-delay: -.82s; }
-.title-jujak-ember:nth-child(3) { left: 24%; top: 29px; --jember-drift: -2px; animation-delay: -.49s; }
-.title-jujak-ember:nth-child(4) { left: 79%; top: 31px; --jember-drift: 3px; animation-delay: -1.07s; }
 @media (prefers-reduced-motion: reduce) {
   .title-jujak,
   .title-jujak-label,
   .title-jujak-feather,
-  .title-jujak-impact,
-  .title-jujak-fire-field,
-  .title-jujak-fire-outer,
-  .title-jujak-fire-inner,
-  .title-jujak-fire-core,
-  .title-jujak-smoke-field,
-  .title-jujak-smoke,
-  .title-jujak-embers,
-  .title-jujak-ember { animation: none; }
+  .title-jujak-impact { animation: none; }
   .title-jujak {
     border-color: #ea580c;
     box-shadow: 0 0 7px rgba(234, 88, 12, .72), 0 0 14px rgba(185, 28, 28, .35);
@@ -4028,9 +3888,7 @@ body {
   .title-jujak-label { background-size: 160% 100%; }
   .title-jujak-feather,
   .title-jujak-impact,
-  .title-jujak-fire-field,
-  .title-jujak-smoke-field,
-  .title-jujak-embers { display: none; }
+  .title-jujak-fire-canvas { display: none; }
 }
 
 

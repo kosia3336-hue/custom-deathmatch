@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -126,105 +126,244 @@ export function TitleBadge({ name, color, effect, size = 'md', className }: Titl
 }
 
 function TitleJujakMark({ name }: { name: string }) {
-  const uid = useId().replace(/:/g, '');
-  const heatFilterId = `${uid}-jujak-heat`;
-  const outerGradientId = `${uid}-jujak-outer`;
-  const innerGradientId = `${uid}-jujak-inner`;
-  const coreGradientId = `${uid}-jujak-core`;
-
   return (
     <>
       <span className="title-jujak-label" data-text={name}>{name}</span>
       <span className="title-jujak-fx" aria-hidden>
-        <span className="title-jujak-feather">
-          <svg viewBox="0 0 40 14" role="presentation">
-            <path className="title-jujak-feather-vane" d="M1 7.7C5.3 3.1 11.2.7 18.1.7c6.1.1 10.5 2.1 13.8 5.6-7.7.2-15.7 1.4-23.7 4.7C5.2 10.7 2.5 9.4 1 7.7Z" />
-            <path className="title-jujak-feather-light" d="M2.8 7.1C7 3.5 12.6 1.7 18.5 1.7c4.5.1 8.1 1.3 11 3.8-7.7-.8-15.8-.1-23.1 2.8-1.5.1-2.7-.3-3.6-1.2Z" />
-            <path className="title-jujak-feather-cut" d="m7.2 6.3 1.5-3m2.6 2.1 2.1-4m2.2 3.6 2-4m2.2 4 2.5-3.6m1.7 4 2.7-2.6M8.5 8.7l-2 2m6.1-3 1 3.9m3-4.5 1.7 3.8m2.1-4.2 2.3 3.1m1.5-3.5 3 2.2" />
-            <path className="title-jujak-feather-shaft" d="M1 7.9c11.6-.5 24-1.3 38-.5" />
-          </svg>
-        </span>
+        <span className="title-jujak-feather" />
         <span className="title-jujak-impact" />
-        <span className="title-jujak-smoke-field">
-          {Array.from({ length: 3 }, (_, i) => (
-            <span key={`smoke-${i}`} className="title-jujak-smoke" />
-          ))}
-        </span>
-        <span className="title-jujak-fire-field">
-          <svg
-            className="title-jujak-fire-svg"
-            viewBox="0 0 160 64"
-            preserveAspectRatio="none"
-            role="presentation"
-          >
-            <defs>
-              <filter
-                id={heatFilterId}
-                x="-18%"
-                y="-22%"
-                width="136%"
-                height="144%"
-                colorInterpolationFilters="sRGB"
-              >
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.018 0.075"
-                  numOctaves="2"
-                  seed="23"
-                  result="heatNoise"
-                />
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="heatNoise"
-                  scale="3.2"
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-              <linearGradient id={outerGradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7f1726" stopOpacity="0.2" />
-                <stop offset="38%" stopColor="#b82025" stopOpacity="0.76" />
-                <stop offset="72%" stopColor="#ed4b24" stopOpacity="0.88" />
-                <stop offset="100%" stopColor="#f59e31" stopOpacity="0.58" />
-              </linearGradient>
-              <linearGradient id={innerGradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d22924" stopOpacity="0.08" />
-                <stop offset="54%" stopColor="#f05a28" stopOpacity="0.84" />
-                <stop offset="100%" stopColor="#ffd166" stopOpacity="0.94" />
-              </linearGradient>
-              <linearGradient id={coreGradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffb64b" stopOpacity="0.12" />
-                <stop offset="62%" stopColor="#ffd977" stopOpacity="0.92" />
-                <stop offset="100%" stopColor="#fff8d3" />
-              </linearGradient>
-            </defs>
-            <g filter={`url(#${heatFilterId})`}>
-              <path
-                className="title-jujak-fire-outer"
-                fill={`url(#${outerGradientId})`}
-                d="M18 58c6-10 11-12 16-20 1 7 6 9 10 3 6-9 8-18 15-24-1 11 5 18 11 14 7-5 9-16 15-24 4 12 8 22 16 26 7 3 10-5 15-14 2 12 8 18 14 23 5 4 9 9 12 16Z"
-              />
-              <path
-                className="title-jujak-fire-inner"
-                fill={`url(#${innerGradientId})`}
-                d="M39 58c5-9 10-12 14-20 2 8 6 10 11 4 6-7 8-17 14-24 1 12 6 21 13 22 7 1 10-8 15-16 1 12 7 20 15 34Z"
-              />
-              <path
-                className="title-jujak-fire-core"
-                fill={`url(#${coreGradientId})`}
-                d="M61 58c4-7 8-10 11-17 1 6 4 9 8 6 5-4 6-13 10-20 2 10 5 19 11 23 4 2 7 5 10 8Z"
-              />
-            </g>
-          </svg>
-        </span>
-        <span className="title-jujak-embers">
-          {Array.from({ length: 4 }, (_, i) => (
-            <span key={`ember-${i}`} className="title-jujak-ember" />
-          ))}
-        </span>
+        <TitleJujakFireCanvas />
       </span>
     </>
   );
+}
+
+const JUJAK_FIRE_ATLAS = '/effects/titles/jujak/fire-atlas.png';
+const JUJAK_FIRE_CYCLE_MS = 8_400;
+const JUJAK_FIRE_FRAME_SIZE = 128;
+const JUJAK_FIRE_FRAME_COUNT = 25;
+const JUJAK_FIRE_COLUMNS = 5;
+
+interface JujakPathPoint {
+  x: number;
+  y: number;
+}
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function smoothstep(value: number) {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+}
+
+function hashUnit(value: number) {
+  const raw = Math.sin(value * 12.9898) * 43_758.5453;
+  return raw - Math.floor(raw);
+}
+
+/** Top-centre to bottom-centre along one half of a rounded pill. */
+function pointOnJujakHalf(
+  progress: number,
+  side: -1 | 1,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): JujakPathPoint {
+  const radius = height / 2;
+  const straightX = Math.max(0, width / 2 - radius);
+  const straightY = Math.max(0, height - radius * 2);
+  const arc = Math.PI * radius / 2;
+  const total = straightX * 2 + straightY + arc * 2;
+  let distance = clamp01(progress) * total;
+  const centreX = x + width / 2;
+
+  if (distance <= straightX) {
+    return { x: centreX + side * distance, y };
+  }
+  distance -= straightX;
+
+  if (distance <= arc) {
+    const angleProgress = distance / arc;
+    const angle = side === 1
+      ? -Math.PI / 2 + angleProgress * Math.PI / 2
+      : -Math.PI / 2 - angleProgress * Math.PI / 2;
+    const cornerX = centreX + side * straightX;
+    return {
+      x: cornerX + Math.cos(angle) * radius,
+      y: y + radius + Math.sin(angle) * radius,
+    };
+  }
+  distance -= arc;
+
+  if (distance <= straightY) {
+    return {
+      x: centreX + side * (straightX + radius),
+      y: y + radius + distance,
+    };
+  }
+  distance -= straightY;
+
+  if (distance <= arc) {
+    const angleProgress = distance / arc;
+    const angle = side === 1
+      ? angleProgress * Math.PI / 2
+      : Math.PI - angleProgress * Math.PI / 2;
+    const cornerX = centreX + side * straightX;
+    return {
+      x: cornerX + Math.cos(angle) * radius,
+      y: y + height - radius + Math.sin(angle) * radius,
+    };
+  }
+  distance -= arc;
+
+  return {
+    x: centreX + side * Math.max(0, straightX - distance),
+    y: y + height,
+  };
+}
+
+function drawJujakPathGlow(
+  context: CanvasRenderingContext2D,
+  side: -1 | 1,
+  spread: number,
+  alpha: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const segments = Math.max(2, Math.ceil(46 * spread));
+  context.beginPath();
+  for (let index = 0; index <= segments; index += 1) {
+    const point = pointOnJujakHalf((index / segments) * spread, side, x, y, width, height);
+    if (index === 0) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  }
+  context.globalAlpha = alpha;
+  context.strokeStyle = '#ff9d32';
+  context.lineWidth = 1.25;
+  context.shadowColor = '#ef3f18';
+  context.shadowBlur = 5;
+  context.stroke();
+}
+
+function TitleJujakFireCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotion.matches) return;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const atlas = new Image();
+    atlas.src = JUJAK_FIRE_ATLAS;
+    const startedAt = performance.now();
+    let animationFrame = 0;
+    let disposed = false;
+
+    const render = (now: number) => {
+      if (disposed) return;
+
+      const cssWidth = canvas.clientWidth;
+      const cssHeight = canvas.clientHeight;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio));
+      const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio));
+
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
+
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.clearRect(0, 0, cssWidth, cssHeight);
+
+      if (atlas.complete && atlas.naturalWidth > 0 && cssWidth > 0 && cssHeight > 0) {
+        const cycle = ((now - startedAt) % JUJAK_FIRE_CYCLE_MS) / JUJAK_FIRE_CYCLE_MS;
+        const spread = smoothstep((cycle - 0.33) / 0.38);
+        const fadeIn = smoothstep((cycle - 0.32) / 0.08);
+        const fadeOut = 1 - smoothstep((cycle - 0.9) / 0.08);
+        const globalAlpha = fadeIn * fadeOut;
+
+        if (globalAlpha > 0.001 && spread > 0.001) {
+          // `.title-jujak-fx` extends 17px above/sideways and 21px below the badge.
+          const badgeX = 17;
+          const badgeY = 17;
+          const badgeWidth = Math.max(1, cssWidth - 34);
+          const badgeHeight = Math.max(1, cssHeight - 38);
+
+          context.save();
+          context.globalCompositeOperation = 'lighter';
+          drawJujakPathGlow(context, -1, spread, globalAlpha * 0.72, badgeX, badgeY, badgeWidth, badgeHeight);
+          drawJujakPathGlow(context, 1, spread, globalAlpha * 0.72, badgeX, badgeY, badgeWidth, badgeHeight);
+          context.shadowBlur = 0;
+
+          const halfPathLength = badgeWidth / 2 + badgeHeight * 1.55;
+          const emitterCount = Math.max(5, Math.ceil(halfPathLength / 12));
+          const animationFrameIndex = Math.floor(now / (1000 / 30));
+
+          for (const side of [-1, 1] as const) {
+            for (let index = 0; index <= emitterCount; index += 1) {
+              if (side === 1 && index === 0) continue;
+              const seed = index + (side === 1 ? 31 : 7);
+              if (index > 0 && index < emitterCount && hashUnit(seed + 151) < 0.14) continue;
+              const basePathProgress = index / emitterCount;
+              const progressJitter = (hashUnit(seed + 167) - 0.5) * (0.68 / emitterCount);
+              const pathProgress = index === 0 || index === emitterCount
+                ? basePathProgress
+                : clamp01(basePathProgress + progressJitter);
+              if (pathProgress > spread) continue;
+
+              const ignitionCycle = 0.33 + pathProgress * 0.38;
+              const localAge = cycle - ignitionCycle;
+              const localAlpha = smoothstep(localAge / 0.055);
+              const scale = 0.7 + hashUnit(seed) * 0.42;
+              const flameWidth = Math.max(16, badgeHeight * 0.8) * scale;
+              const flameHeight = flameWidth * (1.26 + hashUnit(seed + 19) * 0.18);
+              const point = pointOnJujakHalf(pathProgress, side, badgeX, badgeY, badgeWidth, badgeHeight);
+              const frame = (animationFrameIndex + Math.floor(hashUnit(seed + 43) * JUJAK_FIRE_FRAME_COUNT)) % JUJAK_FIRE_FRAME_COUNT;
+              const sourceX = (frame % JUJAK_FIRE_COLUMNS) * JUJAK_FIRE_FRAME_SIZE;
+              const sourceY = Math.floor(frame / JUJAK_FIRE_COLUMNS) * JUJAK_FIRE_FRAME_SIZE;
+              const driftX = (hashUnit(seed + 73) - 0.5) * 2.2;
+              const lift = 2 + hashUnit(seed + 97) * 2.5;
+
+              context.globalAlpha = globalAlpha * localAlpha * (0.38 + hashUnit(seed + 11) * 0.2);
+              context.drawImage(
+                atlas,
+                sourceX,
+                sourceY,
+                JUJAK_FIRE_FRAME_SIZE,
+                JUJAK_FIRE_FRAME_SIZE,
+                point.x - flameWidth / 2 + driftX,
+                point.y - flameHeight + lift,
+                flameWidth,
+                flameHeight,
+              );
+            }
+          }
+          context.restore();
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(render);
+    };
+
+    animationFrame = window.requestAnimationFrame(render);
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="title-jujak-fire-canvas" />;
 }
 
 function TitleWaveMark({ name }: { name: string }) {
