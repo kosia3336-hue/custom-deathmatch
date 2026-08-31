@@ -772,8 +772,14 @@ function applyFirstSubmit(io: IO, s: InternalState, tiles: SBNWTile[]) {
   s.firstDigits = tiles.length;
   s.phase = 'secondSubmit';
 
-  broadcastState(io, s);
+  /*
+    타이머를 먼저 건다. startSecondSubmitTimer 이 turnStartedAt 을 갱신하는데,
+    그 전에 방송하면 클라이언트가 '앞 차례의 시작 시각' 을 받는다. 화면은 앞
+    사람이 쓴 시간만큼 이미 흘러간 상태로 카운트다운을 시작해, 00:00 이 된 뒤에도
+    실제 만료까지 그만큼 더 남아 있게 된다.
+  */
   startSecondSubmitTimer(io, s);
+  broadcastState(io, s);
 
   if (s.playMode === 'com') s.onAITurn?.(io, s);
 }
