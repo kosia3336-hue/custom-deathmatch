@@ -126,6 +126,12 @@ export function TitleBadge({ name, color, effect, size = 'md', className }: Titl
 }
 
 function TitleJujakMark({ name }: { name: string }) {
+  const uid = useId().replace(/:/g, '');
+  const heatFilterId = `${uid}-jujak-heat`;
+  const outerGradientId = `${uid}-jujak-outer`;
+  const innerGradientId = `${uid}-jujak-inner`;
+  const coreGradientId = `${uid}-jujak-core`;
+
   return (
     <>
       <span className="title-jujak-label" data-text={name}>{name}</span>
@@ -139,10 +145,77 @@ function TitleJujakMark({ name }: { name: string }) {
           </svg>
         </span>
         <span className="title-jujak-impact" />
-        <span className="title-jujak-flames">
-          {Array.from({ length: 9 }, (_, i) => (
-            <span key={`flame-${i}`} className="title-jujak-flame" />
+        <span className="title-jujak-smoke-field">
+          {Array.from({ length: 3 }, (_, i) => (
+            <span key={`smoke-${i}`} className="title-jujak-smoke" />
           ))}
+        </span>
+        <span className="title-jujak-fire-field">
+          <svg
+            className="title-jujak-fire-svg"
+            viewBox="0 0 160 64"
+            preserveAspectRatio="none"
+            role="presentation"
+          >
+            <defs>
+              <filter
+                id={heatFilterId}
+                x="-18%"
+                y="-22%"
+                width="136%"
+                height="144%"
+                colorInterpolationFilters="sRGB"
+              >
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.018 0.075"
+                  numOctaves="2"
+                  seed="23"
+                  result="heatNoise"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="heatNoise"
+                  scale="3.2"
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
+              <linearGradient id={outerGradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7f1726" stopOpacity="0.2" />
+                <stop offset="38%" stopColor="#b82025" stopOpacity="0.76" />
+                <stop offset="72%" stopColor="#ed4b24" stopOpacity="0.88" />
+                <stop offset="100%" stopColor="#f59e31" stopOpacity="0.58" />
+              </linearGradient>
+              <linearGradient id={innerGradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d22924" stopOpacity="0.08" />
+                <stop offset="54%" stopColor="#f05a28" stopOpacity="0.84" />
+                <stop offset="100%" stopColor="#ffd166" stopOpacity="0.94" />
+              </linearGradient>
+              <linearGradient id={coreGradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffb64b" stopOpacity="0.12" />
+                <stop offset="62%" stopColor="#ffd977" stopOpacity="0.92" />
+                <stop offset="100%" stopColor="#fff8d3" />
+              </linearGradient>
+            </defs>
+            <g filter={`url(#${heatFilterId})`}>
+              <path
+                className="title-jujak-fire-outer"
+                fill={`url(#${outerGradientId})`}
+                d="M18 58c6-10 11-12 16-20 1 7 6 9 10 3 6-9 8-18 15-24-1 11 5 18 11 14 7-5 9-16 15-24 4 12 8 22 16 26 7 3 10-5 15-14 2 12 8 18 14 23 5 4 9 9 12 16Z"
+              />
+              <path
+                className="title-jujak-fire-inner"
+                fill={`url(#${innerGradientId})`}
+                d="M39 58c5-9 10-12 14-20 2 8 6 10 11 4 6-7 8-17 14-24 1 12 6 21 13 22 7 1 10-8 15-16 1 12 7 20 15 34Z"
+              />
+              <path
+                className="title-jujak-fire-core"
+                fill={`url(#${coreGradientId})`}
+                d="M61 58c4-7 8-10 11-17 1 6 4 9 8 6 5-4 6-13 10-20 2 10 5 19 11 23 4 2 7 5 10 8Z"
+              />
+            </g>
+          </svg>
         </span>
         <span className="title-jujak-embers">
           {Array.from({ length: 4 }, (_, i) => (
