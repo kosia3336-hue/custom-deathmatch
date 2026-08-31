@@ -138,11 +138,22 @@ function TitleJujakMark({ name }: { name: string }) {
   );
 }
 
-const JUJAK_FIRE_ATLAS = '/effects/titles/jujak/fire-atlas.png';
+const JUJAK_FIRE_ATLAS = '/effects/titles/jujak/fire-atlas.webp';
 const JUJAK_FIRE_CYCLE_MS = 8_400;
 const JUJAK_FIRE_FRAME_SIZE = 128;
 const JUJAK_FIRE_FRAME_COUNT = 25;
 const JUJAK_FIRE_COLUMNS = 5;
+const JUJAK_FIRE_FRAME_INTERVAL_MS = 1000 / 30;
+
+let sharedJujakFireAtlas: HTMLImageElement | null = null;
+
+function getJujakFireAtlas() {
+  if (!sharedJujakFireAtlas) {
+    sharedJujakFireAtlas = new Image();
+    sharedJujakFireAtlas.src = JUJAK_FIRE_ATLAS;
+  }
+  return sharedJujakFireAtlas;
+}
 
 interface JujakPathPoint {
   x: number;
@@ -257,23 +268,22 @@ function TitleJujakFireCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reducedMotion.matches) return;
-
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    const atlas = new Image();
-    atlas.src = JUJAK_FIRE_ATLAS;
+    const atlas = getJujakFireAtlas();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const startedAt = performance.now();
     let animationFrame = 0;
+    let lastPaintAt = 0;
     let disposed = false;
+    let isVisible = true;
+    let cssWidth = canvas.clientWidth;
+    let cssHeight = canvas.clientHeight;
 
-    const render = (now: number) => {
-      if (disposed) return;
-
-      const cssWidth = canvas.clientWidth;
-      const cssHeight = canvas.clientHeight;
+    const syncCanvasSize = (width: number, height: number) => {
+      cssWidth = width;
+      cssHeight = height;
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio));
       const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio));
@@ -282,15 +292,34 @@ function TitleJujakFireCanvas() {
         canvas.width = targetWidth;
         canvas.height = targetHeight;
       }
+    };
 
+    syncCanvasSize(cssWidth, cssHeight);
+
+    const scheduleRender = () => {
+      if (!disposed && isVisible && !reducedMotion.matches && animationFrame === 0) {
+        animationFrame = window.requestAnimationFrame(render);
+      }
+    };
+
+    const render = (now: number) => {
+      animationFrame = 0;
+      if (disposed || !isVisible || reducedMotion.matches) return;
+      if (now - lastPaintAt < JUJAK_FIRE_FRAME_INTERVAL_MS) {
+        scheduleRender();
+        return;
+      }
+      lastPaintAt = now;
+
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.clearRect(0, 0, cssWidth, cssHeight);
 
       if (atlas.complete && atlas.naturalWidth > 0 && cssWidth > 0 && cssHeight > 0) {
         const cycle = ((now - startedAt) % JUJAK_FIRE_CYCLE_MS) / JUJAK_FIRE_CYCLE_MS;
-        const spread = smoothstep((cycle - 0.33) / 0.38);
-        const fadeIn = smoothstep((cycle - 0.32) / 0.08);
-        const fadeOut = 1 - smoothstep((cycle - 0.9) / 0.08);
+        const spread = smoothstep((cycle - 0.23) / 0.31);
+        const fadeIn = smoothstep((cycle - 0.22) / 0.06);
+        const fadeOut = 1 - smoothstep((cycle - 0.94) / 0.05);
         const globalAlpha = fadeIn * fadeOut;
 
         if (globalAlpha > 0.001 && spread > 0.001) {
@@ -308,7 +337,7 @@ function TitleJujakFireCanvas() {
 
           const halfPathLength = badgeWidth / 2 + badgeHeight * 1.55;
           const emitterCount = Math.max(5, Math.ceil(halfPathLength / 12));
-          const animationFrameIndex = Math.floor(now / (1000 / 30));
+          const animationFrameIndex = Math.floor(now / JUJAK_FIRE_FRAME_INTERVAL_MS);
 
           for (const side of [-1, 1] as const) {
             for (let index = 0; index <= emitterCount; index += 1) {
@@ -322,7 +351,7 @@ function TitleJujakFireCanvas() {
                 : clamp01(basePathProgress + progressJitter);
               if (pathProgress > spread) continue;
 
-              const ignitionCycle = 0.33 + pathProgress * 0.38;
+              const ignitionCycle = 0.23 + pathProgress * 0.31;
               const localAge = cycle - ignitionCycle;
               const localAlpha = smoothstep(localAge / 0.055);
               const scale = 0.7 + hashUnit(seed) * 0.42;
@@ -353,13 +382,51 @@ function TitleJujakFireCanvas() {
         }
       }
 
-      animationFrame = window.requestAnimationFrame(render);
+      scheduleRender();
     };
 
-    animationFrame = window.requestAnimationFrame(render);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(([entry]) => {
+          if (entry) syncCanvasSize(entry.contentRect.width, entry.contentRect.height);
+        });
+    resizeObserver?.observe(canvas);
+
+    const intersectionObserver = typeof IntersectionObserver === 'undefined'
+      ? null
+      : new IntersectionObserver(([entry]) => {
+          if (!entry) return;
+          isVisible = entry.isIntersecting;
+          if (!isVisible && animationFrame) {
+            window.cancelAnimationFrame(animationFrame);
+            animationFrame = 0;
+          } else if (isVisible) {
+            scheduleRender();
+          }
+        });
+    intersectionObserver?.observe(canvas);
+
+    const handleMotionPreference = () => {
+      if (reducedMotion.matches) {
+        if (animationFrame) window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.clearRect(0, 0, cssWidth, cssHeight);
+      } else {
+        lastPaintAt = 0;
+        scheduleRender();
+      }
+    };
+    reducedMotion.addEventListener('change', handleMotionPreference);
+    scheduleRender();
+
     return () => {
       disposed = true;
-      window.cancelAnimationFrame(animationFrame);
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+      reducedMotion.removeEventListener('change', handleMotionPreference);
     };
   }, []);
 
