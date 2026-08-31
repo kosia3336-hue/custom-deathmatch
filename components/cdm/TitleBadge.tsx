@@ -317,8 +317,8 @@ function TitleJujakFireCanvas() {
 
       if (atlas.complete && atlas.naturalWidth > 0 && cssWidth > 0 && cssHeight > 0) {
         const cycle = ((now - startedAt) % JUJAK_FIRE_CYCLE_MS) / JUJAK_FIRE_CYCLE_MS;
-        const spread = smoothstep((cycle - 0.23) / 0.31);
-        const fadeIn = smoothstep((cycle - 0.22) / 0.06);
+        const spread = smoothstep((cycle - 0.21) / 0.22);
+        const fadeIn = smoothstep((cycle - 0.2) / 0.05);
         const fadeOut = 1 - smoothstep((cycle - 0.94) / 0.05);
         const globalAlpha = fadeIn * fadeOut;
 
@@ -351,7 +351,7 @@ function TitleJujakFireCanvas() {
                 : clamp01(basePathProgress + progressJitter);
               if (pathProgress > spread) continue;
 
-              const ignitionCycle = 0.23 + pathProgress * 0.31;
+              const ignitionCycle = 0.21 + pathProgress * 0.22;
               const localAge = cycle - ignitionCycle;
               const localAlpha = smoothstep(localAge / 0.055);
               const scale = 0.7 + hashUnit(seed) * 0.42;
