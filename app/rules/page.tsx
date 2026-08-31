@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
 import GNB from '@/components/layout/GNB';
+import { getActiveMember } from '@/lib/auth/server';
 import RulesClient from './RulesClient';
 import { CONTAINER_READ } from '@/lib/layout';
 
 export const metadata: Metadata = { title: '게임 룰' };
 
-export default function RulesPage() {
+export default async function RulesPage() {
+  /* 출시 전 게임은 관리자에게만 보인다 (lib/unreleasedGames.ts) */
+  const member = await getActiveMember();
+  const isAdmin = member?.role === 'admin';
+
   return (
     <div className="flex flex-1 flex-col bg-cdm-page">
       <GNB />
@@ -16,7 +21,7 @@ export default function RulesPage() {
             게임을 눌러 룰을 확인하세요.
           </p>
         </div>
-        <RulesClient />
+        <RulesClient isAdmin={isAdmin} />
       </main>
     </div>
   );

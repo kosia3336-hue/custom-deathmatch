@@ -5,6 +5,8 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
+import { useCurrentMember } from '@/hooks/useCurrentMember';
+import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
@@ -47,6 +49,8 @@ function supportsPlayMode(game: Game, playMode: PlayMode): boolean {
 
 export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const { setFooterHidden } = useRoomLayout();
+  const { member } = useCurrentMember();
+  const isAdmin = member?.role === 'admin';
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [playMode, setPlayMode] = useState<PlayMode>('multi');
@@ -119,8 +123,11 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
 
     fetchGames()
       .then((gsAll) => {
-        const gs = gsAll.filter(
-          (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+        const gs = filterUnreleased(
+          gsAll.filter(
+            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+          ),
+          isAdmin,
         );
         setGames(gs);
         const current = gs.find((g) => g.id === room.gameId) ?? null;
