@@ -71,7 +71,7 @@ try {
       '-background', 'none',
       '-fill', '#111a3d',
       '-font', fontPath,
-      '-pointsize', '82',
+      '-pointsize', '128',
       `label:${value}`,
       numberPath,
     ]);
@@ -81,12 +81,12 @@ try {
       frontPath,
       numberPath,
       '-gravity', 'northwest',
-      '-geometry', '+50+36',
+      '-geometry', '+42+22',
       '-compose', 'Over',
       '-composite',
       rotatedNumberPath,
       '-gravity', 'southeast',
-      '-geometry', '+50+36',
+      '-geometry', '+42+22',
       '-composite',
       '-gravity', 'northwest',
     ];
