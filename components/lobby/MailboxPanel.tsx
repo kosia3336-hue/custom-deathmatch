@@ -90,7 +90,7 @@ function KindGlyph({ kind }: { kind: MailKind }) {
         <path
           d="M12 3 14.5 8.5 20.5 9.2 16 13.4 17.2 19.4 12 16.6 6.8 19.4 8 13.4 3.5 9.2 9.5 8.5 12 3Z"
           stroke="currentColor"
-          strokeWidth="1.7"
+          strokeWidth="1.8"
           strokeLinejoin="round"
         />
       </svg>
@@ -102,7 +102,7 @@ function KindGlyph({ kind }: { kind: MailKind }) {
         <path
           d="M12 3 20 7v5c0 5-3.4 8.4-8 9.5C7.4 20.4 4 17 4 12V7l8-4Z"
           stroke="currentColor"
-          strokeWidth="1.7"
+          strokeWidth="1.8"
           strokeLinejoin="round"
         />
       </svg>
@@ -114,13 +114,13 @@ function KindGlyph({ kind }: { kind: MailKind }) {
         <path
           d="M5 10v6h2.5L12 21V3L7.5 8H5a2 2 0 0 0-2 2Z"
           stroke="currentColor"
-          strokeWidth="1.7"
+          strokeWidth="1.8"
           strokeLinejoin="round"
         />
         <path
           d="M16 8.5a5 5 0 0 1 0 7M18.5 6.5a8 8 0 0 1 0 11"
           stroke="currentColor"
-          strokeWidth="1.7"
+          strokeWidth="1.8"
           strokeLinecap="round"
         />
       </svg>
@@ -129,12 +129,12 @@ function KindGlyph({ kind }: { kind: MailKind }) {
   if (kind === 'reward') {
     return (
       <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="8" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M3 12h18M12 8v13" stroke="currentColor" strokeWidth="1.7" />
+        <rect x="3" y="8" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M3 12h18M12 8v13" stroke="currentColor" strokeWidth="1.8" />
         <path
           d="M8 8c0-2 1.5-3.5 4-3.5S16 6 16 8"
           stroke="currentColor"
-          strokeWidth="1.7"
+          strokeWidth="1.8"
           strokeLinecap="round"
         />
       </svg>
@@ -142,8 +142,8 @@ function KindGlyph({ kind }: { kind: MailKind }) {
   }
   return (
     <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -243,7 +243,7 @@ function MailDetail({
             <path
               d="M15 6 9 12l6 6"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
             />

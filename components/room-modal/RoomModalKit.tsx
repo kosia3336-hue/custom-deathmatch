@@ -52,6 +52,8 @@ export function CheckMark() {
       aria-hidden
       className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-cdm-primary text-white"
     >
+      {/* 규격(1.8) 예외 — 10px 라 그대로 쓰면 실제 선이 0.75px 로 사라진다.
+          3.5 는 24 viewBox 기준값이라 10px 로 줄면 약 1.46px, sm(16px) 아이콘과 비슷해진다. */}
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 6 9 17l-5-5" />
       </svg>

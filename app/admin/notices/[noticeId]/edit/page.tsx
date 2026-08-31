@@ -57,7 +57,7 @@ export default async function EditNoticePage({ params }: Props) {
               <path
                 d="M15 18l-6-6 6-6"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />

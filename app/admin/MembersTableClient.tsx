@@ -93,7 +93,7 @@ export function MembersTableClient({
                     <path
                       d="M9 5l7 7-7 7"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />

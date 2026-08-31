@@ -371,7 +371,7 @@ export function CrownIcon() {
       <path
         d="M3 18 5 8l5.5 5L12 4l1.5 9L19 8l2 10H3zM4 20h16"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
@@ -385,7 +385,7 @@ export function PeopleIcon() {
       <path
         d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

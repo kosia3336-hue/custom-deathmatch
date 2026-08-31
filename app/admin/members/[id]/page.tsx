@@ -337,7 +337,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
             <path
               d="M15 19l-7-7 7-7"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
