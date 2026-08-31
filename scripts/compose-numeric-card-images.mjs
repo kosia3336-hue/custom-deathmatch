@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import {
-  copyFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -20,9 +19,13 @@ const previewDir = join(
 );
 const tempDir = mkdtempSync(join(tmpdir(), 'cdm-card-compose-'));
 
-const width = 700;
-const height = 980;
-const pipSize = 112;
+const pipSize = 144;
+const spriteColumns = 6;
+const spriteRows = 2;
+const spriteCellWidth = 300;
+const spriteCellHeight = 420;
+const spriteCardWidth = 280;
+const spriteCardHeight = 392;
 const frontPath = join(sourceDir, 'card-front.webp');
 const backPath = join(sourceDir, 'card-back.webp');
 const pipPath = join(sourceDir, 'card-pip-crystal.webp');
@@ -48,20 +51,27 @@ function runMagick(args) {
 mkdirSync(outputDir, { recursive: true });
 mkdirSync(previewDir, { recursive: true });
 
+for (let value = 1; value <= 10; value += 1) {
+  rmSync(join(outputDir, `card-${String(value).padStart(2, '0')}.webp`), {
+    force: true,
+  });
+}
+rmSync(join(outputDir, 'card-back.webp'), { force: true });
+
 try {
   const cardPaths = [];
-  const pipRenderedPath = join(tempDir, 'pip.webp');
+  const pipRenderedPath = join(tempDir, 'pip.png');
   runMagick([pipPath, '-resize', `${pipSize}x${pipSize}!`, pipRenderedPath]);
 
   for (let value = 1; value <= 10; value += 1) {
     const numberPath = join(tempDir, `number-${value}.png`);
     const rotatedNumberPath = join(tempDir, `number-${value}-rotated.png`);
-    const outputPath = join(outputDir, `card-${String(value).padStart(2, '0')}.webp`);
+    const outputPath = join(tempDir, `card-${String(value).padStart(2, '0')}.png`);
     runMagick([
       '-background', 'none',
       '-fill', '#111a3d',
       '-font', fontPath,
-      '-pointsize', '62',
+      '-pointsize', '82',
       `label:${value}`,
       numberPath,
     ]);
@@ -71,12 +81,12 @@ try {
       frontPath,
       numberPath,
       '-gravity', 'northwest',
-      '-geometry', '+55+43',
+      '-geometry', '+50+36',
       '-compose', 'Over',
       '-composite',
       rotatedNumberPath,
       '-gravity', 'southeast',
-      '-geometry', '+55+43',
+      '-geometry', '+50+36',
       '-composite',
       '-gravity', 'northwest',
     ];
@@ -89,30 +99,56 @@ try {
       );
     }
 
-    composeArgs.push(
-      '-quality', '90',
-      '-define', 'webp:method=6',
-      '-define', 'webp:alpha-quality=100',
-      outputPath,
-    );
+    composeArgs.push(outputPath);
     runMagick(composeArgs);
     cardPaths.push(outputPath);
   }
 
-  const finalBackPath = join(outputDir, 'card-back.webp');
-  copyFileSync(backPath, finalBackPath);
+  const spriteSources = [...cardPaths, backPath];
+  const cellPaths = spriteSources.map((sourcePath, index) => {
+    const cellPath = join(tempDir, `cell-${index}.png`);
+    runMagick([
+      sourcePath,
+      '-resize', `${spriteCardWidth}x${spriteCardHeight}!`,
+      '-gravity', 'center',
+      '-background', 'none',
+      '-extent', `${spriteCellWidth}x${spriteCellHeight}`,
+      cellPath,
+    ]);
+    return cellPath;
+  });
+  const emptyCellPath = join(tempDir, 'cell-empty.png');
+  runMagick([
+    '-size', `${spriteCellWidth}x${spriteCellHeight}`,
+    'xc:none',
+    emptyCellPath,
+  ]);
+  cellPaths.push(emptyCellPath);
+
+  const firstRowPath = join(tempDir, 'sprite-row-1.png');
+  const secondRowPath = join(tempDir, 'sprite-row-2.png');
+  runMagick([...cellPaths.slice(0, 6), '+append', firstRowPath]);
+  runMagick([...cellPaths.slice(6, 12), '+append', secondRowPath]);
+  runMagick([
+    firstRowPath,
+    secondRowPath,
+    '-append',
+    '-quality', '90',
+    '-define', 'webp:method=6',
+    '-define', 'webp:alpha-quality=100',
+    join(outputDir, 'cdm-numeric-cards.webp'),
+  ]);
 
   const previewPath = join(previewDir, 'cards-1-10-and-back.webp');
   runMagick([
     'montage',
     '-font', fontPath,
     ...cardPaths,
-    finalBackPath,
+    backPath,
     '-thumbnail', '154x216',
     '-tile', '6x2',
     '-geometry', '154x216+16+18',
     '-background', '#ddd4c4',
-    '-shadow',
     '-quality', '88',
     '-define', 'webp:method=6',
     previewPath,
@@ -121,16 +157,32 @@ try {
   writeFileSync(
     join(outputDir, 'manifest.json'),
     `${JSON.stringify({
-      version: 2,
-      cardSize: { width, height },
+      version: 3,
       format: 'webp',
+      sprite: 'cdm-numeric-cards.webp',
+      spriteSize: {
+        width: spriteColumns * spriteCellWidth,
+        height: spriteRows * spriteCellHeight,
+      },
+      grid: { columns: spriteColumns, rows: spriteRows },
+      cell: { width: spriteCellWidth, height: spriteCellHeight },
+      card: {
+        width: spriteCardWidth,
+        height: spriteCardHeight,
+        insetX: (spriteCellWidth - spriteCardWidth) / 2,
+        insetY: (spriteCellHeight - spriteCardHeight) / 2,
+      },
       cards: Object.fromEntries(
         Array.from({ length: 10 }, (_, index) => {
           const value = index + 1;
-          return [value, `card-${String(value).padStart(2, '0')}.webp`];
+          return [value, {
+            column: index % spriteColumns,
+            row: Math.floor(index / spriteColumns),
+          }];
         }),
       ),
-      back: 'card-back.webp',
+      back: { column: 4, row: 1 },
+      empty: { column: 5, row: 1 },
     }, null, 2)}\n`,
   );
 } finally {
