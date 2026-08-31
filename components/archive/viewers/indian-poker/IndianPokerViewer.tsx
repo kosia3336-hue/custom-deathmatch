@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { NumericCard } from '@/components/game/cards';
 import type { GameRecordFile, IndianPokerRecord, IndianPokerRoundRecord } from '@/shared/types/archive';
 import { formatTime } from '@/lib/utils';
 
@@ -27,11 +28,6 @@ const WIN_TYPE_LABEL: Record<string, string> = {
 
 interface Props {
   record: GameRecordFile;
-}
-
-function CardBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="inline-flex h-7 w-5 items-center justify-center rounded border border-indigo-200 bg-indigo-50 text-xs font-bold text-indigo-300">?</span>;
-  return <span className="inline-flex h-7 w-5 items-center justify-center rounded border border-gray-300 bg-white text-sm font-bold text-gray-900">{value}</span>;
 }
 
 function RoundRow({
@@ -62,8 +58,8 @@ function RoundRow({
           <span className="font-semibold text-gray-500">R{roundRecord.round}</span>
           {/* 공유카드 */}
           <div className="flex items-center gap-1">
-            <CardBadge value={roundRecord.communityCards[0]} />
-            <CardBadge value={roundRecord.communityCards[1]} />
+            <NumericCard value={roundRecord.communityCards[0]} size="tiny" />
+            <NumericCard value={roundRecord.communityCards[1]} size="tiny" />
           </div>
           {/* 결과 레이블 */}
           {isDraw && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">무승부</span>}
@@ -95,7 +91,7 @@ function RoundRow({
                 >
                   <span className="truncate font-medium text-gray-800">{nicknames[pid] ?? pid}</span>
                   <div className="flex items-center gap-2">
-                    <CardBadge value={card ?? null} />
+                    <NumericCard value={card ?? null} size="tiny" />
                     {handLabel && (
                       <span className="text-xs text-gray-600">{HAND_LABEL[handLabel] ?? handLabel}</span>
                     )}

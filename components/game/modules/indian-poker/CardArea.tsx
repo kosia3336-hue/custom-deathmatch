@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { NumericCard } from '@/components/game/cards';
 import type { IPPlayerInfo } from '@/shared/types/indian-poker';
 import type { SkinTheme } from '@/lib/skins/registry';
 import MoonlitCard, { type MoonlitDealFly } from './skins/MoonlitCard';
@@ -19,39 +20,43 @@ interface CardAreaProps {
   showShuffle?: boolean;
 }
 
-function DefaultCard({
+function TableCard({
   value,
   hidden,
-  label,
   size = 'md',
   animateIn = false,
+  isNocturne,
+  dealEnter,
+  dealFly,
 }: {
   value: number | null;
   hidden?: boolean;
-  label?: string;
   size?: 'sm' | 'md';
   animateIn?: boolean;
+  isNocturne: boolean;
+  dealEnter?: boolean;
+  dealFly?: MoonlitDealFly;
 }) {
-  const show = !hidden && value !== null;
+  if (isNocturne) {
+    return (
+      <MoonlitCard
+        value={value}
+        hidden={hidden}
+        size={size}
+        animateIn={animateIn}
+        dealEnter={dealEnter}
+        dealFly={dealFly}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center gap-1">
-      {label && (
-        <span className="text-[10px] text-gray-400 lg:text-xs">{label}</span>
-      )}
-      <div
-        className={`flex items-center justify-center rounded-lg border-2 font-bold shadow-sm transition-all
-          ${size === 'md'
-            ? 'h-14 w-11 text-xl lg:h-20 lg:w-14 lg:text-3xl'
-            : 'h-11 w-9 text-lg lg:h-16 lg:w-12 lg:text-2xl'}
-          ${show
-            ? 'border-gray-300 bg-white text-gray-900'
-            : 'border-indigo-300 bg-indigo-50 text-indigo-300'}
-          ${animateIn ? 'duration-500' : 'duration-200'}
-        `}
-      >
-        {show ? value : '?'}
-      </div>
-    </div>
+    <NumericCard
+      value={value}
+      hidden={hidden}
+      size={size}
+      animateIn={animateIn}
+    />
   );
 }
 
@@ -80,7 +85,6 @@ function CardAreaContent({
   const showOpp = !isNocturne || dealStep >= 3;
   const showMySlot = !isNocturne || dealStep >= 4;
 
-  const Card = isNocturne ? MoonlitCard : DefaultCard;
   const labelClass = isNocturne ? 'text-slate-300/80' : 'text-gray-400';
 
   const flyCommL: MoonlitDealFly = { x: 24, y: 20 };
@@ -99,9 +103,10 @@ function CardAreaContent({
           {opponentPlayer?.nickname ?? '상대'} 카드
         </span>
         {showOpp ? (
-          <Card
+          <TableCard
             value={opponentPlayer?.card ?? null}
             size="md"
+            isNocturne={isNocturne}
             dealEnter={isNocturne && dealStep === 3}
             dealFly={flyOpp}
           />
@@ -114,9 +119,10 @@ function CardAreaContent({
         <div className="flex flex-col items-center gap-1">
           <span className={`text-[10px] lg:text-xs ${labelClass}`}>공유</span>
           {showComm0 ? (
-            <Card
+            <TableCard
               value={communityCards?.[0] ?? null}
               size="sm"
+              isNocturne={isNocturne}
               dealEnter={isNocturne && dealStep === 1}
               dealFly={flyCommL}
             />
@@ -128,9 +134,10 @@ function CardAreaContent({
         <div className="flex flex-col items-center gap-1">
           <span className={`text-[10px] lg:text-xs ${labelClass}`}>공유</span>
           {showComm1 ? (
-            <Card
+            <TableCard
               value={communityCards?.[1] ?? null}
               size="sm"
+              isNocturne={isNocturne}
               dealEnter={isNocturne && dealStep === 2}
               dealFly={flyCommR}
             />
@@ -147,10 +154,11 @@ function CardAreaContent({
       >
         <span className={`text-[10px] lg:text-xs ${labelClass}`}>{myLabel}</span>
         {showMySlot ? (
-          <Card
+          <TableCard
             value={myCardVisible ? (myPlayer?.card ?? null) : null}
             hidden={!myCardVisible}
             size="md"
+            isNocturne={isNocturne}
             animateIn={myCardVisible}
             dealEnter={isNocturne && dealStep === 4 && !myCardVisible}
             dealFly={flyMe}
