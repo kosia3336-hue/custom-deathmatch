@@ -17,7 +17,7 @@ import { unstable_cache } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseUrl, getSupabaseAnonKey, isSupabaseConfigured } from '@/lib/supabase/env';
-import { EMPTY_RULE_META, type GameRuleMeta } from '@/lib/gameRules';
+import { EMPTY_RULE_META, GAME_RULES, getGameRule, type GameRuleMeta } from '@/lib/gameRules';
 
 export interface GameRuleContent {
   rules: string;
@@ -72,6 +72,12 @@ function toContent(row: RuleRow): GameRuleContent {
   };
 }
 
+function localContent(gameId: string): GameRuleContent | null {
+  const rule = getGameRule(gameId);
+  if (!rule) return null;
+  return { rules: rule.rules, meta: { ...EMPTY_RULE_META }, imageUrl: '' };
+}
+
 /** 익명 읽기 전용 클라이언트 (쿠키/세션 불필요 — 정적 성격의 공개 데이터) */
 function getReadClient() {
   return createClient<Database>(getSupabaseUrl(), getSupabaseAnonKey(), {
@@ -87,7 +93,7 @@ const CACHE_TTL_SECONDS = 300;
 
 /** 게임 하나의 룰 본문 + 메타. 없으면 null */
 async function readGameRule(gameId: string): Promise<GameRuleContent | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured()) return localContent(gameId);
   try {
     const sb = getReadClient();
     let { data, error } = await sb
@@ -103,29 +109,35 @@ async function readGameRule(gameId: string): Promise<GameRuleContent | null> {
         .maybeSingle());
     }
     const row = data as unknown as RuleRow | null;
-    if (!row) return null;
+    if (!row) return localContent(gameId);
     return toContent(row);
   } catch {
-    return null;
+    return localContent(gameId);
   }
 }
 
 /** 전체 게임의 룰 본문 + 메타 (gameId 키) */
 async function readAllGameRules(): Promise<Record<string, GameRuleContent>> {
-  if (!isSupabaseConfigured()) return {};
+  const local = Object.fromEntries(
+    GAME_RULES.map((rule) => [
+      rule.id,
+      { rules: rule.rules, meta: { ...EMPTY_RULE_META }, imageUrl: '' },
+    ]),
+  );
+  if (!isSupabaseConfigured()) return local;
   try {
     const sb = getReadClient();
     let { data, error } = await sb.from('game_rule_texts').select(SELECT_COLS);
     if (error && isMissingImageColumn(error)) {
       ({ data, error } = await sb.from('game_rule_texts').select(BASE_COLS));
     }
-    const out: Record<string, GameRuleContent> = {};
+    const out: Record<string, GameRuleContent> = local;
     for (const row of (data ?? []) as unknown as RuleRow[]) {
       out[row.game_id] = toContent(row);
     }
     return out;
   } catch {
-    return {};
+    return local;
   }
 }
 

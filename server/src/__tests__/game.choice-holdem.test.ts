@@ -1,0 +1,175 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Player } from '@shared/types/room.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
+import type { IO } from '../socket/types.js';
+import { chooseChoiceHoldemAiAction } from '../socket/games/choice-holdem/ai.js';
+import {
+  beginChoiceHoldemRound,
+  performChoiceHoldemAction,
+} from '../socket/games/choice-holdem/engine.js';
+import { cleanupChoiceHoldem, initChoiceHoldem } from '../socket/games/choice-holdem/index.js';
+import { choiceHoldemStates, toChoiceHoldemGameData } from '../socket/games/choice-holdem/state.js';
+
+const roomIds = new Set<string>();
+
+afterEach(() => {
+  for (const roomId of roomIds) cleanupChoiceHoldem(roomId);
+  roomIds.clear();
+  vi.restoreAllMocks();
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
+
+function player(id: string, nickname: string): Player {
+  return { id, nickname, isHost: false, isReady: true, joinedAt: Date.now() };
+}
+
+function ioStub() {
+  return { in: () => ({ fetchSockets: async () => [] }) } as unknown as IO;
+}
+
+function setup(roomId: string, secondId = 'second', playMode: 'multi' | 'com' = 'multi') {
+  vi.useFakeTimers();
+  roomIds.add(roomId);
+  const first = player('first', '첫 번째');
+  const second = player(secondId, secondId === AI_PLAYER_ID ? 'AI' : '두 번째');
+  const io = ioStub();
+  initChoiceHoldem(io, roomId, [first, second], playMode, Date.now(), null, vi.fn());
+  return { io, first, second, state: choiceHoldemStates.get(roomId)! };
+}
+
+function checkThroughFirstBetting(
+  io: IO,
+  state: NonNullable<ReturnType<typeof choiceHoldemStates.get>>,
+) {
+  expect(performChoiceHoldemAction(io, state, state.firstPlayerId, { type: 'call' })).toBeNull();
+  const selectorId = state.players.find((player) => player.id !== state.firstPlayerId)!.id;
+  expect(performChoiceHoldemAction(io, state, selectorId, { type: 'call' })).toBeNull();
+  expect(state.phase).toBe('arranging-choice');
+}
+
+function selectCards(io: IO, state: NonNullable<ReturnType<typeof choiceHoldemStates.get>>) {
+  const selectorId = state.players.find((player) => player.id !== state.firstPlayerId)!.id;
+  expect(
+    performChoiceHoldemAction(io, state, state.firstPlayerId, {
+      type: 'arrange-choice',
+      faceUpIndex: 0,
+    }),
+  ).toBeNull();
+  expect(
+    performChoiceHoldemAction(io, state, selectorId, {
+      type: 'pick-choice',
+      choice: 'face-up',
+    }),
+  ).toBeNull();
+}
+
+describe('초이스 홀덤 경기 진행', () => {
+  it('양쪽이 20칩에서 기본 베팅 1칩을 내고 1차 베팅을 시작한다', () => {
+    const { state, first, second } = setup('choice-holdem-initial');
+    expect(state.phase).toBe('first-betting');
+    expect(state.pot).toBe(2);
+    expect(state.playerStates[first.id]).toMatchObject({ chips: 19, roundBet: 1 });
+    expect(state.playerStates[second.id]).toMatchObject({ chips: 19, roundBet: 1 });
+    expect(state.communityCards).toHaveLength(3);
+    expect(state.playerStates[first.id].cards).toHaveLength(1);
+    expect(state.currentTurnId).toBe(first.id);
+  });
+
+  it('1차 베팅 뒤 선 플레이어가 앞면을 정하고 후 플레이어가 카드를 선택한다', () => {
+    const { io, state, first, second } = setup('choice-holdem-choice');
+    checkThroughFirstBetting(io, state);
+    const firstView = toChoiceHoldemGameData(state, first.id);
+    const secondViewBeforeArrange = toChoiceHoldemGameData(state, second.id);
+    expect(firstView.choice.options).toHaveLength(2);
+    expect(secondViewBeforeArrange.choice.options).toBeNull();
+
+    performChoiceHoldemAction(io, state, first.id, { type: 'arrange-choice', faceUpIndex: 0 });
+    const secondView = toChoiceHoldemGameData(state, second.id);
+    expect(secondView.choice.faceUp).not.toBeNull();
+    expect(secondView.choice.faceDown).toBeNull();
+    performChoiceHoldemAction(io, state, second.id, { type: 'pick-choice', choice: 'face-up' });
+
+    expect(state.phase).toBe('second-betting');
+    expect(state.playerStates[first.id].cards).toHaveLength(2);
+    expect(state.playerStates[second.id].cards).toHaveLength(2);
+    expect(state.faceUpOwnerId).toBe(second.id);
+    expect(toChoiceHoldemGameData(state, first.id).players[second.id].cards[1]).not.toBeNull();
+  });
+
+  it('레이즈는 상대가 콜할 수 있는 범위까지만 허용하고 콜 차액을 팟에 넣는다', () => {
+    const { io, state, first, second } = setup('choice-holdem-raise');
+    expect(performChoiceHoldemAction(io, state, first.id, { type: 'raise', amount: 4 })).toBeNull();
+    expect(state.pot).toBe(5);
+    expect(state.playerStates[first.id]).toMatchObject({ chips: 16, roundBet: 4 });
+    expect(
+      performChoiceHoldemAction(io, state, second.id, { type: 'raise', amount: 21 }),
+    ).toContain('범위');
+    expect(performChoiceHoldemAction(io, state, second.id, { type: 'call' })).toBeNull();
+    expect(state.pot).toBe(8);
+    expect(state.phase).toBe('arranging-choice');
+  });
+
+  it('폴드하면 개인 카드를 공개하지 않고 상대가 팟을 가져간다', () => {
+    const { io, state, first, second } = setup('choice-holdem-fold');
+    performChoiceHoldemAction(io, state, first.id, { type: 'fold' });
+    expect(state.phase).toBe('round-result');
+    expect(state.playerStates[second.id].chips).toBe(21);
+    expect(state.pot).toBe(0);
+    expect(state.lastRoundResult).toMatchObject({
+      winnerId: second.id,
+      foldedPlayerId: first.id,
+      reason: 'fold',
+      holeCards: null,
+    });
+  });
+
+  it('완전 동률이면 팟과 선 플레이어를 유지하고 다음 딜의 모든 베팅을 생략한다', async () => {
+    const { io, state, first, second } = setup('choice-holdem-tie');
+    checkThroughFirstBetting(io, state);
+    selectCards(io, state);
+    state.communityCards = [1, 2, 3];
+    state.playerStates[first.id].cards = [4, 5];
+    state.playerStates[second.id].cards = [4, 5];
+    performChoiceHoldemAction(io, state, first.id, { type: 'call' });
+    performChoiceHoldemAction(io, state, second.id, { type: 'call' });
+
+    expect(state.lastRoundResult?.reason).toBe('tie');
+    expect(state.pot).toBe(2);
+    expect(state.playerStates[first.id].chips).toBe(19);
+    const retainedFirst = state.firstPlayerId;
+
+    await vi.advanceTimersByTimeAsync(2400);
+    expect(state.round).toBe(2);
+    expect(state.carryRound).toBe(true);
+    expect(state.phase).toBe('arranging-choice');
+    expect(state.firstPlayerId).toBe(retainedFirst);
+    expect(state.pot).toBe(2);
+    expect(state.playerStates[first.id].roundBet).toBe(0);
+    expect(state.playerStates[second.id].roundBet).toBe(0);
+  });
+
+  it('11라운드부터 기본 베팅이 2칩이며 이를 못 내는 플레이어가 패배한다', () => {
+    const { io, state, first, second } = setup('choice-holdem-ante-lack');
+    state.round = 11;
+    state.carryRound = false;
+    state.playerStates[first.id].chips = 1;
+    state.playerStates[second.id].chips = 3;
+    beginChoiceHoldemRound(io, state);
+    expect(state.gameOver).toBe(true);
+    expect(state.ante).toBe(2);
+    expect(state.winnerId).toBe(second.id);
+  });
+
+  it('후 플레이어 COM은 실제 뒷면 값이 달라도 같은 공개 정보로 선택한다', () => {
+    const { state } = setup('choice-holdem-ai-hidden', AI_PLAYER_ID, 'com');
+    state.phase = 'choosing-card';
+    state.currentTurnId = AI_PLAYER_ID;
+    state.faceUpIndex = 0;
+    state.choiceCards = [3, 1];
+    const firstChoice = chooseChoiceHoldemAiAction(state);
+    state.choiceCards = [3, 5];
+    const secondChoice = chooseChoiceHoldemAiAction(state);
+    expect(firstChoice).toEqual(secondChoice);
+  });
+});

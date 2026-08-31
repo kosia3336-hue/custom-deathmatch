@@ -20,6 +20,7 @@ import CompleteHapGame from '@/components/game/modules/complete-hap';
 import KnightsTourGame from '@/components/game/modules/knights-tour';
 import KingmakingGame from '@/components/game/modules/kingmaking';
 import TripleGomokuGame from '@/components/game/modules/triple-gomoku';
+import ChoiceHoldemGame from '@/components/game/modules/choice-holdem';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -61,6 +62,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourGame,
   [GAME_IDS.KINGMAKING]: KingmakingGame,
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuGame,
+  [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 

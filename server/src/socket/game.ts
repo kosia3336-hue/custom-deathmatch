@@ -304,6 +304,16 @@ import {
   getTripleGomokuResultData,
 } from './games/triple-gomoku/index.js';
 import {
+  initChoiceHoldem,
+  handleChoiceHoldemAction,
+  cleanupChoiceHoldem,
+  getChoiceHoldemState,
+  emitChoiceHoldemStateToSocket,
+  performChoiceHoldemUndo,
+  canChoiceHoldemUndo,
+  getChoiceHoldemResultData,
+} from './games/choice-holdem/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -324,6 +334,16 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performTripleGomokuUndo,
     canUndo: canTripleGomokuUndo,
     getResultData: getTripleGomokuResultData,
+  },
+  [GAME_IDS.CHOICE_HOLDEM]: {
+    init: initChoiceHoldem,
+    handleAction: handleChoiceHoldemAction,
+    cleanup: cleanupChoiceHoldem,
+    getState: getChoiceHoldemState,
+    emitStateToSocket: emitChoiceHoldemStateToSocket,
+    performUndo: performChoiceHoldemUndo,
+    canUndo: canChoiceHoldemUndo,
+    getResultData: getChoiceHoldemResultData,
   },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,

@@ -72,6 +72,24 @@ export type {
   KingmakingStack,
   KingmakingWinType,
 } from './kingmaking';
+export {
+  CHOICE_HOLDEM_ANTE_INTERVAL,
+  CHOICE_HOLDEM_INITIAL_CHIPS,
+} from './choice-holdem';
+export type {
+  ChoiceHoldemAction,
+  ChoiceHoldemArchiveRecord,
+  ChoiceHoldemBettingAction,
+  ChoiceHoldemBettingPhase,
+  ChoiceHoldemCard,
+  ChoiceHoldemChoiceView,
+  ChoiceHoldemEvaluation,
+  ChoiceHoldemGameData,
+  ChoiceHoldemHandCategory,
+  ChoiceHoldemPhase,
+  ChoiceHoldemPlayerView,
+  ChoiceHoldemRoundResult,
+} from './choice-holdem';
 export type {
   CompleteHapAction,
   CompleteHapArchiveRecord,

@@ -41,6 +41,7 @@ export const GAME_IDS = {
   KNIGHTS_TOUR: 'game-022',
   KINGMAKING: 'game-023',
   TRIPLE_GOMOKU: 'game-024',
+  CHOICE_HOLDEM: 'game-025',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

@@ -24,6 +24,7 @@ import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
 import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
 import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 import TripleGomokuViewer from '@/components/archive/viewers/triple-gomoku';
+import ChoiceHoldemViewer from '@/components/archive/viewers/choice-holdem';
 
 export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -46,6 +47,7 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourViewer,
   [GAME_IDS.KINGMAKING]: KingmakingViewer,
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuViewer,
+  [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {
