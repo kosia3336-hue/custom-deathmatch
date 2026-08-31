@@ -157,18 +157,29 @@ function PlaySurface({
 }) {
   const [mode, setMode] = useState<ActionMode>('place');
   const [source, setSource] = useState<TripleGomokuCell | null>(null);
-  const [pending, setPending] = useState(false);
+  /*
+    어떤 판 상태에서 행동을 보냈는지 기억한다. 서버가 받아 주면 아래
+    acceptedSignature 가 바뀌면서 잠금이 저절로 풀린다.
+  */
+  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   const setup = gameData.phase === 'setup';
   const reserve = gameData.reserves[myId] ?? 0;
-  const active = canPlay && !pending;
 
   /*
-    이 컴포넌트는 턴이 바뀔 때만 리마운트된다. 서버가 행동을 거부하면 턴이
-    그대로라 pending 이 걸린 채 남으므로 error 신호를 직접 받아 풀어 준다.
+    서버가 행동을 받아 줄 때마다 바뀌는 값. 기본 배치에서 한 턴에 두 개를 놓는
+    차례(선-후후-선)에는 첫 돌을 놓아도 턴 번호가 그대로라, 턴 번호만 보면
+    잠금이 풀리지 않아 두 번째 돌을 놓을 수 없었다.
   */
+  const acceptedSignature = `${gameData.turnNumber}:${gameData.setupRemaining}:${
+    gameData.lastAction ? JSON.stringify(gameData.lastAction.action) : ''
+  }`;
+  const pending = pendingSignature === acceptedSignature;
+  const active = canPlay && !pending;
+
+  /* 서버가 거부하면 판이 그대로라 잠금이 안 풀리므로 error 신호로 직접 푼다. */
   useEffect(() => {
     const socket = getSocket();
-    const release = () => setPending(false);
+    const release = () => setPendingSignature(null);
     socket.on('error', release);
     return () => {
       socket.off('error', release);
@@ -221,12 +232,12 @@ function PlaySurface({
     if (!active) return;
     if (setup || mode === 'place') {
       if (!canPlaceHere(cell)) return;
-      setPending(true);
+      setPendingSignature(acceptedSignature);
       getSocket().emit('game:action', { type: 'place', to: cell });
       return;
     }
     if (source && canMoveTripleGomokuStone(gameData.board, source, cell, myId)) {
-      setPending(true);
+      setPendingSignature(acceptedSignature);
       getSocket().emit('game:action', { type: 'move', from: source, to: cell });
       return;
     }
@@ -244,6 +255,7 @@ function PlaySurface({
         markOf={markOf}
         onCellClick={handleClick}
         isEnabled={isEnabled}
+        previewOwnerId={active ? myId : null}
         ariaLabel="삼층 오목 판"
         className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"
       />

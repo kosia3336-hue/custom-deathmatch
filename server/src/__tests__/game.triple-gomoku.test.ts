@@ -263,6 +263,40 @@ describe('삼층 오목 기본 배치', () => {
     expect(Object.keys(state.board)).toHaveLength(6);
   });
 
+  it('한 턴에 두 개를 놓는 차례에는 턴 번호가 그대로 유지된다', () => {
+    /*
+      클라이언트가 "턴 번호가 바뀌면 잠금 해제" 로만 만들어져 있으면 이 구간에서
+      두 번째 돌을 놓지 못한다. 그 전제를 여기서 고정한다.
+    */
+    vi.useFakeTimers();
+    const roomId = 'tg-setup-double';
+    roomIds.add(roomId);
+    const first = player('dbl-first', '선');
+    const second = player('dbl-second', '후');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
+    const io = ioStub();
+    initTripleGomoku(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = tripleGomokuStates.get(roomId)!;
+
+    handleTripleGomokuAction(io, firstSocket, roomId, { type: 'place', to: { q: -4, r: 0 } });
+    const turnAtSecondPlayer = state.turnNumber;
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(state.setupRemaining).toBe(2);
+
+    // 후 플레이어의 첫 번째 돌 — 차례도 턴 번호도 그대로여야 한다
+    handleTripleGomokuAction(io, secondSocket, roomId, { type: 'place', to: { q: 4, r: 0 } });
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(state.turnNumber).toBe(turnAtSecondPlayer);
+    expect(state.setupRemaining).toBe(1);
+
+    // 두 번째 돌이 실제로 놓여야 한다
+    handleTripleGomokuAction(io, secondSocket, roomId, { type: 'place', to: { q: 0, r: 4 } });
+    expect(state.board['0,4']).toEqual([second.id]);
+    expect(state.currentPlayerId).toBe(first.id);
+    expect(state.turnNumber).toBeGreaterThan(turnAtSecondPlayer);
+  });
+
   it('기본 배치에서는 돌을 옮길 수 없다', () => {
     vi.useFakeTimers();
     const roomId = 'tg-setup-move';

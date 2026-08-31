@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { GamePiece3D } from '@/components/game/abstract-strategy';
 import { cn } from '@/lib/utils';
 import {
@@ -26,6 +26,11 @@ const STONE_WIDTH_PERCENT = 106;
 const STONE_ASPECT = '1 / 0.62';
 /** 맨 아래 돌을 격자점에 걸치도록 내리는 양. 돌 높이 대비 비율이다. */
 const STONE_BASE_DROP_PERCENT = 52;
+/** 격자선 굵기와 진하기. 옅으면 오목 줄을 눈으로 따라가기 어렵다. */
+const GRID_STROKE_WIDTH = 2.2;
+const GRID_STROKE_OPACITY = 0.72;
+/** 미리보기 돌의 불투명도. */
+const PREVIEW_OPACITY = 0.55;
 
 export type TripleGomokuCellMark = 'none' | 'selected' | 'target' | 'win' | 'last';
 
@@ -37,6 +42,8 @@ export interface TripleGomokuBoardViewProps {
   markOf?: (cell: TripleGomokuCell) => TripleGomokuCellMark;
   onCellClick?: (cell: TripleGomokuCell) => void;
   isEnabled?: (cell: TripleGomokuCell) => boolean;
+  /** 커서를 올린 칸에 이 사람의 돌을 미리 보여 준다. null 이면 미리보기 없음. */
+  previewOwnerId?: string | null;
   ariaLabel: string;
   className?: string;
   footer?: ReactNode;
@@ -57,6 +64,7 @@ export function TripleGomokuBoardView({
   markOf,
   onCellClick,
   isEnabled,
+  previewOwnerId = null,
   ariaLabel,
   className,
   footer,
@@ -64,6 +72,7 @@ export function TripleGomokuBoardView({
   const cells = tripleGomokuCells();
   const edges = tripleGomokuEdges();
   const tilt = tilted ? TILT_DEGREES : 0;
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   return (
     <div className={cn('w-full', className)}>
@@ -98,7 +107,14 @@ export function TripleGomokuBoardView({
                 <stop offset="100%" stopColor="var(--cdm-bg-elev-1)" />
               </radialGradient>
             </defs>
-            <rect width="1000" height="866" rx="28" fill="url(#tg-surface)" />
+            <rect
+              width="1000"
+              height="866"
+              rx="28"
+              fill="url(#tg-surface)"
+              stroke="var(--cdm-border-strong)"
+              strokeWidth={2}
+            />
             {edges.map(([from, to]) => {
               const a = tripleGomokuPosition(from);
               const b = tripleGomokuPosition(to);
@@ -109,9 +125,10 @@ export function TripleGomokuBoardView({
                   y1={a.y * 866}
                   x2={b.x * 1000}
                   y2={b.y * 866}
-                  stroke="var(--cdm-border-strong)"
-                  strokeWidth={1.6}
-                  opacity={0.55}
+                  stroke="var(--cdm-fg-subtle)"
+                  strokeWidth={GRID_STROKE_WIDTH}
+                  strokeLinecap="round"
+                  opacity={GRID_STROKE_OPACITY}
                 />
               );
             })}
@@ -122,9 +139,9 @@ export function TripleGomokuBoardView({
                   key={tripleGomokuCellKey(cell)}
                   cx={point.x * 1000}
                   cy={point.y * 866}
-                  r={5}
-                  fill="var(--cdm-border-strong)"
-                  opacity={0.7}
+                  r={6}
+                  fill="var(--cdm-fg-muted)"
+                  opacity={0.85}
                 />
               );
             })}
@@ -136,6 +153,12 @@ export function TripleGomokuBoardView({
             const stack = board[key] ?? [];
             const mark = markOf?.(cell) ?? 'none';
             const enabled = Boolean(onCellClick) && (isEnabled?.(cell) ?? false);
+            // 놓을 수 있는 칸에 커서를 올렸을 때만 반투명 돌로 결과를 미리 보여 준다.
+            const showPreview =
+              enabled &&
+              previewOwnerId != null &&
+              hoveredKey === key &&
+              stack.length < TG_MAX_HEIGHT;
             const Tag = onCellClick ? 'button' : 'div';
             return (
               <Tag
@@ -145,6 +168,11 @@ export function TripleGomokuBoardView({
                       type: 'button' as const,
                       onClick: () => onCellClick(cell),
                       disabled: !enabled,
+                      onMouseEnter: () => setHoveredKey(key),
+                      onMouseLeave: () =>
+                        setHoveredKey((current) => (current === key ? null : current)),
+                      onFocus: () => setHoveredKey(key),
+                      onBlur: () => setHoveredKey((current) => (current === key ? null : current)),
                       'aria-label': `${cell.q},${cell.r} 칸${stack.length ? `, ${stack.length}층` : ', 빈칸'}`,
                     }
                   : { 'aria-hidden': true as const })}
@@ -182,6 +210,23 @@ export function TripleGomokuBoardView({
                     />
                   </span>
                 ))}
+                {showPreview && (
+                  <span
+                    className="pointer-events-none absolute bottom-1/2 left-1/2 block"
+                    style={{
+                      width: `${STONE_WIDTH_PERCENT}%`,
+                      aspectRatio: STONE_ASPECT,
+                      transform: `translate(-50%, ${STONE_BASE_DROP_PERCENT - stack.length * LAYER_RISE_PERCENT}%) rotateX(${-tilt}deg)`,
+                      transformOrigin: 'bottom center',
+                      opacity: PREVIEW_OPACITY,
+                      zIndex: stack.length + 1,
+                    }}
+                  >
+                    <GamePiece3D
+                      tone={previewOwnerId === firstPlayerId ? 'primary' : 'highlight'}
+                    />
+                  </span>
+                )}
                 {stack.length === TG_MAX_HEIGHT && (
                   <span
                     className="bg-cdm-fg text-cdm-fg-inverse pointer-events-none absolute -top-1 -right-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-black"
