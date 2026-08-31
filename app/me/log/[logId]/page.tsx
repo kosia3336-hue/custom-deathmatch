@@ -9,6 +9,7 @@ import GameLogView from '@/components/game/GameLogView';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { PlayMode } from '@/shared/types/room';
+import { maskGameRecordNicknames } from '@/lib/maskGameRecord';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = { title: '게임 로그' };
@@ -71,6 +72,12 @@ export default async function MeLogPage({ params }: Props) {
   const isParticipant = participants.some((p) => p.member_id === member.id);
   if (!isParticipant) notFound();
 
+  // 본인이 아닌 익명 참가자의 실명. 기록 본문에서도 이 이름들을 가린다.
+  const hiddenNicknames = participants
+    .filter((p) => p.anonymized && p.member_id !== member.id)
+    .map((p) => p.nickname_snapshot)
+    .filter((nickname): nickname is string => Boolean(nickname));
+
   // GameLogView props 변환 — 본인 아닌 익명 참가자는 마스킹
   const players: GameLogPlayer[] = participants.map((p) => {
     const masked = p.anonymized && p.member_id !== member.id;
@@ -115,7 +122,8 @@ export default async function MeLogPage({ params }: Props) {
       playTime: log.play_time_seconds * 1000,
       totalTurns: log.total_turns,
     },
-    gameRecord: log.game_record,
+    // 참가자 목록만 가리면 게임별 뷰어가 game_record 안의 실명을 그대로 보여 준다.
+    gameRecord: maskGameRecordNicknames(log.game_record, hiddenNicknames),
   };
 
   const me = participants.find((p) => p.member_id === member.id);
