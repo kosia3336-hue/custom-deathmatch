@@ -304,6 +304,7 @@ function MailDetail({
                   </Button>
                 </div>
               ) : null}
+              {mail.reward ? <RewardClaim mail={mail} /> : null}
             </>
           )}
         </div>
@@ -320,6 +321,47 @@ function MailDetail({
           이 편지 삭제
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 보상 수령 버튼.
+ * 지급은 서버 RPC 안에서 끝나고 멱등하다. 여기서는 결과를 보여 주기만 한다.
+ */
+function RewardClaim({ mail }: { mail: MailItem }) {
+  const claim = useMailboxStore((s) => s.claim);
+  const claiming = useMailboxStore((s) => s.claiming);
+  const [error, setError] = useState<string | null>(null);
+  const reward = mail.reward;
+  if (!reward) return null;
+
+  const done = mail.claimedAt != null;
+  const busy = claiming === mail.id;
+
+  return (
+    <div className="border-cdm-border mt-4 rounded-cdm-md border p-3">
+      <p className="text-cdm-fg-muted text-xs font-semibold">받을 보상</p>
+      <p className="text-cdm-primary mt-1 text-lg font-black tabular-nums">
+        {reward.cdp.toLocaleString()} CDP
+      </p>
+      {done ? (
+        <p className="text-cdm-fg-muted mt-2 text-sm font-semibold">수령 완료</p>
+      ) : (
+        <Button
+          size="sm"
+          className="mt-2"
+          disabled={busy}
+          onClick={async () => {
+            setError(null);
+            const r = await claim(mail.id);
+            if (!r.ok) setError(r.error ?? '이미 받았거나 받을 수 없는 보상입니다.');
+          }}
+        >
+          {busy ? '받는 중...' : '받기'}
+        </Button>
+      )}
+      {error && <p className="text-cdm-accent mt-2 text-xs">{error}</p>}
     </div>
   );
 }

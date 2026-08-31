@@ -7,6 +7,7 @@ import { Logo } from '@/components/cdm/Logo';
 import { BgmButton } from '@/components/cdm/BgmButton';
 import { CdpBalanceChip } from '@/components/cdm/CdpBalanceChip';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
+import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
 
@@ -157,6 +158,7 @@ export default function AboutGNB() {
           </span>
           <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
           <OnlineUsersModalButton />
+          {member && <MailboxModalButton />}
 
           {loading ? (
             <div className="h-8 w-22 animate-pulse rounded-cdm-md bg-white/10" />

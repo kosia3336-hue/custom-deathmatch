@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { GNB } from '@/components/cdm/GNB';
 import { getActiveMember } from '@/lib/auth/server';
 import AdminTabs from './AdminTabs';
+import MailboxGiftTab from './MailboxGiftTab';
 import DashboardTab from './DashboardTab';
 import MembersTab from './MembersTab';
 import TitlesTab from './TitlesTab';
@@ -61,6 +62,7 @@ export default async function AdminPage({ searchParams }: Props) {
           {tab === 'reports' && <ReportsTab page={sp.page} />}
           {tab === 'inquiries' && <InquiriesTab page={sp.page} statusFilter={sp.inquiryStatus} />}
           {tab === 'notices' && <NoticesTab page={sp.page} />}
+          {tab === 'mailbox-gift' && <MailboxGiftTab />}
           {tab === 'audit' && (
             <AuditTab page={sp.page} actionKind={sp.actionKind} actor={sp.actor} />
           )}

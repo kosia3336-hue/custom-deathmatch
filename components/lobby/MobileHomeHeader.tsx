@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { Icon, BgmButton } from '@/components/cdm';
 import { Logo } from '@/components/cdm/Logo';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
+import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 
 interface Props {
   onCreateRoom: () => void;
@@ -159,6 +160,7 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
             */}
             <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
             <OnlineUsersModalButton />
+            {member && <MailboxModalButton />}
             {!member && (
               <Link
                 href="/login"

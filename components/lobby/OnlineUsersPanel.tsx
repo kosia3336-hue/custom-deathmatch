@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
-import { mailboxUnreadCount, useMailboxStore } from '@/stores/mailbox';
 import { Icon } from '@/components/cdm';
 
 /**
@@ -12,35 +10,20 @@ import { Icon } from '@/components/cdm';
  */
 export function OnlineUsersModalButton() {
   const setOpen = useLobbyChatStore((s) => s.setOpen);
-  const setActiveTab = useLobbyChatStore((s) => s.setActiveTab);
   const isOpen = useLobbyChatStore((s) => s.isOpen);
   const messagesLen = useLobbyChatStore((s) => s.messages.length);
   const lastSeenMsgCount = useLobbyChatStore((s) => s.lastSeenMsgCount);
-  const mailItems = useMailboxStore((s) => s.items);
+  // 우편은 봉투 아이콘이 따로 센다. 여기는 채팅만.
   const chatUnread = Math.max(0, messagesLen - lastSeenMsgCount);
-  const mailUnread = mailboxUnreadCount(mailItems);
-  const unreadCount = isOpen ? 0 : chatUnread + mailUnread;
-
-  useEffect(() => {
-    useMailboxStore.getState().hydrate();
-  }, []);
+  const unreadCount = isOpen ? 0 : chatUnread;
 
   return (
     <button
       type="button"
-      onClick={() => {
-        setOpen(true);
-        if (mailUnread > 0) setActiveTab('mailbox');
-      }}
+      onClick={() => setOpen(true)}
       className="relative inline-flex h-8 w-8 items-center justify-center rounded-cdm-md text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
-      aria-label={
-        mailUnread > 0
-          ? `로비, 안 읽은 편지 ${mailUnread}통`
-          : chatUnread > 0
-            ? `로비, 안 읽은 채팅 ${chatUnread}`
-            : '로비'
-      }
-      title={mailUnread > 0 ? `안 읽은 편지 ${mailUnread}통` : '로비'}
+      aria-label={chatUnread > 0 ? `로비, 안 읽은 채팅 ${chatUnread}` : '로비'}
+      title="로비"
     >
       <Icon name="chat" />
       {unreadCount > 0 && (

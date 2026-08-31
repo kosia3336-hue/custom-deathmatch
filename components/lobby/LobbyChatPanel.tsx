@@ -9,8 +9,6 @@ import { useNicknameStore } from '@/stores/nickname';
 import { LobbyChatList } from './LobbyChatList';
 import { LobbyChatInput } from './LobbyChatInput';
 import { OnlineUsersList } from './OnlineUsersList';
-import { MailboxPanel } from './MailboxPanel';
-import { mailboxUnreadCount, useMailboxStore } from '@/stores/mailbox';
 
 function TabButton({
   active,
@@ -61,15 +59,8 @@ export function LobbyChatPanel() {
   const onlineCount = useOnlineUsersStore((s) => s.count);
   const myNickname = useNicknameStore((s) => s.nickname);
   const canSeeUsers = myNickname === '천하';
-  const mailItems = useMailboxStore((s) => s.items);
-  const mailUnread = mailboxUnreadCount(mailItems);
 
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isOpen) return;
-    useMailboxStore.getState().setFocusId(null);
-  }, [isOpen]);
 
   // ESC 닫기
   useEffect(() => {
@@ -89,11 +80,6 @@ export function LobbyChatPanel() {
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    void useMailboxStore.getState().refresh();
   }, [isOpen]);
 
   useEffect(() => {
@@ -158,13 +144,6 @@ export function LobbyChatPanel() {
           <TabButton active={activeTab === 'chat'} onClick={() => onTabChange('chat')}>
             <span className="max-sm:truncate">채팅({onlineCount}명)</span>
           </TabButton>
-          <TabButton
-            active={activeTab === 'mailbox'}
-            onClick={() => onTabChange('mailbox')}
-            badge={mailUnread}
-          >
-            <span>우편함</span>
-          </TabButton>
           {canSeeUsers && (
             <TabButton active={activeTab === 'users'} onClick={() => onTabChange('users')}>
               <span>접속자</span>
@@ -174,10 +153,6 @@ export function LobbyChatPanel() {
 
         {canSeeUsers && activeTab === 'users' ? (
           <OnlineUsersList />
-        ) : activeTab === 'mailbox' ? (
-          <div className="flex flex-1 flex-col overflow-hidden max-sm:min-h-0">
-            <MailboxPanel />
-          </div>
         ) : (
           <div className="flex flex-1 flex-col overflow-hidden max-sm:min-h-0">
             <LobbyChatList />

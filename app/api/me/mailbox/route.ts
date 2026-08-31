@@ -84,6 +84,24 @@ export async function POST(req: NextRequest) {
       await rpc('delete_mailbox_item', { p_source_key: id });
       return NextResponse.json({ ok: true });
     }
+    if (action === 'claim') {
+      if (!id) return err('id가 필요합니다.');
+      /*
+        지급은 전적으로 RPC 안에서 끝난다. claimed_at 을 조건부로 찍고
+        그 UPDATE 가 한 줄을 잡았을 때만 잔액을 올리므로, 두 번 눌러도
+        두 번 지급되지 않는다. 여기서는 결과만 그대로 넘긴다.
+      */
+      const rows = (await rpc('claim_mailbox_reward', { p_source_key: id })) as
+        | { claimed: boolean; amount: number; new_balance: number }[]
+        | null;
+      const row = Array.isArray(rows) ? rows[0] : null;
+      return NextResponse.json({
+        ok: true,
+        claimed: Boolean(row?.claimed),
+        amount: Number(row?.amount ?? 0),
+        newBalance: Number(row?.new_balance ?? 0),
+      });
+    }
     return err('알 수 없는 action');
   } catch (e) {
     console.warn('[mailbox:mutate]', (e as Error).message);

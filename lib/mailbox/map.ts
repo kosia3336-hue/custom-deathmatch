@@ -1,4 +1,10 @@
-import type { GuildScoutMail, MailItem, MailKind, TitleGrantedMail } from '@/lib/mailbox/types';
+import type {
+  GuildScoutMail,
+  MailItem,
+  MailKind,
+  MailReward,
+  TitleGrantedMail,
+} from '@/lib/mailbox/types';
 
 const KINDS: MailKind[] = ['title', 'guild', 'notice', 'reward', 'system'];
 
@@ -11,6 +17,7 @@ export interface MailboxRow {
   payload: unknown;
   created_at: string;
   read_at: string | null;
+  claimed_at?: string | null;
 }
 
 function asKind(v: string): MailKind {
@@ -44,6 +51,15 @@ function asScout(raw: unknown): GuildScoutMail | undefined {
   };
 }
 
+function asReward(raw: unknown): MailReward | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = (raw as { reward?: Record<string, unknown> }).reward;
+  if (!r) return undefined;
+  const cdp = Number(r.cdp ?? 0);
+  if (!Number.isFinite(cdp) || cdp <= 0) return undefined;
+  return { cdp: Math.floor(cdp) };
+}
+
 export function mailboxRowToItem(row: MailboxRow): MailItem {
   const payload = row.payload ?? {};
   return {
@@ -56,5 +72,7 @@ export function mailboxRowToItem(row: MailboxRow): MailItem {
     readAt: row.read_at ? new Date(row.read_at).getTime() : null,
     titleGrant: asTitleGrant(payload),
     scoutInvite: asScout(payload),
+    reward: asReward(payload),
+    claimedAt: row.claimed_at ? new Date(row.claimed_at).getTime() : null,
   };
 }

@@ -8,6 +8,7 @@ import { Logo } from './Logo';
 import { BgmButton } from './BgmButton';
 import { CdpBalanceChip } from './CdpBalanceChip';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
+import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
@@ -26,7 +27,6 @@ interface GNBProps {
   /** true이면 우측(로그인/닉네임) 영역을 스켈레톤으로 표시 */
   loadingRight?: boolean;
   /** 미읽음 공지 수 (로그인 사용자만) */
-  unreadNoticeCount?: number;
 }
 
 const NAV_ITEMS: { href: string; label: string }[] = [
@@ -46,7 +46,7 @@ const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/attendance', label: '출석판' },
 ];
 
-export function GNB({ member, loadingRight = false, unreadNoticeCount = 0, hideHeaderOnMobile = false }: GNBProps) {
+export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }: GNBProps) {
   const [open, setOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [devSwitchOpen, setDevSwitchOpen] = useState(false);
@@ -94,11 +94,6 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0, hideH
               )}
             >
                 {it.label}
-                {it.href === '/notice' && unreadNoticeCount > 0 && (
-                  <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
-                    {unreadNoticeCount > 9 ? '9+' : unreadNoticeCount}
-                  </span>
-                )}
               </Link>
             ))}
           {member &&
@@ -130,6 +125,7 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0, hideH
           </span>
           <BgmButton className="text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white" />
           <OnlineUsersModalButton />
+          {member && <MailboxModalButton />}
 
 
         {loadingRight ? (
@@ -145,12 +141,6 @@ export function GNB({ member, loadingRight = false, unreadNoticeCount = 0, hideH
             >
               <span className="relative max-w-[8em] truncate">
                 {member.nickname}
-                {unreadNoticeCount > 0 && (
-                  <span
-                    aria-label={`미읽음 공지 ${unreadNoticeCount}건`}
-                    className="absolute -top-0.5 -right-2.5 h-2 w-2 rounded-full bg-cdm-primary"
-                  />
-                )}
               </span>
               <span aria-hidden className="text-xs text-cdm-ink-fg-muted">
                 ▾

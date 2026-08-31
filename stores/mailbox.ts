@@ -12,6 +12,9 @@ interface MailboxState {
   items: MailItem[];
   hydrated: boolean;
   focusId: string | null;
+  /** 종 아이콘으로 여는 우편함 모달. 채팅 패널과 따로 논다. */
+  isOpen: boolean;
+  claiming: string | null;
   hydrate: () => void;
   refresh: () => Promise<void>;
   markRead: (id: string) => void;
@@ -19,6 +22,8 @@ interface MailboxState {
   remove: (id: string) => void;
   reset: () => void;
   setFocusId: (id: string | null) => void;
+  setOpen: (v: boolean) => void;
+  claim: (id: string) => Promise<{ ok: boolean; amount: number; error?: string }>;
 }
 
 let fetchSeq = 0;
@@ -79,13 +84,46 @@ export const useMailboxStore = create<MailboxState>((set, get) => ({
   items: [],
   hydrated: false,
   focusId: null,
+  isOpen: false,
+  claiming: null,
 
   setFocusId: (id) => set({ focusId: id }),
+
+  setOpen: (v) => {
+    set({ isOpen: v });
+    if (v) void get().refresh();
+    else set({ focusId: null });
+  },
+
+  /*
+    보상 수령. 서버가 멱등하므로 실패하면 그냥 목록을 다시 맞춘다.
+    낙관적 갱신은 하지 않는다 — 잔액이 걸린 일이라 서버 답을 보고 반영한다.
+  */
+  claim: async (id) => {
+    if (get().claiming) return { ok: false, amount: 0, error: '수령 중입니다.' };
+    set({ claiming: id });
+    try {
+      const r = await fetch('/api/me/mailbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'claim', id }),
+      });
+      const data = (await r.json()) as { claimed?: boolean; amount?: number; error?: string };
+      if (!r.ok) throw new Error(data.error ?? '보상을 받지 못했습니다.');
+      await get().refresh();
+      return { ok: Boolean(data.claimed), amount: Number(data.amount ?? 0) };
+    } catch (e) {
+      await get().refresh();
+      return { ok: false, amount: 0, error: (e as Error).message };
+    } finally {
+      set({ claiming: null });
+    }
+  },
 
   reset: () => {
     fetchSeq += 1;
     clearPending();
-    set({ items: [], hydrated: false, focusId: null });
+    set({ items: [], hydrated: false, focusId: null, isOpen: false, claiming: null });
   },
 
   hydrate: () => {
