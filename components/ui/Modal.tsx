@@ -59,7 +59,7 @@ export default function Modal({ open, onClose, onBackdropClick, title, closable 
                 {closable && (
                   <button onClick={onClose} className="ml-auto rounded-cdm-md p-1 text-cdm-ink-fg-muted hover:text-white hover:bg-white/10">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 )}
