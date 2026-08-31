@@ -33,6 +33,7 @@ export default function MailboxGiftTab() {
   const [sender, setSender] = useState('운영팀');
   const [cdp, setCdp] = useState(0);
   const [giftKey, setGiftKey] = useState('');
+  const [expiresInDays, setExpiresInDays] = useState(0);
   const [seasonId, setSeasonId] = useState(3);
   const [tiers, setTiers] = useState<string[]>([]);
   const [search, setSearch] = useState('');
@@ -82,7 +83,7 @@ export default function MailboxGiftTab() {
       const r = await fetch('/api/admin/mailbox-gift', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, sender, cdp, giftKey, target }),
+        body: JSON.stringify({ title, body, sender, cdp, giftKey, expiresInDays, target }),
       });
       const data = (await r.json()) as SendResult & { error?: string };
       if (!r.ok) throw new Error(data.error ?? '발송에 실패했습니다.');
@@ -133,7 +134,7 @@ export default function MailboxGiftTab() {
         />
       </label>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="flex flex-col gap-1">
           <span className="text-cdm-fg text-sm font-semibold">보낸이</span>
           <input
@@ -162,7 +163,35 @@ export default function MailboxGiftTab() {
             className="border-cdm-border rounded-cdm-md h-10 border px-3 text-sm"
           />
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-cdm-fg text-sm font-semibold">기한 (일)</span>
+          <input
+            type="number"
+            min={0}
+            max={365}
+            value={expiresInDays}
+            onChange={(e) => setExpiresInDays(Number(e.target.value))}
+            className="border-cdm-border rounded-cdm-md h-10 border px-3 text-sm tabular-nums"
+          />
+        </label>
       </div>
+      <p className="text-cdm-fg-muted -mt-3 text-xs">
+        기한이 지나면 우편함에서 자동으로 내려가고 <b>보상도 받을 수 없습니다.</b> 0 이면 기한
+        없음. 기한은 지금부터 셉니다.
+        {expiresInDays > 0 && (
+          <>
+            {' '}
+            지금 보내면{' '}
+            <b className="text-cdm-fg">
+              {new Date(Date.now() + expiresInDays * 86_400_000).toLocaleString('ko-KR', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </b>{' '}
+            에 만료됩니다.
+          </>
+        )}
+      </p>
       <p className="text-cdm-fg-muted -mt-3 text-xs">
         우편 키는 중복 발송을 막는 열쇠입니다. 같은 키로 다시 보내면 이미 받은 사람은 건너뜁니다.
         티어별로 금액이 다르면 <b>키도 티어마다 다르게</b> 주세요.

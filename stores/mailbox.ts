@@ -19,7 +19,7 @@ interface MailboxState {
   refresh: () => Promise<void>;
   markRead: (id: string) => void;
   markAllRead: () => void;
-  remove: (id: string) => void;
+  remove: (id: string) => Promise<{ ok: boolean; error?: string }>;
   reset: () => void;
   setFocusId: (id: string | null) => void;
   setOpen: (v: boolean) => void;
@@ -39,7 +39,7 @@ function clearPending(): void {
 
 function mergeFetched(items: MailItem[]): MailItem[] {
   const now = Date.now();
-  const visible = items.filter((m) => !pendingDeletes.has(m.id));
+  const visible = items.filter((m) => !pendingDeletes.has(m.id) && isLive(m, now));
   const fetchedIds = new Set(items.map((m) => m.id));
 
   for (const id of [...pendingDeletes]) {
@@ -76,8 +76,14 @@ async function postAction(action: string, id?: string): Promise<void> {
   if (!r.ok) throw new Error(data.error ?? '우편함 저장에 실패했습니다.');
 }
 
+/** 우편함에서 내릴 편지인지. 기한이 지난 편지는 서버가 내리기 전에도 감춘다. */
+function isLive(m: MailItem, now: number): boolean {
+  return m.expiresAt == null || m.expiresAt > now;
+}
+
 export function mailboxUnreadCount(items: MailItem[]): number {
-  return items.reduce((n, m) => n + (m.readAt ? 0 : 1), 0);
+  const now = Date.now();
+  return items.reduce((n, m) => n + (m.readAt || !isLive(m, now) ? 0 : 1), 0);
 }
 
 export const useMailboxStore = create<MailboxState>((set, get) => ({
@@ -168,7 +174,12 @@ export const useMailboxStore = create<MailboxState>((set, get) => ({
     });
   },
 
-  remove: (id) => {
+  /*
+    낙관적으로 먼저 지우고, 서버가 거부하면 되돌린다.
+    미수령 보상이 달린 편지는 서버가 막는다 — 지우면 보상을 받을
+    길이 없어지기 때문이다. 사유는 호출한 쪽이 띄운다.
+  */
+  remove: async (id) => {
     const s = get();
     pendingDeletes.add(id);
     pendingReads.delete(id);
@@ -176,9 +187,13 @@ export const useMailboxStore = create<MailboxState>((set, get) => ({
       items: s.items.filter((m) => m.id !== id),
       focusId: s.focusId === id ? null : s.focusId,
     });
-    void postAction('delete', id).catch(() => {
+    try {
+      await postAction('delete', id);
+      return { ok: true };
+    } catch (e) {
       pendingDeletes.delete(id);
-      void get().refresh();
-    });
+      await get().refresh();
+      return { ok: false, error: (e as Error).message };
+    }
   },
 }));

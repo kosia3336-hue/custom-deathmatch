@@ -81,7 +81,30 @@ export async function POST(req: NextRequest) {
     }
     if (action === 'delete') {
       if (!id) return err('id가 필요합니다.');
-      await rpc('delete_mailbox_item', { p_source_key: id });
+      /*
+        미수령 보상이 달린 편지는 서버가 삭제를 거부한다. 지우면 보상을
+        받을 길이 없어지기 때문이다. 거부 사유를 그대로 넘겨 클라가
+        어떤 말을 띄울지 고르게 한다.
+      */
+      const rows = (await rpc('delete_mailbox_item', { p_source_key: id })) as
+        | { deleted: boolean; reason: string }[]
+        | null;
+      const row = Array.isArray(rows) ? rows[0] : null;
+      const deleted = Boolean(row?.deleted);
+      if (!deleted) {
+        const reason = String(row?.reason ?? '');
+        return NextResponse.json(
+          {
+            ok: false,
+            reason,
+            error:
+              reason === 'unclaimed_reward'
+                ? '먼저 보상을 받아 주세요. 받지 않은 보상이 있는 편지는 지울 수 없습니다.'
+                : '편지를 지우지 못했습니다.',
+          },
+          { status: 409 },
+        );
+      }
       return NextResponse.json({ ok: true });
     }
     if (action === 'claim') {

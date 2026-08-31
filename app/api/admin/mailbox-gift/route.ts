@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 /** 한 번에 보낼 수 있는 인원. 실수로 전체 발송하는 사고를 막는 상한이다. */
 const MAX_RECIPIENTS = 500;
 const MAX_CDP = 100000;
+/** 기한 상한. 1년을 넘기면 사실상 기한이 없는 것과 같다. */
+const MAX_EXPIRE_DAYS = 365;
 
 type Target =
   | { kind: 'members'; memberIds: string[] }
@@ -22,6 +24,8 @@ interface Body {
   cdp?: number;
   /** 같은 키로 두 번 보내면 두 번째는 무시된다. 중복 발송 사고를 막는다. */
   giftKey?: string;
+  /** 며칠 뒤에 우편함에서 내릴지. 0 또는 없으면 기한 없음. */
+  expiresInDays?: number;
   target?: Target;
 }
 
@@ -47,6 +51,7 @@ export async function POST(req: NextRequest) {
   const sender = String(payload.sender ?? '운영팀').trim() || '운영팀';
   const cdp = Math.floor(Number(payload.cdp ?? 0));
   const giftKey = String(payload.giftKey ?? '').trim();
+  const expiresInDays = Math.floor(Number(payload.expiresInDays ?? 0));
 
   if (!title || title.length > 100) return bad('제목은 1~100자로 적어 주세요.');
   if (body.length > 2000) return bad('본문은 2,000자 이하로 적어 주세요.');
@@ -55,6 +60,9 @@ export async function POST(req: NextRequest) {
   }
   if (!giftKey || !/^[a-z0-9-]{3,60}$/.test(giftKey)) {
     return bad('우편 키는 영소문자·숫자·하이픈 3~60자로 적어 주세요.');
+  }
+  if (!Number.isFinite(expiresInDays) || expiresInDays < 0 || expiresInDays > MAX_EXPIRE_DAYS) {
+    return bad(`기한은 0 이상 ${MAX_EXPIRE_DAYS}일 이하로 적어 주세요. (0 = 기한 없음)`);
   }
 
   const target = payload.target;
@@ -95,6 +103,15 @@ export async function POST(req: NextRequest) {
     같은 키로 다시 보내도 ON CONFLICT DO NOTHING 으로 한 통만 남는다.
     payload.reward 는 수령 RPC 가 읽는 자리다.
   */
+  /*
+    기한은 발송 시각에서 센다. 받는 사람마다 같은 시각에 만료하므로
+    '언제 접속했는지' 로 유불리가 갈리지 않는다.
+  */
+  const expiresAt =
+    expiresInDays > 0
+      ? new Date(Date.now() + expiresInDays * 86_400_000).toISOString()
+      : null;
+
   const rows = memberIds.map((memberId) => ({
     member_id: memberId,
     source_key: `gift:${giftKey}`,
@@ -103,6 +120,7 @@ export async function POST(req: NextRequest) {
     body,
     sender,
     payload: cdp > 0 ? { reward: { cdp } } : {},
+    expires_at: expiresAt,
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,6 +137,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     targeted: memberIds.length,
+    expiresAt,
     sent: count ?? 0,
     skipped: memberIds.length - (count ?? 0),
   });
