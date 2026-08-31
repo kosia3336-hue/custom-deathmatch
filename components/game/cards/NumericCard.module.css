@@ -1,0 +1,53 @@
+.card {
+  display: inline-block;
+  flex: none;
+  aspect-ratio: 5 / 7;
+  background-image: url('/games/cards/numeric-v2/cdm-numeric-cards.webp');
+  background-repeat: no-repeat;
+  background-size: 600% 200%;
+  background-color: transparent;
+}
+
+.tiny {
+  width: 1.25rem;
+}
+
+.sm {
+  width: 2.25rem;
+}
+
+.md {
+  width: 2.75rem;
+}
+
+.revealing {
+  animation: numeric-card-reveal 320ms ease-out;
+}
+
+@media (min-width: 64rem) {
+  .sm {
+    width: 3rem;
+  }
+
+  .md {
+    width: 3.5rem;
+  }
+}
+
+@keyframes numeric-card-reveal {
+  from {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revealing {
+    animation: none;
+  }
+}
