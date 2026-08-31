@@ -3779,9 +3779,9 @@ body {
   44%, 94% { border-color: #8d251c; box-shadow: 0 0 3px rgba(153, 27, 27, .38), inset 0 0 5px rgba(127, 29, 29, .16); }
 }
 @keyframes title-jujak-feather-fall {
-  0%, 2% { opacity: 0; transform: translate3d(calc(-50% - 4px), -9px, 0) rotate(-6deg) scale(.9); }
+  0%, 2% { opacity: 0; transform: translate3d(calc(-50% - 6px), 1px, 0) rotate(-7deg) scale(.9); }
   4% { opacity: .96; }
-  11% { transform: translate3d(calc(-50% + 4px), -1px, 0) rotate(5deg) scale(.95); }
+  11% { transform: translate3d(calc(-50% + 6px), 4px, 0) rotate(7deg) scale(.95); }
   20% { opacity: 1; transform: translate3d(-50%, 8px, 0) rotate(1deg) scale(1); filter: drop-shadow(0 0 4px rgba(255, 195, 58, .9)); }
   23% { opacity: 0; transform: translate3d(-50%, 9px, 0) rotate(2deg) scale(.22); filter: drop-shadow(0 0 9px rgba(255, 82, 24, .95)); }
   100% { opacity: 0; }
