@@ -27,3 +27,4 @@ export { BgmButton } from './BgmButton';
 export { Slider } from './Slider';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
+export { UnreadBadge } from './UnreadBadge';

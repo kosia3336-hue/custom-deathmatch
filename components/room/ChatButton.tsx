@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { UnreadBadge } from '@/components/cdm';
 import { useRoomStore } from '@/stores/room';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useNicknameStore } from '@/stores/nickname';
@@ -70,9 +71,11 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
         </svg>
         <span className="hidden text-sm font-medium md:inline">채팅</span>
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <UnreadBadge
+            count={unreadCount}
+            label={`미읽음 ${unreadCount}건`}
+            className="absolute -top-1 -right-1"
+          />
         )}
       </button>
 

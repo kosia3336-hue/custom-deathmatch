@@ -1,12 +1,12 @@
 'use client';
 
 import { useLobbyChatStore } from '@/stores/lobbyChat';
-import { Icon } from '@/components/cdm';
+import { Icon, UnreadBadge } from '@/components/cdm';
 
 /**
  * GNB 버튼.
  * 클릭 시 글로벌 LobbyChatPanel(루트 SocketProvider 마운트)을 연다.
- * 채팅·우편 미읽음이 있으면 우상단에 배지를 표시한다.
+ * 안 읽은 채팅이 있으면 우상단에 배지를 표시한다. (우편은 봉투 아이콘이 따로 센다.)
  */
 export function OnlineUsersModalButton() {
   const setOpen = useLobbyChatStore((s) => s.setOpen);
@@ -26,11 +26,7 @@ export function OnlineUsersModalButton() {
       title="로비"
     >
       <Icon name="chat" />
-      {unreadCount > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
-          {unreadCount > 9 ? '9+' : unreadCount}
-        </span>
-      )}
+      <UnreadBadge count={unreadCount} className="absolute -top-0.5 -right-0.5" />
     </button>
   );
 }

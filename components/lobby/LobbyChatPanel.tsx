@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { UnreadBadge } from '@/components/cdm';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useLobbyChatStore, type LobbyChatTab } from '@/stores/lobbyChat';
@@ -33,11 +34,7 @@ function TabButton({
       )}
     >
       {children}
-      {typeof badge === 'number' && badge > 0 && (
-        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
-          {badge > 9 ? '9+' : badge}
-        </span>
-      )}
+      {typeof badge === 'number' && <UnreadBadge count={badge} />}
       {active && (
         <span
           aria-hidden

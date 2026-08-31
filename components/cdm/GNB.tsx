@@ -11,6 +11,7 @@ import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
+import { UnreadBadge } from '@/components/cdm/UnreadBadge';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import InventoryInit from '@/components/providers/InventoryInit';
 import MailboxInit from '@/components/providers/MailboxInit';
@@ -233,11 +234,7 @@ function MenuLink({ href, label, badge }: { href: string; label: string; badge?:
       role="menuitem"
     >
       {label}
-      {badge && badge > 0 ? (
-        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cdm-primary px-1 text-[10px] font-bold leading-none text-white">
-          {badge > 9 ? '9+' : badge}
-        </span>
-      ) : null}
+      <UnreadBadge count={badge ?? 0} />
     </Link>
   );
 }
