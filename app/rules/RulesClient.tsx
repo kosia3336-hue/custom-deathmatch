@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { GAME_RULES, GAME_CATEGORIES, categoryHue } from '@/lib/gameRules';
+import { isUnreleasedGame } from '@/lib/unreleasedGames';
 
 /** 컬럼별 시작 오프셋(px) — 벽돌처럼 엇갈리고 삐죽삐죽한(마감 덜 된) 느낌 */
 const COLUMN_OFFSET = [0, 28, 16, 36, 10, 30, 20];
@@ -9,7 +10,7 @@ const COLUMN_OFFSET = [0, 28, 16, 36, 10, 30, 20];
  * 게임 룰 목록 — 각 칸은 개별 룰 페이지(/rules/[gameId])로 이동하는 링크.
  * 모달이 아닌 실제 페이지 링크라 검색엔진이 룰 본문까지 수집할 수 있다.
  */
-export default function RulesClient() {
+export default function RulesClient({ isAdmin = false }: { isAdmin?: boolean }) {
   const lineClass = 'border-cdm-fg';
   const headingClass = 'text-cdm-fg';
 
@@ -19,7 +20,13 @@ export default function RulesClient() {
           심리 게임이 많아 두 칸으로 분할 */}
       <div className="flex items-stretch">
         {GAME_CATEGORIES.flatMap((cat, catIdx) => {
-          const all = GAME_RULES.filter((g) => g.category === cat && !g.hiddenInLadder);
+          const all = GAME_RULES.filter(
+            (g) =>
+              g.category === cat &&
+              !g.hiddenInLadder &&
+              // 출시 전 게임은 관리자에게만 보인다
+              (isAdmin || !isUnreleasedGame(g.id)),
+          );
           if (cat === '심리' && all.length > 4) {
             const half = Math.ceil(all.length / 2);
             return [
@@ -64,11 +71,17 @@ export default function RulesClient() {
                     href={`/rules/${g.id}`}
                     style={{ backgroundColor: `hsl(${hue} 58% ${87 - (j % 3) * 3}%)` }}
                     className={cn(
-                      'flex min-h-[84px] w-full items-center justify-center overflow-hidden border-t-2 px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-cdm-fg break-all transition-[filter] hover:brightness-95 active:brightness-90 sm:min-h-[104px] sm:px-1.5 sm:text-sm sm:break-keep',
+                      'flex min-h-[84px] w-full flex-col items-center justify-center gap-1 overflow-hidden border-t-2 px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-cdm-fg break-all transition-[filter] hover:brightness-95 active:brightness-90 sm:min-h-[104px] sm:px-1.5 sm:text-sm sm:break-keep',
                       lineClass,
                     )}
                   >
                     {g.name}
+                    {/* 관리자만 여기까지 온다 — 일반 사용자에게는 안 보이는 칸임을 알린다 */}
+                    {isAdmin && isUnreleasedGame(g.id) && (
+                      <span className="rounded-sm bg-cdm-fg/75 px-1 py-px text-[9px] font-bold text-white">
+                        출시 전
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>

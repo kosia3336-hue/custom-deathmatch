@@ -6,6 +6,8 @@ import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
 import { fetchGames } from '@/lib/api';
 import { useNicknameStore } from '@/stores/nickname';
+import { useCurrentMember } from '@/hooks/useCurrentMember';
+import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRouter } from 'next/navigation';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
@@ -69,6 +71,8 @@ interface Props {
 export default function CreateRoomModal({ open, onClose }: Props) {
   const router = useRouter();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
+  const { member } = useCurrentMember();
+  const isAdmin = member?.role === 'admin';
 
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -123,13 +127,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     fetchGames()
       .then((all) =>
         setGames(
-          all.filter(
-            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+          filterUnreleased(
+            all.filter(
+              (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+            ),
+            isAdmin,
           ),
         ),
       )
       .catch(() => setError('게임 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
-  }, [open]);
+  }, [open, isAdmin]);
 
   // ESC 닫기
   useEffect(() => {
