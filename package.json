@@ -7,6 +7,7 @@
     "dev:front": "next dev -p 3001",
     "dev:server": "pnpm --filter the-genius-server dev",
     "build": "next build && pnpm --filter the-genius-server build",
+    "assets:cards": "node scripts/compose-numeric-card-images.mjs",
     "release": "node scripts/make-release.mjs",
     "start": "next start -p 3001",
     "test": "pnpm --filter the-genius-server test",
