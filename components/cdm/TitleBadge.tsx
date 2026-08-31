@@ -1,15 +1,16 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
-export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang';
+export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang';
 
 const EFFECT_CLASS: Record<TitleEffect, string> = {
   legend: 'title-legend',
   xuanwu: 'title-xuanwu',
   baekho: 'title-baekho',
+  jujak: 'title-jujak',
   eternal: 'title-eternal',
   issen: 'title-issen',
   seongha: 'title-seongha',
@@ -115,11 +116,321 @@ export function TitleBadge({ name, color, effect, size = 'md', className }: Titl
         </>
       ) : effect === 'wave' ? (
         <TitleWaveMark name={name} />
+      ) : effect === 'jujak' ? (
+        <TitleJujakMark name={name} />
       ) : (
         name
       )}
     </span>
   );
+}
+
+function TitleJujakMark({ name }: { name: string }) {
+  return (
+    <>
+      <span className="title-jujak-label" data-text={name}>{name}</span>
+      <span className="title-jujak-fx" aria-hidden>
+        <span className="title-jujak-feather" />
+        <span className="title-jujak-impact" />
+        <TitleJujakFireCanvas />
+      </span>
+    </>
+  );
+}
+
+const JUJAK_FIRE_ATLAS = '/effects/titles/jujak/fire-atlas.webp';
+const JUJAK_FIRE_CYCLE_MS = 8_400;
+const JUJAK_FIRE_FRAME_SIZE = 128;
+const JUJAK_FIRE_FRAME_COUNT = 25;
+const JUJAK_FIRE_COLUMNS = 5;
+const JUJAK_FIRE_FRAME_INTERVAL_MS = 1000 / 30;
+
+let sharedJujakFireAtlas: HTMLImageElement | null = null;
+
+function getJujakFireAtlas() {
+  if (!sharedJujakFireAtlas) {
+    sharedJujakFireAtlas = new Image();
+    sharedJujakFireAtlas.src = JUJAK_FIRE_ATLAS;
+  }
+  return sharedJujakFireAtlas;
+}
+
+interface JujakPathPoint {
+  x: number;
+  y: number;
+}
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function smoothstep(value: number) {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+}
+
+function hashUnit(value: number) {
+  const raw = Math.sin(value * 12.9898) * 43_758.5453;
+  return raw - Math.floor(raw);
+}
+
+/** Top-centre to bottom-centre along one half of a rounded pill. */
+function pointOnJujakHalf(
+  progress: number,
+  side: -1 | 1,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): JujakPathPoint {
+  const radius = height / 2;
+  const straightX = Math.max(0, width / 2 - radius);
+  const straightY = Math.max(0, height - radius * 2);
+  const arc = Math.PI * radius / 2;
+  const total = straightX * 2 + straightY + arc * 2;
+  let distance = clamp01(progress) * total;
+  const centreX = x + width / 2;
+
+  if (distance <= straightX) {
+    return { x: centreX + side * distance, y };
+  }
+  distance -= straightX;
+
+  if (distance <= arc) {
+    const angleProgress = distance / arc;
+    const angle = side === 1
+      ? -Math.PI / 2 + angleProgress * Math.PI / 2
+      : -Math.PI / 2 - angleProgress * Math.PI / 2;
+    const cornerX = centreX + side * straightX;
+    return {
+      x: cornerX + Math.cos(angle) * radius,
+      y: y + radius + Math.sin(angle) * radius,
+    };
+  }
+  distance -= arc;
+
+  if (distance <= straightY) {
+    return {
+      x: centreX + side * (straightX + radius),
+      y: y + radius + distance,
+    };
+  }
+  distance -= straightY;
+
+  if (distance <= arc) {
+    const angleProgress = distance / arc;
+    const angle = side === 1
+      ? angleProgress * Math.PI / 2
+      : Math.PI - angleProgress * Math.PI / 2;
+    const cornerX = centreX + side * straightX;
+    return {
+      x: cornerX + Math.cos(angle) * radius,
+      y: y + height - radius + Math.sin(angle) * radius,
+    };
+  }
+  distance -= arc;
+
+  return {
+    x: centreX + side * Math.max(0, straightX - distance),
+    y: y + height,
+  };
+}
+
+function drawJujakPathGlow(
+  context: CanvasRenderingContext2D,
+  side: -1 | 1,
+  spread: number,
+  alpha: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const segments = Math.max(2, Math.ceil(46 * spread));
+  context.beginPath();
+  for (let index = 0; index <= segments; index += 1) {
+    const point = pointOnJujakHalf((index / segments) * spread, side, x, y, width, height);
+    if (index === 0) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  }
+  context.globalAlpha = alpha;
+  context.strokeStyle = '#ff9d32';
+  context.lineWidth = 1.25;
+  context.shadowColor = '#ef3f18';
+  context.shadowBlur = 5;
+  context.stroke();
+}
+
+function TitleJujakFireCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const atlas = getJujakFireAtlas();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const startedAt = performance.now();
+    let animationFrame = 0;
+    let lastPaintAt = 0;
+    let disposed = false;
+    let isVisible = true;
+    let cssWidth = canvas.clientWidth;
+    let cssHeight = canvas.clientHeight;
+
+    const syncCanvasSize = (width: number, height: number) => {
+      cssWidth = width;
+      cssHeight = height;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio));
+      const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio));
+
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
+    };
+
+    syncCanvasSize(cssWidth, cssHeight);
+
+    const scheduleRender = () => {
+      if (!disposed && isVisible && !reducedMotion.matches && animationFrame === 0) {
+        animationFrame = window.requestAnimationFrame(render);
+      }
+    };
+
+    const render = (now: number) => {
+      animationFrame = 0;
+      if (disposed || !isVisible || reducedMotion.matches) return;
+      if (now - lastPaintAt < JUJAK_FIRE_FRAME_INTERVAL_MS) {
+        scheduleRender();
+        return;
+      }
+      lastPaintAt = now;
+
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.clearRect(0, 0, cssWidth, cssHeight);
+
+      if (atlas.complete && atlas.naturalWidth > 0 && cssWidth > 0 && cssHeight > 0) {
+        const cycle = ((now - startedAt) % JUJAK_FIRE_CYCLE_MS) / JUJAK_FIRE_CYCLE_MS;
+        const spread = smoothstep((cycle - 0.21) / 0.22);
+        const fadeIn = smoothstep((cycle - 0.2) / 0.05);
+        const fadeOut = 1 - smoothstep((cycle - 0.94) / 0.05);
+        const globalAlpha = fadeIn * fadeOut;
+
+        if (globalAlpha > 0.001 && spread > 0.001) {
+          // `.title-jujak-fx` extends 17px above/sideways and 21px below the badge.
+          const badgeX = 17;
+          const badgeY = 17;
+          const badgeWidth = Math.max(1, cssWidth - 34);
+          const badgeHeight = Math.max(1, cssHeight - 38);
+
+          context.save();
+          context.globalCompositeOperation = 'lighter';
+          drawJujakPathGlow(context, -1, spread, globalAlpha * 0.72, badgeX, badgeY, badgeWidth, badgeHeight);
+          drawJujakPathGlow(context, 1, spread, globalAlpha * 0.72, badgeX, badgeY, badgeWidth, badgeHeight);
+          context.shadowBlur = 0;
+
+          const halfPathLength = badgeWidth / 2 + badgeHeight * 1.55;
+          const emitterCount = Math.max(5, Math.ceil(halfPathLength / 12));
+          const animationFrameIndex = Math.floor(now / JUJAK_FIRE_FRAME_INTERVAL_MS);
+
+          for (const side of [-1, 1] as const) {
+            for (let index = 0; index <= emitterCount; index += 1) {
+              if (side === 1 && index === 0) continue;
+              const seed = index + (side === 1 ? 31 : 7);
+              if (index > 0 && index < emitterCount && hashUnit(seed + 151) < 0.14) continue;
+              const basePathProgress = index / emitterCount;
+              const progressJitter = (hashUnit(seed + 167) - 0.5) * (0.68 / emitterCount);
+              const pathProgress = index === 0 || index === emitterCount
+                ? basePathProgress
+                : clamp01(basePathProgress + progressJitter);
+              if (pathProgress > spread) continue;
+
+              const ignitionCycle = 0.21 + pathProgress * 0.22;
+              const localAge = cycle - ignitionCycle;
+              const localAlpha = smoothstep(localAge / 0.055);
+              const scale = 0.7 + hashUnit(seed) * 0.42;
+              const flameWidth = Math.max(16, badgeHeight * 0.8) * scale;
+              const flameHeight = flameWidth * (1.26 + hashUnit(seed + 19) * 0.18);
+              const point = pointOnJujakHalf(pathProgress, side, badgeX, badgeY, badgeWidth, badgeHeight);
+              const frame = (animationFrameIndex + Math.floor(hashUnit(seed + 43) * JUJAK_FIRE_FRAME_COUNT)) % JUJAK_FIRE_FRAME_COUNT;
+              const sourceX = (frame % JUJAK_FIRE_COLUMNS) * JUJAK_FIRE_FRAME_SIZE;
+              const sourceY = Math.floor(frame / JUJAK_FIRE_COLUMNS) * JUJAK_FIRE_FRAME_SIZE;
+              const driftX = (hashUnit(seed + 73) - 0.5) * 2.2;
+              const lift = 2 + hashUnit(seed + 97) * 2.5;
+
+              context.globalAlpha = globalAlpha * localAlpha * (0.38 + hashUnit(seed + 11) * 0.2);
+              context.drawImage(
+                atlas,
+                sourceX,
+                sourceY,
+                JUJAK_FIRE_FRAME_SIZE,
+                JUJAK_FIRE_FRAME_SIZE,
+                point.x - flameWidth / 2 + driftX,
+                point.y - flameHeight + lift,
+                flameWidth,
+                flameHeight,
+              );
+            }
+          }
+          context.restore();
+        }
+      }
+
+      scheduleRender();
+    };
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(([entry]) => {
+          if (entry) syncCanvasSize(entry.contentRect.width, entry.contentRect.height);
+        });
+    resizeObserver?.observe(canvas);
+
+    const intersectionObserver = typeof IntersectionObserver === 'undefined'
+      ? null
+      : new IntersectionObserver(([entry]) => {
+          if (!entry) return;
+          isVisible = entry.isIntersecting;
+          if (!isVisible && animationFrame) {
+            window.cancelAnimationFrame(animationFrame);
+            animationFrame = 0;
+          } else if (isVisible) {
+            scheduleRender();
+          }
+        });
+    intersectionObserver?.observe(canvas);
+
+    const handleMotionPreference = () => {
+      if (reducedMotion.matches) {
+        if (animationFrame) window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.clearRect(0, 0, cssWidth, cssHeight);
+      } else {
+        lastPaintAt = 0;
+        scheduleRender();
+      }
+    };
+    reducedMotion.addEventListener('change', handleMotionPreference);
+    scheduleRender();
+
+    return () => {
+      disposed = true;
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+      reducedMotion.removeEventListener('change', handleMotionPreference);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="title-jujak-fire-canvas" />;
 }
 
 function TitleWaveMark({ name }: { name: string }) {

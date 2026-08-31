@@ -3777,6 +3777,141 @@ body {
   .title-baekho { border-color: #94a3b8; box-shadow: 0 0 6px rgba(45,212,191,.4); }
 }
 
+/* 홍련의 주작 -----------------------------------------------------------
+   1) 글자는 중앙의 백금색 심지에서 시작해 붉은 불꽃이 양끝으로 번진다.
+   2) 한 장의 금빛 깃털이 위에서 내려와 상단 중앙에 닿아 점화된다.
+   3) 실제 화염 프레임이 상단 중앙에서 테두리를 타고 양쪽 아래로 번진다.
+
+   모든 장식은 aria-hidden인 별도 레이어다. 실제 칭호 텍스트는 label 하나라
+   복사·검색·스크린리더에서 중복되지 않는다. */
+@keyframes title-jujak-core {
+  0%, 20% { background-size: 0% 100%; filter: drop-shadow(0 0 1px rgba(127, 29, 29, .4)); }
+  25% { background-size: 18% 100%; filter: drop-shadow(0 0 3px rgba(255, 236, 169, .85)); }
+  33% { background-size: 58% 100%; }
+  40% { background-size: 112% 100%; }
+  44%, 94% {
+    background-size: 160% 100%;
+    filter: drop-shadow(0 0 2px rgba(255, 218, 112, .78)) drop-shadow(0 0 5px rgba(204, 44, 22, .48));
+  }
+  100% { background-size: 0% 100%; filter: drop-shadow(0 0 1px rgba(127, 29, 29, .4)); }
+}
+@keyframes title-jujak-aura {
+  0%, 21%, 100% { border-color: #6f1518; box-shadow: 0 0 3px rgba(127, 29, 29, .42), inset 0 0 5px rgba(127, 29, 29, .14); }
+  27% { border-color: #7f1c19; box-shadow: 0 0 3px rgba(153, 27, 27, .34), inset 0 0 5px rgba(127, 29, 29, .14); }
+  44%, 94% { border-color: #8d251c; box-shadow: 0 0 3px rgba(153, 27, 27, .38), inset 0 0 5px rgba(127, 29, 29, .16); }
+}
+@keyframes title-jujak-feather-fall {
+  0%, 2% { opacity: 0; transform: translate3d(calc(-50% - 6px), 1px, 0) rotate(-7deg) scale(.9); }
+  4% { opacity: .96; }
+  11% { transform: translate3d(calc(-50% + 6px), 4px, 0) rotate(7deg) scale(.95); }
+  20% { opacity: 1; transform: translate3d(-50%, 8px, 0) rotate(1deg) scale(1); filter: drop-shadow(0 0 4px rgba(255, 195, 58, .9)); }
+  23% { opacity: 0; transform: translate3d(-50%, 9px, 0) rotate(2deg) scale(.22); filter: drop-shadow(0 0 9px rgba(255, 82, 24, .95)); }
+  100% { opacity: 0; }
+}
+@keyframes title-jujak-impact {
+  0%, 20% { opacity: 0; transform: translate(-50%, -50%) scale(.1); }
+  23% { opacity: .95; transform: translate(-50%, -50%) scale(.45); }
+  29% { opacity: 0; transform: translate(-50%, -50%) scale(3.4, 1.8); }
+  100% { opacity: 0; }
+}
+.title-jujak {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  color: #bd2420;
+  border-color: #76171a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(122, 22, 14, .26), transparent 58%),
+    linear-gradient(180deg, rgba(56, 5, 7, .32), rgba(17, 2, 3, .08));
+  animation: title-jujak-aura 8.4s ease-in-out infinite;
+}
+.title-jujak::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(91, 17, 13, .25), transparent 60%),
+    rgba(19, 2, 4, .9);
+}
+.title-jujak-label {
+  position: relative;
+  z-index: 3;
+  display: inline-block;
+  background:
+    linear-gradient(
+      90deg,
+      #a11216 0%, #e42b18 18%, #ff7b18 36%, #ffd35e 46%,
+      #fffbe0 50%,
+      #ffd35e 54%, #ff7b18 64%, #e42b18 82%, #a11216 100%
+    ) center / 0% 100% no-repeat;
+  background-color: #9e171b;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: title-jujak-core 8.4s cubic-bezier(.28, .05, .2, 1) infinite;
+}
+.title-jujak-fx {
+  position: absolute;
+  z-index: auto;
+  inset: -17px -17px -21px;
+  overflow: visible;
+  pointer-events: none;
+}
+.title-jujak-feather {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 50%;
+  width: 31px;
+  height: 10px;
+  opacity: 0;
+  background: url('/effects/titles/jujak/phoenix-feather.webp') center / contain no-repeat;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 1.5px rgba(255, 168, 39, .45));
+  animation: title-jujak-feather-fall 8.4s cubic-bezier(.4, .03, .48, .98) infinite;
+}
+.title-jujak-impact {
+  position: absolute;
+  z-index: 4;
+  top: 15px;
+  left: 50%;
+  width: 12px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fffbd8 0 12%, #ffd33d 28%, #ff5b17 55%, transparent 74%);
+  box-shadow: 0 0 7px #ff8a1e, 0 0 13px rgba(220, 38, 38, .85);
+  opacity: 0;
+  animation: title-jujak-impact 8.4s ease-out infinite;
+}
+.title-jujak-fire-canvas {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+  filter: saturate(1.08) contrast(1.02);
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-jujak,
+  .title-jujak-label,
+  .title-jujak-feather,
+  .title-jujak-impact { animation: none; }
+  .title-jujak {
+    border-color: #ea580c;
+    box-shadow: 0 0 7px rgba(234, 88, 12, .72), 0 0 14px rgba(185, 28, 28, .35);
+  }
+  .title-jujak-label { background-size: 160% 100%; }
+  .title-jujak-feather,
+  .title-jujak-impact,
+  .title-jujak-fire-canvas { display: none; }
+}
+
 
 /* 모바일 하단 탭 바가 렌더된 페이지 — 고정 바 높이만큼 본문 하단 여백 확보
    (탭 바를 GNB 위치(상단)에서 스페이서로 처리하면 위/아래 간격이 어긋나는 문제 방지) */

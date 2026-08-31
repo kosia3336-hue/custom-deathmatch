@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   composeDisplayedTitle,
+  isTitleEffectKey,
   isOverlayApplied,
   isUnexpiredGrant,
   resolveBadge,
@@ -19,6 +20,13 @@ const xuanwu: ResolveTitleInput = {
   color: 'charcoal',
   is_legend: true,
   effect: 'xuanwu',
+};
+
+const jujak: ResolveTitleInput = {
+  name: '홍련의 주작',
+  color: 'red',
+  is_legend: true,
+  effect: 'jujak',
 };
 
 const immortalTitle: ResolveTitleInput = {
@@ -58,6 +66,16 @@ describe('resolveBadge', () => {
       effect: 'xuanwu',
     });
     expect(isOverlayApplied(xuanwu, { key: 'issen' })).toBe(false);
+  });
+
+  it('사방신(주작)은 고유 화염 효과를 유지한다', () => {
+    expect(resolveBadge(jujak, { key: 'frost' })).toEqual({
+      name: '홍련의 주작',
+      color: 'red',
+      effect: 'jujak',
+    });
+    expect(isOverlayApplied(jujak, { key: 'frost' })).toBe(false);
+    expect(isTitleEffectKey('jujak')).toBe(true);
   });
 
   it('시즌 레전드 칭호도 is_legend 이면 overlay 불가', () => {
