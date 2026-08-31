@@ -14,7 +14,7 @@
  * 아래 배열에 게임 ID 를 넣으면 즉시 감춰진다. 출시할 때 지우면 된다.
  */
 export const UNRELEASED_GAME_IDS: readonly string[] = [
-  // 예: 'game-022',
+  'game-024', // 삼층 오목 — 검증 중
 ];
 
 export function isUnreleasedGame(gameId: string): boolean {
