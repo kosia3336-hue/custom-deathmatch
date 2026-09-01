@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "format": "webp",
+  "sprite": "seed-seotda-cards.webp",
+  "spriteSize": {
+    "width": 1140,
+    "height": 1176
+  },
+  "grid": {
+    "columns": 6,
+    "rows": 4
+  },
+  "cell": {
+    "width": 190,
+    "height": 294
+  },
+  "card": {
+    "width": 174,
+    "height": 278,
+    "insetX": 8,
+    "insetY": 8
+  },
+  "cards": {
+    "1a": {
+      "month": 1,
+      "variant": "a",
+      "column": 0,
+      "row": 0
+    },
+    "1b": {
+      "month": 1,
+      "variant": "b",
+      "column": 1,
+      "row": 0
+    },
+    "2a": {
+      "month": 2,
+      "variant": "a",
+      "column": 2,
+      "row": 0
+    },
+    "2b": {
+      "month": 2,
+      "variant": "b",
+      "column": 3,
+      "row": 0
+    },
+    "3a": {
+      "month": 3,
+      "variant": "a",
+      "column": 4,
+      "row": 0
+    },
+    "3b": {
+      "month": 3,
+      "variant": "b",
+      "column": 5,
+      "row": 0
+    },
+    "4a": {
+      "month": 4,
+      "variant": "a",
+      "column": 0,
+      "row": 1
+    },
+    "4b": {
+      "month": 4,
+      "variant": "b",
+      "column": 1,
+      "row": 1
+    },
+    "5a": {
+      "month": 5,
+      "variant": "a",
+      "column": 2,
+      "row": 1
+    },
+    "5b": {
+      "month": 5,
+      "variant": "b",
+      "column": 3,
+      "row": 1
+    },
+    "6a": {
+      "month": 6,
+      "variant": "a",
+      "column": 4,
+      "row": 1
+    },
+    "6b": {
+      "month": 6,
+      "variant": "b",
+      "column": 5,
+      "row": 1
+    },
+    "7a": {
+      "month": 7,
+      "variant": "a",
+      "column": 0,
+      "row": 2
+    },
+    "7b": {
+      "month": 7,
+      "variant": "b",
+      "column": 1,
+      "row": 2
+    },
+    "8a": {
+      "month": 8,
+      "variant": "a",
+      "column": 2,
+      "row": 2
+    },
+    "8b": {
+      "month": 8,
+      "variant": "b",
+      "column": 3,
+      "row": 2
+    },
+    "9a": {
+      "month": 9,
+      "variant": "a",
+      "column": 4,
+      "row": 2
+    },
+    "9b": {
+      "month": 9,
+      "variant": "b",
+      "column": 5,
+      "row": 2
+    },
+    "10a": {
+      "month": 10,
+      "variant": "a",
+      "column": 0,
+      "row": 3
+    },
+    "10b": {
+      "month": 10,
+      "variant": "b",
+      "column": 1,
+      "row": 3
+    }
+  },
+  "back": {
+    "column": 2,
+    "row": 3
+  }
+}

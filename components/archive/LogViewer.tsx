@@ -25,6 +25,7 @@ import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
 import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 import TripleGomokuViewer from '@/components/archive/viewers/triple-gomoku';
 import ChoiceHoldemViewer from '@/components/archive/viewers/choice-holdem';
+import SeedSeotdaViewer from '@/components/archive/viewers/seed-seotda';
 
 export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -48,13 +49,14 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.KINGMAKING]: KingmakingViewer,
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuViewer,
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemViewer,
+  [GAME_IDS.SEED_SEOTDA]: SeedSeotdaViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {
   const Viewer = VIEWER_MAP[record.gameId];
   if (!Viewer) {
     return (
-      <pre className="overflow-x-auto text-xs text-cdm-fg-muted">
+      <pre className="text-cdm-fg-muted overflow-x-auto text-xs">
         {JSON.stringify(record, null, 2)}
       </pre>
     );

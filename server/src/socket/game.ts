@@ -10,8 +10,16 @@ import { broadcastRoomUpdated, broadcastRoomRemoved } from './lobby.js';
 import { clearRoomStartCountdown } from './roomCountdown.js';
 import config from '../config.js';
 import { socketRoom, maskedClientRoomForSocket, emitRoomStateToRoom } from './utils.js';
-import { getRoomShopState, isTokenAnonymized, cleanupRoomShopState } from '../shop/roomShopState.js';
-import { maskRankingForViewer, maskGameResultDataForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import {
+  getRoomShopState,
+  isTokenAnonymized,
+  cleanupRoomShopState,
+} from '../shop/roomShopState.js';
+import {
+  maskRankingForViewer,
+  maskGameResultDataForViewer,
+  ANONYMOUS_NICKNAME,
+} from '../shop/maskNicknames.js';
 import type { IO, TypedSocket } from './types.js';
 import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
 import { persistGameEndLog } from './gameEndPersistence.js';
@@ -200,7 +208,16 @@ function launchPickedGame(
   // Initialise the real game first so game:state arrives before room:state
   const gameModule = gameModules[pickedGameId];
   if (gameModule) {
-    gameModule.init(io, roomId, players, playMode, Date.now(), room.timeLimitSeconds, endGameCallback, {});
+    gameModule.init(
+      io,
+      roomId,
+      players,
+      playMode,
+      Date.now(),
+      room.timeLimitSeconds,
+      endGameCallback,
+      {},
+    );
   }
 
   emitRoomStateToRoom(io, roomId);
@@ -219,12 +236,21 @@ type EndGameCallback = (
 
 interface GameModuleHandlers {
   init: (
-    io: IO, roomId: string, players: Player[], playMode: PlayMode,
-    startedAt: number, timeLimitSeconds: number | null,
+    io: IO,
+    roomId: string,
+    players: Player[],
+    playMode: PlayMode,
+    startedAt: number,
+    timeLimitSeconds: number | null,
     endGameCallback: EndGameCallback,
     gameOptions?: Record<string, unknown>,
   ) => void;
-  handleAction: (io: IO, socket: TypedSocket, roomId: string, data: Record<string, unknown>) => void;
+  handleAction: (
+    io: IO,
+    socket: TypedSocket,
+    roomId: string,
+    data: Record<string, unknown>,
+  ) => void;
   cleanup: (roomId: string) => void;
   getState: (roomId: string) => { gameOver: boolean; totalTurns: number } | undefined;
   emitStateToSocket: (socket: TypedSocket, roomId: string) => void;
@@ -314,6 +340,16 @@ import {
   getChoiceHoldemResultData,
 } from './games/choice-holdem/index.js';
 import {
+  initSeedSeotda,
+  handleSeedSeotdaAction,
+  cleanupSeedSeotda,
+  getSeedSeotdaState,
+  emitSeedSeotdaStateToSocket,
+  performSeedSeotdaUndo,
+  canSeedSeotdaUndo,
+  getSeedSeotdaResultData,
+} from './games/seed-seotda/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -344,6 +380,16 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performChoiceHoldemUndo,
     canUndo: canChoiceHoldemUndo,
     getResultData: getChoiceHoldemResultData,
+  },
+  [GAME_IDS.SEED_SEOTDA]: {
+    init: initSeedSeotda,
+    handleAction: handleSeedSeotdaAction,
+    cleanup: cleanupSeedSeotda,
+    getState: getSeedSeotdaState,
+    emitStateToSocket: emitSeedSeotdaStateToSocket,
+    performUndo: performSeedSeotdaUndo,
+    canUndo: canSeedSeotdaUndo,
+    getResultData: getSeedSeotdaResultData,
   },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,
@@ -539,7 +585,8 @@ const gameModules: Record<string, GameModuleHandlers> = {
     getState: (roomId) => {
       const s = getSilperBnwState(roomId);
       if (!s) return undefined;
-      const totalRounds = s.segmentsHistory.reduce((sum, seg) => sum + seg.rounds.length, 0) + s.actionLog.length;
+      const totalRounds =
+        s.segmentsHistory.reduce((sum, seg) => sum + seg.rounds.length, 0) + s.actionLog.length;
       return { gameOver: s.gameOver, totalTurns: totalRounds };
     },
     emitStateToSocket: emitSilperBnwStateToSocket,
@@ -600,10 +647,35 @@ const gameModules: Record<string, GameModuleHandlers> = {
     getResultData: getBankGameResultData,
   },
   [GAME_IDS.BAN_PICK]: {
-    init: (io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions) => {
-      void initBanPick(io, roomId, players, playMode, startedAt, timeLimitSeconds, endGameCallback, gameOptions,
+    init: (
+      io,
+      roomId,
+      players,
+      playMode,
+      startedAt,
+      timeLimitSeconds,
+      endGameCallback,
+      gameOptions,
+    ) => {
+      void initBanPick(
+        io,
+        roomId,
+        players,
+        playMode,
+        startedAt,
+        timeLimitSeconds,
+        endGameCallback,
+        gameOptions,
         (pickedGameId, pickedGameName) => {
-          launchPickedGame(io, roomId, pickedGameId, pickedGameName, players, playMode, endGameCallback);
+          launchPickedGame(
+            io,
+            roomId,
+            pickedGameId,
+            pickedGameName,
+            players,
+            playMode,
+            endGameCallback,
+          );
         },
         (banData) => {
           const room = roomStore.get(roomId);
@@ -677,12 +749,23 @@ export function startGame(io: IO, roomId: string) {
       }
       // 스킨 확정 (OR 규칙) — init 이전에 세팅해야 첫 game:state 에 반영됨
       setActiveSkinForRoom(roomId, playersForGame, room.gameId);
-      gameModule.init(io, roomId, playersForGame, room.playMode, startedAt, room.timeLimitSeconds, (cbIo, cbRoomId, data) => {
-        endGame(cbIo, cbRoomId, data);
-      }, room.gameOptions);
+      gameModule.init(
+        io,
+        roomId,
+        playersForGame,
+        room.playMode,
+        startedAt,
+        room.timeLimitSeconds,
+        (cbIo, cbRoomId, data) => {
+          endGame(cbIo, cbRoomId, data);
+        },
+        room.gameOptions,
+      );
     } catch (err) {
       console.error('[startGame] 게임 초기화 예외', { roomId, gameId: room.gameId }, err);
-      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '게임을 시작하는 중 오류가 발생했습니다.' });
+      io.to(socketRoom(roomId)).emit('room:disbanded', {
+        reason: '게임을 시작하는 중 오류가 발생했습니다.',
+      });
       roomStore.delete(roomId);
       broadcastRoomRemoved(io, roomId);
       return;
@@ -839,7 +922,9 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       io.to(opponentSocketId).emit('game:undo:proposal', {
         requestId,
         requesterId: myId,
-        requesterNickname: isRequesterAnon ? ANONYMOUS_NICKNAME : (sessions.getNickname(socket.id) ?? '플레이어'),
+        requesterNickname: isRequesterAnon
+          ? ANONYMOUS_NICKNAME
+          : (sessions.getNickname(socket.id) ?? '플레이어'),
       });
       return;
     }
@@ -1044,12 +1129,14 @@ export function endGame(
   const playTime = Date.now() - startedAt;
   gameStartTimes.delete(roomId);
 
-  const baseRankings = data?.rankings ?? room.players.map((p: Player, i: number) => ({
-    playerId: p.id,
-    nickname: p.nickname,
-    rank: i + 1,
-    score: 0,
-  }));
+  const baseRankings =
+    data?.rankings ??
+    room.players.map((p: Player, i: number) => ({
+      playerId: p.id,
+      nickname: p.nickname,
+      rank: i + 1,
+      score: 0,
+    }));
   const result: GameResult = {
     roomId,
     rankings: baseRankings.map((r) => ({
@@ -1077,7 +1164,14 @@ export function endGame(
             ...payload,
             rankings: maskRankingForViewer(roomId, payload.rankings, viewerToken),
             ...(payload.gameResultData != null
-              ? { gameResultData: maskGameResultDataForViewer(roomId, payload.gameResultData, viewerToken, anonNicknames) }
+              ? {
+                  gameResultData: maskGameResultDataForViewer(
+                    roomId,
+                    payload.gameResultData,
+                    viewerToken,
+                    anonNicknames,
+                  ),
+                }
               : {}),
           };
           io.sockets.sockets.get(sid)?.emit('game:ended', masked);
@@ -1104,12 +1198,14 @@ export function endGame(
   };
 
   const shouldRankFinalize =
-    room.isRanked === true
-    && room.rankSeasonId != null
-    && room.playMode === 'multi'
-    && room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length === 2;
+    room.isRanked === true &&
+    room.rankSeasonId != null &&
+    room.playMode === 'multi' &&
+    room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length === 2;
 
-  console.log(`[endGame] roomId=${roomId} gameId=${room.gameId} isRanked=${room.isRanked} seasonId=${room.rankSeasonId} playMode=${room.playMode} memberedPlayers=${room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length} shouldRankFinalize=${shouldRankFinalize}`);
+  console.log(
+    `[endGame] roomId=${roomId} gameId=${room.gameId} isRanked=${room.isRanked} seasonId=${room.rankSeasonId} playMode=${room.playMode} memberedPlayers=${room.players.filter((p: Player) => p.memberId && p.id !== AI_PLAYER_ID).length} shouldRankFinalize=${shouldRankFinalize}`,
+  );
 
   if (shouldRankFinalize) {
     const roomSnapshot = { ...room, players: [...room.players] };
@@ -1133,7 +1229,9 @@ export function endGame(
   const timer = setTimeout(() => {
     const r = roomStore.get(roomId);
     if (r && r.status === 'finished') {
-      io.to(socketRoom(roomId)).emit('room:disbanded', { reason: '시간 초과로 방이 종료되었습니다.' });
+      io.to(socketRoom(roomId)).emit('room:disbanded', {
+        reason: '시간 초과로 방이 종료되었습니다.',
+      });
       // p.id = token → 소켓 ID를 역조회해서 clearRoom
       r.players.forEach((p: Player) => {
         const sid = sessions.getSocketByToken(p.id) ?? p.id;
