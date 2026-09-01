@@ -9,6 +9,7 @@ import IntroRulesPanel, { type IntroRuleItem } from './IntroRulesPanel';
 import RuleSheet from '@/components/rules/RuleSheet';
 import { GAME_RULES, categoryHue } from '@/lib/gameRules';
 import { fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
+import { isUnreleasedGame } from '@/lib/unreleasedGames';
 
 /**
  * 소개 페이지 본문 — 검색·신규 유입의 대표 문서(/about)다.
@@ -173,8 +174,13 @@ export default async function IntroContent() {
   */
   const allRules = await fetchAllGameRules();
   const titleSlots = TITLE_SAMPLES;
-  const ruleItems: IntroRuleItem[] = GAME_RULES.filter((g) =>
-    hasMeaningfulRule(allRules[g.id]?.rules),
+  /*
+    출시 전 게임은 관리자에게도 싣지 않는다. /about 은 revalidate 로 캐시되는
+    공개 문서라 인증을 읽을 수 없고(아래 하단 CTA 주석과 같은 이유), 읽었다면
+    캐시가 깨진다. 관리자는 /rules 목록에서 보면 된다.
+  */
+  const ruleItems: IntroRuleItem[] = GAME_RULES.filter(
+    (g) => !isUnreleasedGame(g.id) && hasMeaningfulRule(allRules[g.id]?.rules),
   ).map((g) => {
     const rules = allRules[g.id]?.rules ?? '';
 

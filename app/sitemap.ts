@@ -3,6 +3,7 @@ import { getSiteUrl } from '@/lib/site';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { GAME_RULES } from '@/lib/gameRules';
+import { isUnreleasedGame } from '@/lib/unreleasedGames';
 
 interface NoticeRow {
   id: string;
@@ -37,8 +38,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority,
   }));
 
-  // 게임별 룰 페이지 — 검색 유입의 핵심 콘텐츠
-  const ruleEntries: MetadataRoute.Sitemap = GAME_RULES.map((g) => ({
+  // 게임별 룰 페이지 — 검색 유입의 핵심 콘텐츠.
+  // 출시 전 게임은 빼둔다. 색인되면 감춘 의미가 없다.
+  const ruleEntries: MetadataRoute.Sitemap = GAME_RULES.filter(
+    (g) => !isUnreleasedGame(g.id),
+  ).map((g) => ({
     url: `${base}/rules/${g.id}`,
     lastModified: now,
     changeFrequency: 'weekly',

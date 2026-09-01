@@ -8,14 +8,19 @@ import { GAME_RULES, getGameRule } from '@/lib/gameRules';
 import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameRulesServer';
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { cn } from '@/lib/utils';
+import { isUnreleasedGame } from '@/lib/unreleasedGames';
 
 interface Props {
   params: Promise<{ gameId: string }>;
 }
 
-/** 정적 경로 — 게임 목록은 코드에 고정이므로 전부 미리 생성 */
+/**
+ * 정적 경로 — 게임 목록은 코드에 고정이므로 미리 생성한다.
+ * 출시 전 게임만 뺀다. 주소로 직접 오면 그때 그려 주므로(관리자 미리보기),
+ * 페이지가 사라지는 건 아니고 빌드 결과물에 남지 않을 뿐이다.
+ */
 export function generateStaticParams() {
-  return GAME_RULES.map((g) => ({ gameId: g.id }));
+  return GAME_RULES.filter((g) => !isUnreleasedGame(g.id)).map((g) => ({ gameId: g.id }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -33,6 +38,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${game.name} 룰`,
     description,
     alternates: { canonical: `/rules/${gameId}` },
+    // 출시 전 게임은 색인시키지 않는다. 여기서 인증을 읽으면 룰 페이지 전체가
+    // 동적으로 바뀌므로, 관리자에게도 똑같이 noindex 를 준다 — 사람이 보는 데는
+    // 지장이 없고 검색 결과에만 안 뜬다.
+    ...(isUnreleasedGame(gameId) ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title: `${game.name} 룰 | 커스텀 데스매치`,
       description,
@@ -61,9 +70,17 @@ export default async function GameRulePage({ params }: Props) {
     meta && (meta.source || meta.originUrl || meta.originalAuthor || meta.poster),
   );
 
-  // 이전/다음 이동 — 룰이 등록된 게임끼리만 순환한다(빈 페이지로 넘어가지 않도록).
-  const navList = GAME_RULES.filter((g) => hasMeaningfulRule(all[g.id]?.rules));
-  const list = navList.length > 1 ? navList : GAME_RULES;
+  /*
+    이전/다음 이동 — 룰이 등록된 게임끼리만 순환한다(빈 페이지로 넘어가지 않도록).
+
+    출시 전 게임은 후보에서 먼저 걷어낸다. 폴백까지 걷어낸 목록으로 하는 게
+    핵심이다. 룰 조회가 비면(캐시가 차갑거나 DB 가 잠깐 안 될 때) navList 가
+    비어 폴백을 타는데, 여기에 전체 목록을 쓰면 일반 사용자가 이전/다음만
+    눌러도 감춘 게임으로 흘러든다.
+  */
+  const released = GAME_RULES.filter((g) => !isUnreleasedGame(g.id));
+  const navList = released.filter((g) => hasMeaningfulRule(all[g.id]?.rules));
+  const list = navList.length > 1 ? navList : released;
   const idx = list.findIndex((g) => g.id === gameId);
   // 목록에 없는 게임(룰 미등록)이라면 막다른 길이 되지 않도록 첫 룰로 안내
   const prev = idx >= 0 ? list[(idx - 1 + list.length) % list.length] : undefined;
