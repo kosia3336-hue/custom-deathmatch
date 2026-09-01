@@ -12,6 +12,7 @@ import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
+import { evaluateSeedSeotdaHand } from './judge.js';
 import type { SeedSeotdaState } from './types.js';
 
 export const seedSeotdaStates = new Map<string, SeedSeotdaState>();
@@ -118,6 +119,11 @@ export function toSeedSeotdaGameData(
         const internal = state.playerStates[player.id];
         const ownCards = viewerId === player.id;
         const publicHand = revealResult?.hands[player.id] ?? null;
+        const publicEvaluation = revealResult?.evaluations[player.id] ?? null;
+        const privateEvaluation =
+          ownCards && internal.finalHand.length === 2
+            ? evaluateSeedSeotdaHand(internal.finalHand)
+            : null;
         return [
           player.id,
           {
@@ -133,6 +139,11 @@ export function toSeedSeotdaGameData(
                   ? internal.finalHand.map(cloneCard)
                   : internal.finalHand.map(() => null),
             seedChoice: internal.seedChoice,
+            evaluation: publicEvaluation
+              ? cloneEvaluation(publicEvaluation)
+              : privateEvaluation
+                ? cloneEvaluation(privateEvaluation)
+                : null,
           },
         ];
       }),

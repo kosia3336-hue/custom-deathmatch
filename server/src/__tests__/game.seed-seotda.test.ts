@@ -119,8 +119,14 @@ describe('시드섯다 경기 진행', () => {
     expect(secondView.players[first.id].seedChoice).toBe('used');
     expect(secondView.players[first.id].cards).toEqual([null, null]);
     expect(secondView.players[first.id].finalHand).toEqual([null, null]);
+    expect(secondView.players[first.id].evaluation).toBeNull();
     expect(secondView.players[first.id]).not.toHaveProperty('discardIndex');
     expect(state.playerStates[first.id].finalHand[1]?.id).toBe(firstCards[1]?.id);
+
+    const firstView = toSeedSeotdaGameData(state, first.id);
+    expect(firstView.players[first.id].evaluation?.name).toBe(
+      evaluateSeedSeotdaHand(state.playerStates[first.id].finalHand).name,
+    );
   });
 
   it('양쪽 시드 선택 뒤 선 플레이어가 베팅하고 상대가 콜하면 승부한다', () => {

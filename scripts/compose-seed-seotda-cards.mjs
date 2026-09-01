@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, '..');
 const sourcePath = join(projectRoot, 'handover/design-assets/seed-seotda/source.png');
+const backSourcePath = join(projectRoot, 'handover/design-assets/seed-seotda/back-source.jpg');
 const outputDir = join(projectRoot, 'public/games/cards/seed-seotda');
 const previewPath = join(projectRoot, 'handover/design-assets/seed-seotda/preview.webp');
-const backPath = join(projectRoot, 'public/games/cards/parts-v2/card-back.webp');
 const tempDir = mkdtempSync(join(tmpdir(), 'cdm-seed-seotda-'));
 
 const spriteColumns = 6;
@@ -19,17 +19,30 @@ const cellHeight = 294;
 const cardWidth = 174;
 const cardHeight = 278;
 
-// 원본은 한 행에 두 달(각 4장)씩 배치되어 있다. 시드섯다는 각 달의 앞 두 장만 쓴다.
-const rowOrigins = [12, 154, 297, 439, 582];
-const columnOrigins = [14, 106, 198, 290, 382, 474, 566, 658];
-const selectedSourceCells = Array.from({ length: 10 }, (_, monthIndex) => {
-  const row = Math.floor(monthIndex / 2);
-  const monthColumn = monthIndex % 2 === 0 ? 0 : 4;
-  return [
-    { month: monthIndex + 1, variant: 'a', x: columnOrigins[monthColumn], y: rowOrigins[row] },
-    { month: monthIndex + 1, variant: 'b', x: columnOrigins[monthColumn + 1], y: rowOrigins[row] },
-  ];
-}).flat();
+// 원본 셀의 빨간 구분선이 포함되지 않도록 카드의 실제 외곽을 장별로 검수한 좌표다.
+// 원본의 미세한 정렬 차이는 여기서 흡수하고 모든 결과를 같은 크기로 정규화한다.
+const selectedSourceCells = [
+  { month: 1, variant: 'a', x: 21, y: 17, width: 80, height: 130 },
+  { month: 1, variant: 'b', x: 113, y: 18, width: 80, height: 130 },
+  { month: 2, variant: 'a', x: 388, y: 18, width: 80, height: 130 },
+  { month: 2, variant: 'b', x: 480, y: 18, width: 80, height: 130 },
+  { month: 3, variant: 'a', x: 22, y: 160, width: 79, height: 130 },
+  { month: 3, variant: 'b', x: 113, y: 160, width: 80, height: 130 },
+  { month: 4, variant: 'a', x: 388, y: 160, width: 80, height: 130 },
+  { month: 4, variant: 'b', x: 480, y: 161, width: 80, height: 130 },
+  { month: 5, variant: 'a', x: 22, y: 302, width: 79, height: 130 },
+  { month: 5, variant: 'b', x: 112, y: 302, width: 81, height: 130 },
+  { month: 6, variant: 'a', x: 388, y: 303, width: 81, height: 130 },
+  { month: 6, variant: 'b', x: 480, y: 303, width: 80, height: 130 },
+  { month: 7, variant: 'a', x: 21, y: 444, width: 80, height: 130 },
+  { month: 7, variant: 'b', x: 113, y: 444, width: 80, height: 130 },
+  { month: 8, variant: 'a', x: 389, y: 444, width: 80, height: 130 },
+  { month: 8, variant: 'b', x: 479, y: 444, width: 80, height: 130 },
+  { month: 9, variant: 'a', x: 22, y: 585, width: 79, height: 131 },
+  { month: 9, variant: 'b', x: 113, y: 586, width: 80, height: 130 },
+  { month: 10, variant: 'a', x: 389, y: 586, width: 80, height: 130 },
+  { month: 10, variant: 'b', x: 480, y: 586, width: 80, height: 131 },
+];
 
 function runMagick(args) {
   execFileSync('magick', args, { stdio: 'inherit' });
@@ -43,18 +56,59 @@ try {
     runMagick([
       sourcePath,
       '-crop',
-      `92x143+${card.x}+${card.y}`,
+      `${card.width}x${card.height}+${card.x}+${card.y}`,
       '+repage',
-      '-fuzz',
-      '2%',
-      '-trim',
-      '+repage',
+      '(',
+      '-size',
+      `${card.width}x${card.height}`,
+      'xc:none',
+      '-fill',
+      'white',
+      '-draw',
+      `roundrectangle 0,0 ${card.width - 1},${card.height - 1} 7,7`,
+      ')',
+      '-alpha',
+      'off',
+      '-compose',
+      'CopyOpacity',
+      '-composite',
       '-resize',
       `${cardWidth}x${cardHeight}!`,
       outputPath,
     ]);
     return outputPath;
   });
+
+  const backPath = join(tempDir, 'card-back.png');
+  runMagick([
+    backSourcePath,
+    '-crop',
+    '435x707+106+43',
+    '+repage',
+    '-alpha',
+    'on',
+    '-fuzz',
+    '12%',
+    '-transparent',
+    'white',
+    '(',
+    '-size',
+    '435x707',
+    'xc:none',
+    '-fill',
+    'white',
+    '-draw',
+    'roundrectangle 0,0 434,706 28,28',
+    ')',
+    '-alpha',
+    'off',
+    '-compose',
+    'CopyOpacity',
+    '-composite',
+    '-resize',
+    `${cardWidth}x${cardHeight}!`,
+    backPath,
+  ]);
 
   const spriteSources = [...cardPaths, backPath];
   const cellPaths = spriteSources.map((source, index) => {
@@ -136,7 +190,7 @@ try {
     join(outputDir, 'manifest.json'),
     `${JSON.stringify(
       {
-        version: 1,
+        version: 2,
         format: 'webp',
         sprite: 'seed-seotda-cards.webp',
         spriteSize: {

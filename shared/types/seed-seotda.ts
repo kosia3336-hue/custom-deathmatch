@@ -66,6 +66,7 @@ export interface SeedSeotdaPlayerView {
   cards: Array<SeedSeotdaCard | null>;
   finalHand: Array<SeedSeotdaCard | null>;
   seedChoice: SeedSeotdaSeedChoice;
+  evaluation: SeedSeotdaEvaluation | null;
 }
 
 export type SeedSeotdaRoundReason =

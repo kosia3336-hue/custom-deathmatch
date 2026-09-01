@@ -8,10 +8,7 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
-import type {
-  SeedSeotdaGameData,
-  SeedSeotdaPlayerView,
-} from '@/shared/types/seed-seotda';
+import type { SeedSeotdaGameData, SeedSeotdaPlayerView } from '@/shared/types/seed-seotda';
 
 const PHASE_LABEL: Record<SeedSeotdaGameData['phase'], string> = {
   'seed-choice': '시드 선택',
@@ -44,7 +41,7 @@ function PlayerPanel({
   myId: string;
 }) {
   const current = gameData.currentTurnId === playerId;
-  const evaluation = gameData.lastRoundResult?.evaluations[playerId];
+  const evaluation = player.evaluation;
   const choiceLabel =
     player.seedChoice === 'used'
       ? '시드 사용'
@@ -79,7 +76,10 @@ function PlayerPanel({
       </div>
       <HandCards player={player} />
       {evaluation && (
-        <p className="text-cdm-fg mt-1 text-xs font-black sm:text-sm">{evaluation.name}</p>
+        <p className="text-cdm-fg mt-1 text-xs font-black sm:text-sm">
+          {playerId === myId && gameData.phase !== 'round-result' ? '내 족보 · ' : ''}
+          {evaluation.name}
+        </p>
       )}
     </section>
   );
