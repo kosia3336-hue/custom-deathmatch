@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
 import type { RoomSummary } from '@/shared/types';
+import { displayGameName } from '@/lib/unreleasedGames';
 
 interface Props {
   rooms: RoomSummary[];
@@ -12,9 +13,17 @@ interface Props {
   onSpectate: (room: RoomSummary) => void;
   /** true이면 입장 버튼 비활성화 (랭크 큐 대기 중) */
   queuing?: boolean;
+  /** 출시 전 게임의 종목 이름을 그대로 보여줄지 (lib/unreleasedGames.ts) */
+  isAdmin?: boolean;
 }
 
-export default function RoomTable({ rooms, onJoin, onSpectate, queuing = false }: Props) {
+export default function RoomTable({
+  rooms,
+  onJoin,
+  onSpectate,
+  queuing = false,
+  isAdmin = false,
+}: Props) {
   return (
     <div className="hidden md:block overflow-x-auto">
       <table className="w-full text-sm">
@@ -50,7 +59,9 @@ export default function RoomTable({ rooms, onJoin, onSpectate, queuing = false }
                     </Badge>
                   </div>
                 </td>
-                <td className="px-4 py-3 font-medium text-cdm-fg whitespace-nowrap">{room.gameName}</td>
+                <td className="px-4 py-3 font-medium text-cdm-fg whitespace-nowrap">
+                  {displayGameName(room.gameId, room.gameName, isAdmin)}
+                </td>
                 <td className="px-4 py-3 text-cdm-fg max-w-[180px]">
                   <span className="truncate">{room.title}</span>
                   {room.timeLimitSeconds != null && (

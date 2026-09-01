@@ -14,15 +14,28 @@
  * 아래 배열에 게임 ID 를 넣으면 즉시 감춰진다. 출시할 때 지우면 된다.
  */
 export const UNRELEASED_GAME_IDS: readonly string[] = [
-  'game-024', // 삼층 오목 — 검증 중
+  'game-024', // 삼층 오목
   'game-025', // 초이스 홀덤
-  // 아래 둘은 아직 DB 에 없다. 게임이 등록되는 순간 바로 감춰지도록 미리 적어 둔다.
-  'game-026',
-  'game-027',
+  'game-026', // 시드섯다
+  'game-027', // 양면포커
 ];
 
 export function isUnreleasedGame(gameId: string): boolean {
   return UNRELEASED_GAME_IDS.includes(gameId);
+}
+
+/** 출시 전 게임의 이름을 대신할 말. 종목이 무엇인지까지는 감춘다. */
+export const UNRELEASED_GAME_LABEL = '신규 게임';
+
+/**
+ * 화면에 띄울 게임 이름.
+ *
+ * 출시 전 게임으로 방을 열면 방 자체는 로비에 그대로 뜬다(감추면 시험을 못 한다).
+ * 대신 종목 이름만 가려서, 일반 사용자에게는 무엇을 시험 중인지 보이지 않게 한다.
+ * 관리자는 어느 방이 무슨 게임인지 알아야 하므로 실제 이름을 그대로 본다.
+ */
+export function displayGameName(gameId: string, gameName: string, isAdmin: boolean): string {
+  return !isAdmin && isUnreleasedGame(gameId) ? UNRELEASED_GAME_LABEL : gameName;
 }
 
 /**

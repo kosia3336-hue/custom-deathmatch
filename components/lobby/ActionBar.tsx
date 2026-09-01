@@ -13,15 +13,18 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { GAME_IDS } from '@/shared/types';
 import { GAME_CATEGORIES, getGameRule } from '@/lib/gameRules';
+import { filterUnreleased } from '@/lib/unreleasedGames';
 import type { Game, JoinRoomResult } from '@/shared/types';
 import RankLobbyControls from '@/components/lobby/RankLobbyControls';
 import type { TabFilter } from '@/stores/lobby';
 
 interface Props {
   onCreateRoom: () => void;
+  /** 출시 전 게임을 갈래 필터에 노출할지 (lib/unreleasedGames.ts) */
+  isAdmin?: boolean;
 }
 
-export default function ActionBar({ onCreateRoom }: Props) {
+export default function ActionBar({ onCreateRoom, isAdmin = false }: Props) {
   const router = useRouter();
   const {
     searchQuery, setSearchQuery,
@@ -39,13 +42,18 @@ export default function ActionBar({ onCreateRoom }: Props) {
     fetchGames()
       .then((all) =>
         setGames(
-          all.filter(
-            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+          // 출시 전 게임은 갈래 필터에도 띄우지 않는다. 방 이름을 가려 놓고
+          // 필터 목록에 종목이 남아 있으면 감춘 의미가 없다.
+          filterUnreleased(
+            all.filter(
+              (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+            ),
+            isAdmin,
           ),
         ),
       )
       .catch(() => {});
-  }, []);
+  }, [isAdmin]);
 
   // 방 종류별 카운트 — 드롭다운 라벨에 표시
   const counts = useMemo(

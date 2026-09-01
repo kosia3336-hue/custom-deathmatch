@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
 import type { RoomSummary } from '@/shared/types';
+import { displayGameName } from '@/lib/unreleasedGames';
 
 interface Props {
   rooms: RoomSummary[];
@@ -12,9 +13,17 @@ interface Props {
   onSpectate: (room: RoomSummary) => void;
   /** true이면 입장 버튼 비활성화 (랭크 큐 대기 중) */
   queuing?: boolean;
+  /** 출시 전 게임의 종목 이름을 그대로 보여줄지 (lib/unreleasedGames.ts) */
+  isAdmin?: boolean;
 }
 
-export default function RoomCardList({ rooms, onJoin, onSpectate, queuing = false }: Props) {
+export default function RoomCardList({
+  rooms,
+  onJoin,
+  onSpectate,
+  queuing = false,
+  isAdmin = false,
+}: Props) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {rooms.map((room) => {
@@ -32,7 +41,9 @@ export default function RoomCardList({ rooms, onJoin, onSpectate, queuing = fals
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-cdm-fg">{room.gameName}</span>
+                <span className="font-medium text-cdm-fg">
+                  {displayGameName(room.gameId, room.gameName, isAdmin)}
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 {room.timeLimitSeconds != null && (
