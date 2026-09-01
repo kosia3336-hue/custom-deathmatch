@@ -7,6 +7,7 @@ import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import type {
   DoubleSidedChessGameData,
   PieceType,
@@ -30,6 +31,7 @@ export default function DoubleSidedChessGame() {
   const nickname = useNicknameStore((s) => s.nickname);
 
   const gameData = gameState?.gameData as DoubleSidedChessGameData | undefined;
+  useAbstractStrategyMoveSfx(gameData?.board);
   const turnNumber = gameState?.turnNumber ?? 1;
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.DOUBLE_SIDED_CHESS);
 

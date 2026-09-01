@@ -20,6 +20,7 @@ import TutorialCoach from './TutorialCoach';
 import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
 import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -28,6 +29,7 @@ export default function FourGravityGame() {
   const nickname = useNicknameStore((s) => s.nickname);
 
   const gameData = gameState?.gameData as FourGravityGameData | undefined;
+  useAbstractStrategyMoveSfx(gameData?.board);
   const turnNumber = gameState?.turnNumber ?? 1;
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.FOUR_GRAVITY);
 
@@ -243,4 +245,3 @@ export default function FourGravityGame() {
     </>
   );
 }
-
