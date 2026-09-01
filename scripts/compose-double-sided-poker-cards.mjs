@@ -19,8 +19,11 @@ const cardWidth = 280;
 const cardHeight = 392;
 const frontSource = join(sourceDir, 'card-front.webp');
 const backSource = join(sourceDir, 'card-back.webp');
-const logoSource = join(projectRoot, 'public/brand/logo3.webp');
+const pipSource = join(sourceDir, 'card-pip-crystal.webp');
 const fontPath = '/System/Library/Fonts/Supplemental/Arial Bold.ttf';
+const cornerPipSize = 86;
+const cornerPip = join(tempDir, 'corner-pip.png');
+const rotatedCornerPip = join(tempDir, 'corner-pip-rotated.png');
 
 function magick(args) {
   execFileSync('magick', args, { stdio: 'inherit' });
@@ -40,18 +43,20 @@ function createFront(value, output) {
     '-annotate',
     '+0+14',
     String(value),
+    cornerPip,
     '-gravity',
     'northwest',
-    '-pointsize',
-    '96',
-    '-annotate',
-    '+42+28',
-    String(value),
+    '-geometry',
+    '+38+28',
+    '-compose',
+    'Over',
+    '-composite',
+    rotatedCornerPip,
     '-gravity',
     'southeast',
-    '-annotate',
-    '+42+28',
-    String(value),
+    '-geometry',
+    '+38+28',
+    '-composite',
     output,
   ]);
 }
@@ -82,24 +87,20 @@ function createReverse(value, output) {
     '-annotate',
     '+0+14',
     String(value),
-    '-fill',
-    '#f3dfaa',
-    '-stroke',
-    '#101936',
-    '-strokewidth',
-    '3',
+    cornerPip,
     '-gravity',
     'northwest',
-    '-pointsize',
-    '88',
-    '-annotate',
-    '+42+28',
-    String(value),
+    '-geometry',
+    '+38+28',
+    '-compose',
+    'Over',
+    '-composite',
+    rotatedCornerPip,
     '-gravity',
     'southeast',
-    '-annotate',
-    '+42+28',
-    String(value),
+    '-geometry',
+    '+38+28',
+    '-composite',
     output,
   ]);
 }
@@ -108,6 +109,8 @@ mkdirSync(outputDir, { recursive: true });
 mkdirSync(previewDir, { recursive: true });
 
 try {
+  magick([pipSource, '-resize', `${cornerPipSize}x${cornerPipSize}!`, cornerPip]);
+  magick([cornerPip, '-rotate', '180', rotatedCornerPip]);
   const fronts = [];
   const reverses = [];
   for (let value = 1; value <= 10; value += 1) {
@@ -119,23 +122,7 @@ try {
     reverses.push(reverse);
   }
 
-  const logo = join(tempDir, 'logo.png');
-  const hidden = join(tempDir, 'hidden.png');
-  magick([logoSource, '-resize', '500x380', logo]);
-  magick([
-    backSource,
-    logo,
-    '-gravity',
-    'center',
-    '-geometry',
-    '+0+0',
-    '-compose',
-    'Over',
-    '-composite',
-    hidden,
-  ]);
-
-  const cells = [...fronts, ...reverses, hidden].map((source, index) => {
+  const cells = [...fronts, ...reverses].map((source, index) => {
     const cell = join(tempDir, `cell-${index}.png`);
     magick([
       source,
@@ -178,11 +165,10 @@ try {
     fontPath,
     ...fronts,
     ...reverses,
-    hidden,
     '-thumbnail',
     '140x196',
     '-tile',
-    '7x3',
+    '5x4',
     '-geometry',
     '140x196+14+16',
     '-background',
@@ -208,7 +194,7 @@ try {
     join(outputDir, 'manifest.json'),
     `${JSON.stringify(
       {
-        version: 1,
+        version: 2,
         format: 'webp',
         sprite: 'double-sided-poker-cards.webp',
         grid: { columns, rows },
@@ -216,7 +202,6 @@ try {
         card: { width: cardWidth, height: cardHeight },
         front: locations(0),
         reverse: locations(10),
-        hidden: { column: 2, row: 3 },
       },
       null,
       2,

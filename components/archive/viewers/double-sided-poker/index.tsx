@@ -83,13 +83,14 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
                     <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md p-2 text-center">
                       <p className="text-cdm-fg-muted truncate text-[10px]">{player.nickname}</p>
                       <div className="mt-1 flex justify-center gap-1">
-                        <DoubleSidedPokerCard value={card?.front ?? null} face="front" size="sm" />
-                        <DoubleSidedPokerCard
-                          value={card?.back ?? null}
-                          face={card?.back == null ? 'hidden' : 'back'}
-                          size="sm"
-                        />
+                        {card && <DoubleSidedPokerCard value={card.front} face="front" size="sm" />}
+                        {card?.back != null && (
+                          <DoubleSidedPokerCard value={card.back} face="back" size="sm" />
+                        )}
                       </div>
+                      {card && card.back == null && (
+                        <p className="text-cdm-fg-subtle mt-1 text-[9px]">뒷면 비공개</p>
+                      )}
                       <p className="text-cdm-fg mt-1 text-[10px] font-black">
                         {selection === 'both'
                           ? '양면베팅'

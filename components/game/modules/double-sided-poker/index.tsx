@@ -84,21 +84,24 @@ function PlayerPanel({
       </div>
 
       <div className="mt-2 flex items-end justify-center gap-2 sm:gap-3">
-        <div className="text-center">
-          <DoubleSidedPokerCard value={player.card?.front ?? null} face="front" size="md" />
-          <p className="text-cdm-fg mt-0.5 text-[10px] font-black">앞면 · 공개</p>
-        </div>
-        <div className="text-center">
-          <DoubleSidedPokerCard
-            value={player.card?.back ?? null}
-            face={player.card?.back == null ? 'hidden' : 'back'}
-            size="md"
-          />
-          <p className="text-cdm-fg mt-0.5 text-[10px] font-black">
-            {player.card?.back == null ? '뒷면 · 비공개' : '뒷면'}
-          </p>
-        </div>
+        {player.card && (
+          <div className="text-center">
+            <DoubleSidedPokerCard value={player.card.front} face="front" size="md" />
+            <p className="text-cdm-fg mt-0.5 text-[10px] font-black">앞면 · 공개</p>
+          </div>
+        )}
+        {player.card?.back != null && (
+          <div className="text-center">
+            <DoubleSidedPokerCard value={player.card.back} face="back" size="md" />
+            <p className="text-cdm-fg mt-0.5 text-[10px] font-black">뒷면 · 본인 공개</p>
+          </div>
+        )}
       </div>
+      {player.card && player.card.back == null && (
+        <p className="text-cdm-fg-subtle mt-1 text-center text-[10px] font-bold">
+          뒷면 숫자는 소유자만 확인할 수 있습니다.
+        </p>
+      )}
 
       <div className="mt-2 grid gap-1.5">
         <BetLane

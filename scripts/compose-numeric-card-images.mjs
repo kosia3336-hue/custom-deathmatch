@@ -20,6 +20,7 @@ const previewDir = join(
 const tempDir = mkdtempSync(join(tmpdir(), 'cdm-card-compose-'));
 
 const pipSize = 144;
+const cornerPipSize = 86;
 const spriteColumns = 6;
 const spriteRows = 2;
 const spriteCellWidth = 300;
@@ -61,32 +62,25 @@ rmSync(join(outputDir, 'card-back.webp'), { force: true });
 try {
   const cardPaths = [];
   const pipRenderedPath = join(tempDir, 'pip.png');
+  const cornerPipPath = join(tempDir, 'corner-pip.png');
+  const rotatedCornerPipPath = join(tempDir, 'corner-pip-rotated.png');
   runMagick([pipPath, '-resize', `${pipSize}x${pipSize}!`, pipRenderedPath]);
+  runMagick([pipPath, '-resize', `${cornerPipSize}x${cornerPipSize}!`, cornerPipPath]);
+  runMagick([cornerPipPath, '-rotate', '180', rotatedCornerPipPath]);
 
   for (let value = 1; value <= 10; value += 1) {
-    const numberPath = join(tempDir, `number-${value}.png`);
-    const rotatedNumberPath = join(tempDir, `number-${value}-rotated.png`);
     const outputPath = join(tempDir, `card-${String(value).padStart(2, '0')}.png`);
-    runMagick([
-      '-background', 'none',
-      '-fill', '#111a3d',
-      '-font', fontPath,
-      '-pointsize', '128',
-      `label:${value}`,
-      numberPath,
-    ]);
-    runMagick([numberPath, '-rotate', '180', rotatedNumberPath]);
 
     const composeArgs = [
       frontPath,
-      numberPath,
+      cornerPipPath,
       '-gravity', 'northwest',
-      '-geometry', '+42+22',
+      '-geometry', '+38+28',
       '-compose', 'Over',
       '-composite',
-      rotatedNumberPath,
+      rotatedCornerPipPath,
       '-gravity', 'southeast',
-      '-geometry', '+42+22',
+      '-geometry', '+38+28',
       '-composite',
       '-gravity', 'northwest',
     ];
@@ -157,7 +151,7 @@ try {
   writeFileSync(
     join(outputDir, 'manifest.json'),
     `${JSON.stringify({
-      version: 3,
+      version: 4,
       format: 'webp',
       sprite: 'cdm-numeric-cards.webp',
       spriteSize: {

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "format": "webp",
   "sprite": "double-sided-poker-cards.webp",
   "grid": {
@@ -97,9 +97,5 @@
       "column": 1,
       "row": 3
     }
-  },
-  "hidden": {
-    "column": 2,
-    "row": 3
   }
 }
