@@ -18,6 +18,7 @@ export interface MailboxRow {
   created_at: string;
   read_at: string | null;
   claimed_at?: string | null;
+  expires_at?: string | null;
 }
 
 function asKind(v: string): MailKind {
@@ -74,5 +75,6 @@ export function mailboxRowToItem(row: MailboxRow): MailItem {
     scoutInvite: asScout(payload),
     reward: asReward(payload),
     claimedAt: row.claimed_at ? new Date(row.claimed_at).getTime() : null,
+    expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
   };
 }

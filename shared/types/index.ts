@@ -17,7 +17,14 @@ export {
   applyRankWin,
   applyRankLoss,
 } from './rank';
-export { AI_PLAYER_ID, PLAY_MODES, PLAY_MODE_LABEL, isSoloLikePlayMode, isPlayMode, gameSupportsPlayMode } from './room';
+export {
+  AI_PLAYER_ID,
+  PLAY_MODES,
+  PLAY_MODE_LABEL,
+  isSoloLikePlayMode,
+  isPlayMode,
+  gameSupportsPlayMode,
+} from './room';
 export {
   CH_CARDS_PER_BOARD,
   CH_MATCH_SECONDS,
@@ -72,10 +79,43 @@ export type {
   KingmakingStack,
   KingmakingWinType,
 } from './kingmaking';
+export { CHOICE_HOLDEM_ANTE_INTERVAL, CHOICE_HOLDEM_INITIAL_CHIPS } from './choice-holdem';
+export { SEED_SEOTDA_ANTE, SEED_SEOTDA_INITIAL_CHIPS } from './seed-seotda';
 export {
-  CHOICE_HOLDEM_ANTE_INTERVAL,
-  CHOICE_HOLDEM_INITIAL_CHIPS,
-} from './choice-holdem';
+  DOUBLE_SIDED_POKER_ANTE,
+  DOUBLE_SIDED_POKER_DOUBLE_BONUS,
+  DOUBLE_SIDED_POKER_INITIAL_CHIPS,
+} from './double-sided-poker';
+export type {
+  DoubleSidedPokerAction,
+  DoubleSidedPokerArchiveRecord,
+  DoubleSidedPokerBettingAction,
+  DoubleSidedPokerCard,
+  DoubleSidedPokerGameData,
+  DoubleSidedPokerPhase,
+  DoubleSidedPokerPlayerView,
+  DoubleSidedPokerRoundReason,
+  DoubleSidedPokerRoundResult,
+  DoubleSidedPokerSelection,
+  DoubleSidedPokerSide,
+} from './double-sided-poker';
+export type {
+  SeedSeotdaAction,
+  SeedSeotdaArchiveRecord,
+  SeedSeotdaBettingAction,
+  SeedSeotdaCard,
+  SeedSeotdaCardKind,
+  SeedSeotdaCardVariant,
+  SeedSeotdaEvaluation,
+  SeedSeotdaGameData,
+  SeedSeotdaHandKind,
+  SeedSeotdaMonth,
+  SeedSeotdaPhase,
+  SeedSeotdaPlayerView,
+  SeedSeotdaRoundReason,
+  SeedSeotdaRoundResult,
+  SeedSeotdaSeedChoice,
+} from './seed-seotda';
 export type {
   ChoiceHoldemAction,
   ChoiceHoldemArchiveRecord,
@@ -104,15 +144,14 @@ export type {
   CompleteHapBackground,
   CompleteHapTiebreak,
 } from './complete-hap';
+export type { PlayMode, RoomStatus, RoomType, Player, Room, RoomSummary } from './room';
 export type {
-  PlayMode,
-  RoomStatus,
-  RoomType,
-  Player,
-  Room,
-  RoomSummary,
-} from './room';
-export type { BanTurn, BannedGame, BanPickStartPayload, BanPickUpdatePayload, BanPickLotteryPayload } from './ban-pick';
+  BanTurn,
+  BannedGame,
+  BanPickStartPayload,
+  BanPickUpdatePayload,
+  BanPickLotteryPayload,
+} from './ban-pick';
 export type {
   CreateRoomData,
   JoinRoomData,
@@ -134,9 +173,7 @@ export type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from './events';
-export {
-  BOARD_SIZE,
-} from './four-gravity';
+export { BOARD_SIZE } from './four-gravity';
 export type {
   CellType,
   Direction,
@@ -183,9 +220,7 @@ export type {
   BankMatchArchiveStats,
   BankGameArchiveRecord,
 } from './archive';
-export {
-  DSC_BOARD_SIZE,
-} from './double-sided-chess';
+export { DSC_BOARD_SIZE } from './double-sided-chess';
 export type {
   PieceType,
   Owner,
@@ -215,15 +250,8 @@ export type {
   NumberFourGameData,
   NumberFourAction,
 } from './number4';
-export {
-  INITIAL_CHIPS_DEFAULT,
-  INITIAL_ANTE,
-} from './indian-poker';
-export {
-  ID_TOTAL_ROUNDS,
-  ID_INITIAL_SCORE,
-  ID_INITIAL_COIN_STOCK,
-} from './invest-donate';
+export { INITIAL_CHIPS_DEFAULT, INITIAL_ANTE } from './indian-poker';
+export { ID_TOTAL_ROUNDS, ID_INITIAL_SCORE, ID_INITIAL_COIN_STOCK } from './invest-donate';
 export type {
   IDPhase,
   IDWinType,
@@ -273,23 +301,14 @@ export type {
   IPEKickedPayload,
   IPEHandResultPayload,
 } from './indian-poker-event';
-export {
-  WP_TOTAL_ROUNDS,
-  WP_ROUND_SECONDS,
-  WP_WRONG_LOCK_MS,
-  WP_REVEAL_MS,
-} from './word-puzzle';
+export { WP_TOTAL_ROUNDS, WP_ROUND_SECONDS, WP_WRONG_LOCK_MS, WP_REVEAL_MS } from './word-puzzle';
 export type {
   WordPuzzlePhase,
   WordPuzzleAction,
   WordPuzzleRoundResult,
   WordPuzzleGameData,
 } from './word-puzzle';
-export {
-  TL_PUZZLE_COUNT,
-  TL_TIME_LIMIT_SEC,
-  TL_WRONG_LOCK_MS,
-} from './transletter';
+export { TL_PUZZLE_COUNT, TL_TIME_LIMIT_SEC, TL_WRONG_LOCK_MS } from './transletter';
 export type {
   TransletterPhase,
   TransletterAction,
@@ -331,11 +350,7 @@ export type {
   QuatroResultSummary,
   QuatroGameData,
 } from './quatro';
-export {
-  BRPS_TOTAL_ROUNDS,
-  BRPS_INITIAL_CHIPS,
-  BRPS_BET_MULTIPLIER,
-} from './betting-rps';
+export { BRPS_TOTAL_ROUNDS, BRPS_INITIAL_CHIPS, BRPS_BET_MULTIPLIER } from './betting-rps';
 export type {
   BRPSPhase,
   BRPSResult,
@@ -349,11 +364,7 @@ export type {
   BettingRpsGameData,
   BettingRpsAction,
 } from './betting-rps';
-export {
-  MBNW_TILE_SET,
-  MBNW_TOTAL_ROUNDS,
-  MBNW_TILE_COLOR,
-} from './multiple-bnw';
+export { MBNW_TILE_SET, MBNW_TOTAL_ROUNDS, MBNW_TILE_COLOR } from './multiple-bnw';
 export type {
   MBNWTile,
   MBNWTileColor,
@@ -368,11 +379,7 @@ export type {
   MultipleBnwGameData,
   MultipleBnwAction,
 } from './multiple-bnw';
-export {
-  WS_TOTAL_ROUNDS,
-  WS_INITIAL_CARDS,
-  CARD_TYPES,
-} from './winning-streak';
+export { WS_TOTAL_ROUNDS, WS_INITIAL_CARDS, CARD_TYPES } from './winning-streak';
 export type {
   WSCardType,
   WSPhase,

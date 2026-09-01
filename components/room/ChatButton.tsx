@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { UnreadBadge } from '@/components/cdm';
 import { useRoomStore } from '@/stores/room';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useNicknameStore } from '@/stores/nickname';
@@ -65,14 +66,16 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
         className="relative flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
         title="채팅"
       >
-        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
         <span className="hidden text-sm font-medium md:inline">채팅</span>
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <UnreadBadge
+            count={unreadCount}
+            label={`미읽음 ${unreadCount}건`}
+            className="absolute -top-1 -right-1"
+          />
         )}
       </button>
 

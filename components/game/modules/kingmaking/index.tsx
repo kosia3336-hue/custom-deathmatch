@@ -9,6 +9,7 @@ import type {
 } from '@/shared/types/kingmaking';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -20,6 +21,7 @@ const MOVE_LABELS = ['한 칸 직선', '룩', '나이트', '비숍', '퀸'];
 export default function KingmakingGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as KingmakingGameData | undefined;
+  useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
   const { remaining } = useTurnTimer();
 

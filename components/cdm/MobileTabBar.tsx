@@ -33,6 +33,29 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
   { href: '/attendance', label: '출석판', icon: <Icon name="attendance" size="lg" />, memberOnly: true },
 ];
 
+/*
+  활성 탭 표시.
+
+  색만 바꾸면 작은 화면에서 잘 안 보인다. 위쪽 2px 선과 굵은 라벨을 함께 준다.
+  인수인계 문서(§5)는 아이콘 fill 도 제안했지만 넣지 않았다 — 우리 아이콘은
+  대부분 열린 선이라 채워도 변화가 없고, '게임'(rect 조합)은 사각형이 통째로
+  칠해져 안쪽 줄이 묻힌다. 5개 중 2개만 의도대로 되고 1개는 깨진다.
+*/
+const TAB_BASE =
+  'relative flex w-full flex-col items-center gap-0.5 py-2 text-[10px] transition-colors';
+const TAB_STATE = (active: boolean) =>
+  active ? 'font-semibold text-white' : 'font-medium text-cdm-ink-fg-muted hover:text-white';
+
+/** 활성 탭 위에 얹는 2px 선 */
+function TabIndicator() {
+  return (
+    <span
+      aria-hidden
+      className="absolute inset-x-0 top-0 h-0.5 rounded-b-full bg-cdm-primary"
+    />
+  );
+}
+
 /** 모바일 하단 탭 바 — 앱처럼 주요 메뉴를 하단에 고정. 게임/대기실에서는 숨김. */
 export function MobileTabBar({ isMember }: Props) {
   const pathname = usePathname();
@@ -122,12 +145,10 @@ export function MobileTabBar({ isMember }: Props) {
               <li key={t.href} className="min-w-0 flex-1">
                 <Link
                   href={t.href}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
-                    active ? 'text-white' : 'text-cdm-ink-fg-muted hover:text-white',
-                  )}
+                  className={cn(TAB_BASE, TAB_STATE(Boolean(active)))}
                   aria-current={active ? 'page' : undefined}
                 >
+                  {active && <TabIndicator />}
                   {t.icon}
                   <span className="truncate">{t.label}</span>
                 </Link>
@@ -144,11 +165,9 @@ export function MobileTabBar({ isMember }: Props) {
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-expanded={menuOpen}
-              className={cn(
-                'flex w-full flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
-                menuOpen || menuActive ? 'text-white' : 'text-cdm-ink-fg-muted hover:text-white',
-              )}
+              className={cn(TAB_BASE, TAB_STATE(menuOpen || menuActive))}
             >
+              {(menuOpen || menuActive) && <TabIndicator />}
               <Icon name="menu" size="lg" />
               <span className="truncate">메뉴</span>
             </button>

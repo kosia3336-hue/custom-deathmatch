@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, Fragment } from 'react';
 import { GuildIdentityCard, GuildJoinRequestsSection, GuildMembersSection, GuildOpsSection } from './GuildClient';
+import { UnreadBadge } from '@/components/cdm';
 import { GuildConfirmModal, type GuildConfirm } from './GuildConfirmModal';
 import { GuildChatModal, GuildChatSync } from './GuildChatClient';
 import { GuildNoticeSection } from './GuildNotices';
@@ -385,23 +386,6 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
         .guild-dash-tile[data-tone='ops'] .guild-dash-icon { color: var(--cdm-fg); }
         .guild-dash-tile[data-tone='notice'] .guild-dash-icon { color: var(--cdm-success); }
         .guild-dash-tile[data-tone='list'] .guild-dash-icon { color: var(--cdm-fg-muted); }
-        .guild-dash-badge {
-          position: absolute;
-          top: 0.35rem;
-          right: 0.35rem;
-          display: inline-flex;
-          min-width: 1.1rem;
-          height: 1.1rem;
-          align-items: center;
-          justify-content: center;
-          padding: 0 0.2rem;
-          border-radius: 999px;
-          background: var(--cdm-accent);
-          color: #fff;
-          font-size: 10px;
-          font-weight: 700;
-          line-height: 1;
-        }
         @media (min-width: 640px) {
           .guild-dash-grid {
             grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -513,7 +497,8 @@ function DashTile({
 }) {
   const inner = (
     <>
-      {badge > 0 && <span className="guild-dash-badge">{badge > 9 ? '9+' : badge}</span>}
+      {/* 다른 미읽음 배지와 같은 모양·색을 쓴다 — 여기만 강조색(로즈)이었다 */}
+      <UnreadBadge count={badge} className="absolute top-1.5 right-1.5" />
       <span className="guild-dash-icon">
         <svg
           width="24"

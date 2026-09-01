@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
+import { Icon } from '@/components/cdm/Icon';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { GuildInfoModal } from '@/components/guild-v4/GuildInfoModal';
 import { cn } from '@/lib/utils';
@@ -65,6 +66,74 @@ function formatMailTime(ts: number): string {
     return `${d.getMonth() + 1}. ${d.getDate()}.`;
   }
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+}
+
+/**
+ * 남은 기한. 임박한 것만 눈에 띄게 한다.
+ * 하루가 안 남으면 시간 단위로 세는데, '3일 남음' 과 '2시간 남음' 은
+ * 급한 정도가 다르기 때문이다.
+ */
+function formatRemaining(expiresAt: number): { text: string; urgent: boolean } | null {
+  const left = expiresAt - Date.now();
+  if (left <= 0) return null;
+  // 일 단위는 내림이 아니라 반올림이다. 7일짜리를 보낸 직후 '6일 남음' 으로
+  // 보이면 보낸 사람도 받는 사람도 잘못 읽는다.
+  if (left >= 86_400_000) {
+    return { text: `${Math.round(left / 86_400_000)}일 남음`, urgent: left < 2 * 86_400_000 };
+  }
+  const hours = Math.floor(left / 3_600_000);
+  if (hours >= 1) return { text: `${hours}시간 남음`, urgent: true };
+  return { text: `${Math.max(1, Math.floor(left / 60_000))}분 남음`, urgent: true };
+}
+
+/** 목록에서 바로 보이는 동봉물 요약. 지금 담기는 것은 CDP 뿐이다. */
+function MailAttachments({ mail }: { mail: MailItem }) {
+  const remaining = mail.expiresAt ? formatRemaining(mail.expiresAt) : null;
+  const claimed = mail.claimedAt != null;
+  if (!mail.reward && !remaining) return null;
+
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-1">
+      {mail.reward && (
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums',
+            claimed
+              ? 'bg-cdm-bg-elev-2 text-cdm-fg-subtle line-through'
+              : 'bg-cdm-success-soft text-cdm-success',
+          )}
+        >
+          {mail.reward.cdp.toLocaleString()} CDP
+        </span>
+      )}
+      {mail.reward && claimed && (
+        <span className="text-[11px] font-semibold text-cdm-fg-subtle">수령 완료</span>
+      )}
+      {remaining && (
+        <span
+          className={cn(
+            'inline-flex items-center gap-0.5 text-[11px] font-semibold',
+            remaining.urgent ? 'text-cdm-accent' : 'text-cdm-fg-subtle',
+          )}
+        >
+          <Icon name="clock" size="sm" className="h-3.5 w-3.5" />
+          {remaining.text}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * 삭제 한 번. 서버가 거부하면(미수령 보상) 이유를 띄운다.
+ * 스토어가 낙관적 삭제를 되돌리므로 여기서 목록을 손댈 것은 없다.
+ */
+async function deleteMail(
+  id: string,
+  remove: (id: string) => Promise<{ ok: boolean; error?: string }>,
+): Promise<void> {
+  const r = await remove(id);
+  if (!r.ok) toast.error(r.error ?? '편지를 지우지 못했습니다.');
 }
 
 function EnvelopeIcon({ className }: { className?: string }) {
@@ -159,6 +228,10 @@ function MailListRow({
 }) {
   const meta = KIND_META[mail.kind];
   const unread = !mail.readAt;
+  // 칭호 편지는 body 가 '칭호 획득!' 뒤에 오는 설명이라 칭호 이름을 앞세운다.
+  const preview = mail.titleGrant
+    ? `「${mail.titleGrant.name}」 ${mail.titleGrant.description ?? ''}`.trim()
+    : mail.body;
   return (
     <div
       className={cn(
@@ -191,7 +264,11 @@ function MailListRow({
           >
             {mail.title}
           </span>
-          <span className="mt-0.5 block truncate text-xs text-cdm-fg-muted">{mail.body}</span>
+          {/* 열지 않고도 무슨 편지인지 알 수 있게 두 줄까지 보여 준다. */}
+          <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-cdm-fg-muted">
+            {preview}
+          </span>
+          <MailAttachments mail={mail} />
           <span className="mt-1.5 flex items-center gap-1.5">
             {unread && (
               <span className="h-1.5 w-1.5 rounded-full bg-cdm-primary" aria-label="미읽음" />
@@ -200,15 +277,20 @@ function MailListRow({
           </span>
         </span>
       </button>
-      <div className="flex shrink-0 flex-col items-end px-3 py-3">
+      <div className="flex shrink-0 flex-col items-end gap-1 px-2 py-3">
         <span className="text-[11px] text-cdm-fg-subtle">{formatMailTime(mail.createdAt)}</span>
+        {/*
+          예전엔 '삭제' 라는 빨간 글자가 제목과 같은 크기로 붙어 있어
+          목록에서 그 글자가 제일 먼저 읽혔다. 아이콘 버튼으로 낮춘다.
+        */}
         <button
           type="button"
           onClick={() => onDelete(mail.id)}
-          className="mt-1 text-sm font-medium text-cdm-accent hover:text-cdm-accent-strong"
+          className="rounded-cdm-md p-1.5 text-cdm-fg-subtle transition-colors hover:bg-cdm-bg-elev-2 hover:text-cdm-accent"
+          title="이 편지 삭제"
           aria-label="이 편지 삭제"
         >
-          삭제
+          <Icon name="trash" size="sm" />
         </button>
       </div>
     </div>
@@ -227,6 +309,10 @@ function MailDetail({
   const meta = KIND_META[mail.kind];
   const remove = useMailboxStore((s) => s.remove);
   const setFocusId = useMailboxStore((s) => s.setFocusId);
+  const remaining = mail.expiresAt ? formatRemaining(mail.expiresAt) : null;
+  // 받지 않은 보상이 달렸으면 서버가 삭제를 거부한다. 여기서도 미리 막아
+  // 눌러 봐야 실패하는 버튼을 두지 않는다.
+  const rewardPending = Boolean(mail.reward) && mail.claimedAt == null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-cdm-bg-elev-1">
@@ -266,6 +352,17 @@ function MailDetail({
               {meta.label}
             </span>
             <span className="text-[11px] text-cdm-fg-subtle">{formatMailTime(mail.createdAt)}</span>
+            {remaining && (
+              <span
+                className={cn(
+                  'ml-auto inline-flex items-center gap-0.5 text-[11px] font-semibold',
+                  remaining.urgent ? 'text-cdm-accent' : 'text-cdm-fg-subtle',
+                )}
+              >
+                <Icon name="clock" size="sm" className="h-3.5 w-3.5" />
+                {remaining.text}
+              </span>
+            )}
           </div>
           {mail.titleGrant ? (
             <div className="mt-4 flex flex-col items-center gap-4 py-2 text-center">
@@ -309,17 +406,29 @@ function MailDetail({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setFocusId(null);
-            remove(mail.id);
-            onBack();
-          }}
-          className="mt-4 text-sm font-medium text-cdm-accent hover:text-cdm-accent-strong"
-        >
-          이 편지 삭제
-        </button>
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={rewardPending}
+            onClick={() => {
+              setFocusId(null);
+              void deleteMail(mail.id, remove);
+              onBack();
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-cdm-md border px-3 py-1.5 text-xs font-semibold transition-colors',
+              rewardPending
+                ? 'border-cdm-border text-cdm-fg-subtle opacity-60'
+                : 'border-cdm-border text-cdm-fg-muted hover:border-cdm-accent hover:text-cdm-accent',
+            )}
+          >
+            <Icon name="trash" size="sm" />
+            삭제
+          </button>
+          {rewardPending && (
+            <span className="text-[11px] text-cdm-fg-subtle">보상을 받은 뒤 지울 수 있습니다.</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -498,7 +607,7 @@ export function MailboxPanel() {
                   markRead(id);
                   setOpenId(id);
                 }}
-                onDelete={remove}
+                onDelete={(id) => void deleteMail(id, remove)}
               />
             </li>
           ))}

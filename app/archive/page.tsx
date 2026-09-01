@@ -29,6 +29,8 @@ const SUPPORTED_GAMES = new Set<string>([
   GAME_IDS.KINGMAKING,
   GAME_IDS.TRIPLE_GOMOKU,
   GAME_IDS.CHOICE_HOLDEM,
+  GAME_IDS.SEED_SEOTDA,
+  GAME_IDS.DOUBLE_SIDED_POKER,
 ]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -43,7 +45,8 @@ function validateRecord(data: unknown): data is GameRecordFile {
     typeof obj.playMode !== 'string' ||
     obj.gameRecord == null ||
     typeof obj.gameRecord !== 'object'
-  ) return false;
+  )
+    return false;
 
   if (!obj.result || typeof obj.result !== 'object') return false;
   const result = obj.result as Record<string, unknown>;
@@ -122,10 +125,13 @@ export default function ArchivePage() {
 
         <label
           htmlFor="archive-file-input"
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 sm:p-12 transition-colors ${
+          className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors sm:p-12 ${
             dragging
               ? 'border-indigo-400 bg-indigo-50'
               : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'
@@ -134,9 +140,7 @@ export default function ArchivePage() {
           <p className="mb-1 text-base font-medium text-gray-700">
             {dragging ? '놓으세요!' : '기록 파일을 올려주세요'}
           </p>
-          <p className="text-sm text-gray-500">
-            파일을 드래그하거나 탭하여 선택하세요
-          </p>
+          <p className="text-sm text-gray-500">파일을 드래그하거나 탭하여 선택하세요</p>
           <p className="mt-2 text-xs text-gray-400">.json (최대 5MB)</p>
         </label>
 
@@ -150,8 +154,8 @@ export default function ArchivePage() {
 
         <div className="mt-6 w-full rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">
           기록 파일은 게임 결과 화면에서{' '}
-          <span className="font-medium text-gray-700">[기록 저장]</span> 버튼을 눌러
-          다운로드할 수 있습니다.
+          <span className="font-medium text-gray-700">[기록 저장]</span> 버튼을 눌러 다운로드할 수
+          있습니다.
         </div>
       </main>
     </div>

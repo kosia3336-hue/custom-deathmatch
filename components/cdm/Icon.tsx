@@ -35,6 +35,10 @@ const PATHS = {
 
   // ── 액션 ──
   bolt: 'M13 2 4 14h6l-1 8 9-12h-6z',
+  // 삭제. 뚜껑·몸통·안쪽 두 줄. 지우는 자리에는 글자 대신 이걸 쓴다.
+  trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+  // 시계. 우편 기한(남은 시간)에 쓴다. 종(notice)과 달리 알림이 아니다.
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
 } as const;
 
 export type IconName = keyof typeof PATHS;

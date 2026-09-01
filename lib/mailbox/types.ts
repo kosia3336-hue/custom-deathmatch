@@ -36,4 +36,6 @@ export interface MailItem {
   reward?: MailReward;
   /** 보상을 받은 시각. null 이면 아직 안 받았다. */
   claimedAt?: number | null;
+  /** 기한. 지나면 우편함에서 내려가고 보상도 받을 수 없다. null 이면 기한 없음. */
+  expiresAt?: number | null;
 }

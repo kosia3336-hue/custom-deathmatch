@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { cn } from '@/lib/utils';
 import {
   canMoveTripleGomokuStone,
@@ -36,6 +37,7 @@ const WIN_HINT: Record<string, string> = {
 export default function TripleGomokuGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as TripleGomokuGameData | undefined;
+  useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
   const { remaining } = useTurnTimer();
   const [tilted, setTilted] = useState(true);
