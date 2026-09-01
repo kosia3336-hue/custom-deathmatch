@@ -6,12 +6,14 @@
  * 따로 관리하면 한쪽만 고치고 잊어버리기 쉽다 — 여기 하나만 고치면 둘 다 바뀐다.
  */
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GAME_CATEGORIES, categoryHue, getGameRule, type GameCategory } from '@/lib/gameRules';
 import type { Game } from '@/shared/types';
+
+const subscribeToClientMount = () => () => {};
 
 /* ══════════════════════════ 아이콘 ══════════════════════════ */
 /* 컴포넌트 본문 안에서 정의하면 렌더마다 타입이 바뀌어 서브트리가 다시 마운트된다 */
@@ -23,7 +25,6 @@ export function CloseIcon() {
     </svg>
   );
 }
-
 /** 상세 설정 여닫이 표시 — 펴면 아래를 가리킨다 */
 export function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -76,8 +77,11 @@ export function RoomModalShell({
   children: React.ReactNode;
   footer: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeToClientMount,
+    () => true,
+    () => false,
+  );
   if (!mounted) return null;
 
   return createPortal(
@@ -300,15 +304,16 @@ export function isNewGame(createdAt: string | undefined, now = Date.now()): bool
  * 포장지를 덧댄 모양만 남는다. 폭을 좁게 잡아 게임 이름을 침범하지 않는다 —
  * 이름은 카드 높이 가운데에 있어서, 띠가 모서리에만 머무르면 겹치지 않는다.
  *
- * 색은 하늘색이다. 강조색(붉은색)은 목록에서 혼자 튀어 경고처럼 읽혔다.
- * 랭크 모서리(남색)와는 밝기가 달라 나란히 놓여도 구분된다.
+ * 새 방 만들기에서는 기존 랭크 모서리에 쓰던 primary 색을 이어받는다. 이때
+ * 랭크 여부는 대표사진 노출 자체로 구분하므로 별도 모서리 표시는 두지 않는다.
  */
-function NewRibbon() {
+function NewRibbon({ primary = false }: { primary?: boolean }) {
   return (
     <span
       className={cn(
         'pointer-events-none absolute -left-6 top-1.5 w-[72px] -rotate-45 py-[2px] text-center',
-        'bg-sky-500 text-[9px] leading-none font-bold tracking-wider text-white',
+        'text-[9px] leading-none font-bold tracking-wider text-white',
+        primary ? 'bg-cdm-primary' : 'bg-sky-500',
       )}
     >
       NEW
@@ -316,13 +321,7 @@ function NewRibbon() {
   );
 }
 
-/**
- * 랭크 종목 표시 — 왼쪽 위 모서리를 아주 작게 칠한다.
- *
- * 띠처럼 읽히면 안 된다. 랭크 여부는 이미 아는 사람이 확인차 보는 정보라서,
- * 눈에 띄기보다 알아볼 수 있으면 충분하다. 테두리로 삼각형을 그려 모서리
- * 안쪽만 채운다.
- */
+/** 방 설정 등 기존 목록에서 쓰는 랭크 종목 모서리 표시. */
 function RankCorner() {
   return (
     <span
@@ -336,17 +335,31 @@ function RankCorner() {
   );
 }
 
-export function GameCard({ game, active, onClick, className }: { game: Game; active: boolean; onClick: () => void; className?: string }) {
-  /* 둘 다 왼쪽 위 모서리를 쓰므로 하나만 붙인다. 랭크가 우선이다. */
-  const mark = game.rankingActive ? 'rank' : isNewGame(game.createdAt) ? 'new' : null;
+export function GameCard({
+  game, active, onClick, className, createRoomStyle = false,
+}: {
+  game: Game;
+  active: boolean;
+  onClick: () => void;
+  className?: string;
+  createRoomStyle?: boolean;
+}) {
+  const legacyMark = game.rankingActive ? 'rank' : isNewGame(game.createdAt) ? 'new' : null;
+  const showArt = !createRoomStyle || game.rankingActive;
+  const showNewRibbon = createRoomStyle ? isNewGame(game.createdAt) : legacyMark === 'new';
 
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
-      <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
-      {mark === 'rank' && <RankCorner />}
-      {mark === 'new' && <NewRibbon />}
+      {showArt && <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />}
+      {!createRoomStyle && legacyMark === 'rank' && <RankCorner />}
+      {showNewRibbon && <NewRibbon primary={createRoomStyle} />}
       {active && <CheckMark />}
-      <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
+      <span
+        className={cn(
+          'relative flex h-full flex-col justify-center pl-3',
+          showArt ? 'w-[58%]' : 'w-full pr-3',
+        )}
+      >
         <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
           {game.name}
         </span>
@@ -404,6 +417,7 @@ export function GameListPicker({
   listOpen, onOpenList,
   search, onSearchChange,
   catFilter, onCatFilterChange,
+  createRoomStyle = false,
 }: {
   games: Game[];
   modes?: PickerMode[];
@@ -417,6 +431,7 @@ export function GameListPicker({
   onSearchChange: (v: string) => void;
   catFilter: GameCategory | null;
   onCatFilterChange: (c: GameCategory | null) => void;
+  createRoomStyle?: boolean;
 }) {
   const query = search.trim();
 
@@ -508,6 +523,7 @@ export function GameListPicker({
                 game={g}
                 active={activeGameId === g.id}
                 onClick={() => onSelectGame(g)}
+                createRoomStyle={createRoomStyle}
               />
             ))}
 
@@ -531,7 +547,13 @@ export function GameListPicker({
               className="w-full sm:col-span-full"
             />
           ) : activeGame ? (
-            <GameCard game={activeGame} active onClick={onOpenList} className="w-full sm:col-span-full" />
+            <GameCard
+              game={activeGame}
+              active
+              onClick={onOpenList}
+              className="w-full sm:col-span-full"
+              createRoomStyle={createRoomStyle}
+            />
           ) : null}
         </div>
       )}
