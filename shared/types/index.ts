@@ -81,6 +81,24 @@ export type {
 } from './kingmaking';
 export { CHOICE_HOLDEM_ANTE_INTERVAL, CHOICE_HOLDEM_INITIAL_CHIPS } from './choice-holdem';
 export { SEED_SEOTDA_ANTE, SEED_SEOTDA_INITIAL_CHIPS } from './seed-seotda';
+export {
+  DOUBLE_SIDED_POKER_ANTE,
+  DOUBLE_SIDED_POKER_DOUBLE_BONUS,
+  DOUBLE_SIDED_POKER_INITIAL_CHIPS,
+} from './double-sided-poker';
+export type {
+  DoubleSidedPokerAction,
+  DoubleSidedPokerArchiveRecord,
+  DoubleSidedPokerBettingAction,
+  DoubleSidedPokerCard,
+  DoubleSidedPokerGameData,
+  DoubleSidedPokerPhase,
+  DoubleSidedPokerPlayerView,
+  DoubleSidedPokerRoundReason,
+  DoubleSidedPokerRoundResult,
+  DoubleSidedPokerSelection,
+  DoubleSidedPokerSide,
+} from './double-sided-poker';
 export type {
   SeedSeotdaAction,
   SeedSeotdaArchiveRecord,

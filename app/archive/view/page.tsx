@@ -29,6 +29,7 @@ import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 import TripleGomokuViewer from '@/components/archive/viewers/triple-gomoku';
 import ChoiceHoldemViewer from '@/components/archive/viewers/choice-holdem';
 import SeedSeotdaViewer from '@/components/archive/viewers/seed-seotda';
+import DoubleSidedPokerViewer from '@/components/archive/viewers/double-sided-poker';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -53,6 +54,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuViewer,
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemViewer,
   [GAME_IDS.SEED_SEOTDA]: SeedSeotdaViewer,
+  [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerViewer,
 };
 
 export default function ArchiveViewPage() {

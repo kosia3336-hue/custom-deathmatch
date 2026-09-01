@@ -350,6 +350,16 @@ import {
   getSeedSeotdaResultData,
 } from './games/seed-seotda/index.js';
 import {
+  initDoubleSidedPoker,
+  handleDoubleSidedPokerAction,
+  cleanupDoubleSidedPoker,
+  getDoubleSidedPokerState,
+  emitDoubleSidedPokerStateToSocket,
+  performDoubleSidedPokerUndo,
+  canDoubleSidedPokerUndo,
+  getDoubleSidedPokerResultData,
+} from './games/double-sided-poker/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -390,6 +400,16 @@ const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performSeedSeotdaUndo,
     canUndo: canSeedSeotdaUndo,
     getResultData: getSeedSeotdaResultData,
+  },
+  [GAME_IDS.DOUBLE_SIDED_POKER]: {
+    init: initDoubleSidedPoker,
+    handleAction: handleDoubleSidedPokerAction,
+    cleanup: cleanupDoubleSidedPoker,
+    getState: getDoubleSidedPokerState,
+    emitStateToSocket: emitDoubleSidedPokerStateToSocket,
+    performUndo: performDoubleSidedPokerUndo,
+    canUndo: canDoubleSidedPokerUndo,
+    getResultData: getDoubleSidedPokerResultData,
   },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,

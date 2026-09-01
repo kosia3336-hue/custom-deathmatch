@@ -43,6 +43,7 @@ export const GAME_IDS = {
   TRIPLE_GOMOKU: 'game-024',
   CHOICE_HOLDEM: 'game-025',
   SEED_SEOTDA: 'game-026',
+  DOUBLE_SIDED_POKER: 'game-027',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;
