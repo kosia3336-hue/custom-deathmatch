@@ -129,7 +129,14 @@ function publishDecision(io: IO, state: DoubleSidedPokerState) {
 export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState) {
   if (state.gameOver) return;
   clearDecisionTimers(state);
+  /*
+    팟이 이월된 라운드에서는 기본 베팅을 내지 않는다. 앞 라운드에 이미 건 칩이
+    그대로 걸려 있고, 올인한 쪽은 더 낼 칩이 없기 때문이다. 그래서 이월
+    라운드에서는 칩이 없다는 이유로 탈락시키지도 않는다.
+  */
+  const carried = state.carryRound;
   if (
+    !carried &&
     state.players.some((player) => state.playerStates[player.id].chips < DOUBLE_SIDED_POKER_ANTE)
   ) {
     finishForEmptyStack(io, state);
@@ -148,10 +155,12 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
     playerState.stake = 0;
     playerState.frontBet = 0;
     playerState.backBet = 0;
-    playerState.chips -= DOUBLE_SIDED_POKER_ANTE;
-    state.pot += DOUBLE_SIDED_POKER_ANTE;
+    if (!carried) {
+      playerState.chips -= DOUBLE_SIDED_POKER_ANTE;
+      state.pot += DOUBLE_SIDED_POKER_ANTE;
+    }
   }
-  state.ante = DOUBLE_SIDED_POKER_ANTE;
+  state.ante = carried ? 0 : DOUBLE_SIDED_POKER_ANTE;
   state.bettingOpened = false;
   state.doubleBettorId = null;
   state.roundActions = [];
@@ -160,7 +169,7 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
   state.currentTurnId = state.firstPlayerId;
   state.roundStartedAt = Date.now();
 
-  if (state.players.some((player) => state.playerStates[player.id].chips <= 0)) {
+  if (!carried && state.players.some((player) => state.playerStates[player.id].chips <= 0)) {
     const winnerId =
       state.players.find((player) => state.playerStates[player.id].chips > 0)?.id ?? null;
     if (winnerId) {
@@ -170,11 +179,21 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
     finishForEmptyStack(io, state);
     return;
   }
+  /*
+    아무도 베팅할 칩이 없으면(이월 라운드에서 한쪽이 올인이었던 경우) 고를 면이
+    없다. 공개된 앞면끼리 비교해 이월된 팟의 주인을 가린다.
+  */
+  if (doubleSidedPokerBettingBounds(state).maxBet == null) {
+    resolveDoubleSidedPokerShowdown(io, state);
+    return;
+  }
   publishDecision(io, state);
 }
 
 function selectedValue(player: DoubleSidedPokerInternalPlayer) {
-  if (!player.card || player.selection == null || player.selection === 'both') return null;
+  if (!player.card || player.selection === 'both') return null;
+  // 베팅할 칩이 없어 면을 고르지 못했다면 공개된 앞면으로 겨룬다.
+  if (player.selection == null) return player.card.front;
   return player.selection === 'front' ? player.card.front : player.card.back;
 }
 
@@ -284,13 +303,23 @@ function settleRound(
   state.transitionTimer = setTimeout(() => {
     if (doubleSidedPokerStates.get(state.roomId) !== state || state.gameOver) return;
     state.transitionTimer = null;
-    if (state.players.some((player) => state.playerStates[player.id].chips <= 0)) {
+    /*
+      무승부로 팟이 남았다면 칩이 0 이어도 여기서 끝내지 않는다. 올인한 쪽도
+      다음 라운드를 치러 그 팟을 걸고 겨뤄야 한다. 끝내 버리면 이미 건 칩을
+      돌려받을 기회 없이 패배 처리된다.
+    */
+    const willCarry = result.reason === 'tie';
+    if (
+      !willCarry &&
+      state.players.some((player) => state.playerStates[player.id].chips <= 0)
+    ) {
       finishForEmptyStack(io, state);
       return;
     }
     state.round += 1;
-    state.carryRound = result.reason === 'tie';
-    state.firstPlayerId = otherDoubleSidedPokerPlayerId(state, state.firstPlayerId);
+    state.carryRound = willCarry;
+    // 선은 직전 라운드를 이긴 쪽이 잡는다. 무승부면 그대로 둔다.
+    if (result.winnerId) state.firstPlayerId = result.winnerId;
     beginDoubleSidedPokerRound(io, state);
   }, DOUBLE_SIDED_POKER_ROUND_RESULT_MS);
 }
@@ -368,10 +397,33 @@ function performBettingAction(
     return null;
   }
 
-  if (!state.bettingOpened) return '먼저 최소 1칩을 베팅해야 합니다.';
-
   if (action.type === 'double') {
-    if (!bounds.canDouble || bounds.doubleCost == null) return '지금은 양면베팅할 수 없습니다.';
+    if (!bounds.canDouble) return '지금은 양면베팅할 수 없습니다.';
+    if (!state.bettingOpened) {
+      /*
+        여는 수로 선언하는 경우. 기준이 될 상대 베팅이 없으므로 한 면에 걸 칩을
+        직접 고른다. 앞뒤 두 칸에 각각 내므로 실제로는 두 배가 나간다.
+      */
+      const amount = action.amount;
+      if (
+        !Number.isInteger(amount) ||
+        bounds.maxDouble == null ||
+        amount == null ||
+        amount < 1 ||
+        amount > bounds.maxDouble
+      ) {
+        return '양면베팅에 가능한 범위의 칩을 골라 주세요.';
+      }
+      actor.selection = 'both';
+      const openPayment = applyPayment(state, actor, amount);
+      state.bettingOpened = true;
+      state.doubleBettorId = playerId;
+      pushAction(state, playerId, 'double', openPayment);
+      state.currentTurnId = opponentId;
+      publishDecision(io, state);
+      return null;
+    }
+    if (bounds.doubleCost == null) return '지금은 양면베팅할 수 없습니다.';
     actor.selection = 'both';
     const payment = applyPayment(state, actor, bounds.currentStake);
     state.doubleBettorId = playerId;
@@ -380,6 +432,8 @@ function performBettingAction(
     publishDecision(io, state);
     return null;
   }
+
+  if (!state.bettingOpened) return '먼저 최소 1칩을 베팅해야 합니다.';
 
   if (action.type === 'raise') {
     if (

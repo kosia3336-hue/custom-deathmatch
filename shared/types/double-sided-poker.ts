@@ -19,7 +19,8 @@ export type DoubleSidedPokerAction =
   | { type: 'bet'; side: DoubleSidedPokerSide; amount: number }
   | { type: 'call'; side?: DoubleSidedPokerSide }
   | { type: 'raise'; side?: DoubleSidedPokerSide; amount: number }
-  | { type: 'double' }
+  /** amount 는 여는 수로 선언할 때만 쓴다. 한 면에 걸 칩이며 실제로는 두 배가 나간다. */
+  | { type: 'double'; amount?: number }
   | { type: 'fold' };
 
 export interface DoubleSidedPokerBettingAction {
@@ -82,7 +83,10 @@ export interface DoubleSidedPokerGameData {
   minRaise: number | null;
   maxRaise: number | null;
   canDouble: boolean;
+  /** 응답으로 양면베팅할 때 드는 칩. 여는 수라면 null. */
   doubleCost: number | null;
+  /** 여는 수로 양면베팅할 때 한 면에 걸 수 있는 최대 칩. 응답이라면 null. */
+  maxDouble: number | null;
   lastRoundResult: DoubleSidedPokerRoundResult | null;
   roundStartedAt: number;
   turnStartedAt: number | null;

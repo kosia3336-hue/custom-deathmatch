@@ -137,7 +137,7 @@ describe('양면포커 경기 진행', () => {
     expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
-  it('동점이면 팟을 유지하고 다음 라운드 기본 베팅을 더한다', async () => {
+  it('동점이면 팟을 그대로 두고 선도 그대로 둔 채 다음 라운드로 넘어간다', async () => {
     const { io, state, first, second } = setup('double-poker-tie');
     state.playerStates[first.id].card = card('a', 5, 2);
     state.playerStates[second.id].card = card('b', 5, 8);
@@ -150,8 +150,95 @@ describe('양면포커 경기 진행', () => {
     await vi.advanceTimersByTimeAsync(2800);
     expect(state.round).toBe(2);
     expect(state.carryRound).toBe(true);
-    expect(state.firstPlayerId).not.toBe(previousFirst);
-    expect(state.pot).toBe(6);
+    // 이월 라운드에는 기본 베팅을 내지 않는다. 팟도 선도 그대로다.
+    expect(state.pot).toBe(4);
+    expect(state.ante).toBe(0);
+    expect(state.firstPlayerId).toBe(previousFirst);
+  });
+
+  it('선 플레이어는 직전 라운드를 이긴 쪽이 잡는다', async () => {
+    const { io, state, first, second } = setup('double-poker-first-winner');
+    const opener = state.firstPlayerId;
+    const responder = opener === first.id ? second.id : first.id;
+    // 응답자가 이기도록 앞면을 맞춰 둔다.
+    state.playerStates[opener].card = card('a', 3, 2);
+    state.playerStates[responder].card = card('b', 9, 4);
+    performDoubleSidedPokerAction(io, state, opener, { type: 'bet', side: 'front', amount: 1 });
+    performDoubleSidedPokerAction(io, state, responder, { type: 'call', side: 'front' });
+    expect(state.lastRoundResult?.winnerId).toBe(responder);
+
+    await vi.advanceTimersByTimeAsync(2800);
+    expect(state.firstPlayerId).toBe(responder);
+  });
+
+  it('선 플레이어도 여는 수로 양면베팅할 수 있고 고른 칩의 두 배를 낸다', () => {
+    const { io, state } = setup('double-poker-open-double');
+    const opener = state.firstPlayerId;
+    const responder = state.players.find((p) => p.id !== opener)!.id;
+    const before = state.playerStates[opener].chips;
+
+    expect(
+      performDoubleSidedPokerAction(io, state, opener, { type: 'double', amount: 3 }),
+    ).toBeNull();
+    expect(state.playerStates[opener]).toMatchObject({
+      selection: 'both',
+      stake: 3,
+      frontBet: 3,
+      backBet: 3,
+      chips: before - 6,
+    });
+    expect(state.doubleBettorId).toBe(opener);
+    expect(state.currentTurnId).toBe(responder);
+    // 상대는 한 면만 고르므로 콜에는 3칩이 든다.
+    expect(toDoubleSidedPokerGameData(state, responder).toCall).toBe(3);
+  });
+
+  it('여는 수 양면베팅은 상대가 받을 수 있는 칩을 넘지 못한다', () => {
+    const { io, state } = setup('double-poker-open-double-cap');
+    const opener = state.firstPlayerId;
+    const responder = state.players.find((p) => p.id !== opener)!.id;
+    state.playerStates[responder].chips = 2;
+
+    expect(
+      performDoubleSidedPokerAction(io, state, opener, { type: 'double', amount: 3 }),
+    ).toBe('양면베팅에 가능한 범위의 칩을 골라 주세요.');
+    expect(
+      performDoubleSidedPokerAction(io, state, opener, { type: 'double', amount: 2 }),
+    ).toBeNull();
+  });
+
+  it('올인 상태에서 무승부가 나면 끝내지 않고 다음 라운드 앞면으로 팟 주인을 가린다', async () => {
+    const { io, state, first, second } = setup('double-poker-allin-tie');
+    // 둘 다 올인해 같은 숫자로 비긴다.
+    state.playerStates[first.id].chips = 4;
+    state.playerStates[second.id].chips = 4;
+    state.playerStates[first.id].card = card('a', 7, 2);
+    state.playerStates[second.id].card = card('b', 7, 4);
+    performDoubleSidedPokerAction(io, state, state.firstPlayerId, {
+      type: 'bet',
+      side: 'front',
+      amount: 4,
+    });
+    const responder = state.players.find((p) => p.id !== state.firstPlayerId)!.id;
+    performDoubleSidedPokerAction(io, state, responder, { type: 'call', side: 'front' });
+    expect(state.lastRoundResult?.reason).toBe('tie');
+    expect(state.playerStates[first.id].chips).toBe(0);
+    expect(state.playerStates[second.id].chips).toBe(0);
+    const carriedPot = state.pot;
+    expect(carriedPot).toBe(10);
+
+    // 예전에는 여기서 '칩 0' 을 보고 바로 패배 처리했다.
+    await vi.advanceTimersByTimeAsync(2800);
+    expect(state.gameOver).toBe(false);
+    expect(state.round).toBe(2);
+
+    /*
+      둘 다 베팅할 칩이 없으므로 새 라운드는 카드를 받자마자 앞면끼리 비교해
+      끝난다. 이월된 팟이 한쪽으로 넘어갔는지만 본다.
+    */
+    const chips = [state.playerStates[first.id].chips, state.playerStates[second.id].chips];
+    expect(Math.max(...chips)).toBe(carriedPot);
+    expect(Math.min(...chips)).toBe(0);
   });
 
   it('양면베팅은 양쪽 베팅칸에 같은 칩을 내고 상대 응답을 기다린다', () => {

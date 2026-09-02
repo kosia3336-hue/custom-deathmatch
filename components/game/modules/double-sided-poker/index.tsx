@@ -156,6 +156,27 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
   const [amount, setAmount] = useState(initialAmount);
   if (gameData.phase !== 'betting') return null;
   const myTurn = gameData.currentTurnId === myId && mine != null;
+
+  /*
+    질 게 뻔한 양면베팅을 막아 준다.
+
+    양면베팅은 내 앞면과 뒷면이 상대가 고른 숫자보다 '둘 다' 커야 이긴다.
+    그러니 내 두 숫자 중 작은 쪽이 상대가 고를 수 있는 숫자 이하라면 승부에서는
+    절대 이길 수 없다. 상대의 앞면은 공개되어 있으므로 그 경우를 미리 짚어 준다.
+
+    상대가 이미 뒷면을 골랐다면 그 숫자를 알 수 없어 판단하지 않는다.
+    상대가 다이하면 이길 수도 있으므로 막지 않고 묻기만 한다.
+  */
+  function confirmDouble() {
+    const card = mine?.card;
+    if (!card || card.back == null) return true;
+    const opponent = Object.entries(gameData.players).find(([id]) => id !== myId)?.[1];
+    if (!opponent?.card) return true;
+    if (opponent.selection === 'back' || opponent.selection === 'both') return true;
+    if (Math.min(card.front, card.back) > opponent.card.front) return true;
+    return window.confirm('무조건 패배하게 됩니다. 정말 진행합니까?');
+  }
+
   if (!myTurn) {
     const currentName = gameData.currentTurnId
       ? gameData.players[gameData.currentTurnId]?.nickname
@@ -171,6 +192,8 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
 
   if (!gameData.bettingOpened && gameData.minBet != null && gameData.maxBet != null) {
     const safeAmount = Math.min(gameData.maxBet, Math.max(gameData.minBet, amount));
+    const canOpenDouble = gameData.canDouble && gameData.maxDouble != null;
+    const safeDouble = gameData.maxDouble != null ? Math.min(gameData.maxDouble, safeAmount) : 0;
     return (
       <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
         <p className="text-cdm-fg mb-2 text-center text-xs font-black">
@@ -189,7 +212,9 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
             {safeAmount}
           </span>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div
+          className={cn('mt-3 grid gap-2', canOpenDouble ? 'grid-cols-4' : 'grid-cols-3')}
+        >
           <Button
             onClick={() =>
               getSocket().emit('game:action', { type: 'bet', side: 'front', amount: safeAmount })
@@ -205,6 +230,17 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
           >
             뒷면 {safeAmount}
           </Button>
+          {canOpenDouble && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (!confirmDouble()) return;
+                getSocket().emit('game:action', { type: 'double', amount: safeDouble });
+              }}
+            >
+              양면 {safeDouble * 2}
+            </Button>
+          )}
           <Button
             variant="danger"
             onClick={() => getSocket().emit('game:action', { type: 'fold' })}
@@ -212,6 +248,12 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
             다이
           </Button>
         </div>
+        {canOpenDouble && (
+          <p className="text-cdm-highlight mt-2 text-center text-[10px] font-bold">
+            양면베팅은 앞·뒷면에 {safeDouble}칩씩({safeDouble * 2}칩) 걸고, 성공 시 추가 10칩을
+            가져옵니다.
+          </p>
+        )}
       </section>
     );
   }
@@ -292,7 +334,10 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
           {gameData.canDouble && (
             <Button
               variant="secondary"
-              onClick={() => getSocket().emit('game:action', { type: 'double' })}
+              onClick={() => {
+                if (!confirmDouble()) return;
+                getSocket().emit('game:action', { type: 'double' });
+              }}
             >
               양면 {gameData.doubleCost}
             </Button>

@@ -47,6 +47,7 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
       maxRaise: null,
       canDouble: false,
       doubleCost: null,
+      maxDouble: null,
     };
   }
 
@@ -57,6 +58,11 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
 
   if (!state.bettingOpened) {
     const maxBet = Math.min(actor.chips, opponent.chips);
+    /*
+      여는 수로도 양면베팅할 수 있다. 앞뒤 두 칸에 같은 칩을 내므로 고른 금액의
+      두 배가 필요하고, 상대가 한 면으로 받을 수 있는 만큼까지만 올릴 수 있다.
+    */
+    const maxDouble = Math.min(Math.floor(actor.chips / 2), opponent.chips);
     return {
       currentStake,
       toCall: 0,
@@ -64,8 +70,9 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
       maxBet: maxBet >= 1 ? maxBet : null,
       minRaise: null,
       maxRaise: null,
-      canDouble: false,
+      canDouble: actor.selection == null && opponent.selection == null && maxDouble >= 1,
       doubleCost: null,
+      maxDouble: maxDouble >= 1 ? maxDouble : null,
     };
   }
 
@@ -91,6 +98,7 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
     maxRaise: maxRaise > currentStake ? maxRaise : null,
     canDouble,
     doubleCost: canDouble ? currentStake * 2 : null,
+    maxDouble: null,
   };
 }
 
