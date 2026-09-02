@@ -15,6 +15,7 @@ import PhaseIndicator from './PhaseIndicator';
 import InfoPanel from './InfoPanel';
 import PlayerBadge from './PlayerBadge';
 import Modal from '@/components/ui/Modal';
+import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Button from '@/components/ui/Button';
 import TutorialCoach from './TutorialCoach';
 import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
@@ -142,17 +143,11 @@ export default function FourGravityGame() {
           </Button>
         </div>
       </Modal>
-      <div className="flex h-full min-h-0">
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          {/* 메인 영역: 보드 + 컨트롤. 튜토리얼 안내는 판을 밀지 않는다. */}
-          <div
-            className={`flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-2 lg:p-4 ${
-              tutorial ? 'justify-start lg:justify-center' : 'justify-center'
-            }`}
-          >
-            {/* 모바일: 플레이어 바 (튜토리얼은 안내가 대신하므로 숨김) */}
-            {!tutorial && (
-              <div className="mb-1 flex w-full max-w-md justify-between lg:hidden">
+      <GameFrame
+        info={
+          tutorial ? null : (
+            <div className="flex flex-col gap-1">
+              <div className="flex w-full justify-between gap-2">
                 <PlayerBadge
                   player={gameData.players.black}
                   color="black"
@@ -166,38 +161,17 @@ export default function FourGravityGame() {
                   remaining={gameData.currentColor === 'white' ? timerRemaining : null}
                 />
               </div>
-            )}
-
-            {/* 모바일: 상태 바 */}
-            {!tutorial && (
-              <div className="mb-1 flex w-full max-w-md items-center gap-3 text-xs text-gray-500 lg:hidden">
+              <div className="flex w-full items-center gap-3 text-[11px] text-gray-500">
                 <span>턴 #{turnNumber}</span>
-                {gameData.lastGravity && (
-                  <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>
-                )}
+                {gameData.lastGravity && <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>}
               </div>
-            )}
-
-            <Board
-              board={gameData.board}
-              phase={gameData.phase}
-              isMyTurn={isMyTurn}
-              previewColor={previewColor}
-              neutralCandidates={gameData.neutralCandidates}
-              placedPosition={gameData.placedPosition}
-              winLine={gameData.winLine}
-              winner={gameData.winner}
-              highlightCells={tutorial?.highlightCells}
-              skin={skin}
-              onCellClick={handleCellClick}
-            />
-
+            </div>
+          )
+        }
+        controls={
+          <div className="flex flex-col items-center gap-1.5">
             {tutorial ? (
-              <TutorialCoach
-                hint={tutorial}
-                onAck={ackTutorial}
-                className="mt-2 max-w-[min(100%,500px)]"
-              />
+              <TutorialCoach hint={tutorial} onAck={ackTutorial} className="max-w-[min(100%,500px)]" />
             ) : (
               <PhaseIndicator
                 phase={gameData.phase}
@@ -206,7 +180,6 @@ export default function FourGravityGame() {
                 serverMessage={gameState?.message}
               />
             )}
-
             <GravitySelector
               phase={gameData.phase}
               isMyTurn={isMyTurn}
@@ -215,7 +188,6 @@ export default function FourGravityGame() {
               winner={gameData.winner}
               highlightGravity={tutorial?.highlightGravity}
             />
-
             {isSpecialSolo && !gameData.winner && (
               <Button
                 size="sm"
@@ -229,9 +201,9 @@ export default function FourGravityGame() {
               </Button>
             )}
           </div>
-
-          {/* 데스크탑: 정보 패널 */}
-          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-l lg:border-gray-200 lg:p-4">
+        }
+        aside={
+          <div className="h-full border-l border-gray-200 p-4">
             <InfoPanel
               turnNumber={turnNumber}
               players={gameData.players}
@@ -240,8 +212,23 @@ export default function FourGravityGame() {
               lastGravity={gameData.lastGravity}
             />
           </div>
-        </div>
-      </div>
+        }
+      >
+        <Board
+          board={gameData.board}
+          phase={gameData.phase}
+          isMyTurn={isMyTurn}
+          previewColor={previewColor}
+          neutralCandidates={gameData.neutralCandidates}
+          placedPosition={gameData.placedPosition}
+          winLine={gameData.winLine}
+          winner={gameData.winner}
+          highlightCells={tutorial?.highlightCells}
+          skin={skin}
+          maxWidth={fitBoardWidth(1, 1, '500px')}
+          onCellClick={handleCellClick}
+        />
+      </GameFrame>
     </>
   );
 }

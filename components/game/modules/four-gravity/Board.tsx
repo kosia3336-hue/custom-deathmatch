@@ -18,6 +18,8 @@ interface Props {
   winner: string | null;
   highlightCells?: Position[];
   skin?: SkinTheme | null;
+  /** 판 최대 너비. GameFrame 안에서는 fitBoardWidth() 로 남은 높이에 맞춘다. */
+  maxWidth?: string;
   onCellClick: (row: number, col: number) => void;
 }
 
@@ -32,6 +34,7 @@ export default function Board({
   winner,
   highlightCells = [],
   skin,
+  maxWidth = 'min(60vh, 500px)',
   onCellClick,
 }: Props) {
   const isCosmos = skin === 'cosmos';
@@ -59,7 +62,7 @@ export default function Board({
       className={`grid rounded-lg border shadow-sm ${isCosmos ? 'skin-cosmos-board' : 'border-gray-300 bg-white'} ${hasActionHighlight ? 'gap-px bg-cdm-border' : ''}`}
       style={{
         gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
-        width: 'min(100%, min(60vh, 500px))',
+        width: `min(100%, ${maxWidth})`,
         aspectRatio: '1',
       }}
     >

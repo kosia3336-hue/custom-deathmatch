@@ -15,6 +15,8 @@ import InfoPanel from './InfoPanel';
 import PlayerBadge from './PlayerBadge';
 import TileTracker from './TileTracker';
 import { WIN_TYPE_LABELS } from './constants';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 export default function NumberFourGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -28,6 +30,8 @@ export default function NumberFourGame() {
   const shownWinnerRef = useRef<string | null>(null);
 
   // 타일 추리 상태 - 라운드가 바뀌어도 유지되도록 부모에서 관리
+  const [showHistory, setShowHistory] = useState(false);
+  const [showTracker, setShowTracker] = useState(false);
   const [trackerWhite, setTrackerWhite] = useState(INITIAL_WHITE);
   const [trackerBlack, setTrackerBlack] = useState(INITIAL_BLACK);
   // 관전자용: 플레이어별 상태
@@ -91,143 +95,166 @@ export default function NumberFourGame() {
   const canAct = !isSpectator && isSubmitPhase;
   const opponent = playerEntries.find(([id]) => id !== myId && id !== myId + '_p2')?.[1];
 
-  return (
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* 메인 영역 */}
-        <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-          {/* 모바일: 플레이어 바 */}
-          <div className="flex w-full max-w-lg justify-between lg:hidden">
-            {playerEntries.map(([id, p]) => (
-              <PlayerBadge
-                key={id}
-                player={p}
-                isMe={id === myId || id.replace('_p2', '') === myId}
-                timerRemaining={timerRemaining}
-              />
-            ))}
-          </div>
-
-          {/* 상태 메시지 */}
-          <div className={isDuality ? 'skin-duality-status-msg' : 'text-center text-sm text-gray-500'}>
-            {gameState?.message}
-          </div>
-
-          {/* 페이즈별 UI */}
-          <div className="w-full max-w-lg flex flex-col gap-3">
-            {isSubmitPhase && canAct && myPlayer && !myPlayer.submitted && (
-              <SubmitSelector
-                player={myPlayer}
-                currentSide={gameData.currentSide}
-                isSpectator={isSpectator}
-                skin={skin}
-              />
-            )}
-
-            {isSubmitPhase && (isSpectator || myPlayer?.submitted) && !gameData.currentSide && (
-              isDuality ? (
-                <div className="skin-duality-field skin-duality-waiting">
-                  <div className="skin-duality-fx" aria-hidden>
-                    <div className="skin-duality-split-line" />
-                    <div className="skin-duality-frost-glow" />
-                    <div className="skin-duality-ember-glow" />
-                  </div>
-                  <div className="relative z-10 flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="skin-duality-tile skin-duality-tile--frost skin-duality-tile--sm" style={{ animationDelay: '0s' }} />
-                      <div className="skin-duality-tile skin-duality-tile--obsidian skin-duality-tile--sm" style={{ animationDelay: '0.3s' }} />
-                    </div>
-                    <div className="skin-duality-waiting-dots" aria-hidden>
-                      <div className="skin-duality-waiting-dot" />
-                      <div className="skin-duality-waiting-dot" />
-                      <div className="skin-duality-waiting-dot" />
-                    </div>
-                    <p className="text-sm" style={{ color: 'var(--dl-ink-dim)' }}>
-                      <span className="font-medium" style={{ color: 'var(--dl-frost)' }}>
-                        {opponent?.nickname ?? '상대'}
-                      </span>
-                      {' '}선택 중...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
-                  <div className="animate-pulse text-gray-400">●  ●  ●</div>
-                  <p className="text-sm text-gray-500">
-                    <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span>
-                    {' '}선택 중...
-                  </p>
-                </div>
-              )
-            )}
-
-            {(gameData.phase === 'reveal' || gameData.phase === 'finished') && gameData.revealData && (
-              <RevealPanel
-                revealData={gameData.revealData}
-                players={gameData.players}
-                round={gameData.round}
-                winner={gameData.winner}
-                winType={gameData.winType}
-                tiebreakerReason={gameData.tiebreakerReason}
-                skin={skin}
-              />
-            )}
-
-            {/* 타일 트래커: 진행 중 페이즈에서만 표시 */}
-            {isSubmitPhase && (
-              isSpectator ? (
-                <div className="flex flex-col gap-3">
-                  {playerEntries.map(([id, p]) => {
-                    const tracker = spectatorTrackers[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK };
-                    return (
-                      <TileTracker
-                        key={id}
-                        playerNickname={p.nickname}
-                        white={tracker.white}
-                        black={tracker.black}
-                        onAdjust={(color, delta) => handleSpectatorAdjust(id, color, delta)}
-                        skin={skin}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <TileTracker
-                  white={trackerWhite}
-                  black={trackerBlack}
-                  onAdjust={handleAdjust}
-                  skin={skin}
-                />
-              )
-            )}
-          </div>
-
-          {/* 모바일: 라운드 기록 */}
-          <div className="w-full max-w-lg lg:hidden">
-            {gameData.roundHistory.length > 0 && (
-              <details className="rounded-lg border border-gray-200 bg-white">
-                <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-gray-600">
-                  라운드 기록 ({gameData.roundHistory.length})
-                </summary>
-                <div className="border-t border-gray-100 px-3 py-2">
-                  <MobileRoundHistory history={gameData.roundHistory} players={gameData.players} />
-                </div>
-              </details>
-            )}
-          </div>
-        </div>
-
-        {/* 데스크탑: 정보 패널 */}
-        <div className="hidden lg:flex lg:w-60 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
-          <InfoPanel
-            round={gameData.round}
-            players={gameData.players}
-            roundHistory={gameData.roundHistory}
-            myId={myId}
+  const trackerPanel = isSpectator ? (
+    <div className="flex flex-col gap-2">
+      {playerEntries.map(([id, p]) => {
+        const tracker = spectatorTrackers[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK };
+        return (
+          <TileTracker
+            key={id}
+            playerNickname={p.nickname}
+            white={tracker.white}
+            black={tracker.black}
+            onAdjust={(color, delta) => handleSpectatorAdjust(id, color, delta)}
+            skin={skin}
           />
-        </div>
-      </div>
+        );
+      })}
     </div>
+  ) : (
+    <TileTracker white={trackerWhite} black={trackerBlack} onAdjust={handleAdjust} skin={skin} />
+  );
+
+  const waitingPanel =
+    isSubmitPhase && (isSpectator || myPlayer?.submitted) && !gameData.currentSide ? (
+      isDuality ? (
+        <div className="skin-duality-field skin-duality-waiting">
+          <div className="skin-duality-fx" aria-hidden>
+            <div className="skin-duality-split-line" />
+            <div className="skin-duality-frost-glow" />
+            <div className="skin-duality-ember-glow" />
+          </div>
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div
+                className="skin-duality-tile skin-duality-tile--frost skin-duality-tile--sm"
+                style={{ animationDelay: '0s' }}
+              />
+              <div
+                className="skin-duality-tile skin-duality-tile--obsidian skin-duality-tile--sm"
+                style={{ animationDelay: '0.3s' }}
+              />
+            </div>
+            <div className="skin-duality-waiting-dots" aria-hidden>
+              <div className="skin-duality-waiting-dot" />
+              <div className="skin-duality-waiting-dot" />
+              <div className="skin-duality-waiting-dot" />
+            </div>
+            <p className="text-sm" style={{ color: 'var(--dl-ink-dim)' }}>
+              <span className="font-medium" style={{ color: 'var(--dl-frost)' }}>
+                {opponent?.nickname ?? '상대'}
+              </span>{' '}
+              선택 중...
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
+          <div className="animate-pulse text-gray-400">● ● ●</div>
+          <p className="text-sm text-gray-500">
+            <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span> 선택 중...
+          </p>
+        </div>
+      )
+    ) : null;
+
+  return (
+    <>
+      <GameFrame
+        info={
+          <div className="flex flex-col gap-1">
+            <div className="flex w-full justify-between gap-2">
+              {playerEntries.map(([id, p]) => (
+                <PlayerBadge
+                  key={id}
+                  player={p}
+                  isMe={id === myId || id.replace('_p2', '') === myId}
+                  timerRemaining={timerRemaining}
+                />
+              ))}
+            </div>
+            <div
+              className={
+                isDuality
+                  ? 'skin-duality-status-msg'
+                  : 'text-center text-[11px] leading-4 text-gray-500'
+              }
+            >
+              {gameState?.message}
+            </div>
+          </div>
+        }
+        controls={
+          /*
+            넘버4는 조작 요소가 크다. 선택기(352px)와 추리판(107px)을 다 아래에
+            두면 640px 화면에서 무대가 0 이 되고 추리판이 잘렸다. 선택기는 이
+            게임의 본체이므로 무대로 올리고, 아래에는 얇은 단추 줄만 남긴다.
+          */
+          <div className="flex gap-1.5">
+            {isSubmitPhase && (
+              <button
+                type="button"
+                onClick={() => setShowTracker(true)}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                타일 추리
+              </button>
+            )}
+            {gameData.roundHistory.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowHistory(true)}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                라운드 기록 ({gameData.roundHistory.length})
+              </button>
+            )}
+          </div>
+        }
+        aside={
+          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
+            {isSubmitPhase && trackerPanel}
+            <InfoPanel
+              round={gameData.round}
+              players={gameData.players}
+              roundHistory={gameData.roundHistory}
+              myId={myId}
+            />
+          </div>
+        }
+      >
+        <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-3 overflow-hidden">
+          {isSubmitPhase && canAct && myPlayer && !myPlayer.submitted && (
+            <SubmitSelector
+              player={myPlayer}
+              currentSide={gameData.currentSide}
+              isSpectator={isSpectator}
+              skin={skin}
+            />
+          )}
+          {waitingPanel}
+          {(gameData.phase === 'reveal' || gameData.phase === 'finished') && gameData.revealData && (
+            <RevealPanel
+              revealData={gameData.revealData}
+              players={gameData.players}
+              round={gameData.round}
+              winner={gameData.winner}
+              winType={gameData.winType}
+              tiebreakerReason={gameData.tiebreakerReason}
+              skin={skin}
+            />
+          )}
+        </div>
+      </GameFrame>
+
+      <Modal open={showHistory} onClose={() => setShowHistory(false)} title="라운드 기록">
+        <MobileRoundHistory history={gameData.roundHistory} players={gameData.players} />
+      </Modal>
+
+      <Modal open={showTracker} onClose={() => setShowTracker(false)} title="상대 타일 추리">
+        {trackerPanel}
+      </Modal>
+    </>
   );
 }
 
