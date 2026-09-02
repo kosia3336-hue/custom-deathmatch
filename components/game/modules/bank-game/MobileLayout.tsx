@@ -11,6 +11,8 @@ import OpponentInventoryTracker from './OpponentInventoryTracker';
 import RoundHistoryTable from './RoundHistoryTable';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -52,6 +54,8 @@ export default function MobileLayout({ ctx }: Props) {
   } = ctx;
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [trackerOpen, setTrackerOpen] = useState(false);
 
   /* 내 차례가 되면 자동으로 시트 열기 */
   useEffect(() => {
@@ -100,86 +104,100 @@ export default function MobileLayout({ ctx }: Props) {
   const showBanner = (isFirstReveal || isSecondSubmit) && firstBetCount != null;
 
   return (
-    <div className="bank-layout bank-layout-mobile flex h-full w-full max-w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto">
-      <div className="bank-mobile-content flex w-full min-w-0 flex-col gap-3 p-3">
-        <MobileHeader
-          round={gameData.round}
-          maxRound={gameData.maxRound}
-          phase={phase ?? 'firstSubmit'}
-          firstNick={firstPlayer.nickname}
-          loserAmountTotal={gameData.loserAmountTotal}
-        />
-
-        <PhaseStepperMobile
-          phase={phase ?? 'firstSubmit'}
-          isMyTurn={stepperActiveTurn}
-          isSpectator={isSpectator}
-          firstNick={firstPlayer.nickname}
-          secondNick={secondPlayer.nickname}
-          myIsFirst={myIsFirst}
-        />
-
-        <ScoreBar
-          p1={gameData.players.p1}
-          p2={gameData.players.p2}
-          firstSide={firstSide}
-          myId={myId}
-        />
-
-        {/* 본인 인벤토리 — 관전자에겐 숨김 */}
-        {!isSpectator && myPlayer?.inventory && myPlayer.inventoryAmount != null && (
-          <InventoryRow
-            inventory={myPlayer.inventory}
-            inventoryAmount={myPlayer.inventoryAmount}
-            pendingBet={myTurnInput ? pendingBet : null}
-            size="sm"
-          />
-        )}
-
-        {/* 선 장수 공개 배너 */}
-        {showBanner && firstBetCount != null && (
-          <FirstCountRevealBanner
-            firstNick={firstPlayer.nickname}
-            firstBetCount={firstBetCount}
-            isMyTurn={!isSpectator && !myIsFirst && isSecondSubmit}
-          />
-        )}
-
-        {/* 메인 페이즈 영역 — bottom-sheet 모드에선 BetInput 숨김 */}
-        <PhaseArea ctx={ctx} ref={phaseAreaRef} size="sm" hideBetInput={canShowSheet} />
-
-        {/* 라운드 기록 (details) */}
-        {gameData.history.length > 0 && !isFinished && (
-          <details className="bank-collapse w-full min-w-0 rounded-xl border border-gray-200 bg-white">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              라운드 기록 ({gameData.history.length})
-            </summary>
-            <div className="border-t border-gray-100 px-3 py-2">
-              <RoundHistoryTable
-                history={gameData.history}
-                mySide={mySide}
-                players={gameData.players}
-                variant="mobile"
+    <>
+      <GameFrame
+        className="bank-layout bank-layout-mobile"
+        info={
+          <div className="flex w-full min-w-0 flex-col gap-1.5">
+            <MobileHeader
+              round={gameData.round}
+              maxRound={gameData.maxRound}
+              phase={phase ?? 'firstSubmit'}
+              firstNick={firstPlayer.nickname}
+              loserAmountTotal={gameData.loserAmountTotal}
+            />
+            <PhaseStepperMobile
+              phase={phase ?? 'firstSubmit'}
+              isMyTurn={stepperActiveTurn}
+              isSpectator={isSpectator}
+              firstNick={firstPlayer.nickname}
+              secondNick={secondPlayer.nickname}
+              myIsFirst={myIsFirst}
+            />
+            <ScoreBar
+              p1={gameData.players.p1}
+              p2={gameData.players.p2}
+              firstSide={firstSide}
+              myId={myId}
+            />
+          </div>
+        }
+        controls={
+          <div className="flex w-full min-w-0 flex-col gap-1.5">
+            {!isSpectator && myPlayer?.inventory && myPlayer.inventoryAmount != null && (
+              <InventoryRow
+                inventory={myPlayer.inventory}
+                inventoryAmount={myPlayer.inventoryAmount}
+                pendingBet={myTurnInput ? pendingBet : null}
+                size="sm"
               />
+            )}
+            <div className="flex gap-1.5">
+              {!isSpectator && canShowSheet && !showSheet && (
+                <button
+                  type="button"
+                  onClick={() => setSheetOpen(true)}
+                  className="bank-primary-action flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-bold text-white shadow-lg"
+                >
+                  베팅 입력하기 →
+                </button>
+              )}
+              {gameData.history.length > 0 && !isFinished && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-600"
+                >
+                  라운드 기록 ({gameData.history.length})
+                </button>
+              )}
+              {showOpponentTracker && (
+                <button
+                  type="button"
+                  onClick={() => setTrackerOpen(true)}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-600"
+                >
+                  상대 잔여 추리
+                </button>
+              )}
             </div>
-          </details>
-        )}
+          </div>
+        }
+      >
+        <div className="bank-mobile-content flex h-full w-full min-w-0 flex-col items-center justify-center gap-2 overflow-hidden">
+          {showBanner && firstBetCount != null && (
+            <FirstCountRevealBanner
+              firstNick={firstPlayer.nickname}
+              firstBetCount={firstBetCount}
+              isMyTurn={!isSpectator && !myIsFirst && isSecondSubmit}
+            />
+          )}
+          <PhaseArea ctx={ctx} ref={phaseAreaRef} size="sm" hideBetInput={canShowSheet} />
+        </div>
+      </GameFrame>
 
-        {/* 상대 금액 추리 (details) */}
-        {showOpponentTracker && (
-          <details className="bank-collapse w-full min-w-0 rounded-xl border border-gray-200 bg-white">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              상대 잔여 추리
-            </summary>
-            <div className="border-t border-gray-100 p-2">
-              <OpponentInventoryTracker />
-            </div>
-          </details>
-        )}
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
+        <RoundHistoryTable
+          history={gameData.history}
+          mySide={mySide}
+          players={gameData.players}
+          variant="mobile"
+        />
+      </Modal>
 
-        {/* bottom-sheet 열렸을 때 하단 여백 */}
-        {showSheet && <div className="h-72" />}
-      </div>
+      <Modal open={trackerOpen} onClose={() => setTrackerOpen(false)} title="상대 잔여 추리">
+        <OpponentInventoryTracker />
+      </Modal>
 
       {/* ── 베팅 bottom-sheet ── */}
       {!isSpectator && canShowSheet && (
@@ -223,18 +241,9 @@ export default function MobileLayout({ ctx }: Props) {
             )}
           </div>
 
-          {/* 시트가 닫혀 있을 때 재열기 버튼 */}
-          {!showSheet && (
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="bank-primary-action fixed inset-x-4 bottom-20 z-(--cdm-z-modal) rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg lg:hidden"
-            >
-              베팅 입력하기 →
-            </button>
-          )}
+          {/* 재열기 단추는 조작 칸에 있다. 화면에 띄우면 방 바닥글을 가린다. */}
         </>
       )}
-    </div>
+    </>
   );
 }

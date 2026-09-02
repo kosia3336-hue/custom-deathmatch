@@ -37,8 +37,13 @@ export default function BankGame() {
   }
 
   return (
+    /*
+      GameShell 의 상자를 그대로 채운다. relative + h-full 로 두면 조상 높이가
+      '내용만큼' 이라 높이가 풀리지 않고, 그 안의 GameFrame(absolute inset-0)이
+      납작해진다. absolute 도 위치 기준이 되므로 스킨의 fx 레이어는 그대로 붙는다.
+    */
     <div
-      className={`relative flex h-full min-w-0 flex-1 flex-col overflow-hidden ${
+      className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden ${
         isTreasury ? 'skin-treasury-field' : ''
       }`}
     >
