@@ -13,6 +13,8 @@ import ResultPanel from './ResultPanel';
 import InfoPanel from './InfoPanel';
 import OpponentTileTracker from './OpponentTileTracker';
 import { WIN_TYPE_LABELS } from './constants';
+import Modal from '@/components/ui/Modal';
+import { GameFrame } from '@/components/game/GameFrame';
 
 interface SuspectAnim {
   player: 'first' | 'second';
@@ -28,6 +30,8 @@ export default function MultipleBnwGame() {
 
   // Opponent tile manual tracker (client-side only)
   const [trackedOpponentUsed, setTrackedOpponentUsed] = useState<MBNWTile[]>([]);
+  const [trackerOpen, setTrackerOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const handleTrackerToggle = (tile: MBNWTile) => {
     setTrackedOpponentUsed(prev =>
       prev.includes(tile) ? prev.filter(t => t !== tile) : [...prev, tile],
@@ -168,13 +172,10 @@ export default function MultipleBnwGame() {
 
   return (
     <>
-      <div className="flex h-full">
-        <div className="flex flex-1 flex-col lg:flex-row">
-          {/* Main area */}
-          <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-
+      <GameFrame
+        info={<div className="flex w-full flex-col gap-1">
             {/* Mobile: compact score bar */}
-            <div className="flex w-full max-w-lg justify-between gap-2 lg:hidden">
+            <div className="flex w-full justify-between gap-2">
               {playerEntries.map(([id, p]) => {
                 const isMe = id === myId;
                 return (
@@ -209,7 +210,53 @@ export default function MultipleBnwGame() {
             <div className="text-center text-sm text-gray-500">
               {gameState?.message}
             </div>
-
+        </div>}
+        controls={
+          /*
+            타일 선택 패널이 이 게임의 본체라 무대에 두고, 아래에는 참고용
+            도구만 단추로 남긴다. 추리판·기록을 모두 아래에 깔면 640px 화면에서
+            무대가 눌려 선택 패널이 잘린다.
+          */
+          <div className="flex gap-1.5">
+            {showTracker && (
+              <button
+                type="button"
+                onClick={() => setTrackerOpen(true)}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                상대 타일 추리
+              </button>
+            )}
+            {gameData.roundHistory.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                라운드 기록 ({gameData.roundHistory.length})
+              </button>
+            )}
+          </div>
+        }
+        aside={
+          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
+            {showTracker && (
+              <OpponentTileTracker
+                markedTiles={trackedOpponentUsed}
+                onToggle={handleTrackerToggle}
+                opponentCurrentColor={opponentCurrentColor}
+              />
+            )}
+            <InfoPanel
+              round={gameData.round}
+              players={gameData.players}
+              roundHistory={gameData.roundHistory}
+              myId={myId}
+            />
+          </div>
+        }
+      >
+        <div className="flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
             <div className="w-full max-w-lg space-y-3">
 
               {/* Color reveal badges */}
@@ -338,43 +385,27 @@ export default function MultipleBnwGame() {
                   myId={myId}
                 />
               )}
-
-              {/* Opponent tile tracker */}
-              {showTracker && (
-                <OpponentTileTracker
-                  markedTiles={trackedOpponentUsed}
-                  onToggle={handleTrackerToggle}
-                  opponentCurrentColor={opponentCurrentColor}
-                />
-              )}
             </div>
-
-            {/* Mobile round history */}
-            <div className="w-full max-w-lg lg:hidden">
-              {gameData.roundHistory.length > 0 && (
-                <details className="rounded-lg border border-gray-200 bg-white">
-                  <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-gray-600">
-                    라운드 기록 ({gameData.roundHistory.length})
-                  </summary>
-                  <div className="border-t border-gray-100 px-3 py-2">
-                    <MobileRoundHistory history={gameData.roundHistory} players={gameData.players} myId={myId} />
-                  </div>
-                </details>
-              )}
-            </div>
-          </div>
-
-          {/* Desktop: info panel */}
-          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
-            <InfoPanel
-              round={gameData.round}
-              players={gameData.players}
-              roundHistory={gameData.roundHistory}
-              myId={myId}
-            />
-          </div>
         </div>
-      </div>
+      </GameFrame>
+
+      <Modal open={trackerOpen} onClose={() => setTrackerOpen(false)} title="상대 타일 추리">
+        {/* Opponent tile tracker */}
+        {showTracker && (
+          <OpponentTileTracker
+            markedTiles={trackedOpponentUsed}
+            onToggle={handleTrackerToggle}
+            opponentCurrentColor={opponentCurrentColor}
+          />
+        )}      </Modal>
+
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
+        <MobileRoundHistory
+          history={gameData.roundHistory}
+          players={gameData.players}
+          myId={myId}
+        />
+      </Modal>
 
       {/* Suspect animation overlay */}
       <div className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
