@@ -1,4 +1,5 @@
 import type { SkinTheme } from '@/lib/skins/registry';
+import FourCardCard from '@/components/game/modules/quatro/skins/FourCardCard';
 
 const CLIP_FIRST = 'polygon(15% 100%, 0% 30%, 50% 0%, 100% 30%, 85% 100%)';
 const CLIP_SECOND = 'polygon(15% 0%, 0% 70%, 50% 100%, 100% 70%, 85% 0%)';
@@ -25,6 +26,17 @@ function ShowdownBundle({ state }: { state: 'lit' | 'active' }) {
 }
 
 export default function SkinPreview({ theme }: { theme: SkinTheme }) {
+  if (theme === 'four-card') {
+    return (
+      <div className="skin-four-card-preview relative flex h-24 w-full items-center justify-center gap-2 overflow-hidden rounded-lg">
+        <FourCardCard card={{ id: 'spade-1', suit: 'spade', num: 1 }} size="sm" />
+        <FourCardCard card={null} size="sm" />
+        <FourCardCard card={{ id: 'heart-5', suit: 'heart', num: 5 }} size="sm" />
+        <FourCardCard card={{ id: 'black-0-a', suit: 'black', num: 0 }} size="sm" />
+      </div>
+    );
+  }
+
   if (theme === 'duality') {
     return (
       <div className="skin-duality-field relative flex h-24 w-full items-center overflow-hidden rounded-lg">

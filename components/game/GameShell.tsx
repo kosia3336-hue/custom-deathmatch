@@ -74,7 +74,7 @@ export default function GameShell({ children }: Props) {
 
   /* 전체 화면 배경 이미지가 있는 스킨 — skin-bg-<theme> 클래스로 셸 배경 적용 */
   const skinMeta = getSkinMeta(gameState?.activeSkin);
-  const skinTheme = skinMeta && ['candy', 'meow'].includes(skinMeta.theme) ? skinMeta.theme : null;
+  const skinTheme = skinMeta && ['candy', 'meow', 'four-card'].includes(skinMeta.theme) ? skinMeta.theme : null;
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
