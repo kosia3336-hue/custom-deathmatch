@@ -13,6 +13,12 @@ export interface Board3DProps {
   maxWidth?: CSSProperties['maxWidth'];
   density?: 'compact' | 'comfortable';
   tilt?: boolean;
+  /**
+   * 남은 높이에 맞춰 판을 줄인다. GameFrame 의 무대 안에서만 뜻이 있다 —
+   * 무대가 container-type: size 라서 100cqh 가 '남은 높이' 로 읽힌다.
+   * 화면 높이(dvh)로 어림잡지 말 것. 머리말·조작부 높이는 게임마다 다르다.
+   */
+  fit?: boolean;
 }
 
 /**
@@ -30,9 +36,21 @@ export function Board3D({
   maxWidth = '36rem',
   density = 'comfortable',
   tilt = true,
+  fit = false,
 }: Board3DProps) {
+  /*
+    scene 높이 = 판 높이 + scene 아래 여백이고, 판 높이 = (scene 너비 - 좌우 여백) / 비율.
+    이걸 100cqh 이하로 누르면 아래 식이 나온다. 여백은 clamp 의 최댓값으로 빼서
+    조금 작게 잡는다 — 넘치는 쪽보다 남는 쪽이 낫다.
+  */
+  const ratio = columns / rows;
+  const fitWidth = `calc((100cqh - 1.15rem) * ${ratio} + 1rem)`;
+
   return (
-    <div className={cn(styles.scene, className)} style={{ maxWidth }}>
+    <div
+      className={cn(styles.scene, className)}
+      style={{ maxWidth: fit ? `min(${maxWidth}, ${fitWidth})` : maxWidth }}
+    >
       <div
         className={cn(styles.frame, frameClassName)}
         data-density={density}

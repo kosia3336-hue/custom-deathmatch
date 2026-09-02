@@ -14,6 +14,8 @@ import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
 import { Board3D, BoardCellButton3D } from '@/components/game/abstract-strategy';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 import { StackVisual } from './StackVisual';
 
 const MOVE_LABELS = ['한 칸 직선', '룩', '나이트', '비숍', '퀸'];
@@ -23,7 +25,6 @@ export default function KingmakingGame() {
   const gameData = gameState?.gameData as KingmakingGameData | undefined;
   useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
 
   if (!gameData) {
     return (
@@ -33,110 +34,31 @@ export default function KingmakingGame() {
     );
   }
 
-  const playerEntries = Object.entries(gameData.players);
-  const isPlayer = Boolean(gameData.players[myId]);
-  const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase === 'playing';
-  const currentName = gameData.players[gameData.currentPlayerId]?.nickname ?? '플레이어';
-  const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
-
-  return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
-      <header className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto] items-center gap-2 border p-2.5 sm:grid-cols-[1fr_auto_1fr] sm:p-3">
-        <div className="min-w-0">
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
-            TURN {gameData.turnNumber}
-          </p>
-          <p className="text-cdm-fg truncate text-sm font-black">
-            {gameData.phase === 'finished'
-              ? '게임 종료'
-              : isMyTurn
-                ? '내 차례입니다'
-                : `${currentName} 님의 차례`}
-          </p>
-          <p className="text-cdm-fg-muted hidden text-xs sm:block">
-            새 말을 놓거나, 탑의 위쪽 일부를 떼어 다른 탑 위로 이동하세요.
-          </p>
-        </div>
-        <div className="bg-cdm-bg-elev-1 rounded-cdm-md min-w-20 px-3 py-1.5 text-center">
-          <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.14em]">TIME</p>
-          <p
-            className={cn(
-              'text-cdm-fg text-xl font-black tabular-nums',
-              remaining != null && remaining <= 10 && 'text-cdm-accent',
-            )}
-          >
-            {remaining == null ? '∞' : Math.ceil(remaining)}
-          </p>
-        </div>
-        <div className="col-span-2 grid grid-cols-2 gap-2 sm:col-span-1 sm:flex sm:justify-end">
-          {playerEntries.map(([playerId, player], index) => (
-            <div
-              key={playerId}
-              className={cn(
-                'rounded-cdm-md min-w-0 border px-2.5 py-1.5 sm:min-w-28',
-                gameData.currentPlayerId === playerId && gameData.phase === 'playing'
-                  ? index === 0
-                    ? 'border-cdm-primary bg-cdm-primary-soft'
-                    : 'border-cdm-highlight bg-cdm-highlight-soft'
-                  : 'border-cdm-border bg-cdm-bg-elev-1',
-              )}
-            >
-              <p className="text-cdm-fg truncate text-[11px] font-bold">
-                {player.nickname}
-                {playerId === myId ? ' (나)' : ''}
-              </p>
-              <div className="text-cdm-fg-muted mt-0.5 flex items-center justify-between text-[10px]">
-                <span>일반 {gameData.reserves[playerId]?.normal ?? 0}</span>
-                <span>특수 {gameData.reserves[playerId]?.special ?? 0}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      <KingmakingWorkspace
-        key={`${gameData.turnNumber}:${myId}`}
-        gameData={gameData}
-        myId={myId}
-        canPlay={isMyTurn}
-      />
-
-      {!isPlayer && gameData.phase === 'playing' && (
-        <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
-      )}
-      {gameData.phase === 'finished' && (
-        <div className="bg-cdm-primary-soft rounded-cdm-lg p-4 text-center">
-          <p className="text-cdm-primary text-base font-black">
-            {winnerName ? `${winnerName} 승리!` : '게임 종료'}
-          </p>
-          <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
-        </div>
-      )}
-    </div>
-  );
+  /*
+    턴이 바뀔 때마다 갈아 끼워 고른 탑·행동을 비운다. 지난 턴의 선택이 남아
+    있으면 이미 사라진 탑을 가리키게 된다.
+  */
+  return <KingmakingBoard key={`${gameData.turnNumber}:${myId}`} gameData={gameData} myId={myId} />;
 }
 
-function KingmakingWorkspace({
-  gameData,
-  myId,
-  canPlay,
-}: {
-  gameData: KingmakingGameData;
-  myId: string;
-  canPlay: boolean;
-}) {
+function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myId: string }) {
+  const { remaining } = useTurnTimer();
   const [mode, setMode] = useState<KingmakingPieceKind | 'move'>('normal');
   const [source, setSource] = useState<KingmakingPosition | null>(null);
   const [moveCount, setMoveCount] = useState(1);
   const [pending, setPending] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
   const playerIds = Object.keys(gameData.players);
+  const isPlayer = Boolean(gameData.players[myId]);
+  const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase === 'playing';
   const myReserve = gameData.reserves[myId] ?? { normal: 0, special: 0 };
+  const canPlay = isMyTurn;
 
   /*
-    이 컴포넌트는 턴 번호가 바뀔 때만 리마운트된다. 서버가 행동을 거부하면
-    턴이 그대로라 리마운트가 없고, pending 이 켜진 채 남아 그 턴 내내 보드를
-    누를 수 없게 된다. 거부 신호(error)를 직접 받아 풀어 준다.
-    토스트는 useRoom 의 전역 error 핸들러가 이미 띄운다.
+    서버가 행동을 거부하면 턴이 그대로라 이 컴포넌트가 다시 마운트되지 않고,
+    pending 이 켜진 채 남아 그 턴 내내 판을 누를 수 없게 된다. 거부 신호를
+    직접 받아 풀어 준다. 토스트는 useRoom 의 전역 error 핸들러가 이미 띄운다.
   */
   useEffect(() => {
     const socket = getSocket();
@@ -169,8 +91,8 @@ function KingmakingWorkspace({
     const stack = gameData.board[position.row][position.col];
     const key = kingmakingPositionKey(position);
     if (mode !== 'move' && stack.length === 0) {
-      const remaining = mode === 'normal' ? myReserve.normal : myReserve.special;
-      if (remaining <= 0) return;
+      const left = mode === 'normal' ? myReserve.normal : myReserve.special;
+      if (left <= 0) return;
       setPending(true);
       getSocket().emit('game:action', { type: 'place', kind: mode, to: position });
       return;
@@ -192,10 +114,44 @@ function KingmakingWorkspace({
     }
   }
 
+  const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
+  const finished = gameData.phase === 'finished';
+
   return (
-    <div className="grid min-h-0 flex-1 items-start gap-3 lg:grid-cols-[minmax(0,34rem)_minmax(16rem,19rem)] lg:justify-center">
-      <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2.5 sm:p-3">
-        <Board3D columns={5} ariaLabel="5 곱하기 5 킹메이킹 보드" maxWidth="min(34rem, 62dvh)">
+    <>
+      <GameFrame
+        info={
+          <InfoBar
+            gameData={gameData}
+            myId={myId}
+            remaining={remaining}
+            isMyTurn={isMyTurn}
+            isPlayer={isPlayer}
+          />
+        }
+        controls={
+          <ActionBar
+            mode={mode}
+            canPlay={canPlay}
+            reserve={myReserve}
+            source={source}
+            sourceHeight={sourceHeight}
+            moveCount={moveCount}
+            legalCount={legalTargets.length}
+            onChooseMode={chooseMode}
+            onChooseCount={setMoveCount}
+            onOpenHelp={() => setShowHelp(true)}
+          />
+        }
+        aside={<MoveReference />}
+      >
+        <Board3D
+          fit
+          columns={5}
+          ariaLabel="5 곱하기 5 킹메이킹 보드"
+          maxWidth="34rem"
+          density="compact"
+        >
           {gameData.board.flatMap((row, rowIndex) =>
             row.map((stack, colIndex) => {
               const position = { row: rowIndex, col: colIndex };
@@ -213,7 +169,7 @@ function KingmakingWorkspace({
                   state={selected ? 'selected' : legal ? 'available' : 'idle'}
                   className={cn(!canPlay && 'cursor-default')}
                 >
-                  <StackVisual stack={stack} playerIds={playerIds} />
+                  <StackVisual stack={stack} playerIds={playerIds} compact />
                   {legal && (
                     <span className="bg-cdm-success absolute top-1 left-1 h-2.5 w-2.5 rounded-full shadow-sm" />
                   )}
@@ -227,95 +183,232 @@ function KingmakingWorkspace({
             }),
           )}
         </Board3D>
-      </section>
 
-      <aside className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
-        <p className="text-cdm-fg text-sm font-black">행동 선택</p>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          <ModeButton
-            active={mode === 'normal'}
-            disabled={!canPlay || myReserve.normal <= 0}
-            onClick={() => chooseMode('normal')}
-            label={`일반말 · ${myReserve.normal}`}
-          />
-          <ModeButton
-            active={mode === 'special'}
-            disabled={!canPlay || myReserve.special <= 0}
-            onClick={() => chooseMode('special')}
-            label={`특수말 · ${myReserve.special}`}
-          />
-          <ModeButton
-            active={mode === 'move'}
-            disabled={!canPlay}
-            onClick={() => chooseMode('move')}
-            label="탑 이동"
-          />
-        </div>
-
-        {mode === 'move' && (
-          <div className="border-cdm-border mt-3 border-t pt-3">
-            <p className="text-cdm-fg text-xs font-black">
-              {source
-                ? `${sourceHeight}층 탑 선택됨 · 위에서 몇 층을 떼나요?`
-                : '이동할 탑을 선택하세요.'}
-            </p>
-            {source && (
-              <div className="mt-2 grid grid-cols-6 gap-1">
-                {Array.from(
-                  { length: Math.min(5, sourceHeight) },
-                  (_, index) => Math.min(5, sourceHeight) - index,
-                ).map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => setMoveCount(count)}
-                    aria-label={
-                      count === sourceHeight
-                        ? `${count}층 전체 이동, 떼지 않음`
-                        : `위에서 ${count}층 떼어 이동`
-                    }
-                    className={cn(
-                      'rounded-cdm-sm border-cdm-border min-h-10 border px-1 text-[11px] font-black',
-                      count === sourceHeight && 'col-span-2',
-                      moveCount === count
-                        ? 'border-cdm-primary bg-cdm-primary text-white'
-                        : 'bg-cdm-bg-elev-1 text-cdm-fg',
-                    )}
-                  >
-                    {count === sourceHeight ? `${count}(떼지 않음)` : count}
-                  </button>
-                ))}
-              </div>
-            )}
-            {source && (
-              <p className="text-cdm-fg-muted mt-2 text-[11px]">
-                {moveCount}층 · {MOVE_LABELS[moveCount - 1]} 이동 · 가능한 목적지{' '}
-                {legalTargets.length}곳
+        {/*
+          결과는 무대 위에 겹쳐 띄운다. 새 줄로 만들면 그 순간 판이 밀려 작아진다.
+        */}
+        {finished && (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="border-cdm-primary bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+              <p className="text-cdm-primary text-base font-black">
+                {winnerName ? `${winnerName} 승리!` : '게임 종료'}
               </p>
-            )}
+              <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
+            </div>
           </div>
         )}
+      </GameFrame>
 
-        <div className="border-cdm-border mt-4 border-t pt-3">
-          <p className="text-cdm-fg text-xs font-black">층수별 이동</p>
-          <div className="text-cdm-fg-muted mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-            {MOVE_LABELS.map((label, index) => (
-              <span key={label}>
-                <b className="text-cdm-fg">{index + 1}층</b> {label}
-              </span>
-            ))}
-            <span>
-              <b className="text-cdm-accent">6층</b> 즉시 승리
-            </span>
+      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="이동 규칙">
+        <MoveReference />
+      </Modal>
+    </>
+  );
+}
+
+/** 위 — 지금 상황만. 누를 것은 없다. */
+function InfoBar({
+  gameData,
+  myId,
+  remaining,
+  isMyTurn,
+  isPlayer,
+}: {
+  gameData: KingmakingGameData;
+  myId: string;
+  remaining: number | null;
+  isMyTurn: boolean;
+  isPlayer: boolean;
+}) {
+  const entries = Object.entries(gameData.players);
+  const status = !isPlayer
+    ? '관전 중'
+    : gameData.phase === 'finished'
+      ? '게임 종료'
+      : isMyTurn
+        ? '내 차례'
+        : '상대 차례';
+
+  return (
+    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
+      {entries.map(([playerId, player], index) => {
+        const active = gameData.currentPlayerId === playerId && gameData.phase === 'playing';
+        const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
+        return (
+          <div
+            key={playerId}
+            className={cn(
+              // 넓은 화면에서 이름표가 판 너비만큼 늘어나지 않도록 폭을 묶는다.
+              'rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
+              index === 1 && 'order-3 justify-self-end text-right',
+              active
+                ? index === 0
+                  ? 'border-cdm-primary bg-cdm-primary-soft'
+                  : 'border-cdm-highlight bg-cdm-highlight-soft'
+                : 'border-cdm-border bg-cdm-bg-elev-1',
+            )}
+          >
+            <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
+              {player.nickname}
+              {playerId === myId ? ' (나)' : ''}
+            </p>
+            <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
+              일반 {reserve.normal} · 특수 {reserve.special}
+            </p>
           </div>
-          <p className="text-cdm-fg-muted mt-2 text-[11px] leading-4">
-            ◆ 특수말이 맨 위인 탑에는 다른 말을 올릴 수 없습니다.
+        );
+      })}
+
+      <div className="order-2 px-1 text-center">
+        <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
+          {status}
+        </p>
+        <p
+          className={cn(
+            'text-cdm-fg text-lg leading-6 font-black tabular-nums',
+            remaining != null && remaining <= 10 && 'text-cdm-accent',
+          )}
+        >
+          {remaining == null ? '∞' : Math.ceil(remaining)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 아래 — 누르는 것 전부.
+ *
+ * 보조 줄은 늘 같은 높이를 차지한다. 탑을 고를 때만 층수 단추가 나오게 하면
+ * 그때마다 판 크기가 출렁여 눈이 피로하다.
+ */
+function ActionBar({
+  mode,
+  canPlay,
+  reserve,
+  source,
+  sourceHeight,
+  moveCount,
+  legalCount,
+  onChooseMode,
+  onChooseCount,
+  onOpenHelp,
+}: {
+  mode: KingmakingPieceKind | 'move';
+  canPlay: boolean;
+  reserve: { normal: number; special: number };
+  source: KingmakingPosition | null;
+  sourceHeight: number;
+  moveCount: number;
+  legalCount: number;
+  onChooseMode: (next: KingmakingPieceKind | 'move') => void;
+  onChooseCount: (count: number) => void;
+  onOpenHelp: () => void;
+}) {
+  const counts = Array.from({ length: Math.min(5, sourceHeight) }, (_, i) => i + 1).reverse();
+
+  return (
+    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
+      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5">
+        <ModeButton
+          active={mode === 'normal'}
+          disabled={!canPlay || reserve.normal <= 0}
+          onClick={() => onChooseMode('normal')}
+          label={`일반말 ${reserve.normal}`}
+        />
+        <ModeButton
+          active={mode === 'special'}
+          disabled={!canPlay || reserve.special <= 0}
+          onClick={() => onChooseMode('special')}
+          label={`특수말 ${reserve.special}`}
+        />
+        <ModeButton
+          active={mode === 'move'}
+          disabled={!canPlay}
+          onClick={() => onChooseMode('move')}
+          label="탑 이동"
+        />
+        <button
+          type="button"
+          onClick={onOpenHelp}
+          aria-label="이동 규칙 보기"
+          className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted min-h-11 w-10 border text-sm font-black lg:hidden"
+        >
+          ?
+        </button>
+      </div>
+
+      <div className="mt-1.5 flex min-h-11 items-center">
+        {mode === 'move' && source ? (
+          <div className="flex w-full items-center gap-1.5">
+            <div className="flex flex-1 gap-1">
+              {counts.map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => onChooseCount(count)}
+                  aria-label={
+                    count === sourceHeight
+                      ? `${count}층 전체 이동`
+                      : `위에서 ${count}층 떼어 이동`
+                  }
+                  className={cn(
+                    'rounded-cdm-sm border-cdm-border min-h-10 flex-1 border text-[11px] font-black',
+                    moveCount === count
+                      ? 'border-cdm-primary bg-cdm-primary text-white'
+                      : 'bg-cdm-bg-elev-1 text-cdm-fg',
+                  )}
+                >
+                  {count}
+                  {count === sourceHeight && sourceHeight <= 5 ? '(전체)' : ''}
+                </button>
+              ))}
+            </div>
+            <p className="text-cdm-fg-muted w-24 shrink-0 text-right text-[10px] leading-3">
+              {MOVE_LABELS[moveCount - 1]}
+              <br />
+              목적지 {legalCount}곳
+            </p>
+          </div>
+        ) : (
+          <p className="text-cdm-fg-muted w-full text-center text-[11px]">
+            {mode === 'move'
+              ? '옮길 탑을 판에서 고르세요.'
+              : '빈칸을 눌러 말을 놓습니다. 탑을 누르면 이동으로 바뀝니다.'}
           </p>
-          <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
-            ◆ 경기 중 이미 나온 판 배치는 다시 만들 수 없습니다.
-          </p>
-        </div>
-      </aside>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 참고 — 넓은 화면에서는 옆에, 좁은 화면에서는 ? 단추로 연다. */
+function MoveReference() {
+  return (
+    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg h-full border p-3">
+      <p className="text-cdm-fg text-xs font-black">떼어 낸 층수별 이동</p>
+      <div className="text-cdm-fg-muted mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+        {MOVE_LABELS.map((label, index) => (
+          <span key={label}>
+            <b className="text-cdm-fg">{index + 1}층</b> {label}
+          </span>
+        ))}
+        <span>
+          <b className="text-cdm-accent">6층</b> 즉시 승리
+        </span>
+      </div>
+      <p className="text-cdm-fg-muted mt-3 text-[11px] leading-4">
+        ◆ 이동은 반드시 다른 탑 위로 합니다. 빈칸으로는 옮길 수 없습니다.
+      </p>
+      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
+        ◆ 상대의 탑도 옮길 수 있습니다. 6층을 만든 탑의 <b>맨 위 말 주인</b>이 이깁니다.
+      </p>
+      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
+        ◆ 특수말이 맨 위인 탑에는 올릴 수 없습니다.
+      </p>
+      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
+        ◆ 경기 중 이미 나온 판 배치는 다시 만들 수 없습니다.
+      </p>
     </div>
   );
 }
@@ -337,7 +430,7 @@ function ModeButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'rounded-cdm-md border-cdm-border min-h-11 border px-2 text-[11px] font-black transition-colors disabled:opacity-35',
+        'rounded-cdm-md border-cdm-border min-h-11 border px-1 text-[11px] font-black transition-colors disabled:opacity-35',
         active
           ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary'
           : 'bg-cdm-bg-elev-1 text-cdm-fg',
