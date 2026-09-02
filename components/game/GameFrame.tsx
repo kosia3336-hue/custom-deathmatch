@@ -34,12 +34,32 @@ import styles from './game-frame.module.css';
  * 말 것. 머리말·조작부 높이는 게임마다 다르므로 그 어림은 반드시 어긋난다.
  *
  * ── 지켜야 할 것 ──────────────────────────────────────────────
- * · 이 뼈대 안에 overflow-y-auto 를 두지 않는다. 스크롤을 없애려고 만든 것을
- *   스크롤로 되돌리게 된다. 넘치면 줄이거나 접는다.
+ * · 뼈대와 무대는 절대 스크롤하지 않는다. 스크롤을 없애려고 만든 것을 스크롤로
+ *   되돌리게 된다. 넘치면 줄이거나 접는다. 예외는 길이가 정해지지 않은 목록
+ *   하나뿐이고(저장 목록·기록 로그), 그것도 aside 나 모달 안에서 높이를 묶는다.
  * · info 와 controls 는 낮게. 여기서 1rem 을 아끼면 판이 그만큼 커진다.
  * · 결과 배너처럼 잠깐 뜨는 것은 무대 위에 겹쳐 띄운다(overlay). 새 줄을
  *   만들면 그 순간 판이 밀려 작아진다.
  */
+/**
+ * 무대에 남은 높이에 맞춘 판 너비.
+ *
+ * GameFrame 의 무대 안에서만 뜻이 있다 — 무대가 container-type: size 라서
+ * 100cqh 가 '남은 높이' 로 읽힌다. 화면 높이(dvh)로 어림잡지 말 것.
+ *
+ * outerY / outerX 는 판 상자 바깥에 더 붙는 여백이다(테두리·그림자 자리).
+ * 없으면 0 으로 두면 된다.
+ */
+export function fitBoardWidth(
+  columns: number,
+  rows: number,
+  maxWidth: string,
+  outerY = '0rem',
+  outerX = '0rem',
+) {
+  return `min(${maxWidth}, calc((100cqh - ${outerY}) * ${columns / rows} + ${outerX}))`;
+}
+
 export function GameFrame({
   info,
   controls,

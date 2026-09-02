@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { fitBoardWidth } from '@/components/game/GameFrame';
 import styles from './abstract-board-3d.module.css';
 
 export interface Board3DProps {
@@ -40,16 +41,14 @@ export function Board3D({
 }: Board3DProps) {
   /*
     scene 높이 = 판 높이 + scene 아래 여백이고, 판 높이 = (scene 너비 - 좌우 여백) / 비율.
-    이걸 100cqh 이하로 누르면 아래 식이 나온다. 여백은 clamp 의 최댓값으로 빼서
-    조금 작게 잡는다 — 넘치는 쪽보다 남는 쪽이 낫다.
+    여백은 clamp 의 최댓값으로 빼서 조금 작게 잡는다 — 넘치는 쪽보다 남는 쪽이 낫다.
   */
-  const ratio = columns / rows;
-  const fitWidth = `calc((100cqh - 1.15rem) * ${ratio} + 1rem)`;
+  const fitWidth = fitBoardWidth(columns, rows, String(maxWidth), '1.15rem', '1rem');
 
   return (
     <div
       className={cn(styles.scene, className)}
-      style={{ maxWidth: fit ? `min(${maxWidth}, ${fitWidth})` : maxWidth }}
+      style={{ maxWidth: fit ? fitWidth : maxWidth }}
     >
       <div
         className={cn(styles.frame, frameClassName)}

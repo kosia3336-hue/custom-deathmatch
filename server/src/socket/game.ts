@@ -370,7 +370,11 @@ import {
   getQuatroResultData,
 } from './games/quatro/index.js';
 
-const gameModules: Record<string, GameModuleHandlers> = {
+/*
+  화면 확인용 도구(scripts/game-fixtures)가 게임별 초기 상태를 뽑을 때 쓴다.
+  런타임 동작에는 영향이 없다.
+*/
+export const gameModules: Record<string, GameModuleHandlers> = {
   [GAME_IDS.TRIPLE_GOMOKU]: {
     init: initTripleGomoku,
     handleAction: handleTripleGomokuAction,

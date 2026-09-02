@@ -22,6 +22,9 @@ import {
 } from '@/shared/types/triple-gomoku';
 import { useRoomStore } from '@/stores/room';
 import { TripleGomokuBoardView, type TripleGomokuCellMark } from './BoardView';
+import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
+import { TG_BOARD_ASPECT } from '@/shared/logic/triple-gomoku';
 
 type ActionMode = 'place' | 'move';
 
@@ -50,113 +53,42 @@ export default function TripleGomokuGame() {
     );
   }
 
-  const entries = Object.entries(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
   const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase !== 'finished';
-  const currentName = gameData.players[gameData.currentPlayerId]?.nickname ?? '플레이어';
-  const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
-      <header className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto] items-center gap-2 border p-2.5 sm:grid-cols-[1fr_auto_1fr] sm:p-3">
-        <div className="min-w-0">
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
-            {gameData.phase === 'setup' ? '기본 배치' : `TURN ${gameData.turnNumber}`}
-          </p>
-          <p className="text-cdm-fg truncate text-sm font-black">
-            {gameData.phase === 'finished'
-              ? '게임 종료'
-              : isMyTurn
-                ? gameData.phase === 'setup'
-                  ? `내 차례 · ${gameData.setupRemaining}개 놓기`
-                  : '내 차례입니다'
-                : `${currentName} 님의 차례`}
-          </p>
-          <p className="text-cdm-fg-muted hidden truncate text-xs sm:block">
-            {gameData.phase === 'setup'
-              ? '정중앙과 자기 돌 옆에는 놓을 수 없습니다.'
-              : '돌을 놓거나, 내 돌을 옆 칸으로 옮겨 쌓으세요.'}
-          </p>
-        </div>
-        <div className="bg-cdm-bg-elev-1 rounded-cdm-md min-w-20 px-3 py-1.5 text-center">
-          <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.14em]">TIME</p>
-          <p
-            className={cn(
-              'text-cdm-fg text-xl font-black tabular-nums',
-              remaining != null && remaining <= 10 && 'text-cdm-accent',
-            )}
-          >
-            {remaining == null ? '∞' : Math.ceil(remaining)}
-          </p>
-        </div>
-        <div className="col-span-2 grid grid-cols-2 gap-2 sm:col-span-1 sm:flex sm:justify-end">
-          {entries.map(([playerId, player]) => (
-            <div
-              key={playerId}
-              className={cn(
-                'rounded-cdm-md min-w-0 border px-2.5 py-1.5 sm:min-w-28',
-                gameData.currentPlayerId === playerId && gameData.phase !== 'finished'
-                  ? 'border-cdm-primary bg-cdm-primary-soft'
-                  : 'border-cdm-border bg-cdm-bg-elev-1',
-              )}
-            >
-              <p className="text-cdm-fg truncate text-[11px] font-bold">
-                {player.nickname}
-                {playerId === myId ? ' (나)' : ''}
-              </p>
-              <p className="text-cdm-fg-muted text-[10px]">
-                남은 돌{' '}
-                <span className="text-cdm-fg font-black tabular-nums">
-                  {gameData.reserves[playerId] ?? 0}
-                </span>
-              </p>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      <PlaySurface
-        key={`${gameData.turnNumber}:${gameData.phase}:${myId}`}
-        gameData={gameData}
-        myId={myId}
-        canPlay={isMyTurn}
-        tilted={tilted}
-        onToggleTilt={() => setTilted((value) => !value)}
-      />
-
-      {!isPlayer && gameData.phase !== 'finished' && (
-        <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
-      )}
-      {gameData.phase === 'finished' && (
-        <div className="bg-cdm-primary-soft rounded-cdm-lg p-4 text-center">
-          <p className="text-cdm-primary text-base font-black">
-            {winnerName ? `${winnerName} 승리!` : '게임 종료'}
-            {gameData.winType && (
-              <span className="text-cdm-fg-muted ml-2 text-xs font-bold">
-                {WIN_HINT[gameData.winType] ?? ''}
-              </span>
-            )}
-          </p>
-          <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
-        </div>
-      )}
-    </div>
+    <PlaySurface
+      key={`${gameData.turnNumber}:${gameData.phase}:${myId}`}
+      gameData={gameData}
+      myId={myId}
+      isPlayer={isPlayer}
+      isMyTurn={isMyTurn}
+      remaining={remaining}
+      tilted={tilted}
+      onToggleTilt={() => setTilted((value) => !value)}
+    />
   );
 }
 
 function PlaySurface({
   gameData,
   myId,
-  canPlay,
+  isPlayer,
+  isMyTurn,
+  remaining,
   tilted,
   onToggleTilt,
 }: {
   gameData: TripleGomokuGameData;
   myId: string;
-  canPlay: boolean;
+  isPlayer: boolean;
+  isMyTurn: boolean;
+  remaining: number | null;
   tilted: boolean;
   onToggleTilt: () => void;
 }) {
+  const canPlay = isMyTurn;
+  const [showHelp, setShowHelp] = useState(false);
   const [mode, setMode] = useState<ActionMode>('place');
   const [source, setSource] = useState<TripleGomokuCell | null>(null);
   /*
@@ -247,88 +179,157 @@ function PlaySurface({
   }
 
   const sourceHeight = source ? (gameData.board[tripleGomokuCellKey(source)]?.length ?? 0) : 0;
+  const currentName = gameData.players[gameData.currentPlayerId]?.nickname ?? '플레이어';
+  const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
+  const entries = Object.entries(gameData.players);
+  const finished = gameData.phase === 'finished';
 
   return (
-    <div className="grid min-h-0 flex-1 items-start gap-3 lg:grid-cols-[minmax(0,38rem)_minmax(15rem,18rem)] lg:justify-center">
-      <TripleGomokuBoardView
-        board={gameData.board}
-        firstPlayerId={gameData.firstPlayerId}
-        tilted={tilted}
-        markOf={markOf}
-        onCellClick={handleClick}
-        isEnabled={isEnabled}
-        previewOwnerId={active ? myId : null}
-        ariaLabel="삼층 오목 판"
-        className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"
-      />
-
-      <aside className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-cdm-fg text-sm font-black">행동</p>
-          <button
-            type="button"
-            onClick={onToggleTilt}
-            className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md min-h-8 border px-2.5 text-[11px] font-black"
-            aria-pressed={tilted}
-          >
-            {tilted ? '평면으로 보기' : '입체로 보기'}
-          </button>
-        </div>
-
-        {setup ? (
-          <p className="text-cdm-fg-muted mt-3 text-xs leading-5">
-            기본 배치 중입니다. 이번 턴에{' '}
-            <span className="text-cdm-fg font-black">{gameData.setupRemaining}개</span>를 놓습니다.
-            정중앙과 이미 놓은 자기 돌 옆은 고를 수 없습니다.
-          </p>
-        ) : (
-          <>
-            <div className="mt-2 grid grid-cols-2 gap-1.5">
+    <>
+      <GameFrame
+        info={
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
+            {entries.map(([playerId, player], index) => (
+              <div
+                key={playerId}
+                className={cn(
+                  'rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
+                  index === 1 && 'order-3 justify-self-end text-right',
+                  gameData.currentPlayerId === playerId && !finished
+                    ? 'border-cdm-primary bg-cdm-primary-soft'
+                    : 'border-cdm-border bg-cdm-bg-elev-1',
+                )}
+              >
+                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
+                  {player.nickname}
+                  {playerId === myId ? ' (나)' : ''}
+                </p>
+                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
+                  남은 돌 {gameData.reserves[playerId] ?? 0}
+                </p>
+              </div>
+            ))}
+            <div className="order-2 px-1 text-center">
+              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
+                {finished
+                  ? '종료'
+                  : setup
+                    ? `배치 ${gameData.setupRemaining}`
+                    : isMyTurn
+                      ? '내 차례'
+                      : '상대 차례'}
+              </p>
+              <p
+                className={cn(
+                  'text-cdm-fg text-lg leading-6 font-black tabular-nums',
+                  remaining != null && remaining <= 10 && 'text-cdm-accent',
+                )}
+              >
+                {remaining == null ? '∞' : Math.ceil(remaining)}
+              </p>
+            </div>
+          </div>
+        }
+        controls={
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
+            <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-1.5">
               <ModeButton
-                active={mode === 'place'}
-                disabled={!active || reserve <= 0}
+                active={!setup && mode === 'place'}
+                disabled={setup || !active || reserve <= 0}
                 onClick={() => {
                   setMode('place');
                   setSource(null);
                 }}
-                label={`돌 놓기 · ${reserve}`}
+                label={`돌 놓기 ${reserve}`}
               />
               <ModeButton
-                active={mode === 'move'}
-                disabled={!active}
+                active={!setup && mode === 'move'}
+                disabled={setup || !active}
                 onClick={() => setMode('move')}
                 label="돌 옮기기"
               />
-            </div>
-            <p className="text-cdm-fg-muted mt-2 text-[11px] leading-4">
-              {mode === 'place'
-                ? '빈칸 아무 곳에나 새 돌을 놓습니다.'
-                : source
-                  ? `${sourceHeight}층 칸 선택됨 · 갈 수 있는 곳 ${targets.length}곳`
-                  : '옮길 내 돌을 고르세요. 맨 위 돌만 움직입니다.'}
-            </p>
-            {mode === 'move' && source && (
               <button
                 type="button"
-                onClick={() => setSource(null)}
-                className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md mt-2 min-h-9 w-full border text-xs font-black"
+                onClick={onToggleTilt}
+                aria-pressed={tilted}
+                className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md min-h-11 border px-2 text-[11px] font-black"
               >
-                선택 해제
+                {tilted ? '평면' : '입체'}
               </button>
-            )}
-          </>
-        )}
+              <button
+                type="button"
+                onClick={() => setShowHelp(true)}
+                aria-label="승리 조건 보기"
+                className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted min-h-11 w-10 border text-sm font-black lg:hidden"
+              >
+                ?
+              </button>
+            </div>
+            <p className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]">
+              {setup
+                ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
+                : !isPlayer
+                  ? '관전 중입니다.'
+                  : !isMyTurn
+                    ? `${currentName} 님의 차례입니다.`
+                    : mode === 'place'
+                      ? '빈칸 아무 곳에나 새 돌을 놓습니다.'
+                      : source
+                        ? `${sourceHeight}층 칸 선택됨 · 갈 수 있는 곳 ${targets.length}곳 (다시 누르면 해제)`
+                        : '옮길 내 돌을 고르세요. 맨 위 돌만 움직입니다.'}
+            </p>
+          </div>
+        }
+        aside={<WinReference />}
+      >
+        <TripleGomokuBoardView
+          board={gameData.board}
+          firstPlayerId={gameData.firstPlayerId}
+          tilted={tilted}
+          markOf={markOf}
+          onCellClick={handleClick}
+          isEnabled={isEnabled}
+          previewOwnerId={active ? myId : null}
+          ariaLabel="삼층 오목 판"
+          maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}
+          className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"
+        />
 
-        <div className="border-cdm-border text-cdm-fg-muted mt-4 border-t pt-3 text-[11px] leading-5">
-          <p className="text-cdm-fg font-black">승리 조건</p>
-          <p>· 위에서 봐서 내 돌 5개가 일직선 (6개는 인정 안 됨)</p>
-          <p>· 3층에 올라간 내 돌 5개</p>
-          <p>· 서로 붙어 있는 3층 돌 3개</p>
-          <p className="mt-2">
-            돌은 {TG_MAX_HEIGHT}층까지 쌓이고, 원래 칸보다 높은 칸으로는 갈 수 없습니다.
-          </p>
-        </div>
-      </aside>
+        {finished && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+            <div className="border-cdm-primary bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+              <p className="text-cdm-primary text-base font-black">
+                {winnerName ? `${winnerName} 승리!` : '게임 종료'}
+              </p>
+              {gameData.winType && (
+                <p className="text-cdm-fg-muted mt-0.5 text-[11px] font-bold">
+                  {WIN_HINT[gameData.winType] ?? ''}
+                </p>
+              )}
+              <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
+            </div>
+          </div>
+        )}
+      </GameFrame>
+
+      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="승리 조건">
+        <WinReference />
+      </Modal>
+    </>
+  );
+}
+
+function WinReference() {
+  return (
+    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg text-cdm-fg-muted h-full border p-3 text-[11px] leading-5">
+      <p className="text-cdm-fg text-sm font-black">승리 조건</p>
+      <p className="mt-2">· 위에서 봐서 내 돌 5개가 일직선 (6개는 인정 안 됨)</p>
+      <p>· 3층에 올라간 내 돌 5개</p>
+      <p>· 서로 붙어 있는 3층 돌 3개</p>
+      <p className="mt-3">
+        돌은 {TG_MAX_HEIGHT}층까지 쌓이고, 원래 칸보다 높은 칸으로는 갈 수 없습니다.
+      </p>
+      <p className="mt-1">돌 옮기기는 내 돌이 맨 위인 칸에서만 됩니다.</p>
     </div>
   );
 }

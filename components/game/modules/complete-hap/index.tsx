@@ -6,6 +6,8 @@ import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
+import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 const BACKGROUND_COLORS = {
   black: '#111318',
@@ -66,113 +68,40 @@ export default function CompleteHapGame() {
     : null;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-3 lg:p-4">
-      <header className="rounded-cdm-lg border-cdm-border bg-cdm-bg grid grid-cols-[minmax(0,1fr)_auto] gap-2 border p-2 shadow-sm sm:p-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
-        <div className="min-w-0">
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.18em]">
-            ROUND {gameData.round} / {gameData.totalRounds}
-          </p>
-          <p className="text-cdm-fg truncate text-sm font-extrabold">
-            {gameData.phase === 'finished' ? '게임 종료' : '모든 합을 저장하고 결을 외치세요'}
-          </p>
-          <p className="text-cdm-fg-muted hidden truncate text-xs sm:block">
-            {roundResult
-              ? roundResult.correct
-                ? `${callerName} 정답`
-                : `${callerName} 오답${pointPlayerName ? ` · ${pointPlayerName} 득점` : ''}`
-              : '먼저 결을 외친 플레이어의 저장 목록을 한 번에 판정합니다.'}
-          </p>
-        </div>
-
-        <div
-          className={cn(
-            'rounded-cdm-md mx-auto min-w-20 px-2 py-1.5 text-center sm:min-w-28 sm:px-4 sm:py-2',
-            matchRemaining != null && matchRemaining <= 30
-              ? 'bg-cdm-accent-soft'
-              : 'bg-cdm-bg-elev-1',
-          )}
-        >
-          <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.16em]">TIME LEFT</p>
-          <p
-            className={cn(
-              'text-xl font-black tabular-nums sm:text-2xl',
-              matchRemaining != null && matchRemaining <= 30 ? 'text-cdm-accent' : 'text-cdm-fg',
-            )}
-          >
-            {matchRemaining == null ? '∞' : formatClock(matchRemaining)}
-          </p>
-        </div>
-
-        <div className="col-span-2 grid grid-cols-2 justify-end gap-2 md:col-span-1 md:flex">
-          {playerEntries.map(([playerId, player]) => (
-            <div
-              key={playerId}
-              className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 min-w-0 border px-2 py-1.5 sm:min-w-24 sm:px-3 sm:py-2"
-            >
-              <p className="text-cdm-fg-muted max-w-28 truncate text-[11px] font-semibold">
-                {player.nickname}
-                {playerId === myId ? ' (나)' : ''}
-              </p>
-              <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-wide">득점</p>
-              <p className="text-cdm-primary text-right text-xl font-black tabular-nums">
-                {gameData.scores[playerId] ?? 0}
-              </p>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      <RoundWorkspace
-        key={`${gameData.matchStartedAt}:${gameData.round}`}
-        gameData={gameData}
-        isPlayer={isPlayer}
-      />
-
-      {gameData.phase === 'round-result' && roundResult && (
-        <div
-          className={cn(
-            'rounded-cdm-lg p-4 text-center',
-            roundResult.correct ? 'bg-cdm-success-soft' : 'bg-cdm-accent-soft',
-          )}
-        >
-          <p
-            className={cn(
-              'text-base font-black',
-              roundResult.correct ? 'text-cdm-success' : 'text-cdm-accent',
-            )}
-          >
-            {roundResult.correct ? '모든 합을 찾았습니다!' : '저장한 합이 정답과 다릅니다.'}
-          </p>
-          <p className="text-cdm-fg-muted mt-1 text-xs">
-            {pointPlayerName
-              ? `${pointPlayerName} 님이 1점을 획득합니다.`
-              : '다음 라운드로 넘어갑니다.'}
-          </p>
-        </div>
-      )}
-      {!isPlayer && gameData.phase === 'playing' && (
-        <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
-      )}
-      {gameData.phase === 'finished' && (
-        <div className="rounded-cdm-lg bg-cdm-primary-soft p-4 text-center">
-          <p className="text-cdm-primary text-sm font-extrabold">{gameData.finishReason}</p>
-          <p className="text-cdm-fg-muted mt-1 text-xs">최종 결과를 집계하고 있습니다...</p>
-        </div>
-      )}
-    </div>
+    <RoundWorkspace
+      key={`${gameData.matchStartedAt}:${gameData.round}`}
+      gameData={gameData}
+      myId={myId}
+      isPlayer={isPlayer}
+      matchRemaining={matchRemaining}
+      playerEntries={playerEntries}
+      callerName={callerName}
+      pointPlayerName={pointPlayerName}
+    />
   );
 }
 
 function RoundWorkspace({
   gameData,
+  myId,
   isPlayer,
+  matchRemaining,
+  playerEntries,
+  callerName,
+  pointPlayerName,
 }: {
   gameData: CompleteHapGameData;
+  myId: string;
   isPlayer: boolean;
+  matchRemaining: number | null;
+  playerEntries: [string, { nickname: string }][];
+  callerName: string | null;
+  pointPlayerName: string | null;
 }) {
   const [selection, setSelection] = useState<number[]>([]);
   const [savedSets, setSavedSets] = useState<number[][]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const canPlay = isPlayer && gameData.phase === 'playing' && !isSubmitting;
 
   function toggleCard(cardIndex: number) {
@@ -204,11 +133,104 @@ function RoundWorkspace({
     getSocket().emit('game:action', { type: 'call-gyul', sets: savedSets });
   }
 
+  const cards = gameData.board.cards;
+  const rows = Math.ceil(cards.length / 3);
+  const roundResult = gameData.lastRoundResult;
+  const finished = gameData.phase === 'finished';
+  const savedPanel = (
+    <SavedList
+      gameData={gameData}
+      savedSets={savedSets}
+      canPlay={canPlay}
+      onRemove={removeSavedHap}
+    />
+  );
+
   return (
-    <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,30rem)_minmax(17rem,20rem)] lg:justify-center">
-      <section className="rounded-cdm-lg border-cdm-border bg-cdm-bg border p-2 sm:p-3">
-        <div className="mx-auto grid w-[min(100%,44dvh)] max-w-[30rem] grid-cols-3 gap-1.5 sm:w-[min(100%,56dvh)] sm:gap-2 lg:w-full">
-          {gameData.board.cards.map((card, cardIndex) => (
+    <>
+      <GameFrame
+        info={
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
+            {playerEntries.map(([playerId, player], index) => (
+              <div
+                key={playerId}
+                className={cn(
+                  'border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
+                  index === 1 && 'order-3 justify-self-end text-right',
+                )}
+              >
+                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
+                  {player.nickname}
+                  {playerId === myId ? ' (나)' : ''}
+                </p>
+                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
+                  득점 {gameData.scores[playerId] ?? 0}
+                </p>
+              </div>
+            ))}
+            <div className="order-2 px-1 text-center">
+              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
+                R{gameData.round}/{gameData.totalRounds}
+              </p>
+              <p
+                className={cn(
+                  'text-lg leading-6 font-black tabular-nums',
+                  matchRemaining != null && matchRemaining <= 30
+                    ? 'text-cdm-accent'
+                    : 'text-cdm-fg',
+                )}
+              >
+                {matchRemaining == null ? '∞' : formatClock(matchRemaining)}
+              </p>
+            </div>
+          </div>
+        }
+        controls={
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
+              <button
+                type="button"
+                onClick={saveHap}
+                disabled={!canPlay || selection.length !== 3}
+                className="rounded-cdm-md bg-cdm-primary min-h-11 px-2 text-[12px] font-black text-white disabled:opacity-40"
+              >
+                합 저장
+              </button>
+              <button
+                type="button"
+                onClick={callGyul}
+                disabled={!canPlay}
+                className="rounded-cdm-md bg-cdm-accent min-h-11 px-2 text-[12px] font-black text-white disabled:opacity-40"
+              >
+                {isSubmitting ? '판정 중...' : '결 외치기'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSaved(true)}
+                className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md min-h-11 border px-3 text-[11px] font-black tabular-nums lg:hidden"
+              >
+                저장 {savedSets.length}
+              </button>
+            </div>
+            <p
+              className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]"
+              aria-live="polite"
+            >
+              {!isPlayer
+                ? '실시간 경기를 관전하고 있습니다.'
+                : selection.length === 0
+                  ? '합이라고 생각하는 그림 3장을 고르세요.'
+                  : `${selection.length}장 선택됨`}
+            </p>
+          </div>
+        }
+        aside={savedPanel}
+      >
+        <div
+          className="mx-auto grid w-full grid-cols-3 gap-1.5 sm:gap-2"
+          style={{ maxWidth: fitBoardWidth(3, rows, '30rem') }}
+        >
+          {cards.map((card, cardIndex) => (
             <PictureCard
               key={cardIndex}
               card={card}
@@ -219,98 +241,106 @@ function RoundWorkspace({
             />
           ))}
         </div>
-        <div className="mt-3 hidden items-center gap-2 lg:flex">
-          <p className="text-cdm-fg-muted min-w-0 flex-1 text-xs font-semibold" aria-live="polite">
-            {selection.length === 0
-              ? '합이라고 생각하는 그림 3장을 선택하세요.'
-              : `${selection.length}장 선택됨`}
-          </p>
-          <button
-            type="button"
-            onClick={saveHap}
-            disabled={!canPlay || selection.length !== 3}
-            className="rounded-cdm-md bg-cdm-primary px-4 py-2.5 text-sm font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40"
-          >
-            합 저장
-          </button>
-        </div>
 
-        <div className="rounded-cdm-md border-cdm-border bg-cdm-bg/95 mt-2 border p-2 shadow-lg backdrop-blur lg:hidden">
-          <p
-            className="text-cdm-fg-muted mb-1.5 truncate text-center text-[11px] font-semibold"
-            aria-live="polite"
-          >
-            {selection.length === 0
-              ? '합이라고 생각하는 그림 3장을 선택하세요.'
-              : `${selection.length}장 선택됨`}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={saveHap}
-              disabled={!canPlay || selection.length !== 3}
-              className="rounded-cdm-md bg-cdm-primary min-h-11 px-3 py-2 text-sm font-black text-white disabled:opacity-40"
+        {(finished || (gameData.phase === 'round-result' && roundResult)) && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+            <div
+              className={cn(
+                'rounded-cdm-lg bg-cdm-bg/95 max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur',
+                finished
+                  ? 'border-cdm-primary'
+                  : roundResult?.correct
+                    ? 'border-cdm-success'
+                    : 'border-cdm-accent',
+              )}
             >
-              합 저장
-            </button>
-            <button
-              type="button"
-              onClick={callGyul}
-              disabled={!canPlay}
-              className="rounded-cdm-md bg-cdm-accent min-h-11 px-3 py-2 text-sm font-black text-white disabled:opacity-40"
-            >
-              {isSubmitting ? '판정 중...' : '결 외치기'}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <aside className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex min-h-0 flex-col border p-2 sm:p-3 lg:min-h-56">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-cdm-fg text-sm font-black">저장한 합</p>
-            <p className="text-cdm-fg-muted text-[11px]">결을 외치기 전까지 수정할 수 있습니다.</p>
-          </div>
-          <span className="bg-cdm-bg-elev-1 text-cdm-fg rounded-full px-2.5 py-1 text-xs font-black tabular-nums">
-            {savedSets.length}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={callGyul}
-          disabled={!canPlay}
-          className="rounded-cdm-md bg-cdm-accent mt-3 hidden w-full px-4 py-3 text-base font-black text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40 lg:block"
-        >
-          {isSubmitting ? '판정 중...' : '결 외치기'}
-        </button>
-
-        <div className="mt-2 max-h-52 flex-1 space-y-2 overflow-y-auto lg:mt-3 lg:max-h-none">
-          {savedSets.length === 0 ? (
-            <div className="border-cdm-border text-cdm-fg-muted rounded-cdm-md flex min-h-16 items-center justify-center border border-dashed px-4 text-center text-xs lg:min-h-24">
-              저장한 합이 없습니다.
+              {finished ? (
+                <p className="text-cdm-primary text-sm font-black">{gameData.finishReason}</p>
+              ) : (
+                <>
+                  <p
+                    className={cn(
+                      'text-base font-black',
+                      roundResult?.correct ? 'text-cdm-success' : 'text-cdm-accent',
+                    )}
+                  >
+                    {roundResult?.correct
+                      ? '모든 합을 찾았습니다!'
+                      : '저장한 합이 정답과 다릅니다.'}
+                  </p>
+                  <p className="text-cdm-fg-muted mt-1 text-xs">
+                    {callerName ? `${callerName} 님이 결을 외쳤습니다. ` : ''}
+                    {pointPlayerName
+                      ? `${pointPlayerName} 님이 1점을 획득합니다.`
+                      : '다음 라운드로 넘어갑니다.'}
+                  </p>
+                </>
+              )}
             </div>
-          ) : (
-            savedSets.map((set, savedIndex) => (
-              <button
-                key={setKey(set)}
-                type="button"
-                onClick={() => removeSavedHap(savedIndex)}
-                disabled={!canPlay}
-                className="border-cdm-border bg-cdm-bg-elev-1 hover:border-cdm-accent rounded-cdm-md grid w-full grid-cols-[1fr_1fr_1fr_auto] items-center gap-1.5 border p-2 text-left disabled:cursor-default"
-                aria-label={`저장한 합 ${savedIndex + 1} 삭제`}
-              >
-                {set.map((cardIndex) => (
-                  <PictureThumbnail key={cardIndex} card={gameData.board.cards[cardIndex]} />
-                ))}
-                <span className="text-cdm-fg-muted px-1 text-base" aria-hidden="true">
-                  ×
-                </span>
-              </button>
-            ))
-          )}
+          </div>
+        )}
+      </GameFrame>
+
+      <Modal open={showSaved} onClose={() => setShowSaved(false)} title="저장한 합">
+        {savedPanel}
+      </Modal>
+    </>
+  );
+}
+
+/**
+ * 저장한 합 목록.
+ *
+ * 길이가 정해지지 않은 목록이라 여기만 스크롤을 허용한다. 뼈대(GameFrame)가
+ * 스크롤되는 것과는 다르다 — 판과 조작부는 늘 제자리에 있다.
+ */
+function SavedList({
+  gameData,
+  savedSets,
+  canPlay,
+  onRemove,
+}: {
+  gameData: CompleteHapGameData;
+  savedSets: number[][];
+  canPlay: boolean;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex h-full min-h-0 flex-col border p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-cdm-fg text-sm font-black">저장한 합</p>
+          <p className="text-cdm-fg-muted text-[11px]">결을 외치기 전까지 수정할 수 있습니다.</p>
         </div>
-      </aside>
+        <span className="bg-cdm-bg-elev-1 text-cdm-fg rounded-full px-2.5 py-1 text-xs font-black tabular-nums">
+          {savedSets.length}
+        </span>
+      </div>
+      <div className="mt-3 max-h-72 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain">
+        {savedSets.length === 0 ? (
+          <div className="border-cdm-border text-cdm-fg-muted rounded-cdm-md flex min-h-16 items-center justify-center border border-dashed px-4 text-center text-xs">
+            저장한 합이 없습니다.
+          </div>
+        ) : (
+          savedSets.map((set, savedIndex) => (
+            <button
+              key={setKey(set)}
+              type="button"
+              onClick={() => onRemove(savedIndex)}
+              disabled={!canPlay}
+              className="border-cdm-border bg-cdm-bg-elev-1 hover:border-cdm-accent rounded-cdm-md grid w-full grid-cols-[1fr_1fr_1fr_auto] items-center gap-1.5 border p-2 text-left disabled:cursor-default"
+              aria-label={`저장한 합 ${savedIndex + 1} 삭제`}
+            >
+              {set.map((cardIndex) => (
+                <PictureThumbnail key={cardIndex} card={gameData.board.cards[cardIndex]} />
+              ))}
+              <span className="text-cdm-fg-muted px-1 text-base" aria-hidden="true">
+                ×
+              </span>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }

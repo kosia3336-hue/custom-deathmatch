@@ -47,6 +47,8 @@ export interface TripleGomokuBoardViewProps {
   ariaLabel: string;
   className?: string;
   footer?: ReactNode;
+  /** 판 최대 너비. GameFrame 안에서는 fitBoardWidth() 값을 넘겨 높이에 맞춘다. */
+  maxWidth?: string;
 }
 
 const MARK_RING: Record<TripleGomokuCellMark, string> = {
@@ -68,6 +70,7 @@ export function TripleGomokuBoardView({
   ariaLabel,
   className,
   footer,
+  maxWidth = '38rem',
 }: TripleGomokuBoardViewProps) {
   const cells = tripleGomokuCells();
   const edges = tripleGomokuEdges();
@@ -79,7 +82,7 @@ export function TripleGomokuBoardView({
       <div
         className="mx-auto flex w-full items-center justify-center"
         style={{
-          maxWidth: '38rem',
+          maxWidth,
           perspective: '1800px',
           // 눕히면 세로가 짧아 보이지만, 쌓인 돌이 위로 솟으므로 높이는 그대로 잡는다.
           aspectRatio: `${TG_BOARD_ASPECT}`,
