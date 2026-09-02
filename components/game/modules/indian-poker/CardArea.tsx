@@ -184,7 +184,7 @@ export default function CardArea(props: CardAreaProps) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 lg:gap-3 lg:p-5">
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1.5 lg:gap-3 lg:p-5">
       <CardAreaContent {...rest} isNocturne={false} dealStep={dealStep} />
     </div>
   );

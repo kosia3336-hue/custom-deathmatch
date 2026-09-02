@@ -15,6 +15,7 @@ import HandResult from './HandResult';
 import DeckInfo from './DeckInfo';
 import { useNocturneDealReveal } from './skins/useNocturneDealReveal';
 import { WIN_TYPE_LABELS } from './constants';
+import { GameFrame } from '@/components/game/GameFrame';
 
 export default function IndianPokerGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -109,12 +110,12 @@ export default function IndianPokerGame() {
       </div>
     )}
 
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col lg:flex-row">
-        <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-2 lg:p-4">
-          <div className="flex w-full max-w-lg gap-2 lg:hidden">
+    <GameFrame
+      info={
+        <div className="flex flex-col gap-1">
+          <div className="flex w-full gap-2">
             {playerEntries.map(([id, p]) => (
-              <div key={id} className="flex-1">
+              <div key={id} className="min-w-0 flex-1">
                 <PlayerArea
                   player={p}
                   isMe={id === myId}
@@ -124,89 +125,74 @@ export default function IndianPokerGame() {
               </div>
             ))}
           </div>
-
-          <div className="text-center text-sm text-gray-500 lg:text-base">
-            {gameState?.message}
-          </div>
-
-          <DeckInfo
-            deckRemaining={gameData.deckRemaining}
-            deckCycle={gameData.deckCycle}
-            ante={gameData.ante}
-            round={gameData.round}
-          />
-
-          <div className="text-center">
-            <span className="rounded-full bg-amber-100 px-4 py-1 text-sm font-bold text-amber-800 lg:text-base">
-              팟: {gameData.pot}
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
+            <DeckInfo
+              deckRemaining={gameData.deckRemaining}
+              deckCycle={gameData.deckCycle}
+              ante={gameData.ante}
+              round={gameData.round}
+            />
+            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+              팟 {gameData.pot}
             </span>
+            <span className="text-[11px] leading-4 text-gray-500">{gameState?.message}</span>
           </div>
-
-          <div className="w-full max-w-lg">
-            <CardArea
-              communityCards={gameData.communityCards}
-              myPlayer={isSpectator ? playerEntries[1]?.[1] : myPlayer}
-              opponentPlayer={isSpectator ? playerEntries[0]?.[1] : opponentPlayer}
-              revealMyCard={isResultPhase}
+        </div>
+      }
+      controls={
+        <div className="w-full">
+          {isBettingPhase && (
+            <BettingPanel
+              isMyTurn={isMyTurn}
+              canCheck={canCheck}
+              myPlayer={bettingMyPlayer}
+              opponentPlayer={bettingOpponent}
+              pot={gameData.pot}
               isSpectator={isSpectator}
+              currentRoundActions={gameData.currentRoundActions ?? []}
+              players={gameData.players}
+              opponentId={bettingOpponentId}
+              myId={bettingMyId}
               skin={skin}
-              dealStep={dealStep}
-              showShuffle={showShuffle}
+            />
+          )}
+        </div>
+      }
+    >
+      <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-2 overflow-hidden">
+        <CardArea
+          communityCards={gameData.communityCards}
+          myPlayer={isSpectator ? playerEntries[1]?.[1] : myPlayer}
+          opponentPlayer={isSpectator ? playerEntries[0]?.[1] : opponentPlayer}
+          revealMyCard={isResultPhase}
+          isSpectator={isSpectator}
+          skin={skin}
+          dealStep={dealStep}
+          showShuffle={showShuffle}
+        />
+
+        {isResultPhase && (
+          <div className="w-full">
+            <HandResult
+              showdownData={gameData.showdownData}
+              dieData={gameData.dieData}
+              players={gameData.players}
+              winner={gameData.winner}
+              winType={gameData.winType}
+              communityCards={gameData.communityCards}
+              skin={skin}
             />
           </div>
+        )}
 
-          <div className="w-full max-w-lg">
-            {isBettingPhase && (
-              <BettingPanel
-                isMyTurn={isMyTurn}
-                canCheck={canCheck}
-                myPlayer={bettingMyPlayer}
-                opponentPlayer={bettingOpponent}
-                pot={gameData.pot}
-                isSpectator={isSpectator}
-                currentRoundActions={gameData.currentRoundActions ?? []}
-                players={gameData.players}
-                opponentId={bettingOpponentId}
-                myId={bettingMyId}
-                skin={skin}
-              />
-            )}
-
-            {isResultPhase && (
-              <HandResult
-                showdownData={gameData.showdownData}
-                dieData={gameData.dieData}
-                players={gameData.players}
-                winner={gameData.winner}
-                winType={gameData.winType}
-                communityCards={gameData.communityCards}
-                skin={skin}
-              />
-            )}
-
-            {gameData.phase === 'dealing' && (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
-                <div className="animate-pulse text-gray-400">●  ●  ●</div>
-                <p className="text-sm text-gray-500">카드를 배분하는 중...</p>
-              </div>
-            )}
+        {gameData.phase === 'dealing' && (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
+            <div className="animate-pulse text-gray-400">● ● ●</div>
+            <p className="text-sm text-gray-500">카드를 배분하는 중...</p>
           </div>
-
-        </div>
-
-        <div className="hidden lg:flex lg:w-64 lg:flex-col lg:gap-4 lg:border-l lg:border-gray-200 lg:p-4">
-          {playerEntries.map(([id, p]) => (
-            <PlayerArea
-              key={id}
-              player={p}
-              isMe={id === myId}
-              isCurrentTurn={id === gameData.currentTurnId}
-              timerRemaining={id === gameData.currentTurnId ? timerRemaining : null}
-            />
-          ))}
-        </div>
+        )}
       </div>
-    </div>
+    </GameFrame>
     </>
   );
 }
