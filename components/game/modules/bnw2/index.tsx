@@ -15,6 +15,8 @@ import ShowdownPointInput from './skins/ShowdownPointInput';
 import ShowdownColorBanner from './skins/ShowdownColorBanner';
 import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
 import { playShowdownSubmitSfx } from './skins/showdownSfx';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '10점 달성',
@@ -309,6 +311,7 @@ export default function BNW2Game() {
   const prevPhaseSfxRef = useRef<string | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<{ round: number; firstNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [opponentEstimate, setOpponentEstimate] = useState<number>(200);
 
@@ -506,12 +509,9 @@ export default function BNW2Game() {
         }
       `}</style>
 
-      <div className={`flex h-full${isShowdown ? ' skin-showdown-stage-bg' : ''}`}>
-        <div className={`flex flex-1 flex-col lg:flex-row${isShowdown ? ' skin-showdown-stage-content' : ''}`}>
-
-          {/* ── Main area ── */}
-          <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-3 pb-24 lg:p-5 lg:pb-5">
-
+      <GameFrame
+        className={isShowdown ? 'skin-showdown-stage-content' : undefined}
+        info={<div className="flex w-full flex-col gap-1">
             {/* Mobile score bar */}
             <div className="flex w-full max-w-sm justify-between gap-2 lg:hidden">
               {playerEntries.map(([id, p]) => {
@@ -543,8 +543,72 @@ export default function BNW2Game() {
             </div>
 
             {/* Status message */}
-            <div className="text-center text-sm text-gray-500">{gameState?.message}</div>
+            <div className="text-center text-sm text-gray-500">{gameState?.message}</div>        </div>}
+        controls={
+          <div className="flex gap-1.5">
+            {!isSpectator && isMyTurn && (
+              <button
+                onClick={() => setSheetOpen(true)}
+                className={
+                  isShowdown
+                    ? 'skin-showdown-mobile-cta flex-1'
+                    : 'flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg'
+                }
+              >
+                포인트 제시하기 →
+              </button>
+            )}
+            {gameData.roundHistory.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                라운드 기록 ({gameData.roundHistory.length})
+              </button>
+            )}
+          </div>
+        }
+        aside={
+          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수</p>
+              {playerEntries.map(([id, p]) => (
+                <div
+                  key={id}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
+                    id === myId ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className="min-w-0 truncate font-medium">
+                    {id === myId ? '나' : p.nickname}
+                    {id === gameData.firstPlayerId && (
+                      <span className="ml-1 text-xs text-amber-500">선플</span>
+                    )}
+                  </span>
+                  <span className="ml-2 shrink-0 font-bold tabular-nums">{p.score}점</span>
+                </div>
+              ))}
+            </div>
 
+            {gameData.roundHistory.length > 0 && (
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  라운드 기록
+                </p>
+                <div className="flex-1 overflow-y-auto">
+                  <RoundHistoryTable
+                    history={gameData.roundHistory}
+                    players={gameData.players}
+                    myId={myId}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        }
+      >
+        <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-2 overflow-hidden">
             {/* Center track */}
             <div className="w-full max-w-sm">
               {leftPlayer && rightPlayer && (
@@ -648,81 +712,21 @@ export default function BNW2Game() {
                 <WaitingCard text="플레이어들이 포인트를 제시 중..." />
               </div>
             )}
-
-            {/* Mobile round history */}
-            {gameData.roundHistory.length > 0 && (
-              <div className="w-full max-w-sm lg:hidden">
-                <details className="rounded-lg border border-gray-200 bg-white">
-                  <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-gray-600">
-                    라운드 기록 ({gameData.roundHistory.length})
-                  </summary>
-                  <div className="border-t border-gray-100 px-3 py-2">
-                    <RoundHistoryTable
-                      history={gameData.roundHistory}
-                      players={gameData.players}
-                      myId={myId}
-                    />
-                  </div>
-                </details>
-              </div>
-            )}
-          </div>
-
-          {/* ── Desktop info panel ── */}
-          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:gap-3 lg:border-l lg:border-gray-200 lg:p-4">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수</p>
-              {playerEntries.map(([id, p]) => (
-                <div
-                  key={id}
-                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
-                    id === myId ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <span className="min-w-0 truncate font-medium">
-                    {id === myId ? '나' : p.nickname}
-                    {id === gameData.firstPlayerId && (
-                      <span className="ml-1 text-xs text-amber-500">선플</span>
-                    )}
-                  </span>
-                  <span className="ml-2 shrink-0 font-bold tabular-nums">{p.score}점</span>
-                </div>
-              ))}
-            </div>
-
-            {gameData.roundHistory.length > 0 && (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  라운드 기록
-                </p>
-                <div className="flex-1 overflow-y-auto">
-                  <RoundHistoryTable
-                    history={gameData.roundHistory}
-                    players={gameData.players}
-                    myId={myId}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+      </GameFrame>
+
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
+        <RoundHistoryTable
+          history={gameData.roundHistory}
+          players={gameData.players}
+          myId={myId}
+        />
+      </Modal>
 
       {/* ── Mobile bottom sheet (내 차례) ── */}
       {!isSpectator && (
         <>
-          {isMyTurn && !sheetOpen && (
-            <button
-              onClick={() => setSheetOpen(true)}
-              className={`fixed inset-x-4 bottom-20 z-(--cdm-z-modal) lg:hidden ${
-                isShowdown
-                  ? 'skin-showdown-mobile-cta'
-                  : 'rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg'
-              }`}
-            >
-              포인트 제시하기 →
-            </button>
-          )}
+          {/* 제시 단추는 조작 칸으로 옮겼다. 화면에 떠 있으면 방 바닥글을 가린다. */}
           <BottomSheet open={sheetOpen && isMyTurn} onClose={() => setSheetOpen(false)}>
             {inputContent}
           </BottomSheet>
