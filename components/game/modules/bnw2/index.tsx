@@ -510,8 +510,9 @@ export default function BNW2Game() {
       `}</style>
 
       <GameFrame
-        className={isShowdown ? 'skin-showdown-stage-content' : undefined}
-        info={<div className="flex w-full flex-col gap-1">
+        /* 트랙이 세로로 길어 뼈대 여백까지 아껴야 한 화면에 들어간다. */
+        className={`gap-1.5 p-1.5 ${isShowdown ? 'skin-showdown-stage-content' : ''}`}
+        info={<div className="flex w-full flex-col gap-0.5">
             {/* Mobile score bar */}
             <div className="flex w-full max-w-sm justify-between gap-2 lg:hidden">
               {playerEntries.map(([id, p]) => {
@@ -534,7 +535,7 @@ export default function BNW2Game() {
 
             {/* Round header */}
             <div className="text-center">
-              <div className="text-xl font-bold text-gray-800">라운드 {gameData.round}</div>
+              <div className="text-base font-bold text-gray-800">라운드 {gameData.round}</div>
               {fp && (
                 <div className="mt-0.5 text-sm text-amber-600">
                   {fp.nickname} 선플
@@ -608,7 +609,7 @@ export default function BNW2Game() {
           </div>
         }
       >
-        <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-2 overflow-hidden">
+        <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-1 overflow-hidden">
             {/* Center track */}
             <div className="w-full max-w-sm">
               {leftPlayer && rightPlayer && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { zeroOpponentEstimate } from './types';
 import MarkRow from './MarkRow';
 import PowderTrack from './PowderTrack';
@@ -8,11 +8,12 @@ import OpponentPowderTracker from './OpponentPowderTracker';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
 import RoundHistoryTable from './RoundHistoryTable';
 import MobileHeader from './MobileHeader';
-import PhaseStepperMobile from './PhaseStepperMobile';
 import ScoreBar from './ScoreBar';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -22,6 +23,15 @@ import type { SMS2ContextValue } from './hooks/useSMS2Context';
  *   · 가로 스크롤 절대 발생 금지: overflow-x-hidden + min-w-0
  *   · 자동 스크롤 ref/effect 는 이 컴포넌트 안에서만 정의
  * ════════════════════════════════════════════════════════════ */
+
+type PanelKind = 'tracker' | 'track' | 'history';
+
+/** 아래 단추로 여는 참고 패널들. 늘 펼쳐 두면 조작부만으로 화면이 찬다. */
+const PANEL_TITLE: Record<PanelKind, string> = {
+  tracker: '상대 빛가루 추리',
+  track: '빛가루 트랙',
+  history: '라운드 기록',
+};
 
 interface Props {
   ctx: SMS2ContextValue;
@@ -47,7 +57,6 @@ export default function MobileLayout({ ctx }: Props) {
     myBetConfirmed,
     myTurnInBet,
     isMyInputTurn,
-    stepperActiveTurn,
     revealedBetFirst,
     markRowPendingPowder,
     litMark,
@@ -62,6 +71,7 @@ export default function MobileLayout({ ctx }: Props) {
   } = ctx;
 
   /* ── 베팅 bottom-sheet 표시 여부 ── */
+  const [panel, setPanel] = useState<PanelKind | null>(null);
   const showBetSheet = !isSpectator && myPlayer && (isBetFirst || isBetSecond) && myTurnInBet && !myPlayer.betConfirmed;
 
   /* ── 모바일 자동 스크롤: 내 차례 진입 시 입력 영역으로 ── */
@@ -88,8 +98,11 @@ export default function MobileLayout({ ctx }: Props) {
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
 
   return (
-    <div className="flex h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-auto">
-      <div className="flex w-full min-w-0 flex-col gap-3 p-3">
+    <>
+      <GameFrame
+        /* 이 게임은 입력판이 커서 뼈대 여백까지 아껴야 한 화면에 들어간다. */
+        className="gap-1.5 p-1.5"
+        info={<div className="flex w-full min-w-0 flex-col gap-1">
         <MobileHeader
           round={gameData.round}
           maxRound={gameData.maxRound}
@@ -98,14 +111,11 @@ export default function MobileLayout({ ctx }: Props) {
           firstNick={firstPlayer.nickname}
         />
 
-        <PhaseStepperMobile
-          phase={phase ?? 'powder'}
-          isMyTurn={stepperActiveTurn}
-          isSpectator={isSpectator}
-          firstNick={firstPlayer.nickname}
-          secondNick={secondPlayer.nickname}
-          myIsFirst={mySide === firstSide}
-        />
+        {/*
+          단계 표시줄(43px)은 좁은 화면에서 뺐다. 머리말의 단계 칩과 입력판
+          제목이 같은 말을 하고 있고, 그 43px 이 없으면 입력판이 잘린다.
+          넓은 화면은 DesktopLayout 이 따로 그린다.
+        */}
 
         <ScoreBar
           p1={gameData.players.p1}
@@ -113,7 +123,41 @@ export default function MobileLayout({ ctx }: Props) {
           firstSide={firstSide}
           myId={myId}
         />
-
+        </div>}
+        controls={
+          <div className="flex w-full min-w-0 flex-col gap-1.5">
+            {/* 베팅 시트는 내 차례에 저절로 열린다 — 여는 단추가 따로 없다. */}
+            <div className="flex gap-1.5">
+              {showTracker && opponentEstimate && opponent && (
+                <button
+                  type="button"
+                  onClick={() => setPanel('tracker')}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
+                >
+                  🔍 추리
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setPanel('track')}
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
+              >
+                빛가루 트랙
+              </button>
+              {gameData.history.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPanel('history')}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
+                >
+                  기록 ({gameData.history.length})
+                </button>
+              )}
+            </div>
+          </div>
+        }
+      >
+        <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden">
         <div className="w-full min-w-0">
           <MarkRow
             size="sm"
@@ -137,7 +181,15 @@ export default function MobileLayout({ ctx }: Props) {
         <div ref={inputAreaRef} className="w-full min-w-0">
           <PhaseArea ctx={ctx} hideBetInput />
         </div>
+        </div>
+      </GameFrame>
 
+      {/*
+        접이식 세 개(추리·트랙·기록)를 모달로 옮겼다. 아래에 다 펼쳐 두면
+        조작부만으로 화면이 차서 무대가 사라진다.
+      */}
+      <Modal open={panel !== null} onClose={() => setPanel(null)} title={PANEL_TITLE[panel ?? 'track']}>
+        <div className="max-h-[60dvh] overflow-y-auto overscroll-contain">
         {/* 상대 빛가루 추리 (details 접힘) */}
         {showTracker && opponentEstimate && opponent && (
           <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
@@ -214,10 +266,9 @@ export default function MobileLayout({ ctx }: Props) {
             </div>
           </details>
         )}
+        </div>
+      </Modal>
 
-        {/* bottom-sheet 오버레이 열렸을 때 하단 여백 */}
-        {showBetSheet && <div className="h-64" />}
-      </div>
 
       {/* ── 베팅 bottom-sheet ── */}
       {showBetSheet && myPlayer && (
@@ -248,6 +299,6 @@ export default function MobileLayout({ ctx }: Props) {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }

@@ -55,11 +55,11 @@ function StageRow({
 
   return (
     <div className="flex items-center gap-1">
-      <div className={`h-7 flex-1 rounded-l-md transition-colors duration-300 ${leftCls}`} />
-      <div className="flex h-7 w-20 shrink-0 items-center justify-center rounded border border-gray-200 bg-white text-[11px] font-medium text-gray-500">
+      <div className={`h-6 flex-1 rounded-l-md transition-colors duration-300 sm:h-7 ${leftCls}`} />
+      <div className="flex h-6 w-20 shrink-0 items-center justify-center rounded border border-gray-200 bg-white text-[11px] font-medium text-gray-500 sm:h-7">
         {label}
       </div>
-      <div className={`h-7 flex-1 rounded-r-md transition-colors duration-300 ${rightCls}`} />
+      <div className={`h-6 flex-1 rounded-r-md transition-colors duration-300 sm:h-7 ${rightCls}`} />
     </div>
   );
 }

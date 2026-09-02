@@ -83,7 +83,7 @@ function MarkCell({
   const sizeCls =
     size === 'md'
       ? 'min-h-[96px] px-2 py-2.5'
-      : 'min-h-[80px] px-1 py-2';
+      : 'min-h-[68px] px-1 py-1.5';
   const iconCls = size === 'md' ? 'text-3xl' : 'text-2xl';
   const labelCls = size === 'md' ? 'text-sm' : 'text-xs';
 

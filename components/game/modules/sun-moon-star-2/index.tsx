@@ -75,7 +75,11 @@ export default function SunMoonStar2Game() {
       />
 
       {/* 모바일 (≤ 1023px) */}
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-x-hidden lg:hidden">
+      {/*
+        GameFrame(absolute inset-0)이 셸 상자를 기준으로 잡히도록 이 래퍼도
+        상자를 그대로 채운다. relative + h-full 이면 높이가 풀리지 않는다.
+      */}
+      <div className="absolute inset-0 flex min-w-0 flex-col overflow-x-hidden lg:hidden">
         <MobileLayout ctx={ctx} />
       </div>
 
