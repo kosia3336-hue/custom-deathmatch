@@ -8,6 +8,7 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
+import { GameFrame } from '@/components/game/GameFrame';
 import type { SeedSeotdaGameData, SeedSeotdaPlayerView } from '@/shared/types/seed-seotda';
 
 const PHASE_LABEL: Record<SeedSeotdaGameData['phase'], string> = {
@@ -105,19 +106,22 @@ function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameData; myId
     );
   }
 
+  /*
+    조작부는 낮게. 여기가 커지면 그만큼 무대(내 패·상대 패)가 눌려 잘린다.
+    카드를 작게 하고 고르는 줄과 단추 줄을 한 칸씩만 쓴다.
+  */
   return (
-    <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3 text-center">
-      <p className="text-cdm-fg text-sm font-black">버릴 패를 고르거나 시드를 사용하지 마세요</p>
-      <p className="text-cdm-fg-muted mt-0.5 text-[11px]">
-        버린 패의 정체는 상대에게 공개되지 않습니다.
+    <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 text-center">
+      <p className="text-cdm-fg text-[11px] leading-4 font-black">
+        버릴 패를 고르거나, 시드를 쓰지 마세요
       </p>
-      <div className="mt-3 flex justify-center gap-3">
+      <div className="mt-1.5 flex justify-center gap-2">
         {mine.cards.map((card, index) => (
           <button
             key={card?.id ?? index}
             type="button"
             className={cn(
-              'rounded-cdm-md border-2 p-1 transition focus-visible:outline-2',
+              'rounded-cdm-md border-2 p-0.5 transition focus-visible:outline-2',
               discardIndex === index
                 ? 'border-cdm-accent bg-cdm-accent-soft outline-cdm-accent'
                 : 'hover:border-cdm-highlight outline-cdm-highlight border-transparent',
@@ -125,14 +129,14 @@ function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameData; myId
             onClick={() => setDiscardIndex(index as 0 | 1)}
             aria-label={`${index + 1}번째 카드를 버릴 패로 선택`}
           >
-            <SeedSeotdaCard card={card} size="md" />
-            <span className="text-cdm-accent mt-0.5 block text-[10px] font-black">
+            <SeedSeotdaCard card={card} size="sm" />
+            <span className="text-cdm-accent mt-0.5 block text-[10px] leading-3 font-black">
               {discardIndex === index ? '버릴 패' : '선택'}
             </span>
           </button>
         ))}
       </div>
-      <div className="mx-auto mt-3 grid max-w-md grid-cols-2 gap-2">
+      <div className="mx-auto mt-1.5 grid max-w-md grid-cols-2 gap-2">
         <Button
           disabled={discardIndex == null}
           onClick={() => {
@@ -266,7 +270,7 @@ function BettingArea({ gameData, myId }: { gameData: SeedSeotdaGameData; myId: s
   );
 }
 
-function ResultArea({ gameData }: { gameData: SeedSeotdaGameData }) {
+function ResultOverlay({ gameData }: { gameData: SeedSeotdaGameData }) {
   const result = gameData.lastRoundResult;
   if (gameData.phase !== 'round-result' || !result) return null;
   const winnerName = result.winnerId ? gameData.players[result.winnerId]?.nickname : null;
@@ -281,19 +285,21 @@ function ResultArea({ gameData }: { gameData: SeedSeotdaGameData }) {
             ? `${winnerName ?? '상대'} 님이 다이 승리`
             : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`;
   return (
-    <section className="border-cdm-highlight bg-cdm-highlight-soft rounded-cdm-lg border p-3 text-center">
-      <p className="text-cdm-fg text-base font-black">{title}</p>
-      {result.diePenalty > 0 && (
-        <p className="text-cdm-accent mt-1 text-xs font-black">
-          더 높은 패로 다이하여 추가 {result.diePenalty}칩 패널티
-        </p>
-      )}
-      {['tie', 'gusa-rematch', 'mung-gusa-rematch'].includes(result.reason) && (
-        <p className="text-cdm-fg-muted mt-1 text-[11px]">
-          팟과 선 플레이어를 유지하고 새 패로 이어서 진행합니다.
-        </p>
-      )}
-    </section>
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+      <div className="border-cdm-highlight bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+        <p className="text-cdm-fg text-base font-black">{title}</p>
+        {result.diePenalty > 0 && (
+          <p className="text-cdm-accent mt-1 text-xs font-black">
+            더 높은 패로 다이하여 추가 {result.diePenalty}칩 패널티
+          </p>
+        )}
+        {['tie', 'gusa-rematch', 'mung-gusa-rematch'].includes(result.reason) && (
+          <p className="text-cdm-fg-muted mt-1 text-[11px]">
+            팟과 선 플레이어를 유지하고 새 패로 이어서 진행합니다.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -318,45 +324,59 @@ export default function SeedSeotdaGame() {
   const actionKey = `${gameData.round}-${gameData.phase}-${gameData.currentTurnId}-${gameData.bettingOpened}`;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
-      <header className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto] items-center gap-2 border p-2.5 sm:p-3">
-        <div>
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.16em]">
-            ROUND {gameData.round}
-          </p>
-          <p className="text-cdm-fg text-sm font-black">
-            {PHASE_LABEL[gameData.phase]}
-            {gameData.carryRound && <span className="text-cdm-highlight ml-2">재경기</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-center">
-          <div>
-            <p className="text-cdm-fg-subtle text-[9px] font-bold">DECK</p>
-            <p className="text-cdm-fg text-lg font-black">{gameData.deckRemaining}</p>
-          </div>
-          <div className="bg-cdm-primary-soft rounded-cdm-md min-w-16 px-3 py-1.5">
-            <p className="text-cdm-primary text-[9px] font-bold">POT</p>
-            <p className="text-cdm-primary text-xl font-black tabular-nums">{gameData.pot}</p>
-          </div>
-          <div>
-            <p className="text-cdm-fg-subtle text-[9px] font-bold">TIME</p>
-            <p
-              className={cn(
-                'text-cdm-fg text-lg font-black tabular-nums',
-                remaining != null && remaining <= 10 && 'text-cdm-accent',
-              )}
-            >
-              {remaining == null ? '∞' : Math.ceil(remaining)}
+    <GameFrame
+      info={
+        <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg flex items-center justify-between gap-2 border px-2 py-1.5">
+          <div className="min-w-0">
+            <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold tracking-[0.16em]">
+              ROUND {gameData.round}
+            </p>
+            <p className="text-cdm-fg truncate text-xs leading-4 font-black">
+              {PHASE_LABEL[gameData.phase]}
+              {gameData.carryRound && <span className="text-cdm-highlight ml-1.5">재경기</span>}
             </p>
           </div>
+          <div className="flex shrink-0 items-center gap-2.5 text-center">
+            <div>
+              <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">DECK</p>
+              <p className="text-cdm-fg text-sm leading-4 font-black tabular-nums">
+                {gameData.deckRemaining}
+              </p>
+            </div>
+            <div className="bg-cdm-primary-soft rounded-cdm-md px-2.5 py-0.5">
+              <p className="text-cdm-primary text-[9px] leading-3 font-bold">POT</p>
+              <p className="text-cdm-primary text-base leading-5 font-black tabular-nums">
+                {gameData.pot}
+              </p>
+            </div>
+            <div>
+              <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">TIME</p>
+              <p
+                className={cn(
+                  'text-cdm-fg text-sm leading-4 font-black tabular-nums',
+                  remaining != null && remaining <= 10 && 'text-cdm-accent',
+                )}
+              >
+                {remaining == null ? '∞' : Math.ceil(remaining)}
+              </p>
+            </div>
+          </div>
         </div>
-      </header>
-
-      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex flex-col items-center gap-2 border p-3 sm:gap-3 sm:p-4">
+      }
+      controls={
+        <div className="flex flex-col gap-2">
+          <SeedChoiceArea key={`seed-${actionKey}`} gameData={gameData} myId={myId} />
+          <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
+        </div>
+      }
+    >
+      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4">
         <div className="text-center">
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.14em]">SEED</p>
-          <SeedSeotdaCard card={gameData.seedCard} size="lg" className="mt-1" />
-          <p className="text-cdm-fg mt-0.5 text-xs font-black">공용 시드패</p>
+          <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.14em]">
+            SEED
+          </p>
+          <SeedSeotdaCard card={gameData.seedCard} size="md" className="mt-0.5" />
+          <p className="text-cdm-fg mt-0.5 text-[11px] leading-3 font-black">공용 시드패</p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:gap-3">
           {orderedPlayerIds.map((playerId) => (
@@ -371,13 +391,8 @@ export default function SeedSeotdaGame() {
         </div>
       </main>
 
-      <ResultArea gameData={gameData} />
-      <SeedChoiceArea key={`seed-${actionKey}`} gameData={gameData} myId={myId} />
-      <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
-
-      <p className="text-cdm-fg-subtle pb-1 text-center text-[10px]">
-        기본 베팅 1칩 · 덱 소진 시 20장 새 덱으로 교체
-      </p>
-    </div>
+      {/* 결과는 무대 위에 겹쳐 띄운다 — 새 줄로 만들면 그 순간 판이 밀린다. */}
+      <ResultOverlay gameData={gameData} />
+    </GameFrame>
   );
 }

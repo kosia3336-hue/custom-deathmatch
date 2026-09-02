@@ -11,6 +11,8 @@ import type {
 } from '@/shared/types/winning-streak';
 import { WS_TOTAL_ROUNDS, CARD_TYPES } from '@/shared/types/winning-streak';
 import { WIN_TYPE_LABELS, CARD_COLORS, CARD_NAMES, CARD_MATCHUP_DESC } from './constants';
+import { GameFrame } from '@/components/game/GameFrame';
+import Modal from '@/components/ui/Modal';
 
 /* ────────── types ────────── */
 
@@ -53,6 +55,7 @@ export default function WinningStreakGame() {
   const shownWinnerRef = useRef<string | null>(null);
   const prevRoundRef = useRef<number | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<number | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleCardClick = useCallback((type: WSCardType, index: number, isLocked: boolean) => {
     if (submitting || isSpectator) return;
@@ -141,8 +144,99 @@ export default function WinningStreakGame() {
         />
       )}
 
-      <div className="relative flex flex-1 flex-col gap-3 p-3 lg:flex-row lg:gap-4 lg:p-4 max-w-5xl mx-auto w-full">
-        {/* Round overlay */}
+      <GameFrame
+        info={
+          <div className="flex flex-col gap-1.5">
+            {opponent && <StatLine player={opponent} label="상대" isMe={false} />}
+            {opponent && (
+              <CardRow
+                cards={opponent.remainingCards}
+                lastPlayed={opponent.lastPlayedCard}
+                label="상대 잔여"
+              />
+            )}
+          </div>
+        }
+        controls={
+          <div className="flex flex-col gap-1.5">
+            {myPlayer && !isSpectator && (
+              <MyCardHand
+                cards={myPlayer.remainingCards}
+                lastPlayed={myPlayer.lastPlayedCard}
+                available={availableCards}
+                onCardClick={handleCardClick}
+                canAct={canAct}
+                submitted={mySubmitted}
+              />
+            )}
+            <div className="flex items-center gap-1.5">
+              {myPlayer && (
+                <div className="min-w-0 flex-1">
+                  <StatLine player={myPlayer} label="나" isMe />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowHistory(true)}
+                className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
+              >
+                기록
+              </button>
+            </div>
+          </div>
+        }
+        aside={<RoundHistory history={gameData.roundHistory} players={gameData.players} />}
+      >
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-white p-3">
+          {isRevealing && gameData.revealData ? (
+            <RevealArea
+              revealData={gameData.revealData}
+              playerIds={playerIds}
+              players={gameData.players}
+              myId={myId}
+            />
+          ) : isCardSelect ? (
+            <div className="flex flex-col items-center gap-2 text-gray-400">
+              <span className="text-base font-semibold lg:text-lg">
+                라운드 {gameData.round} / {WS_TOTAL_ROUNDS}
+              </span>
+              {mySubmitted ? (
+                <span className="animate-pulse text-sm text-indigo-500 lg:text-base">
+                  상대의 제출을 기다리는 중...
+                </span>
+              ) : !isSpectator ? (
+                <span className="text-sm lg:text-base">카드를 눌러 선택하세요</span>
+              ) : null}
+            </div>
+          ) : isFinished ? (
+            <div className="text-center">
+              <p className="mt-2 text-xl font-bold text-gray-800 lg:text-2xl">
+                {gameData.winner
+                  ? `${gameData.players[gameData.winner]?.nickname} 승리!`
+                  : '무승부!'}
+              </p>
+              {gameData.winType && (
+                <p className="mt-1 text-sm text-gray-500 lg:text-base">
+                  {WIN_TYPE_LABELS[gameData.winType] ?? gameData.winType}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {isSpectator && (
+            <div className="mt-2 flex w-full flex-col gap-1.5">
+              {playerIds.map((pid) => (
+                <StatLine
+                  key={pid}
+                  player={gameData.players[pid]}
+                  label={gameData.players[pid].nickname}
+                  isMe={false}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         {roundOverlay !== null && (
           <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
             <div className="animate-bounce rounded-xl bg-indigo-600 px-8 py-4 text-2xl font-bold text-white shadow-xl">
@@ -150,91 +244,29 @@ export default function WinningStreakGame() {
             </div>
           </div>
         )}
+      </GameFrame>
 
-        {/* ── Main Area ── */}
-        <div className="flex flex-1 flex-col gap-3 lg:gap-4 min-w-0">
-          {/* 상대 PlayerBar */}
-          {opponent && (
-            <PlayerBar player={opponent} label="상대" isMe={false} />
-          )}
-
-          {/* 상대 잔여 카드 */}
-          {opponent && (
-            <CardRow
-              cards={opponent.remainingCards}
-              lastPlayed={opponent.lastPlayedCard}
-              label="상대 잔여 카드"
-            />
-          )}
-
-          {/* 중앙 대결 영역 */}
-          <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-4 lg:p-8 min-h-[160px] lg:min-h-[200px]">
-            {isRevealing && gameData.revealData ? (
-              <RevealArea
-                revealData={gameData.revealData}
-                playerIds={playerIds}
-                players={gameData.players}
-                myId={myId}
-              />
-            ) : isCardSelect ? (
-              <div className="flex flex-col items-center gap-2 text-gray-400">
-                <span className="text-base font-semibold lg:text-lg">
-                  라운드 {gameData.round} / {WS_TOTAL_ROUNDS}
-                </span>
-                {mySubmitted ? (
-                  <span className="text-sm text-indigo-500 animate-pulse lg:text-base">
-                    상대의 제출을 기다리는 중...
-                  </span>
-                ) : !isSpectator ? (
-                  <span className="text-sm lg:text-base">카드를 눌러 선택하세요</span>
-                ) : null}
-              </div>
-            ) : isFinished ? (
-              <div className="text-center">
-                <p className="mt-2 text-xl font-bold text-gray-800 lg:text-2xl">
-                  {gameData.winner
-                    ? `${gameData.players[gameData.winner]?.nickname} 승리!`
-                    : '무승부!'}
-                </p>
-                {gameData.winType && (
-                  <p className="mt-1 text-sm text-gray-500 lg:text-base">
-                    {WIN_TYPE_LABELS[gameData.winType] ?? gameData.winType}
-                  </p>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          {/* 내 카드 핸드 */}
-          {myPlayer && !isSpectator && (
-            <MyCardHand
-              cards={myPlayer.remainingCards}
-              lastPlayed={myPlayer.lastPlayedCard}
-              available={availableCards}
-              onCardClick={handleCardClick}
-              canAct={canAct}
-              submitted={mySubmitted}
-            />
-          )}
-
-          {/* 내 PlayerBar */}
-          {myPlayer && (
-            <PlayerBar player={myPlayer} label="나" isMe />
-          )}
-
-          {/* 관전자 */}
-          {isSpectator && playerIds.map((pid) => (
-            <PlayerBar key={pid} player={gameData.players[pid]} label={gameData.players[pid].nickname} isMe={false} />
-          ))}
-        </div>
-
-        {/* ── Side Panel: Round History ── */}
-        <RoundHistory
-          history={gameData.roundHistory}
-          players={gameData.players}
-        />
-      </div>
+      <Modal open={showHistory} onClose={() => setShowHistory(false)} title="라운드 기록">
+        <RoundHistory history={gameData.roundHistory} players={gameData.players} />
+      </Modal>
     </>
+  );
+}
+
+/** 한 줄짜리 전적 — 연승·최대·승수. 예전 PlayerBar 를 정보 칸 높이에 맞게 줄인 것. */
+function StatLine({ player, label, isMe }: { player: WSPlayerInfo; label: string; isMe: boolean }) {
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${
+        isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <span className="min-w-0 truncate text-xs font-bold text-gray-800">{player.nickname}</span>
+      <span className="shrink-0 text-[10px] text-gray-400">{label}</span>
+      <span className="ml-auto shrink-0 text-[11px] font-bold whitespace-nowrap text-gray-800 tabular-nums">
+        {player.currentStreak}연승 · 최대 {player.maxStreak} · {player.totalWins}승
+      </span>
+    </div>
   );
 }
 
@@ -298,30 +330,6 @@ function CardModal({
   );
 }
 
-/* ────────── PlayerBar ────────── */
-
-function PlayerBar({ player, label, isMe }: { player: WSPlayerInfo; label: string; isMe: boolean }) {
-  return (
-    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 lg:px-4 lg:py-3 ${
-      isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-    }`}>
-      <span className="font-bold text-gray-800 truncate text-sm lg:text-base min-w-0">{player.nickname}</span>
-      <span className="text-xs text-gray-400 shrink-0">{label}</span>
-      <div className="ml-auto flex shrink-0 items-center gap-2 lg:gap-4">
-        <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="font-bold text-gray-800 text-xs lg:text-base">{player.currentStreak}연승</span>
-        </span>
-        <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="font-bold text-gray-800 text-xs lg:text-base">최대 {player.maxStreak}</span>
-        </span>
-        <span className="flex items-center gap-0.5 whitespace-nowrap">
-          <span className="font-bold text-gray-800 text-xs lg:text-base">{player.totalWins}승</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
 /* ────────── CardRow (잔여 카드 배지) ────────── */
 
 function CardRow({
@@ -376,11 +384,16 @@ function MyCardHand({
   const entries = getCardEntries(cards);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 lg:p-5">
-      <p className="mb-3 text-sm font-medium text-gray-500 lg:text-base">
+    <div className="rounded-xl border border-gray-200 bg-white p-2 lg:p-4">
+      <p className="mb-1.5 text-center text-[11px] font-medium text-gray-500 lg:text-sm">
         {submitted ? '제출 완료 — 상대를 기다리는 중...' : '카드를 눌러 선택하세요'}
       </p>
-      <div className="flex flex-wrap justify-center gap-2 lg:gap-4">
+      {/*
+        손패는 한 줄로만 둔다. 줄바꿈하면 카드 수에 따라 조작부 높이가 달라져
+        그때마다 판이 출렁이고, 많이 들면 화면 밖으로 나간다. 넘치면 가로로
+        민다 — 세로 스크롤과 달리 판과 조작부는 제자리에 있는다.
+      */}
+      <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 lg:justify-center lg:gap-4">
         {entries.map(({ type, count }) => {
           if (count <= 0) return null;
           const style = CARD_COLORS[type];
@@ -392,7 +405,7 @@ function MyCardHand({
               key={`${type}-${i}`}
               onClick={() => (canAct && !submitted) && onCardClick(type, i, isLocked)}
               className={`relative flex flex-col items-center justify-center rounded-xl border-2 transition-all select-none
-                w-16 h-[88px] sm:w-20 sm:h-28 lg:w-28 lg:h-40
+                w-14 h-[76px] shrink-0 sm:w-20 sm:h-28 lg:w-24 lg:h-32
                 ${isLocked
                   ? `${style.border} opacity-50 cursor-pointer`
                   : isAvailable && canAct && !submitted
@@ -534,7 +547,7 @@ function RoundHistory({
   const playerIds = Object.keys(players);
 
   return (
-    <div className="w-full rounded-xl border border-gray-200 bg-white lg:w-64 xl:w-72 shrink-0">
+    <div className="h-full w-full rounded-xl border border-gray-200 bg-white">
       <button
         className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 lg:text-base"
         onClick={() => setOpen((v) => !v)}
