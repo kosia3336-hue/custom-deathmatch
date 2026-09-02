@@ -7,6 +7,7 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { TL_PUZZLE_COUNT, TL_WRONG_LOCK_MS, type TransletterGameData } from '@/shared/types/transletter';
+import { GameFrame } from '@/components/game/GameFrame';
 
 export default function TransletterGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -98,40 +99,52 @@ export default function TransletterGame() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-3 sm:p-4">
-      {/* 상단: 타이머 + 진행 */}
-      <div className="flex items-center justify-between rounded-cdm-lg border border-cdm-border bg-cdm-bg px-4 py-2.5">
-        <div className="text-sm">
-          <span className="font-semibold text-cdm-fg">{gameData.isSolo ? '진행' : '나'}</span>{' '}
-          <span className="tabular-nums font-bold text-cdm-primary">{gameData.myCount}</span>
-          <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
-        </div>
-        <div
-          className={cn(
-            'rounded-full px-3 py-1 text-base font-bold tabular-nums',
-            remain <= 60 ? 'bg-cdm-accent/15 text-cdm-accent' : 'bg-cdm-bg-elev-2 text-cdm-fg',
-          )}
-        >
-          {mm}:{ss}
-        </div>
-        {!gameData.isSolo && (
-          <div className="text-sm text-right">
-            <span className="font-semibold text-cdm-fg">{gameData.players[oppId]?.nickname ?? '상대'}</span>{' '}
-            <span className="tabular-nums font-bold text-cdm-fg-muted">{gameData.oppCount}</span>
-            <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
+    <GameFrame
+      info={
+        <div className="flex flex-col gap-1">
+          <div className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex items-center justify-between border px-3 py-1.5">
+            <div className="text-xs">
+              <span className="text-cdm-fg font-semibold">{gameData.isSolo ? '진행' : '나'}</span>{' '}
+              <span className="text-cdm-primary font-bold tabular-nums">{gameData.myCount}</span>
+              <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
+            </div>
+            <div
+              className={cn(
+                'rounded-full px-3 py-0.5 text-sm font-bold tabular-nums',
+                remain <= 60 ? 'bg-cdm-accent/15 text-cdm-accent' : 'bg-cdm-bg-elev-2 text-cdm-fg',
+              )}
+            >
+              {mm}:{ss}
+            </div>
+            {!gameData.isSolo && (
+              <div className="text-right text-xs">
+                <span className="text-cdm-fg font-semibold">
+                  {gameData.players[oppId]?.nickname ?? '상대'}
+                </span>{' '}
+                <span className="text-cdm-fg-muted font-bold tabular-nums">
+                  {gameData.oppCount}
+                </span>
+                <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {gameData.phase === 'playing' && (
-        <p className="text-center text-xs text-cdm-fg-subtle">
-          각 글자에서 자음/모음 하나가 바뀌었습니다. 주제를 보고 원래 단어를 맞혀{' '}
-          {gameData.isSolo ? '3문제를 모두 완성하세요!' : '3문제를 먼저 완성하세요!'}
-        </p>
-      )}
-
-      {/* 문제 3개 */}
-      <div className="flex flex-col gap-3">
+          {gameData.phase === 'playing' && (
+            <p className="text-cdm-fg-subtle text-center text-[11px] leading-4">
+              각 글자에서 자음/모음 하나가 바뀌었습니다. 주제를 보고 원래 단어를 맞혀{' '}
+              {gameData.isSolo ? '3문제를 모두 완성하세요!' : '3문제를 먼저 완성하세요!'}
+            </p>
+          )}
+          {!isPlayer && gameData.phase === 'playing' && (
+            <p className="text-cdm-fg-muted text-center text-[11px]">
+              {gameData.isSolo
+                ? '관전 중 — 혼자 3문제를 풀고 있습니다.'
+                : '관전 중 — 먼저 3문제 푸는 사람이 이겨요.'}
+            </p>
+          )}
+        </div>
+      }
+    >
+      <div className="flex h-full w-full max-w-lg flex-col justify-center gap-2 overflow-hidden">
         {gameData.puzzles.map((pz, i) => {
           const solved = gameData.mySolved[i];
           const locked = now < lockedUntil[i];
@@ -139,23 +152,21 @@ export default function TransletterGame() {
             <div
               key={i}
               className={cn(
-                'rounded-cdm-lg border p-4 transition-colors',
+                'rounded-cdm-lg border p-2.5 transition-colors',
                 solved ? 'border-cdm-success bg-cdm-success/10' : 'border-cdm-border bg-cdm-bg',
               )}
             >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="rounded-full bg-cdm-primary-soft px-2.5 py-0.5 text-[11px] font-bold text-cdm-primary">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="bg-cdm-primary-soft text-cdm-primary rounded-full px-2 py-0.5 text-[10px] font-bold">
                   {i + 1}. 주제 · {pz.category}
                 </span>
-                {solved && (
-                  <span className="text-xs font-bold text-cdm-success">✓ 완료</span>
-                )}
+                {solved && <span className="text-cdm-success text-[11px] font-bold">✓ 완료</span>}
               </div>
-              <p className="mb-3 text-center text-3xl font-extrabold tracking-wide text-cdm-fg">
+              <p className="text-cdm-fg mb-1.5 text-center text-2xl font-extrabold tracking-wide">
                 {pz.transformed}
               </p>
               {gameData.phase === 'playing' && isPlayer && !solved && (
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <input
                     value={inputs[i]}
                     onChange={(e) =>
@@ -170,50 +181,45 @@ export default function TransletterGame() {
                     }}
                     disabled={locked}
                     placeholder={locked ? '잠시 후 다시…' : '정답 입력 후 Enter'}
-                    className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-center text-base font-bold text-cdm-fg outline-none focus:border-cdm-primary disabled:opacity-50"
+                    className="rounded-cdm-md border-cdm-border bg-cdm-bg text-cdm-fg focus:border-cdm-primary min-w-0 flex-1 border px-2 py-1.5 text-center text-sm font-bold outline-none disabled:opacity-50"
                     autoComplete="off"
                   />
                   <button
                     type="button"
                     onClick={() => submit(i)}
                     disabled={locked || !inputs[i].trim()}
-                    className="shrink-0 rounded-cdm-md border border-cdm-primary bg-cdm-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cdm-primary-strong disabled:opacity-40"
+                    className="rounded-cdm-md border-cdm-primary bg-cdm-primary hover:bg-cdm-primary-strong shrink-0 border px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-40"
                   >
                     제출
                   </button>
                 </div>
               )}
               {gameData.result && (
-                <p className="text-center text-sm">
+                <p className="text-center text-xs">
                   정답: <b className="text-cdm-fg">{gameData.result.answers[i]}</b>
                 </p>
               )}
             </div>
           );
         })}
+
+        {gameData.phase === 'finished' && gameData.result && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+            <div className="rounded-cdm-lg border-cdm-primary bg-cdm-bg/95 max-w-xs border-2 px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+              <p className="text-cdm-fg text-base font-bold">
+                {gameData.isSolo
+                  ? gameData.result.winnerId && gameData.result.reason.includes('모두 완성')
+                    ? '클리어!'
+                    : '타임 아웃!'
+                  : gameData.result.winnerId
+                    ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리!`
+                    : '무승부'}
+              </p>
+              <p className="text-cdm-fg-muted mt-1 text-sm">{gameData.result.reason}</p>
+            </div>
+          </div>
+        )}
       </div>
-
-      {!isPlayer && gameData.phase === 'playing' && (
-        <p className="text-center text-sm text-cdm-fg-muted">
-          {gameData.isSolo ? '관전 중 — 혼자 3문제를 풀고 있습니다.' : '관전 중 — 먼저 3문제 푸는 사람이 이겨요.'}
-        </p>
-      )}
-
-      {/* 최종 결과 */}
-      {gameData.phase === 'finished' && gameData.result && (
-        <div className="rounded-cdm-lg border-2 border-cdm-primary bg-cdm-primary-soft/40 p-4 text-center">
-          <p className="text-base font-bold text-cdm-fg">
-            {gameData.isSolo
-              ? gameData.result.winnerId && gameData.result.reason.includes('모두 완성')
-                ? '클리어!'
-                : '타임 아웃!'
-              : gameData.result.winnerId
-                ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리!`
-                : '무승부'}
-          </p>
-          <p className="mt-1 text-sm text-cdm-fg-muted">{gameData.result.reason}</p>
-        </div>
-      )}
-    </div>
+    </GameFrame>
   );
 }

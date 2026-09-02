@@ -10,6 +10,7 @@ import FormulaPad from './FormulaPad';
 import RoundHistory from './RoundHistory';
 import RoundReveal from './RoundReveal';
 import ScoreBoard from './ScoreBoard';
+import { GameFrame } from '@/components/game/GameFrame';
 
 export default function FormulaCompletionGame() {
   const gameState = useRoomStore((state) => state.gameState);
@@ -39,48 +40,58 @@ export default function FormulaCompletionGame() {
       );
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4 p-3 sm:p-4">
-      <ScoreBoard gameData={gameData} myId={myId} remainingSeconds={remainingSeconds} />
-      <RoundHistory gameData={gameData} />
+    <GameFrame
+      info={<ScoreBoard gameData={gameData} myId={myId} remainingSeconds={remainingSeconds} />}
+      controls={
+        gameData.phase === 'playing' ? (
+          isPlayer ? (
+            <PlayingRound
+              key={`${gameData.round}-${gameData.roundStartedAt}`}
+              numbers={gameData.numbers}
+            />
+          ) : (
+            <Card className="text-center text-xs text-cdm-fg-muted">
+              {gameData.isSolo
+                ? '솔로 플레이를 관전하고 있습니다.'
+                : '관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.'}
+            </Card>
+          )
+        ) : null
+      }
+      aside={<RoundHistory gameData={gameData} />}
+    >
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden">
+        <Card className="w-full text-center">
+          <p className="text-cdm-fg-subtle text-xs font-semibold tracking-[0.18em]">TARGET</p>
+          <p className="text-cdm-primary mt-1 text-5xl font-black tabular-nums sm:text-6xl">
+            {gameData.target}
+          </p>
+          <div
+            className="mt-3 flex flex-wrap justify-center gap-2"
+            aria-label={`${gameData.numberCount}개의 제시 숫자`}
+          >
+            {gameData.numbers.map((number, index) => (
+              <span
+                key={`${number}-${index}`}
+                className="rounded-cdm-md border-cdm-border-strong bg-cdm-bg-elev-1 text-cdm-fg flex h-12 w-12 items-center justify-center border-2 text-xl font-extrabold"
+              >
+                {number}
+              </span>
+            ))}
+          </div>
+        </Card>
 
-      <Card className="text-center">
-        <p className="text-xs font-semibold tracking-[0.18em] text-cdm-fg-subtle">TARGET</p>
-        <p className="mt-1 text-5xl font-black tabular-nums text-cdm-primary sm:text-6xl">
-          {gameData.target}
-        </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label={`${gameData.numberCount}개의 제시 숫자`}>
-          {gameData.numbers.map((number, index) => (
-            <span
-              key={`${number}-${index}`}
-              className="flex h-12 w-12 items-center justify-center rounded-cdm-md border-2 border-cdm-border-strong bg-cdm-bg-elev-1 text-xl font-extrabold text-cdm-fg"
-            >
-              {number}
-            </span>
-          ))}
-        </div>
-      </Card>
+        {gameData.phase !== 'playing' && (
+          <div className="w-full">
+            <RoundReveal gameData={gameData} myId={myId} />
+          </div>
+        )}
 
-      {gameData.phase === 'playing' ? (
-        isPlayer ? (
-          <PlayingRound
-            key={`${gameData.round}-${gameData.roundStartedAt}`}
-            numbers={gameData.numbers}
-          />
-        ) : (
-          <Card className="text-center text-sm text-cdm-fg-muted">
-            {gameData.isSolo
-              ? '솔로 플레이를 관전하고 있습니다.'
-              : '관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.'}
-          </Card>
-        )
-      ) : (
-        <RoundReveal gameData={gameData} myId={myId} />
-      )}
-
-      {gameData.phase === 'finished' && (
-        <p className="text-center text-xs text-cdm-fg-muted">최종 결과를 집계하고 있습니다...</p>
-      )}
-    </div>
+        {gameData.phase === 'finished' && (
+          <p className="text-cdm-fg-muted text-center text-xs">최종 결과를 집계하고 있습니다...</p>
+        )}
+      </div>
+    </GameFrame>
   );
 }
 
