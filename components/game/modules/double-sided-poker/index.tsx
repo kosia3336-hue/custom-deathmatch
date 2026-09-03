@@ -12,6 +12,7 @@ import { GameFrame } from '@/components/game/GameFrame';
 import type {
   DoubleSidedPokerGameData,
   DoubleSidedPokerPlayerView,
+  DoubleSidedPokerSelection,
   DoubleSidedPokerSide,
 } from '@/shared/types/double-sided-poker';
 
@@ -21,101 +22,151 @@ const SELECTION_LABEL = {
   both: '양면',
 } as const;
 
-function BetLane({
-  label,
-  amount,
-  selected,
+/**
+ * 베팅판 — 가로로 긴 직사각형 하나를 앞면·뒷면 절반씩 나눈다.
+ *
+ * 여백 없이 딱 붙여 '판' 처럼 보이게 한다. 두 사람의 판이 화면 가운데에서
+ * 맞닿으므로, 상대 쪽은 좌우까지 뒤집어 같은 판을 180도 돌린 모양으로 둔다.
+ */
+function BetBoard({
+  frontBet,
+  backBet,
+  selection,
+  mirrored,
 }: {
-  label: string;
-  amount: number;
-  selected: boolean;
+  frontBet: number;
+  backBet: number;
+  selection: DoubleSidedPokerSelection;
+  mirrored: boolean;
 }) {
+  const lanes = [
+    { side: 'front' as const, label: '앞면', amount: frontBet },
+    { side: 'back' as const, label: '뒷면', amount: backBet },
+  ];
+  const ordered = mirrored ? [...lanes].reverse() : lanes;
   return (
-    <div
-      className={cn(
-        'rounded-cdm-md flex items-center justify-between border px-2 py-1.5',
-        selected ? 'border-cdm-highlight bg-cdm-highlight-soft' : 'border-cdm-border bg-cdm-bg',
-      )}
-    >
-      <span className="text-cdm-fg-muted text-[10px] font-black sm:text-xs">{label} 베팅칸</span>
-      <span className="text-cdm-fg text-sm font-black tabular-nums">{amount}칩</span>
+    <div className="border-cdm-border-strong -mx-1.5 grid grid-cols-2 border-y">
+      {ordered.map((lane, index) => {
+        const picked = selection === lane.side || selection === 'both';
+        return (
+          <div
+            key={lane.side}
+            className={cn(
+              'flex items-baseline justify-between gap-1 px-3 py-2',
+              // 가운데 칸막이 한 줄만 둔다. 바깥 테두리는 판 전체가 갖는다.
+              index === 0 && 'border-cdm-border-strong border-r',
+              picked ? 'bg-cdm-highlight-soft' : 'bg-cdm-bg',
+            )}
+          >
+            <span
+              className={cn(
+                'text-[11px] font-black',
+                picked ? 'text-cdm-highlight' : 'text-cdm-fg-muted',
+              )}
+            >
+              {lane.label}
+            </span>
+            <span className="text-cdm-fg text-xl leading-6 font-black tabular-nums">
+              {lane.amount}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
+/**
+ * 한 사람의 자리.
+ *
+ * mirrored(상대) 이면 전체를 180도 돌린 모양으로 둔다 — 이름이 바깥쪽, 베팅판이
+ * 안쪽(화면 가운데)으로 온다. 그래야 두 사람의 베팅판이 가운데에서 맞닿아
+ * 실제 판처럼 보인다.
+ */
 function PlayerPanel({
   player,
   playerId,
   gameData,
   myId,
+  mirrored,
 }: {
   player: DoubleSidedPokerPlayerView;
   playerId: string;
   gameData: DoubleSidedPokerGameData;
   myId: string;
+  mirrored: boolean;
 }) {
   const isCurrent = gameData.currentTurnId === playerId;
   const selection = player.selection;
+
+  const header = (
+    <div className="flex items-baseline justify-between gap-2">
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        <p className="text-cdm-fg truncate text-xs font-black">
+          {player.nickname}
+          {playerId === myId ? ' (나)' : ''}
+        </p>
+        <p className="text-cdm-fg-muted shrink-0 text-[10px] font-bold">
+          {playerId === gameData.firstPlayerId ? '선' : '후'}
+          {selection ? ` · ${SELECTION_LABEL[selection]}` : ' · 면 선택 전'}
+        </p>
+      </div>
+      <p className="text-cdm-primary shrink-0 text-base font-black tabular-nums">
+        {player.chips}칩
+      </p>
+    </div>
+  );
+
+  /*
+    카드 줄은 낮게 유지한다. 여기서 아낀 높이가 그대로 베팅판으로 간다.
+    어느 쪽이 앞·뒷면인지는 바로 붙어 있는 베팅판이 이미 말해 준다.
+  */
+  const cards = (
+    <div className="flex items-center justify-center gap-2">
+      {player.card && <DoubleSidedPokerCard value={player.card.front} face="front" size="sm" />}
+      {player.card?.back != null && (
+        <DoubleSidedPokerCard value={player.card.back} face="back" size="sm" />
+      )}
+      {player.card && player.card.back == null && (
+        // 크기는 sm 카드(60×83)에 맞춘다. 나란히 놓였을 때 한 장만 작아 보이면 어색하다.
+        <span className="border-cdm-border-strong bg-cdm-bg-elev-2 text-cdm-fg-subtle rounded-cdm-sm flex aspect-[60/83] w-[60px] items-center justify-center border text-lg font-black">
+          ?
+        </span>
+      )}
+    </div>
+  );
+
+  const board = (
+    <BetBoard
+      frontBet={player.frontBet}
+      backBet={player.backBet}
+      selection={selection}
+      mirrored={mirrored}
+    />
+  );
+
   return (
     <section
       className={cn(
-        'rounded-cdm-lg min-w-0 border p-2.5 transition sm:p-3',
+        'rounded-cdm-lg flex min-w-0 flex-col justify-center gap-1 overflow-hidden border px-1.5 py-1 transition',
         isCurrent
           ? 'border-cdm-highlight bg-cdm-highlight-soft'
           : 'border-cdm-border bg-cdm-bg-elev-1',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-cdm-fg truncate text-xs font-black sm:text-sm">
-            {player.nickname}
-            {playerId === myId ? ' (나)' : ''}
-          </p>
-          <p className="text-cdm-fg-muted text-[10px] font-bold sm:text-xs">
-            {playerId === gameData.firstPlayerId ? '선 플레이어' : '후 플레이어'}
-            {selection ? ` · ${SELECTION_LABEL[selection]} 선택` : ' · 면 선택 전'}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-cdm-primary text-base font-black tabular-nums sm:text-lg">
-            {player.chips}칩
-          </p>
-          <p className="text-cdm-fg-muted text-[10px] font-bold">기준 베팅 {player.stake}</p>
-        </div>
-      </div>
-
-      <div className="mt-2 flex items-end justify-center gap-2 sm:gap-3">
-        {player.card && (
-          <div className="text-center">
-            <DoubleSidedPokerCard value={player.card.front} face="front" size="md" />
-            <p className="text-cdm-fg mt-0.5 text-[10px] font-black">앞면 · 공개</p>
-          </div>
-        )}
-        {player.card?.back != null && (
-          <div className="text-center">
-            <DoubleSidedPokerCard value={player.card.back} face="back" size="md" />
-            <p className="text-cdm-fg mt-0.5 text-[10px] font-black">뒷면 · 본인 공개</p>
-          </div>
-        )}
-      </div>
-      {player.card && player.card.back == null && (
-        <p className="text-cdm-fg-subtle mt-1 text-center text-[10px] font-bold">
-          뒷면 숫자는 소유자만 확인할 수 있습니다.
-        </p>
+      {mirrored ? (
+        <>
+          {header}
+          {cards}
+          {board}
+        </>
+      ) : (
+        <>
+          {board}
+          {cards}
+          {header}
+        </>
       )}
-
-      <div className="mt-2 grid gap-1.5">
-        <BetLane
-          label="앞면"
-          amount={player.frontBet}
-          selected={selection === 'front' || selection === 'both'}
-        />
-        <BetLane
-          label="뒷면"
-          amount={player.backBet}
-          selected={selection === 'back' || selection === 'both'}
-        />
-      </div>
     </section>
   );
 }
@@ -402,8 +453,9 @@ export default function DoubleSidedPokerGame() {
     );
   }
 
-  const orderedIds = gameData.players[myId]
-    ? [myId, ...playerIds.filter((id) => id !== myId)]
+  // 상대가 위, 내가 아래. 관전자는 원래 순서를 그대로 쓴다.
+  const seatOrder = gameData.players[myId]
+    ? [...playerIds.filter((id) => id !== myId), myId]
     : playerIds;
   const actionKey = [
     gameData.round,
@@ -462,20 +514,22 @@ export default function DoubleSidedPokerGame() {
       controls={
         <div className="flex flex-col gap-1.5">
           <BettingArea key={actionKey} gameData={gameData} myId={myId} />
-          <p className="text-cdm-fg-subtle text-center text-[10px] leading-3">
-            앞면은 공개 · 뒷면은 본인만 확인 · 기본 베팅 1칩 · 체크 없음
-          </p>
         </div>
       }
     >
-      <main className="grid h-full w-full min-w-0 grid-cols-2 items-center gap-2 overflow-hidden sm:gap-3">
-        {orderedIds.map((playerId) => (
+      {/*
+        상대가 위, 내가 아래. 두 사람의 베팅판이 화면 가운데에서 맞닿도록
+        상대 자리는 180도 돌린 모양으로 둔다.
+      */}
+      <main className="mx-auto flex h-full w-full max-w-xl min-w-0 flex-col justify-center gap-1.5 overflow-hidden">
+        {seatOrder.map((playerId) => (
           <PlayerPanel
             key={playerId}
             player={gameData.players[playerId]}
             playerId={playerId}
             gameData={gameData}
             myId={myId}
+            mirrored={playerId !== myId}
           />
         ))}
       </main>
