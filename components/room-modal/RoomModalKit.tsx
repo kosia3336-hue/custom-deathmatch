@@ -304,17 +304,16 @@ export function isNewGame(createdAt: string | undefined, now = Date.now()): bool
  * 포장지를 덧댄 모양만 남는다. 폭을 좁게 잡아 게임 이름을 침범하지 않는다 —
  * 이름은 카드 높이 가운데에 있어서, 띠가 모서리에만 머무르면 겹치지 않는다.
  *
- * NEW 와 RANK 가 같은 모양을 쓰고 색으로만 갈린다. 둘 다 '이 카드를 눈여겨보라'
- * 는 같은 종류의 신호라 모양을 나눌 이유가 없었다.
+ * NEW 와 RANK 가 모양도 색도 같고 글자만 다르다. 둘 다 '이 카드를 눈여겨보라'
+ * 는 같은 종류의 신호라 갈라 놓을 이유가 없었다.
  */
-function CornerRibbon({ label, tone }: { label: string; tone: 'new' | 'rank' }) {
+function CornerRibbon({ label, title }: { label: string; title: string }) {
   return (
     <span
-      title={tone === 'rank' ? '랭크 종목' : '새로 추가된 게임'}
+      title={title}
       className={cn(
         'pointer-events-none absolute -left-6 top-1.5 w-[72px] -rotate-45 py-[2px] text-center',
-        'text-[9px] leading-none font-bold tracking-wider text-white',
-        tone === 'rank' ? 'bg-cdm-primary' : 'bg-sky-500',
+        'bg-cdm-primary text-[9px] leading-none font-bold tracking-wider text-white',
       )}
     >
       {label}
@@ -335,15 +334,15 @@ export function GameCard({
     랭크는 그 게임의 성격이라, 하나만 남긴다면 랭크가 남아야 한다.
   */
   const ribbon = game.rankingActive
-    ? { label: 'RANK', tone: 'rank' as const }
+    ? { label: 'RANK', title: '랭크 종목' }
     : isNewGame(game.createdAt)
-      ? { label: 'NEW', tone: 'new' as const }
+      ? { label: 'NEW', title: '새로 추가된 게임' }
       : null;
 
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
       <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
-      {ribbon && <CornerRibbon label={ribbon.label} tone={ribbon.tone} />}
+      {ribbon && <CornerRibbon label={ribbon.label} title={ribbon.title} />}
       {active && <CheckMark />}
       <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
         <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
