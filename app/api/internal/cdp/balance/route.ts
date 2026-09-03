@@ -88,7 +88,7 @@ export async function GET(req: Request) {
           .insert({
             member_id: memberId,
             dreamshop_user_id: dreamshopUserId,
-            linked_via: 'explicit',
+            linked_via: 'account',
           })
           .then(
             () => undefined,

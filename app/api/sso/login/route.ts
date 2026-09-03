@@ -188,7 +188,7 @@ export async function POST(req: Request) {
         .insert({
           member_id: member.id,
           dreamshop_user_id: claims.sub,
-          linked_via: 'explicit',
+          linked_via: 'account',
         })
         .then(
           () => undefined,

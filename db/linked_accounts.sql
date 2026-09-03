@@ -8,8 +8,8 @@
 --   kakao_id : 커데매는 카카오 로그인을 자체 구현해 user_metadata.kakao_id 를
 --              저장하고, 드림샵은 auth.identities.identity_data.sub 에 같은
 --              값을 갖는다. 두 값이 같으면 같은 카카오 계정이므로 자동 연결.
---   explicit : 그 외에는 양쪽에 로그인한 상태에서 사용자가 직접 연결한다.
---              두 세션을 모두 증명하는 것이 곧 소유 증명이다.
+--   account  : 계정 서비스를 거쳐 커데매 계정이 새로 만들어지며 연결된다.
+--              (직접 연동 기능은 제거했다 — db/linked_accounts_v2.sql 참고)
 --
 -- 이메일로 매칭하지 않는 이유: 커데매 이메일은 kakao_*@kakao.internal 이라
 -- 실제 이메일이 아니고, 드림샵과 우연히 겹치면 남의 계정에 붙는다.
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.linked_accounts (
   member_id          uuid PRIMARY KEY REFERENCES public.members (id) ON DELETE CASCADE,
   -- 드림샵 auth.users.id. 다른 프로젝트라 FK 를 걸 수 없으므로 UNIQUE 로만 지킨다.
   dreamshop_user_id  uuid NOT NULL UNIQUE,
-  linked_via         text NOT NULL CHECK (linked_via IN ('kakao_id', 'explicit')),
+  linked_via         text NOT NULL CHECK (linked_via IN ('kakao_id', 'account')),
   linked_at          timestamptz NOT NULL DEFAULT now()
 );
 
@@ -30,13 +30,9 @@ CREATE INDEX IF NOT EXISTS linked_accounts_dreamshop_idx
 
 ALTER TABLE public.linked_accounts ENABLE ROW LEVEL SECURITY;
 
--- 본인 연동 상태는 본인이 확인할 수 있어야 한다 (연동 화면에서 표시)
-DROP POLICY IF EXISTS linked_accounts_read_own ON public.linked_accounts;
-CREATE POLICY linked_accounts_read_own ON public.linked_accounts
-  FOR SELECT USING (auth.uid() = member_id);
-
--- 쓰기·삭제는 서버(service_role)만. 클라이언트가 직접 넣을 수 있으면
--- 남의 드림샵 계정을 자기 계정에 붙일 수 있다.
+-- 정책을 두지 않는다 = service_role 만 접근한다.
+-- 연동은 서버가 자동으로만 만들고, 화면에서 보여 주거나 사용자가 직접
+-- 만들지 않는다. 클라이언트가 쓸 수 있으면 남의 계정에 붙일 수 있다.
 
 -- ── 1회용 토큰 재사용 차단 ────────────────────────────────────
 -- 드림샵이 발급한 토큰의 jti 를 소비 시점에 기록한다. 이미 있으면 거부.

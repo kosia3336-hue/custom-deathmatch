@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import { useBgm } from '@/components/providers/BgmProvider';
 import { isSfxMuted, setSfxMuted, subscribeSfxMuted } from '@/lib/sfxSettings';
 import { useInventoryStore } from '@/stores/inventory';
-import { AccountLinkCard } from '@/components/me/AccountLinkCard';
 
 export default function SettingsTab() {
   const router = useRouter();
@@ -40,8 +39,6 @@ export default function SettingsTab() {
           </Button>
         </div>
       </Card>
-
-      <AccountLinkCard />
 
       <NicknameModal open={openNick} onClose={() => setOpenNick(false)} onDone={() => router.refresh()} />
       <WithdrawModal open={openWithdraw} onClose={() => setOpenWithdraw(false)} />
