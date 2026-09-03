@@ -15,6 +15,13 @@ export default async function AgreementPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  /*
+    카카오 가입자에게만 마케팅 수신 동의를 보여준다.
+    발송 수단이 카카오 채널뿐이라 다른 경로로 들어온 사람에게는 받아 둘
+    곳이 없다. 계정 서비스(일반 로그인)로 들어온 계정은 provider 가 다르다.
+  */
+  const isKakao = (user.user_metadata as { provider?: string } | undefined)?.provider === 'kakao';
+
   const { data, error } = await supabase
     .from('agreement_versions')
     .select('id, kind, version, body, published_at')
@@ -43,7 +50,7 @@ export default async function AgreementPage() {
           <p className="text-sm text-cdm-fg-muted">계속하려면 아래 약관에 동의해 주세요.</p>
         </header>
 
-        <AgreementForm versions={list} />
+        <AgreementForm versions={list} showMarketing={isKakao} />
       </div>
     </main>
   );

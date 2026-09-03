@@ -24,29 +24,42 @@ const META: Record<
 
 const STORAGE_KEY = 'cdm:signup:agreed';
 
-export default function AgreementForm({ versions }: { versions: AgreementVersion[] }) {
+export default function AgreementForm({
+  versions,
+  showMarketing = true,
+}: {
+  versions: AgreementVersion[];
+  /*
+    마케팅 수신 동의는 카카오 가입자에게만 의미가 있다. 발송 수단이
+    카카오 채널뿐이라, 다른 경로로 들어온 사람에게는 받아 둘 곳이 없다.
+  */
+  showMarketing?: boolean;
+}) {
   const router = useRouter();
   const sorted = useMemo(
-    () => [...versions].sort((a, b) => META[a.kind].sortOrder - META[b.kind].sortOrder),
-    [versions],
+    () =>
+      [...versions]
+        .filter((v) => showMarketing || v.kind !== 'marketing')
+        .sort((a, b) => META[a.kind].sortOrder - META[b.kind].sortOrder),
+    [versions, showMarketing],
   );
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [age14, setAge14] = useState(false);
+  const [age12, setAge12] = useState(false);
   const [openBody, setOpenBody] = useState<AgreementVersion | null>(null);
 
   const allRequiredOk =
-    age14 &&
+    age12 &&
     sorted
       .filter((v) => META[v.kind].required)
       .every((v) => checked[`${v.kind}:${v.version}`]);
 
   const allChecked =
-    age14 &&
+    age12 &&
     sorted.every((v) => checked[`${v.kind}:${v.version}`]);
 
   function toggleAll(next: boolean) {
-    setAge14(next);
+    setAge12(next);
     const map: Record<string, boolean> = {};
     sorted.forEach((v) => (map[`${v.kind}:${v.version}`] = next));
     setChecked(map);
@@ -135,12 +148,12 @@ export default function AgreementForm({ versions }: { versions: AgreementVersion
             <label className="flex cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
-                checked={age14}
-                onChange={(e) => setAge14(e.target.checked)}
+                checked={age12}
+                onChange={(e) => setAge12(e.target.checked)}
                 className="h-4 w-4 accent-cdm-primary"
               />
               <span className="text-cdm-fg">
-                <span className="text-cdm-accent">(필수)</span> 만 14세 이상입니다
+                <span className="text-cdm-accent">(필수)</span> 만 12세 이상입니다
               </span>
             </label>
           </li>
