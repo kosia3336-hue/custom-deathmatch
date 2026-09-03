@@ -54,10 +54,17 @@ export default function LoginForm({ next, initialError }: Props) {
         return;
       }
       if (assertRes.status === 403) {
-        const d = (await assertRes.json()) as { reason?: string; agreeUrl?: string };
-        if (d.reason === 'cdm_terms_required' && d.agreeUrl) {
-          toast.info('커스텀 데스매치 약관에 동의하면 이 계정으로 들어올 수 있습니다.');
-          window.location.href = d.agreeUrl;
+        const d = (await assertRes.json()) as { reason?: string };
+        if (d.reason === 'terms_required') {
+          /*
+            계정 서비스에서 약관 동의를 아직 받지 못한 상태다.
+            로그인 창을 열어 주면 그 자리에서 동의 화면이 이어진다.
+            (운영 주소가 아니라 우리가 아는 오리진으로 보낸다 — 개발 환경에서
+             운영으로 튀어 404 가 나던 문제가 있었다)
+          */
+          toast.info('계정 서비스에서 약관 동의가 필요합니다.');
+          const back = `${window.location.origin}/login?next=${encodeURIComponent(next)}`;
+          window.location.href = `${ACCOUNT_ORIGIN}/?login=1&next=${encodeURIComponent(back)}`;
           return;
         }
         toast.error('로그인이 거부되었습니다.');
