@@ -96,6 +96,27 @@ describe('시드섯다 덱과 족보', () => {
   });
 });
 
+  it('3월과 7월이면 그림 종류와 상관없이 모두 땡잡이다', () => {
+    // 3광 + 7월 열자리 (원래 인정되던 조합)
+    expect(hand('3a', '7a').name).toBe('땡잡이');
+    // 3월 띠 + 7월 열자리 — 예전에는 망통(3+7=10)으로 빠졌다
+    expect(hand('3b', '7a').name).toBe('땡잡이');
+    expect(hand('3a', '7b').name).toBe('땡잡이');
+    expect(hand('3b', '7b').name).toBe('땡잡이');
+  });
+
+  it('암행어사와 땡잡이는 정해진 그림 조합이다', () => {
+    // 암행어사 = 4월 열자리(새) + 7월 열자리(멧돼지)
+    expect(hand('4a', '7a').name).toBe('암행어사');
+    // 4월 띠가 섞이면 암행어사가 아니다 (4+7=11 → 1끗)
+    expect(hand('4b', '7a').name).toBe('1끗');
+  });
+
+  it('두 월의 합 끝수가 9면 아홉끗이 아니라 갑오다', () => {
+    expect(hand('4a', '5a').name).toBe('갑오');
+    expect(hand('2a', '7a').name).toBe('갑오');
+  });
+
 describe('시드섯다 경기 진행', () => {
   it('시드 1장, 선 2장, 후 2장을 나누고 기본 베팅을 받는다', () => {
     const { state, first, second } = setup('seed-seotda-initial');
@@ -106,17 +127,23 @@ describe('시드섯다 경기 진행', () => {
     expect(state.deck).toHaveLength(15);
     expect(state.pot).toBe(2);
     expect(state.playerStates[first.id]).toMatchObject({ chips: 19, roundBet: 1 });
-    expect(state.currentTurnId).toBe(first.id);
+    // 패 버리기는 동시 제출이라 '누구 차례' 가 없다.
+    expect(state.currentTurnId).toBeNull();
   });
 
-  it('시드 사용 선언은 공개하지만 상대 패와 버린 패는 숨긴다', () => {
+  it('제출한 뒤에도 둘 다 낼 때까지 상대에게는 선택이 보이지 않는다', () => {
     const { io, state, first, second } = setup('seed-seotda-privacy');
     const firstCards = [...state.playerStates[first.id].cards];
     expect(
       performSeedSeotdaAction(io, state, first.id, { type: 'use-seed', discardIndex: 0 }),
     ).toBeNull();
+    // 아직 상대가 안 냈으므로 무엇을 골랐는지 감춘다.
+    expect(toSeedSeotdaGameData(state, second.id).players[first.id].seedChoice).toBe('pending');
+    // 둘 다 내면 함께 열린다.
+    performSeedSeotdaAction(io, state, second.id, { type: 'skip-seed' });
+    expect(toSeedSeotdaGameData(state, second.id).players[first.id].seedChoice).toBe('used');
+
     const secondView = toSeedSeotdaGameData(state, second.id);
-    expect(secondView.players[first.id].seedChoice).toBe('used');
     expect(secondView.players[first.id].cards).toEqual([null, null]);
     expect(secondView.players[first.id].finalHand).toEqual([null, null]);
     expect(secondView.players[first.id].evaluation).toBeNull();
@@ -127,6 +154,36 @@ describe('시드섯다 경기 진행', () => {
     expect(firstView.players[first.id].evaluation?.name).toBe(
       evaluateSeedSeotdaHand(state.playerStates[first.id].finalHand).name,
     );
+  });
+
+  it('패 버리기는 동시 제출이라 후 플레이어가 먼저 내도 받는다', () => {
+    const { io, state, first, second } = setup('seed-seotda-simultaneous');
+    // 선을 기다리지 않고 후가 먼저 낼 수 있다.
+    expect(performSeedSeotdaAction(io, state, second.id, { type: 'skip-seed' })).toBeNull();
+    expect(state.phase).toBe('seed-choice');
+    // 같은 사람이 두 번 낼 수는 없다.
+    expect(performSeedSeotdaAction(io, state, second.id, { type: 'skip-seed' })).toBe(
+      '이미 제출했습니다.',
+    );
+    expect(performSeedSeotdaAction(io, state, first.id, { type: 'skip-seed' })).toBeNull();
+    expect(state.phase).toBe('betting');
+    expect(state.currentTurnId).toBe(state.firstPlayerId);
+  });
+
+  it('제한시간이 지나면 아직 안 낸 사람만 버리지 않은 것으로 처리한다', async () => {
+    vi.useFakeTimers();
+    roomIds.add('seed-seotda-timeout');
+    const io = ioStub();
+    const first = player('first', '첫 번째');
+    const second = player('second', '두 번째');
+    initSeedSeotda(io, 'seed-seotda-timeout', [first, second], 'multi', Date.now(), 30, vi.fn());
+    const state = seedSeotdaStates.get('seed-seotda-timeout')!;
+    performSeedSeotdaAction(io, state, first.id, { type: 'use-seed', discardIndex: 1 });
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(state.playerStates[first.id].seedChoice).toBe('used');
+    expect(state.playerStates[second.id].seedChoice).toBe('unused');
+    expect(state.phase).toBe('betting');
   });
 
   it('양쪽 시드 선택 뒤 선 플레이어가 베팅하고 상대가 콜하면 승부한다', () => {

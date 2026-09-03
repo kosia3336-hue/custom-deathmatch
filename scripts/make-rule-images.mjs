@@ -125,10 +125,10 @@ const BASIC = [
 ];
 
 const SPECIAL = [
-  ['암행어사', [card(4), card(7)], '광땡을 이긴다 (삼팔광땡은 제외) · 그 밖에는 1끗'],
-  ['땡잡이', [card(3), card(7)], '삥땡~9땡을 이긴다 · 장땡과 광땡은 이기지 못한다'],
+  ['암행어사', [card(4), card(7)], '4월 열자리 + 7월 열자리 · 광땡을 이긴다(삼팔광땡 제외)'],
+  ['땡잡이', [card(3), card(7)], '3월 + 7월이면 그림과 상관없이 모두 · 삥땡~9땡을 이긴다'],
   ['구사', [card(4, 'b'), card(9, 'b')], '상대가 땡 이상이면 패배 · 그 밖이면 재경기'],
-  ['멍텅구리 구사', [card(4), card(9)], '상대가 광땡이면 패배 · 그 밖이면 재경기'],
+  ['멍텅구리 구사', [card(4), card(9)], '4월·9월 열자리 · 상대가 광땡이면 패배, 그 밖이면 재경기'],
 ];
 
 function seotdaRankImage() {
@@ -150,8 +150,29 @@ function seotdaRankImage() {
     const file = join(tmp, `c${idx}.png`);
     const x = (idx % SPRITE_COLS) * CARD_W;
     const y = Math.floor(idx / SPRITE_COLS) * CARD_H;
+    /*
+      월을 왼쪽 위에 배지로 얹는다. 게임 화면의 카드와 같은 표시라, 표를 보고
+      판에서 카드를 찾을 때 그림이 아니라 숫자로 바로 맞출 수 있다.
+    */
+    const month = Math.floor(idx / 2) + 1;
+    const card = join(tmp, `raw${idx}.png`);
     magick([SPRITE, '-crop', `${CARD_W}x${CARD_H}+${x}+${y}`, '+repage',
-      '-resize', `${CW}x${CH}!`, file]);
+      '-resize', `${CW}x${CH}!`, card]);
+    /*
+      배지는 따로 만들어 얹는다. 원과 숫자를 한 번에 그리면 -draw 와 -annotate 의
+      기준점이 달라 숫자가 원 밖으로 밀린다. 가운데 정렬은 gravity Center 가 정확하다.
+    */
+    const d = Math.round(CW * 0.3);
+    const badge = join(tmp, `badge${month}.png`);
+    magick([
+      '-size', `${d}x${d}`, 'xc:none',
+      '-fill', 'rgba(17,19,24,0.82)', '-draw', `circle ${d / 2},${d / 2} ${d / 2},0`,
+      '-font', KR_FONT, '-pointsize', String(Math.round(d * 0.62)),
+      '-fill', 'white', '-gravity', 'Center', '-annotate', '+0+0', String(month),
+      badge,
+    ]);
+    const pad = Math.round(CW * 0.05);
+    magick([card, badge, '-geometry', `+${pad}+${pad}`, '-composite', file]);
     cropped.set(idx, file);
   }
 
@@ -213,7 +234,7 @@ function seotdaRankImage() {
   section('특수 족보 — 상대 패에 따라 판정이 달라진다');
   SPECIAL.forEach((r, i) => row(r, i, SPECIAL.length));
   wrap(
-    '그림 종류(광·열끗·띠)는 위 조합을 가릴 때만 쓰이며, 같은 족보 안에서 그림에 따른 우열은 없다.',
+    '그림 종류(광·열자리·띠)는 위 조합을 가릴 때만 쓰이며, 같은 족보 안에서 그림에 따른 우열은 없다.',
     20,
     W - PAD * 2 - 16,
   ).forEach((line, i) => {

@@ -1,4 +1,5 @@
 .card {
+  position: relative;
   display: inline-block;
   flex: none;
   aspect-ratio: 190 / 294;
@@ -36,4 +37,35 @@
   .lg {
     width: 5.5rem;
   }
+}
+
+/*
+  월 표시 — 카드 왼쪽 위.
+
+  글자만 얹으면 화투 그림이 밝은 자리에서는 흰 글자가 묻힌다. 어두운 배지를
+  깔아 어떤 그림 위에서도 읽히게 한다. 크기는 카드 폭에 비례시켜(cqw) 어느
+  크기로 써도 같은 비율로 보이게 한다.
+*/
+.card {
+  container-type: inline-size;
+}
+
+.month {
+  position: absolute;
+  top: 5cqw;
+  left: 5cqw;
+  display: flex;
+  min-width: 30cqw;
+  height: 30cqw;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 3cqw;
+  border-radius: 999px;
+  background: rgba(17, 19, 24, 0.82);
+  color: #fff;
+  font-size: 20cqw;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
 }

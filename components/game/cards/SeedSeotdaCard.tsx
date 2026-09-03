@@ -35,6 +35,11 @@ export default function SeedSeotdaCard({
     backgroundPosition: `${(column / (COLUMNS - 1)) * 100}% ${(row / (ROWS - 1)) * 100}%`,
   };
 
+  /*
+    월을 왼쪽 위에 겹쳐 적는다. 화투 그림만으로는 몇 월인지 바로 안 읽히는데,
+    섯다는 월의 조합으로 족보가 정해지므로 숫자가 보여야 한다.
+    뒷면에는 적지 않는다.
+  */
   return (
     <span
       role="img"
@@ -42,6 +47,8 @@ export default function SeedSeotdaCard({
       className={cn(styles.card, styles[size], className)}
       style={style}
       data-card-id={isFace ? card?.id : 'back'}
-    />
+    >
+      {isFace && card && <span className={styles.month}>{card.month}</span>}
+    </span>
   );
 }

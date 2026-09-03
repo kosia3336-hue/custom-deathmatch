@@ -39,11 +39,8 @@ export function evaluateSeedSeotdaHand(cards: SeedSeotdaCard[]): SeedSeotdaEvalu
   if (bothAnimal && hasMonths(months, 4, 7)) {
     return evaluation('amhaeng-eosa', '암행어사', 201, null, 1);
   }
-  if (
-    hasMonths(months, 3, 7) &&
-    cards.some((card) => card.month === 3 && card.kind === 'bright') &&
-    cards.some((card) => card.month === 7 && card.kind === 'animal')
-  ) {
+  // 3월과 7월이면 그림 종류와 상관없이 모두 땡잡이다.
+  if (hasMonths(months, 3, 7)) {
     return evaluation('ddaeng-jabi', '땡잡이', 200, null, 0);
   }
   if (bothAnimal && hasMonths(months, 4, 9)) {

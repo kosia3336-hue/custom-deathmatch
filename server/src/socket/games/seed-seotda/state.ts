@@ -138,7 +138,12 @@ export function toSeedSeotdaGameData(
                 : ownCards
                   ? internal.finalHand.map(cloneCard)
                   : internal.finalHand.map(() => null),
-            seedChoice: internal.seedChoice,
+            /*
+              고르는 동안에는 상대가 무엇을 골랐는지 감춘다. 동시에 내고 둘 다
+              내면 함께 열리는 방식이라, 먼저 낸 쪽의 선택이 새면 안 된다.
+            */
+            seedChoice:
+              state.phase === 'seed-choice' && !ownCards ? 'pending' : internal.seedChoice,
             evaluation: publicEvaluation
               ? cloneEvaluation(publicEvaluation)
               : privateEvaluation

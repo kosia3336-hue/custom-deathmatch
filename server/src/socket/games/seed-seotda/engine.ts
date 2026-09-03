@@ -126,8 +126,48 @@ function scheduleDecision(io: IO, state: SeedSeotdaState) {
   }
 }
 
+/*
+  패 버리기 단계는 동시 제출이다. 차례를 넘기지 않고 둘 다 낼 때까지 기다리므로
+  제한시간도 사람마다가 아니라 단계 하나에 한 번만 건다. 시간이 다 되면 아직
+  안 낸 사람은 '버리지 않음' 으로 처리한다.
+*/
+function scheduleSeedChoice(io: IO, state: SeedSeotdaState) {
+  clearDecisionTimers(state);
+  if (state.gameOver || state.phase !== 'seed-choice') return;
+  state.turnStartedAt = Date.now();
+  const pending = state.players.filter(
+    (player) => state.playerStates[player.id].seedChoice === 'pending',
+  );
+  if (pending.length === 0) return;
+
+  if (state.turnSeconds != null) {
+    state.turnTimer = setTimeout(() => {
+      if (seedSeotdaStates.get(state.roomId) !== state || state.gameOver) return;
+      if (state.phase !== 'seed-choice') return;
+      for (const player of state.players) {
+        if (state.playerStates[player.id].seedChoice === 'pending') {
+          performSeedSeotdaAction(io, state, player.id, { type: 'skip-seed' });
+        }
+      }
+    }, state.turnSeconds * 1000);
+  }
+
+  if (state.playMode === 'com' && pending.some((player) => player.id === AI_PLAYER_ID)) {
+    const delay =
+      SEED_SEOTDA_AI_DELAY_MIN_MS +
+      Math.random() * (SEED_SEOTDA_AI_DELAY_MAX_MS - SEED_SEOTDA_AI_DELAY_MIN_MS);
+    state.aiTimer = setTimeout(() => {
+      if (seedSeotdaStates.get(state.roomId) !== state || state.gameOver) return;
+      if (state.phase !== 'seed-choice') return;
+      if (state.playerStates[AI_PLAYER_ID].seedChoice !== 'pending') return;
+      performSeedSeotdaAction(io, state, AI_PLAYER_ID, chooseSeedSeotdaAiAction(state));
+    }, delay);
+  }
+}
+
 function publishDecision(io: IO, state: SeedSeotdaState) {
-  scheduleDecision(io, state);
+  if (state.phase === 'seed-choice') scheduleSeedChoice(io, state);
+  else scheduleDecision(io, state);
   void broadcastSeedSeotdaState(io, state);
 }
 
@@ -171,7 +211,8 @@ export function beginSeedSeotdaRound(io: IO, state: SeedSeotdaState) {
   state.lastRoundResult = null;
   state.roundStartedAt = Date.now();
   state.phase = 'seed-choice';
-  state.currentTurnId = state.firstPlayerId;
+  // 동시 제출이라 '누구 차례' 가 없다.
+  state.currentTurnId = null;
   publishDecision(io, state);
 }
 
@@ -330,13 +371,16 @@ function performSeedChoice(
     player.discardIndex = null;
   }
 
-  const nextId = otherSeedSeotdaPlayerId(state, playerId);
-  if (state.playerStates[nextId].seedChoice === 'pending') {
-    state.currentTurnId = nextId;
-    publishDecision(io, state);
-  } else {
-    startBetting(io, state);
+  const opponentId = otherSeedSeotdaPlayerId(state, playerId);
+  if (state.playerStates[opponentId].seedChoice === 'pending') {
+    /*
+      아직 안 낸 사람이 있으면 화면만 갱신한다. 여기서 다시 스케줄하면 제한시간이
+      먼저 낸 쪽 때문에 늘어난다.
+    */
+    void broadcastSeedSeotdaState(io, state);
+    return null;
   }
+  startBetting(io, state);
   return null;
 }
 
@@ -439,13 +483,17 @@ export function performSeedSeotdaAction(
   playerId: string,
   action: SeedSeotdaAction,
 ): string | null {
-  if (state.gameOver || state.currentTurnId !== playerId) return '현재 행동 차례가 아닙니다.';
+  if (state.gameOver) return '현재 행동 차례가 아닙니다.';
   if (state.phase === 'seed-choice') {
+    // 동시 제출이라 차례를 따지지 않는다. 아직 안 낸 사람만 낼 수 있다.
+    if (!state.playerStates[playerId]) return '현재 행동 차례가 아닙니다.';
+    if (state.playerStates[playerId].seedChoice !== 'pending') return '이미 제출했습니다.';
     if (action.type !== 'use-seed' && action.type !== 'skip-seed') {
-      return '시드 사용 여부를 먼저 결정해 주세요.';
+      return '버릴 패를 고르거나 버리지 않기를 선택해 주세요.';
     }
     return performSeedChoice(io, state, playerId, action);
   }
+  if (state.currentTurnId !== playerId) return '현재 행동 차례가 아닙니다.';
   if (state.phase === 'betting') {
     if (!['bet', 'call', 'raise', 'die'].includes(action.type)) {
       return '현재 베팅 단계에서 할 수 없는 행동입니다.';
