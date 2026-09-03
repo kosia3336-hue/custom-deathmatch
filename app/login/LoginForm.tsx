@@ -124,6 +124,14 @@ export default function LoginForm({ next, initialError }: Props) {
       const data = (await res.json()) as { ok?: boolean; error?: string };
 
       if (!res.ok || !data.ok) {
+        if (data.error === 'use_kakao_login') {
+          /*
+            같은 카카오 계정의 커데매 회원이 이미 있다. 새 계정을 만들지 않고
+            연동만 해 뒀으니, 원래 쓰던 카카오 로그인으로 들어가면 된다.
+          */
+          toast.info('이미 같은 카카오 계정이 있어 연동했습니다. 카카오로 시작을 눌러 주세요.');
+          return;
+        }
         const MESSAGES: Record<string, string> = {
           account_not_active: '이용이 제한된 계정입니다.',
           token_already_used: '로그인 정보가 만료되었습니다. 다시 시도해 주세요.',

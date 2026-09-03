@@ -83,6 +83,53 @@ export async function POST(req: Request) {
     }
   }
 
+  /*
+    카카오 계정이 같으면 기존 커데매 회원으로 들어간다.
+
+    커데매는 카카오 로그인을 자체 구현해 kakao_<카카오ID>@kakao.internal 로
+    계정을 만든다. 계정 서비스가 보낸 kakao_id 가 같다면 같은 사람이므로,
+    새 계정을 만들면 전적·CDP·칭호가 딸린 원래 계정과 갈라진다.
+  */
+
+  if (!link && claims.kakao_id) {
+    const kakaoEmail = `kakao_${claims.kakao_id}@kakao.internal`;
+    const { data: list } = await admin.auth.admin.listUsers();
+    const existing = (list?.users ?? []).find(
+      (u: { email?: string }) => u.email === kakaoEmail,
+    );
+    if (existing) {
+      /*
+        기존 카카오 계정의 비밀번호는 커데매가 서비스 롤 키로 파생한 값이라
+        여기서는 알 수 없다. 대신 연동 기록만 만들어 두고, 로그인은 카카오로
+        하도록 안내한다 — 비밀번호를 새로 덮어쓰면 기존 로그인이 깨진다.
+      */
+      const { data: member } = await admin
+        .from('members')
+        .select('id')
+        .eq('id', existing.id)
+        .maybeSingle();
+
+      if (member) {
+        await admin
+          .from('linked_accounts')
+          .insert({
+            member_id: member.id,
+            dreamshop_user_id: claims.sub,
+            linked_via: 'kakao_id',
+          })
+          .then(
+            () => undefined,
+            () => undefined,
+          );
+
+        return NextResponse.json(
+          { error: 'use_kakao_login', linked: true },
+          { status: 409 },
+        );
+      }
+    }
+  }
+
   const { email, password } = deriveCredentials(claims.sub);
 
   const response = NextResponse.json({ ok: true, linked: Boolean(link) });
