@@ -19,7 +19,8 @@ export type SkinTheme =
   | 'showdown'
   | 'meow'
   | 'candy'
-  | 'treasury';
+  | 'treasury'
+  | 'four-card';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -92,6 +93,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'treasury',
     description: '한밤의 비밀 금고. 황동 장부와 가상 지폐 위에서 펼쳐지는 은행가의 심리전.',
     swatch: 'linear-gradient(135deg, #07111d 0%, #12382f 48%, #b8873f 100%)',
+  },
+  'skin-g017-01': {
+    id: 'skin-g017-01',
+    gameId: GAME_IDS.QUATRO,
+    name: '포카드',
+    theme: 'four-card',
+    description: '에메랄드 펠트 위의 클래식 카지노. 트럼프 카드와 달빛 조커로 완성하는 콰트로.',
+    swatch: 'linear-gradient(135deg, #061b16 0%, #0d4638 52%, #8e5d2d 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',

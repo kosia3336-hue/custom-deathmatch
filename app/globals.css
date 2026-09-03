@@ -6345,3 +6345,344 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ──────────────────────────────────────────────
+   게임 스킨 — 포카드 (콰트로 / skin-g017-01)
+   카드 숫자·문양은 DOM으로 유지하고 조커·뒷면·펠트만 래스터를 사용한다.
+   ────────────────────────────────────────────── */
+
+.skin-bg-four-card {
+  background-color: #03130f;
+  background-image:
+    radial-gradient(circle at 50% 22%, rgba(33, 112, 86, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(0, 8, 6, 0.12), rgba(0, 7, 5, 0.56)),
+    url('/skins/four-card/felt-background.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.skin-four-card-table {
+  --fc-felt: #082c22;
+  --fc-felt-deep: #041b15;
+  --fc-panel: rgba(5, 30, 23, 0.92);
+  --fc-panel-soft: rgba(8, 42, 32, 0.9);
+  --fc-brass: #b88947;
+  --fc-brass-bright: #e3bd75;
+  --fc-brass-dark: #6c4b28;
+  --fc-ivory: #f7efd9;
+  --fc-muted: #c6bfae;
+  isolation: isolate;
+  color: var(--fc-ivory);
+}
+
+.skin-four-card-table :is(.text-cdm-fg, .text-cdm-primary) {
+  color: var(--fc-ivory) !important;
+}
+
+.skin-four-card-table :is(.text-cdm-fg-muted, .text-cdm-fg-subtle) {
+  color: var(--fc-muted) !important;
+}
+
+.skin-four-card-table .quatro-status {
+  border-color: rgba(184, 137, 71, 0.7) !important;
+  color: var(--fc-ivory) !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(227, 189, 117, 0.06), transparent),
+    linear-gradient(180deg, rgba(8, 43, 33, 0.96), rgba(3, 23, 18, 0.96)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.05),
+    0 10px 24px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.015em;
+}
+
+.skin-four-card-table .quatro-panel {
+  border-color: rgba(184, 137, 71, 0.54) !important;
+  background: linear-gradient(150deg, var(--fc-panel-soft), var(--fc-panel)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.045),
+    inset 0 0 0 1px rgba(31, 88, 67, 0.24),
+    0 16px 30px rgba(0, 0, 0, 0.2);
+}
+
+.skin-four-card-table .quatro-vp-panel {
+  background: linear-gradient(150deg, rgba(7, 37, 29, 0.95), rgba(3, 25, 19, 0.96)) !important;
+}
+
+.skin-four-card-table .quatro-vp-seat {
+  min-width: 0;
+  border-color: rgba(184, 137, 71, 0.38) !important;
+  color: var(--fc-ivory);
+  background: linear-gradient(155deg, rgba(11, 52, 40, 0.94), rgba(4, 27, 21, 0.94)) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.skin-four-card-table .quatro-vp-seat > div {
+  max-width: 100%;
+  justify-content: center;
+}
+
+.skin-four-card-table .quatro-vp-seat--selectable:hover {
+  border-color: var(--fc-brass-bright) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(227, 189, 117, 0.3);
+}
+
+.skin-four-card-table .quatro-vp-seat--selected {
+  border-color: var(--fc-brass-bright) !important;
+  background: linear-gradient(155deg, rgba(25, 72, 53, 0.98), rgba(8, 38, 28, 0.98)) !important;
+  box-shadow:
+    inset 0 0 18px rgba(227, 189, 117, 0.09),
+    0 0 0 1px rgba(227, 189, 117, 0.34);
+}
+
+.skin-four-card-table .quatro-vp-seat--used {
+  filter: saturate(0.72);
+}
+
+.skin-four-card-table .quatro-action-btn {
+  border-color: var(--fc-brass) !important;
+  color: #f9e7bd !important;
+  background: linear-gradient(180deg, #174e3d, #0a3025) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.08),
+    0 7px 14px rgba(0, 0, 0, 0.2);
+}
+
+.skin-four-card-table .quatro-action-btn:hover:not(:disabled) {
+  border-color: var(--fc-brass-bright) !important;
+  background: linear-gradient(180deg, #1d624c, #0c3d2e) !important;
+}
+
+.skin-four-card-table .quatro-action-btn:disabled {
+  filter: saturate(0.55);
+}
+
+.skin-four-card-table .quatro-result {
+  border-color: var(--fc-brass-bright) !important;
+}
+
+/* 카드 공통 — 스킨 프리뷰에서도 같은 컴포넌트를 재사용한다. */
+.skin-four-card-card {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  aspect-ratio: 3 / 4;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(91, 62, 31, 0.88);
+  border-radius: 0.4rem;
+  outline: 1px solid rgba(255, 255, 255, 0.28);
+  outline-offset: -2px;
+  color: #2a2118;
+  background-color: #fbf5e8;
+  box-shadow:
+    0 2px 0 rgba(51, 31, 15, 0.55),
+    0 5px 10px rgba(0, 0, 0, 0.24),
+    inset 0 0 10px rgba(119, 83, 40, 0.08);
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1;
+  vertical-align: middle;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.skin-four-card-card--md {
+  width: clamp(2.75rem, 12vw, 3rem);
+  font-size: 0.78rem;
+}
+
+.skin-four-card-card--sm {
+  width: clamp(1.28rem, 7vw, 2.25rem);
+  border-radius: 0.32rem;
+  font-size: clamp(0.48rem, 1.8vw, 0.66rem);
+}
+
+.skin-four-card-card--face {
+  background-image:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(236, 222, 193, 0.22)),
+    repeating-linear-gradient(0deg, rgba(100, 72, 37, 0.018) 0 1px, transparent 1px 3px);
+}
+
+.skin-four-card-card--spade {
+  color: #17457c;
+}
+
+.skin-four-card-card--diamond {
+  color: #ae7829;
+}
+
+.skin-four-card-card--heart {
+  color: #b42c36;
+}
+
+.skin-four-card-card--club {
+  color: #237146;
+}
+
+.skin-four-card-card--black {
+  color: #241e19;
+}
+
+.skin-four-card-corner {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.02em;
+  font-weight: 700;
+  line-height: 0.82;
+  text-shadow: 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.skin-four-card-corner--top {
+  top: 0.23rem;
+  left: 0.22rem;
+}
+
+.skin-four-card-corner--bottom {
+  right: 0.22rem;
+  bottom: 0.23rem;
+  transform: rotate(180deg);
+}
+
+.skin-four-card-card--sm .skin-four-card-corner {
+  font-size: 0.82em;
+}
+
+.skin-four-card-card--sm .skin-four-card-corner--top {
+  top: 0.16rem;
+  left: 0.14rem;
+}
+
+.skin-four-card-card--sm .skin-four-card-corner--bottom {
+  right: 0.14rem;
+  bottom: 0.16rem;
+}
+
+.skin-four-card-suit {
+  font-size: 1.8em;
+  filter: drop-shadow(0 1px rgba(255, 255, 255, 0.55));
+}
+
+.skin-four-card-joker {
+  width: 78%;
+  height: 72%;
+  background-image: url('/skins/four-card/joker-moon.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: contrast(1.08);
+}
+
+.skin-four-card-card--sm .skin-four-card-joker {
+  width: 82%;
+  height: 76%;
+}
+
+.skin-four-card-card--back {
+  border-color: #7a4f27;
+  outline-color: rgba(247, 221, 164, 0.42);
+  background-color: #671c1a;
+  background-image: url('/skins/four-card/card-back.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.skin-four-card-card--selected {
+  z-index: 3;
+  transform: translateY(-0.28rem);
+  box-shadow:
+    0 0 0 2px #e6c27d,
+    0 0 0 4px rgba(230, 194, 125, 0.25),
+    0 9px 17px rgba(0, 0, 0, 0.34);
+}
+
+.skin-four-card-card--clickable {
+  cursor: pointer;
+}
+
+.skin-four-card-card--clickable:hover {
+  transform: translateY(-0.14rem);
+  box-shadow:
+    0 0 0 1px rgba(230, 194, 125, 0.72),
+    0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.skin-four-card-card--selected.skin-four-card-card--clickable:hover {
+  transform: translateY(-0.28rem);
+}
+
+.skin-four-card-card--dimmed {
+  opacity: 0.48;
+  filter: saturate(0.55);
+}
+
+.skin-four-card-badge {
+  position: absolute;
+  z-index: 4;
+  top: -1.05rem;
+  left: 50%;
+  padding: 0.16rem 0.38rem;
+  border: 1px solid rgba(227, 189, 117, 0.72);
+  border-radius: 999px;
+  color: #f7efd9;
+  background: #173d31;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1.05rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.skin-four-card-preview {
+  background-color: #052219;
+  background-image:
+    linear-gradient(180deg, rgba(1, 12, 9, 0.08), rgba(1, 10, 8, 0.38)),
+    url('/skins/four-card/felt-background.webp');
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(184, 137, 71, 0.38);
+}
+
+@media (max-width: 520px) {
+  .skin-four-card-table {
+    gap: 0.7rem;
+    padding: 0.5rem;
+  }
+
+  .skin-four-card-table .quatro-panel,
+  .skin-four-card-table .quatro-vp-panel {
+    padding: 0.55rem;
+  }
+
+  .skin-four-card-table .quatro-vp-panel > .grid {
+    gap: 0.25rem;
+  }
+
+  .skin-four-card-table .quatro-vp-seat {
+    gap: 0.2rem;
+    padding: 0.35rem 0.08rem;
+  }
+
+  .skin-four-card-badge {
+    top: -0.78rem;
+    padding-inline: 0.24rem;
+    font-size: 0.46rem;
+    line-height: 0.82rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-four-card-card {
+    transition: none;
+  }
+}

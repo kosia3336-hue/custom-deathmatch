@@ -26,6 +26,7 @@ import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
 
 export type EndGameFn = (
@@ -534,6 +535,7 @@ function buildGameState(s: QuatroState, gameData: QuatroGameData): GameState {
     startedAt: s.startedAt,
     turnStartedAt: s.turnStartedAt,
     gameData: gameData as unknown as Record<string, unknown>,
+    activeSkin: getActiveSkin(s.roomId),
   };
 }
 

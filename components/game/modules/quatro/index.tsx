@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
+import { getSkinTheme } from '@/lib/skins/registry';
 import { cn } from '@/lib/utils';
+import { GAME_IDS } from '@/shared/types/game';
 import {
   QUATRO_MAX_MULLIGANS,
   QUATRO_VP_COUNT,
@@ -13,6 +15,7 @@ import {
   type QuatroGameData,
   type QuatroSuit,
 } from '@/shared/types/quatro';
+import FourCardCard from './skins/FourCardCard';
 
 /* ── 카드 표현: 문양 + 색 (스=파랑, 다=노랑, 하=빨강, 클=초록, 검정0) ── */
 
@@ -31,6 +34,7 @@ function CardFace({
   dimmed,
   onClick,
   badge,
+  fourCard,
 }: {
   card: QuatroCard | null;
   size?: 'sm' | 'md';
@@ -38,7 +42,21 @@ function CardFace({
   dimmed?: boolean;
   onClick?: () => void;
   badge?: string;
+  fourCard?: boolean;
 }) {
+  if (fourCard) {
+    return (
+      <FourCardCard
+        card={card}
+        size={size}
+        selected={selected}
+        dimmed={dimmed}
+        onClick={onClick}
+        badge={badge}
+      />
+    );
+  }
+
   const sz = size === 'sm' ? 'h-12 w-9 text-sm' : 'h-16 w-12 text-lg';
   if (!card) {
     return (
@@ -94,6 +112,8 @@ export default function QuatroGame() {
   const opp = gameData?.opp;
   const isMyTurn = gameData?.currentTurnId === myId;
   const phase = gameData?.phase;
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.QUATRO);
+  const isFourCard = skin === 'four-card';
 
   // 페이즈 바뀌면 선택 초기화
   useEffect(() => {
@@ -131,9 +151,9 @@ export default function QuatroGame() {
   const myClosedCards = me?.hand.filter((h) => h.card && !h.open) ?? [];
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 sm:p-4">
+    <div className={cn('mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 sm:p-4', isFourCard && 'skin-four-card-table')}>
       {/* 상태 배너 */}
-      <div className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-center text-sm font-semibold text-cdm-fg">
+      <div className="quatro-status rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-center text-sm font-semibold text-cdm-fg">
         {phase === 'mulligan' && (isMyTurn ? '멀리건을 사용할까요?' : '상대가 멀리건을 결정 중…')}
         {phase === 'open' &&
           (me && !gameData.iOpened ? `${gameData.round}번째로 오픈할 카드를 선택하세요` : '상대의 오픈을 기다리는 중…')}
@@ -148,7 +168,7 @@ export default function QuatroGame() {
 
       {/* 상대 */}
       {opp && (
-        <section className="rounded-cdm-lg border border-cdm-border bg-cdm-bg p-3">
+        <section className="quatro-panel rounded-cdm-lg border border-cdm-border bg-cdm-bg p-3">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-semibold text-cdm-fg">
               {opp.nickname}
@@ -161,14 +181,14 @@ export default function QuatroGame() {
           </div>
           <div className="flex gap-2 pt-3">
             {opp.hand.map((h, i) => (
-              <CardFace key={i} card={h.card} badge={h.open ? '공개' : undefined} />
+              <CardFace key={i} card={h.card} badge={h.open ? '공개' : undefined} fourCard={isFourCard} />
             ))}
           </div>
         </section>
       )}
 
       {/* 가상 플레이어 6명 */}
-      <section className="rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 p-3">
+      <section className="quatro-panel quatro-vp-panel rounded-cdm-lg border border-cdm-border bg-cdm-bg-elev-1 p-3">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-cdm-fg-subtle">가상 플레이어</p>
         <div className="grid grid-cols-3 gap-2">
           {gameData.vps.map((vp) => {
@@ -181,13 +201,13 @@ export default function QuatroGame() {
                 disabled={!selectable}
                 onClick={() => setSelectedVp(vp.index)}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-cdm-md border p-2 transition-colors',
+                  'quatro-vp-seat flex flex-col items-center gap-1 rounded-cdm-md border p-2 transition-colors',
                   selectedVp === vp.index
-                    ? 'border-cdm-primary bg-cdm-primary-soft'
+                    ? 'quatro-vp-seat--selected border-cdm-primary bg-cdm-primary-soft'
                     : vp.usedByMe
-                      ? 'border-cdm-border bg-cdm-bg-elev-2 opacity-50'
+                      ? 'quatro-vp-seat--used border-cdm-border bg-cdm-bg-elev-2 opacity-50'
                       : 'border-cdm-border bg-cdm-bg',
-                  selectable && 'cursor-pointer hover:border-cdm-primary',
+                  selectable && 'quatro-vp-seat--selectable cursor-pointer hover:border-cdm-primary',
                 )}
               >
                 <span className="text-[11px] font-bold text-cdm-fg">
@@ -202,14 +222,14 @@ export default function QuatroGame() {
                 <div className="flex gap-0.5">
                   {vp.cards ? (
                     /* 관전자 — 가상 플레이어 패 전체 공개 */
-                    vp.cards.map((c) => <CardFace key={c.id} card={c} size="sm" />)
+                    vp.cards.map((c) => <CardFace key={c.id} card={c} size="sm" fourCard={isFourCard} />)
                   ) : (
                     <>
                       {vp.receivedOpen.map((c) => (
-                        <CardFace key={c.id} card={c} size="sm" />
+                        <CardFace key={c.id} card={c} size="sm" fourCard={isFourCard} />
                       ))}
                       {Array.from({ length: vp.hiddenCount }).map((_, i) => (
-                        <CardFace key={`h-${i}`} card={null} size="sm" />
+                        <CardFace key={`h-${i}`} card={null} size="sm" fourCard={isFourCard} />
                       ))}
                     </>
                   )}
@@ -222,7 +242,7 @@ export default function QuatroGame() {
 
       {/* 내 손패 */}
       {me && (
-        <section className="rounded-cdm-lg border border-cdm-border bg-cdm-bg p-3">
+        <section className="quatro-panel rounded-cdm-lg border border-cdm-border bg-cdm-bg p-3">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-semibold text-cdm-fg">
               내 카드
@@ -246,6 +266,7 @@ export default function QuatroGame() {
                   dimmed={phase === 'exchange' && h.open}
                   badge={h.open ? '공개' : undefined}
                   onClick={clickable ? () => setSelectedCardId(h.card!.id) : undefined}
+                  fourCard={isFourCard}
                 />
               );
             })}
@@ -306,7 +327,7 @@ export default function QuatroGame() {
 
       {/* 결과 */}
       {gameData.result && (
-        <section className="rounded-cdm-lg border-2 border-cdm-primary bg-cdm-primary-soft/40 p-4">
+        <section className="quatro-panel quatro-result rounded-cdm-lg border-2 border-cdm-primary bg-cdm-primary-soft/40 p-4">
           <p className="mb-3 text-center text-base font-bold text-cdm-fg">
             {gameData.result.winnerId
               ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리 — ${gameData.result.reason}`
@@ -324,7 +345,7 @@ export default function QuatroGame() {
                 </span>
                 <div className="flex gap-1.5">
                   {cards.map((c) => (
-                    <CardFace key={c.id} card={c} size="sm" />
+                    <CardFace key={c.id} card={c} size="sm" fourCard={isFourCard} />
                   ))}
                 </div>
               </div>
@@ -353,7 +374,7 @@ function ActionBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'rounded-cdm-md px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-40',
+        'quatro-action-btn rounded-cdm-md px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-40',
         variant === 'primary'
           ? 'border border-cdm-primary bg-cdm-primary text-white hover:bg-cdm-primary-strong'
           : 'border border-cdm-primary bg-cdm-bg text-cdm-primary hover:bg-cdm-primary-soft',
