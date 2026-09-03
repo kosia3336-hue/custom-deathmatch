@@ -45,21 +45,16 @@ export default function AgreementForm({
   );
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [age12, setAge12] = useState(false);
   const [openBody, setOpenBody] = useState<AgreementVersion | null>(null);
 
   const allRequiredOk =
-    age12 &&
     sorted
       .filter((v) => META[v.kind].required)
       .every((v) => checked[`${v.kind}:${v.version}`]);
 
-  const allChecked =
-    age12 &&
-    sorted.every((v) => checked[`${v.kind}:${v.version}`]);
+  const allChecked = sorted.every((v) => checked[`${v.kind}:${v.version}`]);
 
   function toggleAll(next: boolean) {
-    setAge12(next);
     const map: Record<string, boolean> = {};
     sorted.forEach((v) => (map[`${v.kind}:${v.version}`] = next));
     setChecked(map);
@@ -144,19 +139,6 @@ export default function AgreementForm({
             </li>
           ))}
 
-          <li>
-            <label className="flex cursor-pointer items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={age12}
-                onChange={(e) => setAge12(e.target.checked)}
-                className="h-4 w-4 accent-cdm-primary"
-              />
-              <span className="text-cdm-fg">
-                <span className="text-cdm-accent">(필수)</span> 만 12세 이상입니다
-              </span>
-            </label>
-          </li>
         </ul>
       </Card>
 
