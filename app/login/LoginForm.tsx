@@ -44,9 +44,13 @@ export default function LoginForm({ next, initialError }: Props) {
       });
 
       if (assertRes.status === 401) {
-        // 계정 서비스에 로그인해야 한다 — 로그인 후 여기로 돌아온다
+        /*
+          계정 서비스에 로그인해야 한다. 홈만 띄우면 무엇을 해야 할지 알 수
+          없으므로 ?login=1 로 로그인 창이 바로 열리게 한다. 계정 서비스에는
+          이메일 가입이 있으므로, 계정이 없는 사람도 거기서 만들 수 있다.
+        */
         const back = `${window.location.origin}/login?next=${encodeURIComponent(next)}`;
-        window.location.href = `${ACCOUNT_ORIGIN}/?next=${encodeURIComponent(back)}`;
+        window.location.href = `${ACCOUNT_ORIGIN}/?login=1&next=${encodeURIComponent(back)}`;
         return;
       }
       if (assertRes.status === 403) {
