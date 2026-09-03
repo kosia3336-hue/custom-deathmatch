@@ -33,6 +33,12 @@
   --cdm-highlight-strong: #d97706;
   --cdm-highlight-soft: #fef3c7;
 
+  /* 랭크 종목 표시용 금색.
+     highlight(앰버)는 1위·주의가 임자라 랭크와 뜻이 겹친다. 따로 둔다. */
+  --cdm-rank: #eab308;
+  --cdm-rank-strong: #ca8a04;
+  --cdm-rank-soft: #fef9c3;
+
   /* ?쒕㎤??*/
   --cdm-success: #22c55e;
   --cdm-success-soft: #dcfce7;
@@ -159,6 +165,9 @@
   --color-cdm-highlight: var(--cdm-highlight);
   --color-cdm-highlight-strong: var(--cdm-highlight-strong);
   --color-cdm-highlight-soft: var(--cdm-highlight-soft);
+  --color-cdm-rank: var(--cdm-rank);
+  --color-cdm-rank-strong: var(--cdm-rank-strong);
+  --color-cdm-rank-soft: var(--cdm-rank-soft);
   --color-cdm-success: var(--cdm-success);
   --color-cdm-success-soft: var(--cdm-success-soft);
   --color-cdm-info: var(--cdm-info);
