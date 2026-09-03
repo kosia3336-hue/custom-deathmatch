@@ -13,6 +13,61 @@ interface Props {
 /** 계정 서비스 오리진. 없으면 '일반 로그인' 버튼 자체를 감춘다. */
 const ACCOUNT_ORIGIN = process.env.NEXT_PUBLIC_ACCOUNT_ORIGIN ?? '';
 
+/**
+ * 계정 서비스 로그인을 팝업으로 연다.
+ *
+ * 페이지를 통째로 넘기면 다른 서비스로 떠나는 느낌이 든다. 팝업이면 뒤에
+ * 커데매 화면이 그대로 남는다. iframe 은 구글·카카오 로그인 페이지가
+ * 프레임 안에서 열리지 않아 쓸 수 없다.
+ *
+ * 완료되면 팝업이 sso:ready 를 보내고 스스로 닫힌다. 사용자가 그냥 닫아
+ * 버리는 경우도 있어 닫힘 여부도 함께 감시한다.
+ */
+function openAccountPopup(origin: string): Promise<'ready' | 'closed'> {
+  return new Promise((resolve) => {
+    const w = 460;
+    const h = 720;
+    const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
+    const popup = window.open(
+      `${origin}/auth/popup`,
+      'account-login',
+      `width=${w},height=${h},left=${left},top=${top}`,
+    );
+
+    if (!popup) {
+      resolve('closed');
+      return;
+    }
+
+    const cleanup = () => {
+      clearInterval(timer);
+      window.removeEventListener('message', onMessage);
+      try {
+        popup.close();
+      } catch {
+        /* 이미 닫혔으면 무시 */
+      }
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== origin) return; // 다른 오리진의 메시지는 무시한다
+      if ((e.data as { type?: string } | null)?.type !== 'sso:ready') return;
+      cleanup();
+      resolve('ready');
+    };
+
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        cleanup();
+        resolve('closed');
+      }
+    }, 500);
+
+    window.addEventListener('message', onMessage);
+  });
+}
+
 export default function LoginForm({ next, initialError }: Props) {
   const [loading, setLoading] = useState(false);
   const [generalLoading, setGeneralLoading] = useState(false);
@@ -43,31 +98,11 @@ export default function LoginForm({ next, initialError }: Props) {
         credentials: 'include',
       });
 
-      if (assertRes.status === 401) {
-        /*
-          계정 서비스에 로그인해야 한다. 홈만 띄우면 무엇을 해야 할지 알 수
-          없으므로 ?login=1 로 로그인 창이 바로 열리게 한다. 계정 서비스에는
-          이메일 가입이 있으므로, 계정이 없는 사람도 거기서 만들 수 있다.
-        */
-        const back = `${window.location.origin}/login?next=${encodeURIComponent(next)}`;
-        window.location.href = `${ACCOUNT_ORIGIN}/?login=1&next=${encodeURIComponent(back)}`;
-        return;
-      }
-      if (assertRes.status === 403) {
-        const d = (await assertRes.json()) as { reason?: string };
-        if (d.reason === 'terms_required') {
-          /*
-            계정 서비스에서 약관 동의를 아직 받지 못한 상태다.
-            로그인 창을 열어 주면 그 자리에서 동의 화면이 이어진다.
-            (운영 주소가 아니라 우리가 아는 오리진으로 보낸다 — 개발 환경에서
-             운영으로 튀어 404 가 나던 문제가 있었다)
-          */
-          toast.info('계정 서비스에서 약관 동의가 필요합니다.');
-          const back = `${window.location.origin}/login?next=${encodeURIComponent(next)}`;
-          window.location.href = `${ACCOUNT_ORIGIN}/?login=1&next=${encodeURIComponent(back)}`;
-          return;
-        }
-        toast.error('로그인이 거부되었습니다.');
+      if (assertRes.status === 401 || assertRes.status === 403) {
+        // 로그인 또는 약관 동의가 필요하다 — 팝업에서 마치고 돌아온다
+        const result = await openAccountPopup(ACCOUNT_ORIGIN);
+        if (result !== 'ready') return; // 사용자가 창을 닫았다
+        await handleGeneral(); // 토큰을 다시 받아 이어서 진행
         return;
       }
       if (!assertRes.ok) {
