@@ -4,7 +4,10 @@ import { AI_PLAYER_ID, type Player } from '@shared/types/room.js';
 import type { IO } from '../socket/types.js';
 import { chooseDoubleSidedPokerAiAction } from '../socket/games/double-sided-poker/ai.js';
 import { createDoubleSidedPokerDeck } from '../socket/games/double-sided-poker/deck.js';
-import { performDoubleSidedPokerAction } from '../socket/games/double-sided-poker/engine.js';
+import {
+  beginDoubleSidedPokerRound,
+  performDoubleSidedPokerAction,
+} from '../socket/games/double-sided-poker/engine.js';
 import {
   cleanupDoubleSidedPoker,
   initDoubleSidedPoker,
@@ -227,6 +230,13 @@ describe('양면포커 경기 진행', () => {
     const carriedPot = state.pot;
     expect(carriedPot).toBe(10);
 
+    /*
+      다음 라운드에 나눠 줄 카드를 미리 박아 둔다. 그냥 두면 무작위로 뽑혀
+      앞면이 같을 때(약 10%) 또 무승부가 나 결과가 흔들린다.
+      deck 은 pop 으로 꺼내므로 마지막 원소가 players[0] 에게 간다.
+    */
+    state.deck = [card('lose', 2, 5), card('win', 9, 4)];
+
     // 예전에는 여기서 '칩 0' 을 보고 바로 패배 처리했다.
     await vi.advanceTimersByTimeAsync(2800);
     expect(state.gameOver).toBe(false);
@@ -234,11 +244,12 @@ describe('양면포커 경기 진행', () => {
 
     /*
       둘 다 베팅할 칩이 없으므로 새 라운드는 카드를 받자마자 앞면끼리 비교해
-      끝난다. 이월된 팟이 한쪽으로 넘어갔는지만 본다.
+      끝난다. 앞면 9 를 받은 players[0] 이 이월된 팟을 가져간다.
     */
-    const chips = [state.playerStates[first.id].chips, state.playerStates[second.id].chips];
-    expect(Math.max(...chips)).toBe(carriedPot);
-    expect(Math.min(...chips)).toBe(0);
+    const winner = state.players[0].id;
+    const loser = state.players[1].id;
+    expect(state.playerStates[winner].chips).toBe(carriedPot);
+    expect(state.playerStates[loser].chips).toBe(0);
   });
 
   it('양면베팅은 양쪽 베팅칸에 같은 칩을 내고 상대 응답을 기다린다', () => {
@@ -257,6 +268,68 @@ describe('양면포커 경기 진행', () => {
       chips: 20,
     });
     expect(state.pot).toBe(8);
+  });
+
+  it('양면베팅으로 받을 때 금액을 올리면 양면 레이즈가 되어 차례가 넘어간다', () => {
+    const { io, state } = setup('double-poker-double-raise');
+    const opener = state.firstPlayerId;
+    const responder = state.players.find((p) => p.id !== opener)!.id;
+    performDoubleSidedPokerAction(io, state, opener, { type: 'bet', side: 'front', amount: 2 });
+
+    // 기준액 2 보다 높은 5 로 양면베팅 — 앞뒤 5칩씩 총 10칩이 나간다.
+    const before = state.playerStates[responder].chips;
+    expect(
+      performDoubleSidedPokerAction(io, state, responder, { type: 'double', amount: 5 }),
+    ).toBeNull();
+    expect(state.playerStates[responder]).toMatchObject({
+      selection: 'both',
+      stake: 5,
+      frontBet: 5,
+      backBet: 5,
+      chips: before - 10,
+    });
+    // 올렸으므로 판이 닫히지 않고 상대에게 넘어간다.
+    expect(state.phase).toBe('betting');
+    expect(state.currentTurnId).toBe(opener);
+    expect(toDoubleSidedPokerGameData(state, opener).toCall).toBe(3);
+  });
+
+  it('양면베팅 금액은 기준액 미만이거나 상대가 못 받을 만큼 크면 거부한다', () => {
+    const { io, state } = setup('double-poker-double-range');
+    const opener = state.firstPlayerId;
+    const responder = state.players.find((p) => p.id !== opener)!.id;
+    performDoubleSidedPokerAction(io, state, opener, { type: 'bet', side: 'front', amount: 3 });
+    const tooLow = performDoubleSidedPokerAction(io, state, responder, {
+      type: 'double',
+      amount: 2,
+    });
+    expect(tooLow).toBe('양면베팅에 가능한 범위의 칩을 골라 주세요.');
+    const tooHigh = performDoubleSidedPokerAction(io, state, responder, {
+      type: 'double',
+      amount: 999,
+    });
+    expect(tooHigh).toBe('양면베팅에 가능한 범위의 칩을 골라 주세요.');
+    // 금액을 안 주면 예전처럼 기준액을 그대로 맞춘다.
+    expect(performDoubleSidedPokerAction(io, state, responder, { type: 'double' })).toBeNull();
+    expect(state.playerStates[responder].stake).toBe(3);
+  });
+
+  it('기본 베팅으로 칩이 0 이 되어도 그 라운드를 치른다', async () => {
+    const { io, state, first, second } = setup('double-poker-ante-zero');
+    // 1칩만 남은 채 다음 라운드로 넘어가는 상황을 만든다.
+    state.playerStates[first.id].chips = 1;
+    state.playerStates[second.id].chips = 20;
+    state.pot = 0;
+    // beginRound 가 새로 나눠 주므로 나눠 줄 카드를 미리 박아 둔다.
+    state.deck = [card('lo', 3, 6), card('hi', 9, 2)];
+    beginDoubleSidedPokerRound(io, state);
+
+    // 예전에는 기본 베팅 뒤 칩 0 을 보고 바로 끝냈다.
+    expect(state.gameOver).toBe(false);
+    // 1칩짜리는 기본 베팅으로 0 이 되지만 그대로 라운드를 치른다.
+    expect(state.lastRoundResult).not.toBeNull();
+    // 앞면 9 를 받은 players[0] 이 팟 2칩을 가져간다.
+    expect(state.playerStates[state.players[0].id].chips).toBeGreaterThan(0);
   });
 
   it('양면베팅 성공 시 팟과 추가 10칩을 가져온다', () => {

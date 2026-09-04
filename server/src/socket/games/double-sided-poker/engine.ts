@@ -169,16 +169,12 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
   state.currentTurnId = state.firstPlayerId;
   state.roundStartedAt = Date.now();
 
-  if (!carried && state.players.some((player) => state.playerStates[player.id].chips <= 0)) {
-    const winnerId =
-      state.players.find((player) => state.playerStates[player.id].chips > 0)?.id ?? null;
-    if (winnerId) {
-      state.playerStates[winnerId].chips += state.pot;
-      state.pot = 0;
-    }
-    finishForEmptyStack(io, state);
-    return;
-  }
+  /*
+    기본 베팅을 내고 칩이 0 이 되어도 여기서 끝내지 않는다. 이미 낸 1칩이 팟에
+    걸려 있으므로 그 라운드를 치러 되찾을 기회를 줘야 한다. 베팅할 칩이 없으면
+    바로 아래에서 앞면끼리 겨뤄 팟 주인을 가린다. 정말 못 버티는 경우는 다음
+    라운드 시작 때 기본 베팅을 못 내는 것으로 걸린다.
+  */
   /*
     아무도 베팅할 칩이 없으면(이월 라운드에서 한쪽이 올인이었던 경우) 고를 면이
     없다. 공개된 앞면끼리 비교해 이월된 팟의 주인을 가린다.
@@ -423,9 +419,19 @@ function performBettingAction(
       publishDecision(io, state);
       return null;
     }
-    if (bounds.doubleCost == null) return '지금은 양면베팅할 수 없습니다.';
+    if (bounds.doubleCost == null || bounds.maxDouble == null) {
+      return '지금은 양면베팅할 수 없습니다.';
+    }
+    /*
+      금액을 안 주면 기준액을 그대로 맞춘다(예전 동작). 더 높이 주면 양면
+      레이즈가 되어 상대에게 다시 차례가 넘어간다.
+    */
+    const stake = action.amount ?? bounds.currentStake;
+    if (!Number.isInteger(stake) || stake < bounds.currentStake || stake > bounds.maxDouble) {
+      return '양면베팅에 가능한 범위의 칩을 골라 주세요.';
+    }
     actor.selection = 'both';
-    const payment = applyPayment(state, actor, bounds.currentStake);
+    const payment = applyPayment(state, actor, stake);
     state.doubleBettorId = playerId;
     pushAction(state, playerId, 'double', payment);
     state.currentTurnId = opponentId;

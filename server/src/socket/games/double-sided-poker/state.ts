@@ -82,12 +82,23 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
   const actorMaxStake = actor.stake + Math.floor(actor.chips / actorMultiplier);
   const opponentMaxStake = opponent.stake + Math.floor(opponent.chips / opponentMultiplier);
   const maxRaise = Math.min(actorMaxStake, opponentMaxStake);
+  /*
+    양면베팅으로 받을 때도 금액을 고를 수 있다. 기준액을 그대로 맞추면 콜과
+    같고, 그보다 높이 걸면 그게 곧 양면 레이즈다.
+
+    한 면에 걸 수 있는 최대는 두 가지에 걸린다 — 내가 앞뒤로 두 배를 내야 하고
+    (chips / 2), 상대가 한 면으로 받을 수 있어야 한다(상대 stake + chips).
+  */
+  const maxDoubleStake = Math.min(
+    Math.floor(actor.chips / 2),
+    opponent.stake + opponent.chips,
+  );
   const canDouble =
     actor.selection == null &&
     opponent.selection != null &&
     opponent.selection !== 'both' &&
     currentStake > 0 &&
-    actor.chips >= currentStake * 2;
+    maxDoubleStake >= currentStake;
 
   return {
     currentStake,
@@ -97,8 +108,9 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
     minRaise: maxRaise > currentStake ? currentStake + 1 : null,
     maxRaise: maxRaise > currentStake ? maxRaise : null,
     canDouble,
+    // 그대로 맞출 때 드는 칩(최소). 더 걸면 그만큼 늘어난다.
     doubleCost: canDouble ? currentStake * 2 : null,
-    maxDouble: null,
+    maxDouble: canDouble ? maxDoubleStake : null,
   };
 }
 
