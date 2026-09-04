@@ -2,8 +2,6 @@
 
 import { useEffect } from 'react';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { RoundProgressBar } from '@/components/game/GameTopBar';
-import { BANK_TOTAL_ROUNDS } from '@/shared/types/bank-game';
 import RoundHistoryTable from './RoundHistoryTable';
 import OpponentInventoryTracker from './OpponentInventoryTracker';
 import PhaseTransitionOverlay from './PhaseTransitionOverlay';
@@ -47,9 +45,8 @@ export default function BankGame() {
   useEffect(() => {
     if (!gameData) return;
     setHud({
-      round: `${round} / ${BANK_TOTAL_ROUNDS}`,
+      round: `${round} / ${gameData.maxRound}R`,
       order: myIsFirst ? '선' : '후',
-      progress: <RoundProgressBar total={BANK_TOTAL_ROUNDS} current={historyLen} />,
       memo: (
         <div className="space-y-5">
           <section>

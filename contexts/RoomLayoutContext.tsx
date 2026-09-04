@@ -14,8 +14,6 @@ export interface GameHud {
   round?: ReactNode;
   /** 선/후 같은 차례 표시. 한두 글자. */
   order?: ReactNode;
-  /** 상단 바 바로 아래 얇은 줄. 라운드 진행 현황을 칸으로 나눠 보인다. */
-  progress?: ReactNode;
   /**
    * 좁은 화면에서 '메모' 아이콘으로 여는 것 — 라운드 기록, 상대 잔여 추리 따위.
    * 넓은 화면에서는 GameFrame 의 aside 로 옆에 펴 두므로 여기 넣지 않아도 된다.

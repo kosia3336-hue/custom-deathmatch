@@ -116,14 +116,6 @@ export default function MobileLayout({ ctx }: Props) {
               firstNick={firstPlayer.nickname}
               loserAmountTotal={gameData.loserAmountTotal}
             />
-            <PhaseStepperMobile
-              phase={phase ?? 'firstSubmit'}
-              isMyTurn={stepperActiveTurn}
-              isSpectator={isSpectator}
-              firstNick={firstPlayer.nickname}
-              secondNick={secondPlayer.nickname}
-              myIsFirst={myIsFirst}
-            />
             <ScoreBar
               p1={gameData.players.p1}
               p2={gameData.players.p2}
@@ -134,6 +126,20 @@ export default function MobileLayout({ ctx }: Props) {
         }
         controls={
           <div className="flex w-full min-w-0 flex-col gap-1.5">
+            {/*
+              라운드 세부 진행 — 선 제출 · 선공개 · 후제출 · 정산.
+              상단 바에는 '몇 라운드인가'(1 / 9R)만 두고, '그 라운드 안 어디쯤인가'
+              는 손 가까운 아래에 둔다. 다음에 무엇을 할지 알려 주는 표시라
+              누르는 자리 옆에 있는 편이 읽힌다.
+            */}
+            <PhaseStepperMobile
+              phase={phase ?? 'firstSubmit'}
+              isMyTurn={stepperActiveTurn}
+              isSpectator={isSpectator}
+              firstNick={firstPlayer.nickname}
+              secondNick={secondPlayer.nickname}
+              myIsFirst={myIsFirst}
+            />
             {/*
               라운드 종료 버튼. 예전에는 무대(PhaseArea) 안에 있었는데, 무대는
               contain:size 라 넘치면 스크롤 없이 그냥 잘린다 — 정산 내용이 길면

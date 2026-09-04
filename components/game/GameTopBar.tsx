@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { Icon } from '@/components/cdm/Icon';
 import { cn } from '@/lib/utils';
 
 /* ════════════════════════════════════════════════════════════
@@ -70,18 +71,36 @@ export function ElapsedTime({ startedAt }: { startedAt: number | null | undefine
   return <span className="font-mono font-semibold tabular-nums text-cdm-fg">{text}</span>;
 }
 
-/** 상단 바 왼쪽 — 라운드 · 차례 · 남은 시간. 방 제목 자리를 대신 쓴다. */
+/**
+ * 상단 바 왼쪽 — 정보 · 라운드 · 차례 · 남은 시간. 방 제목 자리를 대신 쓴다.
+ *
+ * 'i' 가 맨 앞에 있는 것은 그 자리가 원래 방 제목이 있던 자리이기 때문이다.
+ * 방 제목이 그 안으로 들어갔으니, 찾을 때 눈이 가는 곳도 그대로 왼쪽이다.
+ */
 export function GameHudLeft({
   round,
   order,
   ranked,
+  onOpenInfo,
 }: {
   round?: React.ReactNode;
   order?: React.ReactNode;
   ranked?: boolean;
+  onOpenInfo?: () => void;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
+      {onOpenInfo && (
+        <button
+          type="button"
+          onClick={onOpenInfo}
+          aria-label="방 정보"
+          title="방 정보"
+          className="-ml-1 shrink-0 rounded-cdm-md p-1.5 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Icon name="info" />
+        </button>
+      )}
       {ranked && (
         <span className="shrink-0 rounded-cdm-md bg-cdm-rank px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-cdm-fg uppercase">
           랭크
@@ -98,48 +117,6 @@ export function GameHudLeft({
       <span className="ml-auto shrink-0 pl-1">
         <CountdownTimer />
       </span>
-    </div>
-  );
-}
-
-/**
- * 라운드 진행 현황 — 상단 바 아래 얇은 줄.
- *
- * 칸으로 나눠 지나온 만큼 채운다. 숫자("3 / 11")는 정확하지만 한 번 읽어야
- * 하고, 이 줄은 곁눈으로도 '얼마나 남았나' 가 잡힌다. 둘 다 둔다.
- */
-export function RoundProgressBar({
-  total,
-  current,
-  label,
-}: {
-  /** 전체 라운드 수. 1 미만이면 그리지 않는다. */
-  total: number;
-  /** 지금까지 끝난 라운드 수 (0 = 아직 첫 판) */
-  current: number;
-  label?: string;
-}) {
-  if (!Number.isFinite(total) || total < 1) return null;
-  const done = Math.max(0, Math.min(total, Math.floor(current)));
-
-  return (
-    <div
-      className="flex gap-0.5"
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={total}
-      aria-valuenow={done}
-      aria-label={label ?? '라운드 진행'}
-    >
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={cn(
-            'h-1 flex-1 rounded-full transition-colors',
-            i < done ? 'bg-cdm-primary' : 'bg-cdm-ink-border',
-          )}
-        />
-      ))}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default function GameShell({ children }: Props) {
   const gameState = useRoomStore((s) => s.gameState);
   const nickname = useNicknameStore((s) => s.nickname);
   const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
-  const { setHeaderLeft, setHeaderRight, setHeaderBelow, setFooter, hud } = useRoomLayout();
+  const { setHeaderLeft, setHeaderRight, setFooter, hud } = useRoomLayout();
   const [showSettings, setShowSettings] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -83,15 +83,16 @@ export default function GameShell({ children }: Props) {
 
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
-    setHeaderLeft(<GameHudLeft round={hud?.round} order={hud?.order} ranked={isRankedRoom} />);
+    setHeaderLeft(
+      <GameHudLeft
+        round={hud?.round}
+        order={hud?.order}
+        ranked={isRankedRoom}
+        onOpenInfo={() => setShowInfo(true)}
+      />,
+    );
     return () => setHeaderLeft(null);
   }, [setHeaderLeft, hud?.round, hud?.order, isRankedRoom]);
-
-  /* ── 상단 바 아래: 라운드 진행 현황 ── */
-  useEffect(() => {
-    setHeaderBelow(hud?.progress ?? null);
-    return () => setHeaderBelow(null);
-  }, [setHeaderBelow, hud?.progress]);
 
   /*
     ── 상단 바 오른쪽: 메모 · 설정 · 정보 ──
@@ -131,15 +132,6 @@ export default function GameShell({ children }: Props) {
             label={`안 읽은 채팅 ${chatUnread}건`}
             className="absolute -top-0.5 -right-0.5"
           />
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowInfo(true)}
-          aria-label="방 정보"
-          title="방 정보"
-          className="rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <Icon name="info" />
         </button>
       </>,
     );
@@ -384,31 +376,25 @@ export default function GameShell({ children }: Props) {
         </dl>
 
         <ul className="divide-y divide-cdm-border">
-          <SettingRow label="소리">
+          {/* 소리는 켜고 끄는 것이라 그 자리에서 바로 누른다. 나머지는 다른 판을 연다. */}
+          <li className="flex items-center justify-between gap-3 py-2.5">
+            <span className="text-sm text-cdm-fg">소리</span>
             <BgmButton />
-          </SettingRow>
-          <SettingRow label="게임 규칙">
-            <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowRules(true); }}>
-              보기
-            </Button>
-          </SettingRow>
-          <SettingRow label="채팅" badge={chatUnread}>
-            <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowChat(true); }}>
-              열기
-            </Button>
-          </SettingRow>
+          </li>
+          <SettingRow label="게임 규칙" onClick={() => { setShowSettings(false); setShowRules(true); }} />
+          <SettingRow label="채팅" badge={chatUnread} onClick={() => { setShowSettings(false); setShowChat(true); }} />
           {room && (
-            <SettingRow label={`관전자 ${room.spectators.length}명`}>
-              <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowPlayers(true); }}>
-                참가자 보기
-              </Button>
-            </SettingRow>
+            <SettingRow
+              label="참가자"
+              hint={`관전 ${room.spectators.length}명`}
+              onClick={() => { setShowSettings(false); setShowPlayers(true); }}
+            />
           )}
-          <SettingRow label="나가기">
-            <Button size="sm" variant="danger" onClick={() => { setShowSettings(false); setLeaveMode('leave'); setShowLeave(true); }}>
-              나가기
-            </Button>
-          </SettingRow>
+          <SettingRow
+            label="나가기"
+            danger
+            onClick={() => { setShowSettings(false); setLeaveMode('leave'); setShowLeave(true); }}
+          />
         </ul>
       </BottomSheet>
 
@@ -496,17 +482,40 @@ export default function GameShell({ children }: Props) {
   );
 }
 
-/** 설정 한 줄 — 왼쪽 이름, 오른쪽 조작. */
+/**
+ * 설정 한 줄. 줄 전체가 버튼이고 오른쪽 끝에 '>' 만 둔다.
+ *
+ * 예전에는 '보기' '열기' '참가자 보기' 처럼 줄마다 다른 글자가 붙은 버튼이
+ * 있었다. 세 줄이 세 가지 말을 하니 무엇이 다른 일인지 읽어야 알 수 있었다.
+ * 여는 동작은 전부 같으므로 표시도 하나로 둔다 — 다른 것은 왼쪽 이름뿐이다.
+ */
 function SettingRow({
-  label, badge, children,
-}: { label: string; badge?: number; children: React.ReactNode }) {
+  label, hint, badge, danger, onClick,
+}: {
+  label: string;
+  hint?: string;
+  badge?: number;
+  danger?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2.5">
-      <span className="flex min-w-0 items-center gap-1.5 text-sm text-cdm-fg">
-        <span className="truncate">{label}</span>
-        {badge != null && <UnreadBadge count={badge} />}
-      </span>
-      <span className="shrink-0">{children}</span>
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-cdm-bg-elev-1"
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={cn('truncate text-sm', danger ? 'text-cdm-accent' : 'text-cdm-fg')}>
+            {label}
+          </span>
+          {badge != null && <UnreadBadge count={badge} />}
+        </span>
+        <span className="flex shrink-0 items-center gap-1">
+          {hint && <span className="text-xs text-cdm-fg-subtle">{hint}</span>}
+          <Icon name="chevronRight" size="sm" className="text-cdm-fg-subtle" />
+        </span>
+      </button>
     </li>
   );
 }

@@ -46,14 +46,24 @@ export function RoomChatSheet({
   const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
   const lobbyInputRef = useRef<HTMLInputElement>(null);
 
-  // 닫힐 때 읽은 시점 기록 (방 채팅 기준)
+  /*
+    닫힐 때 읽은 시점 기록 (방 채팅 기준).
+
+    '열린 적 있는지' 를 따지는 것은, 이 컴포넌트가 대기실에서 닫힌 채로 늘
+    붙어 있기 때문이다. 그냥 !open 으로 지우면 방에 들어서자마자 안 읽은
+    채팅이 읽은 것으로 처리돼 배지가 사라진다.
+  */
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (!open) useRoomStore.getState().clearChatUnread();
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (wasOpen.current) useRoomStore.getState().clearChatUnread();
   }, [open]);
 
-  useEffect(() => {
-    if (!canSeeUsers && tab === 'users') setTab('room');
-  }, [canSeeUsers, tab]);
+  // 접속자 탭을 볼 수 없게 되면 방 채팅으로. effect 로 미루면 한 프레임 동안 빈 탭이 보인다.
+  if (!canSeeUsers && tab === 'users') setTab('room');
 
   // 로비 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {

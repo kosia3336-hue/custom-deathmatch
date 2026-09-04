@@ -43,11 +43,14 @@ const PATHS = {
   close: 'M6 6l12 12M6 18L18 6',
   // 뒤로. 목록으로 돌아가는 자리.
   chevronLeft: 'M15 6 9 12l6 6',
+  // 열기. 목록 한 줄이 무언가를 연다는 표시 — 글자로 '보기/열기' 를 쓰지 않는다.
+  chevronRight: 'M9 6l6 6-6 6',
   // 톱니. 게임 화면 상단 바의 '설정' — 소리·룰·채팅·나가기가 그 안에 있다.
   settings:
     'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
   // 정보. 방 제목·게임·플레이 모드처럼 '읽기만 하는' 것을 편다.
-  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16v-4M12 8h.01',
+  //  반지름 10 — 톱니(settings)가 2~22 를 쓰므로 9 로 두면 나란히 놓았을 때 작아 보인다.
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01',
   // 메모. 좁은 화면에서 라운드 기록·상대 추리를 여는 자리.
   //  공책 모양이라 정보(info)·설정(settings)과 뜻이 겹치지 않는다.
   memo: 'M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 9h8M8 13h8M8 17h5',
@@ -73,8 +76,24 @@ interface IconProps {
   className?: string;
 }
 
+/**
+ * 광학 보정 — 그림이 24 상자를 넘치게 쓰는 아이콘만 줄인다.
+ *
+ * px 는 상자 크기일 뿐이고 눈에 보이는 크기는 그림이 실제로 차지하는 넓이가
+ * 정한다. 대부분은 18~20 안에 드는데 톱니만 22 라, 상단 바에서 'i' 옆에
+ * 나란히 놓았을 때 혼자 커 보였다. 24 상자 안에서 20 으로 줄여 맞춘다.
+ *
+ * 선 굵기는 여기서 함께 줄지 않도록 vector-effect 로 고정한다 — 굵기 1.8 은
+ * 크기와 무관한 규격이다.
+ */
+const OPTICAL_SCALE: Partial<Record<IconName | 'game', number>> = {
+  settings: 20 / 22,
+};
+
 export function Icon({ name, size = 'md', filled = false, className }: IconProps) {
   const px = SIZE[size];
+  const scale = OPTICAL_SCALE[name];
+  const shape = SHAPES[name] ?? <path d={PATHS[name as IconName]} />;
   return (
     <svg
       width={px}
@@ -88,7 +107,16 @@ export function Icon({ name, size = 'md', filled = false, className }: IconProps
       aria-hidden
       className={cn(className)}
     >
-      {SHAPES[name] ?? <path d={PATHS[name as IconName]} />}
+      {scale ? (
+        <g
+          transform={`translate(12 12) scale(${scale}) translate(-12 -12)`}
+          vectorEffect="non-scaling-stroke"
+        >
+          {shape}
+        </g>
+      ) : (
+        shape
+      )}
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 
@@ -19,6 +20,17 @@ import { Icon } from './Icon';
  * 높이는 내용만큼 잡되 화면의 80% 를 넘지 않는다. 넘치는 부분은 시트 안에서
  * 스크롤한다 — 게임 무대는 스크롤하지 않지만(GameFrame 참고) 시트 안은
  * 스크롤해도 된다. 판이 아니라 잠깐 열었다 닫는 서랍이기 때문이다.
+ *
+ * ── 반드시 body 로 포털한다 ─────────────────────────────────
+ * 여는 버튼이 어디에 있든 시트는 화면 기준이다. 특히 상단 바는 .ink-scope 라
+ * --cdm-bg 를 transparent 로 덮어쓴다 — 그 안에서 그대로 렌더하면 시트 배경이
+ * 통째로 비쳐 보인다. 대기실 채팅이 실제로 그렇게 깨졌다.
+ *
+ * ── 닫혀 있으면 내용을 만들지 않는다 ────────────────────────
+ * 예전 Modal 은 닫히면 null 을 돌려줘 자식이 아예 안 붙었다. 시트도 같아야
+ * 한다. 안 그러면 대기실에 들어서자마자 채팅 본문이 붙어 소켓을 잡고,
+ * '닫혀 있으니 읽은 것' 으로 쳐서 미읽음 배지가 바로 사라진다.
+ * 닫는 애니메이션 동안만 잠깐 더 남겨 둔다.
  */
 export function BottomSheet({
   open,
@@ -38,6 +50,16 @@ export function BottomSheet({
   className?: string;
   bodyClassName?: string;
 }) {
+  /*
+    한 번도 안 열었으면 아무것도 만들지 않는다. 한 번 열고 나면 그대로 둔다 —
+    닫는 애니메이션이 끝까지 보이고, 다시 열 때 스크롤 자리도 남는다.
+
+    렌더 중에 상태를 맞추는 것은 React 가 권하는 '프롭에서 파생된 상태' 방식이다.
+    effect 로 미루면 한 프레임 늦게 열려 시트가 튀어 오른다.
+  */
+  const [everOpened, setEverOpened] = useState(false);
+  if (open && !everOpened) setEverOpened(true);
+
   /* 시트가 열려 있는 동안 뒤 화면이 따라 스크롤되지 않게 한다. */
   useEffect(() => {
     if (!open) return;
@@ -57,7 +79,10 @@ export function BottomSheet({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  return (
+  // 첫 렌더에는 아무것도 안 내보내므로 서버/클라가 어긋나지 않는다. document 도 이미 있다.
+  if (!everOpened) return null;
+
+  return createPortal(
     <>
       {/* 바깥을 눌러도 닫힌다. 닫는 방법이 X 하나뿐이면 엄지가 위로 올라가야 한다. */}
       <div
@@ -109,6 +134,7 @@ export function BottomSheet({
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
