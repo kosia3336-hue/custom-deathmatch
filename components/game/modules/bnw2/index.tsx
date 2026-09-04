@@ -16,6 +16,7 @@ import ShowdownColorBanner from './skins/ShowdownColorBanner';
 import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
 import { playShowdownSubmitSfx } from './skins/showdownSfx';
 import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import Modal from '@/components/ui/Modal';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
@@ -312,10 +313,31 @@ export default function BNW2Game() {
   const [roundOverlay, setRoundOverlay] = useState<{ round: number; firstNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  /*
+    상단 바 — 라운드·차례. 점수로 끝나는 게임이라 총 라운드가 없어 몇 번째인지만 센다.
+    라운드 기록은 넓은 화면에서 aside 로 이미 펴져 있으므로 memo 는 좁은 화면 몫이다.
+  */
+  const { setHud } = useRoomLayout();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [opponentEstimate, setOpponentEstimate] = useState<number>(200);
 
   // Winner/draw toast
+  const bnwRound = gameData?.round ?? 0;
+  const bnwFirst = gameData?.firstPlayerId ?? null;
+  const bnwHistLen = gameData?.roundHistory?.length ?? 0;
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${bnwRound}R`,
+      order: bnwFirst ? (bnwFirst === myId ? '선' : '후') : undefined,
+      memo: (
+        <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+      ),
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, bnwRound, bnwFirst, bnwHistLen, myId]);
+
   useEffect(() => {
     if (!gameData?.winType) return;
     const key = gameData.winner ?? 'draw';
@@ -557,15 +579,6 @@ export default function BNW2Game() {
                 }
               >
                 포인트 제시하기 →
-              </button>
-            )}
-            {gameData.roundHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                라운드 기록 ({gameData.roundHistory.length})
               </button>
             )}
           </div>

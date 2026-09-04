@@ -16,6 +16,8 @@ import DeckInfo from './DeckInfo';
 import { useNocturneDealReveal } from './skins/useNocturneDealReveal';
 import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import RoundHistory from './RoundHistory';
 
 export default function IndianPokerGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -36,6 +38,23 @@ export default function IndianPokerGame() {
     phase: gameData?.phase ?? '',
     blockAnim: showShuffle,
   });
+
+  /* 상단 바 — 라운드·차례. 라운드 기록은 좁은 화면에서 '메모' 로 연다. */
+  const { setHud } = useRoomLayout();
+  const round = gameData?.round ?? 0;
+  const firstBettorId = gameData?.firstBettorId ?? null;
+  const historyLen = gameData?.roundHistory?.length ?? 0;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      // 덱이 도는 게임이라 총 라운드가 정해져 있지 않다. 몇 번째인지만 센다.
+      round: `${round}R`,
+      order: firstBettorId ? (firstBettorId === myId ? '선' : '후') : undefined,
+      memo: <RoundHistory roundHistory={gameData.roundHistory} players={gameData.players} />,
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, round, firstBettorId, myId, historyLen]);
 
   useEffect(() => {
     if (!gameData) return;

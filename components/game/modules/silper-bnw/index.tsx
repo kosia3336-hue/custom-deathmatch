@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import { SBNW_MAX_SCORE, SBNW_TOTAL_ROUNDS } from '@/shared/types/silper-bnw';
@@ -452,6 +453,32 @@ export default function SilperBnwGame() {
   const [mySlotLength,   setMySlotLength]   = useState(0);
 
   /* ── 언마운트 시 라운드 오버레이 타이머 정리 ── */
+  /*
+    상단 바 — 라운드·차례. 상대 잔여 타일은 좁은 화면에서 '메모' 로 연다.
+    이 모듈은 아직 GameFrame 을 쓰지 않아 무대/조작 규약은 그대로 두었다.
+  */
+  const { setHud } = useRoomLayout();
+  const sbRound = gameData?.round ?? 0;
+  const sbFirst = gameData?.firstPlayerId ?? null;
+  const sbOppId = gameData && myId
+    ? (Object.keys(gameData.players).find((id) => id !== myId) ?? null)
+    : null;
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${sbRound} / ${SBNW_TOTAL_ROUNDS}R`,
+      order: sbFirst ? (sbFirst === myId ? '선' : '후') : undefined,
+      memo: sbOppId ? (
+        <OpponentTileTracker
+          opponentUsed={computeOpponentUsed(gameData.roundHistory, sbOppId)}
+          rematchIndex={gameData.rematchIndex}
+          skin={skin}
+        />
+      ) : undefined,
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, sbRound, sbFirst, myId, sbOppId, skin]);
+
   useEffect(() => {
     return () => {
       if (roundOverlayHideTimerRef.current) {
