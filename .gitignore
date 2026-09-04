@@ -16,8 +16,9 @@ server/node_modules
 
 # next.js
 /.next/
-# 확인용 빌드 산출물 (NEXT_DIST_DIR=.next-verify)
+# 확인용 빌드 산출물 (NEXT_DIST_DIR=.next-verify / .next-mobile)
 /.next-verify/
+/.next-mobile/
 /out/
 
 # production

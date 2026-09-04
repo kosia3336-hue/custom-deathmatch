@@ -11,43 +11,17 @@ import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import ChatButton from '@/components/room/ChatButton';
+import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
 import { BgmButton } from '@/components/cdm/BgmButton';
+import { BottomSheet } from '@/components/cdm/BottomSheet';
+import { Icon, UnreadBadge } from '@/components/cdm';
+import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
+import { PLAY_MODE_LABEL } from '@/shared/types';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal } from '@/shared/types/events';
-
-function CountdownTimer() {
-  const { remaining, timeLimitSeconds } = useTurnTimer();
-  if (remaining === null || timeLimitSeconds === null) return null;
-
-  const min = Math.floor(remaining / 60);
-  const sec = Math.floor(remaining % 60);
-  const display =
-    remaining <= 10 && remaining > 0
-      ? remaining.toFixed(1)
-      : `${min}:${sec.toString().padStart(2, '0')}`;
-
-  const isCritical = remaining <= 5;
-  const isDanger = remaining <= 10 && remaining > 5;
-  const isWarning = remaining <= 30 && remaining > 10;
-
-  return (
-    <span
-      className={cn(
-        'font-mono font-bold tabular-nums text-sm',
-        isWarning && 'text-amber-500',
-        isDanger && 'text-red-500 animate-pulse',
-        isCritical && 'text-red-600 animate-[pulse_0.5s_ease-in-out_infinite]',
-        !isWarning && !isDanger && !isCritical && 'text-cdm-fg-muted',
-      )}
-    >
-      {display}
-    </span>
-  );
-}
 
 interface Props {
   children: React.ReactNode;
@@ -59,7 +33,12 @@ export default function GameShell({ children }: Props) {
   const gameState = useRoomStore((s) => s.gameState);
   const nickname = useNicknameStore((s) => s.nickname);
   const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
-  const { setHeaderRight, setFooter } = useRoomLayout();
+  const { setHeaderLeft, setHeaderRight, setHeaderBelow, setFooter, hud } = useRoomLayout();
+  const [showSettings, setShowSettings] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [showMemo, setShowMemo] = useState(false);
+  const chatUnread = useRoomChatUnread(showChat);
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const [showPlayers, setShowPlayers] = useState(false);
@@ -102,28 +81,70 @@ export default function GameShell({ children }: Props) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  /* ── 헤더 오른쪽 슬롯: 타이머 + 채팅 + 나가기 ── */
+  /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
+  useEffect(() => {
+    setHeaderLeft(<GameHudLeft round={hud?.round} order={hud?.order} ranked={isRankedRoom} />);
+    return () => setHeaderLeft(null);
+  }, [setHeaderLeft, hud?.round, hud?.order, isRankedRoom]);
+
+  /* ── 상단 바 아래: 라운드 진행 현황 ── */
+  useEffect(() => {
+    setHeaderBelow(hud?.progress ?? null);
+    return () => setHeaderBelow(null);
+  }, [setHeaderBelow, hud?.progress]);
+
+  /*
+    ── 상단 바 오른쪽: 메모 · 설정 · 정보 ──
+
+    예전에는 소리·룰·채팅·나가기가 전부 늘어서 있었다. 좁은 화면에서 그
+    줄이 상단 바를 다 먹어 라운드도 시간도 들어갈 자리가 없었다. 자주 보는
+    것(라운드·시간)은 왼쪽에 두고, 가끔 누르는 것은 톱니 안으로 접는다.
+
+    채팅을 톱니 안에 넣으면 미읽음을 못 알린다. 그래서 안 읽은 수를 톱니
+    위로 끌어올린다 — 열어 보라는 신호는 남기고 자리는 차지하지 않는다.
+  */
+  const hasMemo = hud?.memo != null;
   useEffect(() => {
     setHeaderRight(
       <>
-        {isRankedRoom && (
-          <span className="rounded-cdm-md bg-cdm-highlight/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-cdm-highlight">
-            랭크
-          </span>
+        {hasMemo && (
+          <button
+            type="button"
+            onClick={() => setShowMemo(true)}
+            aria-label="메모"
+            title="라운드 기록·메모"
+            className="rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+          >
+            <Icon name="memo" />
+          </button>
         )}
-        <CountdownTimer />
-        <BgmButton />
-        <Button size="sm" variant="ghost" onClick={() => setShowRules(true)}>
-          룰
-        </Button>
-        <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
-        <Button size="sm" variant="ghost" onClick={() => { setLeaveMode('leave'); setShowLeave(true); }}>
-          나가기
-        </Button>
+        <button
+          type="button"
+          onClick={() => setShowSettings(true)}
+          aria-label="설정"
+          title="설정"
+          className="relative rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Icon name="settings" />
+          <UnreadBadge
+            count={chatUnread}
+            label={`안 읽은 채팅 ${chatUnread}건`}
+            className="absolute -top-0.5 -right-0.5"
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowInfo(true)}
+          aria-label="방 정보"
+          title="방 정보"
+          className="rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Icon name="info" />
+        </button>
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, isRankedRoom]);
+  }, [setHeaderRight, hasMemo, chatUnread]);
 
   useEffect(() => {
     const s = getSocket();
@@ -353,6 +374,63 @@ export default function GameShell({ children }: Props) {
         </ul>
       </Modal>
 
+      {/* ── 설정 — 예전 상단 바에 흩어져 있던 것들 ── */}
+      <BottomSheet open={showSettings} onClose={() => setShowSettings(false)} title="설정">
+        <dl className="mb-3 flex items-center justify-between rounded-cdm-md bg-cdm-bg-elev-1 px-3 py-2 text-sm">
+          <dt className="text-cdm-fg-muted">진행된 시간</dt>
+          <dd>
+            <ElapsedTime startedAt={gameState?.startedAt} />
+          </dd>
+        </dl>
+
+        <ul className="divide-y divide-cdm-border">
+          <SettingRow label="소리">
+            <BgmButton />
+          </SettingRow>
+          <SettingRow label="게임 규칙">
+            <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowRules(true); }}>
+              보기
+            </Button>
+          </SettingRow>
+          <SettingRow label="채팅" badge={chatUnread}>
+            <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowChat(true); }}>
+              열기
+            </Button>
+          </SettingRow>
+          {room && (
+            <SettingRow label={`관전자 ${room.spectators.length}명`}>
+              <Button size="sm" variant="secondary" onClick={() => { setShowSettings(false); setShowPlayers(true); }}>
+                참가자 보기
+              </Button>
+            </SettingRow>
+          )}
+          <SettingRow label="나가기">
+            <Button size="sm" variant="danger" onClick={() => { setShowSettings(false); setLeaveMode('leave'); setShowLeave(true); }}>
+              나가기
+            </Button>
+          </SettingRow>
+        </ul>
+      </BottomSheet>
+
+      {/* ── 정보 — 판이 도는 동안 안 읽어도 되는 것들 ── */}
+      <BottomSheet open={showInfo} onClose={() => setShowInfo(false)} title="방 정보">
+        <dl className="divide-y divide-cdm-border text-sm">
+          <InfoRow label="방 제목" value={room?.title} />
+          <InfoRow label="게임" value={room?.gameName} />
+          <InfoRow label="플레이 모드" value={room ? PLAY_MODE_LABEL[room.playMode] : undefined} />
+          <InfoRow label="랭크" value={isRankedRoom ? '랭크 게임' : '일반 게임'} />
+        </dl>
+      </BottomSheet>
+
+      {/* ── 메모 — 좁은 화면에서 라운드 기록·상대 추리. 넓은 화면은 GameFrame aside ── */}
+      {hud?.memo != null && (
+        <BottomSheet open={showMemo} onClose={() => setShowMemo(false)} title="메모">
+          {hud.memo}
+        </BottomSheet>
+      )}
+
+      <RoomChatSheet open={showChat} onClose={() => setShowChat(false)} scope="room" />
+
       <ReportModal
         open={!!reportTarget}
         onClose={() => setReportTarget(null)}
@@ -415,5 +493,31 @@ export default function GameShell({ children }: Props) {
         )}
       </Modal>
     </>
+  );
+}
+
+/** 설정 한 줄 — 왼쪽 이름, 오른쪽 조작. */
+function SettingRow({
+  label, badge, children,
+}: { label: string; badge?: number; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center justify-between gap-3 py-2.5">
+      <span className="flex min-w-0 items-center gap-1.5 text-sm text-cdm-fg">
+        <span className="truncate">{label}</span>
+        {badge != null && <UnreadBadge count={badge} />}
+      </span>
+      <span className="shrink-0">{children}</span>
+    </li>
+  );
+}
+
+/** 정보 한 줄. 값이 없으면 줄 자체를 안 그린다 — 빈 칸이 늘어서면 더 어수선하다. */
+function InfoRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5">
+      <dt className="shrink-0 text-cdm-fg-muted">{label}</dt>
+      <dd className="min-w-0 text-right font-medium text-cdm-fg">{value}</dd>
+    </div>
   );
 }

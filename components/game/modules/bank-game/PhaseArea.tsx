@@ -18,10 +18,12 @@ interface Props {
   size?: 'sm' | 'md';
   /** 모바일 bottom-sheet 모드일 때 BetInput 인라인 렌더링 생략 */
   hideBetInput?: boolean;
+  /** 라운드 종료 버튼을 무대에 그리지 않는다. controls 로 옮겨 그릴 때 쓴다. */
+  hideNextRound?: boolean;
 }
 
 const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
-  { ctx, size = 'sm', hideBetInput = false },
+  { ctx, size = 'sm', hideBetInput = false, hideNextRound = false },
   ref,
 ) {
   const {
@@ -66,7 +68,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
     return (
       <div ref={ref} className="flex flex-col gap-2">
         <ResolvePanel gameData={gameData} mySide={mySide} instant={isRoundEnd} />
-        {isRoundEnd && !isSpectator && (
+        {isRoundEnd && !isSpectator && !hideNextRound && (
           <button
             type="button"
             onClick={handleNextRoundReady}

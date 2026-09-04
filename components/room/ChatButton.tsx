@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { UnreadBadge } from '@/components/cdm';
+import { Icon, UnreadBadge } from '@/components/cdm';
 import { useRoomStore } from '@/stores/room';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useNicknameStore } from '@/stores/nickname';
-import { Modal } from '@/components/cdm/Modal';
+import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { RoomChatBody } from '@/components/room/RoomChat';
 import { LobbyChatList } from '@/components/lobby/LobbyChatList';
 import { LobbyChatInput } from '@/components/lobby/LobbyChatInput';
@@ -15,32 +15,41 @@ import type { ChatScope } from '@/shared/types';
 
 type RoomChatTab = 'users' | 'room' | 'lobby';
 
-interface Props {
-  scope: ChatScope;
-  scrollClassName?: string;
+/** 안 읽은 방 채팅 수. 셸이 톱니 위에 얹을 때도 쓴다. */
+export function useRoomChatUnread(open: boolean): number {
+  const messagesLen = useRoomStore((s) => s.messages.length);
+  const lastSeenMsgCount = useRoomStore((s) => s.lastSeenMsgCount);
+  return open ? 0 : Math.max(0, messagesLen - lastSeenMsgCount);
 }
 
 /**
- * 방/게임 화면 채팅 진입 버튼.
- * 방 채팅 / 로비 채팅. 접속자 탭은 천하만.
+ * 채팅 판. 아래에서 올라온다.
+ *
+ * 예전에는 화면 한가운데 뜨는 Modal 이었다. 같은 게임 안에서 베팅 입력은
+ * 시트로 올라오고 채팅만 가운데 뜨니 문법이 둘로 갈렸다. 게임 화면에서
+ * 손으로 하는 일은 전부 아래에서 올라오는 것으로 맞춘다 (BottomSheet 주석 참고).
+ *
+ * 여는 버튼과 판을 나눠 둔 것은, 게임 화면에서는 '설정' 안의 줄이 이 판을
+ * 열고 대기실에서는 제 버튼이 열기 때문이다.
  */
-export default function ChatButton({ scope, scrollClassName }: Props) {
-  const [showChat, setShowChat] = useState(false);
+export function RoomChatSheet({
+  open,
+  onClose,
+  scope,
+}: {
+  open: boolean;
+  onClose: () => void;
+  scope: ChatScope;
+}) {
   const [tab, setTab] = useState<RoomChatTab>('room');
-  const messagesLen = useRoomStore((s) => s.messages.length);
-  const lastSeenMsgCount = useRoomStore((s) => s.lastSeenMsgCount);
   const onlineCount = useOnlineUsersStore((s) => s.count);
   const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
-  const unreadCount = showChat ? 0 : Math.max(0, messagesLen - lastSeenMsgCount);
-
   const lobbyInputRef = useRef<HTMLInputElement>(null);
 
-  // 채팅 닫힐 때 읽은 시점 기록 (방 채팅 기준)
+  // 닫힐 때 읽은 시점 기록 (방 채팅 기준)
   useEffect(() => {
-    if (!showChat) {
-      useRoomStore.getState().clearChatUnread();
-    }
-  }, [showChat]);
+    if (!open) useRoomStore.getState().clearChatUnread();
+  }, [open]);
 
   useEffect(() => {
     if (!canSeeUsers && tab === 'users') setTab('room');
@@ -48,70 +57,67 @@ export default function ChatButton({ scope, scrollClassName }: Props) {
 
   // 로비 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {
-    if (!showChat || tab !== 'lobby') return;
+    if (!open || tab !== 'lobby') return;
     const t = setTimeout(() => lobbyInputRef.current?.focus(), 50);
     return () => clearTimeout(t);
-  }, [showChat, tab]);
+  }, [open, tab]);
 
-  const handleOpen = () => {
-    setShowChat(true);
-  };
+  return (
+    <BottomSheet open={open} onClose={onClose} title="채팅" bodyClassName="px-0">
+      <div className="flex h-[52dvh] flex-col">
+        <div className="flex shrink-0 border-b border-cdm-border" role="tablist">
+          {canSeeUsers && (
+            <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
+              접속자
+            </ChatTabButton>
+          )}
+          <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
+            방 채팅
+          </ChatTabButton>
+          <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
+            로비 채팅({onlineCount}명)
+          </ChatTabButton>
+        </div>
 
-  const bodyHeightClass = scrollClassName ?? 'min-h-[240px] max-h-[340px]';
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {tab === 'users' && <OnlineUsersList />}
+          {tab === 'room' && (
+            <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />
+          )}
+          {tab === 'lobby' && (
+            <>
+              <LobbyChatList />
+              <LobbyChatInput ref={lobbyInputRef} />
+            </>
+          )}
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
+/** 대기실 등에서 쓰는 채팅 진입 버튼. 게임 화면은 '설정' 안에서 연다. */
+export default function ChatButton({ scope }: { scope: ChatScope }) {
+  const [open, setOpen] = useState(false);
+  const unreadCount = useRoomChatUnread(open);
 
   return (
     <>
       <button
-        onClick={handleOpen}
-        className="relative flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors md:px-3"
+        onClick={() => setOpen(true)}
+        className="relative flex items-center gap-1.5 rounded-lg border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 md:px-3"
         title="채팅"
       >
-        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
+        <Icon name="chat" size="sm" />
         <span className="hidden text-sm font-medium md:inline">채팅</span>
-        {unreadCount > 0 && (
-          <UnreadBadge
-            count={unreadCount}
-            label={`미읽음 ${unreadCount}건`}
-            className="absolute -top-1 -right-1"
-          />
-        )}
+        <UnreadBadge
+          count={unreadCount}
+          label={`미읽음 ${unreadCount}건`}
+          className="absolute -top-1 -right-1"
+        />
       </button>
 
-      <Modal
-        open={showChat}
-        onClose={() => setShowChat(false)}
-        title="채팅"
-        className="w-full max-w-sm md:max-w-lg"
-      >
-        <div className="flex flex-col overflow-hidden rounded-cdm-lg border border-cdm-border bg-cdm-bg">
-          <div className="flex border-b border-cdm-border" role="tablist">
-            {canSeeUsers && (
-              <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
-                접속자
-              </ChatTabButton>
-            )}
-            <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
-              방 채팅
-            </ChatTabButton>
-            <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
-              로비 채팅({onlineCount}명)
-            </ChatTabButton>
-          </div>
-
-          <div className={cn('flex flex-col overflow-hidden', bodyHeightClass)}>
-            {tab === 'users' && <OnlineUsersList />}
-            {tab === 'room' && <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />}
-            {tab === 'lobby' && (
-              <>
-                <LobbyChatList />
-                <LobbyChatInput ref={lobbyInputRef} />
-              </>
-            )}
-          </div>
-        </div>
-      </Modal>
+      <RoomChatSheet open={open} onClose={() => setOpen(false)} scope={scope} />
     </>
   );
 }
@@ -136,7 +142,7 @@ function ChatTabButton({
     >
       {children}
       {active && (
-        <span aria-hidden className="absolute bottom-0 left-0 right-0 h-0.5 bg-cdm-primary" />
+        <span aria-hidden className="absolute right-0 bottom-0 left-0 h-0.5 bg-cdm-primary" />
       )}
     </button>
   );

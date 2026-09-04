@@ -2,6 +2,14 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 @import 'tailwindcss';
+
+/*
+  안드로이드 앱 셸(mobile/)은 Tailwind 소스 스캔에서 제외한다.
+  node_modules 와 APK·PNG 같은 바이너리가 들어 있어, 스캔되면 깨진 문자열이
+  클래스명으로 잡혀 잘못된 CSS 가 생성되고 빌드가 통째로 실패한다.
+  (mobile/.gitignore 가 없는 브랜치에서 실제로 발생했다)
+*/
+@source not "../mobile";
 @import './rank-card-skins.css';
 
 /* ??????????????????????????????????????????????
@@ -24,6 +32,12 @@
   --cdm-highlight: #f59e0b;        /* ?곕쾭 ??1???섏씠?쇱씠??*/
   --cdm-highlight-strong: #d97706;
   --cdm-highlight-soft: #fef3c7;
+
+  /* 랭크 종목 표시용 금색.
+     highlight(앰버)는 1위·주의가 임자라 랭크와 뜻이 겹친다. 따로 둔다. */
+  --cdm-rank: #eab308;
+  --cdm-rank-strong: #ca8a04;
+  --cdm-rank-soft: #fef9c3;
 
   /* ?쒕㎤??*/
   --cdm-success: #22c55e;
@@ -151,6 +165,9 @@
   --color-cdm-highlight: var(--cdm-highlight);
   --color-cdm-highlight-strong: var(--cdm-highlight-strong);
   --color-cdm-highlight-soft: var(--cdm-highlight-soft);
+  --color-cdm-rank: var(--cdm-rank);
+  --color-cdm-rank-strong: var(--cdm-rank-strong);
+  --color-cdm-rank-soft: var(--cdm-rank-soft);
   --color-cdm-success: var(--cdm-success);
   --color-cdm-success-soft: var(--cdm-success-soft);
   --color-cdm-info: var(--cdm-info);

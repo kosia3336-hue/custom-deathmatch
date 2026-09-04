@@ -123,13 +123,25 @@ export async function middleware(request: NextRequest) {
 
   // 가입 미완료 → /signup/profile 만 허용
   if (isSignupPending) {
-    if (
+    /*
+      가입을 마치지 않아도 공개 화면은 둘러볼 수 있어야 한다.
+      로비·랭킹·게임 룰까지 막아 버리면 무엇을 하는 서비스인지 보지도 못한
+      채 약관부터 마주하게 된다. 실제 입장·생성은 각 화면이 따로 막는다.
+    */
+    const canBrowse =
       pathname.startsWith('/signup/') ||
       pathname.startsWith('/auth/') ||
-      pathname.startsWith('/legal/')
-    ) {
-      return response;
-    }
+      pathname.startsWith('/legal/') ||
+      pathname === '/' ||
+      pathname === '/about' ||
+      pathname === '/guide' ||
+      pathname === '/lobby' ||
+      pathname.startsWith('/ranking') ||
+      pathname.startsWith('/rules') ||
+      pathname.startsWith('/titles') ||
+      pathname.startsWith('/notice');
+
+    if (canBrowse) return response;
     return NextResponse.redirect(new URL('/signup/agreement', request.url));
   }
 

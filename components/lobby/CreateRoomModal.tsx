@@ -305,7 +305,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         onSearchChange={setGameSearch}
         catFilter={catFilter}
         onCatFilterChange={setCatFilter}
-        createRoomStyle
       />
 
       {/* 방 제목 */}

@@ -298,68 +298,65 @@ export function isNewGame(createdAt: string | undefined, now = Date.now()): bool
 }
 
 /**
- * 새 게임 표시 — 왼쪽 위 모서리에 비스듬히 덧대는 띠.
+ * 카드 왼쪽 위 모서리에 비스듬히 덧대는 띠.
  *
  * 카드가 overflow-hidden 이라 45도로 눕힌 띠의 양 끝이 잘려 나가고, 모서리에
  * 포장지를 덧댄 모양만 남는다. 폭을 좁게 잡아 게임 이름을 침범하지 않는다 —
  * 이름은 카드 높이 가운데에 있어서, 띠가 모서리에만 머무르면 겹치지 않는다.
  *
- * 새 방 만들기에서는 기존 랭크 모서리에 쓰던 primary 색을 이어받는다. 이때
- * 랭크 여부는 대표사진 노출 자체로 구분하므로 별도 모서리 표시는 두지 않는다.
+ * NEW 와 RANK 가 모양은 같고 색으로 갈린다. 한때 색까지 같이 뒀는데, 9px 로
+ * 45도 누운 글자를 읽어야만 구분돼서 실패했다.
+ *
+ * RANK 는 금색이다. 랭크를 상징하는 색이고, 브랜드 보라와 멀어 곁눈으로도
+ * 갈린다. 금색은 흰 글자를 못 받치므로(대비 2.2:1) 이때만 글자를 어둡게
+ * 뒤집는다 — 색과 글자색이 함께 바뀌니 구분이 두 겹이 된다.
  */
-function NewRibbon({ primary = false }: { primary?: boolean }) {
+const RIBBON_TONE = {
+  rank: 'bg-cdm-rank text-cdm-fg',
+  new: 'bg-cdm-primary text-white',
+} as const;
+
+function CornerRibbon({
+  label, title, tone,
+}: { label: string; title: string; tone: keyof typeof RIBBON_TONE }) {
   return (
     <span
+      title={title}
       className={cn(
         'pointer-events-none absolute -left-6 top-1.5 w-[72px] -rotate-45 py-[2px] text-center',
-        'text-[9px] leading-none font-bold tracking-wider text-white',
-        primary ? 'bg-cdm-primary' : 'bg-sky-500',
+        'text-[9px] leading-none font-bold tracking-wider',
+        RIBBON_TONE[tone],
       )}
     >
-      NEW
+      {label}
     </span>
   );
 }
 
-/** 방 설정 등 기존 목록에서 쓰는 랭크 종목 모서리 표시. */
-function RankCorner() {
-  return (
-    <span
-      aria-hidden
-      title="랭크 종목"
-      className={cn(
-        'pointer-events-none absolute left-0 top-0 h-0 w-0',
-        'border-t-[11px] border-r-[11px] border-t-cdm-primary border-r-transparent',
-      )}
-    />
-  );
-}
-
 export function GameCard({
-  game, active, onClick, className, createRoomStyle = false,
+  game, active, onClick, className,
 }: {
   game: Game;
   active: boolean;
   onClick: () => void;
   className?: string;
-  createRoomStyle?: boolean;
 }) {
-  const legacyMark = game.rankingActive ? 'rank' : isNewGame(game.createdAt) ? 'new' : null;
-  const showArt = !createRoomStyle || game.rankingActive;
-  const showNewRibbon = createRoomStyle ? isNewGame(game.createdAt) : legacyMark === 'new';
+  /*
+    랭크와 신규가 겹치면 랭크를 보여 준다. 신규는 한 달이면 사라지는 표시고
+    랭크는 그 게임의 성격이라, 하나만 남긴다면 랭크가 남아야 한다.
+  */
+  const ribbon = game.rankingActive
+    ? { label: 'RANK', title: '랭크 종목', tone: 'rank' as const }
+    : isNewGame(game.createdAt)
+      ? { label: 'NEW', title: '새로 추가된 게임', tone: 'new' as const }
+      : null;
 
   return (
     <button type="button" onClick={onClick} className={cn(CARD_BASE, CARD_STATE(active), 'sm:col-span-2', className)}>
-      {showArt && <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />}
-      {!createRoomStyle && legacyMark === 'rank' && <RankCorner />}
-      {showNewRibbon && <NewRibbon primary={createRoomStyle} />}
+      <CardArt src={`/games/${game.id}.webp`} className="w-[42%]" />
+      {ribbon && <CornerRibbon label={ribbon.label} title={ribbon.title} tone={ribbon.tone} />}
       {active && <CheckMark />}
-      <span
-        className={cn(
-          'relative flex h-full flex-col justify-center pl-3',
-          showArt ? 'w-[58%]' : 'w-full pr-3',
-        )}
-      >
+      <span className="relative flex h-full w-[58%] flex-col justify-center pl-3">
         <span className={cn('text-sm leading-tight font-semibold break-keep', active ? 'text-cdm-primary-strong' : 'text-cdm-fg')}>
           {game.name}
         </span>
@@ -417,7 +414,6 @@ export function GameListPicker({
   listOpen, onOpenList,
   search, onSearchChange,
   catFilter, onCatFilterChange,
-  createRoomStyle = false,
 }: {
   games: Game[];
   modes?: PickerMode[];
@@ -431,7 +427,6 @@ export function GameListPicker({
   onSearchChange: (v: string) => void;
   catFilter: GameCategory | null;
   onCatFilterChange: (c: GameCategory | null) => void;
-  createRoomStyle?: boolean;
 }) {
   const query = search.trim();
 
@@ -523,7 +518,6 @@ export function GameListPicker({
                 game={g}
                 active={activeGameId === g.id}
                 onClick={() => onSelectGame(g)}
-                createRoomStyle={createRoomStyle}
               />
             ))}
 
@@ -552,7 +546,6 @@ export function GameListPicker({
               active
               onClick={onOpenList}
               className="w-full sm:col-span-full"
-              createRoomStyle={createRoomStyle}
             />
           ) : null}
         </div>
