@@ -54,10 +54,27 @@ export async function middleware(request: NextRequest) {
     // '/' 는 입구. 소개를 아직 안 본 첫 방문만 /about, 이후에는 /lobby.
     // 로비·랭킹 등 다른 공개 주소로 바로 온 경우는 가로채지 않는다.
     if (pathname === '/') {
-      const dest = hasSeenIntro(request.cookies) ? '/lobby' : '/about';
-      const redirect = NextResponse.redirect(new URL(dest, request.url));
-      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-      return redirect;
+      if (hasSeenIntro(request.cookies)) {
+        const redirect = NextResponse.redirect(new URL('/lobby', request.url));
+        response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+        return redirect;
+      }
+      /*
+        첫 방문(그리고 쿠키가 없는 크롤러)에게는 소개를 '/' 자리에서 그대로
+        보여준다. 리다이렉트로 넘기면 브랜드 검색이 가장 먼저 매칭될 대표 주소인
+        '/' 가 색인 대상에서 빠진다.
+
+        307 을 308 로 바꾸는 방법은 쓸 수 없다. 목적지가 쿠키에 따라 달라지는데
+        브라우저는 영구 리다이렉트를 캐시하므로, 한 번 '/'→'/about' 을 받은
+        재방문자가 로비로 가지 못하게 된다.
+
+        소개 본문의 canonical 이 /about 이라 '/' 와 '/about' 은 한 페이지로
+        합쳐진다. 중복 색인 걱정 없이 '/' 만 살릴 수 있다.
+      */
+      const rewrite = NextResponse.rewrite(new URL('/about', request.url));
+      response.cookies.getAll().forEach((c) => rewrite.cookies.set(c));
+      markIntroSeen(rewrite);
+      return rewrite;
     }
 
     const isPublic =
