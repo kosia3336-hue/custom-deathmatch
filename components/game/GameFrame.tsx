@@ -94,8 +94,16 @@ export function GameFrame({
       정확히 받는다.
     */
     <div
+      /*
+        자리는 인라인으로 못 박는다. className 은 게임·스킨이 넘기는 값이라
+        거기서 position 을 바꾸면 뼈대가 흐름으로 돌아가 내용 높이만큼
+        납작해진다 — 실제로 흑과백2 서부 스킨의 .skin-showdown-stage-content
+        가 relative 를 얹어 판이 잘리고 화면 아래가 텅 비었다.
+        클래스끼리는 순서로 이기고 지므로, 이것만은 인라인으로 잠근다.
+      */
+      style={{ position: 'absolute', inset: 0 }}
       className={cn(
-        'absolute inset-0 mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
+        'mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
         className,
       )}
     >
