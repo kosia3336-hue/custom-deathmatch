@@ -1,5 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { RoundProgressBar } from '@/components/game/GameTopBar';
+import { BANK_TOTAL_ROUNDS } from '@/shared/types/bank-game';
+import RoundHistoryTable from './RoundHistoryTable';
+import OpponentInventoryTracker from './OpponentInventoryTracker';
 import PhaseTransitionOverlay from './PhaseTransitionOverlay';
 import MobileLayout from './MobileLayout';
 import DesktopLayout from './DesktopLayout';
@@ -26,7 +32,44 @@ export default function BankGame() {
     secondPlayer,
     myIsFirst,
     isTreasury,
+    mySide,
   } = ctx;
+
+  /*
+    상단 바에 얹을 것 — 라운드, 선/후, 진행 바, 그리고 좁은 화면용 메모.
+    라운드와 선/후는 gameData 안에 있어 셸이 알 수 없으므로 여기서 넘긴다.
+    (RoomLayoutContext 의 GameHud 주석 참고)
+  */
+  const { setHud } = useRoomLayout();
+  const round = gameData?.round ?? 0;
+  const historyLen = gameData?.history?.length ?? 0;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${round} / ${BANK_TOTAL_ROUNDS}`,
+      order: myIsFirst ? '선' : '후',
+      progress: <RoundProgressBar total={BANK_TOTAL_ROUNDS} current={historyLen} />,
+      memo: (
+        <div className="space-y-5">
+          <section>
+            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">라운드 기록</h3>
+            <RoundHistoryTable
+              history={gameData.history}
+              mySide={mySide}
+              players={gameData.players}
+              variant="mobile"
+            />
+          </section>
+          <section>
+            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">상대 잔여 추리</h3>
+            <OpponentInventoryTracker />
+          </section>
+        </div>
+      ),
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, round, historyLen, myIsFirst, mySide]);
 
   if (!gameData) {
     return (

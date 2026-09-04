@@ -18,6 +18,7 @@ export { Spinner } from './Spinner';
 export { EmptyState } from './EmptyState';
 export { Tag } from './Tag';
 export { Modal } from './Modal';
+export { BottomSheet } from './BottomSheet';
 export { Tabs, type TabItem } from './Tabs';
 export { Pagination, RoutePagination } from './Pagination';
 export { Skeleton } from './Skeleton';

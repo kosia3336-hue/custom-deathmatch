@@ -17,7 +17,7 @@ import Modal from '@/components/ui/Modal';
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
  *   · BetInput 은 bottom-sheet 모달 (열기/닫기 토글 + 바깥 터치로 닫기)
- *   · 보조 정보(라운드 기록, 상대 추리)는 details 접힘
+ *   · 보조 정보(라운드 기록, 상대 추리)는 상단 바 '메모' 시트로 (index.tsx 의 setHud)
  *   · 가로 스크롤 절대 발생 금지: overflow-x-hidden + min-w-0
  * ════════════════════════════════════════════════════════════ */
 
@@ -47,6 +47,8 @@ export default function MobileLayout({ ctx }: Props) {
     pendingBet,
     setPendingBet,
     submitting,
+    isRoundEnd,
+    handleNextRoundReady,
     handleSubmitBet,
     handleResetBet,
     isReveal,
@@ -54,8 +56,6 @@ export default function MobileLayout({ ctx }: Props) {
   } = ctx;
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [trackerOpen, setTrackerOpen] = useState(false);
 
   /* 내 차례가 되면 자동으로 시트 열기 */
   useEffect(() => {
@@ -134,6 +134,21 @@ export default function MobileLayout({ ctx }: Props) {
         }
         controls={
           <div className="flex w-full min-w-0 flex-col gap-1.5">
+            {/*
+              라운드 종료 버튼. 예전에는 무대(PhaseArea) 안에 있었는데, 무대는
+              contain:size 라 넘치면 스크롤 없이 그냥 잘린다 — 정산 내용이 길면
+              이 버튼이 화면 밖으로 사라져 다음 라운드로 못 갔다.
+              누르는 것은 전부 controls 로 (GameFrame 주석의 세 칸 문법).
+            */}
+            {isRoundEnd && !isSpectator && (
+              <button
+                type="button"
+                onClick={handleNextRoundReady}
+                className="bank-primary-action w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]"
+              >
+                다음 라운드로 →
+              </button>
+            )}
             {!isSpectator && myPlayer?.inventory && myPlayer.inventoryAmount != null && (
               <InventoryRow
                 inventory={myPlayer.inventory}
@@ -152,24 +167,6 @@ export default function MobileLayout({ ctx }: Props) {
                   베팅 입력하기 →
                 </button>
               )}
-              {gameData.history.length > 0 && !isFinished && (
-                <button
-                  type="button"
-                  onClick={() => setHistoryOpen(true)}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-600"
-                >
-                  라운드 기록 ({gameData.history.length})
-                </button>
-              )}
-              {showOpponentTracker && (
-                <button
-                  type="button"
-                  onClick={() => setTrackerOpen(true)}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-600"
-                >
-                  상대 잔여 추리
-                </button>
-              )}
             </div>
           </div>
         }
@@ -182,22 +179,10 @@ export default function MobileLayout({ ctx }: Props) {
               isMyTurn={!isSpectator && !myIsFirst && isSecondSubmit}
             />
           )}
-          <PhaseArea ctx={ctx} ref={phaseAreaRef} size="sm" hideBetInput={canShowSheet} />
+          <PhaseArea ctx={ctx} ref={phaseAreaRef} size="sm" hideBetInput={canShowSheet} hideNextRound />
         </div>
       </GameFrame>
 
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
-        <RoundHistoryTable
-          history={gameData.history}
-          mySide={mySide}
-          players={gameData.players}
-          variant="mobile"
-        />
-      </Modal>
-
-      <Modal open={trackerOpen} onClose={() => setTrackerOpen(false)} title="상대 잔여 추리">
-        <OpponentInventoryTracker />
-      </Modal>
 
       {/* ── 베팅 bottom-sheet ── */}
       {!isSpectator && canShowSheet && (

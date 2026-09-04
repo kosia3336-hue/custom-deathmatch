@@ -209,7 +209,7 @@ export default function WaitingRoomPage() {
             <span className="hidden text-sm font-medium md:inline">설정 변경</span>
           </button>
         )}
-        <ChatButton scope="room" scrollClassName="min-h-[240px] max-h-[340px] md:min-h-[420px] md:max-h-[520px]" />
+        <ChatButton scope="room" />
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
         </Button>
