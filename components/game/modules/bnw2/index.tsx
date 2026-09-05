@@ -568,23 +568,70 @@ export default function BNW2Game() {
             {/* Status message */}
             <div className="text-center text-sm text-gray-500">{gameState?.message}</div>        </div>}
         controls={
-          <div className="flex gap-1.5">
-            {!isSpectator && isMyTurn && (
-              <button
-                onClick={() => setSheetOpen(true)}
-                className={
-                  isShowdown
-                    ? 'skin-showdown-mobile-cta flex-1'
-                    : 'flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg'
-                }
-              >
-                포인트 제시하기 →
-              </button>
-            )}
-          </div>
+          /*
+            누르는 것은 전부 여기. 넓은 화면의 제시판이 무대 안에 있던 탓에,
+            트랙이 세로로 긴 PC 에서는 제시판이 무대 밖으로 밀려 잘렸다 —
+            보라색 제시 버튼이 화면에 반쯤 걸치거나 아예 안 보여 누를 수
+            없었다. 무대는 잘리는 자리이고 조작은 잘리면 안 되는 것이라,
+            같은 칸에 둘 수 없다.
+          */
+          <>
+            {/* 좁은 화면 — 조작은 바텀시트로 연다 */}
+            <div className="flex gap-1.5 lg:hidden">
+              {!isSpectator && isMyTurn && (
+                <button
+                  onClick={() => setSheetOpen(true)}
+                  className={
+                    isShowdown
+                      ? 'skin-showdown-mobile-cta flex-1'
+                      : 'flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg'
+                  }
+                >
+                  포인트 제시하기 →
+                </button>
+              )}
+            </div>
+
+            {/* 넓은 화면 — 제시판을 그대로 조작 자리에 둔다 */}
+            <div className="mx-auto hidden w-full max-w-sm lg:block">
+              {isSpectator && inPlay ? (
+                <WaitingCard text="플레이어들이 포인트를 제시 중..." />
+              ) : isReveal && gameData.revealData ? (
+                <RevealPanelCmp
+                  revealData={gameData.revealData}
+                  players={gameData.players}
+                  myId={myId}
+                  firstPlayerId={gameData.firstPlayerId}
+                  step={revealStep}
+                />
+              ) : isMyTurn ? (
+                inputContent
+              ) : inPlay ? (
+                <WaitingCard
+                  text={
+                    gameData.phase === 'firstSubmit'
+                      ? `${fp?.nickname ?? '선플'}이 포인트를 제시 중...`
+                      : `${sp?.nickname ?? '후플'}이 포인트를 제시 중...`
+                  }
+                />
+              ) : null}
+            </div>
+          </>
         }
         aside={
           <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
+            {/*
+              상대 잔여 추리는 참고용 메모지 무대가 아니다. 트랙 아래에 두었더니
+              세로로 긴 트랙과 자리를 다투어 넓은 화면에서 트랙 위쪽이 잘렸다.
+            */}
+            {showTracker && opponentPlayer && (
+              <OpponentPointTracker
+                opponentStage={opponentPlayer.stage}
+                estimate={opponentEstimate}
+                setEstimate={setOpponentEstimate}
+              />
+            )}
+
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수</p>
               {playerEntries.map(([id, p]) => (
@@ -623,8 +670,17 @@ export default function BNW2Game() {
         }
       >
         <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-1 overflow-hidden">
-            {/* Center track */}
-            <div className="w-full max-w-sm">
+            {/*
+              Center track — 기본 트랙은 남은 높이를 받아 그 안에서 줄어든다.
+              서부 스킨 트랙은 제 높이를 CSS 로 직접 잡으므로 건드리지 않는다.
+            */}
+            <div
+              className={
+                isShowdown
+                  ? 'w-full max-w-sm'
+                  : 'flex w-full min-h-0 max-w-sm flex-1 flex-col'
+              }
+            >
               {leftPlayer && rightPlayer && (
                 <TrackCmp
                   leftPlayer={leftPlayer}
@@ -657,42 +713,6 @@ export default function BNW2Game() {
                 />
               </div>
             )}
-
-            {/* 상대 잔여 추리 트래커: 데스크탑은 트랙 아래 독립 카드 */}
-            {showTracker && opponentPlayer && (
-              <div className="hidden w-full max-w-sm lg:block">
-                <OpponentPointTracker
-                  opponentStage={opponentPlayer.stage}
-                  estimate={opponentEstimate}
-                  setEstimate={setOpponentEstimate}
-                />
-              </div>
-            )}
-
-            {/* Desktop phase UI */}
-            <div className="hidden w-full max-w-sm lg:block">
-              {isSpectator && inPlay ? (
-                <WaitingCard text="플레이어들이 포인트를 제시 중..." />
-              ) : isReveal && gameData.revealData ? (
-                <RevealPanelCmp
-                  revealData={gameData.revealData}
-                  players={gameData.players}
-                  myId={myId}
-                  firstPlayerId={gameData.firstPlayerId}
-                  step={revealStep}
-                />
-              ) : isMyTurn ? (
-                inputContent
-              ) : inPlay ? (
-                <WaitingCard
-                  text={
-                    gameData.phase === 'firstSubmit'
-                      ? `${fp?.nickname ?? '선플'}이 포인트를 제시 중...`
-                      : `${sp?.nickname ?? '후플'}이 포인트를 제시 중...`
-                  }
-                />
-              ) : null}
-            </div>
 
             {/* Mobile reveal panel */}
             {isReveal && gameData.revealData && (

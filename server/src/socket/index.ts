@@ -69,6 +69,29 @@ function bindMemberToSession(
   if (member.guildId) socket.join(guildRoom(member.guildId));
 }
 
+/**
+ * `session:restore` 로 들어온 토큰을 어떻게 다룰지 가른다.
+ *
+ *   'restore'  이 소켓의 것이 맞다 — 세션을 이어 준다.
+ *   'reauth'   회원에게 묶인 토큰인데 이 연결은 인증이 안 붙었다. 넘겨주지도,
+ *              버리지도 않는다 — 클라이언트가 인증을 다시 받아 붙으면 된다.
+ *   'reissue'  형식이 틀렸거나 '다른 회원' 의 토큰이다 — 새 토큰을 발급한다.
+ *
+ * reauth 를 reissue 와 갈라 놓는 것이 핵심이다. 액세스 토큰 갱신이 한 번
+ * 실패하면 그 연결은 게스트로 붙는데, 그걸 탈취로 보아 토큰을 갈아 끼우면
+ * 진행 중이던 판에 묶인 토큰이 사라져 새로고침해도 게임으로 못 돌아온다.
+ */
+export function classifyRestoreToken(
+  rawToken: unknown,
+  boundMemberId: string | null,
+  authedMemberId: string | null,
+): 'restore' | 'reauth' | 'reissue' {
+  if (typeof rawToken !== 'string' || rawToken.length < 8) return 'reissue';
+  if (boundMemberId === null) return 'restore';
+  if (authedMemberId === null) return 'reauth';
+  return boundMemberId === authedMemberId ? 'restore' : 'reissue';
+}
+
 export function setupSocketHandlers(io: IO) {
   // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
   eventRoom.init(io);
@@ -112,12 +135,19 @@ export function setupSocketHandlers(io: IO) {
       const authedMemberId = getSocketMember(socket)?.id ?? null;
       const boundMemberId =
         typeof rawToken === 'string' ? sessions.getMemberId(rawToken) : null;
-      const tokenRejected =
-        typeof rawToken !== 'string' ||
-        rawToken.length < 8 ||
-        (boundMemberId !== null && boundMemberId !== authedMemberId);
 
-      if (tokenRejected) {
+      const verdict = classifyRestoreToken(rawToken, boundMemberId, authedMemberId);
+
+      if (verdict === 'reauth') {
+        // 이번 연결만 임시 토큰으로 게스트 처리한다. 클라이언트의 토큰은 그대로 둬야
+        // 인증을 다시 받아 붙었을 때 진행 중이던 판으로 돌아올 수 있다.
+        const temp = randomUUID();
+        sessions.linkToken(socket.id, temp);
+        socket.emit('session:reauth');
+        return;
+      }
+
+      if (verdict === 'reissue') {
         const fresh = randomUUID();
         sessions.linkToken(socket.id, fresh);
         bindMemberToSession(socket, fresh);

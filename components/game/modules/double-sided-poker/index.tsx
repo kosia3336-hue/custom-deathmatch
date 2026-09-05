@@ -164,63 +164,109 @@ function PlayerPanel({
   );
 }
 
-function SidePicker({
+/** 조작부의 세 갈래 — 앞면 · 뒷면 · 양면. */
+type DoubleSidedPokerBranch = DoubleSidedPokerSide | 'both';
+
+const BRANCH_LABEL: Record<DoubleSidedPokerBranch, string> = {
+  front: '앞면 선택',
+  back: '뒷면 선택',
+  both: '양면 선택',
+};
+
+/**
+ * 앞면·뒷면·양면을 한 줄의 세 갈래로 놓는다.
+ *
+ * 이 라운드에서 이미 면을 정했다면(locked) 고른 갈래만 보여 준다 — 바꿀 수
+ * 없는 것을 누를 수 있게 두면 눌러 보고서야 안 된다는 걸 알게 된다.
+ */
+function BranchPicker({
   value,
   onChange,
+  doubleEnabled,
+  locked,
 }: {
-  value: DoubleSidedPokerSide;
-  onChange: (side: DoubleSidedPokerSide) => void;
+  value: DoubleSidedPokerBranch;
+  onChange: (branch: DoubleSidedPokerBranch) => void;
+  doubleEnabled: boolean;
+  locked: boolean;
 }) {
+  if (locked) {
+    return (
+      <p className="text-cdm-fg-muted mb-2 text-center text-[11px] font-bold">
+        이번 라운드 선택 —{' '}
+        <span className="text-cdm-highlight font-black">{BRANCH_LABEL[value].slice(0, 2)}</span>
+      </p>
+    );
+  }
   return (
-    <div className="border-cdm-border bg-cdm-bg-elev-1 mb-2 grid grid-cols-2 gap-1 rounded-lg border p-0.5">
-      {(['front', 'back'] as const).map((side) => (
-        <button
-          key={side}
-          type="button"
-          className={cn(
-            'rounded-md px-3 py-1.5 text-xs font-black transition',
-            value === side
-              ? 'bg-cdm-primary text-white'
-              : 'text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
-          )}
-          onClick={() => onChange(side)}
-        >
-          {side === 'front' ? '앞면 선택' : '뒷면 선택'}
-        </button>
-      ))}
+    <div className="border-cdm-border bg-cdm-bg-elev-1 mb-2 grid grid-cols-3 gap-1 rounded-lg border p-0.5">
+      {(['front', 'back', 'both'] as const).map((branch) => {
+        const disabled = branch === 'both' && !doubleEnabled;
+        return (
+          <button
+            key={branch}
+            type="button"
+            disabled={disabled}
+            className={cn(
+              'rounded-md px-2 py-1.5 text-xs font-black transition',
+              value === branch
+                ? 'bg-cdm-primary text-white'
+                : disabled
+                  ? 'text-cdm-fg-subtle cursor-not-allowed'
+                  : 'text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
+            )}
+            onClick={() => onChange(branch)}
+          >
+            {BRANCH_LABEL[branch]}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
+/**
+ * 나가는 칩. 양면이면 총액만으로는 왜 그 숫자인지 안 보이므로 '6(2×3)' 처럼
+ * 내역을 함께 적는다. 곱셈의 앞은 늘 2다 — 앞뒤 두 칸에 같은 칩을 걸기 때문.
+ */
+function ChipCost({ total, perSide }: { total: number; perSide: number | null }) {
+  return (
+    <span className="text-cdm-fg text-base font-black tabular-nums">
+      {total}
+      {perSide != null && perSide > 0 && (
+        <span className="text-cdm-fg-muted ml-0.5 text-xs font-bold">(2×{perSide})</span>
+      )}
+    </span>
+  );
+}
+
+function BranchHint({ branch, stake }: { branch: DoubleSidedPokerBranch; stake: number | null }) {
+  if (branch !== 'both' || stake == null) return null;
+  return (
+    <p className="text-cdm-highlight mt-2 text-center text-[10px] font-bold">
+      양면베팅 — 앞·뒷면에 {stake}칩씩({stake * 2}칩) · 앞뒤가 모두 높아야 이기고, 성공 시 추가
+      10칩
+    </p>
+  );
+}
+
+/**
+ * 조작부 — '어느 면으로 갈지' 를 먼저 고르고, 그 다음에 '얼마를 낼지' 를 정한다.
+ *
+ * 예전에는 양면베팅만 별도 버튼과 별도 화면으로 빠져 있었다. 그래서 양면을 고른
+ * 뒤에 레이즈하려면 다른 문으로 들어가야 했고, 필요한 칩도 콜 기준으로 굳은
+ * 값이 남아 실제로 걸리는 칩과 달랐다. 앞면·뒷면·양면을 같은 줄의 세 갈래로
+ * 놓으면 그 뒤는 콜·레이즈·다이 하나로 합쳐진다.
+ */
 function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; myId: string }) {
   const mine = gameData.players[myId];
-  const [side, setSide] = useState<DoubleSidedPokerSide>('front');
+  const opponent = Object.entries(gameData.players).find(([id]) => id !== myId)?.[1] ?? null;
+  const committed = mine?.selection ?? null;
+  const [branch, setBranch] = useState<DoubleSidedPokerBranch>(committed ?? 'front');
   const [showRaise, setShowRaise] = useState(false);
-  const [showDouble, setShowDouble] = useState(false);
-  const initialAmount = gameData.bettingOpened ? (gameData.minRaise ?? 1) : (gameData.minBet ?? 1);
-  const [amount, setAmount] = useState(initialAmount);
+  const [amount, setAmount] = useState(0);
   if (gameData.phase !== 'betting') return null;
   const myTurn = gameData.currentTurnId === myId && mine != null;
-
-  /*
-    질 게 뻔한 양면베팅을 막아 준다.
-
-    양면베팅은 내 앞면과 뒷면이 상대가 고른 숫자보다 '둘 다' 커야 이긴다.
-    그러니 내 두 숫자 중 작은 쪽이 상대가 고를 수 있는 숫자 이하라면 승부에서는
-    절대 이길 수 없다. 상대의 앞면은 공개되어 있으므로 그 경우를 미리 짚어 준다.
-
-    상대가 이미 뒷면을 골랐다면 그 숫자를 알 수 없어 판단하지 않는다.
-    상대가 다이하면 이길 수도 있으므로 막지 않고 묻기만 한다.
-  */
-  function confirmDouble() {
-    const card = mine?.card;
-    if (!card || card.back == null) return true;
-    const opponent = Object.entries(gameData.players).find(([id]) => id !== myId)?.[1];
-    if (!opponent?.card) return true;
-    if (opponent.selection === 'back' || opponent.selection === 'both') return true;
-    if (Math.min(card.front, card.back) > opponent.card.front) return true;
-    return window.confirm('무조건 패배하게 됩니다. 정말 진행합니까?');
-  }
 
   if (!myTurn) {
     const currentName = gameData.currentTurnId
@@ -235,182 +281,215 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
     );
   }
 
-  if (!gameData.bettingOpened && gameData.minBet != null && gameData.maxBet != null) {
-    const safeAmount = Math.min(gameData.maxBet, Math.max(gameData.minBet, amount));
-    const canOpenDouble = gameData.canDouble && gameData.maxDouble != null;
-    const safeDouble = gameData.maxDouble != null ? Math.min(gameData.maxDouble, safeAmount) : 0;
+  /* 이미 이 라운드에서 면을 정했다면 그 갈래로 고정된다. */
+  const active: DoubleSidedPokerBranch = committed ?? branch;
+  const isDouble = active === 'both';
+  /** 양면은 앞뒤 두 칸에 같은 칩을 내므로 실제로 나가는 칩이 두 배다. */
+  const multiplier = isDouble ? 2 : 1;
+  /*
+    양면 선언은 한 라운드에 한 번뿐이다 — 서버는 아직 면을 안 고른 사람에게만
+    double 을 받는다. 이미 양면으로 선언해 둔 뒤의 콜·레이즈는 평범한 call·raise
+    이고, 두 배로 나가는 계산은 서버가 selection 을 보고 알아서 한다.
+  */
+  const declaringDouble = isDouble && committed == null;
+
+  /*
+    질 게 뻔한 양면베팅을 막아 준다.
+
+    양면베팅은 내 앞면과 뒷면이 상대가 고른 숫자보다 '둘 다' 커야 이긴다.
+    그러니 내 두 숫자 중 작은 쪽이 상대가 고를 수 있는 숫자 이하라면 승부에서는
+    절대 이길 수 없다. 상대의 앞면은 공개되어 있으므로 그 경우를 미리 짚어 준다.
+
+    상대가 이미 뒷면을 골랐다면 그 숫자를 알 수 없어 판단하지 않는다.
+    상대가 다이하면 이길 수도 있으므로 막지 않고 묻기만 한다.
+  */
+  function confirmDouble() {
+    const card = mine?.card;
+    if (!card || card.back == null) return true;
+    if (!opponent?.card) return true;
+    if (opponent.selection === 'back' || opponent.selection === 'both') return true;
+    if (Math.min(card.front, card.back) > opponent.card.front) return true;
+    return window.confirm('무조건 패배하게 됩니다. 정말 진행합니까?');
+  }
+
+  /*
+    걸 칩이 없는 이월 라운드. 낼 것이 없으니 겨룰 면만 고른다. 낮은 쪽을
+    고르는 것은 대개 실수라서 한 번 되묻는다 — 블러프가 통할 상대가 없는
+    라운드라 일부러 낮은 면을 고를 이유가 없다.
+  */
+  if (gameData.selectOnly) {
+    const card = mine.card;
+    const submitSelect = (side: DoubleSidedPokerSide) => {
+      const value = side === 'front' ? card?.front : card?.back;
+      const otherValue = side === 'front' ? card?.back : card?.front;
+      if (
+        value != null &&
+        otherValue != null &&
+        value < otherValue &&
+        !window.confirm(
+          `${side === 'front' ? '앞면' : '뒷면'} ${value} 은 반대쪽 ${otherValue} 보다 낮습니다. 그대로 겨룹니까?`,
+        )
+      ) {
+        return;
+      }
+      getSocket().emit('game:action', { type: 'select', side });
+    };
     return (
       <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
         <p className="text-cdm-fg mb-2 text-center text-xs font-black">
-          베팅할 면과 칩을 선택하세요 · 체크 없음
+          걸 칩이 없습니다 · 겨룰 면만 고르세요
         </p>
-        <div className="flex items-center gap-3">
-          <input
-            className="accent-cdm-primary min-w-0 flex-1"
-            type="range"
-            min={gameData.minBet}
-            max={gameData.maxBet}
-            value={safeAmount}
-            onChange={(event) => setAmount(Number(event.target.value))}
-          />
-          <span className="text-cdm-fg w-12 text-right text-lg font-black tabular-nums">
-            {safeAmount}
-          </span>
-        </div>
-        <div
-          className={cn('mt-3 grid gap-2', canOpenDouble ? 'grid-cols-4' : 'grid-cols-3')}
-        >
-          <Button
-            onClick={() =>
-              getSocket().emit('game:action', { type: 'bet', side: 'front', amount: safeAmount })
-            }
-          >
-            앞면 {safeAmount}
+        <div className="grid grid-cols-3 gap-2">
+          <Button onClick={() => submitSelect('front')}>앞면 {card?.front ?? ''}</Button>
+          <Button variant="secondary" onClick={() => submitSelect('back')}>
+            뒷면 {card?.back ?? ''}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() =>
-              getSocket().emit('game:action', { type: 'bet', side: 'back', amount: safeAmount })
-            }
-          >
-            뒷면 {safeAmount}
-          </Button>
-          {canOpenDouble && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (!confirmDouble()) return;
-                getSocket().emit('game:action', { type: 'double', amount: safeDouble });
-              }}
-            >
-              양면 {safeDouble * 2}
-            </Button>
-          )}
-          <Button
-            variant="danger"
-            onClick={() => getSocket().emit('game:action', { type: 'fold' })}
-          >
+          <Button variant="danger" onClick={() => getSocket().emit('game:action', { type: 'fold' })}>
             다이
           </Button>
         </div>
-        {canOpenDouble && (
-          <p className="text-cdm-highlight mt-2 text-center text-[10px] font-bold">
-            양면베팅은 앞·뒷면에 {safeDouble}칩씩({safeDouble * 2}칩) 걸고, 성공 시 추가 10칩을
-            가져옵니다.
-          </p>
-        )}
       </section>
     );
   }
 
-  const needsSide = mine.selection == null;
-  const minRaise = gameData.minRaise;
-  const maxRaise = gameData.maxRaise;
-  const safeRaise =
-    minRaise != null && maxRaise != null ? Math.min(maxRaise, Math.max(minRaise, amount)) : 0;
-  const safeDoubleStake =
-    gameData.maxDouble != null
-      ? Math.min(gameData.maxDouble, Math.max(gameData.currentStake, amount))
+  /* ── 여는 수 ── */
+  if (!gameData.bettingOpened && gameData.minBet != null && gameData.maxBet != null) {
+    const canOpenDouble = gameData.canDouble && gameData.maxDouble != null;
+    const max = isDouble ? (gameData.maxDouble ?? 0) : gameData.maxBet;
+    const stake = Math.min(max, Math.max(gameData.minBet, amount || gameData.minBet));
+    const cost = stake * multiplier;
+    return (
+      <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
+        <BranchPicker
+          value={active}
+          onChange={setBranch}
+          doubleEnabled={canOpenDouble}
+          locked={committed != null}
+        />
+        <div className="mb-2 flex items-center gap-3">
+          <input
+            className="accent-cdm-primary min-w-0 flex-1"
+            type="range"
+            min={gameData.minBet}
+            max={Math.max(gameData.minBet, max)}
+            value={stake}
+            onChange={(event) => setAmount(Number(event.target.value))}
+          />
+          <ChipCost total={cost} perSide={isDouble ? stake : null} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            disabled={max < gameData.minBet}
+            onClick={() => {
+              if (declaringDouble) {
+                if (!confirmDouble()) return;
+                getSocket().emit('game:action', { type: 'double', amount: stake });
+                return;
+              }
+              getSocket().emit('game:action', {
+                type: 'bet',
+                side: active as DoubleSidedPokerSide,
+                amount: stake,
+              });
+            }}
+          >
+            베팅 {cost}
+          </Button>
+          <Button variant="danger" onClick={() => getSocket().emit('game:action', { type: 'fold' })}>
+            다이
+          </Button>
+        </div>
+        <BranchHint branch={declaringDouble ? active : 'front'} stake={stake} />
+      </section>
+    );
+  }
+
+  /* ── 받는 수 ── */
+  const callStake = gameData.currentStake;
+  const callCost = Math.max(0, callStake - mine.stake) * multiplier;
+  /*
+    올릴 수 있는 폭. 양면을 '지금 선언하려는' 경우에만 양면 전용 상한을 쓴다
+    (앞뒤로 두 배를 내야 하고 상대가 한 면으로 받을 수 있어야 하므로 더 좁다).
+    이미 양면으로 선언해 둔 뒤라면 평범한 레이즈 폭을 쓴다 — 서버가 selection
+    을 보고 두 배를 계산해 준다.
+  */
+  const raiseMin = declaringDouble
+    ? gameData.maxDouble != null && gameData.maxDouble > callStake
+      ? callStake + 1
+      : null
+    : gameData.minRaise;
+  const raiseMax = declaringDouble ? gameData.maxDouble : gameData.maxRaise;
+  const raiseStake =
+    raiseMin != null && raiseMax != null
+      ? Math.min(raiseMax, Math.max(raiseMin, amount || raiseMin))
       : 0;
+  const raiseCost = Math.max(0, raiseStake - mine.stake) * multiplier;
+  const canPickDouble = gameData.canDouble && gameData.maxDouble != null;
+
   return (
     <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
-      {needsSide && <SidePicker value={side} onChange={setSide} />}
-      {/* 양면 금액을 고르는 중에는 콜 비용을 띄우지 않는다. 지금 고르는 값과 헷갈린다. */}
-      <div
-        className={cn(
-          'mb-2 flex items-center justify-between gap-3 text-xs',
-          showDouble && 'hidden',
-        )}
-      >
+      <BranchPicker
+        value={active}
+        onChange={(next) => {
+          setBranch(next);
+          setShowRaise(false);
+        }}
+        doubleEnabled={canPickDouble}
+        locked={committed != null}
+      />
+
+      {/*
+        지금 고른 갈래로 실제로 나가는 칩. 레이즈 슬라이더를 움직이면 이 숫자도
+        따라 움직여야 한다 — 예전에는 콜 기준으로 굳은 값이 남아 양면을 고른 뒤
+        레이즈해도 '6(2×3)' 그대로였다.
+      */}
+      <div className="mb-2 flex items-center justify-between gap-3 text-xs">
         <span className="text-cdm-fg-muted">
-          {mine.selection === 'both' ? '두 베팅칸에 필요한 칩' : '콜에 필요한 칩'}
+          {isDouble ? '두 베팅칸에 필요한 칩' : '필요한 칩'}
         </span>
-        <span className="text-cdm-fg text-base font-black tabular-nums">
-          {gameData.toCall}
-          {/*
-            양면베팅은 앞뒤 두 칸에 똑같이 걸므로 실제로 나가는 칩이 두 배다.
-            총액만 보면 왜 이 숫자인지 안 보여서 '6(2×3)' 처럼 내역을 함께 적는다.
-          */}
-          {mine.selection === 'both' && gameData.toCall > 0 && (
-            <span className="text-cdm-fg-muted ml-0.5 text-xs font-bold">
-              (2×{gameData.toCall / 2})
-            </span>
-          )}
-        </span>
+        <ChipCost
+          total={showRaise ? raiseCost : callCost}
+          perSide={isDouble ? (showRaise ? raiseStake - mine.stake : callStake - mine.stake) : null}
+        />
       </div>
 
-      {showDouble && gameData.canDouble && gameData.maxDouble != null ? (
-        /*
-          양면베팅도 금액을 고른다. 기준액을 그대로 맞추면 콜과 같고, 그보다
-          높이 걸면 양면 레이즈가 된다. 앞뒤 두 칸에 각각 내므로 실제로 나가는
-          칩은 두 배다.
-        */
+      {showRaise && raiseMin != null && raiseMax != null ? (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <input
               className="accent-cdm-primary min-w-0 flex-1"
               type="range"
-              min={gameData.currentStake}
-              max={gameData.maxDouble}
-              value={safeDoubleStake}
+              min={raiseMin}
+              max={raiseMax}
+              value={raiseStake}
               onChange={(event) => setAmount(Number(event.target.value))}
             />
-            <span className="text-cdm-fg w-20 text-right text-lg font-black tabular-nums">
-              {safeDoubleStake * 2}
-              <span className="text-cdm-fg-muted ml-0.5 text-xs font-bold">
-                (2×{safeDoubleStake})
-              </span>
+            <span className="text-cdm-fg w-12 text-right text-lg font-black tabular-nums">
+              {raiseStake}
             </span>
           </div>
           <p className="text-cdm-fg-muted text-center text-[10px]">
-            면별 {gameData.currentStake}–{gameData.maxDouble} · {gameData.currentStake}이면 맞추기,
-            더 걸면 양면 레이즈
+            면별 기준 베팅 · {raiseMin}–{raiseMax}
+            {isDouble ? ' · 앞뒤 두 칸에 각각 지불' : ''}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => {
-                if (!confirmDouble()) return;
-                setShowDouble(false);
-                getSocket().emit('game:action', { type: 'double', amount: safeDoubleStake });
-              }}
-            >
-              양면 {safeDoubleStake * 2}
-            </Button>
-            <Button variant="ghost" onClick={() => setShowDouble(false)}>
-              취소
-            </Button>
-          </div>
-        </div>
-      ) : showRaise && minRaise != null && maxRaise != null ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <input
-              className="accent-cdm-primary min-w-0 flex-1"
-              type="range"
-              min={minRaise}
-              max={maxRaise}
-              value={safeRaise}
-              onChange={(event) => setAmount(Number(event.target.value))}
-            />
-            <span className="text-cdm-fg w-12 text-right text-lg font-black tabular-nums">
-              {safeRaise}
-            </span>
-          </div>
-          <p className="text-cdm-fg-muted text-center text-[10px]">
-            면별 기준 베팅 · {minRaise}–{maxRaise}
-            {mine.selection === 'both' ? ' · 차액은 양쪽에 각각 지불' : ''}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={() =>
+                if (declaringDouble) {
+                  if (!confirmDouble()) return;
+                  setShowRaise(false);
+                  getSocket().emit('game:action', { type: 'double', amount: raiseStake });
+                  return;
+                }
+                setShowRaise(false);
                 getSocket().emit('game:action', {
                   type: 'raise',
-                  side: needsSide ? side : undefined,
-                  amount: safeRaise,
-                })
-              }
+                  side: committed == null ? (active as DoubleSidedPokerSide) : undefined,
+                  amount: raiseStake,
+                });
+              }}
             >
-              레이즈 {safeRaise}
+              레이즈 {raiseCost}
             </Button>
             <Button variant="ghost" onClick={() => setShowRaise(false)}>
               취소
@@ -418,51 +497,43 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
           </div>
         </div>
       ) : (
-        <div className={cn('grid gap-2', gameData.canDouble ? 'grid-cols-4' : 'grid-cols-3')}>
+        <div className="grid grid-cols-3 gap-2">
           <Button
-            onClick={() =>
+            onClick={() => {
+              if (declaringDouble) {
+                if (!confirmDouble()) return;
+                getSocket().emit('game:action', { type: 'double', amount: callStake });
+                return;
+              }
               getSocket().emit('game:action', {
                 type: 'call',
-                side: needsSide ? side : undefined,
-              })
-            }
+                side: committed == null ? (active as DoubleSidedPokerSide) : undefined,
+              });
+            }}
           >
-            {gameData.toCall === 0 ? '콜 · 공개' : `콜 ${gameData.toCall}`}
+            {callCost === 0 ? '콜 · 공개' : `콜 ${callCost}`}
           </Button>
           <Button
             variant="secondary"
-            disabled={minRaise == null}
+            disabled={raiseMin == null || raiseMax == null}
             onClick={() => {
-              setAmount(minRaise ?? 0);
+              setAmount(raiseMin ?? 0);
               setShowRaise(true);
             }}
           >
             레이즈
           </Button>
-          {gameData.canDouble && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setAmount(gameData.currentStake);
-                setShowDouble(true);
-              }}
-            >
-              양면 {gameData.doubleCost}
-            </Button>
-          )}
-          <Button
-            variant="danger"
-            onClick={() => getSocket().emit('game:action', { type: 'fold' })}
-          >
+          <Button variant="danger" onClick={() => getSocket().emit('game:action', { type: 'fold' })}>
             다이
           </Button>
         </div>
       )}
-      {gameData.canDouble && !showRaise && !showDouble && (
-        <p className="text-cdm-highlight mt-2 text-center text-[10px] font-bold">
-          양면베팅 — 앞뒤에 같은 칩 · {gameData.currentStake}칩씩부터 · 성공 시 +10칩
-        </p>
-      )}
+      {/*
+        양면이 무엇인지는 '고르기 전' 에만 알려 주면 된다. 이미 선언한 뒤에는
+        위의 필요 칩 줄이 실제로 나가는 칩을 말해 주므로, 기준액을 다시 적으면
+        그만큼이 또 나가는 것처럼 읽힌다.
+      */}
+      {!showRaise && declaringDouble && <BranchHint branch="both" stake={callStake} />}
     </section>
   );
 }

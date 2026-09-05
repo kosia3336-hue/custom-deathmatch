@@ -210,7 +210,7 @@ describe('양면포커 경기 진행', () => {
     ).toBeNull();
   });
 
-  it('올인 상태에서 무승부가 나면 끝내지 않고 다음 라운드 앞면으로 팟 주인을 가린다', async () => {
+  it('올인 상태에서 무승부가 나면 끝내지 않고 다음 라운드에 면을 골라 팟 주인을 가린다', async () => {
     const { io, state, first, second } = setup('double-poker-allin-tie');
     // 둘 다 올인해 같은 숫자로 비긴다.
     state.playerStates[first.id].chips = 4;
@@ -243,13 +243,64 @@ describe('양면포커 경기 진행', () => {
     expect(state.round).toBe(2);
 
     /*
-      둘 다 베팅할 칩이 없으므로 새 라운드는 카드를 받자마자 앞면끼리 비교해
-      끝난다. 앞면 9 를 받은 players[0] 이 이월된 팟을 가져간다.
+      둘 다 베팅할 칩이 없다. 예전에는 서버가 앞면끼리 자동 비교했지만 이제는
+      각자 겨룰 면을 고른다 — 뒷면이 더 좋은 쪽은 그걸 쓸 수 있어야 한다.
     */
-    const winner = state.players[0].id;
-    const loser = state.players[1].id;
+    expect(state.selectOnly).toBe(true);
+    const winner = state.players[0].id; // 앞면 9 · 뒷면 4
+    const loser = state.players[1].id; // 앞면 2 · 뒷면 5
+
+    // 베팅은 못 하고 면만 고를 수 있다.
+    expect(
+      performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+        type: 'bet',
+        side: 'front',
+        amount: 1,
+      }),
+    ).toBe('겨룰 면을 골라 주세요.');
+
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === winner ? 'front' : 'back',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === winner ? 'front' : 'back',
+    });
+
+    // 9 대 5 — 앞면 9 를 고른 쪽이 이월된 팟을 가져간다.
     expect(state.playerStates[winner].chips).toBe(carriedPot);
     expect(state.playerStates[loser].chips).toBe(0);
+  });
+
+  it('면만 고르는 라운드에서는 뒷면을 골라 앞면 열세를 뒤집을 수 있다', () => {
+    const { io, state, first, second } = setup('double-poker-select-only');
+    // 둘 다 걸 칩이 없는 이월 라운드를 만든다.
+    state.playerStates[first.id].chips = 0;
+    state.playerStates[second.id].chips = 0;
+    state.carryRound = true;
+    state.pot = 8;
+    // pop 으로 꺼내므로 마지막 원소가 players[0] 에게 간다.
+    state.deck = [card('lo', 6, 1), card('hi', 3, 10)];
+    beginDoubleSidedPokerRound(io, state);
+
+    expect(state.selectOnly).toBe(true);
+    const underdog = state.players[0].id; // 앞면 3 · 뒷면 10
+    const favourite = state.players[1].id; // 앞면 6 · 뒷면 1
+
+    // 앞면만 비교하던 예전 규칙이라면 6 이 이겼다. 뒷면 10 을 고를 수 있어야 한다.
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === underdog ? 'back' : 'front',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === underdog ? 'back' : 'front',
+    });
+
+    expect(state.lastRoundResult?.winnerId).toBe(underdog);
+    expect(state.playerStates[underdog].chips).toBe(8);
+    expect(state.playerStates[favourite].chips).toBe(0);
   });
 
   it('양면베팅은 양쪽 베팅칸에 같은 칩을 내고 상대 응답을 기다린다', () => {
@@ -326,9 +377,18 @@ describe('양면포커 경기 진행', () => {
 
     // 예전에는 기본 베팅 뒤 칩 0 을 보고 바로 끝냈다.
     expect(state.gameOver).toBe(false);
-    // 1칩짜리는 기본 베팅으로 0 이 되지만 그대로 라운드를 치른다.
+    // 1칩짜리는 기본 베팅으로 0 이 된다 — 걸 칩이 없으니 면만 고르는 라운드다.
+    expect(state.selectOnly).toBe(true);
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === state.players[0].id ? 'front' : 'back',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === state.players[0].id ? 'front' : 'back',
+    });
     expect(state.lastRoundResult).not.toBeNull();
-    // 앞면 9 를 받은 players[0] 이 팟 2칩을 가져간다.
+    // 앞면 9 를 고른 players[0] 이 팟 2칩을 가져간다(상대는 뒷면 6).
     expect(state.playerStates[state.players[0].id].chips).toBeGreaterThan(0);
   });
 

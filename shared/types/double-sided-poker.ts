@@ -21,12 +21,14 @@ export type DoubleSidedPokerAction =
   | { type: 'raise'; side?: DoubleSidedPokerSide; amount: number }
   /** amount 는 여는 수로 선언할 때만 쓴다. 한 면에 걸 칩이며 실제로는 두 배가 나간다. */
   | { type: 'double'; amount?: number }
+  /** 걸 칩이 없는 이월 라운드에서 겨룰 면만 고른다. */
+  | { type: 'select'; side: DoubleSidedPokerSide }
   | { type: 'fold' };
 
 export interface DoubleSidedPokerBettingAction {
   round: number;
   playerId: string;
-  action: 'bet' | 'call' | 'raise' | 'double' | 'fold';
+  action: 'bet' | 'call' | 'raise' | 'double' | 'select' | 'fold';
   selection: DoubleSidedPokerSelection;
   payment: number;
   stake: number;
@@ -75,6 +77,11 @@ export interface DoubleSidedPokerGameData {
   firstPlayerId: string;
   currentTurnId: string | null;
   bettingOpened: boolean;
+  /**
+   * 양쪽 다 걸 칩이 없는 이월 라운드. 베팅 없이 겨룰 면만 고르고 바로 승부한다.
+   * 예전에는 서버가 앞면끼리 자동 비교했지만, 뒷면으로 겨룰 선택지를 뺏는 것이었다.
+   */
+  selectOnly: boolean;
   doubleBettorId: string | null;
   currentStake: number;
   toCall: number;
