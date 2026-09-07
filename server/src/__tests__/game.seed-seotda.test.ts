@@ -233,6 +233,43 @@ describe('시드섯다 경기 진행', () => {
     expect(state.playerStates[second.id].chips).toBe(21);
   });
 
+  it('정상 승부의 승자가 다음 라운드 선 플레이어가 된다', async () => {
+    const { io, state, first, second } = setup('seed-seotda-winner-first');
+    const previousFirst = state.firstPlayerId;
+    const previousSecond = previousFirst === first.id ? second.id : first.id;
+    state.playerStates[previousFirst].finalHand = [card('2a'), card('8b')];
+    state.playerStates[previousFirst].seedChoice = 'unused';
+    state.playerStates[previousSecond].finalHand = [card('3a'), card('8a')];
+    state.playerStates[previousSecond].seedChoice = 'unused';
+
+    resolveSeedSeotdaShowdown(io, state);
+    expect(state.lastRoundResult?.winnerId).toBe(previousSecond);
+
+    await vi.advanceTimersByTimeAsync(2800);
+    expect(state.round).toBe(2);
+    expect(state.firstPlayerId).toBe(previousSecond);
+  });
+
+  it('상대가 다이해 얻은 승자도 다음 라운드 선 플레이어가 된다', async () => {
+    const { io, state, first, second } = setup('seed-seotda-die-winner-first');
+    const previousFirst = state.firstPlayerId;
+    const previousSecond = previousFirst === first.id ? second.id : first.id;
+    state.phase = 'betting';
+    state.currentTurnId = previousSecond;
+    state.bettingOpened = true;
+    state.playerStates[previousFirst].finalHand = [card('1a'), card('2a')];
+    state.playerStates[previousFirst].seedChoice = 'unused';
+    state.playerStates[previousSecond].finalHand = [card('2a'), card('8b')];
+    state.playerStates[previousSecond].seedChoice = 'unused';
+
+    expect(performSeedSeotdaAction(io, state, previousSecond, { type: 'die' })).toBeNull();
+    expect(state.lastRoundResult?.winnerId).toBe(previousFirst);
+
+    await vi.advanceTimersByTimeAsync(2800);
+    expect(state.round).toBe(2);
+    expect(state.firstPlayerId).toBe(previousFirst);
+  });
+
   it('상대 구사는 1땡 이상, 상대 멍텅구리 구사는 광땡 이상이면 이긴다', () => {
     expect(compareSeedSeotdaHands(hand('1a', '1b'), hand('4b', '9b'))).toMatchObject({
       comparison: 1,
