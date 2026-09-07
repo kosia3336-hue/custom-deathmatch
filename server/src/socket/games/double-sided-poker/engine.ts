@@ -470,6 +470,13 @@ function performBettingAction(
     const payment = applyPayment(state, actor, stake);
     state.doubleBettorId = playerId;
     pushAction(state, playerId, 'double', payment);
+
+    // 상대와 같은 기준액을 건 양면베팅은 콜이다. 베팅이 맞춰졌으므로 즉시 공개한다.
+    if (stake === bounds.currentStake) {
+      resolveDoubleSidedPokerShowdown(io, state);
+      return null;
+    }
+
     state.currentTurnId = opponentId;
     publishDecision(io, state);
     return null;

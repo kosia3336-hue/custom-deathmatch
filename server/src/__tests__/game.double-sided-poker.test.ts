@@ -303,22 +303,28 @@ describe('양면포커 경기 진행', () => {
     expect(state.playerStates[favourite].chips).toBe(0);
   });
 
-  it('양면베팅은 양쪽 베팅칸에 같은 칩을 내고 상대 응답을 기다린다', () => {
-    const { io, state, first, second } = setup('double-poker-double-wait');
+  it('양면베팅으로 상대 기준액을 콜하면 즉시 카드를 비교하고 라운드를 끝낸다', () => {
+    const { io, state, first, second } = setup('double-poker-double-call');
     state.playerStates[first.id].card = card('a', 5, 2);
     state.playerStates[second.id].card = card('b', 8, 7);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 2 });
     expect(performDoubleSidedPokerAction(io, state, second.id, { type: 'double' })).toBeNull();
-    expect(state.phase).toBe('betting');
-    expect(state.currentTurnId).toBe(first.id);
+    expect(state.phase).toBe('round-result');
+    expect(state.currentTurnId).toBeNull();
     expect(state.playerStates[second.id]).toMatchObject({
       selection: 'both',
       stake: 2,
       frontBet: 2,
       backBet: 2,
-      chips: 20,
+      chips: 38,
     });
-    expect(state.pot).toBe(8);
+    expect(state.pot).toBe(0);
+    expect(state.lastRoundResult).toMatchObject({
+      winnerId: second.id,
+      reason: 'showdown',
+      doubleBettorId: second.id,
+      potAmount: 8,
+    });
   });
 
   it('양면베팅으로 받을 때 금액을 올리면 양면 레이즈가 되어 차례가 넘어간다', () => {
@@ -360,9 +366,10 @@ describe('양면포커 경기 진행', () => {
       amount: 999,
     });
     expect(tooHigh).toBe('양면베팅에 가능한 범위의 칩을 골라 주세요.');
-    // 금액을 안 주면 예전처럼 기준액을 그대로 맞춘다.
+    // 금액을 안 주면 기준액을 그대로 맞추고 즉시 승부한다.
     expect(performDoubleSidedPokerAction(io, state, responder, { type: 'double' })).toBeNull();
     expect(state.playerStates[responder].stake).toBe(3);
+    expect(state.phase).toBe('round-result');
   });
 
   it('기본 베팅으로 칩이 0 이 되어도 그 라운드를 치른다', async () => {
@@ -398,7 +405,6 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 8, 7);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'call' });
     expect(state.lastRoundResult).toMatchObject({
       winnerId: second.id,
       doubleBettorId: second.id,
@@ -414,7 +420,6 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 6, 9);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'call' });
     expect(state.lastRoundResult).toMatchObject({ winnerId: first.id, doubleBonus: 0 });
   });
 
@@ -422,22 +427,24 @@ describe('양면포커 경기 진행', () => {
     const { io, state, first, second } = setup('double-poker-double-raise');
     state.playerStates[first.id].card = card('a', 5, 2);
     state.playerStates[second.id].card = card('b', 8, 7);
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 2 });
-    performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'raise', amount: 3 });
-    expect(state.currentTurnId).toBe(second.id);
-    expect(performDoubleSidedPokerAction(io, state, second.id, { type: 'call' })).toBeNull();
+    performDoubleSidedPokerAction(io, state, first.id, { type: 'double', amount: 2 });
+    performDoubleSidedPokerAction(io, state, second.id, {
+      type: 'raise',
+      side: 'front',
+      amount: 3,
+    });
+    expect(state.currentTurnId).toBe(first.id);
+    expect(performDoubleSidedPokerAction(io, state, first.id, { type: 'call' })).toBeNull();
     expect(state.lastRoundResult?.actions.at(-1)).toMatchObject({ payment: 2, stake: 3 });
-    expect(state.lastRoundResult?.bets[second.id]).toEqual({ front: 3, back: 3 });
+    expect(state.lastRoundResult?.bets[first.id]).toEqual({ front: 3, back: 3 });
   });
 
   it('양면베팅을 받은 상대가 다이해도 양면베팅자가 추가 칩을 가져온다', () => {
     const { io, state, first, second } = setup('double-poker-double-fold-bonus');
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
-    performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'fold' });
+    performDoubleSidedPokerAction(io, state, first.id, { type: 'double', amount: 1 });
+    performDoubleSidedPokerAction(io, state, second.id, { type: 'fold' });
     expect(state.lastRoundResult).toMatchObject({
-      winnerId: second.id,
+      winnerId: first.id,
       reason: 'fold',
       doubleBonus: 10,
     });

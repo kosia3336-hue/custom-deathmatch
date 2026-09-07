@@ -29,6 +29,7 @@ import {
   setPendingUndo,
   takePendingUndo,
 } from './gameUndoPending.js';
+import { applyGameTurnOrder } from './gameTurnOrder.js';
 import {
   initFourGravity,
   handleFourGravityAction,
@@ -741,6 +742,9 @@ export function startGame(io: IO, roomId: string) {
 
   clearPendingUndo(roomId);
 
+  // 확정된 선후공을 방에도 반영해야 결과·기록의 first/second가 실제 게임과 일치한다.
+  const playersForGame = applyGameTurnOrder(room);
+
   const startedAt = Date.now();
   gameStartTimes.set(roomId, startedAt);
 
@@ -753,12 +757,6 @@ export function startGame(io: IO, roomId: string) {
   const gameModule = gameModules[room.gameId];
   if (gameModule) {
     try {
-      // random 모드이면 50% 확률로 플레이어 순서 뒤집기
-      const playersForGame =
-        room.turnOrderMode === 'random' && room.players.length === 2 && Math.random() < 0.5
-          ? [room.players[1], room.players[0]]
-          : room.players;
-
       // 랜덤 선후공: 결과를 두 플레이어 모두에게 시스템 메시지로 알림
       if (room.turnOrderMode === 'random' && playersForGame.length === 2) {
         io.to(socketRoom(roomId)).emit('chat:message', {

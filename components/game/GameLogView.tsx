@@ -5,7 +5,8 @@ import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { Card } from '@/components/cdm/Card';
 import LogViewer from '@/components/archive/LogViewer';
 import { formatTime } from '@/lib/utils';
-import type { GameRecordFile } from '@/shared/types/archive';
+import type { FourGravityRecord, GameRecordFile } from '@/shared/types/archive';
+import { GAME_IDS } from '@/shared/types/game';
 import { PLAY_MODE_LABEL, type PlayMode } from '@/shared/types/room';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -38,6 +39,32 @@ interface Props {
   selfNickname?: string;
 }
 
+function withRecordedFourGravityOrder(
+  players: GameLogPlayer[],
+  record: GameRecordFile | null,
+): GameLogPlayer[] {
+  if (record?.gameId !== GAME_IDS.FOUR_GRAVITY) return players;
+
+  const gameRecord = record.gameRecord as FourGravityRecord | null;
+  const blackNickname =
+    gameRecord?.players?.black?.nickname ??
+    gameRecord?.actions?.find((action) => action.color === 'black')?.nickname;
+  const whiteNickname =
+    gameRecord?.players?.white?.nickname ??
+    gameRecord?.actions?.find((action) => action.color === 'white')?.nickname;
+  if (!blackNickname || !whiteNickname || blackNickname === whiteNickname) return players;
+
+  const blackPlayer = players.find((player) => player.nickname === blackNickname);
+  const whitePlayer = players.find((player) => player.nickname === whiteNickname);
+  if (!blackPlayer || !whitePlayer || blackPlayer === whitePlayer) return players;
+
+  return players.map((player) => {
+    if (player === blackPlayer) return { ...player, turn: 'first' };
+    if (player === whitePlayer) return { ...player, turn: 'second' };
+    return player;
+  });
+}
+
 export default function GameLogView({
   players,
   meta,
@@ -45,11 +72,13 @@ export default function GameLogView({
   viewingAs = 'self',
   selfNickname,
 }: Props) {
-  const first = players.find((p) => p.turn === 'first');
-  const second = players.find((p) => p.turn === 'second');
+  const orderedPlayers = withRecordedFourGravityOrder(players, record);
+  const first = orderedPlayers.find((p) => p.turn === 'first');
+  const second = orderedPlayers.find((p) => p.turn === 'second');
 
-  const isDraw = players.every((p) => p.isDraw) || players.some((p) => p.isDraw);
-  const winner = !isDraw ? players.find((p) => p.isWinner) : null;
+  const isDraw =
+    orderedPlayers.every((p) => p.isDraw) || orderedPlayers.some((p) => p.isDraw);
+  const winner = !isDraw ? orderedPlayers.find((p) => p.isWinner) : null;
 
   const resultLabel = meta.mode === 'tutorial'
     ? '튜토리얼 완료'
