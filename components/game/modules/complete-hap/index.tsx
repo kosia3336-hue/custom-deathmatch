@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { CompleteHapCard, CompleteHapGameData } from '@/shared/types/complete-hap';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -21,11 +21,6 @@ const SHAPE_COLORS = {
   blue: '#2563eb',
 } as const;
 
-function formatClock(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
 
 function setKey(indexes: number[]) {
   return [...indexes].sort((a, b) => a - b).join('-');
@@ -35,12 +30,6 @@ export default function CompleteHapGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as CompleteHapGameData | undefined;
   const myId = useMySocketId();
-  const [now, setNow] = useState(gameData?.matchStartedAt ?? 0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 200);
-    return () => clearInterval(interval);
-  }, []);
 
   if (!gameData) {
     return (
@@ -51,13 +40,6 @@ export default function CompleteHapGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const matchRemaining =
-    gameData.matchSeconds == null
-      ? null
-      : Math.max(
-          0,
-          Math.ceil((gameData.matchStartedAt + gameData.matchSeconds * 1000 - now) / 1000),
-        );
   const playerEntries = Object.entries(gameData.players);
   const roundResult = gameData.lastRoundResult;
   const callerName = roundResult
@@ -73,7 +55,6 @@ export default function CompleteHapGame() {
       gameData={gameData}
       myId={myId}
       isPlayer={isPlayer}
-      matchRemaining={matchRemaining}
       playerEntries={playerEntries}
       callerName={callerName}
       pointPlayerName={pointPlayerName}
@@ -85,7 +66,6 @@ function RoundWorkspace({
   gameData,
   myId,
   isPlayer,
-  matchRemaining,
   playerEntries,
   callerName,
   pointPlayerName,
@@ -93,7 +73,6 @@ function RoundWorkspace({
   gameData: CompleteHapGameData;
   myId: string;
   isPlayer: boolean;
-  matchRemaining: number | null;
   playerEntries: [string, { nickname: string }][];
   callerName: string | null;
   pointPlayerName: string | null;
@@ -150,7 +129,7 @@ function RoundWorkspace({
     <>
       <GameFrame
         info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-2 items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
             {playerEntries.map(([playerId, player], index) => (
               <div
                 key={playerId}
@@ -168,21 +147,6 @@ function RoundWorkspace({
                 </p>
               </div>
             ))}
-            <div className="order-2 px-1 text-center">
-              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-                R{gameData.round}/{gameData.totalRounds}
-              </p>
-              <p
-                className={cn(
-                  'text-lg leading-6 font-black tabular-nums',
-                  matchRemaining != null && matchRemaining <= 30
-                    ? 'text-cdm-accent'
-                    : 'text-cdm-fg',
-                )}
-              >
-                {matchRemaining == null ? '∞' : formatClock(matchRemaining)}
-              </p>
-            </div>
           </div>
         }
         controls={

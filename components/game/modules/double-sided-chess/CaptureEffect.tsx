@@ -6,7 +6,7 @@ import type { PieceType, Owner } from '@/shared/types/double-sided-chess';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { getPieceLabel, OWNER_COLOR } from './constants';
 import { cn } from '@/lib/utils';
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 /* 정오각형: first = 꼭짓점 위, second = 꼭짓점 아래 */
 const CLIP_FIRST  = 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)';
@@ -48,8 +48,8 @@ function playSlashSound() {
     oscGain.gain.setValueAtTime(0.12, ctx.currentTime);
     oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
 
-    src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
-    osc.connect(oscGain); oscGain.connect(ctx.destination);
+    src.connect(bpf); bpf.connect(gain); gain.connect(getSfxOutput(ctx));
+    osc.connect(oscGain); oscGain.connect(getSfxOutput(ctx));
 
     src.start(); src.stop(ctx.currentTime + 0.18);
     osc.start(); osc.stop(ctx.currentTime + 0.12);

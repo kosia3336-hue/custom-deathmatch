@@ -36,8 +36,8 @@ export function CountdownTimer() {
       className={cn(
         'font-mono text-sm font-bold tabular-nums',
         isWarning && 'text-cdm-highlight',
-        isDanger && 'animate-pulse text-cdm-accent',
-        isCritical && 'animate-[pulse_0.5s_ease-in-out_infinite] text-cdm-accent-strong',
+        isDanger && 'text-cdm-accent animate-pulse',
+        isCritical && 'text-cdm-accent-strong animate-[pulse_0.5s_ease-in-out_infinite]',
         !isWarning && !isDanger && !isCritical && 'text-cdm-fg',
       )}
     >
@@ -59,16 +59,17 @@ export function ElapsedTime({ startedAt }: { startedAt: number | null | undefine
     return () => clearInterval(id);
   }, []);
 
-  if (!startedAt) return <span className="tabular-nums text-cdm-fg-subtle">—</span>;
+  if (!startedAt) return <span className="text-cdm-fg-subtle tabular-nums">—</span>;
   const sec = Math.max(0, Math.floor((now - startedAt) / 1000));
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  const text = h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    : `${m}:${String(s).padStart(2, '0')}`;
+  const text =
+    h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      : `${m}:${String(s).padStart(2, '0')}`;
 
-  return <span className="font-mono font-semibold tabular-nums text-cdm-fg">{text}</span>;
+  return <span className="text-cdm-fg font-mono font-semibold tabular-nums">{text}</span>;
 }
 
 /**
@@ -81,11 +82,13 @@ export function GameHudLeft({
   round,
   order,
   ranked,
+  spectators = 0,
   onOpenInfo,
 }: {
   round?: React.ReactNode;
   order?: React.ReactNode;
   ranked?: boolean;
+  spectators?: number;
   onOpenInfo?: () => void;
 }) {
   return (
@@ -96,24 +99,27 @@ export function GameHudLeft({
           onClick={onOpenInfo}
           aria-label="방 정보"
           title="방 정보"
-          className="-ml-1 shrink-0 rounded-cdm-md p-1.5 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
+          className="rounded-cdm-md text-cdm-ink-fg-muted -ml-1 flex shrink-0 flex-col items-center gap-0.5 px-1 py-1 transition-colors hover:bg-white/10 hover:text-white"
         >
           <Icon name="info" />
+          <span className="text-[9px] whitespace-nowrap tabular-nums">관전 {spectators}명</span>
         </button>
       )}
-      {ranked && (
-        <span className="shrink-0 rounded-cdm-md bg-cdm-rank px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-cdm-fg uppercase">
-          랭크
-        </span>
-      )}
-      {round != null && (
-        <span className="shrink-0 text-sm font-bold text-cdm-fg tabular-nums">{round}</span>
-      )}
-      {order != null && (
-        <span className="shrink-0 rounded-cdm-md bg-cdm-ink-border px-1.5 py-0.5 text-[11px] font-bold text-cdm-ink-fg">
-          {order}
-        </span>
-      )}
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+        {round != null && (
+          <span className="text-cdm-fg text-xs font-bold tabular-nums sm:text-sm">{round}</span>
+        )}
+        {ranked && (
+          <span className="rounded-cdm-md bg-cdm-rank text-cdm-fg shrink-0 px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+            랭크
+          </span>
+        )}
+        {order != null && (
+          <span className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg shrink-0 px-1.5 py-0.5 text-[11px] font-bold">
+            {order}
+          </span>
+        )}
+      </div>
       <span className="ml-auto shrink-0 pl-1">
         <CountdownTimer />
       </span>

@@ -2,13 +2,27 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
+import { getGameClock } from '@/lib/gameProgress';
+import { useEventRoomStore } from '@/stores/eventRoom';
+import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
+import { GAME_IDS } from '@/shared/types/game';
+import { IPE_TURN_TIME_LIMIT_SECONDS } from '@/shared/types/indian-poker-event';
 
 export function useTurnTimer() {
   const gameState = useRoomStore((s) => s.gameState);
   const room = useRoomStore((s) => s.room);
 
-  const timeLimitSeconds = room?.timeLimitSeconds ?? null;
-  const turnStartedAt = gameState?.turnStartedAt ?? null;
+  const eventStart = useEventRoomStore((s) => s.state?.gameData.turnStartedAt);
+  const smsDeadline = useSmsEventRoomStore((s) => s.state?.gameData.pickDeadlineAt);
+  let { timeLimitSeconds, turnStartedAt } = getGameClock(room?.gameId, gameState, room?.timeLimitSeconds ?? null);
+  if (room?.gameId === GAME_IDS.INDIAN_POKER_EVENT) {
+    timeLimitSeconds = IPE_TURN_TIME_LIMIT_SECONDS;
+    turnStartedAt = eventStart ?? null;
+  } else if (room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT) {
+    // 절대 마감 시각을 동일 카운트다운 계약으로 변환한다.
+    timeLimitSeconds = 1;
+    turnStartedAt = smsDeadline == null ? null : smsDeadline - 1000;
+  }
 
   const [remaining, setRemaining] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

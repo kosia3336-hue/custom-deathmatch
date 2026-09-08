@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -318,7 +317,6 @@ export default function SeedSeotdaGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as SeedSeotdaGameData | undefined;
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
 
   if (!gameData) {
@@ -339,9 +337,6 @@ export default function SeedSeotdaGame() {
       info={
         <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg flex items-center justify-between gap-2 border px-2 py-1.5">
           <div className="min-w-0">
-            <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold tracking-[0.16em]">
-              ROUND {gameData.round}
-            </p>
             <p className="text-cdm-fg truncate text-xs leading-4 font-black">
               {PHASE_LABEL[gameData.phase]}
               {gameData.carryRound && <span className="text-cdm-highlight ml-1.5">재경기</span>}
@@ -358,17 +353,6 @@ export default function SeedSeotdaGame() {
               <p className="text-cdm-primary text-[9px] leading-3 font-bold">POT</p>
               <p className="text-cdm-primary text-base leading-5 font-black tabular-nums">
                 {gameData.pot}
-              </p>
-            </div>
-            <div>
-              <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">TIME</p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-sm leading-4 font-black tabular-nums',
-                  remaining != null && remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {remaining == null ? '∞' : Math.ceil(remaining)}
               </p>
             </div>
           </div>

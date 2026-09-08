@@ -19,10 +19,6 @@ function isKnightMove(from: KnightTourCell, to: KnightTourCell) {
   return (rowDistance === 1 && colDistance === 2) || (rowDistance === 2 && colDistance === 1);
 }
 
-function formatClock(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  return `${minutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
-}
 
 export default function KnightsTourGame() {
   const gameState = useRoomStore((state) => state.gameState);
@@ -45,13 +41,7 @@ export default function KnightsTourGame() {
 
 function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
   // 첫 값은 라운드 시작 시각. 렌더 중에 Date.now() 를 부르면 순수하지 않다.
-  const [now, setNow] = useState(gameData.roundStartedAt);
   const [showHelp, setShowHelp] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(interval);
-  }, []);
 
   const serverPath = useMemo(() => gameData.progress[myId]?.path ?? [], [gameData.progress, myId]);
   const [path, setPath] = useState<KnightTourCell[]>(serverPath);
@@ -59,10 +49,6 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
     setPath(serverPath);
   }, [serverPath]);
 
-  const remaining = Math.max(
-    0,
-    Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
-  );
   const entries = Object.entries(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
   const submitted = Boolean(gameData.progress[myId]?.submitted);
@@ -138,7 +124,7 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
     <>
       <GameFrame
         info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
+          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-2 items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
             {entries.map(([playerId, player], index) => (
               <div
                 key={playerId}
@@ -162,19 +148,6 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
                 </p>
               </div>
             ))}
-            <div className="order-2 px-1 text-center">
-              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-                R{gameData.round}/{gameData.totalRounds}
-              </p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-lg leading-6 font-black tabular-nums',
-                  remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {formatClock(remaining)}
-              </p>
-            </div>
           </div>
         }
         controls={
