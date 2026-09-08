@@ -50,6 +50,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, BankInternalState>();
@@ -104,7 +105,7 @@ function cloneBet(b: BankBet): BankBet {
 function phaseMessage(s: BankInternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   const maskNick = (p: BankPlayerInternal) =>
-    isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname;
+    nicknameForViewer(s.roomId, p.id, p.nickname, viewerToken);
   const firstNick = maskNick(getFirst(s));
   const secondNick = maskNick(getSecond(s));
   switch (s.phase) {
@@ -146,6 +147,7 @@ function buildPlayerInfo(
   s: BankInternalState,
   p: BankPlayerInternal,
   viewerSide: BankSide | 'spectator',
+  viewerToken: string | null = null,
 ): BankPlayerInfo {
   const isMe = viewerSide === p.side;
   const exposeCount = p.side === s.firstSide
@@ -154,7 +156,12 @@ function buildPlayerInfo(
   const publicBetCount = exposeCount && p.pendingBet
     ? sumBetCount(p.pendingBet)
     : null;
-  const nickname = isTokenAnonymized(s.roomId, p.id) && !isMe ? ANONYMOUS_NICKNAME : p.nickname;
+  const nickname = nicknameForViewer(
+    s.roomId,
+    p.id,
+    p.nickname,
+    isMe ? p.id : viewerToken,
+  );
 
   return {
     id: p.id,
@@ -316,10 +323,11 @@ function buildHistoryForViewer(
 export function buildGameDataForViewer(
   s: BankInternalState,
   viewerSide: BankSide | 'spectator',
+  viewerToken: string | null = null,
 ): BankGameData {
   const players = {
-    p1: buildPlayerInfo(s, s.player1, viewerSide),
-    p2: buildPlayerInfo(s, s.player2, viewerSide),
+    p1: buildPlayerInfo(s, s.player1, viewerSide, viewerToken),
+    p2: buildPlayerInfo(s, s.player2, viewerSide, viewerToken),
   };
 
   const data: BankGameData = {
@@ -383,7 +391,7 @@ export async function broadcastState(io: IO, s: BankInternalState) {
   for (const sock of sockets) {
     const token = sessions.getToken(sock.id) ?? sock.id;
     const viewerSide = viewerSideOf(s, token);
-    let data = buildGameDataForViewer(s, viewerSide);
+    let data = buildGameDataForViewer(s, viewerSide, token);
     data = _applyDbgView(s, token, viewerSide, data);
     if (viewerSide !== 'spectator' && isDbgViewer(s.playMode, sessions.getMemberId(token))) {
       if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {
@@ -403,7 +411,7 @@ export async function broadcastState(io: IO, s: BankInternalState) {
 export function emitStateToSocket(socket: TypedSocket, s: BankInternalState) {
   const token = sessions.getToken(socket.id) ?? socket.id;
   const viewerSide = viewerSideOf(s, token);
-  let data = buildGameDataForViewer(s, viewerSide);
+  let data = buildGameDataForViewer(s, viewerSide, token);
   data = _applyDbgView(s, token, viewerSide, data);
   if (viewerSide !== 'spectator' && isDbgViewer(s.playMode, sessions.getMemberId(token))) {
     if ((s.phase === 'reveal' || s.phase === 'roundEnd') && s.lastRoundFull) {

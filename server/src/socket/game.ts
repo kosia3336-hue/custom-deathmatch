@@ -12,16 +12,15 @@ import config from '../config.js';
 import { socketRoom, maskedClientRoomForSocket, emitRoomStateToRoom } from './utils.js';
 import {
   getRoomShopState,
-  isTokenAnonymized,
   cleanupRoomShopState,
 } from '../shop/roomShopState.js';
 import {
   maskRankingForViewer,
   maskGameResultDataForViewer,
-  ANONYMOUS_NICKNAME,
 } from '../shop/maskNicknames.js';
 import type { IO, TypedSocket } from './types.js';
 import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
+import { nicknameForViewer, rankedRoomTitle } from '../rank/maskRankIdentity.js';
 import { persistGameEndLog } from './gameEndPersistence.js';
 import {
   clearPendingUndo,
@@ -201,6 +200,10 @@ function launchPickedGame(
 
   roomStore.setGameId(roomId, pickedGameId, pickedGameName);
   roomStore.markFromBanPick(roomId);
+  if (room.isRanked) {
+    roomStore.updateSettings(roomId, { title: rankedRoomTitle(pickedGameName) });
+    broadcastRoomUpdated(io, roomId);
+  }
 
   // 스킨 확정 (OR 규칙) — 게임 모듈 init 이전에 세팅해야 첫 game:state 에 반영됨
   setActiveSkinForRoom(roomId, players, pickedGameId);
@@ -765,7 +768,9 @@ export function startGame(io: IO, roomId: string) {
           id: uuid(),
           sender: 'system',
           senderNickname: '시스템',
-          message: `선후공 랜덤 결과 — ${playersForGame[0].nickname} 님이 선공, ${playersForGame[1].nickname} 님이 후공입니다.`,
+          message: room.isRanked
+            ? '선후공이 랜덤으로 정해졌습니다.'
+            : `선후공 랜덤 결과 — ${playersForGame[0].nickname} 님이 선공, ${playersForGame[1].nickname} 님이 후공입니다.`,
           scope: 'game',
           isSystem: true,
           timestamp: Date.now(),
@@ -942,13 +947,15 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       });
       // opponent.id = token → 실제 소켓으로 라우팅
       const opponentSocketId = sessions.getSocketByToken(opponent.id) ?? opponent.id;
-      const isRequesterAnon = isTokenAnonymized(roomId, myId);
       io.to(opponentSocketId).emit('game:undo:proposal', {
         requestId,
         requesterId: myId,
-        requesterNickname: isRequesterAnon
-          ? ANONYMOUS_NICKNAME
-          : (sessions.getNickname(socket.id) ?? '플레이어'),
+        requesterNickname: nicknameForViewer(
+          roomId,
+          myId,
+          sessions.getNickname(socket.id) ?? '플레이어',
+          opponent.id,
+        ),
       });
       return;
     }
@@ -957,8 +964,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (ok && isSpecialPostGame) {
       clearAutoEnd(roomId);
       roomStore.setStatus(roomId, 'playing');
-      const clientRoom = roomStore.getClientRoom(roomId);
-      if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+      emitRoomStateToRoom(io, roomId);
     }
     if (!ok) {
       socket.emit('error', { message: '지금은 무를 수 있는 수가 없습니다.' });
@@ -1123,8 +1129,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     if (room.playMode === 'multi') {
       roomStore.resetForRematch(roomId);
-      const clientRoom = roomStore.getClientRoom(roomId);
-      if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+      emitRoomStateToRoom(io, roomId);
       broadcastRoomUpdated(io, roomId);
     } else {
       startGame(io, roomId);

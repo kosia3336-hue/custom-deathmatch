@@ -1,85 +1,115 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LIVE_DUMMY_ROSTER, isLiveDummyWindowOpen } from '../dummy/live/roster.js';
-import type { LiveDummyRuntime } from '../dummy/live/roster.js';
 import { listLiveDummyOnlineUsers } from '../dummy/live/online.js';
 import { registerLiveDummy, resetLiveDummyStateForTests } from '../dummy/live/state.js';
+import { rankQueueStore, type RankQueueEntry } from '../store/rankQueue.js';
+import { roomStore } from '../store/rooms.js';
 import { mergeOnlineUsers } from '../socket/lobby.js';
 import type { OnlineUser } from '@shared/types/events.js';
 
-function nicknames(now: Date): string[] {
-  return listLiveDummyOnlineUsers(now)
+function nicknames(): string[] {
+  return listLiveDummyOnlineUsers()
     .map((u) => u.nickname)
     .sort();
 }
 
-function rosterOpenNicknames(now: Date): string[] {
-  return LIVE_DUMMY_ROSTER.filter((d) => isLiveDummyWindowOpen(d.window, now))
-    .map((d) => d.nickname)
-    .sort();
+function queueEntry(memberId: string, nickname: string): RankQueueEntry {
+  return {
+    socketId: `sock-${memberId}`,
+    memberId,
+    nickname,
+    displayedTitle: null,
+    tier: 'gold',
+    rp: 50,
+    placementDone: true,
+    winStreak: 0,
+    lossStreak: 0,
+    joinedAt: Date.now(),
+    seasonId: 1,
+  };
 }
 
 describe('운영 더미 로비 접속 합성', () => {
-  const prev = process.env.DUMMY_LIVE;
+  const prevLive = process.env.DUMMY_LIVE;
+  const prevRank = process.env.DUMMY_LIVE_RANK;
 
   beforeEach(() => {
     resetLiveDummyStateForTests();
     process.env.DUMMY_LIVE = '1';
+    delete process.env.DUMMY_LIVE_RANK;
     for (const dummy of LIVE_DUMMY_ROSTER) {
       registerLiveDummy(`mem-${dummy.key}`, dummy);
+      rankQueueStore.removeByMemberId(`mem-${dummy.key}`);
+      rankQueueStore.releaseMatch(`mem-${dummy.key}`);
     }
   });
 
   afterEach(() => {
     resetLiveDummyStateForTests();
-    if (prev === undefined) delete process.env.DUMMY_LIVE;
-    else process.env.DUMMY_LIVE = prev;
+    for (const dummy of LIVE_DUMMY_ROSTER) {
+      rankQueueStore.removeByMemberId(`mem-${dummy.key}`);
+      rankQueueStore.releaseMatch(`mem-${dummy.key}`);
+    }
+    if (prevLive === undefined) delete process.env.DUMMY_LIVE;
+    else process.env.DUMMY_LIVE = prevLive;
+    if (prevRank === undefined) delete process.env.DUMMY_LIVE_RANK;
+    else process.env.DUMMY_LIVE_RANK = prevRank;
   });
 
   it('DUMMY_LIVE 없으면 비어 있다', () => {
     delete process.env.DUMMY_LIVE;
-    expect(listLiveDummyOnlineUsers(new Date('2026-08-23T13:10:00.000Z'))).toEqual([]);
+    expect(listLiveDummyOnlineUsers()).toEqual([]);
   });
 
-  it('등록된 로스터 중 창이 열린 사람만 — 닉을 테스트에 박지 않는다', () => {
-    const samples = [
-      new Date('2026-08-23T11:00:00.000Z'),
-      new Date('2026-08-23T12:10:00.000Z'),
-      new Date('2026-08-23T13:10:00.000Z'),
-      new Date('2026-08-23T13:40:00.000Z'),
-      new Date('2026-08-23T14:40:00.000Z'),
-      new Date('2026-08-23T15:10:00.000Z'),
-      new Date('2026-08-23T15:40:00.000Z'),
-    ];
-    for (const now of samples) {
-      expect(nicknames(now)).toEqual(rosterOpenNicknames(now));
-    }
+  it('창이 열려도 랭크를 안 돌리면 접속 인원에 안 넣는다', () => {
+    const now = new Date('2026-08-24T12:10:00.000Z');
+    expect(LIVE_DUMMY_ROSTER.some((d) => isLiveDummyWindowOpen(d.window, now))).toBe(true);
+    expect(listLiveDummyOnlineUsers(now)).toEqual([]);
   });
 
-  it('로스터에 없는 더미도 등록되고 창이 열려 있으면 붙는다', () => {
-    const extra: LiveDummyRuntime = {
-      key: 'extra',
-      nickname: '추가더미',
-      email: 'dummy_extra@dummy.internal',
-      socketId: 'live-dummy:extra',
-      passwordSeed: 'dummy:extra',
-      defaultTier: '중',
-      window: { kind: 'daily', startMin: 0, endMin: 24 * 60 },
-    };
-    registerLiveDummy('mem-extra', extra);
-    const atNightOffHours = new Date('2026-08-24T11:00:00.000Z');
-    expect(rosterOpenNicknames(atNightOffHours)).not.toContain('추가더미');
-    expect(nicknames(atNightOffHours)).toContain('추가더미');
+  it('랭크 큐에 앉은 더미만 접속 인원에 넣는다', () => {
+    process.env.DUMMY_LIVE_RANK = '1';
+    const dummy = LIVE_DUMMY_ROSTER[1]!;
+    expect(rankQueueStore.enqueue(queueEntry(`mem-${dummy.key}`, dummy.nickname)).matched).toBe(
+      false,
+    );
+    expect(nicknames()).toEqual([dummy.nickname]);
+  });
+
+  it('랭크 방에 있으면 큐에 없어도 넣는다', () => {
+    const dummy = LIVE_DUMMY_ROSTER[0]!;
+    const room = roomStore.create({
+      title: '[랭크] test',
+      gameId: 'ban-pick',
+      gameName: '밴픽',
+      playMode: 'multi',
+      roomType: 'rank',
+      maxPlayers: 2,
+      minPlayers: 2,
+      host: {
+        id: 'tok-dummy-rank',
+        nickname: dummy.nickname,
+        isHost: true,
+        isReady: true,
+        joinedAt: Date.now(),
+        memberId: `mem-${dummy.key}`,
+      },
+      isRanked: true,
+    });
+    expect(nicknames()).toEqual([dummy.nickname]);
+    roomStore.delete(room.id);
+    expect(nicknames()).toEqual([]);
   });
 
   it('소켓 명단과 memberId가 겹치면 한 번만', () => {
-    const now = new Date('2026-08-24T13:10:00.000Z');
-    const open = LIVE_DUMMY_ROSTER.find((d) => isLiveDummyWindowOpen(d.window, now));
-    if (!open) throw new Error('이 시각에 열린 더미가 없다');
+    process.env.DUMMY_LIVE_RANK = '1';
+    const dummy = LIVE_DUMMY_ROSTER[1]!;
+    rankQueueStore.enqueue(queueEntry(`mem-${dummy.key}`, dummy.nickname));
     const fromSockets: OnlineUser[] = [
-      { memberId: `mem-${open.key}`, nickname: open.nickname, status: 'lobby' },
+      { memberId: `mem-${dummy.key}`, nickname: dummy.nickname, status: 'lobby' },
     ];
-    const merged = mergeOnlineUsers(fromSockets, listLiveDummyOnlineUsers(now));
-    expect(merged.filter((u) => u.memberId === `mem-${open.key}`)).toHaveLength(1);
-    expect(merged.map((u) => u.nickname).sort()).toEqual(rosterOpenNicknames(now));
+    const merged = mergeOnlineUsers(fromSockets, listLiveDummyOnlineUsers());
+    expect(merged.filter((u) => u.memberId === `mem-${dummy.key}`)).toHaveLength(1);
+    expect(merged.map((u) => u.nickname)).toEqual([dummy.nickname]);
   });
 });

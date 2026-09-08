@@ -13,8 +13,7 @@ import { deal, checkDeckReset } from './deck.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { aiTakeTurn } from './ai.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -61,7 +60,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
   const _dbg = p1 && p2 && isDbgViewer(s.playMode, sessions.getMemberId(viewerId));
 
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   const players: Record<string, IPPlayerInfo> = {};
   for (const [pid, p] of Object.entries(s.players)) {
     let canSeeCard: boolean;
@@ -106,7 +105,7 @@ function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.phase === 'betting') {
     const current = s.players[s.currentTurnId!];
     const nick = current
-      ? (isTokenAnonymized(s.roomId, current.id) && current.id !== viewerToken ? ANONYMOUS_NICKNAME : current.nickname)
+      ? nicknameForViewer(s.roomId, current.id, current.nickname, viewerToken)
       : '';
     return `라운드 ${s.round} — ${nick}의 베팅 차례`;
   }

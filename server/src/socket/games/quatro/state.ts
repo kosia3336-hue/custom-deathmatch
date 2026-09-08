@@ -24,9 +24,9 @@ import {
 } from '@shared/types/quatro.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import type { IO, TypedSocket } from '../../types.js';
 
 export type EndGameFn = (
@@ -436,7 +436,7 @@ export function judge(s: QuatroState): QuatroResultSummary {
 /* ────────── 상태 브로드캐스트 ────────── */
 
 function maskNick(s: QuatroState, viewerId: string | null, p: QPlayer): string {
-  return isTokenAnonymized(s.roomId, p.id) && p.id !== viewerId ? ANONYMOUS_NICKNAME : p.nickname;
+  return nicknameForViewer(s.roomId, p.id, p.nickname, viewerId);
 }
 
 function playerView(s: QuatroState, p: QPlayer, viewerId: string | null, isSelf: boolean): QuatroPlayerView {
@@ -539,11 +539,31 @@ function buildGameState(s: QuatroState, gameData: QuatroGameData): GameState {
   };
 }
 
+function emitQuatroDbg(
+  socket: Pick<TypedSocket, 'emit'>,
+  s: QuatroState,
+  playerId: string,
+  isPlayer: boolean,
+) {
+  if (!isPlayer) return;
+  if (!isDbgViewer(s.playMode, sessions.getMemberId(playerId))) return;
+  if (s.vps.length === 0) return;
+  socket.emit('ext:data', {
+    game: 'quatro',
+    round: s.round,
+    vps: s.vps.map((vp, index) => ({
+      index,
+      cards: vp.cards.map((c) => ({ ...c })),
+    })),
+  });
+}
+
 export async function broadcastState(io: IO, s: QuatroState) {
   const sockets = await io.in(socketRoom(s.roomId)).fetchSockets();
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = playerIdxById(s, pid) !== -1;
+    emitQuatroDbg(sock, s, pid, isPlayer);
     sock.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
   }
 }
@@ -551,6 +571,7 @@ export async function broadcastState(io: IO, s: QuatroState) {
 export function emitStateToSocketImpl(socket: TypedSocket, s: QuatroState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = playerIdxById(s, pid) !== -1;
+  emitQuatroDbg(socket, s, pid, isPlayer);
   socket.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
 }
 

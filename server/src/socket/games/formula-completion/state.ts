@@ -5,8 +5,7 @@ import {
   type FormulaCompletionGameData,
 } from '@shared/types/formula-completion.js';
 import { sessions } from '../../../store/sessions.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { socketRoom } from '../../utils.js';
 import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
@@ -15,9 +14,7 @@ import type { FormulaCompletionState } from './types.js';
 export const formulaCompletionStates = new Map<string, FormulaCompletionState>();
 
 function maskNickname(s: FormulaCompletionState, viewerId: string | null, playerId: string, nickname: string) {
-  return isTokenAnonymized(s.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(s.roomId, playerId, nickname, viewerId);
 }
 
 export function toFormulaCompletionGameData(

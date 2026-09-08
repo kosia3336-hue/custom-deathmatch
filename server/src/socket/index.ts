@@ -17,9 +17,7 @@ import {
   EVENT_SMS_ROOM_KEY,
   EVENT_SMS_SOCKET_CHANNEL,
 } from './smsEventRoomHandlers.js';
-import { socketRoom, maskedClientRoomFor, guildRoom } from './utils.js';
-import { isTokenAnonymized } from '../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { socketRoom, maskedClientRoomFor, guildRoom, emitToRoomWithViewerNickname } from './utils.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
 import { scheduleSkinExpiries, cancelSkinExpiries } from './skinExpiry.js';
@@ -227,13 +225,13 @@ export function setupSocketHandlers(io: IO) {
             if (room.status === 'playing') emitGameStateToSocket(socket, roomId, room.gameId);
 
             // 방 전체에 재연결 성공 알림 (playerId = token = Player.id)
-            const reconnectedNickname = isTokenAnonymized(roomId, token)
-              ? ANONYMOUS_NICKNAME
-              : nickname;
-            io.to(socketRoom(roomId)).emit('player:reconnected', {
-              playerId: token,
-              nickname: reconnectedNickname,
-            });
+            emitToRoomWithViewerNickname(
+              io,
+              roomId,
+              'player:reconnected',
+              { playerId: token },
+              nickname,
+            );
           }
         }
 
@@ -345,15 +343,15 @@ export function setupSocketHandlers(io: IO) {
         if (isPlayer && room?.status === 'playing') {
           // ─── 인게임: 30초 유예 ─────────────────────────────────────────
           const realNickname = sessions.getNickname(socket.id) ?? '알 수 없음';
-          const nickname = isTokenAnonymized(roomId, token)
-            ? ANONYMOUS_NICKNAME
-            : realNickname;
 
-          socket.to(socketRoom(roomId)).emit('player:reconnecting', {
-            playerId: token,
-            nickname,
-            secondsLeft: RECONNECT_GRACE_PLAYING / 1000,
-          });
+          emitToRoomWithViewerNickname(
+            io,
+            roomId,
+            'player:reconnecting',
+            { playerId: token, secondsLeft: RECONNECT_GRACE_PLAYING / 1000 },
+            realNickname,
+            socket.id,
+          );
 
           const timer = setTimeout(() => {
             handleLeaveRoom(io, socket);

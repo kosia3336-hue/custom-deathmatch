@@ -215,7 +215,7 @@ export interface RankMatchGuildSnap {
   markUrl: string | null;
 }
 
-/** `rank:queue:matched` — 운영 오버레이·/dev 프리뷰 공통. 익명 물약이면 상대 식별 필드는 null/`???`. */
+/** `rank:queue:matched` — 운영 오버레이·/dev 프리뷰 공통. 랭크는 상대 닉 `???`·RP null. 익명 물약이면 상대 칭호/길드/연승/티어까지 null. */
 export interface RankMatchedPayload {
   roomId: string;
   selfNickname: string;

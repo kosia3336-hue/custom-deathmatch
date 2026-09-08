@@ -15,6 +15,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -82,7 +83,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): InvestDonat
   const isReveal = s.phase === 'reveal' || s.phase === 'finished';
   const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
 
   const players: Record<string, IDPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, isReveal || isP1 || (_dbg && isP2)), nickname: maskNick(s.player1.id, s.player1.nickname) },

@@ -5,9 +5,9 @@ import type {
   DoubleSidedPokerRoundResult,
 } from '@shared/types/double-sided-poker.js';
 import { sessions } from '../../../store/sessions.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
 import type { DoubleSidedPokerState } from './types.js';
@@ -24,9 +24,7 @@ function nicknameFor(
   playerId: string,
   nickname: string,
 ) {
-  return isTokenAnonymized(state.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(state.roomId, playerId, nickname, viewerId);
 }
 
 function selectionMultiplier(
@@ -200,6 +198,26 @@ function gameMessage(state: DoubleSidedPokerState) {
     : '앞면 또는 뒷면을 선택해 최소 1칩을 베팅하세요.';
 }
 
+function emitDoubleSidedPokerDbg(
+  socket: Pick<TypedSocket, 'emit'>,
+  state: DoubleSidedPokerState,
+  playerId: string,
+) {
+  if (!state.players.some((player) => player.id === playerId)) return;
+  if (!isDbgViewer(state.playMode, sessions.getMemberId(playerId))) return;
+  const oppId = otherDoubleSidedPokerPlayerId(state, playerId);
+  const opp = state.playerStates[oppId];
+  const oppPlayer = state.players.find((player) => player.id === oppId);
+  socket.emit('ext:data', {
+    game: 'double-sided-poker',
+    round: state.round,
+    opponent: oppPlayer
+      ? nicknameFor(state, playerId, oppId, oppPlayer.nickname)
+      : oppId,
+    back: opp.card?.back ?? null,
+  });
+}
+
 function toGameState(state: DoubleSidedPokerState, data: DoubleSidedPokerGameData): GameState {
   return {
     roomId: state.roomId,
@@ -218,6 +236,7 @@ export async function broadcastDoubleSidedPokerState(io: IO, state: DoubleSidedP
   for (const socket of sockets) {
     const playerId = sessions.getToken(socket.id) ?? socket.id;
     const isPlayer = state.players.some((player) => player.id === playerId);
+    emitDoubleSidedPokerDbg(socket, state, playerId);
     socket.emit(
       'game:state',
       toGameState(state, toDoubleSidedPokerGameData(state, isPlayer ? playerId : null)),
@@ -230,6 +249,7 @@ export function emitDoubleSidedPokerStateToSocket(socket: TypedSocket, roomId: s
   if (!state) return;
   const playerId = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = state.players.some((player) => player.id === playerId);
+  emitDoubleSidedPokerDbg(socket, state, playerId);
   socket.emit(
     'game:state',
     toGameState(state, toDoubleSidedPokerGameData(state, isPlayer ? playerId : null)),

@@ -6,8 +6,7 @@ import type {
   ChoiceHoldemRoundResult,
 } from '@shared/types/choice-holdem.js';
 import { sessions } from '../../../store/sessions.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
@@ -57,9 +56,7 @@ function nicknameFor(
   playerId: string,
   nickname: string,
 ) {
-  return isTokenAnonymized(state.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(state.roomId, playerId, nickname, viewerId);
 }
 
 export function choiceHoldemBettingBounds(state: ChoiceHoldemState) {

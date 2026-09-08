@@ -17,8 +17,7 @@ import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 const g = globalThis as typeof globalThis & { __dscGameStates?: Map<string, InternalState> };
 export const gameStates: Map<string, InternalState> =
@@ -28,7 +27,7 @@ export const gameStates: Map<string, InternalState> =
 
 export function toGameData(s: InternalState, viewerToken: string): DoubleSidedChessGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerToken);
   return {
     board: s.board,
     currentPlayer: s.currentPlayer,

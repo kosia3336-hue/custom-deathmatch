@@ -19,7 +19,7 @@ import {
 } from './state.js';
 import type { LiveDummyRuntime } from './roster.js';
 import { LIVE_DUMMY_ROSTER, findRosterBySocketId, isLiveDummyWindowOpen } from './roster.js';
-import { isLiveDummyEnabled, rejoinDelayMs } from './window.js';
+import { isLiveDummyEnabled, isLiveDummyRankEnabled, rejoinDelayMs } from './window.js';
 import { liveDummyOnlineSignature } from './online.js';
 
 export { isLiveDummyMemberId } from './state.js';
@@ -52,6 +52,11 @@ function bindSession(dummy: LiveDummyRuntime, memberId: string): string {
 
 async function sitInQueue(io: IO, dummy: LiveDummyRuntime, memberId: string): Promise<void> {
   if (joining.has(dummy.key)) return;
+  if (!isLiveDummyRankEnabled()) {
+    rankQueueStore.removeByMemberId(memberId);
+    await broadcastDummyPresence(io);
+    return;
+  }
   if (!isLiveDummyWindowOpen(dummy.window)) {
     rankQueueStore.removeByMemberId(memberId);
     await broadcastDummyPresence(io);

@@ -20,8 +20,7 @@ import type {
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 export const gameStates = new Map<string, GS2InternalState>();
 
@@ -95,7 +94,7 @@ function phaseMessage(s: GS2InternalState): string {
 
 function buildGameDataForPlayer(s: GS2InternalState, pid: string): GS2GameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== pid ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, pid);
   const players = {
     p1: { ...playerToPublic(s.player1), nickname: maskNick(s.player1.id, s.player1.nickname) },
     p2: { ...playerToPublic(s.player2), nickname: maskNick(s.player2.id, s.player2.nickname) },
