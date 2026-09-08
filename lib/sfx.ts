@@ -2,6 +2,28 @@ import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 let ctx: AudioContext | null = null;
 
+/** 마지막 5초: 짧고 건조한 시계의 tick/tock. 공통 SFX 음량·음소거를 따른다. */
+export function playCountdownTickSfx(second: number) {
+  try {
+    const c = getCtx();
+    if (!c || c.state !== 'running') return;
+    const now = c.currentTime;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(second % 2 ? 1500 : 1100, now);
+    osc.frequency.exponentialRampToValueAtTime(550, now + 0.035);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    osc.connect(gain);
+    gain.connect(getSfxOutput(c));
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch { /* 오디오 미지원 환경에서도 게임은 계속한다. */ }
+}
+
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (isSfxMuted()) return null;

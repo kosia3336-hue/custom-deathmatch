@@ -49,12 +49,18 @@ export function useTurnTimer() {
       }
     };
 
-    update();
     intervalRef.current = setInterval(update, 1000);
+    // update가 마지막 10초용 interval로 교체한 뒤 덮어쓰지 않는다.
+    update();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [timeLimitSeconds, turnStartedAt]);
 
-  return { remaining, timeLimitSeconds };
+  return {
+    remaining,
+    timeLimitSeconds,
+    deadline: turnStartedAt == null || timeLimitSeconds == null ? null : turnStartedAt + timeLimitSeconds * 1000,
+    clockKey: turnStartedAt == null || timeLimitSeconds == null ? null : `${room?.id}:${turnStartedAt}:${timeLimitSeconds}`,
+  };
 }
