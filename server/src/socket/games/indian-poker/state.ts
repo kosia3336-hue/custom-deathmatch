@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IndianPokerGameData, IPBettingAction, IPPlayerInfo, IPRoundRecord } from '@shared/types/indian-poker.js';
@@ -182,9 +183,9 @@ export function clearTurnTimer(s: InternalState) {
 function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds) return;
-  if (s.playMode === 'com') return;
+  if (s.currentTurnId === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => handleTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentTurnId, () => handleTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {

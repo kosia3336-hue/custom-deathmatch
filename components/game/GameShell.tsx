@@ -15,6 +15,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
 import { GameSoundSettings } from './GameSoundSettings';
+import { TimeExpiryModal } from './TimeExpiryModal';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { Icon, UnreadBadge } from '@/components/cdm';
 import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
@@ -23,7 +24,7 @@ import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
 import { GAME_IDS } from '@/shared/types/game';
-import type { GameUndoProposal } from '@/shared/types/events';
+import type { GameUndoProposal, GameTimeExpiry } from '@/shared/types/events';
 
 interface Props {
   children: React.ReactNode;
@@ -32,6 +33,7 @@ interface Props {
 export default function GameShell({ children }: Props) {
   const router = useRouter();
   const room = useRoomStore((s) => s.room);
+  const timeExpiry = useRoomStore((s) => s.timeExpiry);
   const gameState = useRoomStore((s) => s.gameState);
   const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
   const { setHeaderLeft, setHeaderRight, setFooter, setFooterHidden, hud } = useRoomLayout();
@@ -144,6 +146,11 @@ export default function GameShell({ children }: Props) {
   useEffect(() => {
     const s = getSocket();
     const onProposal = (p: GameUndoProposal) => setUndoProposal(p);
+    const onTimeExpiry = (value: GameTimeExpiry | null) => {
+      if (!value) return;
+      setUndoProposal(null);
+      setUndoWaiting(false);
+    };
     const onDeclined = () => {
       setUndoWaiting(false);
       toast.message('상대가 무르기를 거절했습니다.');
@@ -156,10 +163,12 @@ export default function GameShell({ children }: Props) {
       if (data?.message) toast.error(data.message);
     };
     s.on('game:undo:proposal', onProposal);
+    s.on('game:time-expiry', onTimeExpiry);
     s.on('game:undo:declined', onDeclined);
     s.on('error', onError);
     return () => {
       s.off('game:undo:proposal', onProposal);
+      s.off('game:time-expiry', onTimeExpiry);
       s.off('game:undo:declined', onDeclined);
       s.off('error', onError);
     };
@@ -225,6 +234,12 @@ export default function GameShell({ children }: Props) {
 
   return (
     <>
+      <TimeExpiryModal expiry={timeExpiry?.roomId === room?.id ? timeExpiry : null} myId={myId} onDecision={(decision) => {
+        if (!timeExpiry) return;
+        const socket = getSocket();
+        if (!socket.connected) { toast.error('서버에 다시 연결된 후 선택해 주세요.'); return; }
+        socket.emit('game:time-expiry:respond', { requestId: timeExpiry.requestId, decision });
+      }} />
       <div
         className={`relative flex-1 overflow-hidden ${
           skinTheme ? `skin-bg-${skinTheme}` : ''

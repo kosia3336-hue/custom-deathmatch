@@ -6,6 +6,7 @@ import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
+import type { GameTimeExpiry } from '@/shared/types/events';
 import type { Room, Player, ChatMessage, GameState, GameResult, RankGameEndedPayload } from '@/shared/types';
 
 export function useRoom(roomId: string) {
@@ -42,7 +43,7 @@ export function useRoom(roomId: string) {
     const onPlayerKicked = ({ playerId }: { playerId: string }) => useRoomStore.getState().removePlayer(playerId);
     const onHostChanged = ({ newHostId }: { newHostId: string }) => useRoomStore.getState().setHost(newHostId);
     const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
-    const onGameStarted = () => { useRoomStore.getState().setCountdown(null); };
+    const onGameStarted = () => { useRoomStore.getState().setCountdown(null); useRoomStore.getState().setTimeExpiry(null); };
     const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
     const onDisbanded = () => { useRoomStore.getState().reset(); };
     const onChatMessage = (msg: ChatMessage) => {
@@ -54,6 +55,10 @@ export function useRoom(roomId: string) {
       useRoomStore.getState().setGameState(state);
     };
     const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
+    const onTimeExpiry = (value: GameTimeExpiry | null) => {
+      if (value && value.roomId !== roomId) return;
+      useRoomStore.getState().setTimeExpiry(value);
+    };
     const onRankGameEnded = (payload: RankGameEndedPayload) => {
       useRoomStore.getState().setRankGameEnded(payload);
     };
@@ -89,6 +94,7 @@ export function useRoom(roomId: string) {
     socket.on('chat:message', onChatMessage);
     socket.on('game:state', onGameState);
     socket.on('game:ended', onGameEnded);
+    socket.on('game:time-expiry', onTimeExpiry);
     socket.on('rank:game:ended', onRankGameEnded);
     socket.on('error', onSocketError);
     socket.on('player:reconnecting', onPlayerReconnecting);
@@ -110,6 +116,7 @@ export function useRoom(roomId: string) {
       socket.off('chat:message', onChatMessage);
       socket.off('game:state', onGameState);
       socket.off('game:ended', onGameEnded);
+      socket.off('game:time-expiry', onTimeExpiry);
       socket.off('rank:game:ended', onRankGameEnded);
       socket.off('error', onSocketError);
       socket.off('player:reconnecting', onPlayerReconnecting);

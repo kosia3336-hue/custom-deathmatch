@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   DOUBLE_SIDED_POKER_ANTE,
   DOUBLE_SIDED_POKER_DOUBLE_BONUS,
@@ -93,7 +94,7 @@ function scheduleDecision(io: IO, state: DoubleSidedPokerState) {
   state.turnStartedAt = Date.now();
   const actorId = state.currentTurnId;
   if (state.turnSeconds != null) {
-    state.turnTimer = setTimeout(() => {
+    state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentTurnId, () => {
       if (
         doubleSidedPokerStates.get(state.roomId) !== state ||
         state.gameOver ||

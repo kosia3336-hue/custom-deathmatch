@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type {
   FTAction,
@@ -391,7 +392,7 @@ export function startTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   s.turnStartedAt = Date.now();
   if (!s.timeLimitSeconds) return;
-  s.turnTimer = setTimeout(() => handleTurnTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayerId, () => handleTurnTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 function handleTurnTimeout(io: IO, s: InternalState) {

@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { DoubleSidedChessGameData, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
@@ -230,7 +231,7 @@ function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => {
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayer, () => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
 }

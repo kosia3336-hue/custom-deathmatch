@@ -30,6 +30,7 @@ import {
   takePendingUndo,
 } from './gameUndoPending.js';
 import { applyGameTurnOrder } from './gameTurnOrder.js';
+import { configureTurnExpiryRuntime, clearTurnExpiry, emitTurnExpiry, isTurnExpiryBlocked, respondTurnExpiry } from './gameTurnExpiry.js';
 import {
   initFourGravity,
   handleFourGravityAction,
@@ -731,12 +732,48 @@ export const gameModules: Record<string, GameModuleHandlers> = {
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
 const gameStartTimes = new Map<string, number>();
 
+configureTurnExpiryRuntime({
+  pause: clearPendingUndo,
+  finish(io, roomId, loserId) {
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    const loser = room.players.find(p => p.id === loserId);
+    const winner = room.players.find(p => p.id !== loserId);
+    if (!loser || !winner) return;
+    const module = gameModules[room.gameId];
+    const state = module?.getState(roomId);
+    if (!state || state.gameOver) return;
+    const record = module.getResultData?.(roomId);
+    clearPendingUndo(roomId);
+    clearTurnExpiry(io, roomId);
+    module.cleanup(roomId);
+    endGame(io, roomId, {
+      rankings: [
+        { playerId: winner.id, nickname: winner.nickname, rank: 1, score: 1 },
+        { playerId: loser.id, nickname: loser.nickname, rank: 2, score: 0 },
+      ],
+      totalTurns: state.totalTurns,
+      endedByForfeit: true,
+      gameResultData: { ...(record && typeof record === 'object' ? record : {}), winType: 'timeout', finishReason: '착수 시간 초과', timeoutLoserId: loserId },
+    });
+  },
+  sync(io, roomId) {
+    const room = roomStore.get(roomId);
+    if (!room) return;
+    for (const sid of io.sockets.adapter.rooms.get(socketRoom(roomId)) ?? []) {
+      const socket = io.sockets.sockets.get(sid);
+      if (socket) gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
+    }
+  },
+});
+
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
   return sessions.getToken(socket.id) ?? socket.id;
 }
 
 export function startGame(io: IO, roomId: string) {
+  clearTurnExpiry(io, roomId);
   const room = roomStore.get(roomId);
   if (!room) return;
 
@@ -813,6 +850,7 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
 
   const isPlayer = room.players.some((p: Player) => p.id === playerId);
   if (!isPlayer) return;
+  clearTurnExpiry(io, roomId);
 
   const gameModule = gameModules[room.gameId];
   if (!gameModule) return;
@@ -854,9 +892,16 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
 /** session:restore 시 index.ts에서 game:state를 재전송하는 데 사용 */
 export function emitGameStateToSocket(socket: TypedSocket, roomId: string, gameId: string) {
   gameModules[gameId]?.emitStateToSocket(socket, roomId);
+  emitTurnExpiry(socket, roomId);
 }
 
 export function registerGameHandlers(io: IO, socket: TypedSocket) {
+  socket.on('game:time-expiry:respond', (data) => {
+    if (!data || typeof data.requestId !== 'string' || typeof data.decision !== 'string') return;
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    respondTurnExpiry(io, roomId, getPlayerId(socket), data.requestId, data.decision);
+  });
   socket.on('game:sync', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
@@ -870,7 +915,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     // 시스템 룸의 game:state는 event:join 시점에 eventRoomHandlers 가 전송한다.
     if (roomStore.isSystemRoom(roomId)) return;
 
-    gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
+    emitGameStateToSocket(socket, roomId, room.gameId);
   });
 
   socket.on('game:action', (data) => {
@@ -880,6 +925,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room || room.status !== 'playing') return;
     // 시스템 룸은 eventRoomHandlers 의 'game:action' 핸들러가 처리
     if (roomStore.isSystemRoom(roomId)) return;
+    if (isTurnExpiryBlocked(roomId)) return;
 
     // 게임 모듈은 대부분 data 를 자기 액션 타입으로 캐스팅한 뒤 곧바로 .type 을
     // 읽는다. 클라이언트가 null 이나 문자열을 보내면 거기서 TypeError 가 나고,
@@ -902,6 +948,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room) return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 무르기 미지원
+    if (isTurnExpiryBlocked(roomId)) return;
 
     const myId = getPlayerId(socket);
 
@@ -1015,6 +1062,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (isTurnExpiryBlocked(roomId)) return;
     handleFourGravityToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
@@ -1023,6 +1071,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (isTurnExpiryBlocked(roomId)) return;
     handleDoubleSidedChessToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
@@ -1034,6 +1083,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
     if (roomStore.isSystemRoom(roomId)) return;
+    if (isTurnExpiryBlocked(roomId)) return;
 
     const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
@@ -1085,6 +1135,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const myId = getPlayerId(socket);
     if (!room || room.hostId !== myId) return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 종료 미지원
+    if (isTurnExpiryBlocked(roomId)) return;
 
     clearPendingUndo(roomId);
     gameModules[room.gameId]?.cleanup(roomId);
@@ -1142,6 +1193,8 @@ export function endGame(
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
+
+  clearTurnExpiry(io, roomId);
 
   clearAutoEnd(roomId);
 

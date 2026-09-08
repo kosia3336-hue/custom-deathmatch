@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { BNW2GameData, BNW2PlayerInfo, BNW2RevealData } from '@shared/types/bnw2.js';
 import { sessions } from '../../../store/sessions.js';
@@ -210,7 +211,7 @@ function armTimer(io: IO, s: InternalState, onTimeout: () => void) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(onTimeout, s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => s.phase === 'firstSubmit' ? getFirstPlayer(s).id : s.phase === 'secondSubmit' ? getSecondPlayer(s).id : null, onTimeout, s.timeLimitSeconds * 1000);
 }
 
 export function startFirstSubmitTimer(io: IO, s: InternalState) {
