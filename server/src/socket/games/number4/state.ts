@@ -49,8 +49,6 @@ function phaseMessage(s: InternalState): string {
     return '게임이 종료되었습니다.';
   }
 
-  if (s.phase === 'reveal') return `라운드 ${s.round} — 결과`;
-
   if (s.playMode === 'solo' && s.currentSide) {
     const label = s.currentSide === 'player1' ? '1P' : '2P';
     if (s.phase === 'submit') return `라운드 ${s.round} — ${label} 타일과 넘버를 선택하세요`;

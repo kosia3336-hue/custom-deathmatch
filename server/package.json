@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --dts && tsup src/socket/games/four-gravity/ai-worker.ts --format esm --outDir dist/four-gravity && tsup src/socket/games/double-sided-chess/ai-worker.ts --format esm --outDir dist/double-sided-chess",
+    "build": "tsup src/index.ts --format esm --dts && tsup src/socket/games/four-gravity/ai-worker.ts --format esm --outDir dist/four-gravity && tsup src/socket/games/double-sided-chess/ai-worker.ts --format esm --outDir dist/double-sided-chess && tsup src/socket/games/number4/ai-worker.ts --format esm --outDir dist/number4 && tsup src/socket/games/betting-rps/ai-worker.ts --format esm --outDir dist/betting-rps && tsup src/socket/games/multiple-bnw/ai-worker.ts --format esm --outDir dist/multiple-bnw",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"

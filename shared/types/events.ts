@@ -16,6 +16,19 @@ import type {
   BanPickUnbanTurnPayload,
   BanPickUnbanUpdatePayload,
 } from './ban-pick';
+import type { NF4Number, Nf4AdvisorRound } from './number4';
+import type {
+  BRPSResult,
+  BrpsAdvisorPending,
+  BrpsAdvisorRound,
+  BrpsAdvisorWinner,
+} from './betting-rps';
+import type {
+  MBNWTile,
+  MbnwAdvisorPending,
+  MbnwAdvisorRound,
+  MbnwAdvisorWinner,
+} from './multiple-bnw';
 
 export interface CreateRoomData {
   gameId: string;
@@ -265,6 +278,73 @@ export interface ClientToServerEvents {
   'dev:rankDummy:start': (
     data: { tier: '상' | '중' | '하'; skipBanPick?: boolean; skipGameId?: string },
     callback: (res: { success: boolean; roomId?: string; error?: string }) => void,
+  ) => void;
+
+  /** `/super-ai` — 사중력 사목·양면장기 솔로 방. 넘버4는 자문 이벤트. */
+  'superAi:start': (
+    data: { gameId: string },
+    callback: (res: { success: boolean; roomId?: string; error?: string }) => void,
+  ) => void;
+
+  /** 넘버4 자문. 히스토리를 보내고 백·흑·넘버를 받는다. 최대 90초. */
+  'superAi:number4:recommend': (
+    data: { history: Nf4AdvisorRound[] },
+    callback: (res: {
+      success: boolean;
+      white?: number;
+      black?: number;
+      number?: NF4Number;
+      worlds?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 넘버4 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:number4:save': (
+    data: { history: Nf4AdvisorRound[]; winner?: 'me' | 'opp' },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 베팅 가위바위보 자문. 역할·승부·베팅 중 한 수를 받는다. 최대 90초. */
+  'superAi:bettingRps:recommend': (
+    data: { iAmFirst: boolean; history: BrpsAdvisorRound[]; pending?: BrpsAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      kind?: 'role' | 'match' | 'bet';
+      role?: 'match' | 'bet';
+      result?: BRPSResult;
+      prediction?: BRPSResult;
+      chips?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 베팅 가위바위보 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:bettingRps:save': (
+    data: { iAmFirst: boolean; history: BrpsAdvisorRound[]; winner?: BrpsAdvisorWinner },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 배수 흑과 백 자문. 타일 또는 의심을 받는다. 최대 90초. */
+  'superAi:multipleBnw:recommend': (
+    data: { iAmFirst: boolean; history: MbnwAdvisorRound[]; pending?: MbnwAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      kind?: 'tile' | 'suspect';
+      tile?: MBNWTile;
+      suspect?: boolean;
+      worlds?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 배수 흑과 백 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:multipleBnw:save': (
+    data: { iAmFirst: boolean; history: MbnwAdvisorRound[]; winner?: MbnwAdvisorWinner },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
   ) => void;
 
   /** 인디언홀덤 (이벤트) — 입장. 칩 1개 이상 보유 시 좌석/관전, 칩 0 또는 게임 중이면 대기열. */

@@ -51,7 +51,9 @@ function RoundRow({
               <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700">
                 N{p.number}
               </span>
-              <span className="text-xs text-gray-500">□{p.white} ■{p.black}</span>
+              <span className="text-xs text-gray-500">
+                {p.white != null && p.black != null ? `□${p.white} ■${p.black}` : '타일 비공개'}
+              </span>
               <span className={success ? 'text-emerald-600' : 'text-red-500'}>
                 {p.scoreChange > 0 ? `+${p.scoreChange}` : p.scoreChange}점
               </span>

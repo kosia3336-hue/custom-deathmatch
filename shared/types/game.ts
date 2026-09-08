@@ -57,6 +57,42 @@ export function resolveAbstractAiDifficulty(value: unknown): AbstractAiDifficult
   return value === 'hard' ? 'hard' : DEFAULT_ABSTRACT_AI_DIFFICULTY;
 }
 
+/** `/super-ai` 허브에 올리는 게임. 넘버4·베팅 가위바위보·배수 흑과 백은 자문, 사목·양면은 솔로 방. */
+export const SUPER_AI_GAMES = [
+  { id: GAME_IDS.FOUR_GRAVITY, name: '사중력 사목' },
+  { id: GAME_IDS.DOUBLE_SIDED_CHESS, name: '양면장기' },
+  { id: GAME_IDS.NUMBER_FOUR, name: '넘버4' },
+  { id: GAME_IDS.BETTING_RPS, name: '베팅! 가위바위보' },
+  { id: GAME_IDS.MULTIPLE_BNW, name: '배수 흑과 백' },
+] as const;
+
+export function superAiAdvisorHref(gameId: string | null | undefined): string | null {
+  if (gameId === GAME_IDS.NUMBER_FOUR) return '/super-ai/number4';
+  if (gameId === GAME_IDS.BETTING_RPS) return '/super-ai/betting-rps';
+  if (gameId === GAME_IDS.MULTIPLE_BNW) return '/super-ai/multiple-bnw';
+  return null;
+}
+
+/** 솔로 방 + 슈퍼 토글. 넘버4는 여기 없다. */
+export const SUPER_AI_MATCH_GAMES = [
+  { id: GAME_IDS.FOUR_GRAVITY, name: '사중력 사목' },
+  { id: GAME_IDS.DOUBLE_SIDED_CHESS, name: '양면장기' },
+] as const;
+
+export function supportsSuperAi(gameId: string | null | undefined): boolean {
+  return SUPER_AI_GAMES.some((game) => game.id === gameId);
+}
+
+export function supportsSuperAiMatch(gameId: string | null | undefined): boolean {
+  return SUPER_AI_MATCH_GAMES.some((game) => game.id === gameId);
+}
+
+export function isSuperAiGameOptions(
+  gameOptions: Record<string, unknown> | null | undefined,
+): boolean {
+  return gameOptions?.superAi === true;
+}
+
 export function isAbstractStrategyGameId(gameId: string | null | undefined): boolean {
   return gameId === GAME_IDS.FOUR_GRAVITY || gameId === GAME_IDS.DOUBLE_SIDED_CHESS;
 }

@@ -23,6 +23,7 @@ import {
 import type { IO, TypedSocket } from './types.js';
 import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
 import { persistGameEndLog } from './gameEndPersistence.js';
+import { persistSuperAiGame } from './superAiPersist.js';
 import {
   clearPendingUndo,
   peekPendingUndo,
@@ -830,6 +831,24 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
   if (state?.gameOver) return;
 
   const gameResultData = gameModule.getResultData?.(roomId);
+
+  if (room.gameOptions?.superAi === true && gameResultData != null) {
+    const startedAt = gameStartTimes.get(roomId) ?? room.createdAt;
+    void persistSuperAiGame(
+      room,
+      {
+        roomId,
+        rankings: [],
+        playTime: Math.max(0, Date.now() - startedAt),
+        totalTurns: state?.totalTurns ?? 0,
+        gameResultData,
+      },
+      { finished: false },
+    ).catch((err) => {
+      console.warn('[super-ai] 중단 기보 저장 실패:', (err as Error).message);
+    });
+  }
+
   clearPendingUndo(roomId);
   gameModule.cleanup(roomId);
 

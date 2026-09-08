@@ -7,7 +7,7 @@ import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import type { FourGravityGameData, Direction } from '@/shared/types/four-gravity';
-import { GAME_IDS } from '@/shared/types/game';
+import { GAME_IDS, isSuperAiGameOptions } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
@@ -38,10 +38,14 @@ export default function FourGravityGame() {
 
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
+  const isSuperAiSolo = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    nickname === '천하' &&
-    room?.gameId === GAME_IDS.FOUR_GRAVITY &&
-    room?.playMode === 'solo';
+    isSuperAiSolo
+    || (
+      nickname === '천하'
+      && room?.gameId === GAME_IDS.FOUR_GRAVITY
+      && room?.playMode === 'solo'
+    );
 
   const isAIMode = isSpecialSolo && !!gameData && (
     gameData.players.black.id === 'AI' || gameData.players.white.id === 'AI'
@@ -197,7 +201,7 @@ export default function FourGravityGame() {
                   getSocket().emit('game:four-gravity:toggle-ai', { ai: !isAIMode });
                 }}
               >
-                {isAIMode ? '직접하기' : 'AI 쓰기'}
+                {isAIMode ? '직접하기' : isSuperAiSolo ? '슈퍼 AI 쓰기' : 'AI 쓰기'}
               </Button>
             )}
           </div>

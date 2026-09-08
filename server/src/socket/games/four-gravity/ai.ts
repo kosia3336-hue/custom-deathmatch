@@ -37,6 +37,61 @@ export function getCandidateCells(board: CellType[][]): Position[] {
   });
 }
 
+/** 슈퍼 AI 후보: 기존 ±2 + 같은 행/열에서 돌 bounding box 바깥 빈칸. */
+export function getCandidateCellsSuper(board: CellType[][]): Position[] {
+  const keys = new Set<string>();
+  const out: Position[] = [];
+  function add(r: number, c: number) {
+    if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
+    if (board[r][c] !== 'empty') return;
+    const k = `${r},${c}`;
+    if (keys.has(k)) return;
+    keys.add(k);
+    out.push({ row: r, col: c });
+  }
+  for (const p of getCandidateCells(board)) add(p.row, p.col);
+
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    let black = 0;
+    let white = 0;
+    let minC = BOARD_SIZE;
+    let maxC = -1;
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const cell = board[r][c];
+      if (cell !== 'black' && cell !== 'white') continue;
+      if (cell === 'black') black++;
+      else white++;
+      if (c < minC) minC = c;
+      if (c > maxC) maxC = c;
+    }
+    if (black >= 2 || white >= 2) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (c < minC || c > maxC) add(r, c);
+      }
+    }
+  }
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    let black = 0;
+    let white = 0;
+    let minR = BOARD_SIZE;
+    let maxR = -1;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      const cell = board[r][c];
+      if (cell !== 'black' && cell !== 'white') continue;
+      if (cell === 'black') black++;
+      else white++;
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+    }
+    if (black >= 2 || white >= 2) {
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        if (r < minR || r > maxR) add(r, c);
+      }
+    }
+  }
+  return out.length > 0 ? out : getCandidateCells(board);
+}
+
 export function evaluate(board: CellType[][], aiColor: 'black' | 'white'): number {
   const oppColor: CellType = aiColor === 'black' ? 'white' : 'black';
   let score = 0;
@@ -116,6 +171,7 @@ export interface AIWorkerData {
   lastGravityBlack: Direction | null;
   lastGravityWhite: Direction | null;
   useStrong?: boolean;
+  useSuper?: boolean;
 }
 
 // 모듈 레벨 타임아웃 플래그 (워커 인스턴스당 하나이므로 동시성 안전)

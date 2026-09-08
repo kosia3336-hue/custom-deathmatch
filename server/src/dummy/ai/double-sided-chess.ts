@@ -119,6 +119,10 @@ function searchBest(view: DoubleSidedChessDummyView, tier: DummyAiTier): AIMove 
     board: d.board,
     prisoners: d.prisoners,
     currentOwner: d.currentOwner,
+    turnNumber: view.turnNumber,
+    lastMove: d.lastMove && d.lastMove.type === 'move' && d.lastMove.from
+      ? { type: 'move' as const, from: d.lastMove.from, to: d.lastMove.to }
+      : null,
   };
   if (tier === '상') return findBestMoveIterativeStrong(data, searchBudgetMs(tier));
   return findBestMoveIterative(data, searchBudgetMs(tier));
@@ -223,6 +227,10 @@ export async function pickDoubleSidedChessActionAsync(
     currentOwner: d.currentOwner,
     useStrong: tier === '상',
     timeLimitMs: searchBudgetMs(tier),
+    turnNumber: view.turnNumber,
+    lastMove: d.lastMove && d.lastMove.type === 'move' && d.lastMove.from
+      ? { type: 'move', from: d.lastMove.from, to: d.lastMove.to }
+      : null,
   });
   return chooseMove(dummyId, view, tier, searched);
 }
