@@ -16,6 +16,7 @@ import Input from '@/components/ui/Input';
 import { useRoom } from '@/hooks/useRoom';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useNicknameStore } from '@/stores/nickname';
+import { isCheonhaNickname } from '@/shared/cheonha';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
@@ -86,7 +87,7 @@ export default function WaitingRoomPage() {
             res.errorCode === 'GAME_IN_PROGRESS' ||
             res.errorCode === 'ROOM_FULL'
           ) {
-            if (res.isPrivate) {
+            if (res.isPrivate && !isCheonhaNickname(useNicknameStore.getState().nickname)) {
               setShowSpectatePassword(true);
             } else {
               joinAsSpectator();

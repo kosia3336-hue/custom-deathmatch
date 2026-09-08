@@ -16,6 +16,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized, getRoomShopState } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import {
   REMATCH_INTRO_MS,
   REVEAL_DELAY_MS,
@@ -201,7 +202,7 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
         return [
           pid,
           {
-            nickname: roomId && isTokenAnonymized(roomId, pid) && pid !== viewerId ? ANONYMOUS_NICKNAME : pd.nickname,
+            nickname: roomId ? nicknameForViewer(roomId, pid, pd.nickname, viewerId) : pd.nickname,
             tilesUsed: isSelf ? [...pd.tilesUsed] : [],
             digits: pd.digits,
             valueStr: isSelf ? pd.valueStr : '',
@@ -235,7 +236,7 @@ function buildGameDataFor(s: InternalState, viewerId: string | null, dbgView = f
   const isP2 = viewerId === s.player2.id;
   const seeBothTiles = dbgView && (isP1 || isP2);
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   return {
     phase: s.phase,
     round: s.round,

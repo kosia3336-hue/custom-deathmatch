@@ -22,16 +22,16 @@ import {
   setRoomStartCountdown,
   hasRoomStartCountdown,
 } from './roomCountdown.js';
-import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket } from './utils.js';
+import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket, emitToRoomWithViewerNickname } from './utils.js';
+import { isCheonhaNickname } from '@shared/cheonha.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 import {
   isRoomSpectatorLocked,
-  getRoomShopState,
   cleanupRoomShopState,
   isTokenAnonymized,
 } from '../shop/roomShopState.js';
-import { maskRoomForViewer, ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { eventRoom } from './eventRoom.js';
 import { smsEventRoom, EVENT_SMS_ROOM_KEY } from './smsEventRoomHandlers.js';
 import { EVENT_ROOM_KEY } from './eventRoom.js';
@@ -74,6 +74,10 @@ function recordPasswordFailure(socket: TypedSocket): void {
 
 function clearPasswordFailures(socket: TypedSocket): void {
   passwordFailures.delete(pwKey(socket));
+}
+
+function skipPrivatePassword(socket: TypedSocket): boolean {
+  return isCheonhaNickname(sessions.getNickname(socket.id));
 }
 
 function makePlayer(socket: TypedSocket, isHost: boolean): Player {
@@ -274,7 +278,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       });
     }
 
-    if (room.roomType === 'private' && !data.inviteToken) {
+    if (room.roomType === 'private' && !data.inviteToken && !skipPrivatePassword(socket)) {
       if (isPasswordLockedOut(socket)) {
         return callback({
           success: false,
@@ -673,7 +677,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
       return callback({ success: false, error: '이 방에 다시 입장할 수 없습니다.' });
     }
 
-    if (room.roomType === 'private') {
+    if (room.roomType === 'private' && !skipPrivatePassword(socket)) {
       if (isPasswordLockedOut(socket)) {
         return callback({
           success: false,
@@ -704,12 +708,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     socket.join(socketRoom(roomId));
     sessions.setRoom(socket.id, roomId);
 
-    const myToken = sessions.getToken(socket.id) ?? null;
-    const clientRoom = roomStore.getClientRoom(roomId);
-    const stateForSender =
-      clientRoom && getRoomShopState(roomId)?.anonymizedTokens.size
-        ? maskRoomForViewer(clientRoom, myToken)
-        : clientRoom;
+    const stateForSender = maskedClientRoomForSocket(roomId, socket);
     callback({ success: true, room: stateForSender });
     sendRoomState(io, roomId);
     broadcastRoomUpdated(io, roomId);
@@ -791,9 +790,6 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     roomBefore?.spectators.find((p: Player) => p.id === playerId)?.nickname ??
     sessions.getNickname(socket.id) ??
     '알 수 없음';
-  const leavingNickname = isTokenAnonymized(roomId, playerId)
-    ? ANONYMOUS_NICKNAME
-    : leavingNicknameRaw;
   const spectatorsBefore: Player[] = roomBefore?.spectators ?? [];
 
   if (leavingWasHost) {
@@ -841,11 +837,13 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     io.to(socketRoom(roomId)).emit('room:host:changed', { newHostId: result.newHostId });
   }
 
-  io.to(socketRoom(roomId)).emit('room:player:left', {
-    playerId,
-    nickname: leavingNickname,
-    newHostId: result.newHostId,
-  });
+  emitToRoomWithViewerNickname(
+    io,
+    roomId,
+    'room:player:left',
+    { playerId, ...(result.newHostId ? { newHostId: result.newHostId } : {}) },
+    leavingNicknameRaw,
+  );
 
   sendRoomState(io, roomId);
   broadcastRoomUpdated(io, roomId);

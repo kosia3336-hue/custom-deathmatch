@@ -14,8 +14,7 @@ import type {
 import { judgeMultiple } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -65,7 +64,7 @@ function toClientRoundHistory(history: MBNWRoundActionLog[]): MBNWRoundRecord[] 
 function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   const maskNick = (p: MBNWPlayerInternal) =>
-    isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname;
+    nicknameForViewer(s.roomId, p.id, p.nickname, viewerToken);
   const fp = getFirstPlayer(s);
   const sp = getSecondPlayer(s);
   switch (s.phase) {
@@ -82,7 +81,7 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
   const myPlayer = pid === s.player1.id ? s.player1 : pid === s.player2.id ? s.player2 : null;
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== pid ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, pid);
 
   const players: Record<string, MBNWPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1), nickname: maskNick(s.player1.id, s.player1.nickname) },

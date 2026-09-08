@@ -55,7 +55,7 @@ export default function RoomCardList({
               </div>
             </div>
             <p className="mb-1 text-sm font-medium text-cdm-fg truncate">{room.title}</p>
-            <p className="mb-3 text-xs text-cdm-fg-muted">방장: {room.hostNickname}</p>
+            <p className="mb-3 text-xs text-cdm-fg-muted">방장: {room.isRanked ? '—' : room.hostNickname}</p>
             <div className="flex items-center justify-between">
               <ProgressBar current={room.currentPlayers} max={room.maxPlayers} className="flex-1 mr-3" />
               {canJoin ? (

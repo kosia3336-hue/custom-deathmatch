@@ -1,6 +1,7 @@
 /**
  * 운영 더미 창·식별. 로스터는 roster.ts.
  * 평일 KST만. 캡틴영준·아이언현성 off / 최연승 21:00–23:00 / Jack 23:30–01:00. 토·일 전원 쉼.
+ * 접속 인원은 랭크 큐·랭크 방일 때만. 창만 열렸다고 넣지 않는다.
  */
 
 export {
@@ -25,6 +26,12 @@ export const LIVE_DUMMY_EMAIL = 'dummy_titan@dummy.internal';
 
 export function isLiveDummyEnabled(): boolean {
   const v = (process.env.DUMMY_LIVE ?? '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+/** 운영 더미가 랭크 큐에 앉는지. 우선 끔. 다시 켜려면 DUMMY_LIVE_RANK=1 */
+export function isLiveDummyRankEnabled(): boolean {
+  const v = (process.env.DUMMY_LIVE_RANK ?? '').trim().toLowerCase();
   return v === '1' || v === 'true' || v === 'yes';
 }
 

@@ -14,7 +14,7 @@ import type { Player, PlayMode } from '@shared/types/room.js';
 import type { TypedSocket } from '../../types.js';
 import { getBiasTitleInfos } from '../../../shop/biasTitlesCache.js';
 import { getRoomShopState } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../../../db/supabase.js';
 
 const states = new Map<string, BanPickState>();
@@ -534,15 +534,11 @@ export async function initBanPick(
   }
 
   const buildPayloadFor = (viewerToken: string | null): BanPickStartPayload => {
-    const anon = shopState?.anonymizedTokens ?? new Set<string>();
     const playerView = (idx: number): { id: string; nickname: string } => {
       const p = players[idx];
       const id = p?.id ?? '';
       const nick = p?.nickname ?? '';
-      if (id && id !== viewerToken && anon.has(id)) {
-        return { id, nickname: ANONYMOUS_NICKNAME };
-      }
-      return { id, nickname: nick };
+      return { id, nickname: nicknameForViewer(roomId, id, nick, viewerToken) };
     };
     const opponentGameStats = viewerToken ? s.magnifierStatsMap.get(viewerToken) : undefined;
     return {
@@ -562,6 +558,7 @@ export async function initBanPick(
   };
 
   const needsPerSocket =
+    roomStore.get(roomId)?.isRanked === true ||
     (shopState?.anonymizedTokens.size ?? 0) > 0 ||
     (shopState?.magnifierTokens.size ?? 0) > 0;
 
@@ -760,14 +757,10 @@ export function emitBanPickStateToSocket(socket: TypedSocket, roomId: string): v
 
   const viewerToken = sessions.getToken(socket.id) ?? null;
   const shopState = getRoomShopState(roomId);
-  const anon = shopState?.anonymizedTokens ?? new Set<string>();
   const playerView = (idx: number): { id: string; nickname: string } => {
     const id = s.playerIds[idx] ?? '';
     const baseNick = sessions.getNicknameByToken(id) ?? '';
-    if (id && id !== viewerToken && anon.has(id)) {
-      return { id, nickname: ANONYMOUS_NICKNAME };
-    }
-    return { id, nickname: baseNick };
+    return { id, nickname: nicknameForViewer(roomId, id, baseNick, viewerToken) };
   };
 
   const baseStartPayload = (): BanPickStartPayload => ({

@@ -195,7 +195,7 @@ export default function ResultLog() {
     ? room.players.map((p, i) => {
         const ranking = gameResult.rankings.find((r) => r.playerId === p.id);
         return {
-          nickname: p.nickname,
+          nickname: ranking?.nickname ?? p.nickname,
           title: p.displayedTitle
             ? {
                 name: p.displayedTitle.name,
@@ -250,7 +250,8 @@ export default function ResultLog() {
         playedAt: new Date().toISOString(),
         playMode: room.playMode,
         players: room.players.reduce<Record<string, { nickname: string }>>((acc, p) => {
-          acc[p.id] = { nickname: p.nickname };
+          const ranking = gameResult.rankings.find((r) => r.playerId === p.id);
+          acc[p.id] = { nickname: ranking?.nickname ?? p.nickname };
           return acc;
         }, {}),
         result: {

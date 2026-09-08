@@ -7,6 +7,7 @@ import { LOBBY_ROOM } from './types.js';
 import { roomStore } from '../store/rooms.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { maskChatMessageForViewer } from '../shop/maskNicknames.js';
+import { maskRankChatForViewer } from '../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../db/supabase.js';
 
 const lastMessageTime = new Map<string, number>();
@@ -142,19 +143,24 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       senderMemberId: senderMemberId ?? null,
     };
 
-    // 익명 효과가 있으면 viewer 별 분기 emit, 아니면 broadcast.
     const shopState = getRoomShopState(roomId);
-    if (
-      shopState
+    const potionMask =
+      !!shopState
       && shopState.anonymizedMemberIds.size > 0
-      && senderMemberId
-      && shopState.anonymizedMemberIds.has(senderMemberId)
-    ) {
+      && !!senderMemberId
+      && shopState.anonymizedMemberIds.has(senderMemberId);
+    const rankMask = !!room.isRanked && isPlayer && !isSpectator;
+    if (potionMask || rankMask) {
       const sockets = io.sockets.adapter.rooms.get(socketRoom(roomId));
       if (sockets) {
         for (const sid of sockets) {
           const viewerMid = sessions.getMemberIdBySocket(sid);
-          const masked = maskChatMessageForViewer(roomId, msg, viewerMid);
+          const viewerToken = sessions.getToken(sid) ?? null;
+          const masked = maskRankChatForViewer(
+            room,
+            maskChatMessageForViewer(roomId, msg, viewerMid),
+            viewerToken,
+          );
           io.sockets.sockets.get(sid)?.emit('chat:message', masked);
         }
         return;
