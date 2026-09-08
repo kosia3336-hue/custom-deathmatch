@@ -3,7 +3,7 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
-import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
+import RoomTitle from './RoomTitle';
 import type { RoomSummary } from '@/shared/types';
 import { displayGameName } from '@/lib/unreleasedGames';
 
@@ -34,7 +34,7 @@ export default function RoomTable({
             <th className="px-4 py-3">방 제목</th>
             <th className="px-4 py-3 whitespace-nowrap">방장</th>
             <th className="px-4 py-3 w-36 whitespace-nowrap">인원</th>
-            <th className="px-4 py-3 w-16 whitespace-nowrap">관전</th>
+            <th className="px-4 py-3 w-16 whitespace-nowrap text-center">관전</th>
             <th className="px-4 py-3 w-20"></th>
           </tr>
         </thead>
@@ -63,23 +63,18 @@ export default function RoomTable({
                   {displayGameName(room.gameId, room.gameName, isAdmin)}
                 </td>
                 <td className="px-4 py-3 text-cdm-fg max-w-[180px]">
-                  <span className="truncate">{room.title}</span>
-                  {room.timeLimitSeconds != null && (
-                    <span className="ml-1.5">
-                      <TimeLimitBadge seconds={room.timeLimitSeconds} />
-                    </span>
-                  )}
+                  <RoomTitle room={room} />
                 </td>
                 <td className="px-4 py-3 text-cdm-fg-muted whitespace-nowrap max-w-[100px] truncate">{room.hostNickname}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <ProgressBar current={room.currentPlayers} max={room.maxPlayers} />
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-cdm-fg-muted">
+                <td className="px-4 py-3 whitespace-nowrap text-center tabular-nums text-cdm-fg-muted">
                   {!isWaiting && (
                     <span className="text-xs">{room.spectatorCount}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap text-center">
                   {canJoin ? (
                     <Button
                       size="sm"
