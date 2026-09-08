@@ -10,6 +10,7 @@ const ACTION_LABEL = {
   call: '콜',
   raise: '레이즈',
   double: '양면베팅',
+  select: '면 선택',
   fold: '다이',
 } as const;
 

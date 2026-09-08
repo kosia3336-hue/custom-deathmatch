@@ -3967,8 +3967,13 @@ body {
 /* stage-bg 노이즈 배경(::before) 위로 띄우는 용도. 전체 자식(> *)에 걸면
    fixed 포지션 오버레이(모바일 CTA·모달)의 position까지 relative로 덮어써서
    레이아웃이 깨지므로, 실제로 필요한 메인 콘텐츠 래퍼에만 한정한다. */
+/*
+  먼지구름 위로 올리기만 하면 된다. position 은 주지 않는다 —
+  이 클래스가 붙는 곳은 GameFrame 의 뿌리이고 그것은 absolute inset-0 이라,
+  relative 를 얹으면 뼈대가 흐름으로 돌아가 내용 높이만큼 납작해진다.
+  z-index 는 absolute 요소에도 그대로 먹힌다.
+*/
 .skin-showdown-stage-content {
-  position: relative;
   z-index: 1;
 }
 

@@ -66,6 +66,7 @@ export function initDoubleSidedPoker(
     firstPlayerId: first.id,
     currentTurnId: first.id,
     bettingOpened: false,
+    selectOnly: false,
     doubleBettorId: null,
     roundActions: [],
     roundResults: [],

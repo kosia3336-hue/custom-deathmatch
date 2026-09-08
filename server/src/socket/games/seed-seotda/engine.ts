@@ -251,7 +251,9 @@ function settleRound(io: IO, state: SeedSeotdaState, result: SeedSeotdaRoundResu
       result.reason === 'gusa-rematch' ||
       result.reason === 'mung-gusa-rematch';
     state.carryRound = replay;
-    if (!replay) state.firstPlayerId = otherSeedSeotdaPlayerId(state, state.firstPlayerId);
+    // 정상 승부와 다이는 직전 라운드 승자가 다음 라운드의 선 베팅을 맡는다.
+    // 팟을 이월하는 재경기는 기존 선 플레이어를 그대로 유지한다.
+    if (!replay && result.winnerId != null) state.firstPlayerId = result.winnerId;
     beginSeedSeotdaRound(io, state);
   }, SEED_SEOTDA_ROUND_RESULT_MS);
 }

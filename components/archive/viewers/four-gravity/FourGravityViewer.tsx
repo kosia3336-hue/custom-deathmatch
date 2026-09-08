@@ -76,8 +76,14 @@ export default function FourGravityViewer({ record }: Props) {
   const isLastFrame = currentFrame === totalFrames;
   const winLine = isLastFrame ? gameRecord?.winLine ?? null : null;
 
-  const blackNick = record.players.black?.nickname ?? '흑';
-  const whiteNick = record.players.white?.nickname ?? '백';
+  const blackNick =
+    gameRecord?.players?.black?.nickname ??
+    gameRecord?.actions.find((action) => action.color === 'black')?.nickname ??
+    '흑';
+  const whiteNick =
+    gameRecord?.players?.white?.nickname ??
+    gameRecord?.actions.find((action) => action.color === 'white')?.nickname ??
+    '백';
 
   const winnerNick = record.result.rankings.find((r) => r.rank === 1)?.nickname;
 

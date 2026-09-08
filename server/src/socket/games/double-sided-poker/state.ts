@@ -172,6 +172,7 @@ export function toDoubleSidedPokerGameData(
     firstPlayerId: state.firstPlayerId,
     currentTurnId: state.currentTurnId,
     bettingOpened: state.bettingOpened,
+    selectOnly: state.selectOnly,
     doubleBettorId: state.doubleBettorId,
     ...bounds,
     lastRoundResult: state.lastRoundResult
@@ -192,6 +193,8 @@ function gameMessage(state: DoubleSidedPokerState) {
       return '무승부입니다. 팟을 다음 라운드로 넘깁니다.';
     return '라운드가 종료되었습니다.';
   }
+  if (state.selectOnly)
+    return '걸 칩이 없습니다. 겨룰 면만 골라 이월된 팟의 주인을 가립니다.';
   if (state.doubleBettorId) return '양면베팅이 선언되었습니다. 콜, 레이즈 또는 다이하세요.';
   return state.bettingOpened
     ? '콜, 레이즈, 양면베팅 또는 다이를 선택하세요.'

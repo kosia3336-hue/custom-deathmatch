@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import type {
@@ -80,6 +81,19 @@ export default function GrapeSugar2Game() {
   }
 
   /* 게임 종료 토스트 */
+  /*
+    상단 바 — 라운드만. 동시 제출 게임이라 선/후가 없다.
+    이 모듈은 아직 GameFrame 을 쓰지 않아 무대/조작 규약은 그대로 두었다.
+  */
+  const { setHud } = useRoomLayout();
+  const gsRound = gameData?.round ?? 0;
+  const gsMax = gameData?.maxRound ?? 8;
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({ round: `${gsRound} / ${gsMax}R` });
+    return () => setHud(null);
+  }, [setHud, gameData, gsRound, gsMax]);
+
   useEffect(() => {
     if (!gameData || gameData.phase !== 'finished') return;
     if (gameData.finalWinner === null) return;

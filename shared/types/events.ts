@@ -411,6 +411,12 @@ export interface ServerToClientEvents {
   /** token 이 실려 오면 서버가 세션 토큰을 재발급한 것 — 클라이언트는 저장된 토큰을 교체해야 한다. */
   'session:new': (data: { nickname: string; token?: string }) => void;
   'session:exists': (data: { nickname: string; roomId?: string }) => void;
+  /**
+   * 회원에게 묶인 토큰인데 이 연결은 인증이 안 붙어 있다 — 액세스 토큰 갱신이
+   * 늦었거나 실패한 경우다. 세션은 넘겨주지 않지만 토큰도 버리지 않으니,
+   * 클라이언트는 인증을 다시 받아 붙기만 하면 진행 중인 판으로 돌아온다.
+   */
+  'session:reauth': () => void;
   'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;
   'player:reconnecting': (data: {
