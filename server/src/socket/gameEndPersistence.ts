@@ -12,11 +12,16 @@ import type { IO } from './types.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
+import { persistSuperAiGame } from './superAiPersist.js';
 
 export async function persistGameEndLog(io: IO, room: Room, result: GameResult): Promise<string | null> {
   if (!isSupabaseConfigured()) return null;
   if (room.gameId === GAME_IDS.BAN_PICK) return null;
   if (room.players.some((p: Player) => isDummyPlayerId(p.id))) return null;
+  if (room.gameOptions?.superAi === true) {
+    await persistSuperAiGame(room, result, { finished: true });
+    return null;
+  }
   if (room.players.some((p: Player) => p.nickname === 'Faker')) return null;
 
   if (

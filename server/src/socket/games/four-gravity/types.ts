@@ -28,6 +28,7 @@ export interface TurnActionLog {
   turnNumber: number;
   color: 'black' | 'white';
   nickname: string;
+  byAi?: boolean;
   steps: FourGravityAction[];
 }
 
@@ -77,6 +78,8 @@ export interface InternalState {
   turnTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
   aiDifficulty: AbstractAiDifficulty;
+  /** `/super-ai` 방. COM 어려움과 다른 엔진. */
+  superAi: boolean;
   gameOver: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: FourGravityUndoSnapshot[];

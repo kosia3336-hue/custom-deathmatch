@@ -5,6 +5,12 @@ export {
   GAME_IDS,
   isAbstractStrategyGameId,
   resolveAbstractAiDifficulty,
+  SUPER_AI_GAMES,
+  SUPER_AI_MATCH_GAMES,
+  supportsSuperAi,
+  supportsSuperAiMatch,
+  superAiAdvisorHref,
+  isSuperAiGameOptions,
 } from './game';
 export type { RankTier, DisplayRankTier } from './rank';
 export {
@@ -238,6 +244,17 @@ export {
   INITIAL_SCORE,
   INITIAL_WHITE,
   INITIAL_BLACK,
+  NF4_REWARDS,
+  isNf4Number,
+  nf4ScoreDelta,
+  nf4ApplyScore,
+  nf4AdvisorSnapshot,
+  nf4AdvisorFinished,
+  nf4AdvisorWinnerFromResult,
+  nf4AdvisorWinType,
+  buildNf4AdvisorKifu,
+  NF4_ADVISOR_ME,
+  NF4_ADVISOR_OPP,
 } from './number4';
 export type {
   NF4Phase,
@@ -249,6 +266,11 @@ export type {
   NF4RoundRecord,
   NumberFourGameData,
   NumberFourAction,
+  Nf4AdvisorRound,
+  Nf4AdvisorResult,
+  Nf4AdvisorSnapshot,
+  Nf4AdvisorWinner,
+  Nf4AdvisorKifu,
 } from './number4';
 export { INITIAL_CHIPS_DEFAULT, INITIAL_ANTE } from './indian-poker';
 export { ID_TOTAL_ROUNDS, ID_INITIAL_SCORE, ID_INITIAL_COIN_STOCK } from './invest-donate';
@@ -350,7 +372,25 @@ export type {
   QuatroResultSummary,
   QuatroGameData,
 } from './quatro';
-export { BRPS_TOTAL_ROUNDS, BRPS_INITIAL_CHIPS, BRPS_BET_MULTIPLIER } from './betting-rps';
+export {
+  BRPS_TOTAL_ROUNDS,
+  BRPS_INITIAL_CHIPS,
+  BRPS_BET_MULTIPLIER,
+  BRPS_RESULTS,
+  brpsMatchWinBonus,
+  brpsJudgeBet,
+  brpsSettleChips,
+  brpsBetMultiplier,
+  brpsHasChoiceRight,
+  brpsApplyRound,
+  brpsAdvisorSnapshot,
+  brpsAdvisorAsk,
+  brpsAdvisorFinished,
+  brpsAdvisorWinnerFromResult,
+  buildBrpsAdvisorKifu,
+  BRPS_ADVISOR_ME,
+  BRPS_ADVISOR_OPP,
+} from './betting-rps';
 export type {
   BRPSPhase,
   BRPSResult,
@@ -363,8 +403,27 @@ export type {
   BRPSRoundRecord,
   BettingRpsGameData,
   BettingRpsAction,
+  BrpsAdvisorRound,
+  BrpsAdvisorPending,
+  BrpsAdvisorAsk,
+  BrpsAdvisorResult,
+  BrpsAdvisorSnapshot,
+  BrpsAdvisorWinner,
+  BrpsAdvisorKifu,
 } from './betting-rps';
 export { MBNW_TILE_SET, MBNW_TOTAL_ROUNDS, MBNW_TILE_COLOR } from './multiple-bnw';
+export {
+  mbnwIsTile,
+  mbnwIsColor,
+  mbnwIsMultiple,
+  mbnwSettleAdvisorRound,
+  mbnwRemainingTiles,
+  mbnwAdvisorSnapshot,
+  mbnwAdvisorAsk,
+  mbnwAdvisorFinished,
+  mbnwAdvisorWinnerFromResult,
+  buildMbnwAdvisorKifu,
+} from './multiple-bnw';
 export type {
   MBNWTile,
   MBNWTileColor,
@@ -378,6 +437,14 @@ export type {
   MBNWRoundRecord,
   MultipleBnwGameData,
   MultipleBnwAction,
+  MbnwCmp,
+  MbnwAdvisorRound,
+  MbnwAdvisorPending,
+  MbnwAdvisorAsk,
+  MbnwAdvisorResult,
+  MbnwAdvisorSnapshot,
+  MbnwAdvisorWinner,
+  MbnwAdvisorKifu,
 } from './multiple-bnw';
 export { WS_TOTAL_ROUNDS, WS_INITIAL_CARDS, CARD_TYPES } from './winning-streak';
 export type {

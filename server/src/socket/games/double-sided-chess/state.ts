@@ -432,11 +432,17 @@ export function runDscWorkerSearch(roomId: string, workerData: AIWorkerData): Pr
 }
 
 function runAIWithWorker(s: InternalState): Promise<AIMove> {
+  const last = s.lastMove;
   return runDscWorkerSearch(s.roomId, {
     board: s.board,
     prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
     currentOwner: s.currentOwner,
+    useSuper: s.superAi === true,
     useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
+    turnNumber: s.turnNumber,
+    lastMove: last && last.type === 'move' && last.from
+      ? { type: 'move', from: last.from, to: last.to }
+      : null,
   });
 }
 
@@ -480,6 +486,7 @@ export async function runAITurn(io: IO, roomId: string) {
       turnNumber: s.turnNumber,
       player: s.currentOwner,
       nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+      byAi: true,
       action: { type: 'move', from: move.from, to: move.to },
     });
 
@@ -505,6 +512,7 @@ export async function runAITurn(io: IO, roomId: string) {
       turnNumber: s.turnNumber,
       player: s.currentOwner,
       nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+      byAi: true,
       action: { type: 'place-prisoner', pieceType: move.pieceType, position: move.position },
     });
 

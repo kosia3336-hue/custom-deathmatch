@@ -57,7 +57,7 @@ function RoundRow({
             {/* 타일 + 의심 결과 */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
               <span className={`font-mono font-bold ${pd.tileColor === 'black' ? 'text-gray-900' : 'text-gray-500'}`}>
-                {tileIcon} {pd.tile}
+                {tileIcon} {pd.tile > 0 ? pd.tile : '?'}
               </span>
               {pd.suspected ? (
                 <span className={pd.suspectSuccess ? 'text-emerald-600' : 'text-red-500'}>
