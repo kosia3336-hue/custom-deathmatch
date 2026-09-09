@@ -26,7 +26,7 @@ const ACCOUNT_ORIGIN = process.env.NEXT_PUBLIC_ACCOUNT_ORIGIN ?? '';
  * 완료되면 팝업이 sso:ready 를 보내고 스스로 닫힌다. 사용자가 그냥 닫아
  * 버리는 경우도 있어 닫힘 여부도 함께 감시한다.
  */
-function openAccountPopup(origin: string): Promise<'ready' | 'closed'> {
+function openAccountPopup(origin: string): Promise<'ready' | 'closed' | 'blocked'> {
   return new Promise((resolve) => {
     const w = 460;
     const h = 720;
@@ -38,8 +38,15 @@ function openAccountPopup(origin: string): Promise<'ready' | 'closed'> {
       `width=${w},height=${h},left=${left},top=${top}`,
     );
 
+    /*
+      팝업이 막힌 것과 사용자가 닫은 것을 갈라서 알린다.
+
+      둘 다 'closed' 로 뭉뚱그렸더니, 팝업 차단을 켜 둔 사람은 버튼을 눌러도
+      화면에 아무 일도 일어나지 않았다 — 오류 문구조차 없었다. 부르는 쪽에서
+      'blocked' 를 받아 같은 창으로 다녀오는 방식으로 넘어간다.
+    */
     if (!popup) {
-      resolve('closed');
+      resolve('blocked');
       return;
     }
 
@@ -148,6 +155,14 @@ export default function LoginForm({ next, initialError, ssoReturn }: Props) {
           return; // 이 화면을 떠난다
         }
         const result = await openAccountPopup(ACCOUNT_ORIGIN);
+        if (result === 'blocked') {
+          /*
+            팝업이 막혔다. 앱(웹뷰)에서 쓰던 '같은 창으로 다녀오기' 를 그대로
+            쓴다 — 차단 설정을 끄라고 안내하는 것보다 그냥 되는 편이 낫다.
+          */
+          goToAccountService(ACCOUNT_ORIGIN, next);
+          return; // 이 화면을 떠난다
+        }
         if (result !== 'ready') return; // 사용자가 창을 닫았다
         await handleGeneral({ allowHandoff: false }); // 토큰을 받아 마무리
         return;
