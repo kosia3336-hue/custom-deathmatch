@@ -21,6 +21,7 @@ import { getSkinTheme, type SkinTheme } from '@/lib/skins/registry';
 import { GAME_IDS } from '@/shared/types/game';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: `승점 ${SBNW_MAX_SCORE}선승`,
@@ -758,6 +759,25 @@ export default function SilperBnwGame() {
             }`}
           >
             {isMeow && <MeowFieldFx />}
+
+            {/*
+              점수는 늘 보이게 둔다 — 6선승이라 몇 대 몇인지가 판 전체의 상태다.
+              메모 안에만 있으면 매 라운드 버튼을 눌러야 한다. 좁은 화면 몫이라
+              넓은 화면에서는 오른쪽 패널이 이미 같은 것을 펴 놓고 있다.
+              (components/game/GameScoreLine.tsx)
+            */}
+            <div className="w-full max-w-sm lg:hidden">
+              <GameScoreLine
+                entries={Object.values(gameData.players).map((p) => ({
+                  label: p.id === myId ? '나' : p.nickname,
+                  isMe: p.id === myId,
+                  tag: p.id === gameData.firstPlayerId ? '선' : '후',
+                  value: `${p.score}/${SBNW_MAX_SCORE}`,
+                  // 상대 tiles 는 마스킹되어 null 이다. 공개값인 tileCount 를 쓴다.
+                  hint: `${p.tileCount}장`,
+                }))}
+              />
+            </div>
 
             {/* DigitHintPanel — key로 remount 시 팝인 애니메이션 */}
             {(gameData.phase === 'secondSubmit' || gameData.phase === 'firstSubmit') && (

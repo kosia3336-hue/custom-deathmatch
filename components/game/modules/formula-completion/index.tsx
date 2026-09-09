@@ -13,6 +13,7 @@ import ScoreBoard from './ScoreBoard';
 import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 export default function FormulaCompletionGame() {
   const gameState = useRoomStore((state) => state.gameState);
@@ -43,6 +44,17 @@ export default function FormulaCompletionGame() {
 
   return (
     <GameFrame
+      /* 점수는 늘 보이게 (components/game/GameScoreLine.tsx) */
+      info={
+        <GameScoreLine
+          unit="점"
+          entries={Object.entries(gameData.players).map(([playerId, player]) => ({
+            label: playerId === myId ? '나' : player.nickname,
+            isMe: playerId === myId,
+            value: gameData.scores[playerId] ?? 0,
+          }))}
+        />
+      }
       controls={
         gameData.phase === 'playing' ? (
           isPlayer ? (

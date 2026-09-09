@@ -8,6 +8,7 @@ import FirstCountRevealBanner from './FirstCountRevealBanner';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
 import { GameFrame } from '@/components/game/GameFrame';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -98,6 +99,23 @@ export default function MobileLayout({ ctx }: Props) {
     <>
       <GameFrame
         className="bank-layout bank-layout-mobile"
+        /*
+          승점은 늘 보이게 둔다 — 9라운드 승점제라 몇 대 몇인지가 이번 라운드에
+          얼마를 걸지를 정한다. 잔여 장수는 내 것만 공개라 함께 적는다.
+          (components/game/GameScoreLine.tsx)
+        */
+        info={
+          <GameScoreLine
+            unit="점"
+            entries={[firstPlayer, secondPlayer].map((p) => ({
+              label: p.id === myPlayer?.id ? '나' : p.nickname,
+              isMe: p.id === myPlayer?.id,
+              tag: p.side === firstSide ? '선' : '후',
+              value: p.score,
+              hint: `${p.inventoryCount}장`,
+            }))}
+          />
+        }
         controls={
           <div className="flex w-full min-w-0 flex-col gap-1.5">
             {/*

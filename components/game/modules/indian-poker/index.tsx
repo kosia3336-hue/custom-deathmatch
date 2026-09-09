@@ -18,6 +18,7 @@ import { GameFrame } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import RoundHistory from './RoundHistory';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 export default function IndianPokerGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -134,6 +135,21 @@ export default function IndianPokerGame() {
     )}
 
     <GameFrame
+      /*
+        칩은 늘 보이게 둔다 — 칩을 걸어 겨루는 판이라 양쪽 칩 수가 콜·레이즈·다이를
+        정한다. 메모 안에 있으면 매 수마다 버튼을 눌러야 한다.
+        (components/game/GameScoreLine.tsx)
+      */
+      info={
+        <GameScoreLine
+          unit="칩"
+          entries={Object.values(gameData.players).map((p) => ({
+            label: p.id === myId ? '나' : p.nickname,
+            isMe: p.id === myId,
+            value: p.chips,
+          }))}
+        />
+      }
       controls={
         <div className="w-full">
           {isBettingPhase && (

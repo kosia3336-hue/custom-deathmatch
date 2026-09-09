@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 const BACKGROUND_COLORS = {
   black: '#111318',
@@ -145,6 +146,22 @@ function RoundWorkspace({
   return (
     <>
       <GameFrame
+        /*
+          점수는 늘 보이게 둔다 — 4점이면 끝나는 판이라 몇 대 몇인지가 다음 수를
+          정한다. 저장한 합 개수도 같이 적는다: 저장 목록이 메모 안에만 있어서
+          몇 개 저장했는지조차 안 보였다. (components/game/GameScoreLine.tsx)
+        */
+        info={
+          <GameScoreLine
+            unit="점"
+            entries={playerEntries.map(([playerId, player]) => ({
+              label: playerId === myId ? '나' : player.nickname,
+              isMe: playerId === myId,
+              value: gameData.scores[playerId] ?? 0,
+              hint: playerId === myId ? `합 ${savedSets.length}개` : undefined,
+            }))}
+          />
+        }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
             <div className="grid grid-cols-2 gap-1.5">
