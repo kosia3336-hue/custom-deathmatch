@@ -59,6 +59,24 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'ink-wash') {
+    return (
+      <div className="skin-bg-ink-wash skin-ink-wash-preview relative flex h-24 w-full items-center justify-center gap-2 overflow-hidden rounded-lg">
+        <span className="skin-ink-wash-preview-seal" aria-hidden>墨</span>
+        {[3, 5].map((tile) => (
+          <span key={tile} className="mbnw-tile mbnw-tile--white flex h-10 w-10 items-center justify-center border text-sm font-bold">
+            {tile}
+          </span>
+        ))}
+        {[8, 12].map((tile) => (
+          <span key={tile} className="mbnw-tile mbnw-tile--black flex h-10 w-10 items-center justify-center border text-sm font-bold">
+            {tile}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   if (theme === 'four-card') {
     return (
       <div className="skin-four-card-preview relative flex h-24 w-full items-center justify-center gap-2 overflow-hidden rounded-lg">

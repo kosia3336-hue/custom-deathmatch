@@ -17,6 +17,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { inputPhaseClock } from '../../gameClock.js';
+import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -185,6 +186,7 @@ function buildGameState(s: InternalState, gameData: MultipleBnwGameData, viewerT
     // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
     turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'], s.turnStartedAt),
     gameData,
+    activeSkin: getActiveSkin(s.roomId),
   };
 }
 

@@ -21,7 +21,8 @@ export type SkinTheme =
   | 'candy'
   | 'treasury'
   | 'four-card'
-  | 'spring-rain';
+  | 'spring-rain'
+  | 'ink-wash';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -110,6 +111,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'spring-rain',
     description: '봄비가 멈춘 정원의 웅덩이 판. 연잎 말이 쌓이고 착수 자리에 물결이 퍼진다.',
     swatch: 'linear-gradient(135deg, #dcebe3 0%, #6d9992 52%, #df897a 100%)',
+  },
+  'skin-g007-01': {
+    id: 'skin-g007-01',
+    gameId: GAME_IDS.MULTIPLE_BNW,
+    name: '묵연',
+    theme: 'ink-wash',
+    description: '한지 위로 번지는 먹빛 산수. 백자와 먹돌 타일로 펼치는 고요한 수 싸움.',
+    swatch: 'linear-gradient(135deg, #f2eadc 0%, #d4c8b4 52%, #242321 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',

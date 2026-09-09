@@ -17,6 +17,9 @@ import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
+import InkWashFieldFx from './skins/InkWashFieldFx';
 
 interface SuspectAnim {
   player: 'first' | 'second';
@@ -29,6 +32,8 @@ export default function MultipleBnwGame() {
   const gameData = gameState?.gameData as MultipleBnwGameData | undefined;
   const myId = useMySocketId();
   useTurnTimer();
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.MULTIPLE_BNW);
+  const isInkWash = skin === 'ink-wash';
 
   // Opponent tile manual tracker (client-side only)
   const [trackedOpponentUsed, setTrackedOpponentUsed] = useState<MBNWTile[]>([]);
@@ -100,11 +105,12 @@ export default function MultipleBnwGame() {
         trackedOpponentUsed={trackedOpponentUsed}
         onTrackerToggle={handleTrackerToggle}
         opponentCurrentColor={memoOpponentColor}
+        inkWash={isInkWash}
       />
     );
     setHud({ round: `${gameData.round} / ${MBNW_TOTAL_ROUNDS}R`, order: phaseLabel, memo: panel });
     return () => setHud(null);
-  }, [gameData, memoOpponentColor, memoShowTracker, myId, phaseLabel, setHud, trackedOpponentUsed]);
+  }, [gameData, isInkWash, memoOpponentColor, memoShowTracker, myId, phaseLabel, setHud, trackedOpponentUsed]);
 
   useEffect(() => {
     if (!gameData?.winType) return;
@@ -220,6 +226,7 @@ export default function MultipleBnwGame() {
   return (
     <>
       <GameFrame
+        className={isInkWash ? 'skin-ink-wash-field' : undefined}
         aside={
           <MultipleBnwSidePanel
             gameData={gameData}
@@ -228,15 +235,17 @@ export default function MultipleBnwGame() {
             trackedOpponentUsed={trackedOpponentUsed}
             onTrackerToggle={handleTrackerToggle}
             opponentCurrentColor={opponentCurrentColor}
+            inkWash={isInkWash}
           />
         }
       >
-        <div className="flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
-            <div className="w-full max-w-lg space-y-3">
+        <div className="mbnw-stage flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
+            {isInkWash && <InkWashFieldFx />}
+            <div className="mbnw-stage-content w-full max-w-lg space-y-3">
 
               {/* Color reveal badges */}
               {gameData.colorReveal && (
-                <div className="flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3">
+                <div className="mbnw-panel mbnw-color-reveal flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3">
                   {/* First player color */}
                   {gameData.colorReveal.firstPlayerColor && (
                     <div className={`flex flex-col items-center gap-1 transition-all duration-350 ${
@@ -270,7 +279,7 @@ export default function MultipleBnwGame() {
 
               {/* Spectator overlay */}
               {isSpectator && ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(gameData.phase) && (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400">
+                <div className="mbnw-panel mbnw-waiting-card flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400">
                   <WaitingDots />
                   <span className="ml-1">플레이어들이 선택 중...</span>
                 </div>
@@ -369,7 +378,7 @@ export default function MultipleBnwGame() {
         suspectAnim ? 'opacity-100' : 'opacity-0'
       }`}>
         {suspectAnim && (
-          <div className={`flex flex-col items-center gap-3 rounded-2xl px-10 py-6 text-center shadow-2xl transition-transform duration-300 ${
+          <div className={`mbnw-suspect-overlay ${isInkWash ? 'mbnw-suspect-overlay--ink-wash' : ''} flex flex-col items-center gap-3 rounded-2xl px-10 py-6 text-center shadow-2xl transition-transform duration-300 ${
             suspectAnim ? 'scale-100' : 'scale-75'
           } ${
             suspectAnim.success
@@ -393,7 +402,7 @@ export default function MultipleBnwGame() {
         roundOverlay ? 'opacity-100' : 'opacity-0'
       }`}>
         {roundOverlay && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm">
+          <div className={`mbnw-round-overlay flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm ${isInkWash ? 'mbnw-round-overlay--ink-wash' : ''}`}>
             <p className="text-2xl font-bold">라운드 {roundOverlay.round} 시작</p>
             <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플</p>
           </div>
@@ -405,7 +414,7 @@ export default function MultipleBnwGame() {
 
 function ColorBadge({ color, pulse }: { color: 'white' | 'black'; pulse?: boolean }) {
   return (
-    <span className={`inline-flex h-10 items-center rounded-lg px-4 text-base font-semibold transition-all duration-200 ${
+    <span className={`mbnw-color-badge mbnw-color-badge--${color} inline-flex h-10 items-center rounded-lg px-4 text-base font-semibold transition-all duration-200 ${
       pulse ? 'ring-2 ring-offset-1 ring-current' : ''
     } ${
       color === 'black'
@@ -429,7 +438,7 @@ function WaitingDots() {
 
 function WaitingCard({ text, extra }: { text: string; extra?: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
+    <div className="mbnw-panel mbnw-waiting-card flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
       <WaitingDots />
       <p className="text-sm text-gray-500">{text}</p>
       {extra && (
@@ -446,6 +455,7 @@ function MultipleBnwSidePanel({
   trackedOpponentUsed,
   onTrackerToggle,
   opponentCurrentColor,
+  inkWash,
 }: {
   gameData: MultipleBnwGameData;
   myId: string;
@@ -453,9 +463,10 @@ function MultipleBnwSidePanel({
   trackedOpponentUsed: MBNWTile[];
   onTrackerToggle: (tile: MBNWTile) => void;
   opponentCurrentColor: MBNWTileColor | null;
+  inkWash: boolean;
 }) {
   return (
-    <GameInfoStack>
+    <GameInfoStack className={inkWash ? 'skin-ink-wash-memo' : undefined}>
       {showTracker && (
         <GameInfoPart>
           <OpponentTileTracker
