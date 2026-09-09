@@ -19,18 +19,21 @@ interface Tab {
 
 /**
  * '메뉴' 시트에 들어갈 부메뉴 — 상단 바가 없는 모바일에서 접근 경로 확보.
- * 하단 기본 탭은 랭킹/로비/메뉴 3개로 줄이고, 게임 룰·칭호·상점은 이 시트로 모은다.
+ * 랭킹·길드는 하단 탭으로 올라갔으므로 여기서는 뺀다(같은 곳으로 가는 문이 둘이면
+ * 어느 쪽이 정식인지 흐려진다). 칭호·상점·공지·출석·문의는 이 시트가 유일한 문이다.
  */
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOnly?: boolean }[] = [
-  // 하단 탭에서 내려온 둘 — 자주 쓰므로 시트 맨 앞에 둔다
-  { href: '/ranking', label: '랭크', icon: <Icon name="rank" size="lg" /> },
   { href: '/me', label: '내정보', icon: <Icon name="me" size="lg" />, memberOnly: true },
   { href: '/titles', label: '칭호', icon: <Icon name="title" size="lg" /> },
   { href: '/shop', label: '상점', icon: <Icon name="shop" size="lg" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon name="notice" size="lg" /> },
   // '소개'(/about)는 여기 두지 않는다 — 로비 대문 캐러셀과 푸터에서 들어간다.
-  { href: '/guild', label: '길드', icon: <Icon name="guild" size="lg" />, memberOnly: true },
   { href: '/attendance', label: '출석판', icon: <Icon name="attendance" size="lg" />, memberOnly: true },
+  /*
+    문의하기. 지금까지는 푸터에만 있어 모바일에서 사실상 닿지 않았다.
+    비로그인도 쓸 수 있는 창구라 memberOnly 를 붙이지 않는다.
+  */
+  { href: '/support/inquiry', label: '문의하기', icon: <Icon name="inquiry" size="lg" /> },
 ];
 
 /*
@@ -66,7 +69,7 @@ export function MobileTabBar({ isMember }: Props) {
     setMenuOpen((v) => (v ? false : v));
   }, [pathname]);
 
-  // 하단 탭은 재설계안대로 4개만 둔다. 시트는 홈 헤더의 메뉴 버튼이 연다.
+  // 홈 헤더의 메뉴 버튼도 같은 시트를 연다.
   useEffect(() => {
     const open = () => setMenuOpen(true);
     window.addEventListener('cdm:open-menu', open);
@@ -81,16 +84,20 @@ export function MobileTabBar({ isMember }: Props) {
 
   const menuItems = MENU_ITEMS.filter((m) => isMember || !m.memberOnly);
 
-  // 앱 재설계안의 하단 탭 4개 — 홈 · 랭크 · 게임 · 내정보.
-  // '메뉴' 시트는 그대로 둔다: 길드·출석판·공지는 아직 다른 진입점이 없다.
   /*
-    하단은 게임 · 홈 · 메뉴 셋만 둔다. 다섯 칸일 때는 무엇이 중심인지 흐렸다.
-    랭크·내정보는 메뉴 시트로 옮겼다 — 매번 누르는 곳은 아니다.
-    (메뉴는 시트를 여는 버튼이라 Link 가 아니고, 아래 렌더에서 직접 붙인다.)
+    하단 탭 다섯 — 게임 · 랭킹 · 홈 · 길드 · 메뉴.
+
+    홈을 가운데 두어 좌우가 대칭이 된다. 랭킹과 길드는 메뉴 시트 안에 있었는데,
+    시트를 열어야 닿는 곳이라 자주 가는 곳치고 멀었다. 다섯 칸이면 한 칸이
+    좁아지지만(375px 기준 75px) 라벨이 두 글자 이하라 줄지 않는다.
+
+    메뉴는 시트를 여는 버튼이라 Link 가 아니고, 아래 렌더에서 직접 붙인다.
   */
   const tabs: Tab[] = [
     { href: '/rules', label: '게임', icon: <Icon name="game" size="lg" /> },
+    { href: '/ranking', label: '랭킹', icon: <Icon name="rank" size="lg" /> },
     { href: '/lobby', label: '홈', icon: <Icon name="home" size="lg" /> },
+    { href: '/guild', label: '길드', icon: <Icon name="guild" size="lg" /> },
   ];
 
   const menuActive = menuItems.some((m) => pathname?.startsWith(m.href));
