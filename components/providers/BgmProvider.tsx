@@ -105,6 +105,7 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   const queueIdxRef = useRef(0);
   const lastTrackRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSettingsRef = useRef<{ bgmMuted?: boolean; bgmVolume?: number }>({});
   // advance 를 ref 로 — Audio 생성 effect 가 advance 에 의존하지 않도록
   const advanceRef = useRef<() => void>(() => {});
 
@@ -263,12 +264,12 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
         // localStorage 불가 환경 무시
       }
       if (!isLoggedIn) return;
+      pendingSettingsRef.current = { ...pendingSettingsRef.current, ...patch };
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         const supabase = getBrowserSupabase();
-        const rpcPatch: Record<string, Json> = {};
-        if (patch.bgmMuted !== undefined) rpcPatch.bgmMuted = patch.bgmMuted;
-        if (patch.bgmVolume !== undefined) rpcPatch.bgmVolume = patch.bgmVolume;
+        const rpcPatch = pendingSettingsRef.current;
+        pendingSettingsRef.current = {};
         callRpc(supabase, 'update_member_settings', {
           p_patch: rpcPatch as Json,
         }).catch(() => {});

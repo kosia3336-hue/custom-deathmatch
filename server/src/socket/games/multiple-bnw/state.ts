@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
 import type {
@@ -220,7 +221,7 @@ function armRoundTimer(io: IO, s: InternalState) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(() => handleTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => (s.phase === 'tileSubmit' || s.phase === 'suspectFirst') ? getFirstPlayer(s).id : (s.phase === 'tileRespond' || s.phase === 'suspectSecond') ? getSecondPlayer(s).id : null, () => handleTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 export function startPhaseTimer(io: IO, s: InternalState) {

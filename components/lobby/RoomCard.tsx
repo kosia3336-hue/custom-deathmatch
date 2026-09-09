@@ -3,7 +3,7 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
-import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
+import RoomTitle from './RoomTitle';
 import type { RoomSummary } from '@/shared/types';
 import { displayGameName } from '@/lib/unreleasedGames';
 
@@ -46,15 +46,12 @@ export default function RoomCardList({
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                {room.timeLimitSeconds != null && (
-                  <TimeLimitBadge seconds={room.timeLimitSeconds} />
-                )}
                 <Badge variant={isWaiting ? 'info' : 'warning'}>
                   {isWaiting ? '대기' : '진행'}
                 </Badge>
               </div>
             </div>
-            <p className="mb-1 text-sm font-medium text-cdm-fg truncate">{room.title}</p>
+            <div className="mb-1 text-sm font-medium text-cdm-fg"><RoomTitle room={room} /></div>
             <p className="mb-3 text-xs text-cdm-fg-muted">방장: {room.isRanked ? '—' : room.hostNickname}</p>
             <div className="flex items-center justify-between">
               <ProgressBar current={room.currentPlayers} max={room.maxPlayers} className="flex-1 mr-3" />
@@ -68,7 +65,7 @@ export default function RoomCardList({
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
-                  {!isWaiting && <span className="text-xs text-cdm-fg-muted">{room.spectatorCount}</span>}
+                  {!isWaiting && <span className="min-w-6 text-center text-xs tabular-nums text-cdm-fg-muted">{room.spectatorCount}</span>}
                   <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onSpectate(room); }}>
                     관전
                   </Button>

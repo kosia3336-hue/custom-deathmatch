@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
 import type {
@@ -319,7 +320,7 @@ function armInputTimer(io: IO, s: SMS2InternalState) {
   }
   s.turnStartedAt = Date.now();
   s.roundDeadline = s.turnStartedAt + s.timeLimitSeconds * 1000;
-  s.roundTimer = setTimeout(() => handleTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => resolveCurrentTurn(s), () => handleTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 /* ────────── round lifecycle ────────── */

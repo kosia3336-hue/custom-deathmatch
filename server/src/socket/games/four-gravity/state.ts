@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { FourGravityGameData } from '@shared/types/four-gravity.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
@@ -247,7 +248,7 @@ export function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => {
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayer, () => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { GameTimeExpiry } from '@/shared/types/events';
 import type {
   Room,
   Player,
@@ -15,6 +16,8 @@ interface ReconnectingPlayer {
 }
 
 interface RoomState {
+  timeExpiry: GameTimeExpiry | null;
+  setTimeExpiry: (value: GameTimeExpiry | null) => void;
   room: Room | null;
   gameState: GameState | null;
   gameResult: GameResult | null;
@@ -48,6 +51,8 @@ interface RoomState {
 }
 
 export const useRoomStore = create<RoomState>((set) => ({
+  timeExpiry: null,
+  setTimeExpiry: (timeExpiry) => set({ timeExpiry }),
   room: null,
   gameState: null,
   gameResult: null,
@@ -58,11 +63,12 @@ export const useRoomStore = create<RoomState>((set) => ({
   isSpectator: false,
   reconnectingPlayers: [],
 
-  setRoom: (room) => set({ room }),
+  setRoom: (room) => set(s => ({ room, timeExpiry: s.room?.id === room?.id ? s.timeExpiry : null })),
   setGameState: (state) => set({ gameState: state }),
   setGameResult: (result) =>
     set((s) => ({
       gameResult: result,
+      timeExpiry: null,
       rankGameEnded:
         result == null || result.isRanked !== true
           ? null
@@ -139,6 +145,7 @@ export const useRoomStore = create<RoomState>((set) => ({
 
   reset: () =>
     set({
+      timeExpiry: null,
       room: null,
       gameState: null,
       gameResult: null,

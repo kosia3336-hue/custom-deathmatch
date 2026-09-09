@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type {
   SBNWGameData,
@@ -349,19 +350,19 @@ export function clearRoundTimer(s: InternalState) {
   }
 }
 
-function armTimer(s: InternalState, onTimeout: () => void) {
+function armTimer(io: IO, s: InternalState, onTimeout: () => void) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(onTimeout, s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => s.phase === 'firstSubmit' ? getFirstPlayer(s).id : s.phase === 'secondSubmit' ? getSecondPlayer(s).id : null, onTimeout, s.timeLimitSeconds * 1000);
 }
 
 export function startFirstSubmitTimer(io: IO, s: InternalState) {
-  armTimer(s, () => handleFirstTimeout(io, s));
+  armTimer(io, s, () => handleFirstTimeout(io, s));
 }
 
 function startSecondSubmitTimer(io: IO, s: InternalState) {
-  armTimer(s, () => handleSecondTimeout(io, s));
+  armTimer(io, s, () => handleSecondTimeout(io, s));
 }
 
 function handleFirstTimeout(io: IO, s: InternalState) {

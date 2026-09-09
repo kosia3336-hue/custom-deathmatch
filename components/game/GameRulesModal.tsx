@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/cdm/Modal';
 import RuleSheet from '@/components/rules/RuleSheet';
+import RuleImage from '@/components/rules/RuleImage';
 import { getGameRule, type GameRuleMeta } from '@/lib/gameRules';
 
 interface Props {
@@ -80,16 +81,17 @@ export function GameRulesModal({ gameId, open, onClose }: Props) {
       title="게임 룰"
       size="lg"
       mobileBottomSheet
+      edgeToEdge={Boolean(imageUrl)}
     >
       {imageUrl || hasRules ? (
-        <div className="max-h-[65dvh] overflow-y-auto overscroll-contain pr-1">
+        <div className={imageUrl ? 'max-h-[92dvh] overflow-y-auto overscroll-contain' : 'max-h-[65dvh] overflow-y-auto overscroll-contain pr-1'}>
           {/* 룰 페이지·소개 페이지와 같은 룰지를 쓴다 */}
-          <RuleSheet
+          {imageUrl ? <RuleImage src={imageUrl} name={rule?.name ?? '게임'} className="block rounded-none border-0" /> : <RuleSheet
             name={rule?.name ?? '게임'}
             category={rule?.category ?? ''}
             source={source}
             imageUrl={imageUrl || undefined}
-          />
+          />}
           {hasMeta && (
             <div className="mt-5 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 p-3 text-xs leading-relaxed text-cdm-fg-muted">
               {meta!.source && <p>출처: {meta!.source}</p>}

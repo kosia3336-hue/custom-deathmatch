@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   applyTripleGomokuAction,
   canMoveTripleGomokuStone,
@@ -97,7 +98,7 @@ function armTurnTimer(io: IO, state: TripleGomokuState) {
   state.turnTimer = null;
   if (!state.timeLimitSeconds || state.gameOver) return;
   if (state.currentPlayerId === AI_PLAYER_ID) return;
-  state.turnTimer = setTimeout(() => {
+  state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentPlayerId, () => {
     if (tripleGomokuStates.get(state.roomId) !== state || state.gameOver) return;
     finishGame(io, state, {
       playerId: otherPlayer(state, state.currentPlayerId).id,

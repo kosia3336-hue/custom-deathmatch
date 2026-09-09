@@ -9,6 +9,7 @@ import { useCurrentMember } from '@/hooks/useCurrentMember';
 import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import {
+  DEFAULT_ABSTRACT_AI_DIFFICULTY,
   DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
@@ -17,9 +18,11 @@ import {
   gameSupportsPlayMode,
   isAbstractStrategyGameId,
   isSoloLikePlayMode,
+  resolveAbstractAiDifficulty,
   resolveAbstractAiThinkSeconds,
 } from '@/shared/types';
 import type {
+  AbstractAiDifficulty,
   Game,
   PlayMode,
   Room,
@@ -35,6 +38,7 @@ import {
   GameListPicker,
 } from '@/components/room-modal/RoomModalKit';
 import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
+import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 
 interface Props {
   open: boolean;
@@ -64,6 +68,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
     DEFAULT_ABSTRACT_AI_THINK_SECONDS,
+  );
+  const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
+    DEFAULT_ABSTRACT_AI_DIFFICULTY,
   );
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
@@ -119,6 +126,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
     setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
+    setAbstractAiDifficulty(resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId));
 
     fetchGames()
       .then((gsAll) => {
@@ -153,6 +161,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
   const showsAbstractAiThinkTime =
     playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiDifficulty = showsAbstractAiThinkTime;
   const computedTimeLimit =
     canConfigureTimeLimit && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 
@@ -245,6 +254,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     }
     if (showsAbstractAiThinkTime) {
       gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
+    }
+    if (showsAbstractAiDifficulty) {
+      gameOptions.aiDifficulty = abstractAiDifficulty;
     }
 
     const isGameChanged = selectedGame.id !== room.gameId;
@@ -453,6 +465,14 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
               <AbstractAiThinkTimeField
                 value={abstractAiThinkSeconds}
                 onChange={setAbstractAiThinkSeconds}
+              />
+            )}
+
+            {showsAbstractAiDifficulty && (
+              <AbstractAiDifficultyField
+                gameId={selectedGame?.id ?? room.gameId}
+                value={abstractAiDifficulty}
+                onChange={setAbstractAiDifficulty}
               />
             )}
 

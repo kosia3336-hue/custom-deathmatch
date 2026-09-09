@@ -4,7 +4,7 @@
  * 모든 함수는 브라우저 AudioContext 가 생성 가능한 환경에서만 동작한다.
  */
 
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
@@ -38,7 +38,7 @@ function tone(
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getSfxOutput(ctx));
   osc.type = type;
   const t = ctx.currentTime + startOffset;
   osc.frequency.setValueAtTime(freq, t);

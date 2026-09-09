@@ -1,6 +1,36 @@
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 let ctx: AudioContext | null = null;
+
+/** 마지막 5초: 짧고 건조한 시계의 tick/tock. 공통 SFX 음량·음소거를 따른다. */
+export function playCountdownTickSfx(second: number) {
+  try {
+    const c = getCtx();
+    if (!c || c.state !== 'running') return;
+    const now = c.currentTime;
+    // 기계식 시계의 이스케이프먼트: 짧은 톱니 충격 두 번 + 건조한 공명.
+    // 음높이가 미끄러지는 전자음 대신 tick/tock의 음색만 번갈아 바꾼다.
+    const buffer = c.createBuffer(1, Math.ceil(c.sampleRate * 0.065), c.sampleRate);
+    const samples = buffer.getChannelData(0);
+    const frequency = second % 2 ? 2300 : 1650;
+    for (let i = 0; i < samples.length; i++) {
+      const t = i / c.sampleRate;
+      const impulse = Math.exp(-t * 650) + (t >= 0.009 ? 0.48 * Math.exp(-(t - 0.009) * 750) : 0);
+      samples[i] = (Math.random() * 2 - 1) * impulse * 0.7
+        + Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 160) * 0.18;
+    }
+    const source = c.createBufferSource();
+    source.buffer = buffer;
+    const filter = c.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 700;
+    const gain = c.createGain();
+    gain.gain.value = 0.6;
+    source.connect(filter); filter.connect(gain); gain.connect(getSfxOutput(c));
+    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+    source.start(now);
+  } catch { /* 오디오 미지원 환경에서도 게임은 계속한다. */ }
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -28,7 +58,7 @@ export function playLotteryPingSfx() {
     gain.gain.linearRampToValueAtTime(0.22, now + 0.004);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
     osc.connect(gain);
-    gain.connect(c.destination);
+    gain.connect(getSfxOutput(c));
     osc.start(now);
     osc.stop(now + 0.07);
   } catch {}
@@ -49,7 +79,7 @@ export function playLotteryFinalSfx() {
     osc.frequency.exponentialRampToValueAtTime(55, now + 0.18);
     oGain.gain.setValueAtTime(0.55, now);
     oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-    osc.connect(oGain); oGain.connect(c.destination);
+    osc.connect(oGain); oGain.connect(getSfxOutput(c));
     osc.start(now); osc.stop(now + 0.22);
 
     // 노이즈 임팩트
@@ -65,7 +95,7 @@ export function playLotteryFinalSfx() {
     const nGain = c.createGain();
     nGain.gain.setValueAtTime(0.35, now);
     nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    src.connect(lp); lp.connect(nGain); nGain.connect(c.destination);
+    src.connect(lp); lp.connect(nGain); nGain.connect(getSfxOutput(c));
     src.start(now); src.stop(now + 0.12);
 
     // 고음 링 (밝은 느낌)
@@ -76,7 +106,7 @@ export function playLotteryFinalSfx() {
     osc2.frequency.exponentialRampToValueAtTime(700, now + 0.09);
     oGain2.gain.setValueAtTime(0.18, now);
     oGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    osc2.connect(oGain2); oGain2.connect(c.destination);
+    osc2.connect(oGain2); oGain2.connect(getSfxOutput(c));
     osc2.start(now); osc2.stop(now + 0.12);
   } catch {}
 }
@@ -112,7 +142,7 @@ export function playBanSfx() {
 
     src1.connect(bp1);
     bp1.connect(g1);
-    g1.connect(c.destination);
+    g1.connect(getSfxOutput(c));
     src1.start(now);
     src1.stop(now + dur);
 
@@ -133,7 +163,7 @@ export function playBanSfx() {
 
     src2.connect(bp2);
     bp2.connect(g2);
-    g2.connect(c.destination);
+    g2.connect(getSfxOutput(c));
     src2.start(now);
     src2.stop(now + dur);
   } catch {
@@ -158,7 +188,7 @@ export function playRankMatchBellSfx() {
       gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
       osc.connect(gain);
-      gain.connect(c.destination);
+      gain.connect(getSfxOutput(c));
       osc.start(t0);
       osc.stop(t0 + dur + 0.02);
     };
@@ -186,7 +216,7 @@ export function playUnbanSfx() {
     osc1.frequency.exponentialRampToValueAtTime(80, now + 0.15);
     g1.gain.setValueAtTime(0.35, now);
     g1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-    osc1.connect(g1); g1.connect(c.destination);
+    osc1.connect(g1); g1.connect(getSfxOutput(c));
     osc1.start(now); osc1.stop(now + 0.15);
 
     // Layer 2: 상승 링 (삼각파 600Hz→1200Hz, 0.2s)
@@ -198,7 +228,7 @@ export function playUnbanSfx() {
     g2.gain.setValueAtTime(0, now);
     g2.gain.linearRampToValueAtTime(0.18, now + 0.02);
     g2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-    osc2.connect(g2); g2.connect(c.destination);
+    osc2.connect(g2); g2.connect(getSfxOutput(c));
     osc2.start(now); osc2.stop(now + 0.2);
 
     // Layer 3: 잔향 (사인파 1800Hz, gain 0.06, 0.3s)
@@ -208,7 +238,7 @@ export function playUnbanSfx() {
     osc3.frequency.setValueAtTime(1800, now);
     g3.gain.setValueAtTime(0.06, now);
     g3.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    osc3.connect(g3); g3.connect(c.destination);
+    osc3.connect(g3); g3.connect(getSfxOutput(c));
     osc3.start(now); osc3.stop(now + 0.3);
   } catch {}
 }
@@ -234,7 +264,7 @@ export function sfxCitadelCollapse() {
     rGain.gain.linearRampToValueAtTime(0.35, now + 0.3);
     rGain.gain.linearRampToValueAtTime(0.60, now + 0.9);
     rGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-    rSrc.connect(rLp); rLp.connect(rGain); rGain.connect(c.destination);
+    rSrc.connect(rLp); rLp.connect(rGain); rGain.connect(getSfxOutput(c));
     rSrc.start(now); rSrc.stop(now + 1.5);
 
     // 돌 충격음 — 점점 크고 잦아짐
@@ -259,7 +289,7 @@ export function sfxCitadelCollapse() {
       const g = c.createGain();
       g.gain.setValueAtTime(h.vol, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + h.dur);
-      s.connect(bp); bp.connect(g); g.connect(c.destination);
+      s.connect(bp); bp.connect(g); g.connect(getSfxOutput(c));
       s.start(t); s.stop(t + h.dur);
     }
 
@@ -271,7 +301,7 @@ export function sfxCitadelCollapse() {
     co.frequency.exponentialRampToValueAtTime(28, ct + 0.28);
     const cg = c.createGain();
     cg.gain.setValueAtTime(0.95, ct); cg.gain.exponentialRampToValueAtTime(0.001, ct + 0.32);
-    co.connect(cg); cg.connect(c.destination); co.start(ct); co.stop(ct + 0.32);
+    co.connect(cg); cg.connect(getSfxOutput(c)); co.start(ct); co.stop(ct + 0.32);
 
     const cnLen = Math.ceil(c.sampleRate * 0.2);
     const cnBuf = c.createBuffer(1, cnLen, c.sampleRate);
@@ -281,7 +311,7 @@ export function sfxCitadelCollapse() {
     const cnLp = c.createBiquadFilter(); cnLp.type = 'lowpass'; cnLp.frequency.value = 700;
     const cnG = c.createGain();
     cnG.gain.setValueAtTime(0.85, ct); cnG.gain.exponentialRampToValueAtTime(0.001, ct + 0.2);
-    cnSrc.connect(cnLp); cnLp.connect(cnG); cnG.connect(c.destination);
+    cnSrc.connect(cnLp); cnLp.connect(cnG); cnG.connect(getSfxOutput(c));
     cnSrc.start(ct); cnSrc.stop(ct + 0.2);
   } catch {}
 }
@@ -306,7 +336,7 @@ export function sfxCitadelComplete() {
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(vol, t + 0.014);
       g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      osc.connect(g); g.connect(c.destination);
+      osc.connect(g); g.connect(getSfxOutput(c));
       osc.start(t); osc.stop(t + dur + 0.02);
       // 배음
       const osc2 = c.createOscillator();
@@ -315,7 +345,7 @@ export function sfxCitadelComplete() {
       g2.gain.setValueAtTime(0, t);
       g2.gain.linearRampToValueAtTime(vol * 0.28, t + 0.01);
       g2.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.55);
-      osc2.connect(g2); g2.connect(c.destination);
+      osc2.connect(g2); g2.connect(getSfxOutput(c));
       osc2.start(t); osc2.stop(t + dur * 0.55 + 0.01);
     }
   } catch {}
@@ -350,7 +380,7 @@ export function playMeowTileSfx(tile: number) {
       const gain = c.createGain();
       gain.gain.value = 0.55;
       src.connect(gain);
-      gain.connect(c.destination);
+      gain.connect(getSfxOutput(c));
       src.start();
     });
   } catch {}
@@ -402,7 +432,7 @@ export function sfxMeow() {
     osc.connect(formant);
     formant.connect(lp);
     lp.connect(gain);
-    gain.connect(c.destination);
+    gain.connect(getSfxOutput(c));
     osc.start(now); osc.stop(now + dur + 0.02);
     vib.start(now); vib.stop(now + dur + 0.02);
   } catch {}
@@ -424,7 +454,7 @@ export function playUnbanTurnStartSfx() {
       gain.gain.setValueAtTime(0, t0);
       gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-      osc.connect(gain); gain.connect(c.destination);
+      osc.connect(gain); gain.connect(getSfxOutput(c));
       osc.start(t0); osc.stop(t0 + dur + 0.02);
     };
 

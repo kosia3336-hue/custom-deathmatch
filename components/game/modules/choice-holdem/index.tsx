@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -280,7 +279,6 @@ export default function ChoiceHoldemGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as ChoiceHoldemGameData | undefined;
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
 
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
   if (!gameData) {
@@ -300,9 +298,6 @@ export default function ChoiceHoldemGame() {
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
       <header className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto] items-center gap-2 border p-2.5 sm:p-3">
         <div>
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.16em]">
-            ROUND {gameData.round}
-          </p>
           <p className="text-cdm-fg text-sm font-black">
             {PHASE_LABEL[gameData.phase]}
             {gameData.carryRound && (
@@ -318,17 +313,6 @@ export default function ChoiceHoldemGame() {
           <div className="bg-cdm-primary-soft rounded-cdm-md min-w-16 px-3 py-1.5">
             <p className="text-cdm-primary text-[9px] font-bold">POT</p>
             <p className="text-cdm-primary text-xl font-black tabular-nums">{gameData.pot}</p>
-          </div>
-          <div>
-            <p className="text-cdm-fg-subtle text-[9px] font-bold">TIME</p>
-            <p
-              className={cn(
-                'text-cdm-fg text-lg font-black tabular-nums',
-                remaining != null && remaining <= 10 && 'text-cdm-accent',
-              )}
-            >
-              {remaining == null ? '∞' : Math.ceil(remaining)}
-            </p>
           </div>
         </div>
       </header>

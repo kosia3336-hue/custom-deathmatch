@@ -1,3 +1,4 @@
+import { getSfxOutput } from '@/lib/sfxSettings';
 /**
  * 유리설탕(candy) 스킨 효과음.
  *   button — 잼 병 뚜껑 여는 '뽁' (설탕 +/MAX 버튼)
@@ -63,7 +64,7 @@ function playCandySfx(sound: CandySound, volume = 0.5) {
       const gain = c.createGain();
       gain.gain.value = volume;
       src.connect(gain);
-      gain.connect(c.destination);
+      gain.connect(getSfxOutput(c));
       src.start();
     });
   } catch {}

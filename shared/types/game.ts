@@ -53,7 +53,11 @@ export const ABSTRACT_AI_DIFFICULTIES = ['normal', 'hard'] as const;
 export type AbstractAiDifficulty = (typeof ABSTRACT_AI_DIFFICULTIES)[number];
 export const DEFAULT_ABSTRACT_AI_DIFFICULTY: AbstractAiDifficulty = 'normal';
 
-export function resolveAbstractAiDifficulty(value: unknown): AbstractAiDifficulty {
+/** 임시 운영 중지. 재개 시 이 목록에서 해당 게임만 제거한다. */
+export const PAUSED_HARD_AI_GAME_IDS: readonly string[] = [GAME_IDS.FOUR_GRAVITY, GAME_IDS.DOUBLE_SIDED_CHESS];
+
+export function resolveAbstractAiDifficulty(value: unknown, gameId?: string): AbstractAiDifficulty {
+  if (gameId && PAUSED_HARD_AI_GAME_IDS.includes(gameId)) return 'normal';
   return value === 'hard' ? 'hard' : DEFAULT_ABSTRACT_AI_DIFFICULTY;
 }
 

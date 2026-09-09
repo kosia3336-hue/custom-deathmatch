@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/cdm/Card';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -16,12 +16,6 @@ export default function FormulaCompletionGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as unknown as FormulaCompletionGameData | undefined;
   const myId = useMySocketId();
-  const [now, setNow] = useState(gameData?.roundStartedAt ?? 0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(interval);
-  }, []);
 
   if (!gameData) {
     return (
@@ -32,16 +26,10 @@ export default function FormulaCompletionGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const remainingSeconds = gameData.roundSeconds == null
-    ? null
-    : Math.max(
-        0,
-        Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
-      );
 
   return (
     <GameFrame
-      info={<ScoreBoard gameData={gameData} myId={myId} remainingSeconds={remainingSeconds} />}
+      info={<ScoreBoard gameData={gameData} myId={myId} />}
       controls={
         gameData.phase === 'playing' ? (
           isPlayer ? (

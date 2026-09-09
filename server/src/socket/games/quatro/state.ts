@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 /**
  * 콰트로 — 서버 상태/로직.
  *
@@ -639,7 +640,7 @@ export function armTimer(io: IO, s: QuatroState, onTimeout: (io: IO, s: QuatroSt
   s.turnStartedAt = Date.now();
   // 시간제한 없는 방 — 자동 진행하지 않음
   if (s.timeLimitSeconds === null) return;
-  s.timer = setTimeout(() => {
+  s.timer = scheduleTurnExpiry(io, s, 'timer', () => currentTurnId(s), () => {
     if (!gameStates.has(s.roomId) || s.gameOver) return;
     onTimeout(io, s);
   }, s.timeLimitSeconds * 1000);

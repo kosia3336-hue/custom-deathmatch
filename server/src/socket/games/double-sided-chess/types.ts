@@ -9,6 +9,7 @@ import type {
   DSCPlayerInfo,
   DoubleSidedChessAction,
 } from '@shared/types/double-sided-chess.js';
+import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { IO } from './constants.js';
 
 export type EndGameFn = (
@@ -80,6 +81,7 @@ export interface InternalState {
   turnTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
   aiThinkSeconds: number;
+  aiDifficulty: AbstractAiDifficulty;
   gameOver: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: DSCUndoSnapshot[];

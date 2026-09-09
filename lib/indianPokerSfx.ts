@@ -3,7 +3,7 @@
  * eventSfx 패턴 재사용. 스킨 OFF 시 호출하지 않는다.
  */
 
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
@@ -37,7 +37,7 @@ function tone(
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getSfxOutput(ctx));
   osc.type = type;
   const t = ctx.currentTime + startOffset;
   osc.frequency.setValueAtTime(freq, t);
@@ -92,4 +92,3 @@ export function sfxNocturneDie() {
   if (!ctx) return;
   tone(ctx, 340, 140, 0.32, 0.18, 'sawtooth');
 }
-

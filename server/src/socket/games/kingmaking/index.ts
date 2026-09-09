@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   applyKingmakingAction,
   canMoveKingmakingStack,
@@ -96,7 +97,7 @@ function armTurnTimer(io: IO, state: KingmakingState) {
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
   if (!state.timeLimitSeconds || state.currentPlayerId === AI_PLAYER_ID || state.gameOver) return;
-  state.turnTimer = setTimeout(() => {
+  state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentPlayerId, () => {
     if (kingmakingStates.get(state.roomId) !== state || state.gameOver) return;
     finishGame(io, state, otherPlayer(state, state.currentPlayerId).id, 'timeout');
   }, state.timeLimitSeconds * 1000);

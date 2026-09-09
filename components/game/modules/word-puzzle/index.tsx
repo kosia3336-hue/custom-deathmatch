@@ -97,10 +97,6 @@ export default function WordPuzzleGame() {
   }
 
   const isPlayer = Boolean(myId && gameData.scores[myId] !== undefined);
-  const remainSec = Math.max(
-    0,
-    Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
-  );
   const locked = now < lockedUntil;
   const lockRemain = Math.ceil((lockedUntil - now) / 1000);
 
@@ -148,14 +144,6 @@ export default function WordPuzzleGame() {
                 </span>
               ))}
             </div>
-            <span
-              className={cn(
-                'text-sm font-bold tabular-nums',
-                remainSec <= 10 ? 'text-cdm-accent' : 'text-cdm-fg-muted',
-              )}
-            >
-              R{gameData.round}/{gameData.totalRounds} · {remainSec}s
-            </span>
           </div>
 
           {/* 안내 */}

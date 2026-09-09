@@ -81,12 +81,6 @@ export default function TransletterGame() {
   }
 
   const isPlayer = Boolean(myId && gameData.players[myId]);
-  const remain = Math.max(
-    0,
-    Math.ceil((gameData.startedAt + gameData.timeLimitSec * 1000 - now) / 1000),
-  );
-  const mm = String(Math.floor(remain / 60)).padStart(2, '0');
-  const ss = String(remain % 60).padStart(2, '0');
 
   const [aId, bId] = Object.keys(gameData.players);
   const oppId = myId === aId ? bId : aId;
@@ -107,14 +101,6 @@ export default function TransletterGame() {
               <span className="text-cdm-fg font-semibold">{gameData.isSolo ? '진행' : '나'}</span>{' '}
               <span className="text-cdm-primary font-bold tabular-nums">{gameData.myCount}</span>
               <span className="text-cdm-fg-muted">/{TL_PUZZLE_COUNT}</span>
-            </div>
-            <div
-              className={cn(
-                'rounded-full px-3 py-0.5 text-sm font-bold tabular-nums',
-                remain <= 60 ? 'bg-cdm-accent/15 text-cdm-accent' : 'bg-cdm-bg-elev-2 text-cdm-fg',
-              )}
-            >
-              {mm}:{ss}
             </div>
             {!gameData.isSolo && (
               <div className="text-right text-xs">

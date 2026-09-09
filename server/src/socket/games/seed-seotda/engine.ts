@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   SEED_SEOTDA_ANTE,
   type SeedSeotdaAction,
@@ -96,7 +97,7 @@ function scheduleDecision(io: IO, state: SeedSeotdaState) {
   state.turnStartedAt = Date.now();
   const actorId = state.currentTurnId;
   if (state.turnSeconds != null) {
-    state.turnTimer = setTimeout(() => {
+    state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentTurnId, () => {
       if (
         seedSeotdaStates.get(state.roomId) !== state ||
         state.gameOver ||

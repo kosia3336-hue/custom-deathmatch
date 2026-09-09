@@ -203,7 +203,16 @@ export interface JoinRoomResult {
   isPrivate?: boolean;
 }
 
+export interface GameTimeExpiry {
+  roomId: string;
+  requestId: string;
+  loserId: string;
+  deciderId: string;
+  mode: 'multi' | 'com';
+}
+
 export interface ClientToServerEvents {
+  'game:time-expiry:respond': (data: { requestId: string; decision: 'continue' | 'finish' }) => void;
   'nickname:set': (data: { nickname: string }, callback: (res: NicknameResult) => void) => void;
 
   'lobby:join': () => void;
@@ -360,6 +369,7 @@ export interface OnlineUser {
 }
 
 export interface ServerToClientEvents {
+  'game:time-expiry': (data: GameTimeExpiry | null) => void;
   'lobby:rooms': (rooms: RoomSummary[]) => void;
   'lobby:room:created': (room: RoomSummary) => void;
   'lobby:room:updated': (room: RoomSummary) => void;
