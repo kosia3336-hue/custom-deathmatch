@@ -8,19 +8,27 @@ export function playCountdownTickSfx(second: number) {
     const c = getCtx();
     if (!c || c.state !== 'running') return;
     const now = c.currentTime;
-    const osc = c.createOscillator();
+    // 기계식 시계의 이스케이프먼트: 짧은 톱니 충격 두 번 + 건조한 공명.
+    // 음높이가 미끄러지는 전자음 대신 tick/tock의 음색만 번갈아 바꾼다.
+    const buffer = c.createBuffer(1, Math.ceil(c.sampleRate * 0.065), c.sampleRate);
+    const samples = buffer.getChannelData(0);
+    const frequency = second % 2 ? 2300 : 1650;
+    for (let i = 0; i < samples.length; i++) {
+      const t = i / c.sampleRate;
+      const impulse = Math.exp(-t * 650) + (t >= 0.009 ? 0.48 * Math.exp(-(t - 0.009) * 750) : 0);
+      samples[i] = (Math.random() * 2 - 1) * impulse * 0.7
+        + Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 160) * 0.18;
+    }
+    const source = c.createBufferSource();
+    source.buffer = buffer;
+    const filter = c.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 700;
     const gain = c.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(second % 2 ? 1500 : 1100, now);
-    osc.frequency.exponentialRampToValueAtTime(550, now + 0.035);
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
-    osc.connect(gain);
-    gain.connect(getSfxOutput(c));
-    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
-    osc.start(now);
-    osc.stop(now + 0.06);
+    gain.gain.value = 0.6;
+    source.connect(filter); filter.connect(gain); gain.connect(getSfxOutput(c));
+    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+    source.start(now);
   } catch { /* 오디오 미지원 환경에서도 게임은 계속한다. */ }
 }
 

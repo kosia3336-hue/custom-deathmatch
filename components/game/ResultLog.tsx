@@ -17,6 +17,8 @@ import GameLogView from '@/components/game/GameLogView';
 import { RankResultSection } from '@/components/game/RankResultSection';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
+import { useMySocketId } from '@/hooks/useMySocketId';
+import KakaoResultShareButton from './KakaoResultShareButton';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst';
@@ -31,6 +33,7 @@ const AUTO_LEAVE_SEC = 120;
  * 페이지 이동 없이 방 레이아웃 내에서 렌더된다.
  */
 export default function ResultLog() {
+  const myId = useMySocketId();
   const router = useRouter();
   const gameResult = useRoomStore((s) => s.gameResult);
   const rankGameEnded = useRoomStore((s) => s.rankGameEnded);
@@ -189,6 +192,7 @@ export default function ResultLog() {
 
   const sortedRanks = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
   const isDraw = sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
+  const myRanking = gameResult.rankings.find(r => r.playerId === myId);
 
   // GameLogView용 players 변환
   const players: GameLogPlayer[] = room
@@ -268,6 +272,9 @@ export default function ResultLog() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6">
+      {!isSpectator && myRanking && <div className="mb-4 flex justify-end">
+        <KakaoResultShareButton summary={{ gameName: room?.gameName ?? '게임', result: sortedRanks.length < 2 ? '완료' : isDraw ? '무승부' : myRanking.rank === 1 ? '승리' : '패배', playTimeMs: gameResult.playTime, totalTurns: gameResult.totalTurns }} />
+      </div>}
       <GameLogView
         players={players}
         meta={meta}
