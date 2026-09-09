@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GAME_IDS } from '../../../shared/types/game';
 import type { GameState } from '../../../shared/types/events';
 import { GAME_PROGRESS, getGameClock, getGameProgress, getGameStatus } from '../../../lib/gameProgress';
+import { formatCountdown } from '../../../lib/countdownTick';
 
 const state = (gameData: unknown): GameState => ({
   roomId: 'test',
@@ -62,5 +63,31 @@ describe('공통 게임 상단 바', () => {
     expect(
       getGameClock(GAME_IDS.SEED_SEOTDA, state({ turnSeconds: 30, turnStartedAt: null }), 60),
     ).toEqual({ timeLimitSeconds: 30, turnStartedAt: null });
+  });
+});
+
+describe('남은 시간 표시', () => {
+  /*
+    3분짜리 판이 2분대에서 시작한다는 신고가 있었다. 서버 시각은 맞고 내림이
+    문제였다 — 첫 갱신은 이미 몇십 ms 흐른 뒤라 정확히 180 인 순간이 화면에
+    뜨지 않는다.
+  */
+  it('판이 시작하면 제한시간 그대로 보여 준다', () => {
+    expect(formatCountdown(180)).toBe('3:00');
+    expect(formatCountdown(179.98)).toBe('3:00');
+    expect(formatCountdown(179.5)).toBe('3:00');
+  });
+
+  it('한 칸 지난 뒤에야 숫자가 줄어든다', () => {
+    expect(formatCountdown(179)).toBe('2:59');
+    expect(formatCountdown(120.4)).toBe('2:01');
+    expect(formatCountdown(60)).toBe('1:00');
+    expect(formatCountdown(11)).toBe('0:11');
+  });
+
+  it('마지막 10초는 0.1초까지, 0 은 0.0 으로 센다', () => {
+    expect(formatCountdown(9.4)).toBe('9.4');
+    expect(formatCountdown(0.3)).toBe('0.3');
+    expect(formatCountdown(0)).toBe('0:00');
   });
 });

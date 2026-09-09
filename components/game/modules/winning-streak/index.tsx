@@ -399,11 +399,16 @@ function MyCardHand({
         {submitted ? '제출 완료 — 상대를 기다리는 중...' : '카드를 눌러 선택하세요'}
       </p>
       {/*
-        손패는 한 줄로만 둔다. 줄바꿈하면 카드 수에 따라 조작부 높이가 달라져
-        그때마다 판이 출렁이고, 많이 들면 화면 밖으로 나간다. 넘치면 가로로
-        민다 — 세로 스크롤과 달리 판과 조작부는 제자리에 있는다.
+        손패는 넘치면 줄을 바꾼다.
+
+        예전에는 한 줄로 두고 넘치면 가로로 밀게 했다. 판이 출렁이지 않는다는
+        게 이유였는데, 실제로는 375px 폰에서 열 장 중 넉 장이 화면 밖으로
+        나갔다 — 하필 조커 두 장이 거기 있었다. 가로 스크롤은 옆으로 더 있다는
+        표시가 없어서 아예 없는 카드로 보인다. 손에 든 것을 못 보는 것보다는
+        한 줄 늘어나는 편이 낫고, 무대가 flex-1 이라 늘어난 만큼은 무대가
+        내준다.
       */}
-      <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 lg:justify-center lg:gap-4">
+      <div className="flex flex-wrap justify-center gap-2 pb-1 lg:gap-4">
         {entries.map(({ type, count }) => {
           if (count <= 0) return null;
           const style = CARD_COLORS[type];

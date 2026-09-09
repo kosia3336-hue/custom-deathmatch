@@ -372,15 +372,33 @@ export default function BNW2Game() {
     ? Object.entries(gameData.players).find(([id]) => id !== myId)?.[1]
     : undefined;
   const bnwInPlay = gameData?.phase === 'firstSubmit' || gameData?.phase === 'secondSubmit';
-  const bnwPhaseLabel = gameData?.phase === 'firstSubmit'
-    ? '선 플레이어 포인트 제시'
-    : gameData?.phase === 'secondSubmit'
-      ? '후 플레이어 포인트 제시'
-      : gameData?.phase === 'reveal'
-        ? '포인트 공개'
-        : gameData?.phase === 'finished'
-          ? '종료'
-          : undefined;
+  /*
+    상단 바 한 칸에 '내가 선인가 후인가' 와 '지금 무슨 단계인가' 를 같이 적는다.
+
+    단계만 적었더니 '선 플레이어 포인트 제시' 가 떠도 그게 나인지 상대인지 알
+    수가 없었다. 흑과백2 는 선의 색을 보고 후가 거는 게임이라, 내 자리를 모르면
+    공개된 흑/백이 누구 것인지도 못 읽는다. 실제로 '선·후의 흑백을 못 본다' 는
+    신고가 그것이었다. 자리는 늘 앞에 두고 단계는 짧게 줄인다 — 이 칸은 좁은
+    화면에서 잘리는 자리다.
+  */
+  const bnwIsFirst = gameData ? myId === gameData.firstPlayerId : false;
+  const bnwSeat = isSpectator ? null : bnwIsFirst ? '선' : '후';
+  const bnwMyTurn =
+    !isSpectator &&
+    ((gameData?.phase === 'firstSubmit' && bnwIsFirst) ||
+      (gameData?.phase === 'secondSubmit' && !bnwIsFirst));
+  const bnwStage = gameData?.phase === 'reveal'
+    ? '공개'
+    : gameData?.phase === 'finished'
+      ? '종료'
+      : gameData?.phase === 'firstSubmit' || gameData?.phase === 'secondSubmit'
+        ? (isSpectator
+            ? (gameData.phase === 'firstSubmit' ? '선 제시' : '후 제시')
+            : bnwMyTurn ? '내 차례' : '상대 차례')
+        : undefined;
+  const bnwPhaseLabel = bnwStage
+    ? (bnwSeat ? `${bnwSeat} · ${bnwStage}` : bnwStage)
+    : bnwSeat ?? undefined;
   useEffect(() => {
     if (!gameData) return;
     setHud({

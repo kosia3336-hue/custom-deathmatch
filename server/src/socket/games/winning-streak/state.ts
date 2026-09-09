@@ -145,7 +145,13 @@ function buildGameState(s: InternalState, gameData: WinningStreakGameData): Game
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    /*
+      카드를 고르는 동안에만 시계를 보낸다. 공개·결과 단계까지 보내면 상단 바가
+      직전 라운드 시작 시각을 계속 세어 0:00 까지 내려가고 마지막 5초 경고음까지
+      울린다 — 아무도 착수를 기다리지 않는 구간에서. 포도설탕2 는 이미 입력
+      단계에서만 보내고 있었다.
+    */
+    turnStartedAt: s.timeLimitSeconds && s.phase === 'cardSelect' ? s.turnStartedAt : null,
     gameData,
   };
 }

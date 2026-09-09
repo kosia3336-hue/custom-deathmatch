@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { createCountdownTickGate } from '@/lib/countdownTick';
+import { createCountdownTickGate, formatCountdown } from '@/lib/countdownTick';
 import { playCountdownTickSfx } from '@/lib/sfx';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { Icon } from '@/components/cdm/Icon';
@@ -27,12 +27,7 @@ export function CountdownTimer() {
   }, [clockKey, deadline, remaining]);
   if (remaining === null || timeLimitSeconds === null) return null;
 
-  const min = Math.floor(remaining / 60);
-  const sec = Math.floor(remaining % 60);
-  const display =
-    remaining <= 10 && remaining > 0
-      ? remaining.toFixed(1)
-      : `${min}:${sec.toString().padStart(2, '0')}`;
+  const display = formatCountdown(remaining);
 
   const isCritical = remaining <= 5;
   const isDanger = remaining <= 10 && remaining > 5;

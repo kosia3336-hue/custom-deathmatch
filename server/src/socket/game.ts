@@ -217,22 +217,65 @@ function launchPickedGame(
     broadcastRoomUpdated(io, roomId);
   }
 
+  /*
+    밴픽이 끝나는 시점은 밴픽이 시작된 시점과 몇 분 떨어져 있다. 그 사이에
+    상대가 나가거나 몰수패로 판이 끝날 수 있고, 재대결로 한 명만 남은 방이
+    다시 밴픽을 돌 수도 있다. 그래서 밴픽 시작 때 받아 둔 players 를 그대로
+    믿지 않고, 지금 방에 실제로 있는 사람으로 다시 잡는다.
+
+    닫지 않으면 어떻게 되는지는 운영에서 봤다 — 양면포커가 뽑혔는데 사람이
+    한 명뿐이라 init 이 throw 했고, 그 throw 가 launch 를 통째로 끊어 game:state
+    가 한 번도 안 나갔다. 남은 사람은 '게임을 불러오는 중...' 에서 영영 멈췄다.
+  */
+  const livePlayers = room.players.length >= 2 ? [...room.players] : [...players];
+  if (livePlayers.length < 2) {
+    endGame(io, roomId, {
+      rankings: livePlayers.map((p) => ({
+        playerId: p.id,
+        nickname: p.nickname,
+        rank: 1,
+        score: 0,
+      })),
+      totalTurns: 0,
+    });
+    return;
+  }
+
   // 스킨 확정 (OR 규칙) — 게임 모듈 init 이전에 세팅해야 첫 game:state 에 반영됨
-  setActiveSkinForRoom(roomId, players, pickedGameId);
+  setActiveSkinForRoom(roomId, livePlayers, pickedGameId);
 
   // Initialise the real game first so game:state arrives before room:state
   const gameModule = gameModules[pickedGameId];
   if (gameModule) {
-    gameModule.init(
-      io,
-      roomId,
-      players,
-      playMode,
-      Date.now(),
-      room.timeLimitSeconds,
-      endGameCallback,
-      {},
-    );
+    /*
+      init 이 던지면 여기서 받는다. 게임 하나가 못 뜨는 것과 방이 통째로 잠기는
+      것은 다른 일이다 — 잡지 않으면 game:state 도 room:state 도 안 나가고
+      클라이언트는 불러오는 중 화면에 갇힌다.
+    */
+    try {
+      gameModule.init(
+        io,
+        roomId,
+        livePlayers,
+        playMode,
+        Date.now(),
+        room.timeLimitSeconds,
+        endGameCallback,
+        {},
+      );
+    } catch (err) {
+      console.error(`[launchPickedGame] ${pickedGameId} init 실패:`, err);
+      endGame(io, roomId, {
+        rankings: livePlayers.map((p) => ({
+          playerId: p.id,
+          nickname: p.nickname,
+          rank: 1,
+          score: 0,
+        })),
+        totalTurns: 0,
+      });
+      return;
+    }
   }
 
   emitRoomStateToRoom(io, roomId);
