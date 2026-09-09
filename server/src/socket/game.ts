@@ -195,6 +195,22 @@ import {
 import { saveRankBanPickLog } from '../db/rankBanLog.js';
 import { setActiveSkinForRoom, clearActiveSkin } from './skins.js';
 
+/*
+  밴픽 초기화는 async 라 실패가 거절로 온다. void 로 흘려보내면 아무도 받지 못해
+  방이 '진행 중' 인 채 아무 game:state 도 없이 남는다 — 클라이언트는 불러오는 중
+  화면에 갇힌다. startGame 의 catch 와 같은 자리로 데려온다.
+*/
+function disbandOnInitFailure(io: IO, roomId: string, label: string) {
+  return (err: unknown) => {
+    console.error(`[${label}] 초기화 실패`, { roomId }, err);
+    io.to(socketRoom(roomId)).emit('room:disbanded', {
+      reason: '게임을 시작하는 중 오류가 발생했습니다.',
+    });
+    roomStore.delete(roomId);
+    broadcastRoomRemoved(io, roomId);
+  };
+}
+
 function launchPickedGame(
   io: IO,
   roomId: string,
@@ -739,9 +755,21 @@ export const gameModules: Record<string, GameModuleHandlers> = {
       endGameCallback,
       gameOptions,
     ) => {
+      /*
+        두 자리가 다 차야 시작한다. 여기서 던져야 startGame 의 try/catch 가 받아
+        방을 정리한다 — initBanPick 은 async 라 그 안에서 던지면 void 로 흘려보낸
+        거절이 되어 아무도 받지 못한다.
+
+        밴픽만 한 명이어도 굴러갔던 탓에, 한 명짜리 목록이 추첨이 끝나는 몇 분
+        뒤에야 진짜 게임 모듈로 넘어가 거기서 터졌다. 운영의 양면포커 사고가 그것이다.
+      */
+      if (!players[0]?.id || !players[1]?.id) {
+        throw new Error('밴픽에는 두 명의 플레이어가 필요합니다.');
+      }
+
       const hidden = roomStore.get(roomId)?.hiddenMatch === true;
       if (hidden) {
-        void initCounterBan(
+        initCounterBan(
           io,
           roomId,
           players,
@@ -785,10 +813,10 @@ export const gameModules: Record<string, GameModuleHandlers> = {
               console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
             });
           },
-        );
+        ).catch(disbandOnInitFailure(io, roomId, 'counter-ban'));
         return;
       }
-      void initBanPick(
+      initBanPick(
         io,
         roomId,
         players,
@@ -823,7 +851,7 @@ export const gameModules: Record<string, GameModuleHandlers> = {
             console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
           });
         },
-      );
+      ).catch(disbandOnInitFailure(io, roomId, 'ban-pick'));
     },
     handleAction: () => {},
     cleanup: (roomId) => {

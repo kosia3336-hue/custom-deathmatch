@@ -20,6 +20,7 @@ import MeowFieldFx from './skins/MeowFieldFx';
 import { getSkinTheme, type SkinTheme } from '@/lib/skins/registry';
 import { GAME_IDS } from '@/shared/types/game';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: `승점 ${SBNW_MAX_SCORE}선승`,
@@ -523,15 +524,26 @@ export default function SilperBnwGame() {
   const sbOppId = gameData && myId
     ? (Object.keys(gameData.players).find((id) => id !== myId) ?? null)
     : null;
-  const sbPhaseLabel = gameData?.phase === 'firstSubmit'
-    ? '선 플레이어 타일 선택'
-    : gameData?.phase === 'secondSubmit'
-      ? '후 플레이어 타일 선택'
+  /* 자리와 단계를 같이 (lib/gameSeat.ts) */
+  const sbIsFirst = gameData ? myId === gameData.firstPlayerId : false;
+  const sbSeat = isSpectator ? null : sbIsFirst ? '선' : '후';
+  const sbPhaseLabel = seatStage(
+    sbSeat,
+    gameData?.phase === 'firstSubmit' || gameData?.phase === 'secondSubmit'
+      ? turnStage({
+          finished: false,
+          isSpectator,
+          isMyTurn:
+            (gameData.phase === 'firstSubmit' && sbIsFirst) ||
+            (gameData.phase === 'secondSubmit' && !sbIsFirst),
+          spectatorStage: gameData.phase === 'firstSubmit' ? '선 선택' : '후 선택',
+        })
       : gameData?.phase === 'reveal'
         ? '타일 공개'
         : gameData?.phase === 'finished'
           ? '종료'
-          : undefined;
+          : undefined,
+  );
   useEffect(() => {
     if (!gameData) return;
     setHud({

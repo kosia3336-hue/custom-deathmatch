@@ -14,6 +14,7 @@ import { WIN_TYPE_LABELS, CARD_COLORS, CARD_NAMES, CARD_MATCHUP_DESC } from './c
 import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 /* ────────── types ────────── */
 
@@ -58,8 +59,17 @@ export default function WinningStreakGame() {
   const prevRoundRef = useRef<number | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<number | null>(null);
 
+  /*
+    동시에 내는 판이라 '내 차례' 는 뜻이 없다 — 둘 다 차례다. 대신 내가 이미
+    냈는지를 알려 준다. 그게 이 단계에서 실제로 궁금한 것이다. (lib/gameSeat.ts)
+  */
   const phaseLabel = gameData?.phase === 'cardSelect'
-    ? '카드 선택'
+    ? submitStage({
+        finished: false,
+        isSpectator,
+        submitted: (myId ? gameData.players[myId]?.submitted : false) ?? false,
+        pending: '카드 선택',
+      })
     : gameData?.phase === 'reveal' || gameData?.phase === 'result'
       ? '카드 공개'
       : gameData?.phase === 'finished'

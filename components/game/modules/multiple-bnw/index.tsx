@@ -16,6 +16,7 @@ import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 interface SuspectAnim {
   player: 'first' | 'second';
@@ -66,19 +67,28 @@ export default function MultipleBnwGame() {
       })()
     : null;
   const memoShowTracker = !!gameData && !isSpectator && ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(gameData.phase);
-  const phaseLabel = gameData?.phase === 'tileSubmit'
-    ? '선 플레이어 타일 선택'
-    : gameData?.phase === 'tileRespond'
-      ? '후 플레이어 타일 선택'
-      : gameData?.phase === 'suspectFirst'
-        ? '선 플레이어 배수의심'
-        : gameData?.phase === 'suspectSecond'
-          ? '후 플레이어 배수의심'
-          : gameData?.phase === 'result'
-            ? '라운드 결과'
-            : gameData?.phase === 'finished'
-              ? '종료'
-              : undefined;
+  /* 자리와 단계를 같이 — '선 플레이어 타일 선택' 만으로는 내 차례인지 모른다 (lib/gameSeat.ts) */
+  const mbnwIsFirst = gameData ? myId === gameData.firstPlayerId : false;
+  const mbnwSeat = isSpectator ? null : mbnwIsFirst ? '선' : '후';
+  const mbnwFirstTurn = gameData?.phase === 'tileSubmit' || gameData?.phase === 'suspectFirst';
+  const mbnwSecondTurn = gameData?.phase === 'tileRespond' || gameData?.phase === 'suspectSecond';
+  const mbnwStep =
+    gameData?.phase === 'tileSubmit' || gameData?.phase === 'tileRespond' ? '타일' : '배수의심';
+  const phaseLabel = seatStage(
+    mbnwSeat,
+    mbnwFirstTurn || mbnwSecondTurn
+      ? turnStage({
+          finished: false,
+          isSpectator,
+          isMyTurn: (mbnwFirstTurn && mbnwIsFirst) || (mbnwSecondTurn && !mbnwIsFirst),
+          spectatorStage: `${mbnwFirstTurn ? '선' : '후'} ${mbnwStep}`,
+        })
+      : gameData?.phase === 'result'
+        ? '라운드 결과'
+        : gameData?.phase === 'finished'
+          ? '종료'
+          : undefined,
+  );
 
   useEffect(() => {
     if (!gameData) return;

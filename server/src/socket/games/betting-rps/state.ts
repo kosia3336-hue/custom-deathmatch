@@ -13,6 +13,7 @@ import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
 import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -153,7 +154,8 @@ function buildGameState(s: InternalState, gameData: BettingRpsGameData): GameSta
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['roleSelect', 'submit'], s.turnStartedAt),
     gameData,
   };
 }

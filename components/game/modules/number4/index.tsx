@@ -17,6 +17,7 @@ import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 export default function NumberFourGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -36,8 +37,14 @@ export default function NumberFourGame() {
   // 관전자용: 플레이어별 상태
   const [spectatorTrackers, setSpectatorTrackers] = useState<Record<string, { white: number; black: number }>>({});
 
+  /* 동시 제출 판 — '내 차례' 대신 냈는지를 알린다 (lib/gameSeat.ts) */
   const phaseLabel = gameData?.phase === 'submit'
-    ? '숫자·색 제출'
+    ? submitStage({
+        finished: false,
+        isSpectator,
+        submitted: (myId ? gameData.players[myId]?.submitted : false) ?? false,
+        pending: '숫자·색 제출',
+      })
     : gameData?.phase === 'reveal'
       ? '제출 공개'
       : gameData?.phase === 'finished'

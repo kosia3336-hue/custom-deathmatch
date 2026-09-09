@@ -11,6 +11,7 @@ import { useBankContext } from './hooks/useBankContext';
 import TreasuryFieldFx from './skins/TreasuryFieldFx';
 import ScorePanel from './ScorePanel';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { seatStage, turnStage } from '@/lib/gameSeat';
 
 /* ════════════════════════════════════════════════════════════
  * 은행놀이 — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -44,17 +45,31 @@ export default function BankGame() {
   const { setHud } = useRoomLayout();
   const round = gameData?.round ?? 0;
   const historyLen = gameData?.history?.length ?? 0;
-  const phaseLabel = phase === 'firstSubmit'
-    ? '선 플레이어 베팅'
-    : phase === 'firstReveal'
-      ? '선 베팅 공개'
-      : phase === 'secondSubmit'
-        ? '후 플레이어 베팅'
+  /*
+    자리와 단계를 같이 적는다 — '선 플레이어 베팅' 만으로는 그게 나인지 상대인지
+    알 수 없다. 은행놀이는 선의 베팅을 보고 후가 거는 구조라 특히 그렇다.
+    (lib/gameSeat.ts)
+  */
+  const bankSeat = ctx.isSpectator ? null : myIsFirst ? '선' : '후';
+  const bankMyTurn =
+    (phase === 'firstSubmit' && myIsFirst) || (phase === 'secondSubmit' && !myIsFirst);
+  const phaseLabel = seatStage(
+    bankSeat,
+    phase === 'firstSubmit' || phase === 'secondSubmit'
+      ? turnStage({
+          finished: false,
+          isSpectator: ctx.isSpectator,
+          isMyTurn: bankMyTurn,
+          spectatorStage: phase === 'firstSubmit' ? '선 베팅' : '후 베팅',
+        })
+      : phase === 'firstReveal'
+        ? '선 베팅 공개'
         : phase === 'reveal' || phase === 'roundEnd'
           ? '라운드 정산'
           : phase === 'finished'
             ? '종료'
-            : undefined;
+            : undefined,
+  );
 
   useEffect(() => {
     if (!gameData) return;

@@ -16,6 +16,7 @@ import { isDbgViewer } from '../../_dbg-viewer.js';
 import { aiTakeTurn } from './ai.js';
 import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -122,7 +123,8 @@ function buildGameState(s: InternalState, gameData: IndianPokerGameData, viewerT
     currentTurn: s.currentTurnId,
     turnNumber: s.totalBettingActions,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['betting'], s.turnStartedAt),
     gameData,
     activeSkin: getActiveSkin(s.roomId),
   };

@@ -14,6 +14,7 @@ import PowderTrack from './PowderTrack';
 import OpponentPowderTracker from './OpponentPowderTracker';
 import RoundHistoryTable from './RoundHistoryTable';
 import { zeroOpponentEstimate } from './types';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 /* ════════════════════════════════════════════════════════════
  * 해달별 II — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -36,17 +37,33 @@ export default function SunMoonStar2Game() {
     myIsFirstFlag,
   } = ctx;
   const { setHud } = useRoomLayout();
-  const phaseLabel = phase === 'powder'
-    ? '빛가루 제출'
-    : phase === 'betFirst'
-      ? '선 플레이어 베팅'
-      : phase === 'betSecond'
-        ? '후 플레이어 베팅'
+  /*
+    자리와 단계를 같이 (lib/gameSeat.ts). 빛가루는 동시 제출이라 '내 차례' 가
+    뜻이 없어 낸 뒤에는 '상대 대기' 로 바꾼다.
+  */
+  const smsSeat = isSpectator ? null : myIsFirstFlag ? '선' : '후';
+  const phaseLabel = seatStage(
+    smsSeat,
+    phase === 'powder'
+      ? submitStage({
+          finished: false,
+          isSpectator,
+          submitted: ctx.myPlayer?.submittedPowder === true,
+          pending: '빛가루 제출',
+        })
+      : phase === 'betFirst' || phase === 'betSecond'
+        ? turnStage({
+            finished: false,
+            isSpectator,
+            isMyTurn: (phase === 'betFirst') === myIsFirstFlag,
+            spectatorStage: phase === 'betFirst' ? '선 베팅' : '후 베팅',
+          })
         : phase === 'resolve' || phase === 'roundEnd'
           ? '라운드 정산'
           : phase === 'finished'
             ? '종료'
-            : undefined;
+            : undefined,
+  );
 
   useEffect(() => {
     if (!gameData) return;

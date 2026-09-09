@@ -12,6 +12,7 @@ import { BNW2_INITIAL_POINTS, BNW2_MAX_SCORE, REVEAL_DELAY_MS, WIN_DISPLAY_MS, c
 import { judgeRound, autoSubmitPoints } from './judge.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, BNW2PlayerInternal, BNW2RoundLog, BNW2PlayerSnapshot, BNW2UndoSnapshot } from './types.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -139,7 +140,8 @@ function buildGameState(s: InternalState, gameData: BNW2GameData): GameState {
     currentTurn: s.phase === 'firstSubmit' ? s.firstPlayerId : null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['firstSubmit', 'secondSubmit'], s.turnStartedAt),
     activeSkin: getActiveSkin(s.roomId),
     gameData,
   };

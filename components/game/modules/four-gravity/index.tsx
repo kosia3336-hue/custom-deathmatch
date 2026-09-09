@@ -23,6 +23,7 @@ import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
+import { seatStage, turnStage } from '@/lib/gameSeat';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -55,17 +56,27 @@ export default function FourGravityGame() {
 
   const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
 
+  /*
+    차례가 오가는 판이다. 단계 이름만 적으면 '중력 선택' 이 내 차례인지 상대
+    차례인지 알 수 없어, 내 차례 여부를 앞에 둔다. (lib/gameSeat.ts)
+  */
+  const fgStep = gameData?.phase === 'place'
+    ? '돌 놓기'
+    : gameData?.phase === 'gravity'
+      ? '중력 선택'
+      : gameData?.phase === 'neutral'
+        ? '중립 돌 놓기'
+        : undefined;
   const phaseLabel = tutorial
     ? '조작 연습'
-    : gameData?.phase === 'place'
-      ? '돌 놓기'
-      : gameData?.phase === 'gravity'
-        ? '중력 선택'
-        : gameData?.phase === 'neutral'
-          ? '중립 돌 놓기'
-        : gameData?.winner
-          ? '종료'
-          : undefined;
+    : gameData?.winner
+      ? '종료'
+      : fgStep
+        ? seatStage(
+            turnStage({ finished: false, isSpectator, isMyTurn, spectatorStage: '진행 중' }),
+            fgStep,
+          )
+        : undefined;
 
   useEffect(() => {
     if (!gameData) return;

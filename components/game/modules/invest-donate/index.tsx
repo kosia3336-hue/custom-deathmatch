@@ -14,6 +14,7 @@ import OpponentInferPanel from './OpponentInferPanel';
 import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 export default function InvestDonateGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -24,8 +25,14 @@ export default function InvestDonateGame() {
   const { setHud } = useRoomLayout();
 
   const shownWinnerRef = useRef<string | null>(null);
+  /* 동시 제출 판 — '내 차례' 대신 냈는지를 알린다 (lib/gameSeat.ts) */
   const phaseLabel = gameData?.phase === 'submit'
-    ? '코인 배분'
+    ? submitStage({
+        finished: false,
+        isSpectator,
+        submitted: (myId ? gameData.players[myId]?.submitted : false) ?? false,
+        pending: '코인 배분',
+      })
     : gameData?.phase === 'reveal'
       ? '결과 공개'
       : gameData?.phase === 'finished'
