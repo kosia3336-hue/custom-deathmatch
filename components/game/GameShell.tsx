@@ -8,7 +8,7 @@ import { useRoomStore } from '@/stores/room';
 import { getSkinMeta } from '@/lib/skins/registry';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { getGameProgress } from '@/lib/gameProgress';
+import { getGameProgress, getGameStatus } from '@/lib/gameProgress';
 import { useEventRoomStore } from '@/stores/eventRoom';
 import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import Button from '@/components/ui/Button';
@@ -90,6 +90,7 @@ export default function GameShell({ children }: Props) {
   const eventRound = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.gameData.handNumber
     : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.gameData.roundNumber : undefined;
   const round = hud?.round ?? (eventRound != null ? `${eventRound}R` : progress);
+  const order = hud?.order ?? getGameStatus(gameState, myId);
   const spectatorCount = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.spectatorCount ?? 0
     : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.spectatorCount ?? 0 : room?.spectators.length ?? 0;
 
@@ -99,13 +100,13 @@ export default function GameShell({ children }: Props) {
       <GameHudLeft
         round={round}
         spectators={spectatorCount}
-        order={hud?.order}
+        order={order}
         ranked={isRankedRoom}
         onOpenInfo={() => setShowInfo(true)}
       />,
     );
     return () => setHeaderLeft(null);
-  }, [setHeaderLeft, round, hud?.order, isRankedRoom, spectatorCount]);
+  }, [setHeaderLeft, round, order, isRankedRoom, spectatorCount]);
 
   // 상단 우측: 메모 · 채팅(미읽음) · 설정
   const hasMemo = hud?.memo != null;

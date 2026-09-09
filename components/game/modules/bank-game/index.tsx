@@ -9,6 +9,8 @@ import MobileLayout from './MobileLayout';
 import DesktopLayout from './DesktopLayout';
 import { useBankContext } from './hooks/useBankContext';
 import TreasuryFieldFx from './skins/TreasuryFieldFx';
+import ScorePanel from './ScorePanel';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
 /* ════════════════════════════════════════════════════════════
  * 은행놀이 — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -26,6 +28,7 @@ export default function BankGame() {
     isSpectator,
     phase,
     stepperActiveTurn,
+    firstSide,
     firstPlayer,
     secondPlayer,
     myIsFirst,
@@ -41,32 +44,46 @@ export default function BankGame() {
   const { setHud } = useRoomLayout();
   const round = gameData?.round ?? 0;
   const historyLen = gameData?.history?.length ?? 0;
+  const phaseLabel = phase === 'firstSubmit'
+    ? '선 플레이어 베팅'
+    : phase === 'firstReveal'
+      ? '선 베팅 공개'
+      : phase === 'secondSubmit'
+        ? '후 플레이어 베팅'
+        : phase === 'reveal' || phase === 'roundEnd'
+          ? '라운드 정산'
+          : phase === 'finished'
+            ? '종료'
+            : undefined;
 
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${round} / ${gameData.maxRound}R`,
-      order: myIsFirst ? '선' : '후',
+      order: phaseLabel,
       memo: (
-        <div className="space-y-5">
-          <section>
-            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">라운드 기록</h3>
+        <GameInfoStack>
+          {firstSide && (
+            <GameInfoPart>
+              <ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={ctx.myId} />
+            </GameInfoPart>
+          )}
+          <GameInfoPart title="라운드 기록">
             <RoundHistoryTable
               history={gameData.history}
               mySide={mySide}
               players={gameData.players}
               variant="mobile"
             />
-          </section>
-          <section>
-            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">상대 잔여 추리</h3>
+          </GameInfoPart>
+          <GameInfoPart title="상대 잔여 추리">
             <OpponentInventoryTracker />
-          </section>
-        </div>
+          </GameInfoPart>
+        </GameInfoStack>
       ),
     });
     return () => setHud(null);
-  }, [setHud, gameData, round, historyLen, myIsFirst, mySide]);
+  }, [setHud, gameData, round, historyLen, myIsFirst, mySide, phaseLabel, ctx.myId, firstSide]);
 
   if (!gameData) {
     return (

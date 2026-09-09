@@ -5,7 +5,7 @@ import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
-import type { MultipleBnwGameData, MBNWTile, MBNWSuspectResult } from '@/shared/types/multiple-bnw';
+import type { MultipleBnwGameData, MBNWTile, MBNWSuspectResult, MBNWTileColor } from '@/shared/types/multiple-bnw';
 import { MBNW_TOTAL_ROUNDS } from '@/shared/types/multiple-bnw';
 import TileSelector from './TileSelector';
 import SuspectPanel from './SuspectPanel';
@@ -13,8 +13,9 @@ import ResultPanel from './ResultPanel';
 import InfoPanel from './InfoPanel';
 import OpponentTileTracker from './OpponentTileTracker';
 import { WIN_TYPE_LABELS } from './constants';
-import Modal from '@/components/ui/Modal';
 import { GameFrame } from '@/components/game/GameFrame';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 interface SuspectAnim {
   player: 'first' | 'second';
@@ -30,8 +31,7 @@ export default function MultipleBnwGame() {
 
   // Opponent tile manual tracker (client-side only)
   const [trackedOpponentUsed, setTrackedOpponentUsed] = useState<MBNWTile[]>([]);
-  const [trackerOpen, setTrackerOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const { setHud } = useRoomLayout();
   const handleTrackerToggle = (tile: MBNWTile) => {
     setTrackedOpponentUsed(prev =>
       prev.includes(tile) ? prev.filter(t => t !== tile) : [...prev, tile],
@@ -56,6 +56,45 @@ export default function MultipleBnwGame() {
 
   // Winner/draw toast
   const shownWinnerRef = useRef<string | null>(null);
+
+  const memoOpponentColor = gameData && ['suspectFirst', 'suspectSecond'].includes(gameData.phase)
+    ? (() => {
+        const me = gameData.players[myId];
+        return me?.isFirst
+          ? gameData.colorReveal?.secondPlayerColor ?? null
+          : gameData.colorReveal?.firstPlayerColor ?? null;
+      })()
+    : null;
+  const memoShowTracker = !!gameData && !isSpectator && ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(gameData.phase);
+  const phaseLabel = gameData?.phase === 'tileSubmit'
+    ? '선 플레이어 타일 선택'
+    : gameData?.phase === 'tileRespond'
+      ? '후 플레이어 타일 선택'
+      : gameData?.phase === 'suspectFirst'
+        ? '선 플레이어 배수의심'
+        : gameData?.phase === 'suspectSecond'
+          ? '후 플레이어 배수의심'
+          : gameData?.phase === 'result'
+            ? '라운드 결과'
+            : gameData?.phase === 'finished'
+              ? '종료'
+              : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    const panel = (
+      <MultipleBnwSidePanel
+        gameData={gameData}
+        myId={myId}
+        showTracker={memoShowTracker}
+        trackedOpponentUsed={trackedOpponentUsed}
+        onTrackerToggle={handleTrackerToggle}
+        opponentCurrentColor={memoOpponentColor}
+      />
+    );
+    setHud({ round: `${gameData.round} / ${MBNW_TOTAL_ROUNDS}R`, order: phaseLabel, memo: panel });
+    return () => setHud(null);
+  }, [gameData, memoOpponentColor, memoShowTracker, myId, phaseLabel, setHud, trackedOpponentUsed]);
 
   useEffect(() => {
     if (!gameData?.winType) return;
@@ -157,13 +196,11 @@ export default function MultipleBnwGame() {
 
   const playerEntries = Object.entries(gameData.players);
   const myPlayer = playerEntries.find(([id]) => id === myId)?.[1];
-  const opponent = playerEntries.find(([id]) => id !== myId)?.[1];
 
   const isFirst = myPlayer?.isFirst ?? false;
   const fp = playerEntries.find(([, p]) => p.isFirst)?.[1];
   const sp = playerEntries.find(([, p]) => !p.isFirst)?.[1];
 
-  const opponentId = playerEntries.find(([id]) => id !== myId)?.[0];
   const opponentCurrentColor = gameData.phase === 'suspectFirst' || gameData.phase === 'suspectSecond'
     ? (isFirst ? gameData.colorReveal?.secondPlayerColor : gameData.colorReveal?.firstPlayerColor) ?? null
     : null;
@@ -173,87 +210,15 @@ export default function MultipleBnwGame() {
   return (
     <>
       <GameFrame
-        info={<div className="flex w-full flex-col gap-1">
-            {/* Mobile: compact score bar */}
-            <div className="flex w-full justify-between gap-2">
-              {playerEntries.map(([id, p]) => {
-                const isMe = id === myId;
-                return (
-                  <div
-                    key={id}
-                    className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-1.5 text-xs ${
-                      isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
-                      {isMe ? '나' : p.nickname}
-                    </span>
-                    <span className="ml-1 shrink-0 tabular-nums font-bold text-gray-700">
-                      {p.score}점
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Round header */}
-            <div className="text-center text-xl font-bold text-gray-800 sm:text-2xl">
-              라운드 {gameData.round} / {MBNW_TOTAL_ROUNDS}
-              {fp && (
-                <span className="ml-2 text-sm font-normal text-amber-600">
-                  {fp.nickname} 선플
-                </span>
-              )}
-            </div>
-
-            {/* Status message */}
-            <div className="text-center text-sm text-gray-500">
-              {gameState?.message}
-            </div>
-        </div>}
-        controls={
-          /*
-            타일 선택 패널이 이 게임의 본체라 무대에 두고, 아래에는 참고용
-            도구만 단추로 남긴다. 추리판·기록을 모두 아래에 깔면 640px 화면에서
-            무대가 눌려 선택 패널이 잘린다.
-          */
-          <div className="flex gap-1.5">
-            {showTracker && (
-              <button
-                type="button"
-                onClick={() => setTrackerOpen(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                상대 타일 추리
-              </button>
-            )}
-            {gameData.roundHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                라운드 기록 ({gameData.roundHistory.length})
-              </button>
-            )}
-          </div>
-        }
         aside={
-          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
-            {showTracker && (
-              <OpponentTileTracker
-                markedTiles={trackedOpponentUsed}
-                onToggle={handleTrackerToggle}
-                opponentCurrentColor={opponentCurrentColor}
-              />
-            )}
-            <InfoPanel
-              round={gameData.round}
-              players={gameData.players}
-              roundHistory={gameData.roundHistory}
-              myId={myId}
-            />
-          </div>
+          <MultipleBnwSidePanel
+            gameData={gameData}
+            myId={myId}
+            showTracker={showTracker}
+            trackedOpponentUsed={trackedOpponentUsed}
+            onTrackerToggle={handleTrackerToggle}
+            opponentCurrentColor={opponentCurrentColor}
+          />
         }
       >
         <div className="flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
@@ -389,24 +354,6 @@ export default function MultipleBnwGame() {
         </div>
       </GameFrame>
 
-      <Modal open={trackerOpen} onClose={() => setTrackerOpen(false)} title="상대 타일 추리">
-        {/* Opponent tile tracker */}
-        {showTracker && (
-          <OpponentTileTracker
-            markedTiles={trackedOpponentUsed}
-            onToggle={handleTrackerToggle}
-            opponentCurrentColor={opponentCurrentColor}
-          />
-        )}      </Modal>
-
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
-        <MobileRoundHistory
-          history={gameData.roundHistory}
-          players={gameData.players}
-          myId={myId}
-        />
-      </Modal>
-
       {/* Suspect animation overlay */}
       <div className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
         suspectAnim ? 'opacity-100' : 'opacity-0'
@@ -482,35 +429,39 @@ function WaitingCard({ text, extra }: { text: string; extra?: string }) {
   );
 }
 
-function MobileRoundHistory({ history, players, myId }: {
-  history: MultipleBnwGameData['roundHistory'];
-  players: MultipleBnwGameData['players'];
+function MultipleBnwSidePanel({
+  gameData,
+  myId,
+  showTracker,
+  trackedOpponentUsed,
+  onTrackerToggle,
+  opponentCurrentColor,
+}: {
+  gameData: MultipleBnwGameData;
   myId: string;
+  showTracker: boolean;
+  trackedOpponentUsed: MBNWTile[];
+  onTrackerToggle: (tile: MBNWTile) => void;
+  opponentCurrentColor: MBNWTileColor | null;
 }) {
   return (
-    <div className="space-y-1 text-xs">
-      {history.map(r => {
-        const entries = Object.entries(r.players);
-        return (
-          <div key={r.round} className="flex gap-2">
-            <span className="font-medium text-gray-500">R{r.round}</span>
-            {entries.map(([pid, pr]) => (
-              <span key={pid} className="flex items-center gap-1">
-                <span className={`rounded px-1 text-[10px] font-bold ${
-                  pr.color === 'black' ? 'bg-slate-800 text-slate-100' : 'border border-gray-200 bg-white text-slate-700'
-                }`}>
-                  {pr.color === 'black' ? '흑' : '백'}
-                </span>
-                <span className="text-gray-500">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
-                {' '}
-                <span className={pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'}>
-                  +{pr.bonusPoint + pr.normalPoint}
-                </span>
-              </span>
-            ))}
-          </div>
-        );
-      })}
-    </div>
+    <GameInfoStack>
+      {showTracker && (
+        <GameInfoPart>
+          <OpponentTileTracker
+            markedTiles={trackedOpponentUsed}
+            onToggle={onTrackerToggle}
+            opponentCurrentColor={opponentCurrentColor}
+          />
+        </GameInfoPart>
+      )}
+      <GameInfoPart>
+        <InfoPanel
+          players={gameData.players}
+          roundHistory={gameData.roundHistory}
+          myId={myId}
+        />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

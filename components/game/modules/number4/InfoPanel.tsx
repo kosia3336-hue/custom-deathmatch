@@ -4,19 +4,16 @@ import type { NF4PlayerInfo, NF4RoundRecord } from '@/shared/types/number4';
 import RoundHistory from './RoundHistory';
 
 interface InfoPanelProps {
-  round: number;
   players: Record<string, NF4PlayerInfo>;
   roundHistory: NF4RoundRecord[];
   myId: string | undefined;
 }
 
-export default function InfoPanel({ round, players, roundHistory, myId }: InfoPanelProps) {
+export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProps) {
   const playerEntries = Object.entries(players);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-sm font-semibold text-gray-500">라운드 {round}/6</div>
-
       {playerEntries.map(([id, p]) => {
         const isMe = id === myId || id.replace('_p2', '') === myId;
         const scoreColor = p.score <= 1 ? 'text-red-500' : 'text-gray-900';

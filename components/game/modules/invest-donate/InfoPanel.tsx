@@ -5,8 +5,6 @@ import { ID_INITIAL_SCORE, ID_TOTAL_ROUNDS } from '@/shared/types/invest-donate'
 import RoundHistoryTable from './RoundHistoryTable';
 
 interface Props {
-  round: number;
-  totalRounds: number;
   players: Record<string, IDPlayerInfo>;
   roundHistory: IDRoundRecord[];
   myId: string;
@@ -30,16 +28,11 @@ function CoinDisplay({ stock }: { stock: IDCoinStock }) {
   );
 }
 
-export default function InfoPanel({ round, totalRounds, players, roundHistory, myId }: Props) {
+export default function InfoPanel({ players, roundHistory, myId }: Props) {
   const pIds = Object.keys(players);
 
   return (
     <div className="space-y-0 text-sm divide-y divide-gray-100">
-      {/* Header */}
-      <div className="pb-3 font-semibold text-gray-700">
-        라운드 {round} / {totalRounds}
-      </div>
-
       {/* Score */}
       <div className="py-3 space-y-1.5">
         <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">승점</div>

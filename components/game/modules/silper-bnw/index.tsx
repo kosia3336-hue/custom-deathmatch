@@ -17,8 +17,9 @@ import type {
 import TileInput, { TILE_COLORS } from './TileInput';
 import OpponentTileTracker from './OpponentTileTracker';
 import MeowFieldFx from './skins/MeowFieldFx';
-import { getSkinTheme } from '@/lib/skins/registry';
+import { getSkinTheme, type SkinTheme } from '@/lib/skins/registry';
 import { GAME_IDS } from '@/shared/types/game';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: `승점 ${SBNW_MAX_SCORE}선승`,
@@ -372,6 +373,66 @@ function ScoreCard({
   );
 }
 
+function SilperSidePanel({
+  gameData,
+  myId,
+  opponentId,
+  skin,
+  showTracker,
+}: {
+  gameData: SBNWGameData;
+  myId: string;
+  opponentId: string | null;
+  skin: SkinTheme | null;
+  showTracker: boolean;
+}) {
+  const opponentUsed = opponentId ? computeOpponentUsed(gameData.roundHistory, opponentId) : null;
+  return (
+    <GameInfoStack>
+      {showTracker && opponentUsed && (
+        <GameInfoPart>
+          <OpponentTileTracker opponentUsed={opponentUsed} rematchIndex={gameData.rematchIndex} skin={skin} />
+        </GameInfoPart>
+      )}
+      <GameInfoPart title="점수">
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([id, player]) => (
+            <ScoreCard key={id} info={player} isMe={id === myId} isFirst={id === gameData.firstPlayerId} />
+          ))}
+        </div>
+        {gameData.rematchIndex > 0 && (
+          <p className="mt-2 rounded-md bg-cdm-accent/15 px-2 py-1.5 text-center text-xs font-bold text-cdm-accent">
+            재대결 {gameData.rematchIndex}회차
+          </p>
+        )}
+      </GameInfoPart>
+      <GameInfoPart title="라운드 기록">
+        {gameData.roundHistory.length ? (
+          <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+        ) : (
+          <p className="text-xs text-cdm-ink-fg-muted">아직 기록이 없습니다.</p>
+        )}
+      </GameInfoPart>
+      {gameData.segmentsHistory.length > 0 && (
+        <GameInfoPart title="지난 세그먼트">
+          <div className="space-y-1 text-xs text-cdm-ink-fg-muted">
+            {gameData.segmentsHistory.map((segment) => (
+              <div key={segment.rematchIndex} className="tabular-nums">
+                #{segment.rematchIndex} · {segment.rounds.length}R ·{' '}
+                {segment.resolution === 'rematchNeeded'
+                  ? '재대결'
+                  : segment.winnerId
+                    ? `${gameData.players[segment.winnerId]?.nickname ?? '승자'} 승`
+                    : '무승부'}
+              </div>
+            ))}
+          </div>
+        </GameInfoPart>
+      )}
+    </GameInfoStack>
+  );
+}
+
 /* ── 모바일 바텀시트 ── */
 function BottomSheet({
   open,
@@ -459,25 +520,27 @@ export default function SilperBnwGame() {
   */
   const { setHud } = useRoomLayout();
   const sbRound = gameData?.round ?? 0;
-  const sbFirst = gameData?.firstPlayerId ?? null;
   const sbOppId = gameData && myId
     ? (Object.keys(gameData.players).find((id) => id !== myId) ?? null)
     : null;
+  const sbPhaseLabel = gameData?.phase === 'firstSubmit'
+    ? '선 플레이어 타일 선택'
+    : gameData?.phase === 'secondSubmit'
+      ? '후 플레이어 타일 선택'
+      : gameData?.phase === 'reveal'
+        ? '타일 공개'
+        : gameData?.phase === 'finished'
+          ? '종료'
+          : undefined;
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${sbRound} / ${SBNW_TOTAL_ROUNDS}R`,
-      order: sbFirst ? (sbFirst === myId ? '선' : '후') : undefined,
-      memo: sbOppId ? (
-        <OpponentTileTracker
-          opponentUsed={computeOpponentUsed(gameData.roundHistory, sbOppId)}
-          rematchIndex={gameData.rematchIndex}
-          skin={skin}
-        />
-      ) : undefined,
+      order: sbPhaseLabel,
+      memo: <SilperSidePanel gameData={gameData} myId={myId} opponentId={sbOppId} skin={skin} showTracker={!isSpectator} />,
     });
     return () => setHud(null);
-  }, [setHud, gameData, sbRound, sbFirst, myId, sbOppId, skin]);
+  }, [setHud, gameData, sbRound, myId, sbOppId, sbPhaseLabel, skin, isSpectator]);
 
   useEffect(() => {
     return () => {
@@ -593,7 +656,6 @@ export default function SilperBnwGame() {
   /* ── 파생 값 ── */
   const playerEntries = Object.entries(gameData.players);
   const myPlayer      = playerEntries.find(([id]) => id === myId)?.[1];
-  const opponentEntry = playerEntries.find(([id]) => id !== myId);
 
   const isFirst = myId === gameData.firstPlayerId;
   const fp      = gameData.players[gameData.firstPlayerId];
@@ -612,11 +674,6 @@ export default function SilperBnwGame() {
   // revealStep이 이전 라운드의 3에서 리셋되기 전에 RevealPanel이 렌더되는 타이밍 버그 방지.
   const displayRevealStep = isReveal && prevPhaseRef.current === 'reveal' ? revealStep : 0;
   const firstDigits = gameData.firstHint?.digits ?? null;
-
-  const opponentUsed =
-    opponentEntry && !isSpectator
-      ? computeOpponentUsed(gameData.roundHistory, opponentEntry[0])
-      : null;
 
   /* ── 내 자릿수 힌트 (선플 대기 중) ── */
   const myDigitsHint =
@@ -689,66 +746,6 @@ export default function SilperBnwGame() {
             }`}
           >
             {isMeow && <MeowFieldFx />}
-
-            {/* 모바일 플레이어 요약 바 — 6칸 dot 포함 */}
-            <div className="flex w-full max-w-sm gap-2 lg:hidden">
-              {playerEntries.map(([id, p]) => {
-                const isMe   = id === myId;
-                const dots   = Array.from({ length: 6 }, (_, i) => i < p.score);
-                return (
-                  <div
-                    key={id}
-                    className={`flex flex-1 flex-col gap-0.5 rounded-lg border px-3 py-1.5 text-xs ${
-                      isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
-                        {isMe ? '나' : p.nickname}
-                        {id === gameData.firstPlayerId && <span className="ml-1 text-xs text-amber-500">(선)</span>}
-                      </span>
-                      <span className="ml-1 shrink-0 tabular-nums text-gray-500">{p.tileCount}개</span>
-                    </div>
-                    <div className="flex gap-0.5">
-                      {dots.map((filled, i) => (
-                        <span
-                          key={i}
-                          className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
-                            filled
-                              ? isMe ? 'bg-indigo-400' : 'bg-gray-500'
-                              : 'bg-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 라운드 헤더 */}
-            <div className="relative z-10 text-center">
-              <div className={`text-xl font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}>
-                라운드 {gameData.round} / 11{isMeow ? ' 🐾' : ''}
-              </div>
-              {gameData.rematchIndex > 0 && (
-                <div className="mt-0.5 inline-block rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  재대결 {gameData.rematchIndex}회차
-                </div>
-              )}
-              {fp && (
-                isMeow ? (
-                  <div className="mt-1"><span className="skin-meow-ribbon-sprite">{fp.nickname} 선플</span></div>
-                ) : (
-                  <div className="mt-0.5 text-sm text-amber-600">{fp.nickname} 선플</div>
-                )
-              )}
-            </div>
-
-            {/* 상태 메시지 */}
-            <div className={`relative z-10 text-center text-sm ${isMeow ? 'skin-meow-subtext' : 'text-gray-500'}`}>
-              {gameState?.message}
-            </div>
 
             {/* DigitHintPanel — key로 remount 시 팝인 애니메이션 */}
             {(gameData.phase === 'secondSubmit' || gameData.phase === 'firstSubmit') && (
@@ -824,47 +821,6 @@ export default function SilperBnwGame() {
               </div>
             )}
 
-            {/* 상대 Tracker: 데스크톱 — 메인 영역 내 (bnw2 패턴) */}
-            {/* unmount 방지: inPlay가 아닐 때도 마운트 유지, CSS로만 숨김 */}
-            {opponentUsed && !isSpectator && (
-              <div className={`w-full max-w-sm ${inPlay ? 'hidden lg:block' : 'hidden'}`}>
-                <OpponentTileTracker
-                  opponentUsed={opponentUsed}
-                  rematchIndex={gameData.rematchIndex}
-                  skin={skin}
-                />
-              </div>
-            )}
-
-            {/* 상대 Tracker: 모바일 — 항상 메인 영역에 표시 (내 차례 포함) */}
-            {opponentUsed && !isSpectator && (
-              <div className={`w-full max-w-sm lg:hidden ${inPlay && !isReveal ? '' : 'hidden'}`}>
-                <OpponentTileTracker
-                  opponentUsed={opponentUsed}
-                  rematchIndex={gameData.rematchIndex}
-                  skin={skin}
-                />
-              </div>
-            )}
-
-            {/* 모바일: 라운드 기록 접기 */}
-            {gameData.roundHistory.length > 0 && (
-              <div className="w-full max-w-sm lg:hidden">
-                <details className="rounded-lg border border-gray-200 bg-white">
-                  <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-gray-600">
-                    라운드 기록 ({gameData.roundHistory.length})
-                  </summary>
-                  <div className="border-t border-gray-100 px-3 py-2">
-                    <RoundHistoryTable
-                      history={gameData.roundHistory}
-                      players={gameData.players}
-                      myId={myId}
-                    />
-                  </div>
-                </details>
-              </div>
-            )}
-
             {gameData.finishReason && gameData.phase === 'finished' && (
               <div className="w-full max-w-sm rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-center text-sm text-indigo-700">
                 {gameData.finishReason}
@@ -873,59 +829,8 @@ export default function SilperBnwGame() {
           </div>
 
           {/* ══ 데스크톱 사이드 패널 ══ */}
-          <div className="hidden lg:flex lg:w-64 lg:flex-col lg:gap-3 lg:border-l lg:border-gray-200 lg:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수</p>
-            {playerEntries.map(([id, p]) => (
-              <ScoreCard
-                key={id}
-                info={p}
-                isMe={id === myId}
-                isFirst={id === gameData.firstPlayerId}
-              />
-            ))}
-
-            {gameData.rematchIndex > 0 && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-center text-xs font-semibold text-rose-700">
-                Rematch #{gameData.rematchIndex}
-              </div>
-            )}
-
-            {/* 라운드 기록 */}
-            {gameData.roundHistory.length > 0 && (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  라운드 기록
-                </p>
-                <div className="flex-1 overflow-y-auto">
-                  <RoundHistoryTable
-                    history={gameData.roundHistory}
-                    players={gameData.players}
-                    myId={myId}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 세그먼트 기록 */}
-            {gameData.segmentsHistory.length > 0 && (
-              <details className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs">
-                <summary className="cursor-pointer font-semibold text-gray-500">
-                  지난 세그먼트 ({gameData.segmentsHistory.length})
-                </summary>
-                <div className="mt-1 space-y-1 text-gray-500">
-                  {gameData.segmentsHistory.map((seg) => (
-                    <div key={seg.rematchIndex} className="tabular-nums">
-                      #{seg.rematchIndex} · {seg.rounds.length}R ·{' '}
-                      {seg.resolution === 'rematchNeeded'
-                        ? '재대결'
-                        : seg.winnerId
-                          ? (gameData.players[seg.winnerId]?.nickname ?? '승자') + ' 승'
-                          : '무승부'}
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
+          <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
+            <SilperSidePanel gameData={gameData} myId={myId} opponentId={sbOppId} skin={skin} showTracker={!isSpectator} />
           </div>
         </div>
       </div>

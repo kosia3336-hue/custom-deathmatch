@@ -1,9 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import PhaseTransitionOverlay from './PhaseTransitionOverlay';
 import MobileLayout from './MobileLayout';
 import DesktopLayout from './DesktopLayout';
 import { useSMS2Context } from './hooks/useSMS2Context';
+import type { SMS2ContextValue } from './hooks/useSMS2Context';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import ScorePanel from './ScorePanel';
+import PowderTrack from './PowderTrack';
+import OpponentPowderTracker from './OpponentPowderTracker';
+import RoundHistoryTable from './RoundHistoryTable';
+import { zeroOpponentEstimate } from './types';
 
 /* ════════════════════════════════════════════════════════════
  * 해달별 II — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -25,6 +35,30 @@ export default function SunMoonStar2Game() {
     secondPlayer,
     myIsFirstFlag,
   } = ctx;
+  const { setHud } = useRoomLayout();
+  const phaseLabel = phase === 'powder'
+    ? '빛가루 제출'
+    : phase === 'betFirst'
+      ? '선 플레이어 베팅'
+      : phase === 'betSecond'
+        ? '후 플레이어 베팅'
+        : phase === 'resolve' || phase === 'roundEnd'
+          ? '라운드 정산'
+          : phase === 'finished'
+            ? '종료'
+            : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round} / ${gameData.maxRound}R`,
+      order: phaseLabel,
+      memo: <SunMoonStarMemo ctx={ctx} />,
+    });
+    return () => setHud(null);
+  // ctx 객체 전체는 매 렌더마다 새로 생겨 setHud와 렌더 루프를 만들 수 있어 실제 메모 입력만 추적한다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setHud, gameData, phaseLabel, ctx.opponentEstimate, ctx.showTracker, ctx.mySide]);
 
   if (!gameData) {
     return (
@@ -88,5 +122,45 @@ export default function SunMoonStar2Game() {
         <DesktopLayout ctx={ctx} />
       </div>
     </>
+  );
+}
+
+function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
+  const { gameData, isSpectator, myId, myPlayer, opponent, mySide, firstSide, showTracker, opponentEstimate, setOpponentEstimate } = ctx;
+  if (!gameData || !firstSide) return null;
+  const left = !isSpectator && myPlayer ? myPlayer : gameData.players.p1;
+  const right = !isSpectator && opponent ? opponent : gameData.players.p2;
+  return (
+    <GameInfoStack>
+      <GameInfoPart><ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
+      {showTracker && opponentEstimate && opponent && (
+        <GameInfoPart title="상대 빛가루 추리">
+          <OpponentPowderTracker
+            stageNow={opponent.powderStage}
+            stagePrev={opponentEstimate.basedOnStagePrev}
+            estimate={opponentEstimate}
+            onChange={setOpponentEstimate}
+            onReset={() => setOpponentEstimate(zeroOpponentEstimate(opponentEstimate.basedOnStagePrev, opponent.powderStage))}
+          />
+        </GameInfoPart>
+      )}
+      <GameInfoPart title="빛가루 트랙">
+        <PowderTrack
+          leftLabel={!isSpectator && myPlayer ? '나' : left.nickname}
+          leftStage={left.powderStage}
+          leftRemain={!isSpectator && myPlayer ? gameData.selfPrivate?.powderRemain ?? null : null}
+          leftIsFirst={left.side === gameData.firstPlayerSide}
+          leftChips={left.chips}
+          rightLabel={right.nickname}
+          rightStage={right.powderStage}
+          rightRemain={null}
+          rightIsFirst={right.side === gameData.firstPlayerSide}
+          rightChips={right.chips}
+        />
+      </GameInfoPart>
+      <GameInfoPart title="라운드 기록">
+        <RoundHistoryTable history={gameData.history} mySide={mySide} players={gameData.players} />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

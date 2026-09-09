@@ -13,7 +13,6 @@ import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
 import InfoPanel from './InfoPanel';
-import PlayerBadge from './PlayerBadge';
 import Modal from '@/components/ui/Modal';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Button from '@/components/ui/Button';
@@ -22,6 +21,8 @@ import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
 import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function FourGravityGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -35,6 +36,7 @@ export default function FourGravityGame() {
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.FOUR_GRAVITY);
 
   const myId = useMySocketId();
+  const { setHud } = useRoomLayout();
 
   const isMyTurn = !!gameData && !!myId && gameData.currentPlayer === myId && !isSpectator;
 
@@ -49,9 +51,35 @@ export default function FourGravityGame() {
   const tutorial = gameData?.tutorial ?? null;
 
   const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
-  const { remaining: timerRemaining } = useTurnTimer();
+  useTurnTimer();
 
   const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
+
+  const phaseLabel = tutorial
+    ? '조작 연습'
+    : gameData?.phase === 'place'
+      ? '돌 놓기'
+      : gameData?.phase === 'gravity'
+        ? '중력 선택'
+        : gameData?.phase === 'neutral'
+          ? '중립 돌 놓기'
+        : gameData?.winner
+          ? '종료'
+          : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${turnNumber}턴`,
+      order: phaseLabel,
+      memo: (
+        <FourGravitySidePanel
+          gameData={gameData}
+        />
+      ),
+    });
+    return () => setHud(null);
+  }, [gameData, phaseLabel, setHud, turnNumber]);
 
   const shownWinnerRef = useRef<string | null>(null);
   useEffect(() => {
@@ -144,30 +172,6 @@ export default function FourGravityGame() {
         </div>
       </Modal>
       <GameFrame
-        info={
-          tutorial ? null : (
-            <div className="flex flex-col gap-1">
-              <div className="flex w-full justify-between gap-2">
-                <PlayerBadge
-                  player={gameData.players.black}
-                  color="black"
-                  isCurrent={gameData.currentColor === 'black'}
-                  remaining={gameData.currentColor === 'black' ? timerRemaining : null}
-                />
-                <PlayerBadge
-                  player={gameData.players.white}
-                  color="white"
-                  isCurrent={gameData.currentColor === 'white'}
-                  remaining={gameData.currentColor === 'white' ? timerRemaining : null}
-                />
-              </div>
-              <div className="flex w-full items-center gap-3 text-[11px] text-gray-500">
-                <span>턴 #{turnNumber}</span>
-                {gameData.lastGravity && <span>금지 방향: {DIR_LABEL[gameData.lastGravity]}</span>}
-              </div>
-            </div>
-          )
-        }
         controls={
           <div className="flex flex-col items-center gap-1.5">
             {tutorial ? (
@@ -202,17 +206,7 @@ export default function FourGravityGame() {
             )}
           </div>
         }
-        aside={
-          <div className="h-full border-l border-gray-200 p-4">
-            <InfoPanel
-              turnNumber={turnNumber}
-              players={gameData.players}
-              currentColor={gameData.currentColor}
-              neutralCount={gameData.neutralCount}
-              lastGravity={gameData.lastGravity}
-            />
-          </div>
-        }
+        aside={<FourGravitySidePanel gameData={gameData} />}
       >
         <Board
           board={gameData.board}
@@ -230,5 +224,18 @@ export default function FourGravityGame() {
         />
       </GameFrame>
     </>
+  );
+}
+
+function FourGravitySidePanel({ gameData }: { gameData: FourGravityGameData }) {
+  return (
+    <GameInfoPart title="판 정보">
+      <InfoPanel
+        players={gameData.players}
+        currentColor={gameData.currentColor}
+        neutralCount={gameData.neutralCount}
+        lastGravity={gameData.lastGravity}
+      />
+    </GameInfoPart>
   );
 }

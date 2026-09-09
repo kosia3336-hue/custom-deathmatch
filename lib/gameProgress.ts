@@ -66,6 +66,44 @@ export function getGameProgress(
   return typeof total === 'number' ? `${data.round} / ${total}R` : `${data.round}R`;
 }
 
+/**
+ * 상단 바의 짧은 진행 단계. 개별 게임이 더 정확한 문구를 setHud로 올리면 그 값을
+ * 우선하고, 그렇지 않은 게임도 본문에 라운드 상태를 반복하지 않도록 공통 필드를 읽는다.
+ */
+export function getGameStatus(
+  state: GameState | null | undefined,
+  myId: string | undefined,
+): string | undefined {
+  if (!state) return;
+  const data = progressData(state);
+  const phase = typeof data.phase === 'string' ? data.phase : undefined;
+  if (phase === 'finished' || phase === 'gameOver' || phase === 'ended') return '종료';
+
+  const currentId = [
+    data.currentPlayerId,
+    data.currentTurnId,
+    data.currentPlayer,
+    data.turnPlayerId,
+  ].find((value): value is string => typeof value === 'string');
+  if (currentId && myId) return currentId === myId ? '내 차례' : '상대 차례';
+
+  const phaseLabels: Record<string, string> = {
+    setup: '준비',
+    dealing: '카드 배분',
+    playing: '진행 중',
+    betting: '베팅',
+    select: '선택',
+    cardSelect: '카드 선택',
+    submit: '제출',
+    reveal: '공개',
+    showdown: '카드 공개',
+    result: '라운드 결과',
+    roundResult: '라운드 결과',
+    'round-result': '라운드 결과',
+  };
+  return phase ? phaseLabels[phase] : undefined;
+}
+
 /** 서버가 보내는 실제 단계별 제한시간을 우선한다. null(무제한)을 보존한다. */
 export function getGameClock(
   gameId: string | undefined,

@@ -12,7 +12,8 @@ import type {
 import { WS_TOTAL_ROUNDS, CARD_TYPES } from '@/shared/types/winning-streak';
 import { WIN_TYPE_LABELS, CARD_COLORS, CARD_NAMES, CARD_MATCHUP_DESC } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 /* ────────── types ────────── */
 
@@ -48,6 +49,7 @@ export default function WinningStreakGame() {
   const gameData = gameState?.gameData as WinningStreakGameData | undefined;
   const myId = useMySocketId();
   useTurnTimer();
+  const { setHud } = useRoomLayout();
 
   const [modalCard, setModalCard] = useState<ModalCard | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +57,24 @@ export default function WinningStreakGame() {
   const shownWinnerRef = useRef<string | null>(null);
   const prevRoundRef = useRef<number | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<number | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
+
+  const phaseLabel = gameData?.phase === 'cardSelect'
+    ? '카드 선택'
+    : gameData?.phase === 'reveal' || gameData?.phase === 'result'
+      ? '카드 공개'
+      : gameData?.phase === 'finished'
+        ? '종료'
+        : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round} / ${WS_TOTAL_ROUNDS}R`,
+      order: phaseLabel,
+      memo: <WinningStreakSidePanel gameData={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [gameData, myId, phaseLabel, setHud]);
 
   const handleCardClick = useCallback((type: WSCardType, index: number, isLocked: boolean) => {
     if (submitting || isSpectator) return;
@@ -121,8 +140,6 @@ export default function WinningStreakGame() {
 
   const playerIds = Object.keys(gameData.players);
   const myPlayer = myId ? gameData.players[myId] : null;
-  const opponentId = playerIds.find((id) => id !== myId) ?? playerIds[1];
-  const opponent = gameData.players[opponentId];
   const isCardSelect = gameData.phase === 'cardSelect';
   const isRevealing = gameData.phase === 'reveal' || gameData.phase === 'result';
   const isFinished = gameData.phase === 'finished';
@@ -145,18 +162,6 @@ export default function WinningStreakGame() {
       )}
 
       <GameFrame
-        info={
-          <div className="flex flex-col gap-1.5">
-            {opponent && <StatLine player={opponent} label="상대" isMe={false} />}
-            {opponent && (
-              <CardRow
-                cards={opponent.remainingCards}
-                lastPlayed={opponent.lastPlayedCard}
-                label="상대 잔여"
-              />
-            )}
-          </div>
-        }
         controls={
           <div className="flex flex-col gap-1.5">
             {myPlayer && !isSpectator && (
@@ -169,23 +174,9 @@ export default function WinningStreakGame() {
                 submitted={mySubmitted}
               />
             )}
-            <div className="flex items-center gap-1.5">
-              {myPlayer && (
-                <div className="min-w-0 flex-1">
-                  <StatLine player={myPlayer} label="나" isMe />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowHistory(true)}
-                className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                기록
-              </button>
-            </div>
           </div>
         }
-        aside={<RoundHistory history={gameData.roundHistory} players={gameData.players} />}
+        aside={<WinningStreakSidePanel gameData={gameData} myId={myId} />}
       >
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-white p-3">
           {isRevealing && gameData.revealData ? (
@@ -197,9 +188,6 @@ export default function WinningStreakGame() {
             />
           ) : isCardSelect ? (
             <div className="flex flex-col items-center gap-2 text-gray-400">
-              <span className="text-base font-semibold lg:text-lg">
-                라운드 {gameData.round} / {WS_TOTAL_ROUNDS}
-              </span>
               {mySubmitted ? (
                 <span className="animate-pulse text-sm text-indigo-500 lg:text-base">
                   상대의 제출을 기다리는 중...
@@ -246,10 +234,32 @@ export default function WinningStreakGame() {
         )}
       </GameFrame>
 
-      <Modal open={showHistory} onClose={() => setShowHistory(false)} title="라운드 기록">
-        <RoundHistory history={gameData.roundHistory} players={gameData.players} />
-      </Modal>
     </>
+  );
+}
+
+function WinningStreakSidePanel({ gameData, myId }: { gameData: WinningStreakGameData; myId: string }) {
+  const ids = Object.keys(gameData.players);
+  const opponentId = ids.find((id) => id !== myId);
+  const opponent = opponentId ? gameData.players[opponentId] : undefined;
+  return (
+    <GameInfoStack>
+      <GameInfoPart title="전적">
+        <div className="space-y-1.5">
+          {ids.map((id) => (
+            <StatLine key={id} player={gameData.players[id]} label={id === myId ? '나' : '상대'} isMe={id === myId} />
+          ))}
+        </div>
+      </GameInfoPart>
+      {opponent && (
+        <GameInfoPart title="상대 잔여 카드">
+          <CardRow cards={opponent.remainingCards} lastPlayed={opponent.lastPlayedCard} label="" />
+        </GameInfoPart>
+      )}
+      <GameInfoPart>
+        <RoundHistory history={gameData.roundHistory} players={gameData.players} />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }
 
@@ -258,12 +268,12 @@ function StatLine({ player, label, isMe }: { player: WSPlayerInfo; label: string
   return (
     <div
       className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${
-        isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
+        isMe ? 'border-cdm-primary/50 bg-cdm-primary/15' : 'border-cdm-ink-border bg-white/5'
       }`}
     >
-      <span className="min-w-0 truncate text-xs font-bold text-gray-800">{player.nickname}</span>
-      <span className="shrink-0 text-[10px] text-gray-400">{label}</span>
-      <span className="ml-auto shrink-0 text-[11px] font-bold whitespace-nowrap text-gray-800 tabular-nums">
+      <span className="min-w-0 truncate text-xs font-bold text-cdm-ink-fg">{player.nickname}</span>
+      <span className="shrink-0 text-[10px] text-cdm-ink-fg-muted">{label}</span>
+      <span className="ml-auto shrink-0 text-[11px] font-bold whitespace-nowrap text-cdm-ink-fg tabular-nums">
         {player.currentStreak}연승 · 최대 {player.maxStreak} · {player.totalWins}승
       </span>
     </div>
@@ -341,8 +351,8 @@ function CardRow({
 }) {
   const entries = getCardEntries(cards);
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-      <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase lg:text-sm">{label}</p>
+    <div className="rounded-lg border border-cdm-ink-border bg-white/5 px-3 py-2">
+      {label && <p className="mb-1.5 text-xs font-medium text-cdm-ink-fg-muted uppercase lg:text-sm">{label}</p>}
       <div className="flex flex-wrap gap-1.5">
         {entries.map(({ type, count }) => {
           const style = CARD_COLORS[type];
@@ -547,26 +557,26 @@ function RoundHistory({
   const playerIds = Object.keys(players);
 
   return (
-    <div className="h-full w-full rounded-xl border border-gray-200 bg-white">
+    <div className="h-full w-full rounded-xl border border-cdm-ink-border bg-white/5">
       <button
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 lg:text-base"
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-cdm-ink-fg lg:text-base"
         onClick={() => setOpen((v) => !v)}
       >
         라운드 기록
-        <span className="text-xs text-gray-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
+        <span className="text-xs text-cdm-ink-fg-muted">{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
 
       {open && (
         <div className="max-h-72 overflow-y-auto p-2 space-y-1.5 lg:max-h-[420px]">
           {history.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400">아직 기록이 없습니다</p>
+            <p className="py-4 text-center text-sm text-cdm-ink-fg-muted">아직 기록이 없습니다</p>
           ) : (
             [...history].reverse().map((round) => (
               <div
                 key={round.round}
-                className="rounded-lg border border-gray-100 bg-gray-50 p-2"
+                className="rounded-lg border border-cdm-ink-border bg-white/5 p-2"
               >
-                <div className="mb-1 text-xs font-semibold text-gray-500 lg:text-sm">
+                <div className="mb-1 text-xs font-semibold text-cdm-ink-fg-muted lg:text-sm">
                   R{round.round}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -580,7 +590,7 @@ function RoundHistory({
                         <span className={`rounded px-1.5 py-0.5 ${style.bg} ${style.text}`}>
                           {style.icon}
                         </span>
-                        <span className="truncate text-gray-600 max-w-[72px]">
+                        <span className="truncate text-cdm-ink-fg-muted max-w-[72px]">
                           {players[pid]?.nickname ?? pid}
                         </span>
                         <span className={`ml-auto font-bold ${isWin ? 'text-emerald-600' : 'text-red-400'}`}>

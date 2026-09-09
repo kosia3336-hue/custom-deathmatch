@@ -123,7 +123,10 @@ export function GameHudLeft({
           </span>
         )}
         {order != null && (
-          <span className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg shrink-0 px-1.5 py-0.5 text-[11px] font-bold">
+          <span
+            className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg max-w-[min(42vw,12rem)] truncate px-1.5 py-0.5 text-[11px] font-bold"
+            title={typeof order === 'string' ? order : undefined}
+          >
             {order}
           </span>
         )}

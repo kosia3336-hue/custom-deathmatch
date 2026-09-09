@@ -12,30 +12,37 @@ import { GAME_IDS } from '@/shared/types/game';
 import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
-import PlayerBadge from './PlayerBadge';
 import TileTracker from './TileTracker';
 import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 export default function NumberFourGame() {
   const gameState = useRoomStore((s) => s.gameState);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as NumberFourGameData | undefined;
   const myId = useMySocketId();
-  const { remaining: timerRemaining } = useTurnTimer();
+  useTurnTimer();
+  const { setHud } = useRoomLayout();
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.NUMBER_FOUR);
   const isDuality = skin === 'duality';
 
   const shownWinnerRef = useRef<string | null>(null);
 
   // 타일 추리 상태 - 라운드가 바뀌어도 유지되도록 부모에서 관리
-  const [showHistory, setShowHistory] = useState(false);
-  const [showTracker, setShowTracker] = useState(false);
   const [trackerWhite, setTrackerWhite] = useState(INITIAL_WHITE);
   const [trackerBlack, setTrackerBlack] = useState(INITIAL_BLACK);
   // 관전자용: 플레이어별 상태
   const [spectatorTrackers, setSpectatorTrackers] = useState<Record<string, { white: number; black: number }>>({});
+
+  const phaseLabel = gameData?.phase === 'submit'
+    ? '숫자·색 제출'
+    : gameData?.phase === 'reveal'
+      ? '제출 공개'
+      : gameData?.phase === 'finished'
+        ? '종료'
+        : undefined;
 
   const handleAdjust = useCallback((color: 'white' | 'black', delta: number) => {
     if (color === 'white') {
@@ -57,6 +64,41 @@ export default function NumberFourGame() {
       };
     });
   }, []);
+
+  useEffect(() => {
+    if (!gameData) return;
+    const tracker = isSpectator ? (
+      <div className="flex flex-col gap-2">
+        {Object.entries(gameData.players).map(([id, player]) => {
+          const state = spectatorTrackers[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK };
+          return (
+            <TileTracker
+              key={id}
+              playerNickname={player.nickname}
+              white={state.white}
+              black={state.black}
+              onAdjust={(color, delta) => handleSpectatorAdjust(id, color, delta)}
+              skin={skin}
+            />
+          );
+        })}
+      </div>
+    ) : (
+      <TileTracker white={trackerWhite} black={trackerBlack} onAdjust={handleAdjust} skin={skin} />
+    );
+    setHud({
+      round: `${gameData.round} / 6R`,
+      order: phaseLabel,
+      memo: (
+        <NumberFourSidePanel
+          gameData={gameData}
+          myId={myId}
+          tracker={gameData.phase === 'submit' ? tracker : null}
+        />
+      ),
+    });
+    return () => setHud(null);
+  }, [gameData, handleAdjust, handleSpectatorAdjust, isSpectator, myId, phaseLabel, setHud, skin, spectatorTrackers, trackerBlack, trackerWhite]);
 
   useEffect(() => {
     if (!gameData?.winner || !gameData?.winType) return;
@@ -161,66 +203,8 @@ export default function NumberFourGame() {
   return (
     <>
       <GameFrame
-        info={
-          <div className="flex flex-col gap-1">
-            <div className="flex w-full justify-between gap-2">
-              {playerEntries.map(([id, p]) => (
-                <PlayerBadge
-                  key={id}
-                  player={p}
-                  isMe={id === myId || id.replace('_p2', '') === myId}
-                  timerRemaining={timerRemaining}
-                />
-              ))}
-            </div>
-            <div
-              className={
-                isDuality
-                  ? 'skin-duality-status-msg'
-                  : 'text-center text-[11px] leading-4 text-gray-500'
-              }
-            >
-              {gameState?.message}
-            </div>
-          </div>
-        }
-        controls={
-          /*
-            넘버4는 조작 요소가 크다. 선택기(352px)와 추리판(107px)을 다 아래에
-            두면 640px 화면에서 무대가 0 이 되고 추리판이 잘렸다. 선택기는 이
-            게임의 본체이므로 무대로 올리고, 아래에는 얇은 단추 줄만 남긴다.
-          */
-          <div className="flex gap-1.5">
-            {isSubmitPhase && (
-              <button
-                type="button"
-                onClick={() => setShowTracker(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                타일 추리
-              </button>
-            )}
-            {gameData.roundHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowHistory(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                라운드 기록 ({gameData.roundHistory.length})
-              </button>
-            )}
-          </div>
-        }
         aside={
-          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
-            {isSubmitPhase && trackerPanel}
-            <InfoPanel
-              round={gameData.round}
-              players={gameData.players}
-              roundHistory={gameData.roundHistory}
-              myId={myId}
-            />
-          </div>
+          <NumberFourSidePanel gameData={gameData} myId={myId} tracker={isSubmitPhase ? trackerPanel : null} />
         }
       >
         <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-3 overflow-hidden">
@@ -247,35 +231,25 @@ export default function NumberFourGame() {
         </div>
       </GameFrame>
 
-      <Modal open={showHistory} onClose={() => setShowHistory(false)} title="라운드 기록">
-        <MobileRoundHistory history={gameData.roundHistory} players={gameData.players} />
-      </Modal>
-
-      <Modal open={showTracker} onClose={() => setShowTracker(false)} title="상대 타일 추리">
-        {trackerPanel}
-      </Modal>
     </>
   );
 }
 
-function MobileRoundHistory({ history, players }: { history: NumberFourGameData['roundHistory']; players: NumberFourGameData['players'] }) {
-  const pIds = Object.keys(players);
+function NumberFourSidePanel({ gameData, myId, tracker }: {
+  gameData: NumberFourGameData;
+  myId: string;
+  tracker: React.ReactNode;
+}) {
   return (
-    <div className="space-y-1 text-xs">
-      {history.map((r) => (
-        <div key={r.round} className="flex gap-2">
-          <span className="font-medium text-gray-500">R{r.round}</span>
-          {pIds.map((pid) => {
-            const pr = r.players[pid];
-            if (!pr) return null;
-            return (
-              <span key={pid}>
-                N{pr.number} {pr.scoreChange > 0 ? `+${pr.scoreChange}` : pr.scoreChange}
-              </span>
-            );
-          })}
-        </div>
-      ))}
-    </div>
+    <GameInfoStack>
+      {tracker && <GameInfoPart>{tracker}</GameInfoPart>}
+      <GameInfoPart>
+        <InfoPanel
+          players={gameData.players}
+          roundHistory={gameData.roundHistory}
+          myId={myId}
+        />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

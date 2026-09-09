@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { cn } from '@/lib/utils';
 import {
@@ -25,6 +24,8 @@ import { TripleGomokuBoardView, type TripleGomokuCellMark } from './BoardView';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Modal from '@/components/ui/Modal';
 import { TG_BOARD_ASPECT } from '@/shared/logic/triple-gomoku';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
 type ActionMode = 'place' | 'move';
 
@@ -42,7 +43,6 @@ export default function TripleGomokuGame() {
   const gameData = gameState?.gameData as TripleGomokuGameData | undefined;
   useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
   const [tilted, setTilted] = useState(true);
 
   if (!gameData) {
@@ -63,7 +63,6 @@ export default function TripleGomokuGame() {
       myId={myId}
       isPlayer={isPlayer}
       isMyTurn={isMyTurn}
-      remaining={remaining}
       tilted={tilted}
       onToggleTilt={() => setTilted((value) => !value)}
     />
@@ -75,7 +74,6 @@ function PlaySurface({
   myId,
   isPlayer,
   isMyTurn,
-  remaining,
   tilted,
   onToggleTilt,
 }: {
@@ -83,7 +81,6 @@ function PlaySurface({
   myId: string;
   isPlayer: boolean;
   isMyTurn: boolean;
-  remaining: number | null;
   tilted: boolean;
   onToggleTilt: () => void;
 }) {
@@ -96,8 +93,23 @@ function PlaySurface({
     acceptedSignature 가 바뀌면서 잠금이 저절로 풀린다.
   */
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  const { setHud } = useRoomLayout();
   const setup = gameData.phase === 'setup';
   const reserve = gameData.reserves[myId] ?? 0;
+  const sidePanel = <TripleGomokuSidePanel gameData={gameData} myId={myId} />;
+
+  useEffect(() => {
+    setHud({
+      round: `${gameData.turnNumber}턴`,
+      order: gameData.phase === 'setup'
+        ? '기본 배치'
+        : gameData.phase === 'finished'
+          ? '종료'
+          : isMyTurn ? '내 차례' : '상대 차례',
+      memo: <TripleGomokuSidePanel gameData={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [gameData, isMyTurn, myId, setHud]);
 
   /*
     서버가 행동을 받아 줄 때마다 바뀌는 값. 기본 배치에서 한 턴에 두 개를 놓는
@@ -181,55 +193,11 @@ function PlaySurface({
   const sourceHeight = source ? (gameData.board[tripleGomokuCellKey(source)]?.length ?? 0) : 0;
   const currentName = gameData.players[gameData.currentPlayerId]?.nickname ?? '플레이어';
   const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
-  const entries = Object.entries(gameData.players);
   const finished = gameData.phase === 'finished';
 
   return (
     <>
       <GameFrame
-        info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
-            {entries.map(([playerId, player], index) => (
-              <div
-                key={playerId}
-                className={cn(
-                  'rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
-                  index === 1 && 'order-3 justify-self-end text-right',
-                  gameData.currentPlayerId === playerId && !finished
-                    ? 'border-cdm-primary bg-cdm-primary-soft'
-                    : 'border-cdm-border bg-cdm-bg-elev-1',
-                )}
-              >
-                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
-                  {player.nickname}
-                  {playerId === myId ? ' (나)' : ''}
-                </p>
-                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
-                  남은 돌 {gameData.reserves[playerId] ?? 0}
-                </p>
-              </div>
-            ))}
-            <div className="order-2 px-1 text-center">
-              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-                {finished
-                  ? '종료'
-                  : setup
-                    ? `배치 ${gameData.setupRemaining}`
-                    : isMyTurn
-                      ? '내 차례'
-                      : '상대 차례'}
-              </p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-lg leading-6 font-black tabular-nums',
-                  remaining != null && remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {remaining == null ? '∞' : Math.ceil(remaining)}
-              </p>
-            </div>
-          </div>
-        }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
             <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-1.5">
@@ -280,7 +248,7 @@ function PlaySurface({
             </p>
           </div>
         }
-        aside={<WinReference />}
+        aside={sidePanel}
       >
         <TripleGomokuBoardView
           board={gameData.board}
@@ -316,6 +284,32 @@ function PlaySurface({
         <WinReference />
       </Modal>
     </>
+  );
+}
+
+function TripleGomokuSidePanel({ gameData, myId }: { gameData: TripleGomokuGameData; myId: string }) {
+  return (
+    <GameInfoStack>
+      <GameInfoPart title="플레이어">
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([playerId, player]) => (
+            <div
+              key={playerId}
+              className={cn(
+                'flex items-center justify-between rounded-md px-2.5 py-2 text-sm',
+                gameData.currentPlayerId === playerId && gameData.phase !== 'finished'
+                  ? 'bg-cdm-primary/20 text-white'
+                  : 'bg-white/5 text-cdm-ink-fg',
+              )}
+            >
+              <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+              <span className="font-black tabular-nums">돌 {gameData.reserves[playerId] ?? 0}</span>
+            </div>
+          ))}
+        </div>
+      </GameInfoPart>
+      <GameInfoPart><WinReference /></GameInfoPart>
+    </GameInfoStack>
   );
 }
 

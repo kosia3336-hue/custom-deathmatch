@@ -6,14 +6,14 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { InvestDonateGameData } from '@/shared/types/invest-donate';
-import { stockTotal } from '@/shared/types/invest-donate';
 import CoinSelector from './CoinSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import PlayerStatusCard from './PlayerStatusCard';
-import RoundHistoryTable from './RoundHistoryTable';
 import OpponentInferPanel from './OpponentInferPanel';
 import { WIN_TYPE_LABELS } from './constants';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function InvestDonateGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -21,8 +21,26 @@ export default function InvestDonateGame() {
   const gameData = gameState?.gameData as InvestDonateGameData | undefined;
   const myId = useMySocketId();
   useTurnTimer();
+  const { setHud } = useRoomLayout();
 
   const shownWinnerRef = useRef<string | null>(null);
+  const phaseLabel = gameData?.phase === 'submit'
+    ? '코인 배분'
+    : gameData?.phase === 'reveal'
+      ? '결과 공개'
+      : gameData?.phase === 'finished'
+        ? '종료'
+        : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round} / ${gameData.totalRounds}R`,
+      order: phaseLabel,
+      memo: <InvestDonateSidePanel gameData={gameData} myId={myId ?? ''} />,
+    });
+    return () => setHud(null);
+  }, [gameData, myId, phaseLabel, setHud]);
 
   useEffect(() => {
     if (!gameData?.winner || !gameData?.winType) return;
@@ -63,36 +81,6 @@ export default function InvestDonateGame() {
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* ── Main area ── */}
         <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-
-          {/* Mobile: compact score bar */}
-          <div className="flex w-full max-w-lg justify-between gap-2 lg:hidden">
-            {playerEntries.map(([id, p]) => {
-              const isMe = id === myId;
-              const myTotal = isMe ? stockTotal(p.coinStock) : null;
-              return (
-                <div
-                  key={id}
-                  className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-1.5 text-xs ${
-                    isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
-                    {isMe ? '나' : p.nickname}
-                  </span>
-                  <span
-                    className={`ml-1 shrink-0 tabular-nums font-bold ${
-                      p.score <= 1 ? 'animate-pulse text-red-500' : 'text-gray-600'
-                    }`}
-                  >
-                    {p.score}점
-                  </span>
-                  {myTotal !== null && (
-                    <span className="ml-1 shrink-0 tabular-nums text-gray-400">{myTotal}원</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
 
           {/* Status message */}
           {gameState?.message && (
@@ -183,37 +171,21 @@ export default function InvestDonateGame() {
             )}
           </div>
 
-          {/* Mobile: round history (collapsible) */}
-          <div className="w-full max-w-lg lg:hidden">
-            {gameData.roundHistory.length > 0 && (
-              <details className="rounded-lg border border-gray-200 bg-white">
-                <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-gray-600">
-                  라운드 기록 ({gameData.roundHistory.length})
-                </summary>
-                <div className="border-t border-gray-100 px-3 py-2">
-                  <RoundHistoryTable
-                    history={gameData.roundHistory}
-                    players={gameData.players}
-                    compact
-                  />
-                </div>
-              </details>
-            )}
-          </div>
         </div>
 
         {/* ── Desktop: info panel ── */}
-        <div className="hidden lg:flex lg:w-60 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
-          <InfoPanel
-            round={gameData.round}
-            totalRounds={gameData.totalRounds}
-            players={gameData.players}
-            roundHistory={gameData.roundHistory}
-            myId={myId ?? ''}
-          />
+        <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
+          <InvestDonateSidePanel gameData={gameData} myId={myId ?? ''} />
         </div>
       </div>
     </div>
   );
 }
 
+function InvestDonateSidePanel({ gameData, myId }: { gameData: InvestDonateGameData; myId: string }) {
+  return (
+    <GameInfoPart title="판 정보">
+      <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />
+    </GameInfoPart>
+  );
+}

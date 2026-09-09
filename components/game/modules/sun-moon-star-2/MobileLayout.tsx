@@ -1,19 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { zeroOpponentEstimate } from './types';
+import { useEffect, useRef } from 'react';
 import MarkRow from './MarkRow';
-import PowderTrack from './PowderTrack';
-import OpponentPowderTracker from './OpponentPowderTracker';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
-import RoundHistoryTable from './RoundHistoryTable';
-import MobileHeader from './MobileHeader';
-import ScoreBar from './ScoreBar';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import { GameFrame } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -24,15 +17,6 @@ import Modal from '@/components/ui/Modal';
  *   · 자동 스크롤 ref/effect 는 이 컴포넌트 안에서만 정의
  * ════════════════════════════════════════════════════════════ */
 
-type PanelKind = 'tracker' | 'track' | 'history';
-
-/** 아래 단추로 여는 참고 패널들. 늘 펼쳐 두면 조작부만으로 화면이 찬다. */
-const PANEL_TITLE: Record<PanelKind, string> = {
-  tracker: '상대 빛가루 추리',
-  track: '빛가루 트랙',
-  history: '라운드 기록',
-};
-
 interface Props {
   ctx: SMS2ContextValue;
 }
@@ -41,14 +25,11 @@ export default function MobileLayout({ ctx }: Props) {
   const {
     gameData,
     isSpectator,
-    myId,
     myPlayer,
     opponent,
-    mySide,
     firstSide,
     firstPlayer,
     secondPlayer,
-    phase,
     isResolve,
     isRoundEnd,
     isBetFirst,
@@ -60,9 +41,6 @@ export default function MobileLayout({ ctx }: Props) {
     revealedBetFirst,
     markRowPendingPowder,
     litMark,
-    showTracker,
-    opponentEstimate,
-    setOpponentEstimate,
     pendingBet,
     setPendingBet,
     resetBet,
@@ -71,7 +49,6 @@ export default function MobileLayout({ ctx }: Props) {
   } = ctx;
 
   /* ── 베팅 bottom-sheet 표시 여부 ── */
-  const [panel, setPanel] = useState<PanelKind | null>(null);
   const showBetSheet = !isSpectator && myPlayer && (isBetFirst || isBetSecond) && myTurnInBet && !myPlayer.betConfirmed;
 
   /* ── 모바일 자동 스크롤: 내 차례 진입 시 입력 영역으로 ── */
@@ -102,60 +79,6 @@ export default function MobileLayout({ ctx }: Props) {
       <GameFrame
         /* 이 게임은 입력판이 커서 뼈대 여백까지 아껴야 한 화면에 들어간다. */
         className="gap-1.5 p-1.5"
-        info={<div className="flex w-full min-w-0 flex-col gap-1">
-        <MobileHeader
-          round={gameData.round}
-          maxRound={gameData.maxRound}
-          phase={phase ?? 'powder'}
-          suddenDeath={gameData.suddenDeath}
-          firstNick={firstPlayer.nickname}
-        />
-
-        {/*
-          단계 표시줄(43px)은 좁은 화면에서 뺐다. 머리말의 단계 칩과 입력판
-          제목이 같은 말을 하고 있고, 그 43px 이 없으면 입력판이 잘린다.
-          넓은 화면은 DesktopLayout 이 따로 그린다.
-        */}
-
-        <ScoreBar
-          p1={gameData.players.p1}
-          p2={gameData.players.p2}
-          firstSide={firstSide}
-          myId={myId}
-        />
-        </div>}
-        controls={
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            {/* 베팅 시트는 내 차례에 저절로 열린다 — 여는 단추가 따로 없다. */}
-            <div className="flex gap-1.5">
-              {showTracker && opponentEstimate && opponent && (
-                <button
-                  type="button"
-                  onClick={() => setPanel('tracker')}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
-                >
-                  🔍 추리
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setPanel('track')}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
-              >
-                빛가루 트랙
-              </button>
-              {gameData.history.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPanel('history')}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-xs font-semibold text-gray-600"
-                >
-                  기록 ({gameData.history.length})
-                </button>
-              )}
-            </div>
-          </div>
-        }
       >
         <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden">
         <div className="w-full min-w-0">
@@ -183,92 +106,6 @@ export default function MobileLayout({ ctx }: Props) {
         </div>
         </div>
       </GameFrame>
-
-      {/*
-        접이식 세 개(추리·트랙·기록)를 모달로 옮겼다. 아래에 다 펼쳐 두면
-        조작부만으로 화면이 차서 무대가 사라진다.
-      */}
-      <Modal open={panel !== null} onClose={() => setPanel(null)} title={PANEL_TITLE[panel ?? 'track']}>
-        <div className="max-h-[60dvh] overflow-y-auto overscroll-contain">
-        {/* 상대 빛가루 추리 (details 접힘) */}
-        {showTracker && opponentEstimate && opponent && (
-          <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              🔍 상대 빛가루 추리
-            </summary>
-            <div className="border-t border-gray-100 p-2">
-              <OpponentPowderTracker
-                key={`tracker-${opponent.powderStage}`}
-                stageNow={opponent.powderStage}
-                stagePrev={opponentEstimate.basedOnStagePrev}
-                estimate={opponentEstimate}
-                onChange={setOpponentEstimate}
-                onReset={() =>
-                  setOpponentEstimate(
-                    zeroOpponentEstimate(
-                      opponentEstimate.basedOnStagePrev,
-                      opponent.powderStage,
-                    ),
-                  )
-                }
-              />
-            </div>
-          </details>
-        )}
-
-        {/* 풀 PowderTrack (details 접힘) — ScoreBar 로는 부족할 때 펼쳐 봄 */}
-        <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-            🌌 빛가루 단계 상세
-          </summary>
-          <div className="border-t border-gray-100 p-2">
-            <PowderTrack
-              leftLabel={!isSpectator && myPlayer ? '나' : gameData.players.p1.nickname}
-              leftStage={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).powderStage}
-              leftRemain={
-                !isSpectator && myPlayer
-                  ? gameData.selfPrivate?.powderRemain ?? null
-                  : null
-              }
-              leftIsFirst={
-                (!isSpectator && myPlayer ? myPlayer : gameData.players.p1).side ===
-                gameData.firstPlayerSide
-              }
-              leftChips={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).chips}
-              rightLabel={
-                !isSpectator && opponent ? opponent.nickname : gameData.players.p2.nickname
-              }
-              rightStage={
-                (!isSpectator && opponent ? opponent : gameData.players.p2).powderStage
-              }
-              rightRemain={null}
-              rightIsFirst={
-                (!isSpectator && opponent ? opponent : gameData.players.p2).side ===
-                gameData.firstPlayerSide
-              }
-              rightChips={(!isSpectator && opponent ? opponent : gameData.players.p2).chips}
-            />
-          </div>
-        </details>
-
-        {/* 라운드 기록 (details 접힘) */}
-        {gameData.history.length > 0 && (
-          <details className="w-full min-w-0 rounded-xl border border-gray-200 bg-white">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-gray-600">
-              📜 라운드 기록 ({gameData.history.length})
-            </summary>
-            <div className="border-t border-gray-100 px-3 py-2">
-              <RoundHistoryTable
-                history={gameData.history}
-                mySide={mySide}
-                players={gameData.players}
-              />
-            </div>
-          </details>
-        )}
-        </div>
-      </Modal>
-
 
       {/* ── 베팅 bottom-sheet ── */}
       {showBetSheet && myPlayer && (

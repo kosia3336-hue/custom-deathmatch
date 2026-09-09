@@ -2,17 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { BankContextValue } from './hooks/useBankContext';
-import MobileHeader from './MobileHeader';
 import PhaseStepperMobile from './PhaseStepperMobile';
-import ScoreBar from './ScoreBar';
 import InventoryRow from './InventoryRow';
 import FirstCountRevealBanner from './FirstCountRevealBanner';
-import OpponentInventoryTracker from './OpponentInventoryTracker';
-import RoundHistoryTable from './RoundHistoryTable';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
 import { GameFrame } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -29,9 +24,7 @@ export default function MobileLayout({ ctx }: Props) {
   const {
     gameData,
     isSpectator,
-    myId,
     myPlayer,
-    opponent,
     mySide,
     firstSide,
     firstPlayer,
@@ -40,7 +33,6 @@ export default function MobileLayout({ ctx }: Props) {
     isFirstReveal,
     isFirstSubmit,
     isSecondSubmit,
-    isFinished,
     myTurnInput,
     isMyInputTurn,
     stepperActiveTurn,
@@ -52,7 +44,6 @@ export default function MobileLayout({ ctx }: Props) {
     handleSubmitBet,
     handleResetBet,
     isReveal,
-    showOpponentTracker,
   } = ctx;
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -107,23 +98,6 @@ export default function MobileLayout({ ctx }: Props) {
     <>
       <GameFrame
         className="bank-layout bank-layout-mobile"
-        info={
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <MobileHeader
-              round={gameData.round}
-              maxRound={gameData.maxRound}
-              phase={phase ?? 'firstSubmit'}
-              firstNick={firstPlayer.nickname}
-              loserAmountTotal={gameData.loserAmountTotal}
-            />
-            <ScoreBar
-              p1={gameData.players.p1}
-              p2={gameData.players.p2}
-              firstSide={firstSide}
-              myId={myId}
-            />
-          </div>
-        }
         controls={
           <div className="flex w-full min-w-0 flex-col gap-1.5">
             {/*

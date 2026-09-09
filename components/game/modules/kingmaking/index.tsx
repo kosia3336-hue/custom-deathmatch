@@ -8,7 +8,6 @@ import type {
   KingmakingPosition,
 } from '@/shared/types/kingmaking';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
@@ -17,6 +16,8 @@ import { Board3D, BoardCellButton3D } from '@/components/game/abstract-strategy'
 import { GameFrame } from '@/components/game/GameFrame';
 import Modal from '@/components/ui/Modal';
 import { StackVisual } from './StackVisual';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
 const MOVE_LABELS = ['한 칸 직선', '룩', '나이트', '비숍', '퀸'];
 
@@ -42,7 +43,7 @@ export default function KingmakingGame() {
 }
 
 function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myId: string }) {
-  const { remaining } = useTurnTimer();
+  const { setHud } = useRoomLayout();
   const [mode, setMode] = useState<KingmakingPieceKind | 'move'>('normal');
   const [source, setSource] = useState<KingmakingPosition | null>(null);
   const [moveCount, setMoveCount] = useState(1);
@@ -54,6 +55,16 @@ function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myI
   const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase === 'playing';
   const myReserve = gameData.reserves[myId] ?? { normal: 0, special: 0 };
   const canPlay = isMyTurn;
+  const sidePanel = <KingmakingSidePanel gameData={gameData} myId={myId} />;
+
+  useEffect(() => {
+    setHud({
+      round: `${gameData.turnNumber}턴`,
+      order: gameData.phase === 'finished' ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
+      memo: <KingmakingSidePanel gameData={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [gameData, isMyTurn, myId, setHud]);
 
   /*
     서버가 행동을 거부하면 턴이 그대로라 이 컴포넌트가 다시 마운트되지 않고,
@@ -120,15 +131,6 @@ function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myI
   return (
     <>
       <GameFrame
-        info={
-          <InfoBar
-            gameData={gameData}
-            myId={myId}
-            remaining={remaining}
-            isMyTurn={isMyTurn}
-            isPlayer={isPlayer}
-          />
-        }
         controls={
           <ActionBar
             mode={mode}
@@ -143,7 +145,7 @@ function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myI
             onOpenHelp={() => setShowHelp(true)}
           />
         }
-        aside={<MoveReference />}
+        aside={sidePanel}
       >
         <Board3D
           fit
@@ -206,73 +208,26 @@ function KingmakingBoard({ gameData, myId }: { gameData: KingmakingGameData; myI
   );
 }
 
-/** 위 — 지금 상황만. 누를 것은 없다. */
-function InfoBar({
-  gameData,
-  myId,
-  remaining,
-  isMyTurn,
-  isPlayer,
-}: {
-  gameData: KingmakingGameData;
-  myId: string;
-  remaining: number | null;
-  isMyTurn: boolean;
-  isPlayer: boolean;
-}) {
-  const entries = Object.entries(gameData.players);
-  const status = !isPlayer
-    ? '관전 중'
-    : gameData.phase === 'finished'
-      ? '게임 종료'
-      : isMyTurn
-        ? '내 차례'
-        : '상대 차례';
-
+function KingmakingSidePanel({ gameData, myId }: { gameData: KingmakingGameData; myId: string }) {
   return (
-    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
-      {entries.map(([playerId, player], index) => {
-        const active = gameData.currentPlayerId === playerId && gameData.phase === 'playing';
-        const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
-        return (
-          <div
-            key={playerId}
-            className={cn(
-              // 넓은 화면에서 이름표가 판 너비만큼 늘어나지 않도록 폭을 묶는다.
-              'rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
-              index === 1 && 'order-3 justify-self-end text-right',
-              active
-                ? index === 0
-                  ? 'border-cdm-primary bg-cdm-primary-soft'
-                  : 'border-cdm-highlight bg-cdm-highlight-soft'
-                : 'border-cdm-border bg-cdm-bg-elev-1',
-            )}
-          >
-            <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
-              {player.nickname}
-              {playerId === myId ? ' (나)' : ''}
-            </p>
-            <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
-              일반 {reserve.normal} · 특수 {reserve.special}
-            </p>
-          </div>
-        );
-      })}
-
-      <div className="order-2 px-1 text-center">
-        <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-          {status}
-        </p>
-        <p
-          className={cn(
-            'text-cdm-fg text-lg leading-6 font-black tabular-nums',
-            remaining != null && remaining <= 10 && 'text-cdm-accent',
-          )}
-        >
-          {remaining == null ? '∞' : Math.ceil(remaining)}
-        </p>
-      </div>
-    </div>
+    <GameInfoStack>
+      <GameInfoPart title="남은 말">
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([playerId, player]) => {
+            const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
+            return (
+              <div key={playerId} className={cn('rounded-md px-2.5 py-2', gameData.currentPlayerId === playerId && gameData.phase === 'playing' ? 'bg-cdm-primary/20' : 'bg-white/5')}>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+                  <span className="shrink-0 text-xs font-bold tabular-nums">일반 {reserve.normal} · 특수 {reserve.special}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GameInfoPart>
+      <GameInfoPart><MoveReference /></GameInfoPart>
+    </GameInfoStack>
   );
 }
 

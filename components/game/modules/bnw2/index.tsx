@@ -17,7 +17,6 @@ import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
 import { playShowdownSubmitSfx } from './skins/showdownSfx';
 import { GameFrame } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import Modal from '@/components/ui/Modal';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '10점 달성',
@@ -110,26 +109,26 @@ function OpponentPointTracker({
   const clamp = (v: number) => Math.min(hi, Math.max(lo, v));
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-semibold text-gray-500">상대 잔여 추리</p>
+    <section className="flex flex-col gap-2 rounded-cdm-lg border border-cdm-ink-border bg-cdm-ink p-3 text-cdm-ink-fg">
+      <p className="text-xs font-semibold text-cdm-ink-fg-muted">상대 잔여 추리</p>
       <div className="flex items-center gap-2">
         <button
           onClick={() => setEstimate(v => clamp(v - 1))}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cdm-ink-border bg-white/10 text-lg font-bold text-cdm-ink-fg hover:bg-white/15"
         >
           −
         </button>
-        <span className="flex-1 text-center text-xl font-bold text-gray-800 tabular-nums">
+        <span className="flex-1 text-center text-xl font-bold text-cdm-ink-fg tabular-nums">
           {estimate}p
         </span>
         <button
           onClick={() => setEstimate(v => clamp(v + 1))}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cdm-ink-border bg-white/10 text-lg font-bold text-cdm-ink-fg hover:bg-white/15"
         >
           +
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -225,12 +224,12 @@ function RoundHistoryTable({
 }) {
   if (history.length === 0) return null;
   return (
-    <div className="space-y-0.5 text-xs">
+    <div className="space-y-1 text-xs">
       {history.map(r => {
         const entries = Object.entries(r.players);
         return (
-          <div key={r.round} className="flex items-center gap-2 py-0.5">
-            <span className="w-6 shrink-0 font-medium text-gray-400">R{r.round}</span>
+          <div key={r.round} className="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1.5">
+            <span className="w-6 shrink-0 font-medium text-cdm-ink-fg-muted">R{r.round}</span>
             {entries.map(([pid, pd]) => {
               const isWinner = r.winnerId === pid;
               const isFirst = pid === r.firstPlayerId;
@@ -245,7 +244,7 @@ function RoundHistoryTable({
                   >
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
-                  <span className="text-gray-500">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
+                  <span className="text-cdm-ink-fg-muted">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
                   {isWinner && <span className="text-amber-500">+1</span>}
                 </span>
               );
@@ -253,6 +252,52 @@ function RoundHistoryTable({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function BNW2SidePanel({
+  gameData,
+  myId,
+  showTracker,
+  opponentStage,
+  estimate,
+  setEstimate,
+}: {
+  gameData: BNW2GameData;
+  myId: string;
+  showTracker: boolean;
+  opponentStage?: number;
+  estimate: number;
+  setEstimate: React.Dispatch<React.SetStateAction<number>>;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {showTracker && opponentStage != null && (
+        <OpponentPointTracker opponentStage={opponentStage} estimate={estimate} setEstimate={setEstimate} />
+      )}
+      <section className="rounded-cdm-lg border border-cdm-ink-border bg-cdm-ink p-3 text-cdm-ink-fg">
+        <p className="mb-2 text-xs font-semibold text-cdm-ink-fg-muted">점수</p>
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([id, player]) => (
+            <div key={id} className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm">
+              <span className="min-w-0 truncate font-medium">
+                {id === myId ? '나' : player.nickname}
+                {id === gameData.firstPlayerId && <span className="ml-1 text-[10px] text-cdm-highlight">선</span>}
+              </span>
+              <span className="ml-2 shrink-0 font-bold tabular-nums">{player.score}점</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="rounded-cdm-lg border border-cdm-ink-border bg-cdm-ink p-3 text-cdm-ink-fg">
+        <p className="mb-2 text-xs font-semibold text-cdm-ink-fg-muted">라운드 기록</p>
+        {gameData.roundHistory.length ? (
+          <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+        ) : (
+          <p className="text-xs text-cdm-ink-fg-muted">아직 기록이 없습니다.</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -312,7 +357,6 @@ export default function BNW2Game() {
   const prevPhaseSfxRef = useRef<string | null>(null);
   const [roundOverlay, setRoundOverlay] = useState<{ round: number; firstNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   /*
     상단 바 — 라운드·차례. 점수로 끝나는 게임이라 총 라운드가 없어 몇 번째인지만 센다.
@@ -324,19 +368,37 @@ export default function BNW2Game() {
 
   // Winner/draw toast
   const bnwRound = gameData?.round ?? 0;
-  const bnwFirst = gameData?.firstPlayerId ?? null;
-  const bnwHistLen = gameData?.roundHistory?.length ?? 0;
+  const bnwOpponent = gameData
+    ? Object.entries(gameData.players).find(([id]) => id !== myId)?.[1]
+    : undefined;
+  const bnwInPlay = gameData?.phase === 'firstSubmit' || gameData?.phase === 'secondSubmit';
+  const bnwPhaseLabel = gameData?.phase === 'firstSubmit'
+    ? '선 플레이어 포인트 제시'
+    : gameData?.phase === 'secondSubmit'
+      ? '후 플레이어 포인트 제시'
+      : gameData?.phase === 'reveal'
+        ? '포인트 공개'
+        : gameData?.phase === 'finished'
+          ? '종료'
+          : undefined;
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${bnwRound}R`,
-      order: bnwFirst ? (bnwFirst === myId ? '선' : '후') : undefined,
+      order: bnwPhaseLabel,
       memo: (
-        <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+        <BNW2SidePanel
+          gameData={gameData}
+          myId={myId}
+          showTracker={!isSpectator && bnwInPlay}
+          opponentStage={bnwOpponent?.stage}
+          estimate={opponentEstimate}
+          setEstimate={setOpponentEstimate}
+        />
       ),
     });
     return () => setHud(null);
-  }, [setHud, gameData, bnwRound, bnwFirst, bnwHistLen, myId]);
+  }, [setHud, gameData, bnwRound, bnwPhaseLabel, bnwInPlay, bnwOpponent?.stage, isSpectator, myId, opponentEstimate]);
 
   useEffect(() => {
     if (!gameData?.winType) return;
@@ -477,7 +539,7 @@ export default function BNW2Game() {
   const RevealPanelCmp = isShowdown ? ShowdownRevealPanel : RevealPanel;
 
   const inputContent = isMyTurn ? (
-    <div className="space-y-3">
+    <div className="mx-auto w-full max-w-sm space-y-3 text-center">
       {/* 모바일 바텀시트 내 색 공개 배너 (후플 차례에만) */}
       {!isFirst && gameData.firstPlayerColor && (
         <div className="lg:hidden">
@@ -486,16 +548,6 @@ export default function BNW2Game() {
             firstNick={fp?.nickname ?? '선플'}
             stageBefore={gameData.prevFirstStage}
             stageAfter={fp?.stage}
-          />
-        </div>
-      )}
-      {/* 모바일 바텀시트 내 추리 트래커 */}
-      {showTracker && opponentPlayer && (
-        <div className="lg:hidden">
-          <OpponentPointTracker
-            opponentStage={opponentPlayer.stage}
-            estimate={opponentEstimate}
-            setEstimate={setOpponentEstimate}
           />
         </div>
       )}
@@ -534,39 +586,6 @@ export default function BNW2Game() {
       <GameFrame
         /* 트랙이 세로로 길어 뼈대 여백까지 아껴야 한 화면에 들어간다. */
         className={`gap-1.5 p-1.5 ${isShowdown ? 'skin-showdown-stage-content' : ''}`}
-        info={<div className="flex w-full flex-col gap-0.5">
-            {/* Mobile score bar */}
-            <div className="flex w-full max-w-sm justify-between gap-2 lg:hidden">
-              {playerEntries.map(([id, p]) => {
-                const isMe = id === myId;
-                return (
-                  <div
-                    key={id}
-                    className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-1.5 text-xs ${
-                      isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
-                      {isMe ? '나' : p.nickname}
-                    </span>
-                    <span className="ml-1 shrink-0 font-bold tabular-nums">{p.score}점</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Round header */}
-            <div className="text-center">
-              <div className="text-base font-bold text-gray-800">라운드 {gameData.round}</div>
-              {fp && (
-                <div className="mt-0.5 text-sm text-amber-600">
-                  {fp.nickname} 선플
-                </div>
-              )}
-            </div>
-
-            {/* Status message */}
-            <div className="text-center text-sm text-gray-500">{gameState?.message}</div>        </div>}
         controls={
           /*
             누르는 것은 전부 여기. 넓은 화면의 제시판이 무대 안에 있던 탓에,
@@ -593,7 +612,7 @@ export default function BNW2Game() {
             </div>
 
             {/* 넓은 화면 — 제시판을 그대로 조작 자리에 둔다 */}
-            <div className="mx-auto hidden w-full max-w-sm lg:block">
+            <div className="mx-auto hidden w-full max-w-sm text-center lg:block">
               {isSpectator && inPlay ? (
                 <WaitingCard text="플레이어들이 포인트를 제시 중..." />
               ) : isReveal && gameData.revealData ? (
@@ -619,54 +638,14 @@ export default function BNW2Game() {
           </>
         }
         aside={
-          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
-            {/*
-              상대 잔여 추리는 참고용 메모지 무대가 아니다. 트랙 아래에 두었더니
-              세로로 긴 트랙과 자리를 다투어 넓은 화면에서 트랙 위쪽이 잘렸다.
-            */}
-            {showTracker && opponentPlayer && (
-              <OpponentPointTracker
-                opponentStage={opponentPlayer.stage}
-                estimate={opponentEstimate}
-                setEstimate={setOpponentEstimate}
-              />
-            )}
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수</p>
-              {playerEntries.map(([id, p]) => (
-                <div
-                  key={id}
-                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
-                    id === myId ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <span className="min-w-0 truncate font-medium">
-                    {id === myId ? '나' : p.nickname}
-                    {id === gameData.firstPlayerId && (
-                      <span className="ml-1 text-xs text-amber-500">선플</span>
-                    )}
-                  </span>
-                  <span className="ml-2 shrink-0 font-bold tabular-nums">{p.score}점</span>
-                </div>
-              ))}
-            </div>
-
-            {gameData.roundHistory.length > 0 && (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  라운드 기록
-                </p>
-                <div className="flex-1 overflow-y-auto">
-                  <RoundHistoryTable
-                    history={gameData.roundHistory}
-                    players={gameData.players}
-                    myId={myId}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <BNW2SidePanel
+            gameData={gameData}
+            myId={myId}
+            showTracker={showTracker}
+            opponentStage={opponentPlayer?.stage}
+            estimate={opponentEstimate}
+            setEstimate={setOpponentEstimate}
+          />
         }
       >
         <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-1 overflow-hidden">
@@ -699,17 +678,6 @@ export default function BNW2Game() {
                   firstNick={fp?.nickname ?? '선플'}
                   stageBefore={gameData.prevFirstStage}
                   stageAfter={fp?.stage}
-                />
-              </div>
-            )}
-
-            {/* 상대 잔여 추리 트래커: 내 차례가 아닐 때만 모바일 메인에 표시 (내 차례는 바텀시트) */}
-            {showTracker && opponentPlayer && !isMyTurn && (
-              <div className="w-full max-w-sm lg:hidden">
-                <OpponentPointTracker
-                  opponentStage={opponentPlayer.stage}
-                  estimate={opponentEstimate}
-                  setEstimate={setOpponentEstimate}
                 />
               </div>
             )}
@@ -748,14 +716,6 @@ export default function BNW2Game() {
             )}
         </div>
       </GameFrame>
-
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
-        <RoundHistoryTable
-          history={gameData.roundHistory}
-          players={gameData.players}
-          myId={myId}
-        />
-      </Modal>
 
       {/* ── Mobile bottom sheet (내 차례) ── */}
       {!isSpectator && (

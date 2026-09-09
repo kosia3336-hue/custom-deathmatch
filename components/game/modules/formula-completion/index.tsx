@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/cdm/Card';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -11,11 +11,25 @@ import RoundHistory from './RoundHistory';
 import RoundReveal from './RoundReveal';
 import ScoreBoard from './ScoreBoard';
 import { GameFrame } from '@/components/game/GameFrame';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 export default function FormulaCompletionGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as unknown as FormulaCompletionGameData | undefined;
   const myId = useMySocketId();
+  const { setHud } = useRoomLayout();
+
+  useEffect(() => {
+    if (!gameData) return;
+    const phase = gameData.phase === 'playing' ? '수식 입력' : gameData.phase === 'finished' ? '종료' : '라운드 결과';
+    setHud({
+      round: `${gameData.round} / ${gameData.totalRounds}R`,
+      order: phase,
+      memo: <FormulaInfo gameData={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [gameData, myId, setHud]);
 
   if (!gameData) {
     return (
@@ -29,7 +43,6 @@ export default function FormulaCompletionGame() {
 
   return (
     <GameFrame
-      info={<ScoreBoard gameData={gameData} myId={myId} />}
       controls={
         gameData.phase === 'playing' ? (
           isPlayer ? (
@@ -46,7 +59,7 @@ export default function FormulaCompletionGame() {
           )
         ) : null
       }
-      aside={<RoundHistory gameData={gameData} />}
+      aside={<FormulaInfo gameData={gameData} myId={myId} />}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden">
         <Card className="w-full text-center">
@@ -80,6 +93,19 @@ export default function FormulaCompletionGame() {
         )}
       </div>
     </GameFrame>
+  );
+}
+
+function FormulaInfo({ gameData, myId }: { gameData: FormulaCompletionGameData; myId: string }) {
+  return (
+    <GameInfoStack>
+      <GameInfoPart title="점수">
+        <ScoreBoard gameData={gameData} myId={myId} className="border-0 bg-transparent p-0" />
+      </GameInfoPart>
+      <GameInfoPart title="라운드 기록">
+        <RoundHistory gameData={gameData} className="flex-wrap justify-start" />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }
 

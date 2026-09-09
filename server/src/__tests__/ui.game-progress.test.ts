@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_IDS } from '../../../shared/types/game';
 import type { GameState } from '../../../shared/types/events';
-import { GAME_PROGRESS, getGameClock, getGameProgress } from '../../../lib/gameProgress';
+import { GAME_PROGRESS, getGameClock, getGameProgress, getGameStatus } from '../../../lib/gameProgress';
 
 const state = (gameData: unknown): GameState => ({
   roomId: 'test',
@@ -24,6 +24,12 @@ describe('공통 게임 상단 바', () => {
     );
     expect(getGameProgress(GAME_IDS.BANK_GAME, state({ round: 3, maxRound: 10 }))).toBe('3 / 10R');
     expect(getGameProgress(GAME_IDS.FOUR_GRAVITY, state({}))).toBe('8턴');
+  });
+  it('개별 HUD가 없는 게임도 현재 진행 단계를 상단 바 문구로 만든다', () => {
+    expect(getGameStatus(state({ phase: 'betting', currentTurnId: 'me' }), 'me')).toBe('내 차례');
+    expect(getGameStatus(state({ phase: 'betting', currentTurnId: 'other' }), 'me')).toBe('상대 차례');
+    expect(getGameStatus(state({ phase: 'reveal' }), 'me')).toBe('공개');
+    expect(getGameStatus(state({ phase: 'finished' }), 'me')).toBe('종료');
   });
   it('COM 나이트의 여행은 방 설정 대신 실제 60초를 사용하고 결과 중에는 멈춘다', () => {
     const data = { phase: 'playing', roundSeconds: 60, roundStartedAt: 3000 };

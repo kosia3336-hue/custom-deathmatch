@@ -6,7 +6,6 @@ import { useNicknameStore } from '@/stores/nickname';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import type {
   DoubleSidedChessGameData,
@@ -20,9 +19,10 @@ import Button from '@/components/ui/Button';
 import Board from './Board';
 import PrisonerBar from './PrisonerBar';
 import InfoPanel from './InfoPanel';
-import PlayerBadge from './PlayerBadge';
 import { WIN_TYPE_TOAST_LABEL } from './constants';
 import { getValidMoves, getValidPrisonerPlacements } from './boardUtils';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function DoubleSidedChessGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -45,7 +45,7 @@ export default function DoubleSidedChessGame() {
   );
 
   const myId = useMySocketId();
-  const { remaining: timerRemaining } = useTurnTimer();
+  const { setHud } = useRoomLayout();
 
   const myOwner: Owner | null = useMemo(() => {
     if (!gameData || !myId) return null;
@@ -59,6 +59,15 @@ export default function DoubleSidedChessGame() {
   }, [gameData, myId]);
 
   const isMyTurn = !!gameData && !!myOwner && gameData.currentOwner === myOwner && !isSpectator;
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${turnNumber}턴`,
+      order: gameData.winner ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
+      memo: <DoubleSidedChessSidePanel gameData={gameData} />,
+    });
+    return () => setHud(null);
+  }, [gameData, isMyTurn, setHud, turnNumber]);
 
   const [selectedPiece, setSelectedPiece] = useState<Position | null>(null);
   const [selectedPrisoner, setSelectedPrisoner] = useState<PieceType | null>(null);
@@ -173,22 +182,6 @@ export default function DoubleSidedChessGame() {
     <div className="flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="flex flex-1 flex-col items-center gap-1 p-2 lg:p-4">
-          {/* 플레이어 뱃지 (모바일) */}
-          <div className="mb-1 flex w-full max-w-2xl justify-between lg:hidden">
-            <PlayerBadge
-              player={gameData.players.first}
-              owner="first"
-              isCurrent={gameData.currentOwner === 'first'}
-              remaining={gameData.currentOwner === 'first' ? timerRemaining : null}
-            />
-            <PlayerBadge
-              player={gameData.players.second}
-              owner="second"
-              isCurrent={gameData.currentOwner === 'second'}
-              remaining={gameData.currentOwner === 'second' ? timerRemaining : null}
-            />
-          </div>
-
           {/* second(파랑) 포로 — 보드 위, 항상 고정 */}
           <div className="w-full max-w-2xl shrink-0">
             <PrisonerBar
@@ -252,14 +245,18 @@ export default function DoubleSidedChessGame() {
         </div>
 
         {/* 데스크탑: 사이드 패널 */}
-        <div className="hidden lg:flex lg:w-56 lg:flex-col lg:border-l lg:border-gray-200 lg:p-4">
-          <InfoPanel
-            turnNumber={turnNumber}
-            players={gameData.players}
-            currentOwner={gameData.currentOwner}
-          />
+        <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
+          <DoubleSidedChessSidePanel gameData={gameData} />
         </div>
       </div>
     </div>
+  );
+}
+
+function DoubleSidedChessSidePanel({ gameData }: { gameData: DoubleSidedChessGameData }) {
+  return (
+    <GameInfoPart title="플레이어">
+      <InfoPanel players={gameData.players} currentOwner={gameData.currentOwner} />
+    </GameInfoPart>
   );
 }

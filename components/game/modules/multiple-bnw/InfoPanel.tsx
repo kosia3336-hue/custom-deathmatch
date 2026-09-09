@@ -1,26 +1,20 @@
 'use client';
 
 import type { MultipleBnwGameData, MBNWTile } from '@/shared/types/multiple-bnw';
-import { MBNW_TILE_COLOR, MBNW_TOTAL_ROUNDS } from '@/shared/types/multiple-bnw';
+import { MBNW_TILE_COLOR } from '@/shared/types/multiple-bnw';
 
 interface InfoPanelProps {
-  round: number;
   players: MultipleBnwGameData['players'];
   roundHistory: MultipleBnwGameData['roundHistory'];
   myId: string;
 }
 
-export default function InfoPanel({ round, players, roundHistory, myId }: InfoPanelProps) {
+export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProps) {
   const pEntries = Object.entries(players);
   const me = players[myId];
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">라운드</p>
-        <p className="text-lg font-bold text-gray-800">{round} / {MBNW_TOTAL_ROUNDS}</p>
-      </div>
-
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">점수</p>
         <div className="space-y-2">

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CompleteHapCard, CompleteHapGameData } from '@/shared/types/complete-hap';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
 const BACKGROUND_COLORS = {
   black: '#111318',
@@ -80,7 +81,7 @@ function RoundWorkspace({
   const [selection, setSelection] = useState<number[]>([]);
   const [savedSets, setSavedSets] = useState<number[][]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
+  const { setHud } = useRoomLayout();
   const canPlay = isPlayer && gameData.phase === 'playing' && !isSubmitting;
 
   function toggleCard(cardIndex: number) {
@@ -124,34 +125,29 @@ function RoundWorkspace({
       onRemove={removeSavedHap}
     />
   );
+  const sidePanel = (
+    <CompleteHapInfo gameData={gameData} myId={myId} savedPanel={savedPanel} playerEntries={playerEntries} />
+  );
+
+  useEffect(() => {
+    setHud({
+      round: `${gameData.round} / ${gameData.totalRounds}R`,
+      order: gameData.phase === 'playing' ? '합 찾기' : gameData.phase === 'finished' ? '종료' : '라운드 판정',
+      memo: (
+        <CompleteHapInfo gameData={gameData} myId={myId} savedPanel={savedPanel} playerEntries={playerEntries} />
+      ),
+    });
+    return () => setHud(null);
+  // setHud가 부모를 다시 그리므로 매 렌더마다 새로 만들어지는 JSX 조각은 의존성에서 제외한다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameData, savedSets, setHud]);
 
   return (
     <>
       <GameFrame
-        info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-2 items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
-            {playerEntries.map(([playerId, player], index) => (
-              <div
-                key={playerId}
-                className={cn(
-                  'border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
-                  index === 1 && 'order-3 justify-self-end text-right',
-                )}
-              >
-                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
-                  {player.nickname}
-                  {playerId === myId ? ' (나)' : ''}
-                </p>
-                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
-                  득점 {gameData.scores[playerId] ?? 0}
-                </p>
-              </div>
-            ))}
-          </div>
-        }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
                 onClick={saveHap}
@@ -168,13 +164,6 @@ function RoundWorkspace({
               >
                 {isSubmitting ? '판정 중...' : '결 외치기'}
               </button>
-              <button
-                type="button"
-                onClick={() => setShowSaved(true)}
-                className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md min-h-11 border px-3 text-[11px] font-black tabular-nums lg:hidden"
-              >
-                저장 {savedSets.length}
-              </button>
             </div>
             <p
               className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]"
@@ -188,7 +177,7 @@ function RoundWorkspace({
             </p>
           </div>
         }
-        aside={savedPanel}
+        aside={sidePanel}
       >
         <div
           className="mx-auto grid w-full grid-cols-3 gap-1.5 sm:gap-2"
@@ -245,10 +234,30 @@ function RoundWorkspace({
         )}
       </GameFrame>
 
-      <Modal open={showSaved} onClose={() => setShowSaved(false)} title="저장한 합">
-        {savedPanel}
-      </Modal>
     </>
+  );
+}
+
+function CompleteHapInfo({ gameData, myId, savedPanel, playerEntries }: {
+  gameData: CompleteHapGameData;
+  myId: string;
+  savedPanel: React.ReactNode;
+  playerEntries: [string, { nickname: string }][];
+}) {
+  return (
+    <GameInfoStack>
+      <GameInfoPart title="점수">
+        <div className="space-y-1.5">
+          {playerEntries.map(([playerId, player]) => (
+            <div key={playerId} className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm">
+              <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+              <span className="font-black tabular-nums">{gameData.scores[playerId] ?? 0}점</span>
+            </div>
+          ))}
+        </div>
+      </GameInfoPart>
+      <GameInfoPart>{savedPanel}</GameInfoPart>
+    </GameInfoStack>
   );
 }
 

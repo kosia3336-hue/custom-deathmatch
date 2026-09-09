@@ -5,24 +5,17 @@ import { BRPS_INITIAL_CHIPS, BRPS_TOTAL_ROUNDS } from '@/shared/types/betting-rp
 import RoundHistoryTable from './RoundHistoryTable';
 
 interface Props {
-  round: number;
-  totalRounds: number;
   players: Record<string, BRPSPlayerInfo>;
   roundHistory: BRPSRoundRecord[];
   myId: string;
 }
 
-export default function InfoPanel({ round, totalRounds, players, roundHistory, myId }: Props) {
+export default function InfoPanel({ players, roundHistory, myId }: Props) {
   const pIds = Object.keys(players);
   const maxChips = BRPS_INITIAL_CHIPS + BRPS_TOTAL_ROUNDS * 2; // theoretical max
 
   return (
     <div className="space-y-0 divide-y divide-gray-100 text-sm">
-      {/* Header */}
-      <div className="pb-3 font-semibold text-gray-700">
-        라운드 {round} / {totalRounds}
-      </div>
-
       {/* Chips */}
       <div className="py-3 space-y-1.5">
         <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">칩</div>
