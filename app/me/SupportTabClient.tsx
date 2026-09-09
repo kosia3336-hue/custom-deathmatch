@@ -12,14 +12,6 @@ import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { REPORT_CATEGORY_LABELS } from '@/lib/report-labels';
 import type { ReportStatus } from '@/lib/supabase/database.types';
 
-const INQUIRY_CATEGORY_LABELS: Record<string, string> = {
-  bug: '버그/오류',
-  account: '계정/정지',
-  rules: '규칙/정책',
-  report_followup: '신고 처리 문의',
-  etc: '기타',
-};
-
 interface ReportRow {
   id: string;
   category: string;
@@ -86,7 +78,7 @@ export default function SupportTabClient({
                     <InquiryStatusChip status={q.status} />
                   </div>
                   <p className="mt-1 text-xs text-cdm-fg-muted">
-                    {INQUIRY_CATEGORY_LABELS[q.category] ?? q.category} ·{' '}
+                    {q.category_label ?? q.category} ·{' '}
                     {new Date(q.created_at).toLocaleDateString('ko-KR')}
                   </p>
                 </Card>

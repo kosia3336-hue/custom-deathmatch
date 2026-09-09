@@ -6,8 +6,9 @@ import { ensureRankStatsRow } from '../db/rankStats.js';
 import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '../rank/kst.js';
 import { startGame } from './game.js';
 import { socketRoom, emitRoomStateToRoom } from './utils.js';
-import type { Player, DisplayedTitle } from '@shared/types/room.js';
+import { AI_PLAYER_ID, type Player, type DisplayedTitle } from '@shared/types/room.js';
 import type { RankMatchGuildSnap, RankMatchedPayload } from '@shared/types/rank.js';
+import { COUNTER_MATCH_CHANCE, RANK_VS_NAV_SEC } from '@shared/types/rank.js';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import type { IO, TypedSocket } from './types.js';
@@ -20,6 +21,26 @@ import { isLiveDummySocketId, maybeStartLiveDummyAgent } from '../dummy/live/ind
 import { getLiveDummyRuntime, isLiveDummyMemberId } from '../dummy/live/state.js';
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
+const pendingHiddenMatchStarts = new Map<string, ReturnType<typeof setTimeout>>();
+
+export function clearPendingHiddenMatchStart(roomId: string) {
+  const t = pendingHiddenMatchStarts.get(roomId);
+  if (!t) return;
+  clearTimeout(t);
+  pendingHiddenMatchStarts.delete(roomId);
+}
+
+function scheduleHiddenMatchStart(io: IO, roomId: string) {
+  clearPendingHiddenMatchStart(roomId);
+  const handle = setTimeout(() => {
+    pendingHiddenMatchStarts.delete(roomId);
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'waiting') return;
+    if (room.players.filter((p) => p.id !== AI_PLAYER_ID).length !== 2) return;
+    startGame(io, roomId);
+  }, RANK_VS_NAV_SEC * 1000);
+  pendingHiddenMatchStarts.set(roomId, handle);
+}
 
 function resolveQueueSocket(io: IO, socketId: string) {
   const real = io.sockets.sockets.get(socketId);
@@ -125,6 +146,7 @@ function buildMatchedPayload(args: {
   opponentNickname: string;
   opponentGuild: RankMatchGuildSnap | null;
   opponentAnon: boolean;
+  hiddenMatch?: boolean;
 }): RankMatchedPayload {
   return {
     roomId: args.roomId,
@@ -142,6 +164,7 @@ function buildMatchedPayload(args: {
     opponentTier: args.opponentAnon ? null : args.opponent.tier,
     opponentRp: null,
     opponentIsPlacement: args.opponentAnon ? null : !args.opponent.placementDone,
+    ...(args.hiddenMatch ? { hiddenMatch: true } : {}),
   };
 }
 
@@ -228,6 +251,7 @@ async function buildRankMatchedRoom(
   sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id), sessions.getGuildId(hostPlayer.id), sessions.getGuildName(hostPlayer.id));
   sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id), sessions.getGuildId(guestPlayer.id), sessions.getGuildName(guestPlayer.id));
 
+  const hiddenMatch = Math.random() < COUNTER_MATCH_CHANCE;
   const room = roomStore.create({
     title: rankedRoomTitle('밴픽'),
     gameId: 'ban-pick',
@@ -237,12 +261,13 @@ async function buildRankMatchedRoom(
     maxPlayers: 2,
     minPlayers: 2,
     timeLimitSeconds: 180,
-    gameOptions: { banCount: 3, banTurnSeconds: 30 },
+    gameOptions: hiddenMatch ? {} : { banCount: 3, banTurnSeconds: 30 },
     turnOrderMode: 'random',
     host: hostPlayer,
     isRanked: true,
     rankSeasonId: seasonId,
     spectatorAllowed: true,
+    hiddenMatch,
   });
 
   if (!roomStore.addPlayer(room.id, guestPlayer)) {
@@ -305,6 +330,7 @@ async function buildRankMatchedRoom(
       opponentNickname: ANONYMOUS_NICKNAME,
       opponentGuild: guestIsAnon ? null : (guilds.get(guestPlayer.memberId) ?? null),
       opponentAnon: guestIsAnon,
+      hiddenMatch,
     }),
   );
   guestSock.emit(
@@ -319,10 +345,15 @@ async function buildRankMatchedRoom(
       opponentNickname: ANONYMOUS_NICKNAME,
       opponentGuild: hostIsAnon ? null : (guilds.get(hostPlayer.memberId) ?? null),
       opponentAnon: hostIsAnon,
+      hiddenMatch,
     }),
   );
 
-  startGame(io, room.id);
+  if (hiddenMatch) {
+    scheduleHiddenMatchStart(io, room.id);
+  } else {
+    startGame(io, room.id);
+  }
 
   for (const p of [hostPlayer, guestPlayer]) {
     if (!p.memberId || !isLiveDummyMemberId(p.memberId)) continue;

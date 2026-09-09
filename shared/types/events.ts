@@ -16,6 +16,7 @@ import type {
   BanPickUnbanTurnPayload,
   BanPickUnbanUpdatePayload,
 } from './ban-pick';
+import type { CounterBanViewPayload } from './counter-ban';
 
 export interface CreateRoomData {
   gameId: string;
@@ -27,6 +28,8 @@ export interface CreateRoomData {
   timeLimitSeconds?: number | null;
   /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
   gameOptions?: Record<string, unknown>;
+  /** 관리자 전용 카운터 매치 방 */
+  hiddenMatch?: boolean;
 }
 
 export interface JoinRoomData {
@@ -127,7 +130,7 @@ export interface RankPlayerOutcome {
   placementJustFinished?: boolean;
   /** 배치전 구간에서 치른 판이면 true (RP 변동 없음, 카운트만) */
   placementMatch?: boolean;
-  /** 정식 랭크 판 RP 표시용 (동티어 ±20 기준 분해) */
+  /** 정식 랭크 판 RP 표시용 (동티어 ±20 기준 분해). streakVersusParity 는 항상 0. */
   rpBreakdown?: {
     parityReference: number;
     tierVersusParity: number;
@@ -239,6 +242,7 @@ export interface ClientToServerEvents {
   'game:action': (data: Record<string, unknown>) => void;
   'game:undo:request': () => void;
   'banpick:ban': (data: { gameId: string }) => void;
+  'counterban:ban': (data: { gameId: string }) => void;
   'banpick:ready': () => void;
   'banpick:noban': () => void;
   'banpick:unban': (data: { gameId: string }) => void;
@@ -397,6 +401,8 @@ export interface ServerToClientEvents {
   'banpick:lottery': (payload: BanPickLotteryPayload) => void;
   'banpick:unban_turn': (payload: BanPickUnbanTurnPayload) => void;
   'banpick:unban_update': (payload: BanPickUnbanUpdatePayload) => void;
+  'counterban:start': (payload: CounterBanViewPayload) => void;
+  'counterban:update': (payload: CounterBanViewPayload) => void;
   'game:undo:declined': () => void;
   'game:ended': (result: GameResult) => void;
   /** 랭크 멀티 종료 시 참가자에게만 (RP 분해·챌린저 여부 등 본인 전용) */

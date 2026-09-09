@@ -428,7 +428,8 @@ function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMo
     currentColor: s.currentColor,
     lastGravityBlack: s.lastGravityBlack,
     lastGravityWhite: s.lastGravityWhite,
-    useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
+    useStrong: s.ownerToken !== null,
+    timeLimitMs: s.ownerToken !== null ? 30_000 : s.aiThinkSeconds * 1000,
   };
 
   return new Promise((resolve) => {

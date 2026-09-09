@@ -1,6 +1,9 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
-import { resolveAbstractAiDifficulty } from '@shared/types/game.js';
+import {
+  resolveAbstractAiDifficulty,
+  resolveAbstractAiThinkSeconds,
+} from '@shared/types/game.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
 import { sessions } from '../../../store/sessions.js';
 import type { Position, PieceType } from '@shared/types/double-sided-chess.js';
@@ -72,6 +75,7 @@ export function initDoubleSidedChess(
     timeLimitSeconds,
     turnTimer: null,
     playMode,
+    aiThinkSeconds: resolveAbstractAiThinkSeconds(gameOptions),
     aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty, 'game-002'),
     gameOver: false,
     actionLog: [],

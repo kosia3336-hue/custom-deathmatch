@@ -500,29 +500,44 @@ export function GameListPicker({
           </div>
 
           {/* 목록 — 모달 본문 하나만 스크롤하도록 자체 스크롤을 두지 않는다 */}
-          <div className="grid grid-cols-2 gap-2 rounded-lg border border-cdm-border bg-cdm-page p-2 sm:grid-cols-6">
-            {visibleModes.map((m) => (
-              <ModeCard
-                key={m.id}
-                label={m.label}
-                desc={m.desc}
-                art={m.art}
-                active={activeModeId === m.id}
-                onClick={() => onSelectMode(m.id)}
-              />
-            ))}
+          <div className="space-y-2 rounded-lg border border-cdm-border bg-cdm-page p-2">
+            {visibleModes.length > 0 && (
+              <div
+                className={
+                  visibleModes.length >= 3
+                    ? 'grid grid-cols-3 gap-2'
+                    : 'grid grid-cols-2 gap-2'
+                }
+              >
+                {visibleModes.map((m) => (
+                  <ModeCard
+                    key={m.id}
+                    label={m.label}
+                    desc={m.desc}
+                    art={m.art}
+                    active={activeModeId === m.id}
+                    onClick={() => onSelectMode(m.id)}
+                    className="sm:col-span-1"
+                  />
+                ))}
+              </div>
+            )}
 
-            {filteredGames.map((g) => (
-              <GameCard
-                key={g.id}
-                game={g}
-                active={activeGameId === g.id}
-                onClick={() => onSelectGame(g)}
-              />
-            ))}
+            {filteredGames.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                {filteredGames.map((g) => (
+                  <GameCard
+                    key={g.id}
+                    game={g}
+                    active={activeGameId === g.id}
+                    onClick={() => onSelectGame(g)}
+                  />
+                ))}
+              </div>
+            )}
 
             {!hasResults && (
-              <p className="col-span-2 py-6 text-center text-xs text-cdm-fg-muted sm:col-span-6">
+              <p className="py-6 text-center text-xs text-cdm-fg-muted">
                 조건에 맞는 게임이 없습니다.
               </p>
             )}

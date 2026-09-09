@@ -13,6 +13,7 @@ export interface MemberInfo {
   id: string;
   nickname: string;
   status: 'active' | 'suspended' | 'banned' | 'withdrawn';
+  role: 'user' | 'admin';
   displayedTitle: { id: string; name: string; color: string; effect: string | null } | null;
   /** 소속 길드 마크 (미가입/마크 미등록이면 null) */
   /** 소속 길드 ID (미가입이면 null) — 길드 채팅 소켓방 라우팅용 */
@@ -24,6 +25,10 @@ export interface MemberInfo {
   skinExpiries: Array<{ skinId: string; expiresAt: Date }>;
   /** 장착 이펙트의 만료 시각. 영구·미장착이면 null */
   effectExpiry: Date | null;
+}
+
+export function isAdminSocket(socket: { data: unknown }): boolean {
+  return (socket.data as { member?: { role?: string } | null }).member?.role === 'admin';
 }
 
 /** access_token → 회원 정보 (모두 미설정/실패 시 null) */
@@ -51,10 +56,12 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
 
   const { data: privRow } = await sb
     .from('members_private')
-    .select('status')
+    .select('status, role')
     .eq('member_id', memberId)
     .maybeSingle();
-  const status = (privRow as { status?: string } | null)?.status as MemberInfo['status'] | undefined;
+  const priv = privRow as { status?: string; role?: string } | null;
+  const status = priv?.status as MemberInfo['status'] | undefined;
+  const role: MemberInfo['role'] = priv?.role === 'admin' ? 'admin' : 'user';
 
   const displayedTitle = await loadResolvedDisplayedTitle(
     sb,
@@ -120,6 +127,7 @@ export async function getMemberFromAccessToken(accessToken: string): Promise<Mem
     id: member.id,
     nickname: member.nickname,
     status: status ?? 'active',
+    role,
     displayedTitle,
     guildId,
     guildName,

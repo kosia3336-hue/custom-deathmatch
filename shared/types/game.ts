@@ -48,7 +48,7 @@ export const GAME_IDS = {
   BAN_PICK: 'ban-pick',
 } as const;
 
-/** 추상전략 COM에서 선택할 수 있는 AI 난이도. 보통이 이전 동작과 같은 기본값이다. */
+/** 삼층 오목 등 기존 COM 난이도. 사중력·양면장기는 고민 시간(`aiThinkSeconds`)을 쓴다. */
 export const ABSTRACT_AI_DIFFICULTIES = ['normal', 'hard'] as const;
 export type AbstractAiDifficulty = (typeof ABSTRACT_AI_DIFFICULTIES)[number];
 export const DEFAULT_ABSTRACT_AI_DIFFICULTY: AbstractAiDifficulty = 'normal';
@@ -59,6 +59,35 @@ export const PAUSED_HARD_AI_GAME_IDS: readonly string[] = [GAME_IDS.FOUR_GRAVITY
 export function resolveAbstractAiDifficulty(value: unknown, gameId?: string): AbstractAiDifficulty {
   if (gameId && PAUSED_HARD_AI_GAME_IDS.includes(gameId)) return 'normal';
   return value === 'hard' ? 'hard' : DEFAULT_ABSTRACT_AI_DIFFICULTY;
+}
+
+/** 사중력 사목·양면장기 COM이 한 수에 쓸 탐색 예산(초). 기본 5초, 최대 3분. */
+export const MIN_ABSTRACT_AI_THINK_SECONDS = 5;
+export const MAX_ABSTRACT_AI_THINK_SECONDS = 180;
+export const DEFAULT_ABSTRACT_AI_THINK_SECONDS = 5;
+
+export function resolveAbstractAiThinkSeconds(
+  gameOptions?: Record<string, unknown> | null,
+): number {
+  const raw = gameOptions?.aiThinkSeconds;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.min(
+      MAX_ABSTRACT_AI_THINK_SECONDS,
+      Math.max(MIN_ABSTRACT_AI_THINK_SECONDS, Math.round(raw)),
+    );
+  }
+  // 예전 `어려움` 방: 강한 엔진 30초에 맞추던 예산을 노말 엔진에 그대로 넘긴다.
+  if (gameOptions?.aiDifficulty === 'hard') return 30;
+  return DEFAULT_ABSTRACT_AI_THINK_SECONDS;
+}
+
+export function formatAbstractAiThinkSeconds(seconds: number): string {
+  const n = resolveAbstractAiThinkSeconds({ aiThinkSeconds: seconds });
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  if (m === 0) return `${s}초`;
+  if (s === 0) return `${m}분`;
+  return `${m}분 ${s}초`;
 }
 
 export function isAbstractStrategyGameId(gameId: string | null | undefined): boolean {

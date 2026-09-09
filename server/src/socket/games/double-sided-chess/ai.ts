@@ -9,7 +9,7 @@ export interface AIWorkerData {
   prisoners: { first: PieceType[]; second: PieceType[] };
   currentOwner: Owner;
   useStrong?: boolean;
-  /** 있으면 COM 워커 기본 5s/90s 대신 이 예산(ms)을 쓴다. 더미 상중하. */
+  /** 있으면 COM 워커 기본 5s 대신 이 예산(ms)을 쓴다. COM 고민 시간·더미 상중하. */
   timeLimitMs?: number;
 }
 

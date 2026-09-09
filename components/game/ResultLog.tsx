@@ -191,8 +191,21 @@ export default function ResultLog() {
   }
 
   const sortedRanks = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
-  const isDraw = sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
-  const myRanking = gameResult.rankings.find(r => r.playerId === myId);
+  const isDoubleLoss = sortedRanks.length >= 2 && sortedRanks.every((r) => r.rank !== 1);
+  const isDraw =
+    !isDoubleLoss && sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
+  const resignOf = (rank: number | undefined) =>
+    gameResult.endedByForfeit === true && rank === 2 && !isDoubleLoss;
+  const myRanking = gameResult.rankings.find((r) => r.playerId === myId);
+  const kakaoResult = isDoubleLoss
+    ? '양쪽 패배'
+    : sortedRanks.length < 2
+      ? '완료'
+      : isDraw
+        ? '무승부'
+        : myRanking?.rank === 1
+          ? '승리'
+          : '패배';
 
   // GameLogView용 players 변환
   const players: GameLogPlayer[] = room
@@ -208,18 +221,20 @@ export default function ResultLog() {
               }
             : null,
           turn: i === 0 ? 'first' : 'second',
-          isWinner: !isDraw && ranking?.rank === 1,
+          isWinner: !isDraw && !isDoubleLoss && ranking?.rank === 1,
           isDraw,
-          isResign: false,
+          isDoubleLoss,
+          isResign: resignOf(ranking?.rank),
         };
       })
     : sortedRanks.map((r, i) => ({
         nickname: r.nickname,
         title: null,
         turn: i === 0 ? ('first' as const) : ('second' as const),
-        isWinner: !isDraw && r.rank === 1,
+        isWinner: !isDraw && !isDoubleLoss && r.rank === 1,
         isDraw,
-        isResign: false,
+        isDoubleLoss,
+        isResign: resignOf(r.rank),
       }));
 
   // GameLogView용 meta 변환
@@ -234,17 +249,30 @@ export default function ResultLog() {
   };
 
   // archive viewer용 GameRecordFile
-  const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
-  const myRankOutcome =
-    gameResult.isRanked === true
-    && gameResult.rankOutcome
-    && !isSpectator
-    && member
-      ? gameResult.rankOutcome.players.find((p) => p.memberId === member.id)
-      : undefined;
-
   const rankEndedMatch =
     rankGameEnded && rankGameEnded.roomId === gameResult.roomId ? rankGameEnded : null;
+
+  const myRankOutcome = (() => {
+    if (isSpectator || !member) return undefined;
+    const fromEnded = gameResult.rankOutcome?.players.find((p) => p.memberId === member.id);
+    if (fromEnded) return fromEnded;
+    if (!rankEndedMatch) return undefined;
+    return {
+      memberId: member.id,
+      nickname: nickname ?? '',
+      rpDelta: rankEndedMatch.myRpChange,
+      tierBefore: rankEndedMatch.tierBefore,
+      tierAfter: rankEndedMatch.tierAfter,
+      rpBefore: rankEndedMatch.rpBefore,
+      rpAfter: rankEndedMatch.rpAfter,
+      promoted: rankEndedMatch.promoted,
+      demoted: rankEndedMatch.demoted,
+      placementJustFinished: rankEndedMatch.placementJustFinished === true,
+      placementMatch: rankEndedMatch.placementMatch === true,
+    };
+  })();
+
+  const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
 
   const record: GameRecordFile | null = room
     ? {
@@ -273,9 +301,18 @@ export default function ResultLog() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6">
-      {!isSpectator && myRanking && <div className="mb-4 flex justify-end">
-        <KakaoResultShareButton summary={{ gameName: room?.gameName ?? '게임', result: sortedRanks.length < 2 ? '완료' : isDraw ? '무승부' : myRanking.rank === 1 ? '승리' : '패배', playTimeMs: gameResult.playTime, totalTurns: gameResult.totalTurns }} />
-      </div>}
+      {!isSpectator && myRanking && (
+        <div className="mb-4 flex justify-end">
+          <KakaoResultShareButton
+            summary={{
+              gameName: room?.gameName ?? '게임',
+              result: kakaoResult,
+              playTimeMs: gameResult.playTime,
+              totalTurns: gameResult.totalTurns,
+            }}
+          />
+        </div>
+      )}
       <GameLogView
         players={players}
         meta={meta}

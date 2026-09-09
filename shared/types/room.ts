@@ -108,6 +108,8 @@ export interface Room {
   rankSeasonId?: number;
   /** 랭크 방은 항상 관전 허용 */
   spectatorAllowed?: boolean;
+  /** 카운터 매치 (동시 비공개 1밴). 랭크는 1/15, 커스텀은 관리자 방. */
+  hiddenMatch?: boolean;
 }
 
 export interface RoomSummary {
@@ -127,4 +129,5 @@ export interface RoomSummary {
   gameOptions: Record<string, unknown>;
   createdAt: number;
   isRanked?: boolean;
+  hiddenMatch?: boolean;
 }

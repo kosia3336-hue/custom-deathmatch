@@ -1,5 +1,4 @@
 import type { GameResult } from '@shared/types/events.js';
-import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { PlayMode } from '@shared/types/room.js';
 import type {
   Cell,
@@ -10,6 +9,7 @@ import type {
   DSCPlayerInfo,
   DoubleSidedChessAction,
 } from '@shared/types/double-sided-chess.js';
+import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { IO } from './constants.js';
 
 export type EndGameFn = (
@@ -80,6 +80,7 @@ export interface InternalState {
   timeLimitSeconds: number | null;
   turnTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
+  aiThinkSeconds: number;
   aiDifficulty: AbstractAiDifficulty;
   gameOver: boolean;
   actionLog: TurnActionLog[];

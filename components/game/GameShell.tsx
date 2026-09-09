@@ -241,7 +241,7 @@ export default function GameShell({ children }: Props) {
         socket.emit('game:time-expiry:respond', { requestId: timeExpiry.requestId, decision });
       }} />
       <div
-        className={`relative flex-1 overflow-hidden ${
+        className={`relative flex h-full min-h-0 flex-1 flex-col overflow-hidden ${
           skinTheme ? `skin-bg-${skinTheme}` : ''
         }`}
       >

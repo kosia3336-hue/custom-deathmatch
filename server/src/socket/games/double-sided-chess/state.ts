@@ -436,7 +436,8 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     board: s.board,
     prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
     currentOwner: s.currentOwner,
-    useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
+    useStrong: s.ownerToken !== null,
+    timeLimitMs: s.ownerToken !== null ? 30_000 : s.aiThinkSeconds * 1000,
   });
 }
 

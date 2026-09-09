@@ -11,6 +11,7 @@ import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRouter } from 'next/navigation';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
@@ -30,12 +31,22 @@ import {
   GameListPicker,
   type PickerMode,
 } from '@/components/room-modal/RoomModalKit';
+import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 
-const MODES: PickerMode[] = [
+const COUNTER_MATCH_MODE_ID = 'counter-match';
+
+const BASE_MODES: PickerMode[] = [
   { id: GAME_IDS.RANDOM, label: '랜덤', desc: '무작위 배정', art: '/games/random.webp' },
   { id: GAME_IDS.BAN_PICK, label: '밴픽', desc: '게임 선택 전 밴', art: '/games/ban-pick.webp' },
 ];
+
+const COUNTER_MATCH_MODE: PickerMode = {
+  id: COUNTER_MATCH_MODE_ID,
+  label: '카운터 매치',
+  desc: '동시 비공개 1밴',
+  art: '/games/ban-pick.webp',
+};
 
 const RANDOM_GAME: Game = {
   id: GAME_IDS.RANDOM,
@@ -86,10 +97,14 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
+    DEFAULT_ABSTRACT_AI_THINK_SECONDS,
+  );
   const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
     DEFAULT_ABSTRACT_AI_DIFFICULTY,
   );
   const [banCount, setBanCount] = useState(3);
+  const [hiddenMatch, setHiddenMatch] = useState(false);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
   /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
@@ -122,8 +137,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitSec(0);
     setInitialChips(25);
     setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
+    setAbstractAiThinkSeconds(DEFAULT_ABSTRACT_AI_THINK_SECONDS);
     setAbstractAiDifficulty(DEFAULT_ABSTRACT_AI_DIFFICULTY);
     setBanCount(3);
+    setHiddenMatch(false);
     fetchGames()
       .then((all) =>
         setGames(
@@ -154,10 +171,19 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
+  const modes = isAdmin ? [...BASE_MODES, COUNTER_MATCH_MODE] : BASE_MODES;
+  const activeModeId = isRandom
+    ? GAME_IDS.RANDOM
+    : isBanPick
+      ? hiddenMatch
+        ? COUNTER_MATCH_MODE_ID
+        : GAME_IDS.BAN_PICK
+      : null;
   const canConfigureTimeLimit =
     playMode === 'multi' && !isRandom && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
-  const showsAbstractAiDifficulty =
+  const showsAbstractAiThinkTime =
     playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiDifficulty = showsAbstractAiThinkTime;
   const computedTimeLimit =
     timeLimitEnabled && canConfigureTimeLimit ? timeLimitMin * 60 + timeLimitSec : null;
 
@@ -171,6 +197,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const selectGame = (g: Game) => {
     setListOpen(false);
     setSelectedGame(g);
+    setHiddenMatch(false);
     if (g.supportsMulti) setPlayMode('multi');
     else if (g.supportsCom) setPlayMode('com');
     else if (g.supportsSolo) setPlayMode('solo');
@@ -183,14 +210,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setListOpen(false);
     setError('');
     if (modeId === GAME_IDS.RANDOM) {
+      setHiddenMatch(false);
       setSelectedGame(RANDOM_GAME);
       setPlayMode('multi');
       setTimeLimitEnabled(false);
-    } else {
-      setSelectedGame(BAN_PICK_GAME);
-      setPlayMode('multi');
-      setMaxPlayers(2);
+      return;
     }
+    setSelectedGame(BAN_PICK_GAME);
+    setPlayMode('multi');
+    setMaxPlayers(2);
+    setHiddenMatch(modeId === COUNTER_MATCH_MODE_ID);
   };
 
   const handleCreate = () => {
@@ -227,27 +256,32 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       if (selectedGame.id === GAME_IDS.INDIAN_POKER) {
         gameOptions.initialChips = initialChips;
       }
-      if (selectedGame.id === GAME_IDS.BAN_PICK) {
+      if (selectedGame.id === GAME_IDS.BAN_PICK && !(isAdmin && hiddenMatch)) {
         gameOptions.banCount = banCount;
       }
       if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
         gameOptions.numberCount = formulaNumberCount;
       }
+      if (showsAbstractAiThinkTime) {
+        gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
+      }
       if (showsAbstractAiDifficulty) {
         gameOptions.aiDifficulty = abstractAiDifficulty;
       }
+      const useHidden = isAdmin && hiddenMatch && playMode === 'multi';
       socket.emit(
         'room:create',
         {
-          gameId: selectedGame.id,
+          gameId: useHidden ? GAME_IDS.BAN_PICK : selectedGame.id,
           title: title.trim(),
           playMode,
           roomType: isSoloLikePlayMode(playMode) ? 'public' : roomType,
           password:
             !isSoloLikePlayMode(playMode) && roomType === 'private' ? password : undefined,
-          maxPlayers,
+          maxPlayers: useHidden ? 2 : maxPlayers,
           timeLimitSeconds: computedTimeLimit,
           gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
+          ...(useHidden ? { hiddenMatch: true } : {}),
         },
         (res) => {
           setLoading(false);
@@ -294,9 +328,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     >
       <GameListPicker
         games={games}
-        modes={MODES}
+        modes={modes}
         activeGameId={!isRandom && !isBanPick ? (selectedGame?.id ?? null) : null}
-        activeModeId={isRandom ? GAME_IDS.RANDOM : isBanPick ? GAME_IDS.BAN_PICK : null}
+        activeModeId={activeModeId}
         onSelectGame={selectGame}
         onSelectMode={selectMode}
         listOpen={listOpen}
@@ -331,11 +365,17 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             {selectedGame && !isRandom && (
               <SettingField label="플레이 모드">
                 <div className="flex flex-wrap gap-2">
-                  {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
+                  {PLAY_MODES.filter(
+                    (key) =>
+                      gameSupportsPlayMode(selectedGame, key) && (!hiddenMatch || key === 'multi'),
+                  ).map((key) => (
                     <OptionButton
                       key={key}
                       active={playMode === key}
-                      onClick={() => setPlayMode(key)}
+                      onClick={() => {
+                        setPlayMode(key);
+                        if (key !== 'multi') setHiddenMatch(false);
+                      }}
                     >
                       {PLAY_MODE_LABEL[key]}
                     </OptionButton>
@@ -448,7 +488,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 밴 개수 (밴픽 모드) */}
-            {isBanPick && (
+            {isBanPick && !hiddenMatch && (
               <SettingField label="밴 개수" hint="(1인당, 기본 1)">
                 <div className="flex items-center gap-3">
                   <button
@@ -470,6 +510,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                   </button>
                 </div>
               </SettingField>
+            )}
+
+            {showsAbstractAiThinkTime && (
+              <AbstractAiThinkTimeField
+                value={abstractAiThinkSeconds}
+                onChange={setAbstractAiThinkSeconds}
+              />
             )}
 
             {showsAbstractAiDifficulty && (

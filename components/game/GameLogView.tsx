@@ -16,6 +16,7 @@ export interface GameLogPlayer {
   turn: 'first' | 'second';
   isWinner: boolean;
   isDraw: boolean;
+  isDoubleLoss?: boolean;
   isResign: boolean;
 }
 
@@ -76,17 +77,21 @@ export default function GameLogView({
   const first = orderedPlayers.find((p) => p.turn === 'first');
   const second = orderedPlayers.find((p) => p.turn === 'second');
 
+  const isDoubleLoss = orderedPlayers.some((p) => p.isDoubleLoss === true);
   const isDraw =
-    orderedPlayers.every((p) => p.isDraw) || orderedPlayers.some((p) => p.isDraw);
-  const winner = !isDraw ? orderedPlayers.find((p) => p.isWinner) : null;
+    !isDoubleLoss
+    && (orderedPlayers.every((p) => p.isDraw) || orderedPlayers.some((p) => p.isDraw));
+  const winner = !isDraw && !isDoubleLoss ? orderedPlayers.find((p) => p.isWinner) : null;
 
   const resultLabel = meta.mode === 'tutorial'
     ? '튜토리얼 완료'
-    : isDraw
-      ? '무승부'
-      : winner
-        ? `${winner.nickname} 승리`
-        : '게임 종료';
+    : isDoubleLoss
+      ? '양쪽 패배'
+      : isDraw
+        ? '무승부'
+        : winner
+          ? `${winner.nickname} 승리`
+          : '게임 종료';
 
   const accent = isDraw ? 'highlight' : winner ? 'accent' : 'primary';
 
@@ -116,6 +121,7 @@ export default function GameLogView({
               player={first}
               align="left"
               isDraw={isDraw}
+              isDoubleLoss={isDoubleLoss}
               isSelf={viewingAs === 'self' && first.nickname === selfNickname}
             />
           )}
@@ -129,6 +135,7 @@ export default function GameLogView({
               player={second}
               align="right"
               isDraw={isDraw}
+              isDoubleLoss={isDoubleLoss}
               isSelf={viewingAs === 'self' && second.nickname === selfNickname}
             />
           )}
@@ -158,22 +165,26 @@ function PlayerCard({
   player,
   align,
   isDraw,
+  isDoubleLoss,
   isSelf,
 }: {
   player: GameLogPlayer;
   align: 'left' | 'right';
   isDraw: boolean;
+  isDoubleLoss: boolean;
   isSelf: boolean;
 }) {
   const resultLabel = player.isResign
     ? '기권'
-    : isDraw
-      ? '무승부'
-      : player.isWinner
-        ? '승리'
-        : '패배';
+    : isDoubleLoss
+      ? '패배'
+      : isDraw
+        ? '무승부'
+        : player.isWinner
+          ? '승리'
+          : '패배';
 
-  const resultColor = player.isResign || (!isDraw && !player.isWinner)
+  const resultColor = player.isResign || isDoubleLoss || (!isDraw && !player.isWinner)
     ? 'text-cdm-fg-muted'
     : isDraw
       ? 'text-cdm-highlight'
