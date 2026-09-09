@@ -147,6 +147,17 @@
   --cdm-ease-in:  cubic-bezier(0.4, 0, 1, 1);
 
   /* z-index */
+  /*
+    화면 아래 시스템 영역(아이폰 홈 인디케이터 등)의 높이.
+
+    viewport-fit=cover 라 100vh 가 그 아래까지 내려간다. 게임 뼈대는 화면을 꽉
+    채우는 유일한 화면이라 여기를 빼 주지 않으면 판의 맨 밑줄이 제스처 바에
+    가린다 — '맨 밑이 살짝 잘린다' 는 신고가 그것이었다.
+
+    env() 는 스크립트로 바꿔 볼 수 없어 검증이 어렵다. 변수로 한 겹 싸 두면
+    개발 중에 값을 넣어 실제 기기처럼 확인할 수 있다.
+  */
+  --cdm-safe-bottom: env(safe-area-inset-bottom, 0px);
   --cdm-z-sticky: 100;
   --cdm-z-overlay: 800;
   --cdm-z-modal: 900;

@@ -187,7 +187,7 @@ export default function MobileLayout({ ctx }: Props) {
             {myPlayer?.inventory && myPlayer.inventoryAmount != null && (
               <div
                 className="overflow-y-auto px-4 py-2"
-                style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+                style={{ paddingBottom: 'max(16px, var(--cdm-safe-bottom, 0px))' }}
               >
                 <BetInput
                   turn={isFirstSubmit ? 'first' : 'second'}

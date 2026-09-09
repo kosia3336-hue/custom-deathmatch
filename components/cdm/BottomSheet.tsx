@@ -127,7 +127,7 @@ export function BottomSheet({
 
         <div
           className={cn(
-            'min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]',
+            'min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(var(--cdm-safe-bottom,0px)+1rem)]',
             bodyClassName,
           )}
         >

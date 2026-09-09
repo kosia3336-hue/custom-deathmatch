@@ -332,7 +332,7 @@ function BottomSheet({
         {/* 내용 (스크롤 가능) */}
         <div
           className="overflow-y-auto px-4 py-4"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'max(16px, var(--cdm-safe-bottom, 0px))' }}
         >
           {children}
         </div>

@@ -57,7 +57,7 @@ function BottomSheet({
         </div>
         <div
           className="overflow-y-auto px-4 pb-4"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'max(16px, var(--cdm-safe-bottom, 0px))' }}
         >
           {children}
         </div>

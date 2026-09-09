@@ -101,7 +101,19 @@ export function GameFrame({
         가 relative 를 얹어 판이 잘리고 화면 아래가 텅 비었다.
         클래스끼리는 순서로 이기고 지므로, 이것만은 인라인으로 잠근다.
       */
-      style={{ position: 'absolute', inset: 0 }}
+      /*
+        아래쪽은 시스템 영역만큼 띄운다. viewport-fit=cover 라 100vh 가 홈
+        인디케이터 아래까지 내려가는데, 뼈대가 거기까지 꽉 차면 판의 맨 밑줄이
+        제스처 바에 가린다. inset:0 대신 bottom 만 그만큼 올린다 — 안쪽 padding
+        은 게임이 className 으로 정하므로 건드리지 않는다.
+      */
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 'var(--cdm-safe-bottom, 0px)',
+      }}
       className={cn(
         'mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
         className,
