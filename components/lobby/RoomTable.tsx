@@ -65,7 +65,7 @@ export default function RoomTable({
                 <td className="px-4 py-3 text-cdm-fg max-w-[180px]">
                   <RoomTitle room={room} />
                 </td>
-                <td className="px-4 py-3 text-cdm-fg-muted whitespace-nowrap max-w-[100px] truncate">{room.hostNickname}</td>
+                <td className="px-4 py-3 text-cdm-fg-muted whitespace-nowrap max-w-[100px] truncate">{room.isRanked ? '—' : room.hostNickname}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <ProgressBar current={room.currentPlayers} max={room.maxPlayers} />
                 </td>

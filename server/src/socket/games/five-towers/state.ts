@@ -49,6 +49,7 @@ import type {
 } from './types.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -109,7 +110,7 @@ function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.phase === 'finished') return '게임이 종료되었습니다.';
   const p = getPlayer(s, s.currentPlayerId);
   const nick = p
-    ? (isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname)
+    ? nicknameForViewer(s.roomId, p.id, p.nickname, viewerToken)
     : '플레이어';
   return `${s.turn}턴 — ${nick} 차례`;
 }
@@ -159,7 +160,7 @@ function buildUnresolvedSecrets(s: InternalState, viewerId: string | null): FTUn
 
 export function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   const players: Record<string, FTPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, viewerId === s.player1.id), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, viewerId === s.player2.id), nickname: maskNick(s.player2.id, s.player2.nickname) },

@@ -7,6 +7,7 @@ import {
   isJackLiveWindow,
   isIronhyunseongLiveWindow,
   isLiveDummyEnabled,
+  isLiveDummyRankEnabled,
   liveDummyTierForGame,
 } from '../dummy/live/window.js';
 import { isMinsInLiveWindow } from '../dummy/live/roster.js';
@@ -31,6 +32,16 @@ describe('타이탄 활동 창', () => {
     delete process.env.DUMMY_LIVE;
     expect(isLiveDummyEnabled()).toBe(false);
     if (prev !== undefined) process.env.DUMMY_LIVE = prev;
+  });
+
+  it('DUMMY_LIVE_RANK 없으면 랭크 큐 비활성', () => {
+    const prev = process.env.DUMMY_LIVE_RANK;
+    delete process.env.DUMMY_LIVE_RANK;
+    expect(isLiveDummyRankEnabled()).toBe(false);
+    process.env.DUMMY_LIVE_RANK = '1';
+    expect(isLiveDummyRankEnabled()).toBe(true);
+    if (prev === undefined) delete process.env.DUMMY_LIVE_RANK;
+    else process.env.DUMMY_LIVE_RANK = prev;
   });
 });
 

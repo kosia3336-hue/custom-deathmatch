@@ -8,8 +8,7 @@ import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnap
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -66,7 +65,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   const isSolo = s.playMode === 'solo';
   const _dbg = !isSolo && isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
 
   const players: Record<string, NF4PlayerInfo> = {};
 
@@ -94,18 +93,28 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     currentSide: s.currentSide,
   };
 
-  if (_dbg && (isPlayer1 || isPlayer2) && s.phase === 'submit') {
+  if (_dbg && (isPlayer1 || isPlayer2)) {
     const opp = isPlayer1 ? s.player2 : s.player1;
-    if (opp.submitted) {
-      return {
-        ...base,
-        _x: {
-          opponentSubmitted: {
+    const submitted =
+      s.phase === 'submit' && opp.submitted
+        ? {
             number: opp.submittedNumber,
             white: opp.submittedWhite,
             black: opp.submittedBlack,
-          },
-        },
+          }
+        : null;
+    const revealed =
+      (s.phase === 'reveal' || s.phase === 'finished')
+        ? s.roundHistory[s.roundHistory.length - 1]?.players[opp.id]
+        : null;
+    const payload = submitted
+      ?? (revealed
+        ? { number: revealed.number, white: revealed.white, black: revealed.black }
+        : null);
+    if (payload) {
+      return {
+        ...base,
+        _x: { opponentSubmitted: payload },
       } as NumberFourGameData;
     }
   }

@@ -1,5 +1,5 @@
 import type { RankQueueEntry } from '../store/rankQueue.js';
-import { rankQueueStore } from '../store/rankQueue.js';
+import { isBlockedFromRankQueue, rankQueueStore } from '../store/rankQueue.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { ensureRankStatsRow } from '../db/rankStats.js';
@@ -14,6 +14,7 @@ import type { IO, TypedSocket } from './types.js';
 import { applyAutoConsumablesForRankRoom } from '../shop/applyAutoConsumables.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import { rankedRoomTitle } from '../rank/maskRankIdentity.js';
 import { makeDummySocket } from '../dummy/fakeSocket.js';
 import { isLiveDummySocketId, maybeStartLiveDummyAgent } from '../dummy/live/index.js';
 import { getLiveDummyRuntime, isLiveDummyMemberId } from '../dummy/live/state.js';
@@ -139,7 +140,7 @@ function buildMatchedPayload(args: {
     opponentGuild: args.opponentGuild,
     opponentWinStreak: args.opponentAnon ? null : args.opponent.winStreak,
     opponentTier: args.opponentAnon ? null : args.opponent.tier,
-    opponentRp: args.opponentAnon ? null : args.opponent.rp,
+    opponentRp: null,
     opponentIsPlacement: args.opponentAnon ? null : !args.opponent.placementDone,
   };
 }
@@ -228,7 +229,7 @@ async function buildRankMatchedRoom(
   sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id), sessions.getGuildId(guestPlayer.id), sessions.getGuildName(guestPlayer.id));
 
   const room = roomStore.create({
-    title: `[랭크] ${hostPlayer.nickname} vs ${guestPlayer.nickname}`,
+    title: rankedRoomTitle('밴픽'),
     gameId: 'ban-pick',
     gameName: '밴픽',
     playMode: 'multi',
@@ -267,8 +268,7 @@ async function buildRankMatchedRoom(
       const token = sessions.getToken(socketId);
       if (token) {
         roomStore.removePlayer(prevRoomId, token);
-        const prevClientRoom = roomStore.getClientRoom(prevRoomId);
-        if (prevClientRoom) io.to(socketRoom(prevRoomId)).emit('room:state', prevClientRoom);
+        emitRoomStateToRoom(io, prevRoomId);
       }
     }
   }
@@ -286,27 +286,10 @@ async function buildRankMatchedRoom(
     console.warn('[rankQueue] applyAutoConsumablesForRankRoom 실패:', (err as Error).message);
   }
 
-  // 익명 물약 적용 후 방 제목에 닉네임 마스킹 반영
-  const shopStateForTitle = getRoomShopState(room.id);
-  const anonForTitle = shopStateForTitle?.anonymizedTokens ?? new Set<string>();
-  const hostNickForTitle = anonForTitle.has(hostPlayer.id) ? ANONYMOUS_NICKNAME : hostPlayer.nickname;
-  const guestNickForTitle = anonForTitle.has(guestPlayer.id) ? ANONYMOUS_NICKNAME : guestPlayer.nickname;
-  roomStore.updateSettings(room.id, { title: `[랭크] ${hostNickForTitle} vs ${guestNickForTitle}` });
-
-  // 마스킹은 emitRoomStateToRoom 헬퍼에서 player 별로 처리.
   emitRoomStateToRoom(io, room.id);
 
-  // 매칭 모달용 — 본인 *외* 의 anonymity 적용 마스킹.
   const shopState = getRoomShopState(room.id);
   const anon = shopState?.anonymizedTokens ?? new Set<string>();
-
-  const guestForHost = anon.has(guestPlayer.id)
-    ? { nickname: ANONYMOUS_NICKNAME, title: null as null }
-    : { nickname: guestPlayer.nickname, title: guestPlayer.displayedTitle ?? null };
-  const hostForGuest = anon.has(hostPlayer.id)
-    ? { nickname: ANONYMOUS_NICKNAME, title: null as null }
-    : { nickname: hostPlayer.nickname, title: hostPlayer.displayedTitle ?? null };
-
   const guestIsAnon = anon.has(guestPlayer.id);
   const hostIsAnon = anon.has(hostPlayer.id);
 
@@ -318,8 +301,8 @@ async function buildRankMatchedRoom(
       selfTitle: hostPlayer.displayedTitle ?? null,
       selfGuild: guilds.get(hostPlayer.memberId) ?? null,
       opponent: guestEntry,
-      opponentTitle: guestForHost.title,
-      opponentNickname: guestForHost.nickname,
+      opponentTitle: guestIsAnon ? null : (guestPlayer.displayedTitle ?? null),
+      opponentNickname: ANONYMOUS_NICKNAME,
       opponentGuild: guestIsAnon ? null : (guilds.get(guestPlayer.memberId) ?? null),
       opponentAnon: guestIsAnon,
     }),
@@ -332,8 +315,8 @@ async function buildRankMatchedRoom(
       selfTitle: guestPlayer.displayedTitle ?? null,
       selfGuild: guilds.get(guestPlayer.memberId) ?? null,
       opponent: hostEntry,
-      opponentTitle: hostForGuest.title,
-      opponentNickname: hostForGuest.nickname,
+      opponentTitle: hostIsAnon ? null : (hostPlayer.displayedTitle ?? null),
+      opponentNickname: ANONYMOUS_NICKNAME,
       opponentGuild: hostIsAnon ? null : (guilds.get(hostPlayer.memberId) ?? null),
       opponentAnon: hostIsAnon,
     }),
@@ -366,6 +349,11 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
 
     if (!member?.id) {
       callback({ success: false, error: '회원 로그인이 필요합니다.' });
+      return;
+    }
+
+    if (isBlockedFromRankQueue(member.id)) {
+      callback({ success: false, error: '더미 계정은 지금은 랭크에 참가하지 않습니다.' });
       return;
     }
 
@@ -406,6 +394,11 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
     if (!nickname) {
       console.log(`[rankQueue:join] BLOCKED — no nickname for socket ${socket.id}`);
       callback({ success: false, error: '닉네임을 확인할 수 없습니다.' });
+      return;
+    }
+
+    if (isBlockedFromRankQueue(member.id, nickname)) {
+      callback({ success: false, error: '더미 계정은 지금은 랭크에 참가하지 않습니다.' });
       return;
     }
 

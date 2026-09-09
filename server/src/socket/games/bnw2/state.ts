@@ -7,6 +7,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { BNW2_INITIAL_POINTS, BNW2_MAX_SCORE, REVEAL_DELAY_MS, WIN_DISPLAY_MS, calcBNW2Stage, calcBNW2Color } from './constants.js';
 import { judgeRound, autoSubmitPoints } from './judge.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -70,7 +71,7 @@ function buildRevealData(s: InternalState): BNW2RevealData | null {
 function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameData {
   const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
   const players: Record<string, BNW2PlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, socketId === s.player1.id || (_dbg && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, socketId === s.player2.id || (_dbg && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },

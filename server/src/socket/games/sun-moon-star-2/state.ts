@@ -49,8 +49,7 @@ import type {
 import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 export const gameStates = new Map<string, SMS2InternalState>();
 
@@ -111,9 +110,7 @@ function phaseMessage(s: SMS2InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   const ext = s.suddenDeath ? '서든데스 ' : '';
   const first = getFirstPlayer(s);
-  const firstNick = isTokenAnonymized(s.roomId, first.id) && first.id !== viewerToken
-    ? ANONYMOUS_NICKNAME
-    : first.nickname;
+  const firstNick = nicknameForViewer(s.roomId, first.id, first.nickname, viewerToken);
   switch (s.phase) {
     case 'powder': {
       const p1 = !!s.player1.pendingPowder;
@@ -198,7 +195,7 @@ function buildGameDataForViewer(
 ): SMS2GameData {
   const maskNick = (p: SMS2PlayerInternal) => {
     const isMe = (viewerSide === 'p1' && p.side === 'p1') || (viewerSide === 'p2' && p.side === 'p2');
-    return isTokenAnonymized(s.roomId, p.id) && !isMe ? ANONYMOUS_NICKNAME : p.nickname;
+    return nicknameForViewer(s.roomId, p.id, p.nickname, isMe ? p.id : viewerToken);
   };
   const players = {
     p1: { ...playerToPublic(s.player1), nickname: maskNick(s.player1) },

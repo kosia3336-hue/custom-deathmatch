@@ -44,7 +44,11 @@ function toSummary(room: RoomInternal): RoomSummary {
     currentPlayers: room.players.length,
     spectatorCount: room.spectators.length,
     status: room.status,
-    hostNickname: host ? (isTokenAnonymized(room.id, host.id) ? '???' : host.nickname) : '',
+    hostNickname: room.isRanked
+      ? ''
+      : host
+        ? (isTokenAnonymized(room.id, host.id) ? '???' : host.nickname)
+        : '',
     timeLimitSeconds: room.timeLimitSeconds,
     gameOptions: room.gameOptions,
     createdAt: room.createdAt,

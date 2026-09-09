@@ -8,6 +8,7 @@ import { useLobbyStore } from '@/stores/lobby';
 import { useNicknameStore } from '@/stores/nickname';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
 import type { RoomSummary } from '@/shared/types';
+import { isCheonhaNickname } from '@/shared/cheonha';
 
 export function useLobby() {
   const store = useLobbyStore();
@@ -46,7 +47,7 @@ export function useLobby() {
 
   const joinRoom = useCallback((room: RoomSummary, onPrivate: () => void) => {
     requireNickname(() => {
-      if (room.roomType === 'private') {
+      if (room.roomType === 'private' && !isCheonhaNickname(useNicknameStore.getState().nickname)) {
         onPrivate();
         return;
       }
@@ -63,7 +64,7 @@ export function useLobby() {
 
   const spectateRoom = useCallback((room: RoomSummary, onPrivate: () => void) => {
     requireNickname(() => {
-      if (room.roomType === 'private') {
+      if (room.roomType === 'private' && !isCheonhaNickname(useNicknameStore.getState().nickname)) {
         onPrivate();
         return;
       }

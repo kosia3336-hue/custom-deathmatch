@@ -14,8 +14,7 @@ import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { tutorialHint } from './tutorial.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -32,7 +31,7 @@ function randDelay(): number {
 
 export function toGameData(s: InternalState, viewerToken: string): FourGravityGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerToken);
   return {
     board: s.board,
     currentPlayer: s.currentPlayer,
