@@ -452,6 +452,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
 
             {showsAbstractAiDifficulty && (
               <AbstractAiDifficultyField
+                gameId={room.gameId}
                 value={abstractAiDifficulty}
                 onChange={setAbstractAiDifficulty}
               />

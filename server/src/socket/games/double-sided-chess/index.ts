@@ -72,7 +72,7 @@ export function initDoubleSidedChess(
     timeLimitSeconds,
     turnTimer: null,
     playMode,
-    aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty),
+    aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty, 'game-002'),
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],

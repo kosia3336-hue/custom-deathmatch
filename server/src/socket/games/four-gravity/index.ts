@@ -98,7 +98,7 @@ export function initFourGravity(
     timeLimitSeconds,
     turnTimer: null,
     playMode,
-    aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty),
+    aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty, 'game-001'),
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
