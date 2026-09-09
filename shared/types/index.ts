@@ -2,15 +2,25 @@ export type { AbstractAiDifficulty, Game } from './game';
 export {
   ABSTRACT_AI_DIFFICULTIES,
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   GAME_IDS,
+  MAX_ABSTRACT_AI_THINK_SECONDS,
+  MIN_ABSTRACT_AI_THINK_SECONDS,
+  formatAbstractAiThinkSeconds,
   isAbstractStrategyGameId,
   resolveAbstractAiDifficulty,
+  resolveAbstractAiThinkSeconds,
 } from './game';
 export type { RankTier, DisplayRankTier } from './rank';
 export {
   rankTierNumericForRp,
   calcRankRpChange,
   calcRankRpParts,
+  calcCounterRankRpParts,
+  COUNTER_MATCH_CHANCE,
+  COUNTER_BAN_TURN_MS,
+  RANK_VS_SEC,
+  RANK_VS_NAV_SEC,
   placementTierAndRp,
   tierOrder,
   peakTierMax,
@@ -152,6 +162,7 @@ export type {
   BanPickUpdatePayload,
   BanPickLotteryPayload,
 } from './ban-pick';
+export type { CounterBanPhase, CounterBanViewPayload } from './counter-ban';
 export type {
   CreateRoomData,
   JoinRoomData,

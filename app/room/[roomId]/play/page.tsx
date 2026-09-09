@@ -33,6 +33,7 @@ import SunMoonStar2Game from '@/components/game/modules/sun-moon-star-2';
 import SunMoonStarEventGame from '@/components/game/modules/sun-moon-star-event';
 import BankGame from '@/components/game/modules/bank-game';
 import BanPickGame from '@/components/game/modules/ban-pick';
+import CounterBanGame from '@/components/game/modules/counter-ban';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -78,6 +79,7 @@ export default function PlayPage() {
   const { gameResult } = useRoom(roomId);
   const gameId = useRoomStore((s) => s.room?.gameId);
   const roomId_ = useRoomStore((s) => s.room?.id);
+  const hiddenMatch = useRoomStore((s) => s.room?.hiddenMatch);
 
   /** 플레이 라우트 진입마다(대기실→플레이는 roomId 동일) 이전 판 gameResult 제거 */
   useEffect(() => {
@@ -96,13 +98,17 @@ export default function PlayPage() {
     const socket = getSocket();
     const handleDisbanded = (data: { reason: string }) => {
       toast.info(data.reason);
+      if (useRoomStore.getState().gameResult) {
+        router.push(`/room/${roomId}/result`);
+        return;
+      }
       router.push('/lobby');
     };
     socket.on('room:disbanded', handleDisbanded);
     return () => {
       socket.off('room:disbanded', handleDisbanded);
     };
-  }, [router]);
+  }, [router, roomId]);
 
   useEffect(() => {
     getSocket().emit('game:sync');
@@ -111,7 +117,12 @@ export default function PlayPage() {
   return (
     <GameShell>
       {(() => {
-        const GameModule = gameId && roomId_ === roomId ? GAME_MODULES[gameId] : null;
+        const GameModule =
+          gameId && roomId_ === roomId
+            ? gameId === GAME_IDS.BAN_PICK && hiddenMatch
+              ? CounterBanGame
+              : GAME_MODULES[gameId]
+            : null;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>

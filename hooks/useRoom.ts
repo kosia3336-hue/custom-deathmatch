@@ -44,7 +44,19 @@ export function useRoom(roomId: string) {
     const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
     const onGameStarted = () => { useRoomStore.getState().setCountdown(null); };
     const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
-    const onDisbanded = () => { useRoomStore.getState().reset(); };
+    const onDisbanded = () => {
+      const s = useRoomStore.getState();
+      if (s.gameResult) {
+        useRoomStore.setState({
+          room: null,
+          gameState: null,
+          countdown: null,
+          reconnectingPlayers: [],
+        });
+        return;
+      }
+      s.reset();
+    };
     const onChatMessage = (msg: ChatMessage) => {
       if (msg.scope === 'lobby' || msg.scope === 'guild') return;
       useRoomStore.getState().addMessage(msg);

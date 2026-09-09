@@ -3368,6 +3368,204 @@ body {
   transition: width 1s linear;
 }
 
+/* 카운터 매치 — VS 중앙에서 검붉은 마왕성 기운이 화면 전체로 퍼진다.
+   카드 티어 스킨은 유지. 글자색은 카드 밖에서만 잉크로 바꾼다. */
+.rank-vs-fore {
+  position: relative;
+  z-index: 1;
+}
+.rank-vs--hidden {
+  overflow: hidden;
+}
+.rank-vs--hidden .rank-vs-kicker {
+  --rank-vs-kicker-track: 0.32em;
+  position: relative;
+  padding: 0.5em 0.15em;
+  font-family: var(--font-display), var(--font-sans);
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: var(--rank-vs-kicker-track);
+  color: color-mix(in srgb, var(--cdm-ink-fg) 42%, var(--title-ruby));
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--title-ruby) 75%, transparent),
+    0 0 36px color-mix(in srgb, var(--title-crimson) 70%, transparent),
+    0 10px 28px color-mix(in srgb, var(--title-wine) 85%, transparent);
+  animation:
+    rank-vs-hidden-kicker 820ms var(--cdm-ease-out) both,
+    rank-vs-hidden-kicker-glow 3.8s ease-in-out 820ms infinite;
+}
+.rank-vs--hidden .rank-vs-kicker::before,
+.rank-vs--hidden .rank-vs-kicker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: min(18rem, 78vw);
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--title-wine) 50%, transparent) 16%,
+    var(--title-crimson) 50%,
+    color-mix(in srgb, var(--title-wine) 50%, transparent) 84%,
+    transparent
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--title-crimson) 70%, transparent);
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
+  animation: rank-vs-hidden-kicker-rule 720ms var(--cdm-ease-out) 140ms forwards;
+}
+.rank-vs--hidden .rank-vs-kicker::before { top: 0; }
+.rank-vs--hidden .rank-vs-kicker::after { bottom: 0; }
+@media (min-width: 768px) {
+  .rank-vs--hidden .rank-vs-kicker {
+    --rank-vs-kicker-track: 0.4em;
+    font-size: 2.45rem;
+  }
+}
+.rank-vs--hidden .rank-vs-vs {
+  color: var(--title-ruby);
+  animation: rank-vs-hidden-vs-punch 900ms var(--cdm-ease-out) both;
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--title-ruby) 80%, transparent),
+    0 0 48px color-mix(in srgb, var(--title-crimson) 70%, transparent),
+    0 0 90px color-mix(in srgb, var(--title-wine) 80%, transparent);
+}
+.rank-vs--hidden .rank-vs-card {
+  outline: 2px solid color-mix(in srgb, var(--title-crimson) 72%, var(--title-wine));
+  outline-offset: 3px;
+  animation: rank-vs-hidden-card-seize 720ms var(--cdm-ease-out) 180ms both;
+}
+.rank-vs--hidden .rank-vs-bar-track {
+  background: color-mix(in srgb, var(--title-wine) 45%, var(--cdm-ink));
+}
+.rank-vs--hidden .rank-vs-bar {
+  background: var(--title-crimson);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--title-ruby) 70%, transparent);
+}
+
+.rank-vs-hidden-realm {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 48%,
+      color-mix(in srgb, var(--title-ruby) 55%, var(--cdm-fg-inverse)) 0%,
+      color-mix(in srgb, var(--title-crimson) 48%, transparent) 12%,
+      color-mix(in srgb, var(--title-wine) 42%, transparent) 28%,
+      transparent 52%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cdm-ink-strong) 88%, var(--title-maroon)) 0%,
+      color-mix(in srgb, var(--title-wine) 55%, var(--cdm-ink)) 48%,
+      color-mix(in srgb, var(--cdm-ink-strong) 92%, var(--title-wine)) 100%
+    );
+  -webkit-clip-path: circle(0% at 50% 48%);
+  clip-path: circle(0% at 50% 48%);
+  animation: rank-vs-hidden-expand 1.15s cubic-bezier(0.16, 0.84, 0.22, 1) forwards;
+  box-shadow: inset 0 0 160px color-mix(in srgb, var(--cdm-ink-strong) 70%, var(--title-wine));
+}
+.rank-vs-hidden-realm::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 48%;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 48%,
+    color-mix(in srgb, var(--title-crimson) 22%, transparent) 0deg 7deg,
+    transparent 7deg 18deg
+  );
+  opacity: 0.35;
+  animation: rank-vs-hidden-rays 22s linear infinite;
+}
+.rank-vs-hidden-realm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 68% 52% at 50% 48%,
+    transparent 18%,
+    color-mix(in srgb, var(--cdm-ink-strong) 55%, var(--title-wine)) 78%,
+    var(--cdm-ink-strong) 100%
+  );
+  box-shadow:
+    inset 0 90px 110px color-mix(in srgb, var(--cdm-ink-strong) 82%, transparent),
+    inset 0 -100px 120px color-mix(in srgb, var(--cdm-ink-strong) 88%, transparent);
+}
+
+.rank-vs-hidden-shock {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  z-index: 4;
+  width: 8vmin;
+  height: 8vmin;
+  margin: -4vmin 0 0 -4vmin;
+  border-radius: 9999px;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--title-ruby) 75%, var(--cdm-fg-inverse));
+  box-shadow:
+    0 0 28px var(--title-crimson),
+    inset 0 0 18px color-mix(in srgb, var(--title-ruby) 55%, transparent);
+  animation: rank-vs-hidden-shock 1.05s cubic-bezier(0.16, 0.84, 0.22, 1) forwards;
+}
+.rank-vs-hidden-shock--late {
+  border-color: color-mix(in srgb, var(--title-wine) 65%, var(--title-crimson));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--title-wine) 80%, transparent);
+  animation-duration: 1.28s;
+  animation-delay: 120ms;
+}
+
+.rank-vs-hidden-core {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  z-index: 3;
+  width: 7rem;
+  height: 7rem;
+  margin: -3.5rem 0 0 -3.5rem;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    var(--cdm-fg-inverse) 0%,
+    var(--title-ruby) 28%,
+    color-mix(in srgb, var(--title-crimson) 70%, transparent) 52%,
+    transparent 72%
+  );
+  animation: rank-vs-hidden-core 520ms var(--cdm-ease-out) both;
+}
+
+.rank-vs-hidden-embers {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.rank-vs-hidden-embers span {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--title-ruby);
+  box-shadow: 0 0 12px var(--title-crimson);
+  opacity: 0;
+  animation: rank-vs-hidden-ember 3.4s ease-out infinite;
+}
+.rank-vs-hidden-embers span:nth-child(1) { left: 18%; bottom: 22%; animation-delay: 0.15s; }
+.rank-vs-hidden-embers span:nth-child(2) { left: 32%; bottom: 16%; width: 4px; height: 4px; animation-delay: 0.7s; }
+.rank-vs-hidden-embers span:nth-child(3) { left: 48%; bottom: 12%; animation-delay: 0.35s; }
+.rank-vs-hidden-embers span:nth-child(4) { left: 62%; bottom: 20%; width: 6px; height: 6px; animation-delay: 1.1s; }
+.rank-vs-hidden-embers span:nth-child(5) { left: 76%; bottom: 18%; animation-delay: 0.55s; }
+.rank-vs-hidden-embers span:nth-child(6) { left: 12%; bottom: 38%; width: 3px; height: 3px; animation-delay: 1.6s; }
+.rank-vs-hidden-embers span:nth-child(7) { left: 88%; bottom: 36%; animation-delay: 0.9s; }
+.rank-vs-hidden-embers span:nth-child(8) { left: 54%; bottom: 28%; width: 4px; height: 4px; animation-delay: 1.9s; }
+
 /* 언랭 — 옅은 슬레이트, 점선 */
 .rank-vs-tier--unranked {
   --rank-vs-glow: var(--cdm-fg-subtle);
@@ -3679,6 +3877,73 @@ body {
   0%, 100% { opacity: 0.12; transform: scale(0.55); }
   50% { opacity: 1; transform: scale(1.25); }
 }
+@keyframes rank-vs-hidden-expand {
+  to {
+    -webkit-clip-path: circle(160% at 50% 48%);
+    clip-path: circle(160% at 50% 48%);
+  }
+}
+@keyframes rank-vs-hidden-rays {
+  to { transform: rotate(360deg); }
+}
+@keyframes rank-vs-hidden-shock {
+  0% { transform: scale(0.18); opacity: 0.95; }
+  100% { transform: scale(28); opacity: 0; }
+}
+@keyframes rank-vs-hidden-core {
+  0% { transform: scale(0.15); opacity: 1; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+@keyframes rank-vs-hidden-vs-punch {
+  0% { transform: scale(0.55); opacity: 0.35; }
+  42% { transform: scale(1.22); opacity: 1; }
+  100% { transform: scale(1.08); }
+}
+@keyframes rank-vs-hidden-card-seize {
+  from { outline-color: transparent; }
+  to { outline-color: color-mix(in srgb, var(--title-crimson) 72%, var(--title-wine)); }
+}
+@keyframes rank-vs-hidden-ember {
+  0% { opacity: 0; transform: translateY(10px) scale(0.55); }
+  18% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-88px) scale(0.25); }
+}
+@keyframes rank-vs-hidden-kicker {
+  0% {
+    transform: scale(0.72) translateY(-12px);
+    opacity: 0;
+    letter-spacing: 0.72em;
+    filter: blur(6px);
+  }
+  58% {
+    transform: scale(1.07) translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    letter-spacing: var(--rank-vs-kicker-track);
+    filter: none;
+  }
+}
+@keyframes rank-vs-hidden-kicker-rule {
+  to { transform: translateX(-50%) scaleX(1); }
+}
+@keyframes rank-vs-hidden-kicker-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 12px color-mix(in srgb, var(--title-ruby) 75%, transparent),
+      0 0 36px color-mix(in srgb, var(--title-crimson) 70%, transparent),
+      0 10px 28px color-mix(in srgb, var(--title-wine) 85%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 20px color-mix(in srgb, var(--title-ruby) 95%, transparent),
+      0 0 56px color-mix(in srgb, var(--title-crimson) 85%, transparent),
+      0 12px 36px color-mix(in srgb, var(--title-wine) 95%, transparent);
+  }
+}
 
 @media (min-width: 768px) {
   .rank-vs-card {
@@ -3701,10 +3966,181 @@ body {
   .rank-vs-tier--challenger::before,
   .rank-vs-tier--challenger::after,
   .rank-vs-tier--challenger .rank-vs-emblem-wrap::before,
-  .rank-vs-challenger-fx span {
+  .rank-vs-challenger-fx span,
+  .rank-vs-hidden-realm,
+  .rank-vs-hidden-realm::before,
+  .rank-vs-hidden-shock,
+  .rank-vs-hidden-core,
+  .rank-vs-hidden-embers span,
+  .rank-vs--hidden .rank-vs-vs,
+  .rank-vs--hidden .rank-vs-card,
+  .rank-vs--hidden .rank-vs-kicker,
+  .rank-vs--hidden .rank-vs-kicker::before,
+  .rank-vs--hidden .rank-vs-kicker::after,
+  .hidden-ban-stage::before {
     animation: none !important;
     transition: none !important;
   }
+  .rank-vs-hidden-realm {
+    -webkit-clip-path: none;
+    clip-path: none;
+  }
+  .rank-vs--hidden .rank-vs-kicker::before,
+  .rank-vs--hidden .rank-vs-kicker::after {
+    transform: translateX(-50%) scaleX(1);
+  }
+  .rank-vs-hidden-shock,
+  .rank-vs-hidden-core,
+  .rank-vs-hidden-embers span,
+  .hidden-ban-card--burn,
+  .hidden-ban-flame-front,
+  .hidden-ban-ember {
+    opacity: 0 !important;
+  }
+  .hidden-ban-card--burn,
+  .hidden-ban-flame-front,
+  .hidden-ban-ember {
+    animation: none !important;
+  }
+}
+
+/* 카운터 밴픽 — 마왕성 스테이지 + 아래에서 타 올라오며 소멸 */
+.hidden-ban-stage {
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      color-mix(in srgb, var(--title-ruby) 32%, transparent) 0%,
+      color-mix(in srgb, var(--title-crimson) 22%, transparent) 18%,
+      color-mix(in srgb, var(--title-wine) 38%, transparent) 42%,
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cdm-ink-strong) 88%, var(--title-maroon)) 0%,
+      color-mix(in srgb, var(--title-wine) 52%, var(--cdm-ink)) 48%,
+      color-mix(in srgb, var(--cdm-ink-strong) 94%, var(--title-wine)) 100%
+    );
+  box-shadow: inset 0 0 140px color-mix(in srgb, var(--cdm-ink-strong) 72%, var(--title-wine));
+}
+.hidden-ban-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 42%,
+    color-mix(in srgb, var(--title-crimson) 14%, transparent) 0deg 7deg,
+    transparent 7deg 18deg
+  );
+  opacity: 0.22;
+  animation: rank-vs-hidden-rays 28s linear infinite;
+}
+.hidden-ban-wrap {
+  --hidden-ban-burn-delay: 0ms;
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+.hidden-ban-wrap--burn {
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+.hidden-ban-card {
+  background: color-mix(in srgb, var(--title-wine) 42%, var(--cdm-ink-strong));
+  border-color: color-mix(in srgb, var(--title-crimson) 34%, var(--cdm-ink-border));
+  color: var(--cdm-ink-fg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--title-ruby) 18%, transparent),
+    0 8px 18px color-mix(in srgb, var(--cdm-ink-strong) 40%, transparent);
+}
+.hidden-ban-card:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--title-ruby) 72%, transparent);
+  background: color-mix(in srgb, var(--title-wine) 58%, var(--cdm-ink));
+}
+.hidden-ban-card--picked {
+  border-color: var(--title-ruby);
+  background: color-mix(in srgb, var(--title-wine) 64%, var(--cdm-ink));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--title-ruby) 55%, transparent);
+}
+.hidden-ban-card--keep {
+  border-color: #facc15;
+  background: color-mix(in srgb, #713f12 52%, var(--cdm-ink));
+  box-shadow:
+    0 0 0 2px #fde047,
+    0 0 22px color-mix(in srgb, var(--cdm-highlight) 38%, transparent);
+  color: #fde68a;
+}
+.hidden-ban-card--burn {
+  animation: hidden-ban-burn 2.4s ease-in var(--hidden-ban-burn-delay) forwards;
+  pointer-events: none;
+}
+.hidden-ban-flame-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  height: 22%;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--title-wine) 0%,
+    var(--title-ruby) 28%,
+    var(--cdm-highlight) 62%,
+    color-mix(in srgb, var(--cdm-highlight) 25%, transparent) 88%,
+    transparent 100%
+  );
+  filter: blur(0.4px);
+  animation: hidden-ban-flame-rise 2.4s ease-in var(--hidden-ban-burn-delay) forwards;
+}
+.hidden-ban-ember {
+  position: absolute;
+  z-index: 5;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: var(--title-ruby);
+  box-shadow: 0 0 8px var(--cdm-highlight);
+  animation: hidden-ban-ember 1.6s ease-out forwards;
+}
+.hidden-ban-wrap .hidden-ban-ember:nth-of-type(2) {
+  left: 18%;
+  bottom: 6%;
+  animation-delay: var(--hidden-ban-burn-delay);
+}
+.hidden-ban-wrap .hidden-ban-ember:nth-of-type(3) {
+  left: 48%;
+  bottom: 4%;
+  width: 3px;
+  height: 3px;
+  animation-delay: calc(var(--hidden-ban-burn-delay) + 280ms);
+}
+.hidden-ban-wrap .hidden-ban-ember:nth-of-type(4) {
+  left: 74%;
+  bottom: 8%;
+  animation-delay: calc(var(--hidden-ban-burn-delay) + 480ms);
+}
+
+@keyframes hidden-ban-burn {
+  0% {
+    -webkit-clip-path: inset(0 0 0% 0);
+    clip-path: inset(0 0 0% 0);
+  }
+  100% {
+    -webkit-clip-path: inset(0 0 100% 0);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+@keyframes hidden-ban-flame-rise {
+  0% { transform: translateY(100%); opacity: 0; }
+  8% { opacity: 1; }
+  100% { transform: translateY(-430%); opacity: 0.65; }
+}
+@keyframes hidden-ban-ember {
+  0% { opacity: 0; transform: translateY(6px) scale(0.5); }
+  18% { opacity: 0.95; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-52px) scale(0.35); }
 }
 
 /* 무극의 백호: 평소엔 은빛으로 은은히 빛나고, 주기마다 한 번 청록 플라즈마가

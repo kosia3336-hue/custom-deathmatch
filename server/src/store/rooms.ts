@@ -53,6 +53,7 @@ function toSummary(room: RoomInternal): RoomSummary {
     gameOptions: room.gameOptions,
     createdAt: room.createdAt,
     ...(room.isRanked ? { isRanked: true } : {}),
+    ...(room.hiddenMatch ? { hiddenMatch: true } : {}),
   };
 }
 
@@ -94,6 +95,7 @@ export const roomStore = {
     isRanked?: boolean;
     rankSeasonId?: number;
     spectatorAllowed?: boolean;
+    hiddenMatch?: boolean;
   }): Room {
     let id: string;
     do {
@@ -125,6 +127,7 @@ export const roomStore = {
       ...(opts.isRanked === true ? { isRanked: true as const } : {}),
       ...(opts.rankSeasonId != null ? { rankSeasonId: opts.rankSeasonId } : {}),
       ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
+      ...(opts.hiddenMatch === true ? { hiddenMatch: true as const } : {}),
     };
     if (opts.roomType === 'private' && opts.password) {
       room._password = opts.password;

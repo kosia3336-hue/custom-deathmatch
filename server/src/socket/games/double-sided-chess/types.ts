@@ -1,5 +1,4 @@
 import type { GameResult } from '@shared/types/events.js';
-import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { PlayMode } from '@shared/types/room.js';
 import type {
   Cell,
@@ -80,7 +79,7 @@ export interface InternalState {
   timeLimitSeconds: number | null;
   turnTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
-  aiDifficulty: AbstractAiDifficulty;
+  aiThinkSeconds: number;
   gameOver: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: DSCUndoSnapshot[];

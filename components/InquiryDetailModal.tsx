@@ -7,26 +7,21 @@ import { Button } from '@/components/cdm/Button';
 import { InquiryStatusChip } from '@/components/cdm/StatusChip';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
-import type { InquiryStatus, InquiryCategory } from '@/lib/supabase/database.types';
+import type { InquiryStatus } from '@/lib/supabase/database.types';
 
 export interface InquiryDetailData {
   id: string;
   title: string;
-  category: InquiryCategory;
+  category: string;
   status: InquiryStatus;
   created_at: string;
   body: string;
   answer_body: string | null;
   answered_at: string | null;
+  /** 관리자 화면에서만 채움. 회원 `/me` 목록은 비움. */
+  answered_by_nickname?: string | null;
+  category_label?: string;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  bug: '버그/오류',
-  account: '계정/정지',
-  rules: '규칙/정책',
-  report_followup: '신고 처리 문의',
-  etc: '기타',
-};
 
 interface Props {
   inquiry: InquiryDetailData | null;
@@ -74,7 +69,9 @@ export default function InquiryDetailModal({ inquiry, isAdmin = false, onClose, 
       title={
         inquiry ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-cdm-fg-muted">{CATEGORY_LABELS[inquiry.category] ?? inquiry.category}</span>
+            <span className="text-xs text-cdm-fg-muted">
+              {inquiry.category_label ?? inquiry.category}
+            </span>
             <InquiryStatusChip status={inquiry.status} />
           </div>
         ) : null
@@ -100,7 +97,12 @@ export default function InquiryDetailModal({ inquiry, isAdmin = false, onClose, 
           {isAnswered ? (
             <div className="rounded-cdm-md border border-cdm-primary/30 bg-cdm-primary/5 px-3 py-2.5">
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-cdm-primary">
-                운영 답변 · {new Date(inquiry.answered_at!).toLocaleString('ko-KR')}
+                {isAdmin
+                  ? `답변 · ${inquiry.answered_by_nickname ?? '알 수 없음'}`
+                  : '운영 답변'}
+                {inquiry.answered_at
+                  ? ` · ${new Date(inquiry.answered_at).toLocaleString('ko-KR')}`
+                  : ''}
               </p>
               <p className="whitespace-pre-wrap text-sm text-cdm-fg">{inquiry.answer_body}</p>
             </div>

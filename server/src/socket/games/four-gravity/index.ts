@@ -1,6 +1,6 @@
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
-import { resolveAbstractAiDifficulty } from '@shared/types/game.js';
+import { resolveAbstractAiThinkSeconds } from '@shared/types/game.js';
 import { sessions } from '../../../store/sessions.js';
 import { BOARD_SIZE } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -98,7 +98,7 @@ export function initFourGravity(
     timeLimitSeconds,
     turnTimer: null,
     playMode,
-    aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty),
+    aiThinkSeconds: resolveAbstractAiThinkSeconds(gameOptions),
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],

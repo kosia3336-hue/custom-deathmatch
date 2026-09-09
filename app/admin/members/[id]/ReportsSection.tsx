@@ -9,14 +9,6 @@ import InquiryDetailModal from '@/components/InquiryDetailModal';
 import { REPORT_CATEGORY_LABELS } from '@/lib/report-labels';
 import type { ReportData, InquiryData } from './types';
 
-const INQUIRY_CATEGORY_LABELS: Record<string, string> = {
-  bug: '버그/오류',
-  account: '계정/정지',
-  rules: '규칙/정책',
-  report_followup: '신고 처리 문의',
-  etc: '기타',
-};
-
 interface Props {
   receivedReports: ReportData[];
   receivedReportsPage: number;
@@ -152,7 +144,7 @@ export default function ReportsSection({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="shrink-0 text-xs text-cdm-fg-muted">
-                        {INQUIRY_CATEGORY_LABELS[i.category] ?? i.category}
+                        {i.category_label}
                       </span>
                       <span className="truncate text-sm text-cdm-fg">{i.title}</span>
                       <InquiryStatusChip status={i.status} />

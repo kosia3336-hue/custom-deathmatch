@@ -35,60 +35,59 @@ export function rankTierNumericForRp(tier: RankTier, placementDone: boolean): nu
  * @returns winnerGain / loserLoss 모두 양수 — 패배 차감은 caller 가 음수로 적용
  */
 
-/** RP 테이블·스트릭 분해 (결과 화면 세부 내역용) */
+/** RP 테이블 분해 (결과 화면 세부 내역용). 연승·연패 가산 없음. */
 export interface RankRpParts {
   winnerGain: number;
   loserLoss: number;
   winnerBaseTable: number;
-  winnerStreakBonus: number;
   loserBaseTable: number;
-  loserStreakPenalty: number;
 }
 
-export function calcRankRpParts(
-  winnerTierVal: number,
-  loserTierVal: number,
-  winnerWinStreak: number,
-  loserLossStreak: number,
-): RankRpParts {
+export function calcRankRpParts(winnerTierVal: number, loserTierVal: number): RankRpParts {
   const tierDiff = winnerTierVal - loserTierVal;
-  const gainTable = [20, 17, 14, 12, 10, 8, 6];
+  // 시즌1 기본 표. 동티어 20, 1단계당 3. 승패 동일. 브론즈/실버 고정 보너스 없음.
+  const gainTable = [29, 26, 23, 20, 17, 14, 11];
   const idx = Math.max(0, Math.min(6, tierDiff + 3));
-  const winnerBaseTable = gainTable[idx];
-  const loserBaseTable = gainTable[idx];
-
-  const winnerStreakBonus =
-    winnerWinStreak >= 6 ? 20
-    : winnerWinStreak === 5 ? 15
-    : winnerWinStreak === 4 ? 10
-    : winnerWinStreak === 3 ? 6
-    : 0;
-
-  const loserStreakPenalty =
-    loserLossStreak >= 6 ? 20
-    : loserLossStreak === 5 ? 15
-    : loserLossStreak === 4 ? 10
-    : loserLossStreak === 3 ? 6
-    : 0;
+  const base = gainTable[idx];
 
   return {
-    winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus),
-    loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty),
-    winnerBaseTable,
-    winnerStreakBonus,
-    loserBaseTable,
-    loserStreakPenalty,
+    winnerGain: Math.max(3, base),
+    loserLoss: Math.max(5, base),
+    winnerBaseTable: base,
+    loserBaseTable: base,
   };
 }
 
 export function calcRankRpChange(
   winnerTierVal: number,
   loserTierVal: number,
-  winnerWinStreak: number,
-  loserLossStreak: number,
 ): { winnerGain: number; loserLoss: number } {
-  const p = calcRankRpParts(winnerTierVal, loserTierVal, winnerWinStreak, loserLossStreak);
+  const p = calcRankRpParts(winnerTierVal, loserTierVal);
   return { winnerGain: p.winnerGain, loserLoss: p.loserLoss };
+}
+
+/** 랭크 카운터 매치 확률 (매 판 독립). */
+export const COUNTER_MATCH_CHANCE = 1 / 15;
+/** VS 카운트 시작 초(5 → 0). */
+export const RANK_VS_SEC = 5;
+/** 0초를 1초 보여 준 뒤 플레이 진입. */
+export const RANK_VS_NAV_SEC = RANK_VS_SEC + 1;
+/** 카운터 동시 1밴 제한(ms). */
+export const COUNTER_BAN_TURN_MS = 30_000;
+
+/**
+ * 카운터 RP: 기본 20×1.5=30, 티어 ±3은 곱하지 않고 별도.
+ * 승 획득 = 패 감소. ±3단계 클램프.
+ */
+export function calcCounterRankRpParts(winnerTierVal: number, loserTierVal: number): RankRpParts {
+  const tierDiff = Math.max(-3, Math.min(3, winnerTierVal - loserTierVal));
+  const amount = 30 - 3 * tierDiff;
+  return {
+    winnerGain: amount,
+    loserLoss: amount,
+    winnerBaseTable: amount,
+    loserBaseTable: amount,
+  };
 }
 
 /** 배치전 5판 완료 후 최종 티어·RP (기획 04) */
@@ -232,4 +231,6 @@ export interface RankMatchedPayload {
   opponentTier: RankTier | null;
   opponentRp: number | null;
   opponentIsPlacement: boolean | null;
+  /** 카운터 매치. 없으면 일반 랭크 VS. */
+  hiddenMatch?: boolean;
 }

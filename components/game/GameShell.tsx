@@ -270,7 +270,7 @@ export default function GameShell({ children }: Props) {
   return (
     <>
       <div
-        className={`relative flex-1 overflow-hidden ${
+        className={`relative flex h-full min-h-0 flex-1 flex-col overflow-hidden ${
           skinTheme ? `skin-bg-${skinTheme}` : ''
         }`}
       >

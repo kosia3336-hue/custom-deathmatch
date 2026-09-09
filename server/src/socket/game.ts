@@ -184,6 +184,13 @@ import {
   canBanPickUndo,
   performBanPickUndo,
 } from './games/ban-pick/index.js';
+import {
+  initCounterBan,
+  handleCounterBan,
+  cleanupCounterBan,
+  getCounterBanState,
+  emitCounterBanStateToSocket,
+} from './games/counter-ban/index.js';
 import { saveRankBanPickLog } from '../db/rankBanLog.js';
 import { setActiveSkinForRoom, clearActiveSkin } from './skins.js';
 
@@ -198,6 +205,9 @@ function launchPickedGame(
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
+
+  cleanupCounterBan(roomId);
+  cleanupBanPick(roomId);
 
   roomStore.setGameId(roomId, pickedGameId, pickedGameName);
   roomStore.markFromBanPick(roomId);
@@ -685,6 +695,55 @@ export const gameModules: Record<string, GameModuleHandlers> = {
       endGameCallback,
       gameOptions,
     ) => {
+      const hidden = roomStore.get(roomId)?.hiddenMatch === true;
+      if (hidden) {
+        void initCounterBan(
+          io,
+          roomId,
+          players,
+          playMode,
+          (pickedGameId, pickedGameName) => {
+            launchPickedGame(
+              io,
+              roomId,
+              pickedGameId,
+              pickedGameName,
+              players,
+              playMode,
+              endGameCallback,
+            );
+          },
+          (playerId) => handleGameForfeit(io, roomId, playerId),
+          () => {
+            cleanupCounterBan(roomId);
+            endGame(io, roomId, {
+              rankings: players.map((p) => ({
+                playerId: p.id,
+                nickname: p.nickname,
+                rank: 2,
+                score: 0,
+              })),
+              totalTurns: 0,
+            });
+          },
+          (banData) => {
+            const room = roomStore.get(roomId);
+            if (!room?.isRanked || room.rankSeasonId == null) return;
+            const firstPlayer = players[0];
+            const secondPlayer = players[1];
+            saveRankBanPickLog({
+              seasonId: room.rankSeasonId,
+              firstMemberId: firstPlayer?.memberId ?? null,
+              secondMemberId: secondPlayer?.memberId ?? null,
+              pickedGameId: banData.pickedGameId,
+              bannedGames: banData.bannedGames,
+            }).catch((err) => {
+              console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
+            });
+          },
+        );
+        return;
+      }
       void initBanPick(
         io,
         roomId,
@@ -723,9 +782,15 @@ export const gameModules: Record<string, GameModuleHandlers> = {
       );
     },
     handleAction: () => {},
-    cleanup: cleanupBanPick,
-    getState: getBanPickState,
-    emitStateToSocket: emitBanPickStateToSocket,
+    cleanup: (roomId) => {
+      cleanupCounterBan(roomId);
+      cleanupBanPick(roomId);
+    },
+    getState: (roomId) => getCounterBanState(roomId) ?? getBanPickState(roomId),
+    emitStateToSocket: (socket, roomId) => {
+      if (roomStore.get(roomId)?.hiddenMatch) emitCounterBanStateToSocket(socket, roomId);
+      else emitBanPickStateToSocket(socket, roomId);
+    },
     performUndo: performBanPickUndo,
     canUndo: canBanPickUndo,
   },
@@ -976,6 +1041,16 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room || room.status !== 'playing') return;
     if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickBan(io, socket, roomId, data.gameId);
+  });
+
+  socket.on('counterban:ban', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
+    if (typeof data?.gameId !== 'string') return;
+    handleCounterBan(io, socket, roomId, data.gameId);
   });
 
   socket.on('banpick:noban', () => {
