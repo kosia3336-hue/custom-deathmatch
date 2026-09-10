@@ -20,7 +20,8 @@ export type SkinTheme =
   | 'meow'
   | 'candy'
   | 'treasury'
-  | 'four-card';
+  | 'four-card'
+  | 'spring-rain';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -101,6 +102,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'four-card',
     description: '에메랄드 펠트 위의 클래식 카지노. 트럼프 카드와 달빛 조커로 완성하는 콰트로.',
     swatch: 'linear-gradient(135deg, #061b16 0%, #0d4638 52%, #8e5d2d 100%)',
+  },
+  'skin-g023-01': {
+    id: 'skin-g023-01',
+    gameId: GAME_IDS.KINGMAKING,
+    name: '봄비',
+    theme: 'spring-rain',
+    description: '봄비가 멈춘 정원의 웅덩이 판. 연잎 말이 쌓이고 착수 자리에 물결이 퍼진다.',
+    swatch: 'linear-gradient(135deg, #dcebe3 0%, #6d9992 52%, #df897a 100%)',
   },
   'skin-g011-01': {
     id: 'skin-g011-01',
