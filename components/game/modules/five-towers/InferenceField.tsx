@@ -118,8 +118,9 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
               title={isCompleted ? '완성된 탑' : '더블클릭/우클릭으로 카운트 초기화'}
             >
               <span className="text-base font-bold sm:text-lg">{id}</span>
+              {/* 아직 안 센 탑에 0 을 적지 않는다 (CitadelTower 주석 참고) */}
               <span className="text-xl font-black tabular-nums sm:text-2xl">
-                {isCompleted ? '완성' : userCount}
+                {isCompleted ? '완성' : userCount > 0 ? userCount : '\u00A0'}
               </span>
             </button>
 
