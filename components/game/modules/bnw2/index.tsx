@@ -668,16 +668,10 @@ export default function BNW2Game() {
       >
         <div className="flex h-full w-full max-w-sm flex-col items-center justify-center gap-1 overflow-hidden">
             {/*
-              Center track — 기본 트랙은 남은 높이를 받아 그 안에서 줄어든다.
-              서부 스킨 트랙은 제 높이를 CSS 로 직접 잡으므로 건드리지 않는다.
+              Center track — 남은 높이를 받아 그 안에서 줄어든다.
+              서부 스킨도 이제 같은 규칙을 따른다(globals.css 의 track-shell 주석).
             */}
-            <div
-              className={
-                isShowdown
-                  ? 'w-full max-w-sm'
-                  : 'flex w-full min-h-0 max-w-sm flex-1 flex-col'
-              }
-            >
+            <div className="flex w-full min-h-0 max-w-sm flex-1 flex-col">
               {leftPlayer && rightPlayer && (
                 <TrackCmp
                   leftPlayer={leftPlayer}
