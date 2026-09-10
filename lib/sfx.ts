@@ -44,6 +44,64 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
+/** 봄비 킹메이킹 — 연잎이 수면에 닿는 짧은 '퐁당' 소리. */
+export function playSpringRainPlopSfx() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const now = c.currentTime;
+    const output = getSfxOutput(c);
+
+    // 낮고 둥근 물방울 몸통.
+    const body = c.createOscillator();
+    const bodyGain = c.createGain();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(235, now);
+    body.frequency.exponentialRampToValueAtTime(72, now + 0.22);
+    bodyGain.gain.setValueAtTime(0.001, now);
+    bodyGain.gain.linearRampToValueAtTime(0.28, now + 0.012);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+    body.connect(bodyGain); bodyGain.connect(output);
+    body.start(now); body.stop(now + 0.25);
+
+    // 물이 튀는 짧은 숨소리.
+    const splashDuration = 0.16;
+    const splashBuffer = c.createBuffer(1, Math.ceil(c.sampleRate * splashDuration), c.sampleRate);
+    const splashData = splashBuffer.getChannelData(0);
+    for (let i = 0; i < splashData.length; i++) {
+      const t = i / c.sampleRate;
+      splashData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 28);
+    }
+    const splash = c.createBufferSource();
+    const splashFilter = c.createBiquadFilter();
+    const splashGain = c.createGain();
+    splash.buffer = splashBuffer;
+    splashFilter.type = 'bandpass';
+    splashFilter.frequency.setValueAtTime(1450, now);
+    splashFilter.frequency.exponentialRampToValueAtTime(620, now + splashDuration);
+    splashFilter.Q.value = 0.75;
+    splashGain.gain.setValueAtTime(0.16, now);
+    splashGain.gain.exponentialRampToValueAtTime(0.001, now + splashDuration);
+    splash.connect(splashFilter); splashFilter.connect(splashGain); splashGain.connect(output);
+    splash.start(now); splash.stop(now + splashDuration);
+
+    // 살짝 늦게 맺히는 작은 물방울 꼬리.
+    const dropAt = now + 0.075;
+    const drop = c.createOscillator();
+    const dropGain = c.createGain();
+    drop.type = 'sine';
+    drop.frequency.setValueAtTime(760, dropAt);
+    drop.frequency.exponentialRampToValueAtTime(390, dropAt + 0.13);
+    dropGain.gain.setValueAtTime(0.001, dropAt);
+    dropGain.gain.linearRampToValueAtTime(0.09, dropAt + 0.008);
+    dropGain.gain.exponentialRampToValueAtTime(0.001, dropAt + 0.15);
+    drop.connect(dropGain); dropGain.connect(output);
+    drop.start(dropAt); drop.stop(dropAt + 0.16);
+  } catch {
+    // 오디오를 지원하지 않는 환경에서는 게임 진행만 유지한다.
+  }
+}
+
 /** 추첨 룰렛 핑 효과음 — 띵 */
 export function playLotteryPingSfx() {
   try {

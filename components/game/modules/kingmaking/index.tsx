@@ -28,7 +28,7 @@ export default function KingmakingGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as KingmakingGameData | undefined;
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.KINGMAKING);
-  useAbstractStrategyMoveSfx(gameData?.board);
+  useAbstractStrategyMoveSfx(gameData?.board, skin === 'spring-rain' ? 'spring-rain' : 'default');
   const myId = useMySocketId();
 
   if (!gameData) {
