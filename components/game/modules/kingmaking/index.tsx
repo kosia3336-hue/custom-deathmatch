@@ -227,7 +227,8 @@ function KingmakingBoard({
           결과는 무대 위에 겹쳐 띄운다. 새 줄로 만들면 그 순간 판이 밀려 작아진다.
         */}
         {finished && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
+          /* 결과는 판·연출 위에 온다. z-index 를 빼면 스킨이 판을 띄우는 순간 밑에 깔린다. */
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
             <div className={cn(
               'border-cdm-primary bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur',
               springRain && 'skin-spring-rain-result',

@@ -632,13 +632,23 @@ export default function SilperBnwGame() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData?.rematchIndex]);
 
-  /* ── Reveal 단계별 타이머 ── */
+  /*
+    ── Reveal 단계별 타이머 ──
+
+    'reveal' 과 'finished' 를 한 덩어리로 본다. 승부가 나는 라운드에서 서버는
+    applyReveal 안에서 phase='reveal' 을 보내고 곧바로 resolveGame 이 'finished'
+    를 보낸다 — 같은 tick 이라 클라이언트에는 사실상 'finished' 하나만 도착한다.
+    'reveal' 만 조건으로 두면 그 마지막 라운드는 타이머가 아예 안 걸려, 승부를
+    가른 타일이 ??? 인 채로 게임이 끝난다.
+  */
   useEffect(() => {
     const phase = gameData?.phase;
     if (phase === undefined) return;
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
-    if (phase === 'reveal' && prev !== 'reveal') {
+    const revealing = phase === 'reveal' || phase === 'finished';
+    const wasRevealing = prev === 'reveal' || prev === 'finished';
+    if (revealing && !wasRevealing) {
       setRevealStep(0);
       const t1 = setTimeout(() => setRevealStep(1), 500);
       const t2 = setTimeout(() => setRevealStep(2), 1600);
@@ -685,7 +695,10 @@ export default function SilperBnwGame() {
 
   // prevPhaseRef는 effect 실행 후 갱신되므로, 새 reveal 첫 렌더 시점에는 아직 이전 phase 값.
   // revealStep이 이전 라운드의 3에서 리셋되기 전에 RevealPanel이 렌더되는 타이밍 버그 방지.
-  const displayRevealStep = isReveal && prevPhaseRef.current === 'reveal' ? revealStep : 0;
+  const displayRevealStep =
+    isReveal && (prevPhaseRef.current === 'reveal' || prevPhaseRef.current === 'finished')
+      ? revealStep
+      : 0;
   const firstDigits = gameData.firstHint?.digits ?? null;
 
   /* ── 내 자릿수 힌트 (선플 대기 중) ── */
