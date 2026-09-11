@@ -122,8 +122,13 @@ function PlaySurface({
   }`;
   const pending = pendingSignature === acceptedSignature;
   const active = canPlay && !pending;
-  /* 터치에서는 첫 탭에 반투명 돌로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야 둔다. */
-  const placement = usePlacementConfirm(`${acceptedSignature}:${mode}`);
+  /*
+    터치에서는 첫 탭에 반투명 돌로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야
+    둔다·옮긴다. 옮길 돌을 바꾸면 갈 수 있는 곳이 달라지므로 보여 주던 자리를 버린다.
+  */
+  const placement = usePlacementConfirm(
+    `${acceptedSignature}:${mode}:${source ? tripleGomokuCellKey(source) : ''}`,
+  );
 
   /* 서버가 거부하면 판이 그대로라 잠금이 안 풀리므로 error 신호로 직접 푼다. */
   useEffect(() => {
@@ -188,8 +193,11 @@ function PlaySurface({
       return;
     }
     if (source && canMoveTripleGomokuStone(gameData.board, source, cell, myId)) {
-      setPendingSignature(acceptedSignature);
-      getSocket().emit('game:action', { type: 'move', from: source, to: cell });
+      const from = source;
+      placement.tap(tripleGomokuCellKey(cell), () => {
+        setPendingSignature(acceptedSignature);
+        getSocket().emit('game:action', { type: 'move', from, to: cell });
+      });
       return;
     }
     if (tripleGomokuTopOwner(gameData.board, cell) === myId) setSource(cell);
@@ -255,8 +263,10 @@ function PlaySurface({
               </button>
             </div>
             <p className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]">
-              {placement.armed && active && (setup || mode === 'place')
-                ? '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
+              {placement.armed && active
+                ? setup || mode === 'place'
+                  ? '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
+                  : '같은 자리를 한 번 더 누르면 옮깁니다. 다른 목적지를 누르면 미리보기만 바뀝니다.'
                 : setup
                 ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
                 : !isPlayer
@@ -281,7 +291,7 @@ function PlaySurface({
           onCellClick={handleClick}
           isEnabled={isEnabled}
           previewOwnerId={active ? myId : null}
-          armedKey={setup || mode === 'place' ? placement.armed : null}
+          armedKey={placement.armed}
           ariaLabel="삼층 오목 판"
           maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}
           className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"

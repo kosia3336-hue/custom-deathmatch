@@ -6,11 +6,14 @@ export function StackVisual({
   playerIds,
   compact = false,
   springRain = false,
+  ghostFrom,
 }: {
   stack: KingmakingStack;
   playerIds: string[];
   compact?: boolean;
   springRain?: boolean;
+  /** 이 층부터는 아직 옮기지 않은 말 — 터치 첫 탭의 미리보기라 반투명으로 그린다 */
+  ghostFrom?: number;
 }) {
   return (
     <div className="relative h-full w-full" aria-hidden="true">
@@ -26,6 +29,7 @@ export function StackVisual({
               width: compact ? '66%' : '72%',
               height: special ? (compact ? '21%' : '23%') : compact ? '17%' : '19%',
               zIndex: index + 1,
+              opacity: ghostFrom != null && index >= ghostFrom ? 0.55 : undefined,
             }}
           >
             <GamePiece3D

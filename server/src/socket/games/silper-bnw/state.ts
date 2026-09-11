@@ -1,3 +1,4 @@
+import { josa } from '@shared/lib/josa.js';
 import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type {
@@ -506,7 +507,7 @@ function buildFinishReasonText(
   if (resolution === 'tiebreakTile') {
     const winner = winnerId === p1.id ? p1 : p2;
     const m = maxTile(winner.tiles);
-    return `승점 동률 ${p1.score}:${p2.score} — 남은 최대 타일 ${m}로 ${winner.nickname} 승`;
+    return `승점 동률 ${p1.score}:${p2.score} — 남은 최대 타일 ${josa(String(m), '으로/로')} ${winner.nickname} 승`;
   }
   if (resolution === 'rematchNeeded') {
     return '승점·최대 타일 모두 동률 — 재대결';

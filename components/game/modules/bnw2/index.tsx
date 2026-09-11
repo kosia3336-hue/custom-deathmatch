@@ -1,5 +1,6 @@
 'use client';
 
+import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -647,8 +648,8 @@ export default function BNW2Game() {
                 <WaitingCard
                   text={
                     gameData.phase === 'firstSubmit'
-                      ? `${fp?.nickname ?? '선플'}이 포인트를 제시 중...`
-                      : `${sp?.nickname ?? '후플'}이 포인트를 제시 중...`
+                      ? `${josa(fp?.nickname ?? '선플', '이/가')} 포인트를 제시 중...`
+                      : `${josa(sp?.nickname ?? '후플', '이/가')} 포인트를 제시 중...`
                   }
                 />
               ) : null}
@@ -713,8 +714,8 @@ export default function BNW2Game() {
                 <WaitingCard
                   text={
                     gameData.phase === 'firstSubmit'
-                      ? `${fp?.nickname ?? '선플'}이 포인트를 제시 중...`
-                      : `${sp?.nickname ?? '후플'}이 포인트를 제시 중...`
+                      ? `${josa(fp?.nickname ?? '선플', '이/가')} 포인트를 제시 중...`
+                      : `${josa(sp?.nickname ?? '후플', '이/가')} 포인트를 제시 중...`
                   }
                 />
               </div>

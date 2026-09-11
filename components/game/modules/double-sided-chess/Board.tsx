@@ -17,7 +17,7 @@ interface Props {
   winner?: string | null;
   skin?: SkinTheme | null;
   /** 터치 첫 탭 — 둘 자리에 반투명으로 보여 줄 말 */
-  ghost?: { row: number; col: number; piece: PieceType; owner: Owner } | null;
+  ghost?: { row: number; col: number; piece: PieceType; owner: Owner; isPromoted?: boolean } | null;
   onCellClick?: (row: number, col: number) => void;
 }
 

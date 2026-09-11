@@ -24,7 +24,7 @@ interface Props {
   isTerritory: 'first' | 'second' | null;
   skin?: SkinTheme | null;
   /** 터치 첫 탭 — 둘 자리에 반투명으로 보여 줄 말 */
-  ghost?: { piece: PieceType; owner: Owner } | null;
+  ghost?: { piece: PieceType; owner: Owner; isPromoted?: boolean } | null;
   onClick: () => void;
 }
 
@@ -126,9 +126,16 @@ export default function Cell({
         />
       )}
 
-      {ghost && !cell && (
-        <div className="pointer-events-none absolute inset-0 opacity-55 ring-2 ring-inset ring-amber-400" aria-hidden>
-          <Piece piece={ghost.piece} owner={ghost.owner} isPromoted={false} skin={skin} />
+      {/* 잡는 칸이면 상대 말 위에 겹쳐 그린다 — 말(z 3) 보다 위 */}
+      {ghost && (
+        <div
+          className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-amber-400"
+          style={{ zIndex: 4 }}
+          aria-hidden
+        >
+          <div className="absolute inset-0 opacity-55">
+            <Piece piece={ghost.piece} owner={ghost.owner} isPromoted={ghost.isPromoted ?? false} skin={skin} />
+          </div>
         </div>
       )}
 

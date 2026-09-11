@@ -1,3 +1,4 @@
+import { josa } from '@shared/lib/josa.js';
 import type { WSCardType, WSMatchResult } from '@shared/types/winning-streak.js';
 
 const MATCHUP_TABLE: Record<WSCardType, Record<WSCardType, WSMatchResult>> = {
@@ -54,7 +55,7 @@ function getMatchDescription(
   }
   const winner = resultA === 'win' ? CARD_NAMES[cardA] : CARD_NAMES[cardB];
   const loser = resultA === 'win' ? CARD_NAMES[cardB] : CARD_NAMES[cardA];
-  return `${winner}이(가) ${loser}을(를) 이깁니다!`;
+  return `${josa(winner, '이/가')} ${josa(loser, '을/를')} 이깁니다!`;
 }
 
 export function judgeMatch(

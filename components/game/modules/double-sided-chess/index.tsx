@@ -108,9 +108,14 @@ export default function DoubleSidedChessGame() {
     return getValidPrisonerPlacements(gameData.board, myOwner);
   }, [selectedPrisoner, myOwner, gameData]);
 
-  /* 포로 배치는 착수다. 터치에서는 첫 탭에 반투명 말로 자리만 보여 주고, 한 번 더 눌러야 둔다. */
+  /*
+    포로 배치와 이동 모두, 터치에서는 첫 탭에 반투명 말로 자리만 보여 주고 같은 칸을
+    한 번 더 눌러야 둔다. 고른 포로·말이 바뀌면 보여 주던 자리를 버린다.
+  */
   const placement = usePlacementConfirm(
-    `${gameData?.turnNumber ?? ''}:${gameData?.currentPlayer ?? ''}:${selectedPrisoner ?? ''}`,
+    `${gameData?.turnNumber ?? ''}:${gameData?.currentPlayer ?? ''}:${selectedPrisoner ?? ''}:${
+      selectedPiece ? `${selectedPiece.row},${selectedPiece.col}` : ''
+    }`,
   );
 
   if (!gameData) {
@@ -144,12 +149,11 @@ export default function DoubleSidedChessGame() {
     }
 
     if (selectedPiece && validMoves.some((m) => m.row === row && m.col === col)) {
-      getSocket().emit('game:action', {
-        type: 'move',
-        from: { row: selectedPiece.row, col: selectedPiece.col },
-        to: { row, col },
+      const from = { row: selectedPiece.row, col: selectedPiece.col };
+      placement.tap(`${row},${col}`, () => {
+        getSocket().emit('game:action', { type: 'move', from, to: { row, col } });
+        setSelectedPiece(null);
       });
-      setSelectedPiece(null);
       return;
     }
 
@@ -183,8 +187,28 @@ export default function DoubleSidedChessGame() {
         ? '같은 칸을 한 번 더 누르면 배치합니다'
         : '배치할 칸을 선택하세요'
       : selectedPiece
-        ? '이동할 칸을 선택하세요'
+        ? placement.armed
+          ? '같은 칸을 한 번 더 누르면 이동합니다'
+          : '이동할 칸을 선택하세요'
         : '말을 선택하세요';
+
+  /* 터치 첫 탭 미리보기 — 포로를 고른 중이면 그 포로, 말을 고른 중이면 그 말 */
+  const armedAt = placement.armed ? placement.armed.split(',').map(Number) : null;
+  const movingCell = selectedPiece ? gameData.board[selectedPiece.row][selectedPiece.col] : null;
+  const ghost =
+    armedAt && myOwner
+      ? selectedPrisoner
+        ? { row: armedAt[0], col: armedAt[1], piece: selectedPrisoner, owner: myOwner, isPromoted: false }
+        : movingCell
+          ? {
+              row: armedAt[0],
+              col: armedAt[1],
+              piece: movingCell.piece,
+              owner: movingCell.owner,
+              isPromoted: movingCell.isPromoted,
+            }
+          : null
+      : null;
 
   // 진영 색 기준: second(파랑) → 보드 위, first(빨강) → 보드 아래
   const isSecondMyTurn = isMyTurn && gameData.currentOwner === 'second';
@@ -230,16 +254,7 @@ export default function DoubleSidedChessGame() {
               isMyTurn={isMyTurn}
               winner={gameData.winner}
               skin={skin}
-              ghost={
-                placement.armed && selectedPrisoner && myOwner
-                  ? {
-                      row: Number(placement.armed.split(',')[0]),
-                      col: Number(placement.armed.split(',')[1]),
-                      piece: selectedPrisoner,
-                      owner: myOwner,
-                    }
-                  : null
-              }
+              ghost={ghost}
               onCellClick={handleCellClick}
             />
           </div>

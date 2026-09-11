@@ -76,9 +76,12 @@ function KingmakingBoard({
   const [showHelp, setShowHelp] = useState(false);
   /*
     터치에서는 첫 탭에 반투명 말로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야
-    둔다. 일반말·특수말을 바꾸면 보여 주던 말 모양이 달라지므로 비운다.
+    둔다·옮긴다. 말 종류·옮길 탑·층수를 바꾸면 보여 주던 모양이나 갈 수 있는
+    곳이 달라지므로 비운다.
   */
-  const placement = usePlacementConfirm(mode);
+  const placement = usePlacementConfirm(
+    `${mode}:${source ? kingmakingPositionKey(source) : ''}:${moveCount}`,
+  );
 
   const playerIds = Object.keys(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
@@ -141,12 +144,16 @@ function KingmakingBoard({
       return;
     }
     if (mode === 'move' && source && legalTargetKeys.has(key)) {
-      setPending(true);
-      getSocket().emit('game:action', {
-        type: 'move',
-        from: source,
-        to: position,
-        count: moveCount,
+      const from = source;
+      const count = moveCount;
+      placement.tap(key, () => {
+        setPending(true);
+        getSocket().emit('game:action', {
+          type: 'move',
+          from,
+          to: position,
+          count,
+        });
       });
       return;
     }
@@ -160,6 +167,8 @@ function KingmakingBoard({
   const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
   const finished = gameData.phase === 'finished';
   const landing = gameData.lastAction?.action.to ?? null;
+  /* 옮길 때 목적지에 반투명으로 얹어 보여 줄 말들 — 원래 탑의 위에서부터 moveCount 개 */
+  const movingPieces = source ? gameData.board[source.row][source.col].slice(-moveCount) : [];
 
   return (
     <>
@@ -222,6 +231,7 @@ function KingmakingBoard({
               const legal = legalTargetKeys.has(key);
               const placeable = mode !== 'move' && stack.length === 0 && canPlay;
               const armed = placeable && placement.armed === key;
+              const armedMove = legal && placement.armed === key;
               return (
                 <BoardCellButton3D
                   key={key}
@@ -229,14 +239,20 @@ function KingmakingBoard({
                   disabled={!canPlay || pending || (!placeable && stack.length === 0 && !legal)}
                   aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${stack.length ? `, ${stack.length}층` : ', 빈칸'}`}
                   tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
-                  state={selected || armed ? 'selected' : legal ? 'available' : 'idle'}
+                  state={selected || armed || armedMove ? 'selected' : legal ? 'available' : 'idle'}
                   className={cn(
                     'kingmaking-board-cell',
                     springRain && 'kingmaking-spring-rain-cell',
                     !canPlay && 'cursor-default',
                   )}
                 >
-                  <StackVisual stack={stack} playerIds={playerIds} compact springRain={springRain} />
+                  <StackVisual
+                    stack={armedMove ? [...stack, ...movingPieces] : stack}
+                    ghostFrom={armedMove ? stack.length : undefined}
+                    playerIds={playerIds}
+                    compact
+                    springRain={springRain}
+                  />
                   {springRain && landing?.row === rowIndex && landing.col === colIndex && (
                     <span
                       key={gameData.lastAction?.turn}
@@ -427,7 +443,7 @@ function ActionBar({
             <p className="text-cdm-fg-muted w-24 shrink-0 text-right text-[10px] leading-3">
               {MOVE_LABELS[moveCount - 1]}
               <br />
-              목적지 {legalCount}곳
+              {armed ? '다시 누르면 이동' : `목적지 ${legalCount}곳`}
             </p>
           </div>
         ) : (

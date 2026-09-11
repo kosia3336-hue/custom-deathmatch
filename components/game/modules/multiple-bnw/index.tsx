@@ -1,5 +1,6 @@
 'use client';
 
+import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -294,7 +295,7 @@ export default function MultipleBnwGame() {
                       actionType="submitTile"
                     />
                   ) : (
-                    <WaitingCard text={`${fp?.nickname ?? '선플'}이 타일을 선택 중...`} />
+                    <WaitingCard text={`${josa(fp?.nickname ?? '선플', '이/가')} 타일을 선택 중...`} />
                   )}
                 </>
               )}
@@ -309,7 +310,7 @@ export default function MultipleBnwGame() {
                       firstColor={gameData.colorReveal?.firstPlayerColor}
                     />
                   ) : (
-                    <WaitingCard text={`${sp?.nickname ?? '후플'}이 응답 중...`} />
+                    <WaitingCard text={`${josa(sp?.nickname ?? '후플', '이/가')} 응답 중...`} />
                   )}
                 </>
               )}
@@ -325,7 +326,7 @@ export default function MultipleBnwGame() {
                       trackedUsedTiles={trackedOpponentUsed}
                     />
                   ) : (
-                    <WaitingCard text={`${fp?.nickname ?? '선플'}이 배수의심 여부를 결정 중...`} />
+                    <WaitingCard text={`${josa(fp?.nickname ?? '선플', '이/가')} 배수의심 여부를 결정 중...`} />
                   )}
                 </>
               )}
@@ -346,7 +347,7 @@ export default function MultipleBnwGame() {
                     />
                   ) : (
                     <WaitingCard
-                      text={`${sp?.nickname ?? '후플'}이 배수의심 여부를 결정 중...`}
+                      text={`${josa(sp?.nickname ?? '후플', '이/가')} 배수의심 여부를 결정 중...`}
                       extra={
                         gameData.suspectResult?.firstSuspected === true &&
                         gameData.suspectResult?.firstSuccess === false

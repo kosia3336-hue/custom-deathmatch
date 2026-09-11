@@ -185,7 +185,8 @@ export function TripleGomokuBoardView({
                 className={cn(
                   'absolute rounded-full transition-colors',
                   mark !== 'none' && MARK_RING[mark],
-                  mark === 'none' && armedKey === key && enabled && 'ring-2 ring-cdm-primary',
+                  // 목적지 표시(target) 위에서도 '여기 둘 예정' 이 보이게 테두리를 덮어쓴다
+                  armedKey === key && enabled && 'ring-2 ring-cdm-primary',
                   enabled ? 'cursor-pointer' : 'cursor-default',
                 )}
                 style={{

@@ -1,5 +1,6 @@
 'use client';
 
+import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
@@ -418,9 +419,9 @@ export default function FiveTowersGame() {
 
       let msg = '';
       if (e.kind === 'stack-public') {
-        msg = `${e.actorNickname}이(가) ${e.tower}탑에 쌓았습니다.`;
+        msg = `${josa(e.actorNickname, '이/가')} ${e.tower}탑에 쌓았습니다.`;
       } else if (e.kind === 'secret-hidden') {
-        msg = `${e.actorNickname}이(가) 시크릿을 사용했습니다.`;
+        msg = `${josa(e.actorNickname, '이/가')} 시크릿을 사용했습니다.`;
       } else if (e.kind === 'secret-revealed') {
         msg = `${e.actorNickname}의 시크릿 — ${e.tower}탑이 공개됐습니다.`;
       }
