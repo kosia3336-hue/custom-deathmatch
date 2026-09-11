@@ -7,7 +7,6 @@
     "dev:front": "next dev -p 3001",
     "dev:server": "pnpm --filter the-genius-server dev",
     "build": "next build && pnpm --filter the-genius-server build",
-    "assets:cards": "node scripts/compose-numeric-card-images.mjs",
     "assets:playing-cards": "node scripts/compose-playing-cards.mjs",
     "assets:seed-seotda": "node scripts/compose-seed-seotda-cards.mjs",
     "release": "node scripts/make-release.mjs",
