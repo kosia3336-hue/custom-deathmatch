@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DoubleSidedPokerCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import Button from '@/components/ui/Button';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
@@ -120,9 +120,9 @@ function PlayerPanel({
   */
   const cards = (
     <div className="flex items-center justify-center gap-2">
-      {player.card && <DoubleSidedPokerCard value={player.card.front} face="front" size="sm" />}
+      {player.card && <PlayingCard value={player.card.front} face="front" size="sm" />}
       {player.card?.back != null && (
-        <DoubleSidedPokerCard value={player.card.back} face="back" size="sm" />
+        <PlayingCard value={player.card.back} face="back" size="sm" />
       )}
       {player.card && player.card.back == null && (
         // 크기는 sm 카드(60×83)에 맞춘다. 나란히 놓였을 때 한 장만 작아 보이면 어색하다.

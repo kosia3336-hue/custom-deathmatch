@@ -7,9 +7,13 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, '..');
 const sourceDir = join(projectRoot, 'public/games/cards/parts-v2');
-const outputDir = join(projectRoot, 'public/games/cards/double-sided-poker');
-const previewDir = join(projectRoot, 'handover/design-assets/double-sided-poker');
-const tempDir = mkdtempSync(join(tmpdir(), 'cdm-double-sided-poker-'));
+/*
+  공용 숫자 카드 스프라이트 — 양면포커·인디언홀덤Q·초이스 홀덤이 함께 쓴다.
+  0~9 앞면 1~10 · 10~19 숫자 뒷면 1~10 · 20 숫자 없는 뒷면(가려진 카드)
+*/
+const outputDir = join(projectRoot, 'public/games/cards/playing');
+const previewDir = join(projectRoot, 'handover/design-assets/playing-cards');
+const tempDir = mkdtempSync(join(tmpdir(), 'cdm-playing-cards-'));
 
 const columns = 6;
 const rows = 4;
@@ -122,7 +126,11 @@ try {
     reverses.push(reverse);
   }
 
-  const cells = [...fronts, ...reverses].map((source, index) => {
+  // 숫자 없는 뒷면 — 숫자 뒷면과 같은 바탕에서 숫자 판만 뺀 것
+  const plainBack = join(tempDir, 'plain-back.png');
+  magick([backSource, plainBack]);
+
+  const cells = [...fronts, ...reverses, plainBack].map((source, index) => {
     const cell = join(tempDir, `cell-${index}.png`);
     magick([
       source,
@@ -156,7 +164,7 @@ try {
     'webp:method=6',
     '-define',
     'webp:alpha-quality=100',
-    join(outputDir, 'double-sided-poker-cards.webp'),
+    join(outputDir, 'cdm-playing-cards.webp'),
   ]);
 
   magick([
@@ -165,10 +173,11 @@ try {
     fontPath,
     ...fronts,
     ...reverses,
+    plainBack,
     '-thumbnail',
     '140x196',
     '-tile',
-    '5x4',
+    '5x5',
     '-geometry',
     '140x196+14+16',
     '-background',
@@ -177,7 +186,7 @@ try {
     '90',
     '-define',
     'webp:method=6',
-    join(previewDir, 'double-sided-poker-card-set.webp'),
+    join(previewDir, 'playing-card-set.webp'),
   ]);
 
   const locations = (startIndex) =>
@@ -194,14 +203,15 @@ try {
     join(outputDir, 'manifest.json'),
     `${JSON.stringify(
       {
-        version: 2,
+        version: 3,
         format: 'webp',
-        sprite: 'double-sided-poker-cards.webp',
+        sprite: 'cdm-playing-cards.webp',
         grid: { columns, rows },
         cell: { width: cellWidth, height: cellHeight },
         card: { width: cardWidth, height: cardHeight },
         front: locations(0),
         reverse: locations(10),
+        back: { column: 20 % columns, row: Math.floor(20 / columns) },
       },
       null,
       2,

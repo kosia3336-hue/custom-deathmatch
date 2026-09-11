@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { NumericCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import type { IPShowdownData, IPDieData, IPPlayerInfo, IPWinType } from '@/shared/types/indian-poker';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { HAND_LABELS, HAND_COLORS, WIN_TYPE_LABELS } from './constants';
@@ -32,7 +32,7 @@ function CardChip({
   return (
     <div className="flex flex-col items-center gap-1">
       {label && <span className="text-[10px] text-gray-400">{label}</span>}
-      <NumericCard value={value} size="sm" />
+      <PlayingCard value={value} className="w-9 lg:w-12" />
     </div>
   );
 }

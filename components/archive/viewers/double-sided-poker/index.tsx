@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/cdm/Card';
-import { DoubleSidedPokerCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { DoubleSidedPokerArchiveRecord } from '@/shared/types/double-sided-poker';
 
@@ -84,9 +84,9 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
                     <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md p-2 text-center">
                       <p className="text-cdm-fg-muted truncate text-[10px]">{player.nickname}</p>
                       <div className="mt-1 flex justify-center gap-1">
-                        {card && <DoubleSidedPokerCard value={card.front} face="front" size="sm" />}
+                        {card && <PlayingCard value={card.front} face="front" size="sm" />}
                         {card?.back != null && (
-                          <DoubleSidedPokerCard value={card.back} face="back" size="sm" />
+                          <PlayingCard value={card.back} face="back" size="sm" />
                         )}
                       </div>
                       {card && card.back == null && (
