@@ -34,7 +34,7 @@ export default function RoundHistoryTable({ history, players, compact }: Props) 
     <div className="w-full overflow-hidden">
       {/* Header */}
       <div
-        className={`grid items-center gap-x-2 pb-0.5 text-[10px] font-medium text-gray-400 ${
+        className={`grid items-center gap-x-2 pb-0.5 text-[10px] font-medium text-cdm-ink-fg-muted ${
           compact ? 'grid-cols-[28px_44px_44px]' : 'grid-cols-[28px_44px_44px_1fr_1fr]'
         }`}
       >
@@ -49,7 +49,7 @@ export default function RoundHistoryTable({ history, players, compact }: Props) 
         )}
       </div>
 
-      <div className="border-t border-gray-100 pt-1 space-y-0.5">
+      <div className="border-t border-cdm-ink-border pt-1 space-y-0.5">
         {history.map((r) => {
           const totalInvest = pIds.reduce((s, pid) => s + (r.players[pid]?.investTotal ?? 0), 0);
           const totalDonate = pIds.reduce((s, pid) => s + (r.players[pid]?.donateTotal ?? 0), 0);
@@ -66,15 +66,15 @@ export default function RoundHistoryTable({ history, players, compact }: Props) 
               }`}
             >
               {/* R번호 */}
-              <span className="font-medium text-gray-400">R{r.round}</span>
+              <span className="font-medium text-cdm-ink-fg-muted">R{r.round}</span>
 
               {/* 투자 합계 */}
-              <span className="text-right tabular-nums font-semibold text-blue-600">
+              <span className="text-right tabular-nums font-semibold text-blue-300">
                 {totalInvest}원
               </span>
 
               {/* 기부 합계 */}
-              <span className="text-right tabular-nums font-semibold text-emerald-600">
+              <span className="text-right tabular-nums font-semibold text-emerald-300">
                 {totalDonate}원
               </span>
 
@@ -82,7 +82,7 @@ export default function RoundHistoryTable({ history, players, compact }: Props) 
               {!compact && (
                 <span
                   className={`min-w-0 truncate break-keep ${
-                    isMajorTied ? 'text-gray-400' : 'font-medium text-amber-700'
+                    isMajorTied ? 'text-cdm-ink-fg-muted' : 'font-medium text-amber-300'
                   }`}
                 >
                   {majorNick}
@@ -93,7 +93,7 @@ export default function RoundHistoryTable({ history, players, compact }: Props) 
               {!compact && (
                 <span
                   className={`min-w-0 truncate break-keep ${
-                    isMiserNone ? 'text-gray-300' : 'font-medium text-red-600'
+                    isMiserNone ? 'text-white/30' : 'font-medium text-red-300'
                   }`}
                 >
                   {miserNick}

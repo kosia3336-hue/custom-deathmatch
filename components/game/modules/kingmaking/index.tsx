@@ -14,7 +14,13 @@ import { getSkinTheme } from '@/lib/skins/registry';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
 import { GAME_IDS } from '@/shared/types/game';
-import { Board3D, BoardCellButton3D } from '@/components/game/abstract-strategy';
+import {
+  Board3D,
+  BoardCellButton3D,
+  GamePiece3D,
+  PlayerStrip,
+  usePlacementConfirm,
+} from '@/components/game/abstract-strategy';
 import { GameFrame } from '@/components/game/GameFrame';
 import Modal from '@/components/ui/Modal';
 import { StackVisual } from './StackVisual';
@@ -68,6 +74,11 @@ function KingmakingBoard({
   const [moveCount, setMoveCount] = useState(1);
   const [pending, setPending] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  /*
+    터치에서는 첫 탭에 반투명 말로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야
+    둔다. 일반말·특수말을 바꾸면 보여 주던 말 모양이 달라지므로 비운다.
+  */
+  const placement = usePlacementConfirm(mode);
 
   const playerIds = Object.keys(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
@@ -80,7 +91,7 @@ function KingmakingBoard({
     setHud({
       round: `${gameData.turnNumber}턴`,
       order: gameData.phase === 'finished' ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
-      memo: <KingmakingSidePanel gameData={gameData} myId={myId} springRain={springRain} />,
+      // 판 정보는 메모가 아니라 판 위(info)에 늘 펴 둔다 — design.md §14.9
     });
     return () => setHud(null);
   }, [gameData, isMyTurn, myId, setHud, springRain]);
@@ -123,8 +134,10 @@ function KingmakingBoard({
     if (mode !== 'move' && stack.length === 0) {
       const left = mode === 'normal' ? myReserve.normal : myReserve.special;
       if (left <= 0) return;
-      setPending(true);
-      getSocket().emit('game:action', { type: 'place', kind: mode, to: position });
+      placement.tap(key, () => {
+        setPending(true);
+        getSocket().emit('game:action', { type: 'place', kind: mode, to: position });
+      });
       return;
     }
     if (mode === 'move' && source && legalTargetKeys.has(key)) {
@@ -152,6 +165,26 @@ function KingmakingBoard({
     <>
       <GameFrame
         className={springRain ? 'skin-spring-rain-field' : undefined}
+        info={
+          <PlayerStrip
+            className={springRain ? 'skin-spring-rain-controls' : undefined}
+            entries={playerIds.map((playerId, index) => {
+              const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
+              return {
+                id: playerId,
+                name: gameData.players[playerId]?.nickname ?? '',
+                isMe: playerId === myId,
+                marker: (
+                  <span className="block h-3.5 w-3.5">
+                    <GamePiece3D tone={index === 0 ? 'primary' : 'highlight'} />
+                  </span>
+                ),
+                detail: `일반 ${reserve.normal} · 특수 ${reserve.special}`,
+                active: gameData.currentPlayerId === playerId && gameData.phase === 'playing',
+              };
+            })}
+          />
+        }
         controls={
           <ActionBar
             mode={mode}
@@ -165,6 +198,7 @@ function KingmakingBoard({
             onChooseCount={setMoveCount}
             onOpenHelp={() => setShowHelp(true)}
             springRain={springRain}
+            armed={placement.armed != null}
           />
         }
         aside={sidePanel}
@@ -187,6 +221,7 @@ function KingmakingBoard({
               const selected = source && kingmakingPositionKey(source) === key;
               const legal = legalTargetKeys.has(key);
               const placeable = mode !== 'move' && stack.length === 0 && canPlay;
+              const armed = placeable && placement.armed === key;
               return (
                 <BoardCellButton3D
                   key={key}
@@ -194,7 +229,7 @@ function KingmakingBoard({
                   disabled={!canPlay || pending || (!placeable && stack.length === 0 && !legal)}
                   aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${stack.length ? `, ${stack.length}층` : ', 빈칸'}`}
                   tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
-                  state={selected ? 'selected' : legal ? 'available' : 'idle'}
+                  state={selected || armed ? 'selected' : legal ? 'available' : 'idle'}
                   className={cn(
                     'kingmaking-board-cell',
                     springRain && 'kingmaking-spring-rain-cell',
@@ -212,7 +247,20 @@ function KingmakingBoard({
                   {legal && (
                     <span className="bg-cdm-success absolute top-1 left-1 h-2.5 w-2.5 rounded-full shadow-sm" />
                   )}
-                  {placeable && (
+                  {armed ? (
+                    <span
+                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 opacity-55"
+                      style={{ bottom: '8%', width: '66%', height: mode === 'special' ? '21%' : '17%' }}
+                      aria-hidden
+                    >
+                      <GamePiece3D
+                        tone={playerIds.indexOf(myId) === 0 ? 'primary' : 'highlight'}
+                        shape={mode === 'special' ? 'crown' : 'disc'}
+                        label={mode === 'special' ? '◆' : undefined}
+                        className={springRain ? 'kingmaking-spring-rain-piece' : undefined}
+                      />
+                    </span>
+                  ) : placeable && (
                     <span className="text-cdm-fg-subtle absolute inset-0 flex items-center justify-center text-xl font-light opacity-35">
                       ＋
                     </span>
@@ -298,6 +346,7 @@ function ActionBar({
   onChooseCount,
   onOpenHelp,
   springRain,
+  armed,
 }: {
   mode: KingmakingPieceKind | 'move';
   canPlay: boolean;
@@ -310,6 +359,8 @@ function ActionBar({
   onChooseCount: (count: number) => void;
   onOpenHelp: () => void;
   springRain: boolean;
+  /** 터치 첫 탭으로 둘 자리를 보여 주는 중 */
+  armed: boolean;
 }) {
   const counts = Array.from({ length: Math.min(5, sourceHeight) }, (_, i) => i + 1).reverse();
 
@@ -383,7 +434,9 @@ function ActionBar({
           <p className="text-cdm-fg-muted w-full text-center text-[11px]">
             {mode === 'move'
               ? '옮길 탑을 판에서 고르세요.'
-              : '빈칸을 눌러 말을 놓습니다. 탑을 누르면 이동으로 바뀝니다.'}
+              : armed
+                ? '같은 칸을 한 번 더 누르면 놓습니다. 다른 칸을 누르면 자리만 옮깁니다.'
+                : '빈칸을 눌러 말을 놓습니다. 탑을 누르면 이동으로 바뀝니다.'}
           </p>
         )}
       </div>

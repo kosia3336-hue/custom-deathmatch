@@ -21,14 +21,14 @@ function PlayerCard({
   return (
     <div
       className={`rounded-lg border p-3 ${
-        isCurrent ? `border-indigo-300 ${colors.light}` : 'border-gray-200'
+        isCurrent ? 'border-cdm-primary bg-cdm-primary/20' : 'border-cdm-ink-border'
       }`}
     >
       <div className="flex items-center gap-2">
         <span className={`h-4 w-4 rounded-full ${colors.bg}`} />
-        <span className="text-sm font-bold text-gray-900">{player.nickname}</span>
+        <span className="text-sm font-bold text-cdm-ink-fg">{player.nickname}</span>
       </div>
-      {isCurrent && <div className="mt-1 text-xs font-medium text-indigo-600">◀ 현재 턴</div>}
+      {isCurrent && <div className="mt-1 text-xs font-medium text-indigo-300">◀ 현재 턴</div>}
     </div>
   );
 }

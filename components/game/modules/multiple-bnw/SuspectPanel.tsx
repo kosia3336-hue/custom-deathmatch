@@ -31,8 +31,13 @@ export default function SuspectPanel({
     ? estimatedRemaining.filter(t => MBNW_TILE_COLOR[t] === opponentColor)
     : [];
 
+  /*
+    같은 숫자도 배수(×1)다. 판정(server/.../multiple-bnw/judge.ts)이
+    opTile % myTile === 0 으로 같은 숫자를 성공으로 치는데, 여기서만 빼고 있어
+    내 4 에 상대 4 가 남아 있어도 '8, 12일 경우 성공' 으로 안내했다.
+  */
   const multipleTiles = myTile
-    ? colorTiles.filter(t => t % myTile === 0 && t !== myTile)
+    ? colorTiles.filter(t => t % myTile === 0)
     : [];
 
   const canSucceed = multipleTiles.length > 0;

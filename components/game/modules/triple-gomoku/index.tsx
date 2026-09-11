@@ -26,6 +26,7 @@ import Modal from '@/components/ui/Modal';
 import { TG_BOARD_ASPECT } from '@/shared/logic/triple-gomoku';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { GamePiece3D, PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
 
 type ActionMode = 'place' | 'move';
 
@@ -106,7 +107,7 @@ function PlaySurface({
         : gameData.phase === 'finished'
           ? '종료'
           : isMyTurn ? '내 차례' : '상대 차례',
-      memo: <TripleGomokuSidePanel gameData={gameData} myId={myId} />,
+      // 판 정보는 메모가 아니라 판 위(info)에 늘 펴 둔다 — design.md §14.9
     });
     return () => setHud(null);
   }, [gameData, isMyTurn, myId, setHud]);
@@ -121,6 +122,8 @@ function PlaySurface({
   }`;
   const pending = pendingSignature === acceptedSignature;
   const active = canPlay && !pending;
+  /* 터치에서는 첫 탭에 반투명 돌로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야 둔다. */
+  const placement = usePlacementConfirm(`${acceptedSignature}:${mode}`);
 
   /* 서버가 거부하면 판이 그대로라 잠금이 안 풀리므로 error 신호로 직접 푼다. */
   useEffect(() => {
@@ -178,8 +181,10 @@ function PlaySurface({
     if (!active) return;
     if (setup || mode === 'place') {
       if (!canPlaceHere(cell)) return;
-      setPendingSignature(acceptedSignature);
-      getSocket().emit('game:action', { type: 'place', to: cell });
+      placement.tap(tripleGomokuCellKey(cell), () => {
+        setPendingSignature(acceptedSignature);
+        getSocket().emit('game:action', { type: 'place', to: cell });
+      });
       return;
     }
     if (source && canMoveTripleGomokuStone(gameData.board, source, cell, myId)) {
@@ -198,6 +203,22 @@ function PlaySurface({
   return (
     <>
       <GameFrame
+        info={
+          <PlayerStrip
+            entries={Object.entries(gameData.players).map(([playerId, player]) => ({
+              id: playerId,
+              name: player.nickname,
+              isMe: playerId === myId,
+              marker: (
+                <span className="block h-3.5 w-3.5">
+                  <GamePiece3D tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'} />
+                </span>
+              ),
+              detail: `돌 ${gameData.reserves[playerId] ?? 0}`,
+              active: gameData.currentPlayerId === playerId && !finished,
+            }))}
+          />
+        }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
             <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-1.5">
@@ -234,7 +255,9 @@ function PlaySurface({
               </button>
             </div>
             <p className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]">
-              {setup
+              {placement.armed && active && (setup || mode === 'place')
+                ? '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
+                : setup
                 ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
                 : !isPlayer
                   ? '관전 중입니다.'
@@ -258,6 +281,7 @@ function PlaySurface({
           onCellClick={handleClick}
           isEnabled={isEnabled}
           previewOwnerId={active ? myId : null}
+          armedKey={setup || mode === 'place' ? placement.armed : null}
           ariaLabel="삼층 오목 판"
           maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}
           className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"

@@ -5,9 +5,9 @@
  *   선플 의심 성공: sp.tile % fp.tile === 0  → 상대(후플) 타일이 내(선플) 타일의 배수
  *   후플 의심 성공: fp.tile % sp.tile === 0  → 상대(선플) 타일이 내(후플) 타일의 배수
  *
- * 타일 세트 내 배수 관계 요약:
- *   3 → (6, 9, 12)   4 → (8, 12)   5 → (10)   6 → (12)
- *   7, 8, 9, 10, 12: 자신의 배수가 세트 내에 없음
+ * 타일 세트 내 배수 관계 요약 (같은 숫자 = 1배수도 성공, judge.ts):
+ *   3 → (3, 6, 9, 12)   4 → (4, 8, 12)   5 → (5, 10)   6 → (6, 12)
+ *   7, 8, 9, 10, 12: 자기 자신만
  */
 
 import { AI_PLAYER_ID } from '@shared/types/room.js';
@@ -47,7 +47,7 @@ function getUser(s: InternalState): MBNWPlayerInternal {
  */
 function riskRate(myTile: MBNWTile, opRemaining: MBNWTile[]): number {
   if (opRemaining.length === 0) return 0;
-  const divisors = opRemaining.filter(t => myTile % t === 0 && t !== myTile);
+  const divisors = opRemaining.filter(t => myTile % t === 0);
   return divisors.length / opRemaining.length;
 }
 
@@ -58,7 +58,7 @@ function riskRate(myTile: MBNWTile, opRemaining: MBNWTile[]): number {
  */
 function opportunityRate(myTile: MBNWTile, opRemaining: MBNWTile[]): number {
   if (opRemaining.length === 0) return 0;
-  const multiples = opRemaining.filter(t => t % myTile === 0 && t !== myTile);
+  const multiples = opRemaining.filter(t => t % myTile === 0);
   return multiples.length / opRemaining.length;
 }
 
@@ -82,7 +82,7 @@ function suspectSuccessProb(
 ): number {
   const colorTiles = opponentRemaining.filter(t => MBNW_TILE_COLOR[t] === opponentColor);
   if (colorTiles.length === 0) return 0;
-  return colorTiles.filter(t => t % myTile === 0 && t !== myTile).length / colorTiles.length;
+  return colorTiles.filter(t => t % myTile === 0).length / colorTiles.length;
 }
 
 /* ────────── tile selection ────────── */
@@ -149,12 +149,12 @@ function aiRespondTile(s: InternalState, firstPlayerColor: MBNWTileColor): MBNWT
   const scored = remaining.map((tile) => {
     // 색 정보 기반 위험도: 상대 컬러 타일 중 내 타일의 약수
     const colorRisk = opColorTiles.length > 0
-      ? opColorTiles.filter(t => tile % t === 0 && t !== tile).length / opColorTiles.length
+      ? opColorTiles.filter(t => tile % t === 0).length / opColorTiles.length
       : riskRate(tile, opRemaining);
 
     // 색 정보 기반 기회: 상대 컬러 타일 중 내 타일의 배수
     const colorOpp = opColorTiles.length > 0
-      ? opColorTiles.filter(t => t % tile === 0 && t !== tile).length / opColorTiles.length
+      ? opColorTiles.filter(t => t % tile === 0).length / opColorTiles.length
       : opportunityRate(tile, opRemaining);
 
     // 숫자 정산 기대값 (색 타일 기준)

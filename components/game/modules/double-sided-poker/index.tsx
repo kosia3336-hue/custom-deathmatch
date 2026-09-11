@@ -259,7 +259,6 @@ function BranchHint({ branch, stake }: { branch: DoubleSidedPokerBranch; stake: 
  */
 function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; myId: string }) {
   const mine = gameData.players[myId];
-  const opponent = Object.entries(gameData.players).find(([id]) => id !== myId)?.[1] ?? null;
   const committed = mine?.selection ?? null;
   const [branch, setBranch] = useState<DoubleSidedPokerBranch>(committed ?? 'front');
   const [showRaise, setShowRaise] = useState(false);
@@ -291,25 +290,6 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
     이고, 두 배로 나가는 계산은 서버가 selection 을 보고 알아서 한다.
   */
   const declaringDouble = isDouble && committed == null;
-
-  /*
-    질 게 뻔한 양면베팅을 막아 준다.
-
-    양면베팅은 내 앞면과 뒷면이 상대가 고른 숫자보다 '둘 다' 커야 이긴다.
-    그러니 내 두 숫자 중 작은 쪽이 상대가 고를 수 있는 숫자 이하라면 승부에서는
-    절대 이길 수 없다. 상대의 앞면은 공개되어 있으므로 그 경우를 미리 짚어 준다.
-
-    상대가 이미 뒷면을 골랐다면 그 숫자를 알 수 없어 판단하지 않는다.
-    상대가 다이하면 이길 수도 있으므로 막지 않고 묻기만 한다.
-  */
-  function confirmDouble() {
-    const card = mine?.card;
-    if (!card || card.back == null) return true;
-    if (!opponent?.card) return true;
-    if (opponent.selection === 'back' || opponent.selection === 'both') return true;
-    if (Math.min(card.front, card.back) > opponent.card.front) return true;
-    return window.confirm('무조건 패배하게 됩니다. 정말 진행합니까?');
-  }
 
   /*
     걸 칩이 없는 이월 라운드. 낼 것이 없으니 겨룰 면만 고른다. 낮은 쪽을
@@ -381,7 +361,6 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
             disabled={max < gameData.minBet}
             onClick={() => {
               if (declaringDouble) {
-                if (!confirmDouble()) return;
                 getSocket().emit('game:action', { type: 'double', amount: stake });
                 return;
               }
@@ -475,7 +454,6 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
             <Button
               onClick={() => {
                 if (declaringDouble) {
-                  if (!confirmDouble()) return;
                   setShowRaise(false);
                   getSocket().emit('game:action', { type: 'double', amount: raiseStake });
                   return;
@@ -500,7 +478,6 @@ function BettingArea({ gameData, myId }: { gameData: DoubleSidedPokerGameData; m
           <Button
             onClick={() => {
               if (declaringDouble) {
-                if (!confirmDouble()) return;
                 getSocket().emit('game:action', { type: 'double', amount: callStake });
                 return;
               }

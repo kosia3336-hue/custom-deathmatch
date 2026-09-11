@@ -19,6 +19,8 @@ import Button from '@/components/ui/Button';
 import Board from './Board';
 import PrisonerBar from './PrisonerBar';
 import InfoPanel from './InfoPanel';
+import { PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
+import { OWNER_COLOR } from './constants';
 import { WIN_TYPE_TOAST_LABEL } from './constants';
 import { getValidMoves, getValidPrisonerPlacements } from './boardUtils';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
@@ -64,7 +66,7 @@ export default function DoubleSidedChessGame() {
     setHud({
       round: `${turnNumber}턴`,
       order: gameData.winner ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
-      memo: <DoubleSidedChessSidePanel gameData={gameData} />,
+      // 판 정보는 메모가 아니라 판 위에 늘 펴 둔다 — design.md §14.9
     });
     return () => setHud(null);
   }, [gameData, isMyTurn, setHud, turnNumber]);
@@ -106,6 +108,11 @@ export default function DoubleSidedChessGame() {
     return getValidPrisonerPlacements(gameData.board, myOwner);
   }, [selectedPrisoner, myOwner, gameData]);
 
+  /* 포로 배치는 착수다. 터치에서는 첫 탭에 반투명 말로 자리만 보여 주고, 한 번 더 눌러야 둔다. */
+  const placement = usePlacementConfirm(
+    `${gameData?.turnNumber ?? ''}:${gameData?.currentPlayer ?? ''}:${selectedPrisoner ?? ''}`,
+  );
+
   if (!gameData) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -121,13 +128,16 @@ export default function DoubleSidedChessGame() {
 
     if (selectedPrisoner) {
       if (prisonerPlacements.some((p) => p.row === row && p.col === col)) {
-        getSocket().emit('game:action', {
-          type: 'place-prisoner',
-          pieceType: selectedPrisoner,
-          position: { row, col },
+        const pieceType = selectedPrisoner;
+        placement.tap(`${row},${col}`, () => {
+          getSocket().emit('game:action', {
+            type: 'place-prisoner',
+            pieceType,
+            position: { row, col },
+          });
+          setSelectedPrisoner(null);
+          setSelectedPiece(null);
         });
-        setSelectedPrisoner(null);
-        setSelectedPiece(null);
         return;
       }
       setSelectedPrisoner(null);
@@ -169,7 +179,9 @@ export default function DoubleSidedChessGame() {
   const message = !isMyTurn
     ? (gameState?.message ?? '상대 턴입니다. 기다려 주세요...')
     : selectedPrisoner
-      ? '배치할 칸을 선택하세요'
+      ? placement.armed
+        ? '같은 칸을 한 번 더 누르면 배치합니다'
+        : '배치할 칸을 선택하세요'
       : selectedPiece
         ? '이동할 칸을 선택하세요'
         : '말을 선택하세요';
@@ -182,6 +194,17 @@ export default function DoubleSidedChessGame() {
     <div className="flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="flex flex-1 flex-col items-center gap-1 p-2 lg:p-4">
+          <div className="w-full max-w-2xl shrink-0">
+            <PlayerStrip
+              entries={(['second', 'first'] as const).map((owner) => ({
+                id: owner,
+                name: gameData.players[owner].nickname,
+                isMe: myOwner === owner,
+                marker: <span className={`h-3.5 w-3.5 rounded-full ${OWNER_COLOR[owner].bg}`} />,
+                active: !gameData.winner && gameData.currentOwner === owner,
+              }))}
+            />
+          </div>
           {/* second(파랑) 포로 — 보드 위, 항상 고정 */}
           <div className="w-full max-w-2xl shrink-0">
             <PrisonerBar
@@ -207,6 +230,16 @@ export default function DoubleSidedChessGame() {
               isMyTurn={isMyTurn}
               winner={gameData.winner}
               skin={skin}
+              ghost={
+                placement.armed && selectedPrisoner && myOwner
+                  ? {
+                      row: Number(placement.armed.split(',')[0]),
+                      col: Number(placement.armed.split(',')[1]),
+                      piece: selectedPrisoner,
+                      owner: myOwner,
+                    }
+                  : null
+              }
               onCellClick={handleCellClick}
             />
           </div>

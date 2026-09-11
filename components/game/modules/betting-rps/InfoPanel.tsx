@@ -15,10 +15,10 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
   const maxChips = BRPS_INITIAL_CHIPS + BRPS_TOTAL_ROUNDS * 2; // theoretical max
 
   return (
-    <div className="space-y-0 divide-y divide-gray-100 text-sm">
+    <div className="space-y-0 divide-y divide-cdm-ink-border text-sm">
       {/* Chips */}
       <div className="py-3 space-y-1.5">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">칩</div>
+        <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">칩</div>
         {pIds.map((pid) => {
           const p = players[pid];
           const isMe = pid === myId;
@@ -28,18 +28,18 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
             <div key={pid} className="flex items-center gap-2">
               <span
                 className={`w-14 shrink-0 truncate text-xs ${
-                  isMe ? 'font-bold text-gray-800' : 'text-gray-500'
+                  isMe ? 'font-bold text-cdm-ink-fg' : 'text-cdm-ink-fg-muted'
                 }`}
               >
                 {isMe ? '나' : p.nickname}
               </span>
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
                 <div
                   className={`h-full rounded-full transition-all ${barColor}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-gray-700">
+              <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-cdm-ink-fg">
                 {p.chips}
               </span>
             </div>
@@ -50,7 +50,7 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
       {/* Round history */}
       {roundHistory.length > 0 && (
         <div className="py-3 space-y-1.5">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">
             라운드 기록
           </div>
           <RoundHistoryTable history={roundHistory} players={players} myId={myId} />

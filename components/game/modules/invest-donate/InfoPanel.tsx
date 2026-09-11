@@ -14,16 +14,16 @@ function CoinDisplay({ stock }: { stock: IDCoinStock }) {
   const total = stock.coin50 * 50 + stock.coin10 * 10 + stock.coin1;
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="tabular-nums text-gray-600">
+      <span className="tabular-nums text-cdm-ink-fg-muted">
         50×{stock.coin50}
       </span>
-      <span className="tabular-nums text-gray-600">
+      <span className="tabular-nums text-cdm-ink-fg-muted">
         10×{stock.coin10}
       </span>
-      <span className="tabular-nums text-gray-600">
+      <span className="tabular-nums text-cdm-ink-fg-muted">
         1×{stock.coin1}
       </span>
-      <span className="ml-auto tabular-nums font-semibold text-gray-700">{total}원</span>
+      <span className="ml-auto tabular-nums font-semibold text-cdm-ink-fg">{total}원</span>
     </div>
   );
 }
@@ -32,10 +32,10 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
   const pIds = Object.keys(players);
 
   return (
-    <div className="space-y-0 text-sm divide-y divide-gray-100">
+    <div className="space-y-0 text-sm divide-y divide-cdm-ink-border">
       {/* Score */}
       <div className="py-3 space-y-1.5">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">승점</div>
+        <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">승점</div>
         {pIds.map((pid) => {
           const p = players[pid];
           const isMe = pid === myId;
@@ -47,12 +47,12 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
             <div key={pid} className="flex items-center gap-2">
               <span
                 className={`w-14 shrink-0 truncate text-xs ${
-                  isMe ? 'font-bold text-gray-800' : 'text-gray-500'
+                  isMe ? 'font-bold text-cdm-ink-fg' : 'text-cdm-ink-fg-muted'
                 }`}
               >
                 {isMe ? '나' : p.nickname}
               </span>
-              <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <div
                   className={`h-full rounded-full ${barColor} transition-all`}
                   style={{ width: `${pct}%` }}
@@ -60,7 +60,7 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
               </div>
               <span
                 className={`w-4 shrink-0 text-right text-xs font-bold tabular-nums ${
-                  p.score <= 1 ? 'animate-pulse text-red-500' : 'text-gray-700'
+                  p.score <= 1 ? 'animate-pulse text-red-400' : 'text-cdm-ink-fg'
                 }`}
               >
                 {p.score}
@@ -73,7 +73,7 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
       {/* My coins */}
       {players[myId] && (
         <div className="py-3 space-y-1">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">
             보유 코인
           </div>
           <CoinDisplay stock={players[myId].coinStock} />
@@ -83,7 +83,7 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
       {/* Round history */}
       {roundHistory.length > 0 && (
         <div className="py-3 space-y-1.5">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">
             라운드 기록
           </div>
           <RoundHistoryTable history={roundHistory} players={players} />

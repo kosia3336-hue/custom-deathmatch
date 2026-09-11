@@ -44,6 +44,8 @@ export interface TripleGomokuBoardViewProps {
   isEnabled?: (cell: TripleGomokuCell) => boolean;
   /** 커서를 올린 칸에 이 사람의 돌을 미리 보여 준다. null 이면 미리보기 없음. */
   previewOwnerId?: string | null;
+  /** 터치 첫 탭으로 자리만 보여 주는 칸. 커서가 없어도 미리보기 돌을 띄운다. */
+  armedKey?: string | null;
   ariaLabel: string;
   className?: string;
   footer?: ReactNode;
@@ -67,6 +69,7 @@ export function TripleGomokuBoardView({
   onCellClick,
   isEnabled,
   previewOwnerId = null,
+  armedKey = null,
   ariaLabel,
   className,
   footer,
@@ -160,7 +163,7 @@ export function TripleGomokuBoardView({
             const showPreview =
               enabled &&
               previewOwnerId != null &&
-              hoveredKey === key &&
+              (hoveredKey === key || armedKey === key) &&
               stack.length < TG_MAX_HEIGHT;
             const Tag = onCellClick ? 'button' : 'div';
             return (
@@ -182,6 +185,7 @@ export function TripleGomokuBoardView({
                 className={cn(
                   'absolute rounded-full transition-colors',
                   mark !== 'none' && MARK_RING[mark],
+                  mark === 'none' && armedKey === key && enabled && 'ring-2 ring-cdm-primary',
                   enabled ? 'cursor-pointer' : 'cursor-default',
                 )}
                 style={{

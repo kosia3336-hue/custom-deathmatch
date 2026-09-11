@@ -17,7 +17,8 @@ import Modal from '@/components/ui/Modal';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Button from '@/components/ui/Button';
 import TutorialCoach from './TutorialCoach';
-import { DIR_LABEL, WIN_TYPE_TOAST_LABEL } from './constants';
+import { DIR_LABEL, STONE_COLOR_CLASS, WIN_TYPE_TOAST_LABEL } from './constants';
+import { PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
 import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardUtils';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
@@ -55,6 +56,10 @@ export default function FourGravityGame() {
   useTurnTimer();
 
   const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
+  /* 터치에서는 첫 탭에 반투명 돌로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야 둔다. */
+  const placement = usePlacementConfirm(
+    `${turnNumber}:${gameData?.phase ?? ''}:${gameData?.currentPlayer ?? ''}`,
+  );
 
   /*
     차례가 오가는 판이다. 단계 이름만 적으면 '중력 선택' 이 내 차례인지 상대
@@ -83,11 +88,7 @@ export default function FourGravityGame() {
     setHud({
       round: `${turnNumber}턴`,
       order: phaseLabel,
-      memo: (
-        <FourGravitySidePanel
-          gameData={gameData}
-        />
-      ),
+      // 판 정보는 메모가 아니라 판 위(info)에 늘 펴 둔다 — design.md §14.9
     });
     return () => setHud(null);
   }, [gameData, phaseLabel, setHud, turnNumber]);
@@ -124,11 +125,12 @@ export default function FourGravityGame() {
 
   const handleCellClick = (row: number, col: number) => {
     if (!isMyTurn) return;
-    if (gameData.phase === 'place') {
-      getSocket().emit('game:action', { type: 'place', row, col });
-    } else if (gameData.phase === 'neutral') {
-      getSocket().emit('game:action', { type: 'neutral', row, col });
-    }
+    const phase = gameData.phase;
+    if (phase !== 'place' && phase !== 'neutral') return;
+    const commit = () => getSocket().emit('game:action', { type: phase, row, col });
+    // 조작 연습은 코치가 '여기를 누르세요' 로 한 번에 두게 안내하므로 확인 탭을 끼우지 않는다.
+    if (tutorial) commit();
+    else placement.tap(`${row},${col}`, commit);
   };
 
   const handleGravity = (direction: Direction) => {
@@ -183,6 +185,29 @@ export default function FourGravityGame() {
         </div>
       </Modal>
       <GameFrame
+        info={
+          <PlayerStrip
+            entries={(['black', 'white'] as const).map((color) => {
+              const player = gameData.players[color];
+              return {
+                id: color,
+                name: player.nickname,
+                isMe: player.id === myId,
+                marker: (
+                  <span className={`h-3.5 w-3.5 rounded-full ring-1 ring-cdm-border-strong ${STONE_COLOR_CLASS[color]}`} />
+                ),
+                detail: `돌 ${player.stoneCount}`,
+                active: !gameData.winner && gameData.currentColor === color,
+              };
+            })}
+            extra={
+              <>
+                중립 {gameData.neutralCount}
+                {gameData.lastGravity ? ` · 금지 ${DIR_LABEL[gameData.lastGravity]}` : ''}
+              </>
+            }
+          />
+        }
         controls={
           <div className="flex flex-col items-center gap-1.5">
             {tutorial ? (
@@ -229,6 +254,7 @@ export default function FourGravityGame() {
           winLine={gameData.winLine}
           winner={gameData.winner}
           highlightCells={tutorial?.highlightCells}
+          armedKey={placement.armed}
           skin={skin}
           maxWidth={fitBoardWidth(1, 1, '500px')}
           onCellClick={handleCellClick}
