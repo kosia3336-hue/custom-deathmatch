@@ -14,7 +14,7 @@ import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
-import { GameSoundSettings } from './GameSoundSettings';
+import { SoundSettings } from '@/components/cdm/SoundSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { Icon, UnreadBadge } from '@/components/cdm';
@@ -302,7 +302,7 @@ export default function GameShell({ children }: Props) {
 
       {/* ── 설정 — 예전 상단 바에 흩어져 있던 것들 ── */}
       <BottomSheet open={showSettings} onClose={() => setShowSettings(false)} title="설정">
-        <GameSoundSettings />
+        <SoundSettings className="py-3" />
         <ul className="divide-y divide-cdm-border">
           <SettingRow label="게임 규칙" onClick={() => { setShowSettings(false); setShowRules(true); }} />
           {showUndo && <SettingRow label={undoWaiting ? '무르기 응답 대기 중…' : '무르기'} disabled={undoWaiting} onClick={() => {

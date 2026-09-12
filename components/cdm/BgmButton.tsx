@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { useBgm } from '@/components/providers/BgmProvider';
-import { isSfxMuted, setSfxMuted, subscribeSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, setSfxMuted, subscribeSfxSettings } from '@/lib/sfxSettings';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 
@@ -20,7 +20,7 @@ interface Props {
  */
 export function BgmButton({ className }: Props) {
   const { muted: bgmMuted, setMuted: setBgmMuted } = useBgm();
-  const sfxMuted = useSyncExternalStore(subscribeSfxMuted, isSfxMuted, () => false);
+  const sfxMuted = useSyncExternalStore(subscribeSfxSettings, isSfxMuted, () => false);
 
   const soundOn = !bgmMuted || !sfxMuted;
 
