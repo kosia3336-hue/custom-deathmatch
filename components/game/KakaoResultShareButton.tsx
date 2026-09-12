@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Script from 'next/script';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/cdm/Icon';
 import { resultShareTemplate, resultShareText, type ResultShareSummary } from '@/lib/resultShare';
 
 type KakaoSdk = {
@@ -52,16 +53,18 @@ export default function KakaoResultShareButton({ summary }: { summary: ResultSha
   };
   return (
     <>
-      <Button
-        size="sm"
-        variant="secondary"
+      <button
+        type="button"
+        aria-label="카카오톡 공유"
+        title="카카오톡 공유"
         onClick={() => {
           setMessage('');
           setOpen(true);
         }}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:text-cdm-fg"
       >
-        카카오톡 공유
-      </Button>
+        <Icon name="share" size="sm" />
+      </button>
       {open && key && (
         <Script
           id="kakao-share-sdk"

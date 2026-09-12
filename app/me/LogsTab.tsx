@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import KakaoResultShareButton from '@/components/game/KakaoResultShareButton';
 import { Card } from '@/components/cdm/Card';
+import { Icon } from '@/components/cdm/Icon';
 import { Tag } from '@/components/cdm/Tag';
 import { TurnBadge } from '@/components/cdm/TurnBadge';
 import { TitleBadge } from '@/components/cdm/TitleBadge';
@@ -166,7 +167,10 @@ export default async function LogsTab({
               </div>
 
               <div className="mt-2 flex gap-3 text-xs text-cdm-fg-muted">
-                <span>⏱ {formatTime(log.play_time_seconds * 1000)}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="clock" size="sm" className="h-3.5 w-3.5" />
+                  {formatTime(log.play_time_seconds * 1000)}
+                </span>
                 <span>{log.total_turns}턴</span>
               </div>
             </Link>

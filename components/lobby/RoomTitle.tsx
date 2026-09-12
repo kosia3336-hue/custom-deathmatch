@@ -10,7 +10,7 @@ export default function RoomTitle({ room }: { room: RoomSummary }) {
       <span className="inline-flex shrink-0 items-center gap-1">
         {room.roomType === 'private' && (
           <span aria-label="비밀방" title="비밀번호가 필요한 방" className="inline-flex items-center rounded-cdm-sm border border-cdm-highlight-soft bg-cdm-highlight-soft px-1.5 py-0.5 text-[10px] font-medium text-[#a16207]">
-            <Icon name="key" size="sm" className="h-3.5 w-3.5" />
+            <Icon name="lock" size="sm" className="h-3.5 w-3.5" />
           </span>
         )}
         {room.timeLimitSeconds != null && <TimeLimitBadge seconds={room.timeLimitSeconds} />}
