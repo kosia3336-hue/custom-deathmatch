@@ -2,8 +2,10 @@
  * 랭크 매치 신원 가림 (익명 물약과 별도).
  *
  * 물약(`maskNicknames.ts`)은 수정하지 않는다. 적용 순서는 물약 → 랭크.
- * 랭크는 플레이어끼리만 상대 닉을 '???' 로 바꾼다. 칭호·길드·memberId 는 유지.
- * 관전자·결과·전적은 이 레이어를 타지 않는다.
+ * 랭크는 진행 중인 판에서 본인 외 모든 사람(상대 플레이어·관전자)에게 플레이어
+ * 닉을 '???' 로 바꾼다. 칭호·길드·memberId 는 유지. 결과·전적은 이 레이어를 타지 않는다.
+ *
+ * 관전자에게도 가리는 이유: 관전자가 닉을 보고 플레이어에게 따로 알려 줄 수 있다.
  */
 
 import type { ChatMessage } from '@shared/types/events.js';
@@ -25,9 +27,8 @@ function isRoomPlayer(room: Room, id: string | null | undefined): boolean {
  * 인게임 HUD·채팅·room:state 용 닉.
  *  1. 본인 → 실명
  *  2. 익명 물약 → ???
- *  3. 랭크 + 양쪽 플레이어 → ???
- *  4. 관전자(토큰 있음)가 플레이어를 볼 때 → 실명
- *  5. viewer 미상(broadcast 폴백) + 랭크 플레이어 → ???
+ *  3. 랭크 플레이어 → 본인 외 누구에게나(상대·관전자·viewer 미상) ???
+ *  4. 관전자 닉 → 실명
  */
 export function nicknameForViewer(
   roomId: string,
@@ -41,15 +42,12 @@ export function nicknameForViewer(
   const room = roomStore.get(roomId);
   if (!room?.isRanked) return nickname;
   if (!isRoomPlayer(room, targetId)) return nickname;
-  if (isRoomPlayer(room, viewerId)) return ANONYMOUS_NICKNAME;
-  if (viewerId) return nickname;
   return ANONYMOUS_NICKNAME;
 }
 
-/** 랭크: 플레이어 viewer 에게만 상대 플레이어 닉을 ???. 칭호·memberId 유지. */
+/** 랭크: 본인 외 모든 viewer(상대·관전자)에게 플레이어 닉을 ???. 칭호·memberId 유지. */
 export function maskRankRoomForViewer(room: Room, viewerToken: string | null): Room {
   if (!room.isRanked) return room;
-  if (!isRoomPlayer(room, viewerToken)) return room;
   return {
     ...room,
     players: room.players.map((p) =>
@@ -64,8 +62,8 @@ export function applyViewerRoomMask(room: Room, viewerToken: string | null): Roo
 }
 
 /**
- * 랭크 방 채팅: 상대 플레이어에게 닉만 ???.
- * 칭호·길드·senderMemberId 유지. 관전자 발신/수신·시스템은 실명.
+ * 랭크 방 채팅: 플레이어가 보낸 말은 본인 외 모두(상대·관전자)에게 닉만 ???.
+ * 칭호·길드·senderMemberId 유지. 관전자가 보낸 말·시스템은 실명.
  */
 export function maskRankChatForViewer(
   room: Room,
@@ -75,7 +73,6 @@ export function maskRankChatForViewer(
   if (!room.isRanked) return msg;
   if (msg.isSystem) return msg;
   if (msg.isSpectator) return msg;
-  if (!isRoomPlayer(room, viewerToken)) return msg;
 
   const viewer = room.players.find((p) => p.id === viewerToken);
   if (viewer?.memberId && msg.senderMemberId && viewer.memberId === msg.senderMemberId) {

@@ -58,11 +58,12 @@ describe('rankedRoomTitle', () => {
 });
 
 describe('nicknameForViewer', () => {
-  it('랭크에서 상대 플레이어만 ???, 관전자·본인은 실명', () => {
+  it('랭크 플레이어 닉은 본인 외(상대·관전자·미상) 모두 ???, 관전자 닉은 실명', () => {
     const room = createRankedRoom();
     expect(nicknameForViewer(room.id, 'p2', '베타', 'p1')).toBe(ANONYMOUS_NICKNAME);
     expect(nicknameForViewer(room.id, 'p1', '알파', 'p1')).toBe('알파');
-    expect(nicknameForViewer(room.id, 'p2', '베타', 'spec')).toBe('베타');
+    expect(nicknameForViewer(room.id, 'p2', '베타', 'spec')).toBe(ANONYMOUS_NICKNAME);
+    expect(nicknameForViewer(room.id, 'p2', '베타', null)).toBe(ANONYMOUS_NICKNAME);
     expect(nicknameForViewer(room.id, 'spec', '구경꾼', 'p1')).toBe('구경꾼');
   });
 
@@ -100,10 +101,12 @@ describe('maskRankRoomForViewer', () => {
     expect(masked.spectators[0]?.nickname).toBe('구경꾼');
   });
 
-  it('관전자 viewer 에게는 플레이어 실명', () => {
+  it('관전자 viewer 에게도 플레이어 닉을 가리고, 관전자 목록은 실명', () => {
     const room = createRankedRoom();
     const masked = maskRankRoomForViewer(room, 'spec');
-    expect(masked.players.find((p) => p.id === 'p2')?.nickname).toBe('베타');
+    expect(masked.players.map((p) => p.nickname)).toEqual([ANONYMOUS_NICKNAME, ANONYMOUS_NICKNAME]);
+    expect(masked.players.find((p) => p.id === 'p2')?.displayedTitle).toEqual(TITLE);
+    expect(masked.spectators[0]?.nickname).toBe('구경꾼');
   });
 });
 
@@ -147,9 +150,13 @@ describe('maskRankChatForViewer', () => {
     expect(out.senderMemberId).toBe('m2');
   });
 
-  it('관전자·본인·관전 채팅은 실명', () => {
+  it('관전자에게도 플레이어 발신 닉은 ???', () => {
     const room = createRankedRoom();
-    expect(maskRankChatForViewer(room, msg(), 'spec').senderNickname).toBe('베타');
+    expect(maskRankChatForViewer(room, msg(), 'spec').senderNickname).toBe(ANONYMOUS_NICKNAME);
+  });
+
+  it('본인·관전 채팅은 실명', () => {
+    const room = createRankedRoom();
     expect(maskRankChatForViewer(room, msg({ senderMemberId: 'm1', senderNickname: '알파' }), 'p1').senderNickname).toBe('알파');
     expect(
       maskRankChatForViewer(room, msg({ isSpectator: true, senderNickname: '구경꾼', senderMemberId: 'm3' }), 'p1')

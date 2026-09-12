@@ -889,13 +889,17 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     io.to(socketRoom(roomId)).emit('room:host:changed', { newHostId: result.newHostId });
   }
 
-  emitToRoomWithViewerNickname(
-    io,
-    roomId,
-    'room:player:left',
-    { playerId, ...(result.newHostId ? { newHostId: result.newHostId } : {}) },
-    leavingNicknameRaw,
-  );
+  // '님이 나갔습니다' 알림은 플레이어가 나갈 때만 보낸다. 관전자가 들고 나는 것까지
+  // 알리면 판 도중 알림이 계속 떠 방해가 된다. 관전자 수는 room:state 로 갱신된다.
+  if (leavingWasPlayer) {
+    emitToRoomWithViewerNickname(
+      io,
+      roomId,
+      'room:player:left',
+      { playerId, ...(result.newHostId ? { newHostId: result.newHostId } : {}) },
+      leavingNicknameRaw,
+    );
+  }
 
   sendRoomState(io, roomId);
   broadcastRoomUpdated(io, roomId);

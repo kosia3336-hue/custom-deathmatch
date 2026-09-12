@@ -123,6 +123,14 @@ export function setupSocketHandlers(io: IO) {
 
   io.on('connection', (socket) => {
 
+    // ── 시각 맞추기 ──────────────────────────────────────────────────────
+    // 타이머 마감은 서버 시각(turnStartedAt 등)으로 온다. 기기 시계가 몇 초씩
+    // 어긋나 있으면 사람마다 남은 시간이 다르게 보이므로, 클라이언트가 이 값으로
+    // 오차를 잰다(lib/serverClock.ts).
+    socket.on('time:sync', (callback) => {
+      if (typeof callback === 'function') callback(Date.now());
+    });
+
     // ── 세션 복원 ─────────────────────────────────────────────────────────
     socket.on('session:restore', ({ token: rawToken, confirmed }) => {
       // 세션 토큰은 Player.id 로 쓰이며 room:state 를 통해 같은 방의 다른 참가자에게
@@ -255,13 +263,17 @@ export function setupSocketHandlers(io: IO) {
             if (room.status === 'playing') emitGameStateToSocket(socket, roomId, room.gameId);
 
             // 방 전체에 재연결 성공 알림 (playerId = token = Player.id)
-            emitToRoomWithViewerNickname(
-              io,
-              roomId,
-              'player:reconnected',
-              { playerId: token },
-              nickname,
-            );
+            // 플레이어만 알린다. 관전자는 방 화면을 열 때마다 여기로 들어와서, 조건이
+            // 없으면 관전자가 들어올 때마다 '님이 재연결되었습니다' 가 떴다.
+            if (room.players.some((p) => p.id === token)) {
+              emitToRoomWithViewerNickname(
+                io,
+                roomId,
+                'player:reconnected',
+                { playerId: token },
+                nickname,
+              );
+            }
           }
         }
 
