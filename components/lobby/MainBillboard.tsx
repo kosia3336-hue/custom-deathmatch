@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 /**
  * 로비 상단 메인 광고판 — 슬라이드 캐러셀.
@@ -11,12 +10,13 @@ import Link from 'next/link';
  * 가장자리를 잉크색 그라데이션으로 페이드시켜 다크 밴드와 자연스럽게 섞는다.
  *
  * 슬라이드를 늘리려면 SLIDES 에 한 줄 추가하면 된다.
+ * 누르면 어디로도 가지 않는다 — 대문 이미지를 공지로 이어 두었더니 로비에서
+ * 무심코 누른 사람이 공지 화면으로 튕겨 나갔다.
  */
 interface Slide {
   /** public/ 아래 경로 */
   src: string;
   alt: string;
-  href: string;
   /** 점(인디케이터) 버튼의 접근성 이름 */
   label: string;
   /**
@@ -32,8 +32,7 @@ const SLIDES: Slide[] = [
   {
     src: '/brand/main-title.webp',
     alt: 'Custom Deathmatch',
-    href: '/notice/4e5982fd-f102-4f77-ab17-58b8f8b09f4d',
-    label: '신규 업데이트 공지 보기',
+    label: '커스텀 데스매치 대문',
   },
 ];
 
@@ -100,7 +99,7 @@ export default function MainBillboard() {
           );
         })}
 
-        {/* 가장자리 페이드 — 이미지 위, 링크 아래 */}
+        {/* 가장자리 페이드 — 이미지 위 */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
@@ -109,16 +108,9 @@ export default function MainBillboard() {
               'linear-gradient(to right, var(--cdm-ink), transparent 14%, transparent 86%, var(--cdm-ink)), linear-gradient(to bottom, var(--cdm-ink), transparent 16%, transparent 84%, var(--cdm-ink))',
           }}
         />
-
-        {/* 클릭 영역: 중앙 70%만 — 가장자리 오터치 방지 */}
-        <Link
-          href={SLIDES[index].href}
-          aria-label={SLIDES[index].label}
-          className="absolute inset-x-[15%] inset-y-[15%] z-10 block"
-        />
       </div>
 
-      {/* 슬라이드 점 — 링크 바깥에 두어야 눌러도 페이지로 안 넘어간다 */}
+      {/* 슬라이드 점 */}
       {SLIDES.length > 1 && (
         <div className="mt-2 flex items-center justify-center gap-2">
           {SLIDES.map((s, i) => (

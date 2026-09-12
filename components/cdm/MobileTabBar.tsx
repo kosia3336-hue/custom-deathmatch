@@ -27,7 +27,7 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
   { href: '/titles', label: '칭호', icon: <Icon name="title" size="lg" /> },
   { href: '/shop', label: '상점', icon: <Icon name="shop" size="lg" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon name="notice" size="lg" /> },
-  // '소개'(/about)는 여기 두지 않는다 — 로비 대문 캐러셀과 푸터에서 들어간다.
+  // '소개'(/about)는 여기 두지 않는다 — 푸터에서 들어간다.
   { href: '/attendance', label: '출석판', icon: <Icon name="attendance" size="lg" />, memberOnly: true },
   /*
     문의하기. 지금까지는 푸터에만 있어 모바일에서 사실상 닿지 않았다.

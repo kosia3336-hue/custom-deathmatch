@@ -30,7 +30,6 @@ import { Icon, BgmButton } from '@/components/cdm';
 import { Logo } from '@/components/cdm/Logo';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
-import TodayPicks from '@/components/lobby/TodayPicks';
 
 interface Props {
   onCreateRoom: () => void;
@@ -62,20 +61,8 @@ interface RankStats {
 }
 
 interface RankResponse {
-  season: { id: number; name: string; ended_at: string | null } | null;
+  season: { id: number; name: string } | null;
   stats: RankStats | null;
-}
-
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** 시즌 종료까지 남은 날 (KST 달력 기준). 종료일이 없거나 이미 지났으면 null. */
-function seasonDaysLeft(endedAt: string | null | undefined, now: number): number | null {
-  if (!endedAt) return null;
-  const end = Date.parse(endedAt);
-  if (Number.isNaN(end) || end <= now) return null;
-  const kstDay = (t: number) => Math.floor((t + KST_OFFSET_MS) / DAY_MS);
-  return kstDay(end) - kstDay(now);
 }
 
 export default function MobileHomeHeader({ onCreateRoom }: Props) {
@@ -88,8 +75,6 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const { tabFilters, toggleTabFilter, clearFilters, rooms } = useLobbyStore();
 
   const [rank, setRank] = useState<RankResponse | null>(null);
-  /** 받아 온 시점에 한 번 계산한다 — 렌더 중에 현재 시각을 읽지 않는다 */
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [quickJoining, setQuickJoining] = useState(false);
 
   useEffect(() => {
@@ -99,10 +84,7 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
     }
     fetch('/api/me/rank')
       .then((r) => r.json())
-      .then((d: RankResponse) => {
-        setRank(d);
-        setDaysLeft(seasonDaysLeft(d.season?.ended_at, Date.now()));
-      })
+      .then((d: RankResponse) => setRank(d))
       .catch(() => {});
   }, [member?.id]);
 
@@ -215,9 +197,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
                   <span className="text-sm font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
                 </p>
                 {rank?.season && (
-                  <span className="shrink-0 text-[11px] font-semibold text-cdm-ink-fg-muted tabular-nums">
+                  <span className="shrink-0 text-[11px] font-semibold text-cdm-ink-fg-muted">
                     {rank.season.name}
-                    {daysLeft != null && ` · ${daysLeft === 0 ? 'D-DAY' : `D-${daysLeft}`}`}
                   </span>
                 )}
               </div>
@@ -287,9 +268,6 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
           </button>
         </div>
       </div>
-
-      {/* ── 오늘의 추천 (1b) ── */}
-      <TodayPicks isAdmin={member?.role === 'admin'} />
 
       {/* ── 지금 열린 방: 제목 + 필터 칩 줄 ── */}
       <h2 className="px-4 pt-5 pb-2 text-base font-extrabold tracking-tight text-cdm-fg">
