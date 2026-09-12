@@ -44,12 +44,14 @@ export default function SiteFooter() {
   }
 
   return (
-    <footer className="mt-auto border-t border-cdm-ink-border bg-cdm-ink">
+    // site-footer: 앱(웹뷰)에서는 globals.css 가 통째로 감춘다 (html[data-native-app])
+    <footer className="site-footer mt-auto border-t border-cdm-ink-border bg-cdm-ink">
       {/*
         모바일에서는 하단 탭바가 화면 아래에 고정되어 푸터를 덮으므로,
-        sm 미만에서만 탭바 높이만큼 여백을 더 준다.
+        sm 미만에서만 탭바 높이만큼 여백을 더 준다. 로비 행동 바가 있으면
+        globals.css 가 그만큼 더 늘린다(.site-footer__inner).
       */}
-      <div className="mx-auto w-full max-w-6xl px-4 pt-7 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] text-center sm:pb-7 md:px-6">
+      <div className="site-footer__inner mx-auto w-full max-w-6xl px-4 pt-7 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] text-center sm:pb-7 md:px-6">
         <nav
           aria-label="사이트 정보"
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"

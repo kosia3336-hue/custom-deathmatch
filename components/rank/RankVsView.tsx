@@ -58,7 +58,8 @@ export function RankVsView({
   return (
     <div
       className={cn(
-        'rank-vs fixed inset-0 z-(--cdm-z-overlay) flex flex-col items-center justify-center px-3 py-4 md:px-4 md:py-10',
+        // 짙은 무대(앱 재설계안 1d). ink-scope 가 --cdm-* 글자·테두리 토큰을 잉크용으로 바꾼다.
+        'rank-vs rank-vs--dark ink-scope fixed inset-0 z-(--cdm-z-overlay) flex flex-col items-center justify-center px-3 py-4 md:px-4 md:py-10',
         revealed && 'rank-vs--hidden',
       )}
     >
@@ -105,12 +106,7 @@ export function RankVsView({
           side="left"
         />
         <div className="flex items-center justify-center py-0">
-          <span
-            className={cn(
-              'rank-vs-vs text-2xl font-black leading-none md:text-5xl',
-              revealed ? 'text-cdm-accent' : 'text-cdm-primary',
-            )}
-          >
+          <span className="rank-vs-vs text-2xl font-black leading-none text-cdm-accent md:text-5xl">
             VS
           </span>
         </div>
@@ -126,20 +122,13 @@ export function RankVsView({
         />
       </div>
 
-      <div className="rank-vs-fore mt-4 w-full max-w-md space-y-1.5 md:mt-12 md:space-y-2">
-        <p className={cn('text-center text-sm', revealed ? 'text-cdm-ink-fg-muted' : 'text-cdm-fg-muted')}>
-          밴픽까지{' '}
-          <span
-            className={cn(
-              'tabular-nums font-semibold',
-              revealed ? 'text-cdm-ink-fg' : 'text-cdm-fg',
-            )}
-          >
-            {leftSec}
-          </span>
-          초
+      {/* 큰 숫자 카운트다운 — 몇 초 남았는지 한눈에 */}
+      <div className="rank-vs-fore mt-5 w-full max-w-md text-center md:mt-12">
+        <p className="text-5xl leading-none font-black tabular-nums text-white md:text-6xl" aria-live="polite">
+          {leftSec}
         </p>
-        <div className="rank-vs-bar-track h-1.5 overflow-hidden rounded-full bg-cdm-bg-elev-3">
+        <p className="mt-1.5 text-xs text-cdm-ink-fg-muted md:text-sm">초 후 밴픽을 시작합니다</p>
+        <div className="rank-vs-bar-track mt-3 h-1.5 overflow-hidden rounded-full bg-cdm-bg-elev-3">
           <div
             className={cn(
               'rank-vs-bar h-full rounded-full',

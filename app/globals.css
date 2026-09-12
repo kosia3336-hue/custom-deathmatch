@@ -3784,6 +3784,52 @@ body {
   transition: width 1s linear;
 }
 
+/* 짙은 무대 (앱 재설계안 1d). 티어 카드 바탕은 밝은 페이지용이라 잉크 위에서는
+   티어 빛을 옅게 섞은 짙은 판으로 덮는다(.rank-vs--dark .rank-vs-card 가 티어 클래스보다 우선). */
+.rank-vs--dark {
+  background:
+    radial-gradient(
+      ellipse 70% 42% at 50% 22%,
+      color-mix(in srgb, var(--cdm-primary) 32%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 70% 42% at 50% 80%,
+      color-mix(in srgb, var(--cdm-accent) 16%, transparent),
+      transparent 70%
+    ),
+    var(--cdm-ink);
+}
+.rank-vs--dark .rank-vs-card {
+  background: color-mix(in srgb, var(--rank-vs-glow) 14%, var(--cdm-ink-strong));
+  border-color: color-mix(in srgb, var(--rank-vs-glow) 45%, transparent);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--rank-vs-glow) 18%, transparent);
+}
+.rank-vs--dark .rank-vs-card::before {
+  opacity: 0.35;
+}
+
+/* 랭크 매칭 대기 화면 (`RankQueueModal`, 앱 재설계안 1c) */
+.rank-queue {
+  background:
+    radial-gradient(
+      130% 60% at 50% 30%,
+      color-mix(in srgb, var(--cdm-primary) 26%, var(--cdm-ink)),
+      var(--cdm-ink) 65%
+    );
+}
+.rank-queue-pulse {
+  opacity: 0.6;
+  animation: rank-queue-pulse 1.8s ease-in-out infinite;
+}
+@keyframes rank-queue-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.7; }
+  50% { transform: scale(1.06); opacity: 0.25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rank-queue-pulse { animation: none; }
+}
+
 /* 카운터 매치 — VS 중앙에서 검붉은 마왕성 기운이 화면 전체로 퍼진다.
    카드 티어 스킨은 유지. 글자색은 카드 밖에서만 잉크로 바꾼다. */
 .rank-vs-fore {
@@ -4782,6 +4828,12 @@ body {
 }
 
 
+/* 모바일 하단 탭 바 높이 — MobileTabBar 가 이 높이로 고정되고, 그 위에 뜨는
+   것(로비 행동 바·랭크 대기 표시)이 이 값으로 자리를 잡는다. */
+:root {
+  --cdm-tabbar-h: 3.5rem;
+}
+
 /* 모바일 하단 탭 바가 렌더된 페이지 — 고정 바 높이만큼 본문 하단 여백 확보
    (탭 바를 GNB 위치(상단)에서 스페이서로 처리하면 위/아래 간격이 어긋나는 문제 방지) */
 @media (max-width: 639px) {
@@ -4790,6 +4842,20 @@ body {
   body:has(nav[aria-label='하단 메뉴']) main {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
   }
+  /* 로비는 탭 바 위에 행동 바(랭크 매칭·빠른 입장·방 만들기)가 한 줄 더 뜬다 */
+  body:has(nav[aria-label='하단 메뉴']):has(.lobby-action-bar) main {
+    padding-bottom: calc(var(--cdm-tabbar-h) + 5rem + env(safe-area-inset-bottom)) !important;
+  }
+  body:has(.lobby-action-bar) .site-footer__inner {
+    padding-bottom: calc(var(--cdm-tabbar-h) + 5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* 앱(웹뷰)에는 사이트 푸터를 두지 않는다. data-native-app 은 루트 레이아웃의
+   인라인 스크립트가 첫 화면을 그리기 전에 붙인다. 약관·개인정보 처리방침은
+   하단 탭의 메뉴 시트에서 들어간다. */
+html[data-native-app] .site-footer {
+  display: none;
 }
 
 

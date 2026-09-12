@@ -30,6 +30,8 @@ import { Icon, BgmButton } from '@/components/cdm';
 import { Logo } from '@/components/cdm/Logo';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
+import { useQueueElapsed } from '@/components/rank/RankQueueFloatingIndicator';
+import { formatQueueElapsed } from '@/components/rank/RankQueueModal';
 
 interface Props {
   onCreateRoom: () => void;
@@ -71,6 +73,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const queuing = useRankMatchStore((s) => s.queuing);
   const setQueuing = useRankMatchStore((s) => s.setQueuing);
+  const setQueueModalOpen = useRankMatchStore((s) => s.setQueueModalOpen);
+  const queueElapsed = useQueueElapsed();
 
   const { tabFilters, toggleTabFilter, clearFilters, rooms } = useLobbyStore();
 
@@ -99,7 +103,11 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const waitingCount = rooms.filter((r) => r.status === 'waiting').length;
 
   const handleRank = () => {
-    if (queuing) return;
+    // 이미 대기 중이면 대기 화면을 다시 연다(내려둔 상태에서 돌아오는 입구)
+    if (queuing) {
+      setQueueModalOpen(true);
+      return;
+    }
     if (!member) {
       toast.error('랭크 게임은 로그인 후 이용할 수 있습니다.');
       return;
@@ -228,43 +236,55 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
             </div>
           </div>
 
-          <div className="mt-3.5 flex gap-2">
-            <button
-              type="button"
-              onClick={handleRank}
-              disabled={queuing}
-              className="flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-cdm-md bg-cdm-primary text-[15px] font-bold text-white disabled:opacity-60"
-            >
-              <Icon name="bolt" size="sm" />
-              {queuing ? '매칭 중…' : '랭크 매칭'}
-            </button>
-            <Link
-              href="/ranking"
-              className="flex h-11 flex-1 items-center justify-center rounded-cdm-md border border-white/20 text-sm font-semibold text-cdm-ink-fg"
-            >
-              티어표
-            </Link>
-          </div>
+          <Link
+            href="/ranking"
+            className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-xs font-semibold text-cdm-ink-fg-muted"
+          >
+            <span>티어표 · 랭킹 보기</span>
+            <Icon name="chevronRight" size="sm" />
+          </Link>
         </div>
+      </div>
 
-        {/* ── 1c 행동 줄: 랭크는 카드로 갔으므로 둘만 ── */}
-        <div className="mt-2.5 flex gap-2">
+      {/*
+        ── 하단 행동 바 ──
+        랭크 매칭·빠른 입장·방 만들기는 화면 위쪽 카드에 있으면 한 손으로 쥐었을 때
+        엄지가 닿지 않는다. 하단 탭 바 바로 위에 고정해 둔다. 대기 중이면 랭크
+        버튼이 경과 시간을 보여 주고, 누르면 대기 화면을 다시 연다.
+      */}
+      <div
+        className="lobby-action-bar fixed inset-x-0 z-(--cdm-z-sticky) border-t border-cdm-ink-border bg-cdm-ink/95 px-3 pt-2 pb-2 backdrop-blur"
+        style={{ bottom: 'calc(var(--cdm-tabbar-h) + env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleRank}
+            className="flex h-12 flex-[1.5] items-center justify-center gap-1.5 rounded-cdm-md bg-cdm-primary text-[15px] font-bold text-white"
+          >
+            <Icon name="bolt" size="sm" />
+            {queuing ? (
+              <span>
+                매칭 중 <span className="tabular-nums">{formatQueueElapsed(queueElapsed)}</span>
+              </span>
+            ) : (
+              '랭크 매칭'
+            )}
+          </button>
           <button
             type="button"
             onClick={handleQuickJoin}
             disabled={quickJoining}
-            className="flex h-12 flex-1 flex-col items-center justify-center rounded-cdm-md border border-white/16 bg-white/10 leading-tight text-cdm-ink-fg disabled:opacity-60"
+            className="h-12 flex-1 rounded-cdm-md border border-white/16 bg-white/10 text-sm font-bold text-cdm-ink-fg disabled:opacity-60"
           >
-            <span className="text-sm font-bold">빠른 입장</span>
-            <span className="text-[9.5px] text-cdm-ink-fg-muted">빈 방 아무데나</span>
+            빠른 입장
           </button>
           <button
             type="button"
             onClick={onCreateRoom}
-            className="flex h-12 flex-1 flex-col items-center justify-center rounded-cdm-md border border-white/16 bg-white/10 leading-tight text-cdm-ink-fg"
+            className="h-12 flex-1 rounded-cdm-md border border-white/16 bg-white/10 text-sm font-bold text-cdm-ink-fg"
           >
-            <span className="text-sm font-bold">방 만들기</span>
-            <span className="text-[9.5px] text-cdm-ink-fg-muted">내가 고른 게임</span>
+            방 만들기
           </button>
         </div>
       </div>

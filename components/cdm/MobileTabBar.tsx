@@ -45,7 +45,7 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
   칠해져 안쪽 줄이 묻힌다. 5개 중 2개만 의도대로 되고 1개는 깨진다.
 */
 const TAB_BASE =
-  'relative flex w-full flex-col items-center gap-0.5 py-2 text-[10px] transition-colors';
+  'relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10px] transition-colors';
 const TAB_STATE = (active: boolean) =>
   active ? 'font-semibold text-white' : 'font-medium text-cdm-ink-fg-muted hover:text-white';
 
@@ -137,6 +137,18 @@ export function MobileTabBar({ isMember }: Props) {
                 );
               })}
             </ul>
+            {/*
+              약관·개인정보 처리방침. 웹은 푸터에도 있지만 앱(웹뷰)은 푸터를 두지
+              않으므로 여기가 앱에서의 입구다.
+            */}
+            <p className="flex justify-center gap-4 px-5 pt-1 pb-1 text-[11px] text-cdm-ink-fg-muted">
+              <Link href="/legal/terms" onClick={() => setMenuOpen(false)} className="hover:text-white">
+                이용약관
+              </Link>
+              <Link href="/legal/privacy" onClick={() => setMenuOpen(false)} className="hover:text-white">
+                개인정보 처리방침
+              </Link>
+            </p>
           </div>
         </div>
       )}
@@ -145,7 +157,8 @@ export function MobileTabBar({ isMember }: Props) {
         aria-label="하단 메뉴"
         className="fixed inset-x-0 bottom-0 z-(--cdm-z-sticky) border-t border-cdm-ink-border bg-cdm-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
-        <ul className="flex">
+        {/* 높이는 --cdm-tabbar-h 로 고정 — 위에 뜨는 로비 행동 바·대기 표시가 이 값으로 자리 잡는다 */}
+        <ul className="flex h-(--cdm-tabbar-h)">
           {tabs.map((t) => {
             const active = pathname?.startsWith(t.href);
             return (

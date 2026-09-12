@@ -1,17 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { useRankMatchStore } from '@/stores/rankMatch';
-import { RankQueueModal } from './RankQueueModal';
+import { Icon } from '@/components/cdm/Icon';
+import { RankQueueModal, formatQueueElapsed } from './RankQueueModal';
 
-function fmtElapsed(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function useQueueElapsed() {
+export function useQueueElapsed() {
   const queueStartedAt = useRankMatchStore((s) => s.queueStartedAt);
   const queuing = useRankMatchStore((s) => s.queuing);
   const [elapsed, setElapsed] = useState(0);
@@ -49,7 +45,7 @@ export function RankQueueDesktopChip() {
   return (
     <div className="flex items-center gap-2 rounded-cdm-md border border-cdm-highlight/40 bg-cdm-highlight/10 px-3 py-1">
       <span className="text-xs font-medium text-cdm-ink-fg">대기 중</span>
-      <span className="text-xs tabular-nums font-semibold text-cdm-ink-fg">{fmtElapsed(elapsed)}</span>
+      <span className="text-xs tabular-nums font-semibold text-cdm-ink-fg">{formatQueueElapsed(elapsed)}</span>
       <button
         type="button"
         onClick={handleCancelQueue}
@@ -67,9 +63,11 @@ export function RankQueueDesktopChip() {
 // SocketProvider에 마운트 → 모든 페이지에 표시
 // ─────────────────────────────────────────────
 export function RankQueueFloatingIndicator() {
+  const pathname = usePathname();
   const queuing = useRankMatchStore((s) => s.queuing);
   const queueModalOpen = useRankMatchStore((s) => s.queueModalOpen);
   const setQueueModalOpen = useRankMatchStore((s) => s.setQueueModalOpen);
+  const elapsed = useQueueElapsed();
 
   const [minimized, setMinimized] = useState(false);
 
@@ -100,16 +98,27 @@ export function RankQueueFloatingIndicator() {
     setQueueModalOpen(true);
   };
 
+  /*
+    내려둔 대기 표시. 예전에는 글자도 아이콘도 없는 빈 동그라미라 무엇인지 알 수
+    없었다. 번개 + 경과 시간을 싣고, 하단 탭 바 위에 띄운다.
+    로비는 하단 행동 바의 '매칭 중' 버튼이 같은 일을 하므로 겹쳐 띄우지 않는다.
+  */
+  const showPill = minimized && pathname !== '/lobby';
+
   return (
     <>
-      {/* 최소화 아이콘 — 모바일만 (md 이상 hidden) */}
-      {minimized && (
+      {showPill && (
         <button
           type="button"
           onClick={handleIconTap}
-          className="fixed bottom-6 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border-2 border-cdm-highlight/60 bg-cdm-highlight/20 text-xl shadow-lg backdrop-blur md:hidden"
-          aria-label="랭크 큐 대기 중 — 탭하여 열기"
-        />
+          className="fixed right-4 z-(--cdm-z-sticky) flex h-11 items-center gap-1.5 rounded-full border border-cdm-highlight/50 bg-cdm-ink/95 pr-3.5 pl-3 text-sm font-bold text-cdm-ink-fg shadow-lg backdrop-blur md:hidden"
+          style={{ bottom: 'calc(var(--cdm-tabbar-h) + env(safe-area-inset-bottom) + 0.75rem)' }}
+          aria-label={`랭크 매칭 대기 중 ${formatQueueElapsed(elapsed)} — 눌러서 열기`}
+        >
+          <span aria-hidden className="size-2 animate-pulse rounded-full bg-cdm-highlight" />
+          <Icon name="bolt" size="sm" className="text-cdm-highlight" />
+          <span className="tabular-nums">{formatQueueElapsed(elapsed)}</span>
+        </button>
       )}
 
       {/* 모달 — 래퍼 div 없이 직접 렌더링 (fixed inset-0이 뷰포트 기준으로 정확히 배치되도록) */}
