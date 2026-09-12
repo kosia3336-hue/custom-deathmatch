@@ -18,14 +18,10 @@ export function resultShareText(summary: ResultShareSummary): string {
   return `커스텀 데스매치\n${summary.gameName.slice(0, 40)} · ${summary.result.slice(0, 16)}\n플레이 ${Math.floor(seconds / 60)}분 ${seconds % 60}초 · ${turns}턴`;
 }
 
-export function resultShareTemplate(summary: ResultShareSummary, origin: string) {
+/** 공유 시트에 넘길 제목·글·링크. 링크는 참가자 전용 로그가 아니라 로비로 연결한다. */
+export function resultSharePayload(summary: ResultShareSummary, origin: string) {
   const url = new URL('/lobby', origin);
   if (!['http:', 'https:'].includes(url.protocol))
     throw new Error('공유 주소 설정이 올바르지 않습니다.');
-  return {
-    objectType: 'text' as const,
-    text: resultShareText(summary),
-    link: { webUrl: url.href, mobileWebUrl: url.href },
-    buttonTitle: '게임하러 가기',
-  };
+  return { title: '커스텀 데스매치 전적', text: resultShareText(summary), url: url.href };
 }

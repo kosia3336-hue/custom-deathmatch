@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import KakaoResultShareButton from '@/components/game/KakaoResultShareButton';
+import ResultShareButton from '@/components/game/ResultShareButton';
 import { Card } from '@/components/cdm/Card';
 import { Icon } from '@/components/cdm/Icon';
 import { Tag } from '@/components/cdm/Tag';
@@ -175,7 +175,7 @@ export default async function LogsTab({
               </div>
             </Link>
             <div className="mt-3 flex justify-end">
-              <KakaoResultShareButton summary={{ gameName: log.room_snapshot?.gameName ?? log.game_id, result, playTimeMs: log.play_time_seconds * 1000, totalTurns: log.total_turns }} />
+              <ResultShareButton summary={{ gameName: log.room_snapshot?.gameName ?? log.game_id, result, playTimeMs: log.play_time_seconds * 1000, totalTurns: log.total_turns }} />
             </div>
           </Card>
         );

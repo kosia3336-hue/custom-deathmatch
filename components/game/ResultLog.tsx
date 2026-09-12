@@ -18,7 +18,7 @@ import { RankResultSection } from '@/components/game/RankResultSection';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import KakaoResultShareButton from './KakaoResultShareButton';
+import ResultShareButton from './ResultShareButton';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst';
@@ -197,7 +197,7 @@ export default function ResultLog() {
   const resignOf = (rank: number | undefined) =>
     gameResult.endedByForfeit === true && rank === 2 && !isDoubleLoss;
   const myRanking = gameResult.rankings.find((r) => r.playerId === myId);
-  const kakaoResult = isDoubleLoss
+  const shareResult = isDoubleLoss
     ? '양쪽 패배'
     : sortedRanks.length < 2
       ? '완료'
@@ -303,10 +303,10 @@ export default function ResultLog() {
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6">
       {!isSpectator && myRanking && (
         <div className="mb-4 flex justify-end">
-          <KakaoResultShareButton
+          <ResultShareButton
             summary={{
               gameName: room?.gameName ?? '게임',
-              result: kakaoResult,
+              result: shareResult,
               playTimeMs: gameResult.playTime,
               totalTurns: gameResult.totalTurns,
             }}

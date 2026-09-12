@@ -25,11 +25,21 @@ interface PushNotificationsPlugin {
   ) => Promise<PluginListenerHandle>;
 }
 
+export interface SharePlugin {
+  share: (options: {
+    title?: string;
+    text?: string;
+    url?: string;
+    dialogTitle?: string;
+  }) => Promise<{ activityType?: string }>;
+}
+
 interface CapacitorGlobal {
   isNativePlatform?: () => boolean;
   getPlatform?: () => string;
   Plugins?: {
     PushNotifications?: PushNotificationsPlugin;
+    Share?: SharePlugin;
     [name: string]: unknown;
   };
 }
@@ -53,4 +63,10 @@ export function getNativePlatform(): string {
 export function getPushPlugin(): PushNotificationsPlugin | null {
   if (!isNativeApp()) return null;
   return getCapacitor()?.Plugins?.PushNotifications ?? null;
+}
+
+/** 앱이 아니거나 공유 플러그인이 없는 이전 앱 빌드(~1.0.2)면 null. */
+export function getSharePlugin(): SharePlugin | null {
+  if (!isNativeApp()) return null;
+  return getCapacitor()?.Plugins?.Share ?? null;
 }
