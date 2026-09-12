@@ -202,6 +202,51 @@ export function EmptyDetailNotice({ text = '이 모드에서는 추가 설정이
   );
 }
 
+/**
+ * 켜고 끄는 항목 한 줄 — 라벨·설명 왼쪽, 스위치 오른쪽.
+ * 여러 줄을 `divide-y` 묶음 안에 넣어 쓴다(비밀방·시간 제한).
+ */
+export function SwitchRow({
+  label, hint, checked, onChange, children,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  /** 켰을 때 줄 아래에 펼칠 세부 입력 (비밀번호, 시간 선택) */
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-cdm-fg">{label}</p>
+          {hint && <p className="mt-0.5 text-xs text-cdm-fg-muted">{hint}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-label={label}
+          onClick={() => onChange(!checked)}
+          className={cn(
+            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors',
+            checked ? 'bg-cdm-primary' : 'bg-cdm-bg-elev-2',
+          )}
+        >
+          <span
+            className={cn(
+              'inline-block h-6 w-6 rounded-full bg-white shadow transition-transform',
+              checked ? 'translate-x-5.5' : 'translate-x-0.5',
+            )}
+          />
+        </button>
+      </div>
+      {checked && children && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}
+
 /* ══════════════════════════ 선택형 버튼 ══════════════════════════ */
 
 /** 방 유형·플레이 모드·최대 인원 등 "여러 개 중 하나 고르기" 버튼의 공통 모양 */

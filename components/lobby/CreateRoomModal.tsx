@@ -28,9 +28,11 @@ import {
   SettingField,
   EmptyDetailNotice,
   OptionButton,
+  SwitchRow,
   GameListPicker,
   type PickerMode,
 } from '@/components/room-modal/RoomModalKit';
+import { formatTimeLimitShort } from '@/lib/utils';
 import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 
@@ -187,12 +189,19 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const computedTimeLimit =
     timeLimitEnabled && canConfigureTimeLimit ? timeLimitMin * 60 + timeLimitSec : null;
 
-  // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
+  /*
+    상세 설정에는 게임별 추가 항목만 남는다. 플레이 모드·비밀방·시간 제한은 방의
+    성격을 정하는 선택이라 본문으로 올렸다(앱 재설계안 1b 방 만들기 시트).
+  */
   const hasDetailOptions =
-    (Boolean(selectedGame) && !isRandom) ||
-    playMode === 'multi' ||
+    (playMode === 'multi' &&
+      Boolean(selectedGame) &&
+      !isRandom &&
+      selectedGame!.maxPlayers > selectedGame!.minPlayers) ||
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
-    isBanPick;
+    selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
+    (isBanPick && !hiddenMatch) ||
+    showsAbstractAiThinkTime;
 
   const selectGame = (g: Game) => {
     setListOpen(false);
@@ -350,6 +359,115 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         maxLength={30}
       />
 
+      {/* 모드 — 게임이 지원하는 것만 */}
+      {selectedGame && !isRandom && (
+        <SettingField label="플레이 모드">
+          <div className="flex gap-2">
+            {PLAY_MODES.filter(
+              (key) => gameSupportsPlayMode(selectedGame, key) && (!hiddenMatch || key === 'multi'),
+            ).map((key) => (
+              <OptionButton
+                key={key}
+                active={playMode === key}
+                className="flex-1"
+                onClick={() => {
+                  setPlayMode(key);
+                  if (key !== 'multi') setHiddenMatch(false);
+                }}
+              >
+                {PLAY_MODE_LABEL[key]}
+              </OptionButton>
+            ))}
+          </div>
+        </SettingField>
+      )}
+
+      {/* 켜고 끄는 항목 — 켜면 그 줄 아래에 세부 입력이 열린다 */}
+      {(!isSoloLikePlayMode(playMode) || canConfigureTimeLimit) && (
+        <div className="divide-y divide-cdm-border rounded-lg border border-cdm-border px-4">
+          {!isSoloLikePlayMode(playMode) && (
+            <SwitchRow
+              label="비밀방"
+              hint="비밀번호를 아는 사람만 들어옵니다"
+              checked={roomType === 'private'}
+              onChange={(on) => setRoomType(on ? 'private' : 'public')}
+            >
+              <Input
+                label="비밀번호"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="4~8자리"
+                maxLength={8}
+              />
+            </SwitchRow>
+          )}
+
+          {canConfigureTimeLimit && (
+            <SwitchRow
+              label={
+                timeLimitEnabled && computedTimeLimit != null
+                  ? `시간 제한 ${formatTimeLimitShort(computedTimeLimit)}`
+                  : '시간 제한'
+              }
+              hint="한 턴마다 주어지는 시간"
+              checked={timeLimitEnabled}
+              onChange={setTimeLimitEnabled}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={timeLimitMin}
+                    onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                    className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-cdm-fg-muted text-sm">분</span>
+                  <select
+                    value={timeLimitSec}
+                    onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                    className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                  >
+                    {[0, 10, 15, 20, 30, 45].map((s) => (
+                      <option key={s} value={s}>
+                        {String(s).padStart(2, '0')}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-cdm-fg-muted text-sm">초</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '30초', min: 0, sec: 30 },
+                    { label: '1분', min: 1, sec: 0 },
+                    { label: '2분', min: 2, sec: 0 },
+                    { label: '3분', min: 3, sec: 0 },
+                    { label: '5분', min: 5, sec: 0 },
+                  ].map((p) => (
+                    <OptionButton
+                      key={p.label}
+                      size="sm"
+                      active={timeLimitMin === p.min && timeLimitSec === p.sec}
+                      onClick={() => {
+                        setTimeLimitMin(p.min);
+                        setTimeLimitSec(p.sec);
+                      }}
+                    >
+                      {p.label}
+                    </OptionButton>
+                  ))}
+                </div>
+              </div>
+            </SwitchRow>
+          )}
+        </div>
+      )}
+
       {/* 상세 설정 — 게임을 골라야 열린다. 아직이면 접은 채로 안내만 띄운다 */}
       <SettingsAccordion
         open={detailOpen}
@@ -361,61 +479,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           <EmptyDetailNotice />
         ) : (
           <>
-            {/* 플레이 모드 */}
-            {selectedGame && !isRandom && (
-              <SettingField label="플레이 모드">
-                <div className="flex flex-wrap gap-2">
-                  {PLAY_MODES.filter(
-                    (key) =>
-                      gameSupportsPlayMode(selectedGame, key) && (!hiddenMatch || key === 'multi'),
-                  ).map((key) => (
-                    <OptionButton
-                      key={key}
-                      active={playMode === key}
-                      onClick={() => {
-                        setPlayMode(key);
-                        if (key !== 'multi') setHiddenMatch(false);
-                      }}
-                    >
-                      {PLAY_MODE_LABEL[key]}
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 방 유형 */}
-            {!isSoloLikePlayMode(playMode) && (
-              <SettingField label="방 유형">
-                <div className="flex gap-2">
-                  {[
-                    { key: 'public' as RoomType, label: '공개' },
-                    { key: 'private' as RoomType, label: '비밀' },
-                  ].map((rt) => (
-                    <OptionButton
-                      key={rt.key}
-                      active={roomType === rt.key}
-                      onClick={() => setRoomType(rt.key)}
-                    >
-                      {rt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 비밀번호 */}
-            {!isSoloLikePlayMode(playMode) && roomType === 'private' && (
-              <Input
-                label="비밀번호"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="4~8자리"
-                maxLength={8}
-              />
-            )}
-
             {/* 최대 인원 */}
             {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
               <SettingField label="최대 인원">
@@ -527,77 +590,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               />
             )}
 
-            {/* 시간제한 */}
-            {canConfigureTimeLimit && (
-              <SettingField label="시간제한">
-                <div className="flex gap-2">
-                  {[
-                    { enabled: false, label: '∞ 무제한' },
-                    { enabled: true, label: '시간제한' },
-                  ].map((opt) => (
-                    <OptionButton
-                      key={String(opt.enabled)}
-                      active={timeLimitEnabled === opt.enabled}
-                      onClick={() => setTimeLimitEnabled(opt.enabled)}
-                    >
-                      {opt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-
-                {timeLimitEnabled && (
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={timeLimitMin}
-                        onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {Array.from({ length: 11 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {i}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">분</span>
-                      <select
-                        value={timeLimitSec}
-                        onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {[0, 10, 15, 20, 30, 45].map((s) => (
-                          <option key={s} value={s}>
-                            {String(s).padStart(2, '0')}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">초</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: '30초', min: 0, sec: 30 },
-                        { label: '1분', min: 1, sec: 0 },
-                        { label: '2분', min: 2, sec: 0 },
-                        { label: '3분', min: 3, sec: 0 },
-                        { label: '5분', min: 5, sec: 0 },
-                      ].map((p) => (
-                        <OptionButton
-                          key={p.label}
-                          size="sm"
-                          active={timeLimitMin === p.min && timeLimitSec === p.sec}
-                          onClick={() => {
-                            setTimeLimitMin(p.min);
-                            setTimeLimitSec(p.sec);
-                          }}
-                        >
-                          {p.label}
-                        </OptionButton>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </SettingField>
-            )}
           </>
         )}
       </SettingsAccordion>

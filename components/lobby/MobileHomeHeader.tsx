@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ import { Icon, BgmButton } from '@/components/cdm';
 import { Logo } from '@/components/cdm/Logo';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
+import TodayPicks from '@/components/lobby/TodayPicks';
 
 interface Props {
   onCreateRoom: () => void;
@@ -60,8 +62,20 @@ interface RankStats {
 }
 
 interface RankResponse {
-  season: { id: number; name: string } | null;
+  season: { id: number; name: string; ended_at: string | null } | null;
   stats: RankStats | null;
+}
+
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 시즌 종료까지 남은 날 (KST 달력 기준). 종료일이 없거나 이미 지났으면 null. */
+function seasonDaysLeft(endedAt: string | null | undefined, now: number): number | null {
+  if (!endedAt) return null;
+  const end = Date.parse(endedAt);
+  if (Number.isNaN(end) || end <= now) return null;
+  const kstDay = (t: number) => Math.floor((t + KST_OFFSET_MS) / DAY_MS);
+  return kstDay(end) - kstDay(now);
 }
 
 export default function MobileHomeHeader({ onCreateRoom }: Props) {
@@ -74,6 +88,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const { tabFilters, toggleTabFilter, clearFilters, rooms } = useLobbyStore();
 
   const [rank, setRank] = useState<RankResponse | null>(null);
+  /** 받아 온 시점에 한 번 계산한다 — 렌더 중에 현재 시각을 읽지 않는다 */
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [quickJoining, setQuickJoining] = useState(false);
 
   useEffect(() => {
@@ -83,7 +99,10 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
     }
     fetch('/api/me/rank')
       .then((r) => r.json())
-      .then((d: RankResponse) => setRank(d))
+      .then((d: RankResponse) => {
+        setRank(d);
+        setDaysLeft(seasonDaysLeft(d.season?.ended_at, Date.now()));
+      })
       .catch(() => {});
   }, [member?.id]);
 
@@ -138,7 +157,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   };
 
   const chips: { key: TabFilter | 'all'; label: string }[] = [
-    { key: 'all', label: `전체 ${rooms.length}` },
+    // 전체 수는 바로 위 '지금 열린 방' 제목이 말한다
+    { key: 'all', label: '전체' },
     { key: 'waiting', label: `대기 ${waitingCount}` },
     { key: 'rank', label: '랭크' },
     { key: 'private', label: '비밀방' },
@@ -179,39 +199,52 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
               'linear-gradient(150deg, rgba(255,255,255,.10), rgba(255,255,255,.04))',
           }}
         >
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-lg font-extrabold tracking-tight text-white">
-              {TIER_LABEL[tier]}{' '}
-              <span className="text-sm font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
-            </p>
-            {rank?.season && (
-              <span className="text-[11px] font-semibold text-cdm-ink-fg-muted">
-                {rank.season.name}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/13">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
-              }}
+          <div className="flex items-center gap-3.5">
+            {/* 티어는 옆 글자가 말하므로 엠블럼은 꾸밈으로 둔다 */}
+            <Image
+              src={`/rank/tier-${tier}.png`}
+              alt=""
+              width={56}
+              height={56}
+              className="size-14 flex-none object-contain"
             />
-          </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-lg font-extrabold tracking-tight text-white">
+                  {TIER_LABEL[tier]}{' '}
+                  <span className="text-sm font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
+                </p>
+                {rank?.season && (
+                  <span className="shrink-0 text-[11px] font-semibold text-cdm-ink-fg-muted tabular-nums">
+                    {rank.season.name}
+                    {daysLeft != null && ` · ${daysLeft === 0 ? 'D-DAY' : `D-${daysLeft}`}`}
+                  </span>
+                )}
+              </div>
 
-          <div className="mt-1.5 flex justify-between text-[11px] text-cdm-ink-fg-muted">
-            <span>
-              {tier === 'unranked' || inPlacement
-                ? `배치전 ${stats?.placement_games ?? 0}/5 — 5판이면 티어가 정해집니다`
-                : next
-                  ? `${next.label}까지 ${Math.max(0, next.at - rp)} RP`
-                  : '최고 티어'}
-            </span>
-            {(stats?.win_streak ?? 0) >= 2 && (
-              <span className="font-semibold text-cdm-success">{stats?.win_streak}연승</span>
-            )}
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/13">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
+                  }}
+                />
+              </div>
+
+              <div className="mt-1.5 flex justify-between gap-2 text-[11px] text-cdm-ink-fg-muted">
+                <span className="min-w-0 truncate">
+                  {tier === 'unranked' || inPlacement
+                    ? `배치전 ${stats?.placement_games ?? 0}/5 · 5판이면 티어 결정`
+                    : next
+                      ? `${next.label}까지 ${Math.max(0, next.at - rp)} RP`
+                      : '최고 티어'}
+                </span>
+                {(stats?.win_streak ?? 0) >= 2 && (
+                  <span className="shrink-0 font-semibold text-cdm-success">{stats?.win_streak}연승</span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="mt-3.5 flex gap-2">
@@ -255,8 +288,15 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
         </div>
       </div>
 
-      {/* ── 필터 칩 줄 ── */}
-      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2.5 pt-3">
+      {/* ── 오늘의 추천 (1b) ── */}
+      <TodayPicks isAdmin={member?.role === 'admin'} />
+
+      {/* ── 지금 열린 방: 제목 + 필터 칩 줄 ── */}
+      <h2 className="px-4 pt-5 pb-2 text-base font-extrabold tracking-tight text-cdm-fg">
+        지금 열린 방{' '}
+        <span className="text-[13px] font-semibold text-cdm-fg-muted tabular-nums">{rooms.length}</span>
+      </h2>
+      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2.5">
         {chips.map((c) => {
           const active = c.key === 'all' ? tabFilters.length === 0 : tabFilters.includes(c.key as TabFilter);
           return (
