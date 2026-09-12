@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
+import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
 import {
   WP_WRONG_LOCK_MS,
@@ -42,7 +43,8 @@ export default function WordPuzzleGame() {
 
   // 남은 시간 표시용 틱
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 500);
+    // 서버가 준 라운드 시작 시각과 비교하므로 서버 기준 시각으로 센다
+    const t = setInterval(() => setNow(serverNow()), 500);
     return () => clearInterval(t);
   }, []);
 
@@ -52,7 +54,7 @@ export default function WordPuzzleGame() {
     const onError = (d: { message?: string }) => {
       if (!d?.message) return;
       if (d.message.includes('단어') || d.message.includes('글자')) {
-        setLockedUntil(Date.now() + WP_WRONG_LOCK_MS);
+        setLockedUntil(serverNow() + WP_WRONG_LOCK_MS);
       }
     };
     s.on('error', onError);

@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/shared/types';
 import { getBrowserSupabase } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/env';
+import { syncServerClock } from './serverClock';
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -112,6 +113,13 @@ export function getSocket(): TypedSocket {
     socket.on('connect', () => {
       const token = getOrCreateSessionToken();
       socket!.emit('session:restore', { token });
+      // 기기 시계 오차를 잰다 — 타이머가 서버 마감과 같은 시각을 가리키도록.
+      void syncServerClock(socket!);
+    });
+
+    // 앱을 내렸다 올리면 그 사이 기기 시계가 바뀌었을 수 있다(수동 변경·절전).
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && socket?.connected) void syncServerClock(socket);
     });
 
     // 서버가 토큰을 재발급한 경우(다른 회원에게 묶인 토큰 등) 즉시 교체.

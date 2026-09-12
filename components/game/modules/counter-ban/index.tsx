@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { getSocket } from '@/lib/socket';
 import { playBanSfx } from '@/lib/sfx';
+import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useRoomStore } from '@/stores/room';
@@ -179,7 +180,7 @@ export default function CounterBanGame() {
 function BanTimer({ deadline }: { deadline: number }) {
   const [remaining, setRemaining] = useState(0);
   useEffect(() => {
-    const tick = () => setRemaining(Math.max(0, (deadline - Date.now()) / 1000));
+    const tick = () => setRemaining(Math.max(0, (deadline - serverNow()) / 1000));
     tick();
     const id = setInterval(tick, 200);
     return () => clearInterval(id);

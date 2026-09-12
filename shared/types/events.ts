@@ -259,6 +259,9 @@ export interface ClientToServerEvents {
 
   'session:restore': (data: { token: string; confirmed?: boolean }) => void;
 
+  /** 서버 시각(ms) 조회 — 클라이언트가 기기 시계 오차를 재서 타이머에 보정한다 (lib/serverClock.ts) */
+  'time:sync': (callback: (serverNow: number) => void) => void;
+
   /** 스킨 착용/해제 후 서버 세션의 equippedSkins 를 즉시 갱신한다 */
   'skin:sync': (callback: (res: { ok: boolean }) => void) => void;
 

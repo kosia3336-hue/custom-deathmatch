@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { serverNow } from '@/lib/serverClock';
 import {
   IPE_MAX_SEATS,
   IPE_TURN_TIME_LIMIT_SECONDS,
@@ -23,7 +24,7 @@ function MobileTurnTimer({ turnStartedAt }: { turnStartedAt: number | null }) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (turnStartedAt == null) { setRemaining(null); return; }
     const tick = () => {
-      const left = Math.max(0, IPE_TURN_TIME_LIMIT_SECONDS - (Date.now() - turnStartedAt) / 1000);
+      const left = Math.max(0, IPE_TURN_TIME_LIMIT_SECONDS - (serverNow() - turnStartedAt) / 1000);
       setRemaining(left);
       if (left > 0) rafRef.current = requestAnimationFrame(tick);
     };

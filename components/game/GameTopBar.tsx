@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createCountdownTickGate, formatCountdown } from '@/lib/countdownTick';
 import { playCountdownTickSfx } from '@/lib/sfx';
+import { serverNow } from '@/lib/serverClock';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { Icon } from '@/components/cdm/Icon';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ export function CountdownTimer() {
   const tickGate = useRef(createCountdownTickGate());
   useEffect(() => {
     // 새 턴의 첫 렌더에서 이전 턴 remaining 값으로 소리가 나지 않도록 현재 마감을 사용한다.
-    const second = tickGate.current(clockKey, deadline === null ? null : (deadline - Date.now()) / 1000);
+    const second = tickGate.current(clockKey, deadline === null ? null : (deadline - serverNow()) / 1000);
     if (second !== null && document.visibilityState === 'visible') playCountdownTickSfx(second);
   }, [clockKey, deadline, remaining]);
   if (remaining === null || timeLimitSeconds === null) return null;

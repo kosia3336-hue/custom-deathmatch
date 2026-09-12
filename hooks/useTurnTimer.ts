@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { getGameClock } from '@/lib/gameProgress';
+import { serverNow } from '@/lib/serverClock';
 import { useEventRoomStore } from '@/stores/eventRoom';
 import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import { GAME_IDS } from '@/shared/types/game';
@@ -38,7 +39,8 @@ export function useTurnTimer() {
     }
 
     const update = () => {
-      const elapsed = (Date.now() - turnStartedAt) / 1000;
+      // 서버가 찍은 시각과 비교하므로 기기 시계가 아니라 서버 기준 '지금' 을 쓴다
+      const elapsed = (serverNow() - turnStartedAt) / 1000;
       const left = Math.max(0, timeLimitSeconds - elapsed);
       setRemaining(left);
 
