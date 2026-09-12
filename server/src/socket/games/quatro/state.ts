@@ -68,6 +68,8 @@ export interface QuatroState {
   players: [QPlayer, QPlayer];
   vps: QVp[];
   deck: QuatroCard[]; // 미분배 잔여 (멀리건 풀)
+  /** 멀리건으로 버려진 카드. 덱에는 남지만(가상 플레이어 분배용) 누구의 멀리건에서도 다시 뽑히지 않는다. */
+  mulliganDiscardIds: Set<string>;
   firstIdx: 0 | 1;
   mulliganQueue: number[]; // 플레이어 idx 순서
   turnQueue: number[]; // exchange 턴 순서 (플레이어 idx)
@@ -146,6 +148,7 @@ export function createState(
     players: [p0, p1],
     vps: [],
     deck,
+    mulliganDiscardIds: new Set(),
     firstIdx: 0,
     mulliganQueue: [0, 1, 0, 1],
     turnQueue: [],
@@ -247,16 +250,27 @@ export function applyMulligan(s: QuatroState, idx: number, use: boolean) {
     p.mulliganDone = true; // 거부 의사 = 더 이상 멀리건 없음
     return;
   }
-  // 새 4장: 이전에 들고 있던 카드는 다시 받을 수 없음
-  const pool = shuffle(s.deck.filter((c) => !p.seenIds.has(c.id)));
+  /*
+    새 4장. 멀리건으로 버려진 카드는 버린 사람뿐 아니라 상대의 멀리건에서도
+    뽑히지 않는다 — 내가 버린 패가 곧바로 상대 손에 들어가면 안 된다.
+    풀은 매 멀리건마다 4장씩 줄어 18 → 14 → 10 → 6 이라, 최대 4회(2회×2명)
+    모두 뽑을 수 있다.
+  */
+  const pool = shuffle(
+    s.deck.filter((c) => !p.seenIds.has(c.id) && !s.mulliganDiscardIds.has(c.id)),
+  );
   const drawn = pool.slice(0, QUATRO_HAND_SIZE);
   if (drawn.length < QUATRO_HAND_SIZE) {
-    // 풀 부족 (이론상 희박) — 멀리건 무효 처리
+    // 풀 부족 (위 계산상 생기지 않음) — 멀리건 무효 처리
     p.mulliganDone = true;
     return;
   }
-  // 기존 손패는 덱으로 반환
+  /*
+    기존 손패는 덱으로 되돌린다. 26장을 모두 나누는 게임이라 가상 플레이어
+    6명 × 3장(dealVps)에 이 카드들이 필요하다. 멀리건 풀에서만 빠진다.
+  */
   s.deck = s.deck.filter((c) => !drawn.some((d) => d.id === c.id));
+  for (const c of p.hand) s.mulliganDiscardIds.add(c.id);
   s.deck.push(...p.hand);
   s.deck = shuffle(s.deck);
   p.hand = drawn;
