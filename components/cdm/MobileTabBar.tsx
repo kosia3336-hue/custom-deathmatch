@@ -137,18 +137,6 @@ export function MobileTabBar({ isMember }: Props) {
                 );
               })}
             </ul>
-            {/*
-              약관·개인정보 처리방침. 웹은 푸터에도 있지만 앱(웹뷰)은 푸터를 두지
-              않으므로 여기가 앱에서의 입구다.
-            */}
-            <p className="flex justify-center gap-4 px-5 pt-1 pb-1 text-[11px] text-cdm-ink-fg-muted">
-              <Link href="/legal/terms" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                이용약관
-              </Link>
-              <Link href="/legal/privacy" onClick={() => setMenuOpen(false)} className="hover:text-white">
-                개인정보 처리방침
-              </Link>
-            </p>
           </div>
         </div>
       )}

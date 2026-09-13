@@ -4842,12 +4842,17 @@ body {
   body:has(nav[aria-label='하단 메뉴']) main {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
   }
-  /* 로비는 탭 바 위에 행동 바(랭크 매칭·빠른 입장·방 만들기)가 한 줄 더 뜬다 */
+  /* 로비는 탭 바 위에 행동 바(랭크 표시 + 랭크 매칭·빠른 입장·방 만들기)가 더 뜬다.
+     바 높이는 MobileHomeHeader 가 --cdm-lobby-bar-h 로 재서 넣는다 */
   body:has(nav[aria-label='하단 메뉴']):has(.lobby-action-bar) main {
-    padding-bottom: calc(var(--cdm-tabbar-h) + 5rem + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(
+      var(--cdm-tabbar-h) + var(--cdm-lobby-bar-h, 8rem) + 0.75rem + env(safe-area-inset-bottom)
+    ) !important;
   }
   body:has(.lobby-action-bar) .site-footer__inner {
-    padding-bottom: calc(var(--cdm-tabbar-h) + 5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(
+      var(--cdm-tabbar-h) + var(--cdm-lobby-bar-h, 8rem) + 0.75rem + env(safe-area-inset-bottom)
+    );
   }
 }
 

@@ -3,15 +3,16 @@
 /**
  * 모바일 홈(로비) 상단 헤더 — 앱 재설계안 적용.
  *
- * 디자인 결정: 1c(리스트형 밀도) 위에 1b 의 랭크 카드를 얹는다.
- * - ink(#14142b) 헤더 위에 랭크 카드 하나로 "내 시즌 상태 + 다음 행동"을 모은다.
- * - 랭크 매칭은 카드 안에 있으므로, 아래 행동 줄은 빠른 입장 / 방 만들기 둘만 둔다.
+ * 디자인 결정: 1c(리스트형 밀도) + 1b 의 랭크 표시.
+ * - 위쪽 ink 헤더에는 로고와 소리·채팅·우편·로그인만 둔다.
+ * - 랭크 표시와 랭크 매칭·빠른 입장·방 만들기는 한 덩어리로 탭 바 바로 위에 고정한다.
+ *   내 시즌 상태를 보고 바로 누르는 흐름이고, 한 손으로 쥐었을 때 엄지가 닿는 자리다.
  * - 방 목록 필터는 1c 의 칩 줄로 옮겼다.
  *
  * 데스크톱에서는 렌더하지 않는다(기존 ActionBar 가 그대로 담당).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -102,6 +103,22 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
 
   const waitingCount = rooms.filter((r) => r.status === 'waiting').length;
 
+  // 고정 행동 바 높이를 --cdm-lobby-bar-h 로 알려, 본문 하단 여백이 바에 가리지 않게 한다.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const sync = () => root.style.setProperty('--cdm-lobby-bar-h', `${el.offsetHeight}px`);
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--cdm-lobby-bar-h');
+    };
+  }, []);
+
   const handleRank = () => {
     // 이미 대기 중이면 대기 화면을 다시 연다(내려둔 상태에서 돌아오는 입구)
     if (queuing) {
@@ -156,9 +173,9 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
 
   return (
     <div className="-mx-4 -mt-4 mb-3 sm:hidden">
-      {/* ── ink 헤더: 재화 스트립 + 랭크 카드 ── */}
-      <div className="bg-cdm-ink px-4 pb-4 pt-3">
-        <div className="mb-3 flex items-center justify-between">
+      {/* ── ink 헤더: 로고 + 소리·채팅·우편·로그인 ── */}
+      <div className="bg-cdm-ink px-4 py-3">
+        <div className="flex items-center justify-between">
           <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
             <Logo size="md" className="h-5 w-auto" />
           </Link>
@@ -181,50 +198,42 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
             )}
           </div>
         </div>
+      </div>
 
-        <div
-          className="rounded-cdm-lg border border-white/12 p-4"
-          style={{
-            background:
-              'linear-gradient(150deg, rgba(255,255,255,.10), rgba(255,255,255,.04))',
-          }}
+      {/*
+        ── 하단 행동 바: 랭크 표시 + 랭크 매칭·빠른 입장·방 만들기 ──
+        내 티어를 보고 바로 누르는 한 덩어리라 붙여 두고, 한 손으로 쥐었을 때 엄지가
+        닿도록 하단 탭 바 바로 위에 고정한다. 대기 중이면 랭크 버튼이 경과 시간을
+        보여 주고, 누르면 대기 화면을 다시 연다.
+      */}
+      <div
+        ref={barRef}
+        className="lobby-action-bar fixed inset-x-0 z-(--cdm-z-sticky) border-t border-cdm-ink-border bg-cdm-ink/95 px-3 pt-2.5 pb-2 backdrop-blur"
+        style={{ bottom: 'calc(var(--cdm-tabbar-h) + env(safe-area-inset-bottom))' }}
+      >
+        <Link
+          href="/ranking"
+          aria-label={`${TIER_LABEL[tier]} ${rp} RP · 티어표와 랭킹 보기`}
+          className="mb-2.5 flex items-center gap-2.5 px-1"
         >
-          <div className="flex items-center gap-3.5">
-            {/* 티어는 옆 글자가 말하므로 엠블럼은 꾸밈으로 둔다 */}
-            <Image
-              src={`/rank/tier-${tier}.png`}
-              alt=""
-              width={56}
-              height={56}
-              className="size-14 flex-none object-contain"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-lg font-extrabold tracking-tight text-white">
-                  {TIER_LABEL[tier]}{' '}
-                  <span className="text-sm font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
-                </p>
-                {rank?.season && (
-                  <span className="shrink-0 text-[11px] font-semibold text-cdm-ink-fg-muted">
-                    {rank.season.name}
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/13">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${progress}%`,
-                    background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
-                  }}
-                />
-              </div>
-
-              <div className="mt-1.5 flex justify-between gap-2 text-[11px] text-cdm-ink-fg-muted">
-                <span className="min-w-0 truncate">
+          {/* 티어는 옆 글자가 말하므로 엠블럼은 꾸밈으로 둔다 */}
+          <Image
+            src={`/rank/tier-${tier}.png`}
+            alt=""
+            width={36}
+            height={36}
+            className="size-9 flex-none object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="shrink-0 text-sm font-extrabold tracking-tight text-white">
+                {TIER_LABEL[tier]}{' '}
+                <span className="text-xs font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
+              </p>
+              <p className="flex min-w-0 gap-1.5 text-[11px] text-cdm-ink-fg-muted">
+                <span className="truncate">
                   {tier === 'unranked' || inPlacement
-                    ? `배치전 ${stats?.placement_games ?? 0}/5 · 5판이면 티어 결정`
+                    ? `배치전 ${stats?.placement_games ?? 0}/5`
                     : next
                       ? `${next.label}까지 ${Math.max(0, next.at - rp)} RP`
                       : '최고 티어'}
@@ -232,30 +241,21 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
                 {(stats?.win_streak ?? 0) >= 2 && (
                   <span className="shrink-0 font-semibold text-cdm-success">{stats?.win_streak}연승</span>
                 )}
-              </div>
+              </p>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/13">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
+                }}
+              />
             </div>
           </div>
+          <Icon name="chevronRight" size="sm" className="flex-none text-cdm-ink-fg-muted" />
+        </Link>
 
-          <Link
-            href="/ranking"
-            className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-xs font-semibold text-cdm-ink-fg-muted"
-          >
-            <span>티어표 · 랭킹 보기</span>
-            <Icon name="chevronRight" size="sm" />
-          </Link>
-        </div>
-      </div>
-
-      {/*
-        ── 하단 행동 바 ──
-        랭크 매칭·빠른 입장·방 만들기는 화면 위쪽 카드에 있으면 한 손으로 쥐었을 때
-        엄지가 닿지 않는다. 하단 탭 바 바로 위에 고정해 둔다. 대기 중이면 랭크
-        버튼이 경과 시간을 보여 주고, 누르면 대기 화면을 다시 연다.
-      */}
-      <div
-        className="lobby-action-bar fixed inset-x-0 z-(--cdm-z-sticky) border-t border-cdm-ink-border bg-cdm-ink/95 px-3 pt-2 pb-2 backdrop-blur"
-        style={{ bottom: 'calc(var(--cdm-tabbar-h) + env(safe-area-inset-bottom))' }}
-      >
         <div className="flex gap-2">
           <button
             type="button"
