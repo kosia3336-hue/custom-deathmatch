@@ -7,6 +7,11 @@ import {
   type ShareLogRow,
   type ShareParticipantRow,
 } from '../../../lib/share/resultShareView';
+import {
+  buildPublicLogProps,
+  type PublicLogRow,
+  type PublicParticipantRow,
+} from '../../../lib/share/publicLogProps';
 
 const LOG_ID = 'e46ffff9-4c89-47e5-9b5c-7f02adcd97da';
 const SECRET = 'test-secret';
@@ -92,5 +97,49 @@ describe('결과 공유 화면 값', () => {
 
   it('상대가 많으면 앞 두 명 + 외 n명', () => {
     expect(formatShareOpponents(['가', '나', '다', '라'])).toBe('가, 나 외 2명');
+  });
+});
+
+describe('공개 기보', () => {
+  const title = (name: string) =>
+    ({ id: `t-${name}`, name, color: 'gold' }) as PublicParticipantRow['title_snapshot'];
+  const fullLog = {
+    ...log,
+    mode: 'multi',
+    counts_for_stats: true,
+    game_record: {
+      players: { tokenA: { nickname: '쇼비' }, tokenB: { nickname: '창조적인플레이' } },
+      tiebreakerReason: '창조적인플레이 님 승리',
+    },
+  } as PublicLogRow;
+
+  it('익명 물약 상대는 목록·순위·기록 본문까지 ??? 로 가리고 회원 id 는 싣지 않는다', () => {
+    const rows: PublicParticipantRow[] = [
+      { ...seat({}), title_snapshot: title('사목러') },
+      {
+        ...seat({ position: 'second', member_id: 'member-b', nickname_snapshot: '창조적인플레이', anonymized: true, is_winner: false }),
+        title_snapshot: title('숨길칭호'),
+      },
+    ];
+    const props = buildPublicLogProps(fullLog, rows, 'first', '넘버4');
+    expect(props.players.map((p) => p.nickname)).toEqual(['쇼비', '???']);
+    expect(props.players[1].title).toBeNull();
+    expect(props.record.result.rankings.map((r: { nickname: string }) => r.nickname)).toEqual(['쇼비', '???']);
+    const json = JSON.stringify(props);
+    expect(json).not.toContain('창조적인플레이');
+    expect(json).not.toContain('숨길칭호');
+    expect(json).not.toContain('member-b');
+    expect(json).toContain('??? 님 승리');
+  });
+
+  it('공유한 사람 본인이 물약을 쓴 판이어도 본인 이름은 보인다', () => {
+    const rows: PublicParticipantRow[] = [
+      { ...seat({ anonymized: true }), title_snapshot: null },
+      { ...seat({ position: 'second', member_id: 'member-b', nickname_snapshot: '샤인', is_winner: false }), title_snapshot: null },
+    ];
+    expect(buildPublicLogProps(fullLog, rows, 'first', '넘버4').players.map((p) => p.nickname)).toEqual([
+      '쇼비',
+      '샤인',
+    ]);
   });
 });

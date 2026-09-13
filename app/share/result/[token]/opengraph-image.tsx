@@ -7,5 +7,5 @@ export const alt = '커스텀 데스매치 전적';
 
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  return renderResultCardImage(await loadResultShare(token));
+  return renderResultCardImage((await loadResultShare(token))?.view ?? null);
 }
