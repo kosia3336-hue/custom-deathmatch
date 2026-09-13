@@ -43,9 +43,14 @@ export default function SiteFooter() {
     return null;
   }
 
+  // 앱(웹뷰)에서는 홈(로비)에서만 globals.css 가 감춘다(html[data-native-app] .site-footer--home).
+  // 다른 화면은 약관·개인정보 처리방침 입구로 푸터를 둔다(임시 — 설정 화면에 입구가 생기면 재검토).
+  const isHome = pathname === '/lobby';
+
   return (
-    // site-footer: 앱(웹뷰)에서는 globals.css 가 통째로 감춘다 (html[data-native-app])
-    <footer className="site-footer mt-auto border-t border-cdm-ink-border bg-cdm-ink">
+    <footer
+      className={`site-footer mt-auto border-t border-cdm-ink-border bg-cdm-ink${isHome ? ' site-footer--home' : ''}`}
+    >
       {/*
         모바일에서는 하단 탭바가 화면 아래에 고정되어 푸터를 덮으므로,
         sm 미만에서만 탭바 높이만큼 여백을 더 준다. 로비 행동 바가 있으면

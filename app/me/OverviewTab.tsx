@@ -4,6 +4,7 @@ import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { withoutAnonymizedOpponents } from '@/lib/anonymousOpponents';
 import type { CurrentMember } from '@/lib/auth/server';
 import type { TitleColor } from '@/lib/supabase/database.types';
 
@@ -59,7 +60,24 @@ export default async function OverviewTab({ member }: { member: CurrentMember })
 
   const stats = (statsRes.data ?? []) as unknown as StatsRow[];
   const meta = (metaRes.data ?? []) as unknown as GameRow[];
-  const toughOpponents = (toughRes.data ?? []) as unknown as ToughOpponent[];
+  const toughRaw = (toughRes.data ?? []) as unknown as ToughOpponent[];
+  // 나와의 판에서 익명 물약을 쓴 적 있는 상대는 항목째 뺀다(lib/anonymousOpponents.ts).
+  // RLS 가 내가 참가한 판의 참가자만 돌려주므로 '나와의 판' 으로 한정된다.
+  const { data: anonymizedRows } =
+    toughRaw.length > 0
+      ? await sb
+          .from('game_log_participants')
+          .select('member_id')
+          .in(
+            'member_id',
+            toughRaw.map((o) => o.opponent_id),
+          )
+          .eq('anonymized', true)
+      : { data: [] };
+  const toughOpponents = withoutAnonymizedOpponents(
+    toughRaw,
+    (anonymizedRows ?? []) as { member_id: string | null }[],
+  );
   const nameOf = (id: string) => meta.find((m) => m.id === id)?.name ?? id;
 
   const totalGames = stats.reduce((acc, s) => acc + s.total_games, 0);
