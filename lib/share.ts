@@ -44,7 +44,10 @@ export async function shareOrCopy(
   payload: SharePayload,
   targets: ShareTargets = defaultTargets(),
 ): Promise<ShareOutcome> {
-  const data = { title: payload.title, url: payload.url, ...(payload.text ? { text: payload.text } : {}) };
+  // 링크를 url 로 따로 넘기면 카톡 등이 글과 링크를 메시지 두 개로 보낸다.
+  // 글 끝에 붙여 한 덩어리로 넘긴다(링크 미리보기는 글 속 주소로도 뜬다).
+  const message = [payload.text, payload.url].filter(Boolean).join('\n');
+  const data = { title: payload.title, text: message };
   if (targets.native) {
     try {
       await targets.native.share({ ...data, dialogTitle: '공유하기' });
@@ -62,7 +65,7 @@ export async function shareOrCopy(
   }
   if (!targets.clipboard) return 'failed';
   try {
-    await targets.clipboard.writeText([payload.text, payload.url].filter(Boolean).join('\n'));
+    await targets.clipboard.writeText(message);
     return 'copied';
   } catch {
     return 'failed';

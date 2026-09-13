@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resultShareText, resultSharePayload } from '../../../lib/resultShare';
+import { formatShareDateTime, resultShareText, resultSharePayload } from '../../../lib/resultShare';
 import { shareOrCopy, type ShareTargets } from '../../../lib/share';
 import { GAME_IDS, resolveAbstractAiDifficulty } from '@shared/types/game.js';
 
@@ -12,6 +12,22 @@ describe('공개 전적 요약', () => {
     expect(value.text).toContain('2분 5초 · 12턴');
     expect(value.url).toBe('https://example.com/lobby');
   });
+  it('대전 상대와 대전 일시(KST)를 넣는다', () => {
+    const text = resultShareText({
+      gameName: '사중력 사목',
+      result: '승리',
+      playTimeMs: 125000,
+      totalTurns: 12,
+      opponents: ['홍길동'],
+      playedAt: '2026-09-12T12:30:00Z',
+    });
+    expect(text).toBe('커스텀 데스매치 · 사중력 사목\n승리 vs 홍길동\n2026.09.12 21:30 · 플레이 2분 5초 · 12턴');
+    expect(
+      resultShareText({ gameName: 'a', result: '패배', playTimeMs: 0, totalTurns: 0, opponents: ['가', '나', '다', '라', '마'] }),
+    ).toContain('패배 vs 가, 나, 다 외 2명');
+    expect(resultShareText({ gameName: 'a', result: '완료', playTimeMs: 0, totalTurns: 0, opponents: [] })).toContain('\n완료\n');
+    expect(formatShareDateTime('not a date')).toBeNull();
+  });
   it('비정상 숫자와 과도한 텍스트를 제한한다', () => {
     expect(
       resultShareText({
@@ -19,6 +35,8 @@ describe('공개 전적 요약', () => {
         result: '승리',
         playTimeMs: NaN,
         totalTurns: -1,
+        opponents: Array.from({ length: 20 }, () => 'b'.repeat(500)),
+        playedAt: 'garbage',
       }).length,
     ).toBeLessThan(200);
     expect(() =>
@@ -48,8 +66,17 @@ describe('공유 시트', () => {
     const native = { share: vi.fn().mockResolvedValue({}) };
     const web = { share: vi.fn() };
     expect(await shareOrCopy(payload, targets({ native, web }))).toBe('shared');
-    expect(native.share).toHaveBeenCalledWith(expect.objectContaining({ text: '요약', url: payload.url }));
+    expect(native.share).toHaveBeenCalledWith(
+      expect.objectContaining({ text: '요약\nhttps://example.com/lobby' }),
+    );
     expect(web.share).not.toHaveBeenCalled();
+  });
+  it('링크를 따로 넘기지 않고 글 끝에 붙여 메시지 하나로 보낸다', async () => {
+    const web = { share: vi.fn().mockResolvedValue(undefined) };
+    await shareOrCopy(payload, targets({ web }));
+    const sent = web.share.mock.calls[0][0];
+    expect(sent).not.toHaveProperty('url');
+    expect(sent.text).toBe('요약\nhttps://example.com/lobby');
   });
   it('시트를 닫으면 복사로 넘어가지 않는다', async () => {
     const native = { share: vi.fn().mockRejectedValue(new Error('Share canceled')) };

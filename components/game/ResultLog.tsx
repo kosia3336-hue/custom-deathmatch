@@ -309,6 +309,9 @@ export default function ResultLog() {
               result: shareResult,
               playTimeMs: gameResult.playTime,
               totalTurns: gameResult.totalTurns,
+              opponents: gameResult.rankings
+                .filter((r) => r.playerId !== myId)
+                .map((r) => r.nickname),
             }}
           />
         </div>

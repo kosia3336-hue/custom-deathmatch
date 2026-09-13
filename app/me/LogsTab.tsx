@@ -175,7 +175,18 @@ export default async function LogsTab({
               </div>
             </Link>
             <div className="mt-3 flex justify-end">
-              <ResultShareButton summary={{ gameName: log.room_snapshot?.gameName ?? log.game_id, result, playTimeMs: log.play_time_seconds * 1000, totalTurns: log.total_turns }} />
+              <ResultShareButton
+                summary={{
+                  gameName: log.room_snapshot?.gameName ?? log.game_id,
+                  result,
+                  playTimeMs: log.play_time_seconds * 1000,
+                  totalTurns: log.total_turns,
+                  opponents: log.participants
+                    .filter((p) => p.member_id !== memberId)
+                    .map((p) => (p.anonymized ? '???' : p.nickname_snapshot || '탈퇴 회원')),
+                  playedAt: log.played_at,
+                }}
+              />
             </div>
           </Card>
         );

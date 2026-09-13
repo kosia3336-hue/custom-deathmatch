@@ -6,7 +6,10 @@ import { Icon } from '@/components/cdm/Icon';
 import { resultSharePayload, type ResultShareSummary } from '@/lib/resultShare';
 import { shareOrCopy } from '@/lib/share';
 
-/** 전적 요약을 공유 시트로 보낸다. 게임명·승패·시간·턴만 담고 닉네임·패·로그는 넣지 않는다. */
+/**
+ * 전적 요약을 공유 시트로 보낸다. 게임명·승패·대전 상대·일시·시간·턴을 담고
+ * 회원 ID·패·로그는 넣지 않는다. 일시가 없으면(방금 끝난 판) 누른 시각을 쓴다.
+ */
 export default function ResultShareButton({ summary }: { summary: ResultShareSummary }) {
   const [busy, setBusy] = useState(false);
   const share = async () => {
@@ -14,7 +17,7 @@ export default function ResultShareButton({ summary }: { summary: ResultShareSum
     let payload;
     try {
       payload = resultSharePayload(
-        summary,
+        { ...summary, playedAt: summary.playedAt ?? Date.now() },
         process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
       );
     } catch {
