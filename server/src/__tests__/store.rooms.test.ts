@@ -272,6 +272,43 @@ describe('roomStore.delegateHost', () => {
   });
 });
 
+describe('roomStore.moveToSpectator / moveToPlayer', () => {
+  beforeEach(resetRooms);
+
+  it('플레이어를 관전석으로 옮기면 준비가 풀리고 자리가 빈다', () => {
+    const room = createMultiRoom();
+    roomStore.addPlayer(room.id, makePlayer('player-2'));
+    roomStore.setPlayerReady(room.id, 'player-2', true);
+    expect(roomStore.moveToSpectator(room.id, 'player-2')).toBe(true);
+    const after = roomStore.get(room.id)!;
+    expect(after.players.map((p) => p.id)).toEqual(['host-socket-id']);
+    expect(after.spectators.find((s) => s.id === 'player-2')?.isReady).toBe(false);
+  });
+
+  it('방장은 관전석으로 옮길 수 없다', () => {
+    const room = createMultiRoom();
+    expect(roomStore.moveToSpectator(room.id, 'host-socket-id')).toBe(false);
+  });
+
+  it('관전자는 빈 자리가 있을 때만 플레이어로 올릴 수 있다', () => {
+    const room = createMultiRoom();
+    roomStore.addSpectator(room.id, makePlayer('spec-1'));
+    roomStore.addSpectator(room.id, makePlayer('spec-2'));
+    expect(roomStore.moveToPlayer(room.id, 'spec-1')).toBe(true);
+    expect(roomStore.moveToPlayer(room.id, 'spec-2')).toBe(false);
+    const after = roomStore.get(room.id)!;
+    expect(after.players.map((p) => p.id)).toEqual(['host-socket-id', 'spec-1']);
+    expect(after.spectators.map((s) => s.id)).toEqual(['spec-2']);
+  });
+
+  it('게임 중에는 옮기지 않는다', () => {
+    const room = createMultiRoom();
+    roomStore.addPlayer(room.id, makePlayer('player-2'));
+    roomStore.setStatus(room.id, 'playing');
+    expect(roomStore.moveToSpectator(room.id, 'player-2')).toBe(false);
+  });
+});
+
 describe('roomStore.swapPlayers', () => {
   beforeEach(resetRooms);
 

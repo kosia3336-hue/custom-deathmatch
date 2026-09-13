@@ -14,12 +14,12 @@ import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
+import RoomInfoSheet, { InfoRow } from '@/components/room/RoomInfoSheet';
 import { SoundSettings } from '@/components/cdm/SoundSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { Icon, UnreadBadge } from '@/components/cdm';
 import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
-import { PLAY_MODE_LABEL } from '@/shared/types';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
@@ -319,56 +319,18 @@ export default function GameShell({ children }: Props) {
         </ul>
       </BottomSheet>
 
-      {/* ── 정보 — 판이 도는 동안 안 읽어도 되는 것들 ── */}
-      <BottomSheet open={showInfo} onClose={() => setShowInfo(false)} title="방 정보">
-        <dl className="divide-y divide-cdm-border text-sm">
-          <InfoRow label="방 제목" value={room?.title} />
-          <InfoRow label="게임" value={room?.gameName} />
-          <InfoRow label="플레이 모드" value={room ? PLAY_MODE_LABEL[room.playMode] : undefined} />
-          <InfoRow label="랭크" value={isRankedRoom ? '랭크 게임' : '일반 게임'} />
-          <InfoRow label="진행된 시간" value={<ElapsedTime startedAt={gameState?.startedAt} />} />
-        </dl>
-        <h3 className="mt-4 mb-3 text-sm font-semibold">참여자 목록</h3>
-        <ul className="space-y-2">
-          {room?.players.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-sm text-cdm-fg">
-              <span className="h-2 w-2 rounded-full bg-cdm-primary shrink-0" />
-              <span className="flex-1">{p.nickname}{p.id === myId ? ' (나)' : ''}</span>
-              {p.memberId && p.id !== myId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReportTarget({ memberId: p.memberId!, nickname: p.nickname });
-                    setShowInfo(false);
-                  }}
-                  className="text-xs text-cdm-fg-subtle hover:text-cdm-danger"
-                >
-                  신고
-                </button>
-              )}
-            </li>
-          ))}
-          {room?.spectators.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-sm text-cdm-fg-muted">
-              <span className="h-2 w-2 rounded-full bg-cdm-fg-subtle shrink-0" />
-              <span className="flex-1">{p.nickname}{p.id === myId ? ' (나)' : ''}</span>
-              <span className="text-xs">(관전)</span>
-              {p.memberId && p.id !== myId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReportTarget({ memberId: p.memberId!, nickname: p.nickname });
-                    setShowInfo(false);
-                  }}
-                  className="text-xs text-cdm-fg-subtle hover:text-cdm-danger"
-                >
-                  신고
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </BottomSheet>
+      {/* ── 정보 — 판이 도는 동안 안 읽어도 되는 것들. 대기실 'i' 와 같은 시트 ── */}
+      <RoomInfoSheet
+        open={showInfo}
+        onClose={() => setShowInfo(false)}
+        room={room}
+        myId={myId}
+        extraRows={<InfoRow label="진행된 시간" value={<ElapsedTime startedAt={gameState?.startedAt} />} />}
+        onReport={(target) => {
+          setReportTarget(target);
+          setShowInfo(false);
+        }}
+      />
 
       {/* ── 메모 — 좁은 화면에서 라운드 기록·상대 추리. 넓은 화면은 GameFrame aside ── */}
       {hud?.memo != null && (
@@ -481,16 +443,5 @@ function SettingRow({
         </span>
       </button>
     </li>
-  );
-}
-
-/** 정보 한 줄. 값이 없으면 줄 자체를 안 그린다 — 빈 칸이 늘어서면 더 어수선하다. */
-function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
-  if (!value) return null;
-  return (
-    <div className="flex items-start justify-between gap-3 py-2.5">
-      <dt className="shrink-0 text-cdm-fg-muted">{label}</dt>
-      <dd className="min-w-0 text-right font-medium text-cdm-fg">{value}</dd>
-    </div>
   );
 }

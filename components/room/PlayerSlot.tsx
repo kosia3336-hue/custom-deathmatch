@@ -17,6 +17,8 @@ interface Props {
   colorLabel?: '흑' | '백';
   onKick?: (id: string) => void;
   onDelegate?: (id: string) => void;
+  /** 방장이 이 플레이어를 관전석으로 옮기기. 없으면(랭크 등) 메뉴에서 뺀다. */
+  onMoveToSpectator?: (id: string) => void;
   /** v2 — 게임 시작 후엔 토글 비활성 */
   isGameStarted?: boolean;
   onReport?: (memberId: string, nickname: string) => void;
@@ -28,6 +30,7 @@ export default function PlayerSlot({
   isHostView,
   onKick,
   onDelegate,
+  onMoveToSpectator,
   isGameStarted,
   onReport,
 }: Props) {
@@ -71,29 +74,26 @@ export default function PlayerSlot({
           </div>
         </div>
 
-        {/* 다른 사람 슬롯 — 메뉴 (호스트: 위임·강퇴·신고 / 일반: 신고) */}
+        {/* 다른 사람 슬롯 — 메뉴 (방장: 넘기기·관전으로·강퇴·신고 / 일반: 신고) */}
         {!isMe && !isAI && (isHostView || player.memberId) && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               className="rounded-cdm-md p-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-2 hover:text-cdm-fg"
-              aria-label="메뉴 열기"
+              aria-label={`${player.nickname} 메뉴`}
+              aria-expanded={menuOpen}
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <circle cx="5" cy="12" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="19" cy="12" r="1.8" />
               </svg>
             </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-cdm-md border border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)">
+                <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-cdm-md border border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)">
                   {isHostView && !player.isHost && (
                     <>
                       <button
@@ -104,8 +104,20 @@ export default function PlayerSlot({
                         }}
                         className="block w-full px-4 py-2 text-left text-sm text-cdm-fg hover:bg-cdm-bg-elev-1"
                       >
-                        방장 위임
+                        방장 넘기기
                       </button>
+                      {onMoveToSpectator && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onMoveToSpectator(player.id);
+                            setMenuOpen(false);
+                          }}
+                          className="block w-full px-4 py-2 text-left text-sm text-cdm-fg hover:bg-cdm-bg-elev-1"
+                        >
+                          관전으로 옮기기
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {

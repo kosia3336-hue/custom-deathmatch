@@ -805,6 +805,62 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     broadcastRoomUpdated(io, roomId);
   });
 
+  /*
+    방장이 다른 사람의 자리를 옮긴다. 본인이 옮기는 room:to:spectate / spectate:to:player 와
+    같은 저장소 함수를 쓰고(대기 중일 때만, 방장은 관전석으로 못 감), 랭크 방은 막는다.
+    익명 물약은 랭크 방에서만 켜지므로 시스템 문구에 실명을 써도 된다.
+  */
+  socket.on('room:move:to:spectate', ({ targetId }, callback) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return callback({ success: false, error: '방에 입장되어 있지 않습니다.' });
+    const room = roomStore.get(roomId);
+    if (!room) return callback({ success: false, error: '방을 찾을 수 없습니다.' });
+    if (room.hostId !== getPlayerId(socket)) {
+      return callback({ success: false, error: '방장만 옮길 수 있습니다.' });
+    }
+    if (room.isRanked === true) {
+      return callback({ success: false, error: '랭크 매치에서는 옮길 수 없습니다.' });
+    }
+    const target = room.players.find((p) => p.id === targetId);
+    if (!target || target.id === AI_PLAYER_ID || target.id === room.hostId) {
+      return callback({ success: false, error: '옮길 수 없는 플레이어입니다.' });
+    }
+    if (!roomStore.moveToSpectator(roomId, targetId)) {
+      return callback({ success: false, error: '대기 중일 때만 옮길 수 있습니다.' });
+    }
+
+    callback({ success: true });
+    emitRoomSystemMessage(io, roomId, `방장이 ${target.nickname} 님을 관전석으로 옮겼습니다.`);
+    sendRoomState(io, roomId);
+    broadcastRoomUpdated(io, roomId);
+  });
+
+  socket.on('room:move:to:player', ({ targetId }, callback) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return callback({ success: false, error: '방에 입장되어 있지 않습니다.' });
+    const room = roomStore.get(roomId);
+    if (!room) return callback({ success: false, error: '방을 찾을 수 없습니다.' });
+    if (room.hostId !== getPlayerId(socket)) {
+      return callback({ success: false, error: '방장만 옮길 수 있습니다.' });
+    }
+    if (room.isRanked === true) {
+      return callback({ success: false, error: '랭크 매치에서는 옮길 수 없습니다.' });
+    }
+    const target = room.spectators.find((p) => p.id === targetId);
+    if (!target) return callback({ success: false, error: '관전자를 찾을 수 없습니다.' });
+    if (room.players.length >= room.maxPlayers) {
+      return callback({ success: false, error: '빈 자리가 없습니다.' });
+    }
+    if (!roomStore.moveToPlayer(roomId, targetId)) {
+      return callback({ success: false, error: '대기 중일 때만 옮길 수 있습니다.' });
+    }
+
+    callback({ success: true });
+    emitRoomSystemMessage(io, roomId, `방장이 ${target.nickname} 님을 플레이어 자리로 올렸습니다.`);
+    sendRoomState(io, roomId);
+    broadcastRoomUpdated(io, roomId);
+  });
+
   socket.on('game:leave', () => {
     handleLeaveRoom(io, socket);
   });

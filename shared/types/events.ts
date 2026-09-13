@@ -272,6 +272,16 @@ export interface ClientToServerEvents {
   'spectate:leave': () => void;
   'room:to:spectate': (callback: (res: { success: boolean; error?: string }) => void) => void;
   'spectate:to:player': (callback: (res: { success: boolean; error?: string }) => void) => void;
+  /** 방장 — 다른 플레이어를 관전석으로 (대기 중·일반 방) */
+  'room:move:to:spectate': (
+    data: { targetId: string },
+    callback: (res: { success: boolean; error?: string }) => void,
+  ) => void;
+  /** 방장 — 관전자를 빈 플레이어 자리로 (대기 중·일반 방) */
+  'room:move:to:player': (
+    data: { targetId: string },
+    callback: (res: { success: boolean; error?: string }) => void,
+  ) => void;
 
   /** 랭크 큐 진입 (회원 전용, 운영 시간·시즌 검증은 서버) */
   'rank:queue:join': (callback: (res: { success: boolean; error?: string }) => void) => void;
