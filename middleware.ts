@@ -92,6 +92,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/notice') ||
       pathname.startsWith('/titles') ||
       pathname.startsWith('/rules') ||
+      // 결과 공유 페이지(+ 카드 이미지) — 카톡 미리보기 수집기는 쿠키가 없다
+      pathname.startsWith('/share/') ||
       pathname.startsWith('/support/inquiry');
 
     if (isPublic) {
@@ -158,6 +160,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/ranking') ||
       pathname.startsWith('/rules') ||
       pathname.startsWith('/titles') ||
+      pathname.startsWith('/share/') ||
       pathname.startsWith('/notice');
 
     if (canBrowse) return response;

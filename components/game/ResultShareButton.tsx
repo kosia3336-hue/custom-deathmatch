@@ -10,7 +10,14 @@ import { shareOrCopy } from '@/lib/share';
  * 전적 요약을 공유 시트로 보낸다. 게임명·승패·대전 상대·일시·시간·턴을 담고
  * 회원 ID·패·로그는 넣지 않는다. 일시가 없으면(방금 끝난 판) 누른 시각을 쓴다.
  */
-export default function ResultShareButton({ summary }: { summary: ResultShareSummary }) {
+export default function ResultShareButton({
+  summary,
+  sharePath,
+}: {
+  summary: ResultShareSummary;
+  /** 결과 공유 페이지 경로(서버 발급). 없으면 로비 링크로 공유한다. */
+  sharePath?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const share = async () => {
     if (busy) return;
@@ -19,6 +26,7 @@ export default function ResultShareButton({ summary }: { summary: ResultShareSum
       payload = resultSharePayload(
         { ...summary, playedAt: summary.playedAt ?? Date.now() },
         process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+        sharePath,
       );
     } catch {
       toast.error('공유 주소 설정이 올바르지 않습니다.');

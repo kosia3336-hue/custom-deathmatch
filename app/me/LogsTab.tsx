@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import ResultShareButton from '@/components/game/ResultShareButton';
+import { createResultShareToken, getResultShareSecret } from '@/lib/share/resultToken';
 import { Card } from '@/components/cdm/Card';
 import { Icon } from '@/components/cdm/Icon';
 import { Tag } from '@/components/cdm/Tag';
@@ -99,6 +100,8 @@ export default async function LogsTab({
   const page = parsePageParam(pageParam);
   const { logs, totalCount } = await loadLogs(memberId, page);
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
+  // 결과 공유 페이지 링크는 서버에서 서명한다(본인 자리로만). 비밀키가 없으면 로비 링크로 공유.
+  const shareSecret = getResultShareSecret();
 
   if (totalCount === 0) {
     return <EmptyState title="아직 게임 로그가 없습니다" />;
@@ -176,6 +179,11 @@ export default async function LogsTab({
             </Link>
             <div className="mt-3 flex justify-end">
               <ResultShareButton
+                sharePath={
+                  shareSecret
+                    ? `/share/result/${createResultShareToken(log.id, me.position, shareSecret)}`
+                    : undefined
+                }
                 summary={{
                   gameName: log.room_snapshot?.gameName ?? log.game_id,
                   result,

@@ -50,6 +50,49 @@ export default function ResultLog() {
     return () => clearInterval(id);
   }, []);
 
+  /*
+    결과 공유 페이지 링크. 기록이 저장돼야 서버가 링크를 발급할 수 있고 저장은 몇 초 늦을 수
+    있다. 공유 버튼을 누른 순간 기다리면 브라우저가 공유 시트를 막을 수 있어 미리 받아 둔다.
+    끝내 못 받으면 버튼은 로비 링크로 공유한다. 판이 바뀌면(다시하기) 이전 판 링크를 쓰지 않도록
+    결과마다 키를 붙여 둔다.
+  */
+  const shareGameId = gameResult && !isSpectator && member ? (room?.gameId ?? null) : null;
+  const shareKey = gameResult
+    ? `${gameResult.roomId}:${gameResult.playTime}:${gameResult.totalTurns}`
+    : null;
+  const [shareLink, setShareLink] = useState<{ key: string; path: string } | null>(null);
+  const sharePath = shareLink && shareLink.key === shareKey ? shareLink.path : undefined;
+
+  useEffect(() => {
+    if (!shareGameId || !shareKey) return;
+    let stopped = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const attempt = async (retryDelays: number[]) => {
+      try {
+        const res = await fetch('/api/share/result', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ gameId: shareGameId }),
+        });
+        if (res.ok) {
+          const { path } = (await res.json()) as { path?: unknown };
+          if (!stopped && typeof path === 'string') setShareLink({ key: shareKey, path });
+          return;
+        }
+        if (res.status !== 404) return;
+      } catch {
+        // 네트워크 오류는 다음 시도로
+      }
+      const [next, ...rest] = retryDelays;
+      if (next != null && !stopped) timers.push(setTimeout(() => void attempt(rest), next));
+    };
+    timers.push(setTimeout(() => void attempt([3000, 6000, 12000]), 1500));
+    return () => {
+      stopped = true;
+      timers.forEach(clearTimeout);
+    };
+  }, [shareGameId, shareKey]);
+
   const rankQueueOpenNow = isRankQueueOpen();
   const rankQueueCanJoinNow = isRankQueueAcceptingNewJoins();
 
@@ -304,6 +347,7 @@ export default function ResultLog() {
       {!isSpectator && myRanking && (
         <div className="mb-4 flex justify-end">
           <ResultShareButton
+            sharePath={sharePath}
             summary={{
               gameName: room?.gameName ?? '게임',
               result: shareResult,

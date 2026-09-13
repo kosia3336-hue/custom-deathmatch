@@ -12,6 +12,18 @@ describe('공개 전적 요약', () => {
     expect(value.text).toContain('2분 5초 · 12턴');
     expect(value.url).toBe('https://example.com/lobby');
   });
+  it('결과 공유 페이지 경로가 있으면 그 주소로, 사이트 밖 주소는 로비로 연결한다', () => {
+    const summary = { gameName: '넘버4', result: '승리', playTimeMs: 0, totalTurns: 0 };
+    expect(resultSharePayload(summary, 'https://example.com', '/share/result/abc').url).toBe(
+      'https://example.com/share/result/abc',
+    );
+    expect(resultSharePayload(summary, 'https://example.com', '//evil.example/x').url).toBe(
+      'https://example.com/lobby',
+    );
+    expect(resultSharePayload(summary, 'https://example.com', 'https://evil.example').url).toBe(
+      'https://example.com/lobby',
+    );
+  });
   it('대전 상대와 대전 일시(KST)를 넣는다', () => {
     const text = resultShareText({
       gameName: '사중력 사목',

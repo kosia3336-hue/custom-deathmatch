@@ -59,9 +59,17 @@ export function resultShareText(summary: ResultShareSummary): string {
   ].join('\n');
 }
 
-/** 공유 시트에 넘길 제목·글·링크. 링크는 참가자 전용 로그가 아니라 로비로 연결한다. */
-export function resultSharePayload(summary: ResultShareSummary, origin: string) {
-  const url = new URL('/lobby', origin);
+/**
+ * 공유 시트에 넘길 제목·글·링크.
+ * 링크는 결과 공유 페이지(`/share/result/<토큰>`, 서버가 발급한 경로)이고, 아직 없으면 로비.
+ * 참가자 전용 로그 주소는 쓰지 않는다. 경로는 같은 사이트 안(`/` 로 시작, `//` 제외)만 받는다.
+ */
+export function resultSharePayload(
+  summary: ResultShareSummary,
+  origin: string,
+  path: string = '/lobby',
+) {
+  const url = new URL(/^\/(?!\/)/.test(path) ? path : '/lobby', origin);
   if (!['http:', 'https:'].includes(url.protocol))
     throw new Error('공유 주소 설정이 올바르지 않습니다.');
   return { title: '커스텀 데스매치 전적', text: resultShareText(summary), url: url.href };
