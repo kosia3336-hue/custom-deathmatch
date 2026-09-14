@@ -1,13 +1,10 @@
 'use client';
 
-import { ReactNode, useState, useCallback, useSyncExternalStore } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRoomStore } from '@/stores/room';
-import {
-  getRoomChatDock,
-  getServerRoomChatDock,
-  subscribeRoomChatDock,
-} from '@/lib/roomChatDock';
+import { useDockState } from '@/hooks/useDockState';
+import { ROOM_CHAT_DOCK_ID } from '@/components/room/RoomChatDockPanel';
 import { RoomLayoutContext, type GameHud } from '@/contexts/RoomLayoutContext';
 import { PLAY_MODE_LABEL } from '@/shared/types';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
@@ -24,10 +21,11 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
 
   // 대기실에서 채팅창을 왼쪽·오른쪽에 붙이면 본문이 넓어지므로 상단 바도 같은 폭으로 맞춘다
   const pathname = usePathname();
-  const chatDock = useSyncExternalStore(subscribeRoomChatDock, getRoomChatDock, getServerRoomChatDock);
+  const chatDock = useDockState(ROOM_CHAT_DOCK_ID);
   const isWaitingRoom = /^\/room\/[^/]+$/.test(pathname ?? '');
-  const headerWidth =
-    isWaitingRoom && (chatDock === 'left' || chatDock === 'right') ? 'max-w-2xl md:max-w-5xl' : 'max-w-2xl';
+  const sideDocked =
+    chatDock.mode === 'docked' && (chatDock.edge === 'left' || chatDock.edge === 'right');
+  const headerWidth = isWaitingRoom && sideDocked ? 'max-w-2xl md:max-w-5xl' : 'max-w-2xl';
 
   const setHeaderLeft = useCallback((content: ReactNode) => setHeaderLeftState(content), []);
   const setHeaderRight = useCallback((content: ReactNode) => setHeaderRightState(content), []);

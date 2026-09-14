@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -9,12 +9,8 @@ import RoomInfoSheet from '@/components/room/RoomInfoSheet';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import RoomSettingsModal from '@/components/room/RoomSettingsModal';
 import ChatButton from '@/components/room/ChatButton';
-import RoomChatDockPanel from '@/components/room/RoomChatDockPanel';
-import {
-  getRoomChatDock,
-  getServerRoomChatDock,
-  subscribeRoomChatDock,
-} from '@/lib/roomChatDock';
+import RoomChatDockPanel, { ROOM_CHAT_DOCK_ID } from '@/components/room/RoomChatDockPanel';
+import { useDockState } from '@/hooks/useDockState';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -36,8 +32,8 @@ import { cn } from '@/lib/utils';
   눈을 내리지 않게. 방장은 플레이어 메뉴(넘기기·관전으로·강퇴)와 관전자 줄(자리로 올리기·강퇴)로
   자리를 관리한다.
 
-  채팅은 넓은 화면이면 본문 옆 채팅창으로 펴 두고, 머리를 끌어 상·하·좌·우 가장자리에 붙인다
-  (본문은 그만큼 비켜남, RoomChatDockPanel). 좁은 화면은 헤더의 채팅 버튼 → 시트.
+  채팅은 넓은 화면이면 채팅창으로 펴 둔다. 머리를 끌어 가장자리 가까이 놓으면 상·하·좌·우에 붙고
+  (본문은 그만큼 비켜남), 그 밖이면 그 자리에 떠 있다(공용 DockablePanel). 좁은 화면은 헤더 채팅 버튼 → 시트.
 */
 export default function WaitingRoomPage() {
   const params = useParams();
@@ -50,8 +46,9 @@ export default function WaitingRoomPage() {
   const myId = useMySocketId();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooterHidden } = useRoomLayout();
-  const chatDock = useSyncExternalStore(subscribeRoomChatDock, getRoomChatDock, getServerRoomChatDock);
-  const isSideDock = chatDock === 'left' || chatDock === 'right';
+  const chatDock = useDockState(ROOM_CHAT_DOCK_ID);
+  const dockedEdge = chatDock.mode === 'docked' ? chatDock.edge : null;
+  const isSideDock = dockedEdge === 'left' || dockedEdge === 'right';
 
   const [joined, setJoined] = useState(false);
   const [showKick, setShowKick] = useState<string | null>(null);
@@ -286,9 +283,9 @@ export default function WaitingRoomPage() {
         <div
           className={cn(
             'flex flex-col md:gap-6',
-            chatDock === 'right' && 'md:flex-row md:items-start',
-            chatDock === 'left' && 'md:flex-row-reverse md:items-start',
-            chatDock === 'top' && 'md:flex-col-reverse',
+            dockedEdge === 'right' && 'md:flex-row md:items-start',
+            dockedEdge === 'left' && 'md:flex-row-reverse md:items-start',
+            dockedEdge === 'top' && 'md:flex-col-reverse',
           )}
         >
           <div className="min-w-0 flex-1">
@@ -471,9 +468,8 @@ export default function WaitingRoomPage() {
             dock={chatDock}
             className={cn(
               'hidden md:flex',
-              isSideDock
-                ? 'md:sticky md:top-24 md:h-[calc(100dvh-8rem)] md:max-h-[720px] md:w-80 md:shrink-0'
-                : 'md:h-72',
+              isSideDock && 'md:sticky md:top-24 md:h-[calc(100dvh-8rem)] md:max-h-[720px] md:w-80 md:shrink-0',
+              (dockedEdge === 'top' || dockedEdge === 'bottom') && 'md:h-72',
             )}
           />
         </div>
