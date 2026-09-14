@@ -10,6 +10,7 @@ import { registerGameHandlers, emitGameStateToSocket } from './game.js';
 import { registerChatHandlers } from './chat.js';
 import { registerRankQueueHandlers } from './rankQueue.js';
 import { registerDevDummyHandlers } from '../dummy/register.js';
+import { registerSuperAiHandlers } from './superAi.js';
 import { registerEventRoomHandlers, eventRoom, EVENT_ROOM_KEY, EVENT_SOCKET_CHANNEL } from './eventRoomHandlers.js';
 import {
   registerSmsEventRoomHandlers,
@@ -285,6 +286,7 @@ export function setupSocketHandlers(io: IO) {
     if (process.env.NODE_ENV !== 'production') {
       registerDevDummyHandlers(io, socket);
     }
+    registerSuperAiHandlers(io, socket);
     registerEventRoomHandlers(io, socket);
     registerSmsEventRoomHandlers(io, socket);
 

@@ -98,16 +98,6 @@ export interface GS2UndoSnapshot {
   consecutiveTimeouts: Record<string, number>;
 }
 
-export interface GS2RoundResolveResult {
-  steps: GS2ResolveStep[];
-  finalRoundSugar: { p1: number; p2: number };
-  winner: GS2Side | 'tie';
-  scoreDelta: { p1: number; p2: number };
-  blessOutcome: { p1: 'win' | 'loss' | 'tie' | null; p2: 'win' | 'loss' | 'tie' | null };
-  diceLoserBonusTo: GS2Side | null;
-  hrPenaltyScheduled: { p1: number; p2: number };
-  breathExtended: boolean;
-  instantWin: GS2Side | null;
-}
+export type { GS2RoundResolveResult } from '@shared/types/grape-sugar-2-resolve.js';
 
 export type { GS2PlayerAction };

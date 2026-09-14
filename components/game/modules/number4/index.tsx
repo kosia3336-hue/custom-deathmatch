@@ -200,15 +200,6 @@ export default function NumberFourGame() {
                 타일 추리
               </button>
             )}
-            {gameData.roundHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowHistory(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                라운드 기록 ({gameData.roundHistory.length})
-              </button>
-            )}
           </div>
         }
         aside={

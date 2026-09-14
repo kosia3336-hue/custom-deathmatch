@@ -6,7 +6,7 @@
 
    A. Transposition Table (Zobrist hashing)
    B. Move Ordering (TT best + 위협차단 + Killer + History + 중앙)
-   C. 시간 최대 30초 + max depth 20
+   C. 시간 최대 90초 + max depth 20
    D. 평가 함수 보강 (복수 위협 + 중력 정렬 잠재력)
    E. 즉시승/패배 root prescan
    F. Aspiration Window
@@ -22,10 +22,24 @@ import {
   calcNeutralCandidates,
 } from './board.js';
 import { findExactFour, checkWin, hasEmptyCells } from './win.js';
-import { getCandidateCells, getValidDirections, type AIWorkerData } from './ai.js';
+import { getCandidateCells, getCandidateCellsSuper, getValidDirections, type AIWorkerData } from './ai.js';
 
 let _timedOut = false;
 let _deadline = Infinity;
+let _superMode = false;
+let _nodes = 0;
+const TIME_MASK = 2047;
+
+function searchCells(board: CellType[][]): Position[] {
+  return _superMode ? getCandidateCellsSuper(board) : getCandidateCells(board);
+}
+
+function tickClock(): void {
+  _nodes++;
+  if ((_nodes & TIME_MASK) === 0 && Date.now() >= _deadline) {
+    _timedOut = true;
+  }
+}
 
 /* ─────────────── A. Transposition Table (Zobrist) ─────────────── */
 
@@ -175,7 +189,7 @@ function detectThreatCells(
   threatLastGrav: Direction | null,
 ): boolean[] {
   const threats: boolean[] = new Array(BOARD_SIZE * BOARD_SIZE).fill(false);
-  const cells = getCandidateCells(board);
+  const cells = searchCells(board);
   const dirs = getValidDirections(threatLastGrav);
 
   for (const cell of cells) {
@@ -451,7 +465,7 @@ function orderedMoves(
   killerDepth: number,
   threatMask: boolean[] | null = null,
 ): OrderedMove[] {
-  const cells = getCandidateCells(board);
+  const cells = searchCells(board);
   const dirs = getValidDirections(curLastGrav);
   const out: OrderedMove[] = [];
 
@@ -478,7 +492,13 @@ function minimaxV2(
   aiColor: 'black' | 'white',
 ): number {
   if (_timedOut) return 0;
-  if (Date.now() >= _deadline) { _timedOut = true; return 0; }
+  if (_superMode) {
+    tickClock();
+    if (_timedOut) return 0;
+  } else if (Date.now() >= _deadline) {
+    _timedOut = true;
+    return 0;
+  }
 
   const curColor: 'black' | 'white' = isMax ? aiColor : (aiColor === 'black' ? 'white' : 'black');
 
@@ -654,7 +674,7 @@ function findBestMoveAtDepthV2(
   const oppLastGrav = aiColor === 'black' ? lastGravWhite : lastGravBlack;
 
   // E. 즉시승 prescan (자기 색 4목 또는 중립 4목)
-  const cells = getCandidateCells(board);
+  const cells = searchCells(board);
   for (const cell of cells) {
     if (board[cell.row][cell.col] !== 'empty') continue;
     for (const dir of dirs) {
@@ -787,14 +807,17 @@ const ASPIR_MAX = 8_000;
 export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: number): AIMove {
   _deadline = Date.now() + timeLimitMs;
   _timedOut = false;
-  TT.clear();
-  clearKillers();
-  clearHistory();
+  _nodes = 0;
+  if (!_superMode) {
+    TT.clear();
+    clearKillers();
+    clearHistory();
+  }
 
   const { board, currentColor: aiColor, lastGravityBlack, lastGravityWhite } = data;
   const lastGrav = aiColor === 'black' ? lastGravityBlack : lastGravityWhite;
   const dirs = getValidDirections(lastGrav);
-  const cells = getCandidateCells(board);
+  const cells = searchCells(board);
 
   // 안전한 초기 fallback: 돌이 실제로 움직이고 ncands>0인 수
   let bestMove: AIMove = (() => {
@@ -816,9 +839,29 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
   })();
 
   let lastScore = 0;
+  let completedDepth = 0;
+  const started = Date.now();
+  const maxDepth = _superMode ? 24 : 20;
 
-  for (let depth = 1; depth <= 20; depth++) {
+  for (let depth = 1; depth <= maxDepth; depth++) {
     if (Date.now() >= _deadline) break;
+
+    let result: RootResult | null = null;
+
+    if (_superMode) {
+      _timedOut = false;
+      result = findBestMoveAtDepthV2(
+        board, aiColor, lastGravityBlack, lastGravityWhite,
+        depth, -Infinity, Infinity,
+      );
+      if (_timedOut) break;
+      if (result.move !== null) {
+        bestMove = result.move;
+        lastScore = result.score;
+        completedDepth = depth;
+      }
+      continue;
+    }
 
     let aWindow = ASPIR_INIT;
     let alpha: number;
@@ -830,8 +873,6 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
       alpha = lastScore - aWindow;
       beta = lastScore + aWindow;
     }
-
-    let result: RootResult | null = null;
 
     for (let attempt = 0; attempt < 4; attempt++) {
       if (Date.now() >= _deadline) break;
@@ -845,7 +886,6 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
       if (_timedOut) break;
       if (!result.failedLow && !result.failedHigh) break;
 
-      // Aspiration 실패: 창 점진 확장
       aWindow *= 4;
       if (aWindow > ASPIR_MAX || attempt >= 2) {
         alpha = -Infinity;
@@ -861,8 +901,22 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
     if (result && result.move !== null && !result.failedLow && !result.failedHigh) {
       bestMove = result.move;
       lastScore = result.score;
+      completedDepth = depth;
     }
   }
 
+  console.info(
+    `[FG ${_superMode ? 'super' : 'strong'}] depth=${completedDepth} nodes=${_nodes} score=${lastScore} ms=${Date.now() - started}`,
+  );
+
   return bestMove;
+}
+
+export function findBestMoveIterativeSuper(data: AIWorkerData, timeLimitMs: number): AIMove {
+  _superMode = true;
+  try {
+    return findBestMoveIterativeStrong(data, timeLimitMs);
+  } finally {
+    _superMode = false;
+  }
 }

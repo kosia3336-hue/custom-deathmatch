@@ -154,6 +154,7 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
                 className="absolute right-0 mt-1 min-w-[180px] overflow-hidden rounded-cdm-md border border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)"
               >
                 <MenuLink href="/me" label="마이페이지" />
+                <MenuLink href="/super-ai" label="슈퍼 AI" />
                 <MenuLink href="/me?tab=titles" label="보유 칭호" />
                 <MenuLink href="/me?tab=support" label="보낸 신고/문의" />
                 <button

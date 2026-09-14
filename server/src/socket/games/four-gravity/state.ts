@@ -428,6 +428,7 @@ function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMo
     currentColor: s.currentColor,
     lastGravityBlack: s.lastGravityBlack,
     lastGravityWhite: s.lastGravityWhite,
+    useSuper: s.superAi === true,
     useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
   };
 
@@ -496,6 +497,7 @@ export async function runAITurn(io: IO, roomId: string) {
     turnNumber: s.turnNumber,
     color: s.currentColor,
     nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+    byAi: true,
     steps: [{ type: 'place', row: move.place.row, col: move.place.col }],
   });
   s.phase = 'gravity';

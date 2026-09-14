@@ -14,7 +14,7 @@ import type {
   Owner,
   Position,
 } from '@/shared/types/double-sided-chess';
-import { GAME_IDS } from '@/shared/types/game';
+import { GAME_IDS, isSuperAiGameOptions } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
 import Button from '@/components/ui/Button';
 import Board from './Board';
@@ -35,10 +35,14 @@ export default function DoubleSidedChessGame() {
   const turnNumber = gameState?.turnNumber ?? 1;
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.DOUBLE_SIDED_CHESS);
 
+  const isSuperAiSolo = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    nickname === '천하' &&
-    room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS &&
-    room?.playMode === 'solo';
+    isSuperAiSolo
+    || (
+      nickname === '천하'
+      && room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS
+      && room?.playMode === 'solo'
+    );
 
   const isAIMode = isSpecialSolo && !!gameData && (
     gameData.players.first.id === 'AI' || gameData.players.second.id === 'AI'
@@ -237,7 +241,7 @@ export default function DoubleSidedChessGame() {
             <p className="shrink-0 text-sm text-gray-500">{message}</p>
           )}
 
-          {/* 천하 솔로: AI 토글 */}
+          {/* 솔로: AI 토글 (슈퍼 AI 페이지 · 천하) */}
           {isSpecialSolo && !gameData.winner && (
             <Button
               size="sm"
@@ -246,7 +250,7 @@ export default function DoubleSidedChessGame() {
                 getSocket().emit('game:double-sided-chess:toggle-ai', { ai: !isAIMode });
               }}
             >
-              {isAIMode ? '직접하기' : 'AI 쓰기'}
+              {isAIMode ? '직접하기' : isSuperAiSolo ? '슈퍼 AI 쓰기' : 'AI 쓰기'}
             </Button>
           )}
         </div>

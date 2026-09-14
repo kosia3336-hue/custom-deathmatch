@@ -27,6 +27,7 @@ export function initNumberFour(
   startedAt: number,
   timeLimitSeconds: number | null,
   endGameCallback: EndGameFn,
+  _gameOptions?: Record<string, unknown>,
 ) {
   const prev = gameStates.get(roomId);
   if (prev) clearRoundTimer(prev);
@@ -193,7 +194,10 @@ export function canNumberFourUndo(roomId: string): boolean {
 
 export function cleanupNumberFour(roomId: string) {
   const s = gameStates.get(roomId);
-  if (s) clearRoundTimer(s);
+  if (s) {
+    s.aiGeneration++;
+    clearRoundTimer(s);
+  }
   gameStates.delete(roomId);
 }
 

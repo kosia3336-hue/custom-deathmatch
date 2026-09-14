@@ -68,7 +68,9 @@ export function initFourGravity(
   } else if (playMode === 'solo') {
     blackPlayer = { id: players[0].id, nickname: `${players[0].nickname} (흑)`, stoneCount: 0 };
     whitePlayer = { id: players[0].id, nickname: `${players[0].nickname} (백)`, stoneCount: 0 };
-    if (players[0].nickname === '천하') ownerToken = players[0].id;
+    if (players[0].nickname === '천하' || gameOptions?.superAi === true) {
+      ownerToken = players[0].id;
+    }
   } else {
     blackPlayer = { id: players[0].id, nickname: players[0].nickname, stoneCount: 0 };
     whitePlayer = { id: players[1].id, nickname: players[1].nickname, stoneCount: 0 };
@@ -99,6 +101,7 @@ export function initFourGravity(
     turnTimer: null,
     playMode,
     aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty),
+    superAi: gameOptions?.superAi === true,
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
@@ -167,6 +170,7 @@ export function handleFourGravityAction(
         turnNumber: s.turnNumber,
         color: s.currentColor,
         nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+        byAi: s.currentPlayer === AI_PLAYER_ID,
         steps: [{ type: 'place', row, col }],
       });
       s.phase = 'gravity';
@@ -400,7 +404,10 @@ export function handleFourGravityToggleAI(
   if (aiOn) {
     if (s.phase !== 'place') return;
 
-    if (s.currentColor === 'black') {
+    if (s.superAi) {
+      s.blackPlayer.id = AI_PLAYER_ID;
+      s.whitePlayer.id = AI_PLAYER_ID;
+    } else if (s.currentColor === 'black') {
       s.blackPlayer.id = AI_PLAYER_ID;
     } else {
       s.whitePlayer.id = AI_PLAYER_ID;

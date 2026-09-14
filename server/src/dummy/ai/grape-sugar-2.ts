@@ -6,6 +6,7 @@ import type {
   GS2PlayerAction,
   GS2RoundRecord,
 } from '@shared/types/grape-sugar-2.js';
+import { gs2IsFatalChicken } from '@shared/types/grape-sugar-2.js';
 import { resolveRound } from '../../socket/games/grape-sugar-2/resolve.js';
 import { dummyStyle, pickWeighted, type DummyStyle } from '../style.js';
 import { runPsychologySearch } from '../psychologySearch.js';
@@ -100,14 +101,9 @@ function isLastScheduled(view: GrapeSugar2DummyView): boolean {
   return view.round >= view.maxRound;
 }
 
-/** 상대 잔여가 그 카드뿐이면 치킨 확정패. 유일한 내 카드면 금지하지 않음. */
+/** 우주뿌셔를 냈는데 상대가 무행동을 낼 수 있으면 즉시패. 유일한 내 카드면 허용. */
 export function isFatalChicken(view: GrapeSugar2DummyView, card: GS2CardId): boolean {
-  if (view.my.hand.length <= 1) return false;
-  const opp = view.opp.hand;
-  if (opp.length === 0) return false;
-  if (card === 'spaceCrush' && opp.every((c) => c === 'noAction')) return true;
-  if (card === 'noAction' && opp.every((c) => c === 'spaceCrush')) return true;
-  return false;
+  return gs2IsFatalChicken(view.my.hand, view.opp.hand, card);
 }
 
 /** 리드인데 숨고르기로 연장/값싼 노옵. 유일한 카드면 허용. */

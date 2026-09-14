@@ -40,6 +40,8 @@ function makeState(): InternalState {
     timeLimitSeconds: null,
     turnTimer: null,
     playMode: 'tutorial',
+    aiDifficulty: 'normal',
+    superAi: false,
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
