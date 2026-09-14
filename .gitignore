@@ -52,8 +52,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# docs
-docs/
+# docs — 개인 기획. UPL7 프리뷰만 추적.
+docs/*
+!docs/choen/
+docs/choen/*
+!docs/choen/upl7-preview/
 
 # supabase CLI 프로젝트 디렉터리.
 # 슬래시 없이 `supabase` 라고 쓰면 경로 어디에 있든 supabase 라는 이름의
@@ -69,7 +72,7 @@ docs/
 /.cursor/mcp.json
 
 # 개인 작업 방식 (choen 전용). 다른 기여자는 쓰지 않는다.
-# docs/ 는 이미 ignore. 루트 AGENTS.md · logs/ 도 커밋하지 않는다.
+# docs/ 는 ignore. docs/choen/upl7-preview/ 만 예외. 루트 AGENTS.md · logs/ 는 커밋하지 않는다.
 /AGENTS.md
 /logs/
 # 게임 화면 확인용 fixture (DUMP_FIXTURES=1 로 생성)
