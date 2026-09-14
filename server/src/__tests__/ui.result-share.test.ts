@@ -1,28 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formatShareDateTime, resultShareText, resultSharePayload } from '../../../lib/resultShare';
-import { shareOrCopy, type ShareTargets } from '../../../lib/share';
+import {
+  formatShareDateTime,
+  resultCardContent,
+  resultShareText,
+  resultSharePayload,
+} from '../../../lib/resultShare';
+import { shareImageOrText, shareOrCopy, type ImageShareTargets, type ShareTargets } from '../../../lib/share';
 import { GAME_IDS, resolveAbstractAiDifficulty } from '@shared/types/game.js';
 
 describe('공개 전적 요약', () => {
-  it('게임명·결과·시간·턴만 포함하고 개인 로그가 아닌 로비로 연결한다', () => {
-    const value = resultSharePayload(
-      { gameName: '사중력 사목', result: '승리', playTimeMs: 125000, totalTurns: 12 },
-      'https://example.com',
-    );
+  it('게임명·결과·시간·턴만 넣고 링크는 넣지 않는다', () => {
+    const value = resultSharePayload({ gameName: '사중력 사목', result: '승리', playTimeMs: 125000, totalTurns: 12 });
     expect(value.text).toContain('2분 5초 · 12턴');
-    expect(value.url).toBe('https://example.com/lobby');
-  });
-  it('결과 공유 페이지 경로가 있으면 그 주소로, 사이트 밖 주소는 로비로 연결한다', () => {
-    const summary = { gameName: '넘버4', result: '승리', playTimeMs: 0, totalTurns: 0 };
-    expect(resultSharePayload(summary, 'https://example.com', '/share/result/abc').url).toBe(
-      'https://example.com/share/result/abc',
-    );
-    expect(resultSharePayload(summary, 'https://example.com', '//evil.example/x').url).toBe(
-      'https://example.com/lobby',
-    );
-    expect(resultSharePayload(summary, 'https://example.com', 'https://evil.example').url).toBe(
-      'https://example.com/lobby',
-    );
+    expect(value).not.toHaveProperty('url');
+    expect(value.text).not.toMatch(/https?:|\/share\//);
   });
   it('대전 상대와 대전 일시(KST)를 넣는다', () => {
     const text = resultShareText({
@@ -51,17 +42,32 @@ describe('공개 전적 요약', () => {
         playedAt: 'garbage',
       }).length,
     ).toBeLessThan(200);
-    expect(() =>
-      resultSharePayload(
-        { gameName: 'a', result: '승리', playTimeMs: 0, totalTurns: 0 },
-        'javascript:alert(1)',
-      ),
-    ).toThrow();
   });
   it('어려움은 지정된 두 게임만 중지하고 다른 엔진의 설정은 유지한다', () => {
     expect(resolveAbstractAiDifficulty('hard', GAME_IDS.FOUR_GRAVITY)).toBe('normal');
     expect(resolveAbstractAiDifficulty('hard', GAME_IDS.DOUBLE_SIDED_CHESS)).toBe('normal');
     expect(resolveAbstractAiDifficulty('hard', GAME_IDS.TRIPLE_GOMOKU)).toBe('hard');
+  });
+});
+
+describe('결과 카드 글자', () => {
+  const base = { gameName: '콰트로', playTimeMs: 750000, totalTurns: 4, playedAt: '2026-09-14T12:30:00Z' };
+  it('승리·무승부·그 밖의 결과에 따라 색을 고르고 나 vs 상대·일시·시간·턴을 담는다', () => {
+    const win = resultCardContent({ ...base, result: '승리', selfName: '쇼비', opponents: ['???'] });
+    expect(win).toEqual({
+      gameName: '콰트로',
+      resultLabel: '승리',
+      tone: 'win',
+      vsLine: '쇼비 vs ???',
+      meta: '2026.09.14 21:30 · 플레이 12분 30초 · 4턴',
+    });
+    expect(resultCardContent({ ...base, result: '무승부' }).tone).toBe('draw');
+    expect(resultCardContent({ ...base, result: '기권' }).tone).toBe('other');
+  });
+  it('이름이 없으면 있는 쪽만, 둘 다 없으면 비운다', () => {
+    expect(resultCardContent({ ...base, result: '완료', selfName: '나' }).vsLine).toBe('나');
+    expect(resultCardContent({ ...base, result: '패배', opponents: ['가'] }).vsLine).toBe('vs 가');
+    expect(resultCardContent({ ...base, result: '완료' }).vsLine).toBe('');
   });
 });
 
@@ -105,5 +111,60 @@ describe('공유 시트', () => {
     const failing = targets({ native: { share: vi.fn().mockRejectedValue(new Error('boom')) } });
     expect(await shareOrCopy(payload, failing)).toBe('copied');
     expect(await shareOrCopy(payload, targets({ clipboard: null }))).toBe('failed');
+  });
+});
+
+describe('결과 카드 이미지 공유', () => {
+  const file = new File([new Uint8Array([1, 2, 3])], 'card.png', { type: 'image/png' });
+  const fallback = { title: '커스텀 데스매치 전적', text: '요약' };
+  const targets = (over: Partial<ImageShareTargets>): ImageShareTargets => ({
+    native: null,
+    web: null,
+    clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    files: null,
+    imageClipboard: null,
+    makeClipboardItem: null,
+    ...over,
+  });
+
+  it('앱은 이미지를 캐시에 써서 그 파일만 공유한다', async () => {
+    const native = { share: vi.fn().mockResolvedValue({}) };
+    const files = { writeFile: vi.fn().mockResolvedValue({ uri: 'file:///cache/card.png' }) };
+    expect(await shareImageOrText(file, fallback, targets({ native, files }))).toBe('shared');
+    expect(files.writeFile).toHaveBeenCalledWith({ path: 'card.png', data: 'AQID', directory: 'CACHE' });
+    expect(native.share).toHaveBeenCalledWith({ files: ['file:///cache/card.png'], dialogTitle: '공유하기' });
+  });
+  it('파일 플러그인이 없는 이전 앱은 링크 없는 글로 공유한다', async () => {
+    const native = { share: vi.fn().mockResolvedValue({}) };
+    expect(await shareImageOrText(file, fallback, targets({ native }))).toBe('shared');
+    expect(native.share).toHaveBeenCalledWith({ title: '커스텀 데스매치 전적', text: '요약', dialogTitle: '공유하기' });
+  });
+  it('브라우저는 파일 공유가 되면 이미지만 보낸다', async () => {
+    const web = { share: vi.fn().mockResolvedValue(undefined), canShare: vi.fn().mockReturnValue(true) };
+    expect(await shareImageOrText(file, fallback, targets({ web }))).toBe('shared');
+    expect(web.share).toHaveBeenCalledWith({ files: [file] });
+  });
+  it('파일 공유가 안 되면 이미지를 복사하고, 그것도 안 되면 글을 복사한다', async () => {
+    const web = { share: vi.fn(), canShare: () => false };
+    const imageClipboard = { write: vi.fn().mockResolvedValue(undefined) };
+    const makeClipboardItem = (blob: Blob) => ({ blob }) as unknown as ClipboardItem;
+    expect(await shareImageOrText(file, fallback, targets({ web, imageClipboard, makeClipboardItem }))).toBe('copied-image');
+    expect(imageClipboard.write).toHaveBeenCalledWith([{ blob: file }]);
+    expect(web.share).not.toHaveBeenCalled();
+    const t = targets({ web });
+    expect(await shareImageOrText(file, fallback, t)).toBe('copied');
+    expect(t.clipboard!.writeText).toHaveBeenCalledWith('요약');
+  });
+  it('시트를 닫으면 글 공유로 넘어가지 않고, 이미지를 못 만들었으면 글로 공유한다', async () => {
+    const web = {
+      share: vi.fn().mockRejectedValue(Object.assign(new Error('x'), { name: 'AbortError' })),
+      canShare: () => true,
+    };
+    expect(await shareImageOrText(file, fallback, targets({ web }))).toBe('cancelled');
+    expect(web.share).toHaveBeenCalledTimes(1);
+    const native = { share: vi.fn().mockResolvedValue({}) };
+    const files = { writeFile: vi.fn() };
+    expect(await shareImageOrText(null, fallback, targets({ native, files }))).toBe('shared');
+    expect(files.writeFile).not.toHaveBeenCalled();
   });
 });

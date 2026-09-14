@@ -30,16 +30,31 @@ export interface SharePlugin {
     title?: string;
     text?: string;
     url?: string;
+    /** file:// 주소(앱 캐시 등). 이미지 공유에 쓴다 */
+    files?: string[];
     dialogTitle?: string;
   }) => Promise<{ activityType?: string }>;
+}
+
+/** @capacitor/filesystem — 공유할 이미지를 앱 캐시에 써 두는 데만 쓴다 */
+export interface FilesystemPlugin {
+  writeFile: (options: {
+    path: string;
+    /** base64 */
+    data: string;
+    /** Directory.Cache 의 값 */
+    directory: 'CACHE';
+  }) => Promise<{ uri: string }>;
 }
 
 interface CapacitorGlobal {
   isNativePlatform?: () => boolean;
   getPlatform?: () => string;
+  isPluginAvailable?: (name: string) => boolean;
   Plugins?: {
     PushNotifications?: PushNotificationsPlugin;
     Share?: SharePlugin;
+    Filesystem?: FilesystemPlugin;
     [name: string]: unknown;
   };
 }
@@ -69,4 +84,12 @@ export function getPushPlugin(): PushNotificationsPlugin | null {
 export function getSharePlugin(): SharePlugin | null {
   if (!isNativeApp()) return null;
   return getCapacitor()?.Plugins?.Share ?? null;
+}
+
+/** 앱이 아니거나 파일 플러그인이 없는 이전 앱 빌드(~1.0.3)면 null — 이미지 대신 글로 공유한다. */
+export function getFilesystemPlugin(): FilesystemPlugin | null {
+  if (!isNativeApp()) return null;
+  const cap = getCapacitor();
+  if (cap?.isPluginAvailable && !cap.isPluginAvailable('Filesystem')) return null;
+  return cap?.Plugins?.Filesystem ?? null;
 }

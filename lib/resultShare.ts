@@ -3,6 +3,8 @@ export interface ResultShareSummary {
   result: string;
   playTimeMs: number;
   totalTurns: number;
+  /** 공유하는 본인 닉네임. 카드의 'OO vs 상대' 에 쓴다. */
+  selfName?: string;
   /** 대전 상대 닉네임(익명은 '???'). 솔로면 비운다. */
   opponents?: string[];
   /** 대전 일시. 없으면 표시하지 않는다. */
@@ -30,47 +32,70 @@ export function formatShareDateTime(value: string | number): string | null {
   return `${part('year')}.${part('month')}.${part('day')} ${part('hour')}:${part('minute')}`;
 }
 
-function opponentsLabel(opponents: string[] | undefined): string {
-  const names = (opponents ?? []).map((n) => n.trim().slice(0, 16)).filter(Boolean);
+const cleanName = (name: string) => name.trim().slice(0, 16);
+
+/** '가, 나, 다 외 2명' — 이름이 없으면 빈 문자열 */
+function formatOpponents(opponents: string[] | undefined): string {
+  const names = (opponents ?? []).map(cleanName).filter(Boolean);
   if (names.length === 0) return '';
-  const shown = names.slice(0, MAX_OPPONENTS_SHOWN).join(', ');
   const rest = names.length - MAX_OPPONENTS_SHOWN;
-  return ` vs ${shown}${rest > 0 ? ` 외 ${rest}명` : ''}`;
+  return `${names.slice(0, MAX_OPPONENTS_SHOWN).join(', ')}${rest > 0 ? ` 외 ${rest}명` : ''}`;
+}
+
+function safeCount(value: number): number {
+  return Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+}
+
+/** 'm분 s초' */
+function formatPlayTime(playTimeMs: number): string {
+  const seconds = safeCount(playTimeMs / 1000);
+  return `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
 }
 
 /**
- * 공유 글: 게임명·승패·대전 상대·일시·시간·턴.
- * 회원 ID·패·행동 로그·비공개 로그 주소는 넣지 않는다.
+ * 공유 글: 게임명·승패·대전 상대·일시·시간·턴. 링크는 넣지 않는다.
+ * 회원 ID·패·행동 로그는 넣지 않는다.
  */
 export function resultShareText(summary: ResultShareSummary): string {
-  const seconds = Math.max(
-    0,
-    Math.floor(Number.isFinite(summary.playTimeMs) ? summary.playTimeMs / 1000 : 0),
-  );
-  const turns = Math.max(
-    0,
-    Math.floor(Number.isFinite(summary.totalTurns) ? summary.totalTurns : 0),
-  );
+  const opponents = formatOpponents(summary.opponents);
   const when = summary.playedAt != null ? formatShareDateTime(summary.playedAt) : null;
   return [
     `커스텀 데스매치 · ${summary.gameName.slice(0, 40)}`,
-    `${summary.result.slice(0, 16)}${opponentsLabel(summary.opponents)}`,
-    `${when ? `${when} · ` : ''}플레이 ${Math.floor(seconds / 60)}분 ${seconds % 60}초 · ${turns}턴`,
+    `${summary.result.slice(0, 16)}${opponents ? ` vs ${opponents}` : ''}`,
+    `${when ? `${when} · ` : ''}플레이 ${formatPlayTime(summary.playTimeMs)} · ${safeCount(summary.totalTurns)}턴`,
   ].join('\n');
 }
 
-/**
- * 공유 시트에 넘길 제목·글·링크.
- * 링크는 결과 공유 페이지(`/share/result/<토큰>`, 서버가 발급한 경로)이고, 아직 없으면 로비.
- * 참가자 전용 로그 주소는 쓰지 않는다. 경로는 같은 사이트 안(`/` 로 시작, `//` 제외)만 받는다.
- */
-export function resultSharePayload(
-  summary: ResultShareSummary,
-  origin: string,
-  path: string = '/lobby',
-) {
-  const url = new URL(/^\/(?!\/)/.test(path) ? path : '/lobby', origin);
-  if (!['http:', 'https:'].includes(url.protocol))
-    throw new Error('공유 주소 설정이 올바르지 않습니다.');
-  return { title: '커스텀 데스매치 전적', text: resultShareText(summary), url: url.href };
+/** 이미지 공유가 안 되는 곳에서 대신 보낼 글(링크 없음) */
+export function resultSharePayload(summary: ResultShareSummary) {
+  return { title: '커스텀 데스매치 전적', text: resultShareText(summary) };
+}
+
+export type ResultCardTone = 'win' | 'draw' | 'other';
+
+export interface ResultCardContent {
+  gameName: string;
+  resultLabel: string;
+  tone: ResultCardTone;
+  /** '나 vs 상대' — 이름이 하나도 없으면 빈 문자열 */
+  vsLine: string;
+  /** '2026.09.12 21:30 · 플레이 2분 5초 · 12턴' */
+  meta: string;
+}
+
+/** 결과 카드 이미지에 그릴 글자들(순수). 그리기는 lib/resultCardImage.ts */
+export function resultCardContent(summary: ResultShareSummary): ResultCardContent {
+  const resultLabel = summary.result.slice(0, 16);
+  const self = cleanName(summary.selfName ?? '');
+  const opponents = formatOpponents(summary.opponents);
+  const when = summary.playedAt != null ? formatShareDateTime(summary.playedAt) : null;
+  return {
+    gameName: summary.gameName.slice(0, 40),
+    resultLabel,
+    tone: resultLabel === '승리' ? 'win' : resultLabel === '무승부' ? 'draw' : 'other',
+    vsLine: [self, opponents ? `vs ${opponents}` : ''].filter(Boolean).join(' '),
+    meta: [when, `플레이 ${formatPlayTime(summary.playTimeMs)}`, `${safeCount(summary.totalTurns)}턴`]
+      .filter(Boolean)
+      .join(' · '),
+  };
 }
