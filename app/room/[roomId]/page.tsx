@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -8,8 +8,7 @@ import PlayerSlot from '@/components/room/PlayerSlot';
 import RoomInfoSheet from '@/components/room/RoomInfoSheet';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import RoomSettingsModal from '@/components/room/RoomSettingsModal';
-import { RoomChatSheet } from '@/components/room/ChatButton';
-import { RoomChatBar, RoomChatPanel } from '@/components/room/RoomChatPanel';
+import ChatButton from '@/components/room/ChatButton';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -22,20 +21,14 @@ import { AI_PLAYER_ID } from '@/shared/types';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import {
-  getRoomChatDock,
-  getServerRoomChatDock,
-  subscribeRoomChatDock,
-} from '@/lib/roomChatDock';
 import { cn } from '@/lib/utils';
 
 /*
   대기실.
 
   초대·시작(준비) 버튼은 헤더 바로 아래에 둔다 — 들어오자마자 할 일이라 맨 아래 푸터까지
-  눈을 내리지 않게. 채팅은 넓은 화면이면 오른쪽(또는 아래)에 펴 두고, 좁은 화면이거나
-  접어 두면 마지막 메시지 한 줄로 두었다가 누르면 시트로 연다. 붙일 자리는 채팅 판 머리에서
-  고르며 기기마다 기억한다(lib/roomChatDock.ts).
+  눈을 내리지 않게. 방장은 플레이어 메뉴(넘기기·관전으로·강퇴)와 관전자 줄(자리로 올리기·강퇴)로
+  자리를 관리한다.
 */
 export default function WaitingRoomPage() {
   const params = useParams();
@@ -48,7 +41,6 @@ export default function WaitingRoomPage() {
   const myId = useMySocketId();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooterHidden } = useRoomLayout();
-  const chatDock = useSyncExternalStore(subscribeRoomChatDock, getRoomChatDock, getServerRoomChatDock);
 
   const [joined, setJoined] = useState(false);
   const [showKick, setShowKick] = useState<string | null>(null);
@@ -56,7 +48,6 @@ export default function WaitingRoomPage() {
   const [showLeave, setShowLeave] = useState(false);
   const [showRoomInfo, setShowRoomInfo] = useState(false);
   const [showRoomSettings, setShowRoomSettings] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [spectatePassword, setSpectatePassword] = useState('');
   const [spectatePasswordError, setSpectatePasswordError] = useState('');
   const [showSpectatePassword, setShowSpectatePassword] = useState(false);
@@ -214,7 +205,7 @@ export default function WaitingRoomPage() {
     });
   };
 
-  /* ── 헤더 오른쪽 슬롯: 방 정보 · 설정(방장) · 나가기 ── */
+  /* ── 헤더 오른쪽 슬롯: 방 정보 · 설정(방장) · 채팅 · 나가기 ── */
   useEffect(() => {
     setHeaderRight(
       <>
@@ -241,6 +232,7 @@ export default function WaitingRoomPage() {
             <span className="hidden text-sm font-medium md:inline">설정 변경</span>
           </button>
         )}
+        <ChatButton scope="room" />
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
         </Button>
@@ -270,205 +262,178 @@ export default function WaitingRoomPage() {
 
   return (
     <>
-      <main
-        className={cn(
-          'mx-auto w-full flex-1 p-4 pb-24 md:p-6',
-          chatDock === 'right' ? 'max-w-5xl' : 'max-w-2xl',
-        )}
-      >
-        <div
-          className={cn(
-            chatDock === 'right' && 'md:grid md:grid-cols-[minmax(0,1fr)_320px] md:items-start md:gap-6',
+      <main className="mx-auto w-full max-w-2xl flex-1 p-4 md:p-6">
+        {/* 행동 — 초대 · 시작(방장) / 준비(참가자) */}
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-cdm-lg border border-dashed border-cdm-border-strong p-3">
+          {isSpectator && (
+            <span className="rounded-full bg-cdm-bg-elev-2 px-3 py-1.5 text-xs text-cdm-fg-muted">
+              관전 중
+            </span>
           )}
-        >
-          <div className="min-w-0">
-            {/* 행동 — 초대 · 시작(방장) / 준비(참가자) */}
-            <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-cdm-lg border border-dashed border-cdm-border-strong p-3">
-              {isSpectator && (
-                <span className="rounded-full bg-cdm-bg-elev-2 px-3 py-1.5 text-xs text-cdm-fg-muted">
-                  관전 중
-                </span>
-              )}
-              <InviteButton roomId={roomId} />
-              {!isSpectator &&
-                (isHost ? (
-                  <Button onClick={handleStart} className="min-w-32">
-                    게임 시작
-                  </Button>
-                ) : (
-                  <Button
-                    variant={me?.isReady ? 'secondary' : 'primary'}
-                    onClick={handleReady}
-                    className="min-w-32"
-                  >
-                    {me?.isReady ? '준비 취소' : '준비 완료'}
-                  </Button>
-                ))}
-              {!isSpectator && isHost && (
-                <span className="w-full text-center text-xs text-cdm-fg-muted sm:w-auto">{startHint}</span>
-              )}
-            </div>
-
-            {/* 플레이어 슬롯 */}
-            <div className={cn('grid gap-3', room.maxPlayers === 2 && 'sm:grid-cols-2')}>
-              {room.players.map((p) => (
-                <PlayerSlot
-                  key={p.id}
-                  player={p}
-                  isMe={p.id === myId}
-                  isHostView={isHost}
-                  onKick={(id) => setShowKick(id)}
-                  onDelegate={handleDelegate}
-                  onMoveToSpectator={isRanked ? undefined : handleMoveToSpectator}
-                  isGameStarted={room.status !== 'waiting'}
-                  onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
-                />
-              ))}
-              {Array.from({ length: emptySlots }).map((_, i) =>
-                isSpectator ? (
-                  <button
-                    key={`empty-${i}`}
-                    onClick={handleToPlayer}
-                    className="flex h-24 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-primary text-sm text-cdm-primary transition-colors hover:border-cdm-primary-strong hover:bg-cdm-primary-soft"
-                  >
-                    + 플레이어로 참여
-                  </button>
-                ) : (
-                  <PlayerSlot key={`empty-${i}`} isMe={false} isHostView={false} />
-                ),
-              )}
-            </div>
-
-            {/* 선후공 — 2인 대기 중. 방장은 고르고, 나머지는 현재 설정(랜덤 포함)을 본다 */}
-            {room.players.length === 2 && room.status === 'waiting' && (() => {
-              const mode = room.turnOrderMode;
-              if (!isHost) {
-                const label =
-                  mode === 'random'
-                    ? '랜덤 (게임 시작 시 추첨)'
-                    : room.players[0].id === myId
-                      ? '내가 선공'
-                      : '내가 후공';
-                return (
-                  <div className="flex items-center gap-2 px-1 pt-3">
-                    <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
-                    <span
-                      className={cn(
-                        'rounded-cdm-md border px-2.5 py-1 text-xs font-medium',
-                        mode === 'random'
-                          ? 'border-cdm-primary/40 bg-cdm-primary-soft text-cdm-primary'
-                          : 'border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg',
-                      )}
-                    >
-                      {label}
-                    </span>
-                  </div>
-                );
-              }
-              const hostIsFirst = room.players[0].id === myId;
-              const activeMode = mode === 'random' ? 'random' : hostIsFirst ? 'first' : 'second';
-              return (
-                <div className="flex items-center gap-2 px-1 pt-3">
-                  <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
-                  <div className="flex flex-1 overflow-hidden rounded-cdm-md border border-cdm-border">
-                    {(['first', 'random', 'second'] as const).map((btn) => (
-                      <button
-                        key={btn}
-                        type="button"
-                        onClick={() => handleSetTurnOrder(btn)}
-                        className={cn(
-                          'flex-1 py-1.5 text-xs font-medium transition-colors',
-                          activeMode === btn
-                            ? 'bg-cdm-primary text-white'
-                            : 'bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
-                        )}
-                      >
-                        {btn === 'first' ? '내가 선공' : btn === 'random' ? '랜덤' : '내가 후공'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* 관전자 영역 — 방장은 자리로 올리기 · 강퇴 */}
-            <div className="mt-6">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-px flex-1 bg-cdm-border" />
-                <span className="text-xs font-medium text-cdm-fg-muted">
-                  관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
-                </span>
-                <div className="h-px flex-1 bg-cdm-border" />
-              </div>
-
-              <div className="space-y-2">
-                {room.spectators.map((s) => {
-                  const manageable = isHost && s.id !== myId;
-                  return (
-                    <div
-                      key={s.id}
-                      className={cn(
-                        'flex items-center gap-3 rounded-cdm-lg border px-4 py-2.5',
-                        s.id === myId
-                          ? 'border-cdm-primary bg-cdm-primary-soft/40'
-                          : 'border-cdm-border bg-cdm-bg-elev-1',
-                      )}
-                    >
-                      <span className="rounded-full bg-cdm-bg-elev-2 px-2 py-0.5 text-xs text-cdm-fg-muted">관전</span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-cdm-fg">{s.nickname}</span>
-                      {s.id === myId && (
-                        <span className="text-xs font-medium text-cdm-fg-muted">(나)</span>
-                      )}
-                      {manageable && !isRanked && emptySlots > 0 && (
-                        <Button size="sm" variant="secondary" onClick={() => handleMoveToPlayer(s.id)}>
-                          자리로 올리기
-                        </Button>
-                      )}
-                      {manageable && (
-                        <button
-                          type="button"
-                          onClick={() => setShowKick(s.id)}
-                          className="rounded-cdm-md px-2 py-1 text-xs font-medium text-cdm-danger hover:bg-cdm-bg-elev-2"
-                        >
-                          강퇴
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {!isSpectator && !isHost && (
-                  <button
-                    onClick={handleToSpectate}
-                    className="flex h-14 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
-                  >
-                    관전하기
-                  </button>
-                )}
-
-                {room.spectators.length === 0 && (isSpectator || isHost) && (
-                  <div className="flex h-14 items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-subtle">
-                    관전자 없음
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* 채팅 — 넓은 화면 오른쪽 */}
-          {chatDock === 'right' && (
-            <RoomChatPanel
-              scope="room"
-              dock={chatDock}
-              className="sticky top-24 hidden h-[calc(100dvh-8rem)] max-h-[640px] md:flex"
-            />
+          <InviteButton roomId={roomId} />
+          {!isSpectator &&
+            (isHost ? (
+              <Button onClick={handleStart} className="min-w-32">
+                게임 시작
+              </Button>
+            ) : (
+              <Button
+                variant={me?.isReady ? 'secondary' : 'primary'}
+                onClick={handleReady}
+                className="min-w-32"
+              >
+                {me?.isReady ? '준비 취소' : '준비 완료'}
+              </Button>
+            ))}
+          {!isSpectator && isHost && (
+            <span className="w-full text-center text-xs text-cdm-fg-muted sm:w-auto">{startHint}</span>
           )}
         </div>
 
-        {/* 채팅 — 넓은 화면 아래 */}
-        {chatDock === 'bottom' && (
-          <RoomChatPanel scope="room" dock={chatDock} className="mt-6 hidden h-80 md:flex" />
-        )}
+        {/* 플레이어 슬롯 */}
+        <div className={cn('grid gap-3', room.maxPlayers === 2 && 'sm:grid-cols-2')}>
+          {room.players.map((p) => (
+            <PlayerSlot
+              key={p.id}
+              player={p}
+              isMe={p.id === myId}
+              isHostView={isHost}
+              onKick={(id) => setShowKick(id)}
+              onDelegate={handleDelegate}
+              onMoveToSpectator={isRanked ? undefined : handleMoveToSpectator}
+              isGameStarted={room.status !== 'waiting'}
+              onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
+            />
+          ))}
+          {Array.from({ length: emptySlots }).map((_, i) =>
+            isSpectator ? (
+              <button
+                key={`empty-${i}`}
+                onClick={handleToPlayer}
+                className="flex h-24 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-primary text-sm text-cdm-primary transition-colors hover:border-cdm-primary-strong hover:bg-cdm-primary-soft"
+              >
+                + 플레이어로 참여
+              </button>
+            ) : (
+              <PlayerSlot key={`empty-${i}`} isMe={false} isHostView={false} />
+            ),
+          )}
+        </div>
+
+        {/* 선후공 — 2인 대기 중. 방장은 고르고, 나머지는 현재 설정(랜덤 포함)을 본다 */}
+        {room.players.length === 2 && room.status === 'waiting' && (() => {
+          const mode = room.turnOrderMode;
+          if (!isHost) {
+            const label =
+              mode === 'random'
+                ? '랜덤 (게임 시작 시 추첨)'
+                : room.players[0].id === myId
+                  ? '내가 선공'
+                  : '내가 후공';
+            return (
+              <div className="flex items-center gap-2 px-1 pt-3">
+                <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
+                <span
+                  className={cn(
+                    'rounded-cdm-md border px-2.5 py-1 text-xs font-medium',
+                    mode === 'random'
+                      ? 'border-cdm-primary/40 bg-cdm-primary-soft text-cdm-primary'
+                      : 'border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg',
+                  )}
+                >
+                  {label}
+                </span>
+              </div>
+            );
+          }
+          const hostIsFirst = room.players[0].id === myId;
+          const activeMode = mode === 'random' ? 'random' : hostIsFirst ? 'first' : 'second';
+          return (
+            <div className="flex items-center gap-2 px-1 pt-3">
+              <span className="shrink-0 text-xs text-cdm-fg-muted">선후공</span>
+              <div className="flex flex-1 overflow-hidden rounded-cdm-md border border-cdm-border">
+                {(['first', 'random', 'second'] as const).map((btn) => (
+                  <button
+                    key={btn}
+                    type="button"
+                    onClick={() => handleSetTurnOrder(btn)}
+                    className={cn(
+                      'flex-1 py-1.5 text-xs font-medium transition-colors',
+                      activeMode === btn
+                        ? 'bg-cdm-primary text-white'
+                        : 'bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-2',
+                    )}
+                  >
+                    {btn === 'first' ? '내가 선공' : btn === 'random' ? '랜덤' : '내가 후공'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* 관전자 영역 — 방장은 자리로 올리기 · 강퇴 */}
+        <div className="mt-6">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="h-px flex-1 bg-cdm-border" />
+            <span className="text-xs font-medium text-cdm-fg-muted">
+              관전{room.spectators.length > 0 ? ` ${room.spectators.length}명` : ''}
+            </span>
+            <div className="h-px flex-1 bg-cdm-border" />
+          </div>
+
+          <div className="space-y-2">
+            {room.spectators.map((s) => {
+              const manageable = isHost && s.id !== myId;
+              return (
+                <div
+                  key={s.id}
+                  className={cn(
+                    'flex items-center gap-3 rounded-cdm-lg border px-4 py-2.5',
+                    s.id === myId
+                      ? 'border-cdm-primary bg-cdm-primary-soft/40'
+                      : 'border-cdm-border bg-cdm-bg-elev-1',
+                  )}
+                >
+                  <span className="rounded-full bg-cdm-bg-elev-2 px-2 py-0.5 text-xs text-cdm-fg-muted">관전</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-cdm-fg">{s.nickname}</span>
+                  {s.id === myId && (
+                    <span className="text-xs font-medium text-cdm-fg-muted">(나)</span>
+                  )}
+                  {manageable && !isRanked && emptySlots > 0 && (
+                    <Button size="sm" variant="secondary" onClick={() => handleMoveToPlayer(s.id)}>
+                      자리로 올리기
+                    </Button>
+                  )}
+                  {manageable && (
+                    <button
+                      type="button"
+                      onClick={() => setShowKick(s.id)}
+                      className="rounded-cdm-md px-2 py-1 text-xs font-medium text-cdm-danger hover:bg-cdm-bg-elev-2"
+                    >
+                      강퇴
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {!isSpectator && !isHost && (
+              <button
+                onClick={handleToSpectate}
+                className="flex h-14 w-full items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-muted transition-colors hover:border-cdm-border-strong hover:bg-cdm-bg-elev-1"
+              >
+                관전하기
+              </button>
+            )}
+
+            {room.spectators.length === 0 && (isSpectator || isHost) && (
+              <div className="flex h-14 items-center justify-center rounded-cdm-lg border-2 border-dashed border-cdm-border text-sm text-cdm-fg-subtle">
+                관전자 없음
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* 카운트다운 오버레이 */}
         <AnimatePresence>
@@ -493,22 +458,6 @@ export default function WaitingRoomPage() {
           )}
         </AnimatePresence>
       </main>
-
-      {/* 채팅 한 줄 — 좁은 화면은 늘, 넓은 화면은 접어 뒀을 때 */}
-      <div
-        className={cn(
-          'fixed inset-x-0 bottom-0 z-(--cdm-z-sticky) px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:left-auto md:right-6 md:bottom-6 md:w-80 md:p-0',
-          chatDock !== 'collapsed' && 'md:hidden',
-        )}
-      >
-        <RoomChatBar
-          scope="room"
-          sheetOpen={showChat}
-          onOpen={() => setShowChat(true)}
-          className="w-full"
-        />
-      </div>
-      <RoomChatSheet open={showChat} onClose={() => setShowChat(false)} scope="room" />
 
       {/* 관전 비밀번호 모달 */}
       <Modal open={showSpectatePassword} onClose={() => router.push('/lobby')} closable={false} title="비밀방 관전">

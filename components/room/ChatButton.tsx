@@ -41,6 +41,11 @@ export function RoomChatSheet({
   onClose: () => void;
   scope: ChatScope;
 }) {
+  const [tab, setTab] = useState<RoomChatTab>('room');
+  const onlineCount = useOnlineUsersStore((s) => s.count);
+  const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
+  const lobbyInputRef = useRef<HTMLInputElement>(null);
+
   /*
     닫힐 때 읽은 시점 기록 (방 채팅 기준).
 
@@ -57,64 +62,47 @@ export function RoomChatSheet({
     if (wasOpen.current) useRoomStore.getState().clearChatUnread();
   }, [open]);
 
-  return (
-    <BottomSheet open={open} onClose={onClose} title="채팅" bodyClassName="px-0">
-      <div className="flex h-[52dvh] flex-col">
-        <RoomChatTabs scope={scope} active={open} />
-      </div>
-    </BottomSheet>
-  );
-}
-
-/**
- * 채팅 탭(접속자 · 방 채팅 · 로비 채팅)과 본문. 시트와 대기실에 펴 두는 채팅 판이 함께 쓴다.
- * 부모가 세로 flex 여야 본문이 남은 높이를 채운다. active 는 로비 탭 입력란 자동 포커스 조건.
- */
-export function RoomChatTabs({ scope, active }: { scope: ChatScope; active: boolean }) {
-  const [tab, setTab] = useState<RoomChatTab>('room');
-  const onlineCount = useOnlineUsersStore((s) => s.count);
-  const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
-  const lobbyInputRef = useRef<HTMLInputElement>(null);
-
   // 접속자 탭을 볼 수 없게 되면 방 채팅으로. effect 로 미루면 한 프레임 동안 빈 탭이 보인다.
   if (!canSeeUsers && tab === 'users') setTab('room');
 
   // 로비 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {
-    if (!active || tab !== 'lobby') return;
+    if (!open || tab !== 'lobby') return;
     const t = setTimeout(() => lobbyInputRef.current?.focus(), 50);
     return () => clearTimeout(t);
-  }, [active, tab]);
+  }, [open, tab]);
 
   return (
-    <>
-      <div className="flex shrink-0 border-b border-cdm-border" role="tablist">
-        {canSeeUsers && (
-          <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
-            접속자
+    <BottomSheet open={open} onClose={onClose} title="채팅" bodyClassName="px-0">
+      <div className="flex h-[52dvh] flex-col">
+        <div className="flex shrink-0 border-b border-cdm-border" role="tablist">
+          {canSeeUsers && (
+            <ChatTabButton active={tab === 'users'} onClick={() => setTab('users')}>
+              접속자
+            </ChatTabButton>
+          )}
+          <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
+            방 채팅
           </ChatTabButton>
-        )}
-        <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
-          방 채팅
-        </ChatTabButton>
-        <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
-          로비 채팅({onlineCount}명)
-        </ChatTabButton>
-      </div>
+          <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
+            로비 채팅({onlineCount}명)
+          </ChatTabButton>
+        </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {tab === 'users' && <OnlineUsersList />}
-        {tab === 'room' && (
-          <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />
-        )}
-        {tab === 'lobby' && (
-          <>
-            <LobbyChatList />
-            <LobbyChatInput ref={lobbyInputRef} />
-          </>
-        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {tab === 'users' && <OnlineUsersList />}
+          {tab === 'room' && (
+            <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />
+          )}
+          {tab === 'lobby' && (
+            <>
+              <LobbyChatList />
+              <LobbyChatInput ref={lobbyInputRef} />
+            </>
+          )}
+        </div>
       </div>
-    </>
+    </BottomSheet>
   );
 }
 

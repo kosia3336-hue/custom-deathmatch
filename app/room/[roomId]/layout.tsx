@@ -1,13 +1,7 @@
 'use client';
 
-import { ReactNode, useState, useCallback, useSyncExternalStore } from 'react';
-import { usePathname } from 'next/navigation';
+import { ReactNode, useState, useCallback } from 'react';
 import { useRoomStore } from '@/stores/room';
-import {
-  getRoomChatDock,
-  getServerRoomChatDock,
-  subscribeRoomChatDock,
-} from '@/lib/roomChatDock';
 import { RoomLayoutContext, type GameHud } from '@/contexts/RoomLayoutContext';
 import { PLAY_MODE_LABEL } from '@/shared/types';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
@@ -21,12 +15,6 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
   const [footer, setFooterState] = useState<ReactNode>(null);
   const [footerHidden, setFooterHiddenState] = useState(false);
   const [hud, setHudState] = useState<GameHud | null>(null);
-
-  // 대기실에서 채팅을 오른쪽에 펴 두면 본문이 넓어지므로 상단 바도 같은 폭으로 맞춘다
-  const pathname = usePathname();
-  const chatDock = useSyncExternalStore(subscribeRoomChatDock, getRoomChatDock, getServerRoomChatDock);
-  const isWaitingRoom = /^\/room\/[^/]+$/.test(pathname ?? '');
-  const headerWidth = isWaitingRoom && chatDock === 'right' ? 'max-w-5xl' : 'max-w-2xl';
 
   const setHeaderLeft = useCallback((content: ReactNode) => setHeaderLeftState(content), []);
   const setHeaderRight = useCallback((content: ReactNode) => setHeaderRightState(content), []);
@@ -50,7 +38,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen flex-col bg-cdm-page">
         {/* 공통 헤더 */}
         <div className="ink-scope sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
-          <div className={`mx-auto flex ${headerWidth} items-center justify-between gap-2 px-4 py-3 md:px-6`}>
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 md:px-6">
             <div className="min-w-0 flex-1">
               {/*
                 게임 화면은 이 자리를 라운드·차례·타이머로 바꿔 쓴다. 방 제목과
@@ -88,7 +76,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
             라운드 진행 현황. 상단 바에 붙여 한 덩어리로 읽히게 한다 —
             따로 떼면 무대 높이를 그만큼 먹는다.
           */}
-          {headerBelow && <div className={`mx-auto ${headerWidth} px-4 pb-2 md:px-6`}>{headerBelow}</div>}
+          {headerBelow && <div className="mx-auto max-w-2xl px-4 pb-2 md:px-6">{headerBelow}</div>}
         </div>
 
         {/* 페이지 콘텐츠 */}
