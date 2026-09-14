@@ -1,12 +1,14 @@
 /* ──────────────────────────────────────────────────────────────
-   Strong AI v4
+   Strong AI v4 / Super v5
 
    v3 탐색 골격 + 아칸·윈터·왜조리 멀티 기보 평가:
    - 오프닝 북: 선 우보 44-34, 후 동사선 04-13, 3수 동사선 40-31
    - 왕 되잡기·노출 칸 감점 (동현 8수, a431 비숍 일격)
    - 상대 왕진입 거리 2~3칸 (왜조리 후수 행진)
    - 향차 관통, 보 룩 돌진, 비숍 대각, 왕 옆 드롭
-   슈퍼는 LMR 끄고 qsearch/ID만 더 깊게. 평가 함수는 동일.
+   슈퍼 v5.1: 스트롱과 같은 LMR/PVS/qsearch 8 + IID + 넓은 aspir + SEE
+   가지치기 + Lazy SMP(워커 2) + 4기 레이지 DTM. 통계 북은 스트롱·슈퍼 공통
+   (정석 3수 우선, 이탈·4~12수). COM 어려움은 이 파일의 스트롱 경로.
 
    기획서: docs/double-sided-chess-strong-ai.md
 ────────────────────────────────────────────────────────────── */
@@ -27,19 +29,30 @@ import {
   type AIWorkerData,
 } from './ai.js';
 import type { AIMove } from './types.js';
+import { probeStatsOpeningBook } from './opening-book.js';
+import { probeEndgameTable } from './endgame.js';
 
 let _timedOut = false;
 let _deadline = Infinity;
 let _nodes = 0;
 let _turnHint = 1;
 let _superMode = false;
+let _smpHelper = false;
 
 const MATE = 1_000_000;
 const QSEARCH_PLY = 8;
-const QSEARCH_PLY_SUPER = 14;
 const MAX_ID_DEPTH = 24;
 const MAX_ID_DEPTH_SUPER = 32;
 const TIME_MASK = 2047;
+const ASPIR_INIT = 800;
+const ASPIR_MAX = 8_000;
+
+export interface StrongSearchStats {
+  move: AIMove;
+  completedDepth: number;
+  score: number;
+  nodes: number;
+}
 
 function oppOf(owner: Owner): Owner {
   return owner === 'first' ? 'second' : 'first';
@@ -564,6 +577,78 @@ function isSquareAttacked(
   return false;
 }
 
+function cheapestAttacker(
+  board: Cell[][],
+  tr: number,
+  tc: number,
+  owner: Owner,
+): { r: number; c: number; v: number } | null {
+  let best: { r: number; c: number; v: number } | null = null;
+  for (let r = 0; r < DSC_BOARD_SIZE; r++) {
+    for (let c = 0; c < DSC_BOARD_SIZE; c++) {
+      const cell = board[r][c];
+      if (!cell || cell.owner !== owner) continue;
+      if (!canAttackFast(board, r, c, tr, tc)) continue;
+      const v = pieceValue(cell.piece, cell.isPromoted);
+      if (!best || v < best.v) best = { r, c, v };
+    }
+  }
+  return best;
+}
+
+/** 캡처의 정적 교환. 음수면 재잡히며 손해를 본다. */
+export function seeCaptureScore(
+  board: Cell[][],
+  from: Position,
+  to: Position,
+  owner: Owner,
+): number {
+  const att = board[from.row][from.col];
+  const victim = board[to.row][to.col];
+  if (!att || att.owner !== owner) return 0;
+  if (!victim || victim.owner === owner) return 0;
+  if (victim.piece === 'king') return MATE;
+
+  const b = cloneBoardLocal(board);
+  const gains: number[] = [pieceValue(victim.piece, victim.isPromoted)];
+  b[to.row][to.col] = {
+    piece: att.piece,
+    owner: att.owner,
+    isPromoted: nextIsPromoted(att.piece, att.isPromoted),
+  };
+  b[from.row][from.col] = null;
+
+  let stm = oppOf(owner);
+  for (let i = 0; i < 16; i++) {
+    const onSq = b[to.row][to.col];
+    if (!onSq) break;
+    const rec = cheapestAttacker(b, to.row, to.col, stm);
+    if (!rec) break;
+    const recCell = b[rec.r][rec.c]!;
+    gains.push(pieceValue(onSq.piece, onSq.isPromoted));
+    if (onSq.piece === 'king') break;
+    b[to.row][to.col] = {
+      piece: recCell.piece,
+      owner: recCell.owner,
+      isPromoted: nextIsPromoted(recCell.piece, recCell.isPromoted),
+    };
+    b[rec.r][rec.c] = null;
+    stm = oppOf(stm);
+  }
+
+  let s = 0;
+  for (let i = gains.length - 1; i >= 0; i--) s = gains[i] - s;
+  return s;
+}
+
+function timeoutScore(
+  board: Cell[][],
+  prisoners: { first: PieceType[]; second: PieceType[] },
+  aiOwner: Owner,
+): number {
+  return evaluateStrong(board, prisoners, aiOwner);
+}
+
 function kingHomeRow(owner: Owner): number {
   return owner === 'first' ? DSC_BOARD_SIZE - 1 : 0;
 }
@@ -659,11 +744,9 @@ function lanceFileScore(board: Cell[][], r: number, c: number, owner: Owner): nu
   return clear * 70;
 }
 
-export function probeOpeningBook(
-  board: Cell[][],
-  owner: Owner,
-  turnNumber: number,
-): AIMove | null {
+const STATS_BOOK_MAX_TURN = 12;
+
+function probeJosekiBook(board: Cell[][], owner: Owner, turnNumber: number): AIMove | null {
   if (turnNumber === 1 && owner === 'first') {
     const cell = board[4][4];
     if (cell?.piece === 'infantry' && cell.owner === 'first' && !cell.isPromoted) {
@@ -687,6 +770,22 @@ export function probeOpeningBook(
     ) {
       return { type: 'move', from: { row: 4, col: 0 }, to: { row: 3, col: 1 } };
     }
+  }
+  return null;
+}
+
+export function probeOpeningBook(
+  board: Cell[][],
+  owner: Owner,
+  turnNumber: number,
+  prisoners: { first: PieceType[]; second: PieceType[] } = { first: [], second: [] },
+): AIMove | null {
+  if (turnNumber <= 3) {
+    const joseki = probeJosekiBook(board, owner, turnNumber);
+    if (joseki) return joseki;
+  }
+  if (turnNumber <= STATS_BOOK_MAX_TURN) {
+    return probeStatsOpeningBook(board, prisoners, owner);
   }
   return null;
 }
@@ -1049,7 +1148,18 @@ function orderedFromList(
 ): RankedMove[] {
   const out: RankedMove[] = [];
   for (const m of moves) {
-    out.push({ move: m, rank: rankMove(board, m, ttBest, killerDepth, threats, owner, prevMove) });
+    let rank = rankMove(board, m, ttBest, killerDepth, threats, owner, prevMove);
+    if (_smpHelper && rank < 5_000_000) {
+      let x = 0;
+      if (m.type === 'move') {
+        x = m.from.row + 7 * m.from.col + 49 * m.to.row + 343 * m.to.col;
+      } else {
+        x = 2000 + m.position.row + 11 * m.position.col + m.pieceType.length;
+      }
+      x = Math.imul(x ^ 0x9e3779b9, 0x85ebca6b);
+      rank += ((x >>> 0) % 300_001) - 150_000;
+    }
+    out.push({ move: m, rank });
   }
   out.sort((a, b) => b.rank - a.rank);
   return out;
@@ -1088,7 +1198,7 @@ function quiesce(
   ply: number,
 ): number {
   tickClock();
-  if (_timedOut) return 0;
+  if (_timedOut) return timeoutScore(board, prisoners, aiOwner);
 
   const curOwner: Owner = isMax ? aiOwner : oppOf(aiOwner);
   const inCheck = countKingAttackers(board, curOwner) > 0;
@@ -1120,6 +1230,12 @@ function quiesce(
 
   for (const { move } of ranked) {
     if (_timedOut) break;
+    if (_superMode && !inCheck && move.type === 'move') {
+      const target = board[move.to.row][move.to.col];
+      if (target && target.owner !== curOwner && target.piece !== 'king') {
+        if (seeCaptureScore(board, move.from, move.to, curOwner) < 0) continue;
+      }
+    }
     const undo = makeMove(board, prisoners, move, curOwner);
     const captured = capturedTypeOf(undo);
     const term = checkTerminalFast(board, prisoners, curOwner, captured, ply + 1, aiOwner);
@@ -1156,7 +1272,7 @@ function minimaxV2(
   prevMove: AIMove | null,
 ): number {
   tickClock();
-  if (_timedOut) return 0;
+  if (_timedOut) return timeoutScore(board, prisoners, aiOwner);
 
   const curOwner: Owner = isMax ? aiOwner : oppOf(aiOwner);
   const inCheck = countKingAttackers(board, curOwner) > 0;
@@ -1164,7 +1280,7 @@ function minimaxV2(
   if (inCheck && ply < 28) searchDepth += 1;
 
   if (searchDepth <= 0) {
-    return quiesce(board, prisoners, alpha, beta, isMax, aiOwner, _superMode ? QSEARCH_PLY_SUPER : QSEARCH_PLY, ply);
+    return quiesce(board, prisoners, alpha, beta, isMax, aiOwner, QSEARCH_PLY, ply);
   }
 
   const key = hashKey(board, curOwner, prisoners);
@@ -1176,6 +1292,13 @@ function minimaxV2(
     if (ttHit.flag === 'upper' && ttHit.score <= alpha) return ttHit.score;
   }
   if (ttHit) ttBest = ttHit.best;
+
+  if (_superMode && !ttBest && searchDepth >= 5 && ply >= 1 && !_timedOut) {
+    minimaxV2(board, prisoners, searchDepth - 2, alpha, beta, isMax, aiOwner, ply, prevMove);
+    if (_timedOut) return timeoutScore(board, prisoners, aiOwner);
+    const iidHit = TT.get(key);
+    if (iidHit?.best) ttBest = iidHit.best;
+  }
 
   const moves = orderedMoves(board, prisoners, curOwner, ttBest, searchDepth, null, prevMove);
   if (moves.length === 0) {
@@ -1206,7 +1329,7 @@ function minimaxV2(
       const quiet = !isCapture && !isKingEntry && !givesCheck && move.type === 'move' && !inCheck;
       searched++;
       let reduction = 0;
-      if (!_superMode && quiet && searchDepth >= 3 && searched >= 4) {
+      if (quiet && searchDepth >= 3 && searched >= 4) {
         reduction = 1;
         if (searchDepth >= 6 && searched >= 8) reduction = 2;
       }
@@ -1264,6 +1387,8 @@ function minimaxV2(
 interface RootResult {
   move: AIMove | null;
   score: number;
+  failedLow: boolean;
+  failedHigh: boolean;
 }
 
 function findBestMoveAtDepthV2(
@@ -1272,6 +1397,8 @@ function findBestMoveAtDepthV2(
   aiOwner: Owner,
   depth: number,
   prevMove: AIMove | null,
+  alphaIn: number,
+  betaIn: number,
 ): RootResult {
   const moves = generateAllMoves(board, prisoners, aiOwner);
   for (const move of moves) {
@@ -1279,7 +1406,7 @@ function findBestMoveAtDepthV2(
     const term = checkTerminalFast(board, prisoners, aiOwner, capturedTypeOf(undo), 1, aiOwner);
     unmakeMove(board, prisoners, undo);
     if (term !== null && term > 500_000) {
-      return { move, score: term };
+      return { move, score: term, failedLow: false, failedHigh: false };
     }
   }
 
@@ -1290,8 +1417,8 @@ function findBestMoveAtDepthV2(
 
   let bestMove: AIMove | null = null;
   let bestScore = -Infinity;
-  let alpha = -Infinity;
-  const beta = Infinity;
+  let alpha = alphaIn;
+  const beta = betaIn;
 
   for (const { move } of ranked) {
     if (_timedOut) break;
@@ -1304,20 +1431,39 @@ function findBestMoveAtDepthV2(
     if (_timedOut) break;
     if (s > bestScore) { bestScore = s; bestMove = move; }
     if (bestScore > alpha) alpha = bestScore;
+    if (bestScore >= beta) break;
   }
 
-  if (bestMove) {
-    ttPut(rootKey, { depth, score: bestScore, flag: 'exact', best: bestMove });
+  const failedLow = bestScore <= alphaIn;
+  const failedHigh = bestScore >= betaIn;
+  if (bestMove && !_timedOut) {
+    let flag: TTFlag = 'exact';
+    if (failedLow) flag = 'upper';
+    else if (failedHigh) flag = 'lower';
+    ttPut(rootKey, { depth, score: bestScore, flag, best: bestMove });
   }
 
-  return { move: bestMove, score: bestScore };
+  return { move: bestMove, score: bestScore, failedLow, failedHigh };
 }
 
 function cloneBoardLocal(board: Cell[][]): Cell[][] {
   return board.map((row) => row.map((c) => (c ? { ...c } : null)));
 }
 
-export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: number): AIMove {
+export function tryOpeningBook(data: AIWorkerData): AIMove | null {
+  if (data.skipOpeningBook) return null;
+  if (typeof data.turnNumber !== 'number' || data.turnNumber > STATS_BOOK_MAX_TURN) return null;
+  const prisoners = {
+    first: [...data.prisoners.first],
+    second: [...data.prisoners.second],
+  };
+  const book = probeOpeningBook(data.board, data.currentOwner, data.turnNumber, prisoners);
+  if (!book) return null;
+  if (!moveIsLegal(data.board, prisoners, data.currentOwner, book)) return null;
+  return book;
+}
+
+function searchIterative(data: AIWorkerData, timeLimitMs: number): StrongSearchStats {
   _deadline = Date.now() + timeLimitMs;
   _timedOut = false;
   _nodes = 0;
@@ -1335,29 +1481,73 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
     countNonKingPieces(board, 'first') + countNonKingPieces(board, 'second')
   )) * 2);
 
-  if (typeof data.turnNumber === 'number' && data.turnNumber <= 3) {
-    const book = probeOpeningBook(board, aiOwner, data.turnNumber);
+  if (
+    !data.skipOpeningBook
+    && typeof data.turnNumber === 'number'
+    && data.turnNumber <= STATS_BOOK_MAX_TURN
+  ) {
+    const book = probeOpeningBook(board, aiOwner, data.turnNumber, prisoners);
     if (book && moveIsLegal(board, prisoners, aiOwner, book)) {
       console.info(`[DSC ${_superMode ? 'super' : 'strong'}] book turn=${data.turnNumber}`);
-      return book;
+      return { move: book, completedDepth: 0, score: 0, nodes: 0 };
+    }
+  }
+
+  if (_superMode) {
+    const tb = probeEndgameTable(board, prisoners, aiOwner);
+    if (tb && moveIsLegal(board, prisoners, aiOwner, tb)) {
+      console.info(`[DSC super] endgame tb turn=${data.turnNumber ?? '?'}`);
+      return { move: tb, completedDepth: 0, score: MATE, nodes: 0 };
     }
   }
 
   const fallbackMoves = generateAllMoves(board, prisoners, aiOwner);
   let bestMove: AIMove = fallbackMoves[0]
     ?? { type: 'move', from: { row: 0, col: 0 }, to: { row: 0, col: 1 } };
-  if (fallbackMoves.length === 0) return bestMove;
+  if (fallbackMoves.length === 0) {
+    return { move: bestMove, completedDepth: 0, score: 0, nodes: _nodes };
+  }
 
   let lastScore = 0;
   let completedDepth = 0;
+  const maxDepth = _superMode ? MAX_ID_DEPTH_SUPER : MAX_ID_DEPTH;
 
-  for (let depth = 1; depth <= (_superMode ? MAX_ID_DEPTH_SUPER : MAX_ID_DEPTH); depth++) {
+  for (let depth = 1; depth <= maxDepth; depth++) {
     if (Date.now() >= _deadline) break;
-    _timedOut = false;
 
-    const result = findBestMoveAtDepthV2(board, prisoners, aiOwner, depth, prevMove);
+    let result: RootResult | null = null;
+
+    if (_superMode && depth >= 3) {
+      let window = ASPIR_INIT;
+      let alpha = lastScore - window;
+      let beta = lastScore + window;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (Date.now() >= _deadline) break;
+        _timedOut = false;
+        result = findBestMoveAtDepthV2(board, prisoners, aiOwner, depth, prevMove, alpha, beta);
+        if (_timedOut) break;
+        if (!result.failedLow && !result.failedHigh) break;
+        window *= 4;
+        if (window > ASPIR_MAX || attempt >= 1) {
+          alpha = -Infinity;
+          beta = Infinity;
+        } else if (result.failedLow) {
+          alpha = lastScore - window;
+          beta = lastScore + Math.floor(window / 2);
+        } else {
+          alpha = lastScore - Math.floor(window / 2);
+          beta = lastScore + window;
+        }
+      }
+    } else {
+      _timedOut = false;
+      result = findBestMoveAtDepthV2(
+        board, prisoners, aiOwner, depth, prevMove, -Infinity, Infinity,
+      );
+    }
+
     if (_timedOut) break;
-    if (result.move !== null) {
+    if (result && result.move !== null && !result.failedLow && !result.failedHigh) {
       bestMove = result.move;
       lastScore = result.score;
       completedDepth = depth;
@@ -1366,18 +1556,43 @@ export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: num
   }
 
   const ms = Date.now() - started;
-  console.info(
-    `[DSC ${_superMode ? 'super' : 'strong'}] depth=${completedDepth} nodes=${_nodes} score=${lastScore} ms=${ms}`,
-  );
+  const tag = _superMode ? (_smpHelper ? 'super-h' : 'super') : 'strong';
+  console.info(`[DSC ${tag}] depth=${completedDepth} nodes=${_nodes} score=${lastScore} ms=${ms}`);
 
-  return bestMove;
+  return { move: bestMove, completedDepth, score: lastScore, nodes: _nodes };
+}
+
+export function findBestMoveIterativeStrong(data: AIWorkerData, timeLimitMs: number): AIMove {
+  _superMode = false;
+  _smpHelper = false;
+  return searchIterative(data, timeLimitMs).move;
+}
+
+export function findBestMoveIterativeSuperStats(
+  data: AIWorkerData,
+  timeLimitMs: number,
+): StrongSearchStats {
+  _superMode = true;
+  _smpHelper = data.smpHelper === true;
+  try {
+    return searchIterative(data, timeLimitMs);
+  } finally {
+    _superMode = false;
+    _smpHelper = false;
+  }
 }
 
 export function findBestMoveIterativeSuper(data: AIWorkerData, timeLimitMs: number): AIMove {
-  _superMode = true;
-  try {
-    return findBestMoveIterativeStrong(data, timeLimitMs);
-  } finally {
-    _superMode = false;
-  }
+  return findBestMoveIterativeSuperStats(data, timeLimitMs).move;
 }
+
+export function pickSuperSmpStats(
+  main: StrongSearchStats,
+  helper: StrongSearchStats | null,
+): StrongSearchStats {
+  if (!helper) return main;
+  if (helper.completedDepth > main.completedDepth) return helper;
+  if (helper.completedDepth < main.completedDepth) return main;
+  return helper.score > main.score ? helper : main;
+}
+
