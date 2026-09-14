@@ -16,6 +16,8 @@ import {
   type QuatroSuit,
 } from '@/shared/types/quatro';
 import FourCardCard from './skins/FourCardCard';
+import QuatroRecord from './QuatroRecord';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 /* ── 카드 표현: 문양 + 색 (스=파랑, 다=노랑, 하=빨강, 클=초록, 검정0) ── */
 
@@ -136,6 +138,31 @@ export default function QuatroGame() {
     else toast.error(msg, { duration: 6000 });
   }, [gameData, myId]);
 
+  // 메모 '기록' — 좁은 화면은 상단 메모 아이콘 → 시트로 연다(넓은 화면은 아래 오른쪽 칸)
+  const { setHud } = useRoomLayout();
+  const recordLog = gameData?.log;
+  const recordFirst = gameData?.firstByRound;
+  const recordPlayers = gameData?.players;
+  const recordRound = gameData?.round ?? 0;
+  useEffect(() => {
+    if (!recordLog || !recordPlayers) {
+      setHud(null);
+      return;
+    }
+    setHud({
+      memo: (
+        <QuatroRecord
+          log={recordLog}
+          firstByRound={recordFirst ?? {}}
+          players={recordPlayers}
+          myId={myId}
+          round={recordRound}
+        />
+      ),
+    });
+  }, [recordLog, recordFirst, recordPlayers, recordRound, myId, setHud]);
+  useEffect(() => () => setHud(null), [setHud]);
+
   if (!gameData) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -151,7 +178,8 @@ export default function QuatroGame() {
   const myClosedCards = me?.hand.filter((h) => h.card && !h.open) ?? [];
 
   return (
-    <div className={cn('mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 sm:p-4', isFourCard && 'skin-four-card-table')}>
+    <div className="mx-auto flex w-full max-w-6xl justify-center gap-4 lg:items-start">
+    <div className={cn('flex w-full min-w-0 max-w-3xl flex-col gap-4 p-3 sm:p-4', isFourCard && 'skin-four-card-table')}>
       {/* 상태 배너 */}
       <div className="quatro-status rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-center text-sm font-semibold text-cdm-fg">
         {phase === 'mulligan' && (isMyTurn ? '멀리건을 사용할까요?' : '상대가 멀리건을 결정 중…')}
@@ -353,6 +381,19 @@ export default function QuatroGame() {
           </div>
         </section>
       )}
+    </div>
+
+      {/* 넓은 화면 — 진행 기록을 판 옆에 펴 둔다(좁은 화면은 메모 시트) */}
+      <aside className="hidden w-72 shrink-0 overflow-y-auto overscroll-contain py-4 pr-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100dvh-6rem)]">
+        <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">기록</h3>
+        <QuatroRecord
+          log={gameData.log ?? []}
+          firstByRound={gameData.firstByRound ?? {}}
+          players={gameData.players}
+          myId={myId}
+          round={gameData.round}
+        />
+      </aside>
     </div>
   );
 }

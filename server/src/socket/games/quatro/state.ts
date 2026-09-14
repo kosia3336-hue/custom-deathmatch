@@ -71,6 +71,8 @@ export interface QuatroState {
   /** 멀리건으로 버려진 카드. 덱에는 남지만(가상 플레이어 분배용) 누구의 멀리건에서도 다시 뽑히지 않는다. */
   mulliganDiscardIds: Set<string>;
   firstIdx: 0 | 1;
+  /** 라운드별 선 플레이어 id (0 = 멀리건 단계) — 메모 기록의 선/후 표시 */
+  firstByRound: Record<number, string>;
   mulliganQueue: number[]; // 플레이어 idx 순서
   turnQueue: number[]; // exchange 턴 순서 (플레이어 idx)
   turnPtr: number;
@@ -150,6 +152,7 @@ export function createState(
     deck,
     mulliganDiscardIds: new Set(),
     firstIdx: 0,
+    firstByRound: { 0: p0.id },
     mulliganQueue: [0, 1, 0, 1],
     turnQueue: [],
     turnPtr: 0,
@@ -287,6 +290,7 @@ export function startRounds(s: QuatroState) {
 
 export function beginOpenPhase(s: QuatroState) {
   s.phase = 'open';
+  s.firstByRound[s.round] = s.players[s.firstIdx].id;
   for (const p of s.players) p.openChoice = null;
   s.turnStartedAt = Date.now();
 }
@@ -493,6 +497,17 @@ function currentTurnId(s: QuatroState): string | null {
   return null;
 }
 
+/**
+ * 메모 '기록'용 진행 로그. 교환으로 받은 카드는 받은 사람에게만 보이고 상대·관전자에게는 null(뒷면)이다.
+ * 최종 공개 뒤에는 모두 공개된 패이므로 가리지 않는다. 넘긴 카드·오픈한 카드·멀리건 여부는 원래 공개 정보다.
+ */
+export function visibleLogFor(s: QuatroState, viewerId: string | null): QuatroGameData['log'] {
+  const revealAll = s.phase === 'reveal' || s.phase === 'finished';
+  return s.log.map((e) =>
+    e.type === 'exchange' && !revealAll && e.actorId !== viewerId ? { ...e, received: null } : e,
+  );
+}
+
 export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGameData {
   const [a, b] = s.players;
   const meP = viewerId ? s.players.find((p) => p.id === viewerId) ?? null : null;
@@ -520,6 +535,8 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     mustExchangeRemaining: mustRemain,
     result: s.phase === 'reveal' || s.phase === 'finished' ? s.result : null,
     turnSeconds: s.timeLimitSeconds ?? 0, // 0 = 무제한
+    log: visibleLogFor(s, viewerId),
+    firstByRound: { ...s.firstByRound },
   };
 }
 
@@ -627,6 +644,7 @@ export function finishGame(io: IO, s: QuatroState) {
     gameResultData: {
       result: r,
       log: s.log,
+      firstByRound: s.firstByRound,
       vpHands: s.vps.map((vp) => vp.cards),
       players: { [a.id]: { nickname: a.nickname }, [b.id]: { nickname: b.nickname } },
     },

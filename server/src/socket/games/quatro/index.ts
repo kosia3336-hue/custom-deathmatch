@@ -110,6 +110,7 @@ function advance(io: IO, s: QuatroState) {
       } else {
         if (!s2.firstStopperId) s2.firstStopperId = p.id;
         p.stopped = true;
+        s2.log.push({ round: s2.round, type: 'stop', actorId: p.id });
       }
       s2.turnPtr++;
       advance(io2, s2);
@@ -158,6 +159,7 @@ function applyAiAction(
         // 실패 시 스탑으로 폴백 (교착 방지)
         if (!s.firstStopperId) s.firstStopperId = p.id;
         p.stopped = true;
+        s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       }
       s.turnPtr++;
       advance(io, s);
@@ -177,6 +179,7 @@ function applyAiAction(
       } else {
         if (!s.firstStopperId) s.firstStopperId = p.id;
         p.stopped = true;
+        s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       }
       s.turnPtr++;
       advance(io, s);
@@ -255,6 +258,7 @@ export function handleQuatroAction(
       }
       if (!s.firstStopperId) s.firstStopperId = p.id;
       p.stopped = true;
+      s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       s.turnPtr++;
       advance(io, s);
       return;

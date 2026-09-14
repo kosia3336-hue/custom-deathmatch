@@ -70,6 +70,18 @@ export type QuatroLogEntry =
   | { round: number; type: 'exchange'; actorId: string; vpIndex: number; gave: QuatroCard; received: QuatroCard }
   | { round: number; type: 'stop'; actorId: string };
 
+/** 진행 중 화면(메모 '기록')용 로그. 교환으로 받은 카드는 받은 사람에게만 보이고, 상대·관전자에게는 null(뒷면). */
+export type QuatroVisibleLogEntry =
+  | Exclude<QuatroLogEntry, { type: 'exchange' }>
+  | {
+      round: number;
+      type: 'exchange';
+      actorId: string;
+      vpIndex: number;
+      gave: QuatroCard;
+      received: QuatroCard | null;
+    };
+
 export interface QuatroPlayerView {
   id: string;
   nickname: string;
@@ -106,4 +118,8 @@ export interface QuatroGameData {
   result: QuatroResultSummary | null;
   /** 턴 제한(초). 0 = 무제한 */
   turnSeconds: number;
+  /** 진행 기록(메모 '기록') — 보는 사람 기준으로 가린 로그 */
+  log: QuatroVisibleLogEntry[];
+  /** 라운드별 선 플레이어 id. 0 = 멀리건 단계 */
+  firstByRound: Record<number, string>;
 }
