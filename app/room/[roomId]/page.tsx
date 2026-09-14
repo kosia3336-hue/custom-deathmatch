@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -9,6 +9,12 @@ import RoomInfoSheet from '@/components/room/RoomInfoSheet';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import RoomSettingsModal from '@/components/room/RoomSettingsModal';
 import ChatButton from '@/components/room/ChatButton';
+import RoomChatDockPanel from '@/components/room/RoomChatDockPanel';
+import {
+  getRoomChatDock,
+  getServerRoomChatDock,
+  subscribeRoomChatDock,
+} from '@/lib/roomChatDock';
 import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -29,6 +35,9 @@ import { cn } from '@/lib/utils';
   초대·시작(준비) 버튼은 헤더 바로 아래에 둔다 — 들어오자마자 할 일이라 맨 아래 푸터까지
   눈을 내리지 않게. 방장은 플레이어 메뉴(넘기기·관전으로·강퇴)와 관전자 줄(자리로 올리기·강퇴)로
   자리를 관리한다.
+
+  채팅은 넓은 화면이면 본문 옆 채팅창으로 펴 두고, 머리를 끌어 상·하·좌·우 가장자리에 붙인다
+  (본문은 그만큼 비켜남, RoomChatDockPanel). 좁은 화면은 헤더의 채팅 버튼 → 시트.
 */
 export default function WaitingRoomPage() {
   const params = useParams();
@@ -41,6 +50,8 @@ export default function WaitingRoomPage() {
   const myId = useMySocketId();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooterHidden } = useRoomLayout();
+  const chatDock = useSyncExternalStore(subscribeRoomChatDock, getRoomChatDock, getServerRoomChatDock);
+  const isSideDock = chatDock === 'left' || chatDock === 'right';
 
   const [joined, setJoined] = useState(false);
   const [showKick, setShowKick] = useState<string | null>(null);
@@ -232,7 +243,10 @@ export default function WaitingRoomPage() {
             <span className="hidden text-sm font-medium md:inline">설정 변경</span>
           </button>
         )}
-        <ChatButton scope="room" />
+        {/* 넓은 화면은 본문 옆 채팅창이 있으므로 좁은 화면에서만 */}
+        <span className="md:hidden">
+          <ChatButton scope="room" />
+        </span>
         <Button variant="danger" size="sm" onClick={() => setShowLeave(true)}>
           나가기
         </Button>
@@ -262,7 +276,22 @@ export default function WaitingRoomPage() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-2xl flex-1 p-4 md:p-6">
+      <main
+        className={cn(
+          'mx-auto w-full max-w-2xl flex-1 p-4 md:p-6',
+          isSideDock && 'md:max-w-5xl',
+        )}
+      >
+        {/* 본문 + 채팅창. DOM 은 본문 → 채팅창 순이고, 붙인 가장자리에 따라 방향만 바꾼다 */}
+        <div
+          className={cn(
+            'flex flex-col md:gap-6',
+            chatDock === 'right' && 'md:flex-row md:items-start',
+            chatDock === 'left' && 'md:flex-row-reverse md:items-start',
+            chatDock === 'top' && 'md:flex-col-reverse',
+          )}
+        >
+          <div className="min-w-0 flex-1">
         {/* 행동 — 초대 · 시작(방장) / 준비(참가자) */}
         <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-cdm-lg border border-dashed border-cdm-border-strong p-3">
           {isSpectator && (
@@ -433,6 +462,20 @@ export default function WaitingRoomPage() {
               </div>
             )}
           </div>
+        </div>
+
+          </div>
+
+          <RoomChatDockPanel
+            scope="room"
+            dock={chatDock}
+            className={cn(
+              'hidden md:flex',
+              isSideDock
+                ? 'md:sticky md:top-24 md:h-[calc(100dvh-8rem)] md:max-h-[720px] md:w-80 md:shrink-0'
+                : 'md:h-72',
+            )}
+          />
         </div>
 
         {/* 카운트다운 오버레이 */}
