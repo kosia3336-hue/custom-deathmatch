@@ -311,9 +311,10 @@ export default function ResultLog() {
               playTimeMs: gameResult.playTime,
               totalTurns: gameResult.totalTurns,
               selfName: myRanking.nickname,
+              isRanked: room?.isRanked === true,
               opponents: gameResult.rankings
                 .filter((r) => r.playerId !== myId)
-                .map((r) => r.nickname),
+                .map((r) => ({ name: r.nickname, won: !isDraw && !isDoubleLoss && r.rank === 1 })),
             }}
           />
         </div>

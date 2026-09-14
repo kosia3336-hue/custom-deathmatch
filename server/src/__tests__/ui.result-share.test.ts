@@ -15,18 +15,27 @@ describe('공개 전적 요약', () => {
     expect(value).not.toHaveProperty('url');
     expect(value.text).not.toMatch(/https?:|\/share\//);
   });
-  it('대전 상대와 대전 일시(KST)를 넣는다', () => {
+  it('대전 상대와 대전 일시(KST), 랭크전을 넣는다', () => {
     const text = resultShareText({
       gameName: '사중력 사목',
       result: '승리',
       playTimeMs: 125000,
       totalTurns: 12,
-      opponents: ['홍길동'],
+      opponents: [{ name: '홍길동' }],
       playedAt: '2026-09-12T12:30:00Z',
     });
     expect(text).toBe('커스텀 데스매치 · 사중력 사목\n승리 vs 홍길동\n2026.09.12 21:30 · 플레이 2분 5초 · 12턴');
     expect(
-      resultShareText({ gameName: 'a', result: '패배', playTimeMs: 0, totalTurns: 0, opponents: ['가', '나', '다', '라', '마'] }),
+      resultShareText({ gameName: '넘버4', result: '패배', playTimeMs: 0, totalTurns: 0, isRanked: true }).split('\n')[0],
+    ).toBe('커스텀 데스매치 · 넘버4 · 랭크전');
+    expect(
+      resultShareText({
+        gameName: 'a',
+        result: '패배',
+        playTimeMs: 0,
+        totalTurns: 0,
+        opponents: ['가', '나', '다', '라', '마'].map((name) => ({ name })),
+      }),
     ).toContain('패배 vs 가, 나, 다 외 2명');
     expect(resultShareText({ gameName: 'a', result: '완료', playTimeMs: 0, totalTurns: 0, opponents: [] })).toContain('\n완료\n');
     expect(formatShareDateTime('not a date')).toBeNull();
@@ -38,7 +47,7 @@ describe('공개 전적 요약', () => {
         result: '승리',
         playTimeMs: NaN,
         totalTurns: -1,
-        opponents: Array.from({ length: 20 }, () => 'b'.repeat(500)),
+        opponents: Array.from({ length: 20 }, () => ({ name: 'b'.repeat(500) })),
         playedAt: 'garbage',
       }).length,
     ).toBeLessThan(200);
@@ -52,22 +61,45 @@ describe('공개 전적 요약', () => {
 
 describe('결과 카드 글자', () => {
   const base = { gameName: '콰트로', playTimeMs: 750000, totalTurns: 4, playedAt: '2026-09-14T12:30:00Z' };
-  it('승리·무승부·그 밖의 결과에 따라 색을 고르고 나 vs 상대·일시·시간·턴을 담는다', () => {
-    const win = resultCardContent({ ...base, result: '승리', selfName: '쇼비', opponents: ['???'] });
-    expect(win).toEqual({
+  it('이긴 본인 이름에 승을 붙이고, 랭크전·일시·시간·턴을 담는다', () => {
+    expect(
+      resultCardContent({ ...base, result: '승리', selfName: '쇼비', opponents: [{ name: '???' }], isRanked: true }),
+    ).toEqual({
       gameName: '콰트로',
       resultLabel: '승리',
       tone: 'win',
-      vsLine: '쇼비 vs ???',
+      isRanked: true,
+      vsParts: [
+        { kind: 'name', text: '쇼비', won: true },
+        { kind: 'sep', text: ' vs ' },
+        { kind: 'name', text: '???', won: false },
+      ],
       meta: '2026.09.14 21:30 · 플레이 12분 30초 · 4턴',
     });
-    expect(resultCardContent({ ...base, result: '무승부' }).tone).toBe('draw');
-    expect(resultCardContent({ ...base, result: '기권' }).tone).toBe('other');
   });
-  it('이름이 없으면 있는 쪽만, 둘 다 없으면 비운다', () => {
-    expect(resultCardContent({ ...base, result: '완료', selfName: '나' }).vsLine).toBe('나');
-    expect(resultCardContent({ ...base, result: '패배', opponents: ['가'] }).vsLine).toBe('vs 가');
-    expect(resultCardContent({ ...base, result: '완료' }).vsLine).toBe('');
+  it('졌으면 이긴 상대에게만 승을 붙이고 본인에게는 붙이지 않는다', () => {
+    const lost = resultCardContent({ ...base, result: '패배', selfName: '나', opponents: [{ name: '가', won: true }] });
+    expect(lost.vsParts).toEqual([
+      { kind: 'name', text: '나', won: false },
+      { kind: 'sep', text: ' vs ' },
+      { kind: 'name', text: '가', won: true },
+    ]);
+    expect(lost.isRanked).toBe(false);
+    expect(lost.tone).toBe('other');
+    const many = resultCardContent({
+      ...base,
+      result: '패배',
+      opponents: [{ name: 'a' }, { name: 'b', won: true }, { name: 'c' }, { name: 'd' }, { name: 'e' }],
+    });
+    expect(many.vsParts.map((p) => (p.kind === 'name' && p.won ? `${p.text}(승)` : p.text)).join('')).toBe(
+      'vs a, b(승), c 외 2명',
+    );
+  });
+  it('무승부는 누구에게도 승을 붙이지 않고, 이름이 없으면 비운다', () => {
+    const draw = resultCardContent({ ...base, result: '무승부', selfName: '나', opponents: [{ name: '가' }] });
+    expect(draw.tone).toBe('draw');
+    expect(draw.vsParts.some((p) => p.kind === 'name' && p.won)).toBe(false);
+    expect(resultCardContent({ ...base, result: '완료' }).vsParts).toEqual([]);
   });
 });
 
@@ -115,7 +147,7 @@ describe('공유 시트', () => {
 });
 
 describe('결과 카드 이미지 공유', () => {
-  const file = new File([new Uint8Array([1, 2, 3])], 'card.png', { type: 'image/png' });
+  const file = new File([new Uint8Array([1, 2, 3])], 'card.jpg', { type: 'image/jpeg' });
   const fallback = { title: '커스텀 데스매치 전적', text: '요약' };
   const targets = (over: Partial<ImageShareTargets>): ImageShareTargets => ({
     native: null,
@@ -129,10 +161,10 @@ describe('결과 카드 이미지 공유', () => {
 
   it('앱은 이미지를 캐시에 써서 그 파일만 공유한다', async () => {
     const native = { share: vi.fn().mockResolvedValue({}) };
-    const files = { writeFile: vi.fn().mockResolvedValue({ uri: 'file:///cache/card.png' }) };
+    const files = { writeFile: vi.fn().mockResolvedValue({ uri: 'file:///cache/card.jpg' }) };
     expect(await shareImageOrText(file, fallback, targets({ native, files }))).toBe('shared');
-    expect(files.writeFile).toHaveBeenCalledWith({ path: 'card.png', data: 'AQID', directory: 'CACHE' });
-    expect(native.share).toHaveBeenCalledWith({ files: ['file:///cache/card.png'], dialogTitle: '공유하기' });
+    expect(files.writeFile).toHaveBeenCalledWith({ path: 'card.jpg', data: 'AQID', directory: 'CACHE' });
+    expect(native.share).toHaveBeenCalledWith({ files: ['file:///cache/card.jpg'], dialogTitle: '공유하기' });
   });
   it('파일 플러그인이 없는 이전 앱은 링크 없는 글로 공유한다', async () => {
     const native = { share: vi.fn().mockResolvedValue({}) };

@@ -39,8 +39,10 @@ interface LogRow {
   play_time_seconds: number;
   total_turns: number;
   counts_for_stats: boolean;
-  room_snapshot: { gameName?: string };
+  room_snapshot: { gameName?: string; title?: string };
   participants: LogParticipant[];
+  /** 랭크전 판인지 — 결과 카드의 '랭크전' 표시 */
+  isRanked: boolean;
 }
 
 async function loadLogs(
@@ -70,20 +72,28 @@ async function loadLogs(
     )
     .in('id', ids)
     .order('played_at', { ascending: false });
-  const logRows = (logsRes.data ?? []) as unknown as Omit<LogRow, 'participants'>[];
+  const logRows = (logsRes.data ?? []) as unknown as Omit<LogRow, 'participants' | 'isRanked'>[];
 
-  // 각 로그의 참가자
-  const participantsRes = await sb
-    .from('game_log_participants')
-    .select(
-      'game_log_id, position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot, anonymized',
-    )
-    .in('game_log_id', ids);
+  // 각 로그의 참가자, 랭크전 기록(서로 의존하지 않으므로 함께 보낸다)
+  const [participantsRes, rankRes] = await Promise.all([
+    sb
+      .from('game_log_participants')
+      .select(
+        'game_log_id, position, is_winner, is_draw, is_resign, member_id, nickname_snapshot, title_snapshot, anonymized',
+      )
+      .in('game_log_id', ids),
+    sb.from('rank_match_history').select('game_log_id').in('game_log_id', ids),
+  ]);
   const partAll = (participantsRes.data ?? []) as unknown as (LogParticipant & { game_log_id: string })[];
+  const rankedIds = new Set(
+    ((rankRes.data ?? []) as unknown as { game_log_id: string | null }[]).map((r) => r.game_log_id),
+  );
 
   const logs = logRows.map((row) => ({
     ...row,
     participants: partAll.filter((p) => p.game_log_id === row.id),
+    // 무승부 랭크전은 rank_match_history 에 남지 않아 방 제목('[랭크] …')으로도 본다
+    isRanked: rankedIds.has(row.id) || /^\[랭크\]/.test(row.room_snapshot?.title ?? ''),
   }));
 
   return { logs, totalCount };
@@ -182,9 +192,13 @@ export default async function LogsTab({
                   playTimeMs: log.play_time_seconds * 1000,
                   totalTurns: log.total_turns,
                   selfName: me.nickname_snapshot,
+                  isRanked: log.isRanked,
                   opponents: log.participants
                     .filter((p) => p.member_id !== memberId)
-                    .map((p) => (p.anonymized ? '???' : p.nickname_snapshot || '탈퇴 회원')),
+                    .map((p) => ({
+                      name: p.anonymized ? '???' : p.nickname_snapshot || '탈퇴 회원',
+                      won: p.is_winner === true && !p.is_draw,
+                    })),
                   playedAt: log.played_at,
                 }}
               />
