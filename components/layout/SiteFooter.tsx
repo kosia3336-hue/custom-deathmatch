@@ -43,7 +43,7 @@ export default function SiteFooter() {
     return null;
   }
 
-  // 앱(웹뷰)에서는 홈(로비)에서만 globals.css 가 감춘다(html[data-native-app] .site-footer--home).
+  // 홈(로비)은 모바일 화면(하단 탭 바 폭)과 앱(웹뷰)에서 globals.css 가 감춘다(.site-footer--home).
   // 다른 화면은 약관·개인정보 처리방침 입구로 푸터를 둔다(임시 — 설정 화면에 입구가 생기면 재검토).
   const isHome = pathname === '/lobby';
 
