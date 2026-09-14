@@ -9,7 +9,7 @@ import { useNicknameStore } from '@/stores/nickname';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { Button } from '@/components/cdm/Button';
 import { Countdown } from '@/components/cdm/Countdown';
-import { GAME_IDS } from '@/shared/types/game';
+import { GAME_IDS, isSuperAiGameOptions } from '@/shared/types/game';
 import { Card } from '@/components/cdm/Card';
 import RoomChat from '@/components/room/RoomChat';
 import { VIEWER_MAP } from '@/components/archive/LogViewer';
@@ -50,16 +50,20 @@ export default function ResultLog() {
   const rankQueueOpenNow = isRankQueueOpen();
   const rankQueueCanJoinNow = isRankQueueAcceptingNewJoins();
 
+  const isSuperAiRoom = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    nickname === '천하' &&
-    (room?.gameId === GAME_IDS.FOUR_GRAVITY || room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) &&
-    room?.playMode === 'solo';
+    isSuperAiRoom
+    || (
+      nickname === '천하'
+      && (room?.gameId === GAME_IDS.FOUR_GRAVITY || room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS)
+      && room?.playMode === 'solo'
+    );
 
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
     useRoomStore.getState().reset();
-    router.push('/lobby');
-  }, [router]);
+    router.push(isSuperAiRoom ? '/super-ai' : '/lobby');
+  }, [router, isSuperAiRoom]);
 
   const handleRankRequeue = useCallback(() => {
     if (!member) {

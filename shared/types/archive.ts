@@ -53,6 +53,8 @@ export interface FourGravityTurnAction {
   turnNumber: number;
   color: 'black' | 'white';
   nickname: string;
+  /** 슈퍼 AI(또는 COM)가 둔 수 */
+  byAi?: boolean;
   steps: FourGravityAction[];
 }
 
@@ -66,6 +68,8 @@ export interface DSCTurnActionLog {
   turnNumber: number;
   player: 'first' | 'second';
   nickname: string;
+  /** 슈퍼 AI(또는 COM)가 둔 수 */
+  byAi?: boolean;
   action:
     | { type: 'move'; from: Position; to: Position }
     | { type: 'place-prisoner'; pieceType: string; position: Position };
@@ -86,13 +90,14 @@ export interface NumberFourRoundAction {
   round: number;
   players: Record<string, {
     nickname: string;
-    white: number;
-    black: number;
+    white?: number;
+    black?: number;
     number: NF4Number;
     success: boolean;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;
+    byAi?: boolean;
   }>;
 }
 

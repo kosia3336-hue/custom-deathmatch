@@ -16,6 +16,30 @@ import type {
   BanPickUnbanTurnPayload,
   BanPickUnbanUpdatePayload,
 } from './ban-pick';
+import type { NF4Number, Nf4AdvisorRound } from './number4';
+import type {
+  BRPSResult,
+  BrpsAdvisorPending,
+  BrpsAdvisorRound,
+  BrpsAdvisorWinner,
+} from './betting-rps';
+import type {
+  MBNWTile,
+  MbnwAdvisorPending,
+  MbnwAdvisorRound,
+  MbnwAdvisorWinner,
+} from './multiple-bnw';
+import type { WSCardType, WsAdvisorRound } from './winning-streak';
+import type { Bnw2AdvisorPending, Bnw2AdvisorRound } from './bnw2';
+import type { SBNWTile, SbnwAdvisorPending, SbnwAdvisorRound } from './silper-bnw';
+import type { FTAction, FtAdvisorPly } from './five-towers';
+import type { GS2CardId, Gs2AdvisorRound } from './grape-sugar-2';
+import type { SMS2ChipBet, SMS2PowderSubmission } from './sun-moon-star-2';
+import type { Sms2AdvisorPending, Sms2AdvisorRound } from './sun-moon-star-2-advisor';
+import type { BankBet } from './bank-game';
+import type { BankAdvisorPending, BankAdvisorRound } from './bank-game-advisor';
+import type { QuatroAction } from './quatro';
+import type { QuatroAdvisorPly } from './quatro-advisor';
 
 export interface CreateRoomData {
   gameId: string;
@@ -265,6 +289,212 @@ export interface ClientToServerEvents {
   'dev:rankDummy:start': (
     data: { tier: '상' | '중' | '하'; skipBanPick?: boolean; skipGameId?: string },
     callback: (res: { success: boolean; roomId?: string; error?: string }) => void,
+  ) => void;
+
+  /** `/super-ai` — 사중력 사목·양면장기 솔로 방. 넘버4·흑과백2 등은 자문 이벤트. */
+  'superAi:start': (
+    data: { gameId: string },
+    callback: (res: { success: boolean; roomId?: string; error?: string }) => void,
+  ) => void;
+
+  /** 넘버4 자문. 히스토리를 보내고 백·흑·넘버를 받는다. 최대 90초. */
+  'superAi:number4:recommend': (
+    data: { history: Nf4AdvisorRound[] },
+    callback: (res: {
+      success: boolean;
+      white?: number;
+      black?: number;
+      number?: NF4Number;
+      worlds?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 넘버4 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:number4:save': (
+    data: { history: Nf4AdvisorRound[]; winner?: 'me' | 'opp' },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 베팅 가위바위보 자문. 역할·승부·베팅 중 한 수를 받는다. 최대 90초. */
+  'superAi:bettingRps:recommend': (
+    data: { iAmFirst: boolean; history: BrpsAdvisorRound[]; pending?: BrpsAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      kind?: 'role' | 'match' | 'bet';
+      role?: 'match' | 'bet';
+      result?: BRPSResult;
+      prediction?: BRPSResult;
+      chips?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 베팅 가위바위보 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:bettingRps:save': (
+    data: { iAmFirst: boolean; history: BrpsAdvisorRound[]; winner?: BrpsAdvisorWinner },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 배수 흑과 백 자문. 타일 또는 의심을 받는다. 최대 90초. */
+  'superAi:multipleBnw:recommend': (
+    data: { iAmFirst: boolean; history: MbnwAdvisorRound[]; pending?: MbnwAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      kind?: 'tile' | 'suspect';
+      tile?: MBNWTile;
+      suspect?: boolean;
+      worlds?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 배수 흑과 백 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:multipleBnw:save': (
+    data: { iAmFirst: boolean; history: MbnwAdvisorRound[]; winner?: MbnwAdvisorWinner },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 연승 자문. 카드를 받는다. 최대 90초. */
+  'superAi:winningStreak:recommend': (
+    data: { history: WsAdvisorRound[] },
+    callback: (res: {
+      success: boolean;
+      card?: WSCardType;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 연승 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:winningStreak:save': (
+    data: { history: WsAdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 흑과백2 자문. 포인트. 후플은 색+단계만. 기보 상대 모형 + 90초 롤아웃. */
+  'superAi:bnw2:recommend': (
+    data: { iAmFirst: boolean; history: Bnw2AdvisorRound[]; pending?: Bnw2AdvisorPending },
+    callback: (res: {
+      success: boolean;
+      points?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 흑과백2 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:bnw2:save': (
+    data: { iAmFirst: boolean; history: Bnw2AdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 실퍼의 흑과백 자문. 타일 배열을 받는다. 후플은 자릿수만. 최대 90초. */
+  'superAi:silperBnw:recommend': (
+    data: { iAmFirst: boolean; history: SbnwAdvisorRound[]; pending?: SbnwAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      tiles?: SBNWTile[];
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 실퍼의 흑과백 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:silperBnw:save': (
+    data: { iAmFirst: boolean; history: SbnwAdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 5개의 탑 자문. 행동을 받는다. 진짜 높이는 안 넣는다. 최대 90초. */
+  'superAi:fiveTowers:recommend': (
+    data: { iAmFirst: boolean; history: FtAdvisorPly[] },
+    callback: (res: {
+      success: boolean;
+      action?: FTAction;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 5개의 탑 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:fiveTowers:save': (
+    data: { iAmFirst: boolean; history: FtAdvisorPly[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 포도설탕2 자문. 카드+설탕을 받는다. 이번 pending은 안 넣는다. 최대 90초. */
+  'superAi:grapeSugar2:recommend': (
+    data: { history: Gs2AdvisorRound[] },
+    callback: (res: {
+      success: boolean;
+      card?: GS2CardId;
+      sugar?: number;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 포도설탕2 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:grapeSugar2:save': (
+    data: { history: Gs2AdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 해달별2 자문. 빛가루 또는 칩. 정확 빛가루·이번 분배는 안 넣는다. 최대 90초. */
+  'superAi:sunMoonStar2:recommend': (
+    data: { iAmFirst: boolean; history: Sms2AdvisorRound[]; pending?: Sms2AdvisorPending },
+    callback: (res: {
+      success: boolean;
+      kind?: 'powder' | 'bet';
+      powder?: SMS2PowderSubmission;
+      bet?: SMS2ChipBet;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 해달별2 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:sunMoonStar2:save': (
+    data: { iAmFirst: boolean; history: Sms2AdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 은행놀이 자문. 베팅. 상대 권종·승자 금액은 안 넣는다. 최대 90초. */
+  'superAi:bankGame:recommend': (
+    data: { iAmFirst: boolean; history: BankAdvisorRound[]; pending?: BankAdvisorPending },
+    callback: (res: {
+      success: boolean;
+      bet?: BankBet;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 은행놀이 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:bankGame:save': (
+    data: { iAmFirst: boolean; history: BankAdvisorRound[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
+  ) => void;
+
+  /** 콰트로 자문. 멀리건·오픈·교환. 상대 미오픈·VP 숨은 패는 안 넣는다. 최대 90초. */
+  'superAi:quatro:recommend': (
+    data: { iAmFirst: boolean; history: QuatroAdvisorPly[] },
+    callback: (res: {
+      success: boolean;
+      action?: QuatroAction;
+      winRate?: number;
+      error?: string;
+    }) => void,
+  ) => void;
+
+  /** 콰트로 자문 종료 판을 슈퍼 AI 기보로 저장. */
+  'superAi:quatro:save': (
+    data: { iAmFirst: boolean; history: QuatroAdvisorPly[] },
+    callback: (res: { success: boolean; id?: string; error?: string }) => void,
   ) => void;
 
   /** 인디언홀덤 (이벤트) — 입장. 칩 1개 이상 보유 시 좌석/관전, 칩 0 또는 게임 중이면 대기열. */

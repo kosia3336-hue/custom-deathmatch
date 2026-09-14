@@ -252,3 +252,53 @@ export function sumBet(bet: SMS2ChipBet): number {
 export function sumPowder(p: SMS2PowderSubmission): number {
   return p.sun + p.moon + p.star;
 }
+
+/** 초반 올인 금지. R1 p90=27. 마지막 라운드만 잔여 전부. */
+export function sms2PowderSoftCap(remain: number, roundsLeft: number): number {
+  if (remain <= 0) return 0;
+  if (roundsLeft <= 1) return remain;
+  if (roundsLeft >= 7) return Math.min(remain, 27);
+  if (roundsLeft >= 5) return Math.min(remain, 22);
+  if (roundsLeft >= 3) return Math.min(remain, 20);
+  return remain;
+}
+
+/** 표시등 단계를 안 떨어뜨리는 최대 지출. 잔여 100 → 19. */
+export function sms2StageKeepSpend(remain: number): number {
+  if (remain <= 0) return 0;
+  const { min } = powderStageRange(powderStageOf(remain));
+  return Math.max(0, remain - min);
+}
+
+export function sms2FocusPowder(mark: SMS2MarkId, amount: number): SMS2PowderSubmission {
+  const p = zeroPowder();
+  p[mark] = Math.max(0, amount);
+  return p;
+}
+
+export function sms2FocusBet(mark: SMS2MarkId, amount: number): SMS2ChipBet {
+  const b = zeroBet();
+  b[mark] = Math.max(0, amount);
+  return b;
+}
+
+export function sms2ApplyChipDelta(chips: number, bet: SMS2ChipBet, lit: SMS2MarkId): number {
+  return chips + 2 * bet[lit] - sumBet(bet);
+}
+
+export function sms2IsPowderStage(n: unknown): n is SMS2PowderStage {
+  return n === 1 || n === 2 || n === 3 || n === 4 || n === 5;
+}
+
+/** 단계 변화로 가능한 지출 구간. 정확 잔량은 모른다. */
+export function sms2SpentByStage(
+  stageBefore: SMS2PowderStage,
+  stageAfter: SMS2PowderStage,
+): { min: number; max: number } {
+  const b = powderStageRange(stageBefore);
+  const a = powderStageRange(stageAfter);
+  return {
+    min: Math.max(0, b.min - a.max),
+    max: Math.max(0, b.max - a.min),
+  };
+}

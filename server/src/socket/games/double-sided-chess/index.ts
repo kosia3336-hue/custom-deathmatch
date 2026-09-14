@@ -45,7 +45,9 @@ export function initDoubleSidedChess(
   if (playMode === 'solo') {
     firstPlayer = { id: players[0].id, nickname: `${players[0].nickname} (선)` };
     secondPlayer = { id: players[0].id, nickname: `${players[0].nickname} (후)` };
-    if (players[0].nickname === '천하') ownerToken = players[0].id;
+    if (players[0].nickname === '천하' || gameOptions?.superAi === true) {
+      ownerToken = players[0].id;
+    }
   } else if (playMode === 'com') {
     firstPlayer = { id: players[0].id, nickname: players[0].nickname };
     secondPlayer = { id: players[1].id, nickname: players[1].nickname };
@@ -73,6 +75,7 @@ export function initDoubleSidedChess(
     turnTimer: null,
     playMode,
     aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty),
+    superAi: gameOptions?.superAi === true,
     gameOver: false,
     actionLog: [],
     undoSnapshots: [],
@@ -156,6 +159,7 @@ export function handleDoubleSidedChessAction(
         turnNumber: s.turnNumber,
         player: s.currentOwner,
         nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+        byAi: s.currentPlayer === AI_PLAYER_ID,
         action: { type: 'move', from, to },
       });
 
@@ -201,6 +205,7 @@ export function handleDoubleSidedChessAction(
         turnNumber: s.turnNumber,
         player: s.currentOwner,
         nickname: s.currentOwner === 'first' ? s.firstPlayer.nickname : s.secondPlayer.nickname,
+        byAi: s.currentPlayer === AI_PLAYER_ID,
         action: { type: 'place-prisoner', pieceType, position },
       });
 
@@ -269,8 +274,10 @@ export function handleDoubleSidedChessToggleAI(
   const aiOn = data.ai === true;
 
   if (aiOn) {
-    // 현재 owner의 id를 AI로 교체
-    if (s.currentOwner === 'first') {
+    if (s.superAi) {
+      s.firstPlayer.id = AI_PLAYER_ID;
+      s.secondPlayer.id = AI_PLAYER_ID;
+    } else if (s.currentOwner === 'first') {
       s.firstPlayer.id = AI_PLAYER_ID;
     } else {
       s.secondPlayer.id = AI_PLAYER_ID;

@@ -9,8 +9,17 @@ export interface AIWorkerData {
   prisoners: { first: PieceType[]; second: PieceType[] };
   currentOwner: Owner;
   useStrong?: boolean;
+  useSuper?: boolean;
   /** 있으면 COM 워커 기본 5s/90s 대신 이 예산(ms)을 쓴다. 더미 상중하. */
   timeLimitMs?: number;
+  /** 실제 턴. 강한 AI 초반/종반 평가용. */
+  turnNumber?: number;
+  /** 직전 수. 왕복(oscillation) 억제용. */
+  lastMove?: AIMove | null;
+  /** 슈퍼 Lazy SMP 헬퍼. 오더링만 흔들고 추가 워커는 안 띄운다. */
+  smpHelper?: boolean;
+  /** 자기대전·오프닝 비교용. 정석·통계 북을 건너뛴다. */
+  skipOpeningBook?: boolean;
 }
 
 /* ── 기물 가치 ── */

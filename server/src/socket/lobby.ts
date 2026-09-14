@@ -8,9 +8,11 @@ import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
 import { listLiveDummyOnlineUsers } from '../dummy/live/online.js';
 
-function isDummyMatchRoom(roomId: string): boolean {
+function isDevSandboxRoom(roomId: string): boolean {
   const room = roomStore.get(roomId);
-  return !!room?.players.some((p) => isDummyPlayerId(p.id));
+  if (!room) return false;
+  if (room.gameOptions?.superAi === true) return true;
+  return room.players.some((p) => isDummyPlayerId(p.id));
 }
 
 export function onlineUsersPayload(
@@ -92,7 +94,7 @@ export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
 }
 
 export function broadcastRoomCreated(io: IO, roomId: string) {
-  if (!isDummyMatchRoom(roomId)) {
+  if (!isDevSandboxRoom(roomId)) {
     const summary = roomStore.getSummary(roomId);
     if (summary) io.to(LOBBY_ROOM).emit('lobby:room:created', summary);
   }
@@ -100,7 +102,7 @@ export function broadcastRoomCreated(io: IO, roomId: string) {
 }
 
 export function broadcastRoomUpdated(io: IO, roomId: string) {
-  if (!isDummyMatchRoom(roomId)) {
+  if (!isDevSandboxRoom(roomId)) {
     const summary = roomStore.getSummary(roomId);
     if (summary) io.to(LOBBY_ROOM).emit('lobby:room:updated', summary);
   }

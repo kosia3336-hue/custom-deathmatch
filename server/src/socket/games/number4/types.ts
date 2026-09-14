@@ -52,6 +52,7 @@ export interface RoundActionLog {
     scoreBefore: number;
     scoreAfter: number;
     conditionDetail: string;
+    byAi?: boolean;
   }>;
 }
 

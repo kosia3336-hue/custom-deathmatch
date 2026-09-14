@@ -107,3 +107,173 @@ export interface QuatroGameData {
   /** 턴 제한(초). 0 = 무제한 */
   turnSeconds: number;
 }
+
+export const QUATRO_SUITS: QuatroSuit[] = ['spade', 'diamond', 'heart', 'club'];
+
+export const QUATRO_SUIT_MARK: Record<QuatroSuit, string> = {
+  spade: '♠',
+  diamond: '♦',
+  heart: '♥',
+  club: '♣',
+  black: '●',
+};
+
+export function cloneQuatroCard(c: QuatroCard): QuatroCard {
+  return { id: c.id, suit: c.suit, num: c.num };
+}
+
+export function quatroFullDeck(): QuatroCard[] {
+  const deck: QuatroCard[] = [];
+  for (const suit of QUATRO_SUITS) {
+    for (let n = 1; n <= 6; n++) deck.push({ id: `${suit}-${n}`, suit, num: n });
+  }
+  deck.push({ id: 'black-0-a', suit: 'black', num: 0 });
+  deck.push({ id: 'black-0-b', suit: 'black', num: 0 });
+  return deck;
+}
+
+export function quatroCardById(id: string): QuatroCard | null {
+  return quatroFullDeck().find((c) => c.id === id) ?? null;
+}
+
+export function quatroSuitPri(c: QuatroCard): number {
+  return QUATRO_SUIT_PRIORITY[c.suit];
+}
+
+export function quatroIsQuatro(hand: QuatroCard[]): boolean {
+  if (hand.filter((c) => c.suit === 'black').length >= 2) return false;
+  const normal = hand.filter((c) => c.suit !== 'black');
+  const suits = new Set(normal.map((c) => c.suit));
+  const nums = new Set(normal.map((c) => c.num));
+  return suits.size === normal.length && nums.size === normal.length;
+}
+
+export function quatroHandSum(hand: QuatroCard[]): number {
+  return hand.reduce((a, c) => a + c.num, 0);
+}
+
+export function quatroDistinctSize(hand: QuatroCard[]): number {
+  const blacks = hand.filter((c) => c.suit === 'black').length;
+  if (blacks >= 2) return 0;
+  const normal = hand.filter((c) => c.suit !== 'black');
+  return Math.min(new Set(normal.map((c) => c.suit)).size, new Set(normal.map((c) => c.num)).size) + blacks;
+}
+
+export function quatroCompareHands(a: QuatroCard[], b: QuatroCard[]): number {
+  const key = (h: QuatroCard[]) =>
+    [...h].sort((x, y) => (y.num - x.num) || (quatroSuitPri(y) - quatroSuitPri(x)));
+  const ka = key(a);
+  const kb = key(b);
+  for (let i = 0; i < Math.max(ka.length, kb.length); i++) {
+    const ca = ka[i];
+    const cb = kb[i];
+    if (!ca || !cb) return ca ? 1 : cb ? -1 : 0;
+    if (ca.num !== cb.num) return ca.num > cb.num ? 1 : -1;
+    if (quatroSuitPri(ca) !== quatroSuitPri(cb)) return quatroSuitPri(ca) > quatroSuitPri(cb) ? 1 : -1;
+  }
+  return 0;
+}
+
+export function quatroJudgeHands(
+  my: QuatroCard[],
+  opp: QuatroCard[],
+): { winner: 'me' | 'opp' | 'draw'; reason: string; myQuatro: boolean; oppQuatro: boolean; mySum: number; oppSum: number } {
+  const myQuatro = quatroIsQuatro(my);
+  const oppQuatro = quatroIsQuatro(opp);
+  const mySum = quatroHandSum(my);
+  const oppSum = quatroHandSum(opp);
+  if (myQuatro !== oppQuatro) {
+    return {
+      winner: myQuatro ? 'me' : 'opp',
+      reason: '콰트로 완성',
+      myQuatro,
+      oppQuatro,
+      mySum,
+      oppSum,
+    };
+  }
+  const label = myQuatro ? '콰트로 완성 — ' : '';
+  if (mySum !== oppSum) {
+    return {
+      winner: mySum > oppSum ? 'me' : 'opp',
+      reason: `${label}합계 ${Math.max(mySum, oppSum)} vs ${Math.min(mySum, oppSum)}`,
+      myQuatro,
+      oppQuatro,
+      mySum,
+      oppSum,
+    };
+  }
+  const cmp = quatroCompareHands(my, opp);
+  if (cmp === 0) {
+    return { winner: 'draw', reason: '완전 동점', myQuatro, oppQuatro, mySum, oppSum };
+  }
+  return {
+    winner: cmp > 0 ? 'me' : 'opp',
+    reason: `${label}합계 동점 — 높은 카드 우세`,
+    myQuatro,
+    oppQuatro,
+    mySum,
+    oppSum,
+  };
+}
+
+/** 규칙 복사. 실상태 VP 패는 호출 측이 넣지 않는다. */
+export function quatroVpPickFrom(vpCards: QuatroCard[], openCards: QuatroCard[]): QuatroCard {
+  const black = vpCards.find((c) => c.suit === 'black');
+  if (black) return black;
+  const openSuits = new Set(openCards.filter((c) => c.suit !== 'black').map((c) => c.suit));
+  const openNums = new Set(openCards.filter((c) => c.suit !== 'black').map((c) => c.num));
+  const fit = vpCards.filter((c) => c.suit === 'black' || (!openSuits.has(c.suit) && !openNums.has(c.num)));
+  const pool = fit.length > 0 ? fit : vpCards;
+  return [...pool].sort((a, b) => (b.num - a.num) || (quatroSuitPri(b) - quatroSuitPri(a)))[0]!;
+}
+
+/** 기보: R1은 6을 잠근다. 오픈은 교환 불가이므로 키퍼. COM 최악 카드 오픈과 반대. */
+export function quatroOpenScore(card: QuatroCard, alreadyOpen: QuatroCard[]): number {
+  const clash = alreadyOpen.some((o) =>
+    o.suit !== 'black' && card.suit !== 'black' && (o.suit === card.suit || o.num === card.num),
+  );
+  let s = card.num * 12;
+  if (card.suit === 'black') s = 28;
+  if (clash) s -= 90;
+  s += quatroSuitPri(card);
+  return s;
+}
+
+export function quatroPickOpenCard(closed: QuatroCard[], alreadyOpen: QuatroCard[]): QuatroCard | null {
+  if (closed.length === 0) return null;
+  let best = closed[0]!;
+  let bestS = -1e9;
+  for (const c of closed) {
+    const s = quatroOpenScore(c, alreadyOpen);
+    if (s > bestS) {
+      bestS = s;
+      best = c;
+    }
+  }
+  return best;
+}
+
+export function quatroShouldMulligan(hand: QuatroCard[], used: number): boolean {
+  if (used >= QUATRO_MAX_MULLIGANS) return false;
+  if (quatroIsQuatro(hand)) return false;
+  const blacks = hand.filter((c) => c.suit === 'black').length;
+  if (blacks >= 2) return true;
+  if (quatroDistinctSize(hand) < 3) return true;
+  if (quatroDistinctSize(hand) === 3 && quatroHandSum(hand) <= 9) return true;
+  return false;
+}
+
+/** 기보: 교환의 91%가 마지막(R3). R1·R2는 거의 스탑. */
+export function quatroShouldStopEarly(round: number, hand: QuatroCard[]): boolean {
+  if (round >= 3) return false;
+  if (quatroIsQuatro(hand)) return true;
+  if (hand.filter((c) => c.suit === 'black').length >= 2) return false;
+  if (quatroDistinctSize(hand) < 3) return false;
+  return true;
+}
+
+export function quatroCardLabel(c: QuatroCard): string {
+  if (c.suit === 'black') return c.id.endsWith('-b') ? '검정0B' : '검정0A';
+  return `${QUATRO_SUIT_MARK[c.suit]}${c.num}`;
+}

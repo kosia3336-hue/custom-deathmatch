@@ -231,3 +231,69 @@ export interface BankGameData {
   winType: BankWinType;
   isFinalRound: boolean;
 }
+
+export function cloneBet(b: BankBet): BankBet {
+  return { 1000: b[1000], 3000: b[3000], 5000: b[5000], 10000: b[10000] };
+}
+
+/** N장으로 만들 수 있는 최대 금액 (시작 권종 한도). */
+export function bankMaxValueWithNotes(n: number): number {
+  let left = Math.max(0, n);
+  let v = 0;
+  const take = (d: BankDenomination, have: number) => {
+    const k = Math.min(have, left);
+    v += k * d;
+    left -= k;
+  };
+  take(10000, BANK_INITIAL_INVENTORY[10000]);
+  take(5000, BANK_INITIAL_INVENTORY[5000]);
+  take(3000, BANK_INITIAL_INVENTORY[3000]);
+  take(1000, BANK_INITIAL_INVENTORY[1000]);
+  return v;
+}
+
+function roundTo1000(n: number): number {
+  return Math.max(0, Math.round(n / 1000) * 1000);
+}
+
+/**
+ * 초반 올인 금지. 기보 R1 p90 ~2.4만. 마지막 라운드만 잔여 전부.
+ * scoreDiff = 내 점수 − 상대 점수.
+ */
+export function bankAmountSoftCap(remain: number, roundsLeft: number, scoreDiff: number): number {
+  if (remain <= 0) return 0;
+  if (roundsLeft <= 1) return remain;
+  const pace = remain / roundsLeft;
+  let cap = Math.min(remain, Math.max(8000, Math.round(pace * 2.05)), 24000);
+  if (scoreDiff <= -2 && roundsLeft <= 4) {
+    cap = Math.min(remain, cap + 4000);
+  }
+  if (scoreDiff >= 3) {
+    cap = Math.min(cap, Math.max(7000, Math.round(pace * 1.55)));
+  }
+  return roundTo1000(cap);
+}
+
+export function bankMaxCountForRound(invCount: number, roundsLeft: number): number {
+  if (invCount <= 0) return 0;
+  if (roundsLeft <= 1) return invCount;
+  if (roundsLeft <= 3) return Math.min(7, invCount);
+  return Math.min(6, invCount);
+}
+
+export function bankMinNote(inv: BankBet): BankBet {
+  const bet = zeroBet();
+  for (const d of BANK_DENOMINATIONS) {
+    if (inv[d] > 0) {
+      bet[d] = 1;
+      return bet;
+    }
+  }
+  return bet;
+}
+
+/** count장으로 가능한 금액 구간. */
+export function bankAmountRangeForCount(count: number): { min: number; max: number } {
+  if (count <= 0) return { min: 0, max: 0 };
+  return { min: count * 1000, max: bankMaxValueWithNotes(count) };
+}

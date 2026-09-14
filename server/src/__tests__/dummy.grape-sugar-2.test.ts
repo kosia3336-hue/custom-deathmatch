@@ -82,13 +82,13 @@ describe('포도설탕2 더미 기보 축', () => {
     expect(candidates(v).every((c) => c.action.card !== 'spaceCrush')).toBe(true);
   });
 
-  it('상대 잔여가 우주뿌셔뿐이면 무행동은 치명', () => {
+  it('상대 잔여가 우주뿌셔뿐이면 무행동은 즉시승이라 후보에 남긴다', () => {
     const v = view({
       my: { score: 0, sugarRemain: 20, hand: ['noAction', 'plus5'], submitted: false, hrPenaltyPending: 0 },
       opp: { score: 0, sugarRemain: 20, hand: ['spaceCrush'], submitted: false, hrPenaltyPending: 0 },
     });
-    expect(isFatalChicken(v, 'noAction')).toBe(true);
-    expect(candidates(v).every((c) => c.action.card !== 'noAction')).toBe(true);
+    expect(isFatalChicken(v, 'noAction')).toBe(false);
+    expect(candidates(v).some((c) => c.action.card === 'noAction')).toBe(true);
   });
 
   it('리드인 마지막 예정 라운드에서 숨고르기는 버린다', () => {
