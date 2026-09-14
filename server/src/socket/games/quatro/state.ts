@@ -581,7 +581,7 @@ function phaseMessage(s: QuatroState): string {
       return idx === -1 ? '카드 분배 중…' : `${s.players[idx].nickname} 멀리건 결정 중`;
     }
     case 'open':
-      return `${s.round}번째 카드 오픈 — 카드를 선택하세요`;
+      return `${s.round}번째 카드 오픈 — 공개할 카드를 선택해야 합니다`;
     case 'exchange': {
       const idx = currentExchangeIdx(s);
       return idx === -1 ? '교환 종료' : `${s.players[idx].nickname} 교환 차례`;

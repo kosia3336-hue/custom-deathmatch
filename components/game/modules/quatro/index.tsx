@@ -187,13 +187,13 @@ export default function QuatroGame() {
   let statusText = '';
   if (phase === 'mulligan') {
     statusText = isMyTurn
-      ? '멀리건을 쓸까요? 지금 카드 4장을 모두 버리고 새 카드 4장을 받습니다.'
+      ? '멀리건을 사용하면 지금 카드 4장을 모두 버리고 새 카드 4장을 받습니다. 사용할지 선택해야 합니다.'
       : `${actorName} 님이 멀리건을 쓸지 고르는 중입니다.`;
   } else if (phase === 'open') {
     statusText = !me
       ? `두 사람이 ${gameData.round}번째로 공개할 카드를 고르는 중입니다.`
       : !gameData.iOpened
-        ? `${gameData.round}번째로 공개할 카드를 1장 고르세요. 상대도 동시에 고릅니다.`
+        ? `${gameData.round}번째로 공개할 카드를 1장 골라야 합니다. 상대도 동시에 고릅니다.`
         : '상대가 공개할 카드를 고르는 중입니다.';
   } else if (phase === 'exchange') {
     statusText = !gameData.currentTurnId
@@ -201,8 +201,8 @@ export default function QuatroGame() {
       : !isMyTurn
         ? `${actorName} 님이 교환하는 중입니다.`
         : gameData.mustExchangeRemaining > 0
-          ? `마지막 교환 라운드입니다. 이번 턴에 가상 플레이어 1명과 교환하세요. 라운드가 끝나기 전까지 남은 ${gameData.mustExchangeRemaining}명과 모두 교환해야 해서 스탑할 수 없습니다.`
-          : '이번 턴에 가상 플레이어 1명과 카드 1장을 교환하세요. 그만 바꾸려면 스탑을 누르세요.';
+          ? `마지막 교환 라운드입니다. 이번 턴에 가상 플레이어 1명과 교환해야 합니다. 라운드가 끝나기 전까지 남은 ${gameData.mustExchangeRemaining}명과 모두 교환해야 해서 스탑할 수 없습니다.`
+          : '이번 턴에 가상 플레이어 1명과 카드 1장을 교환하거나, 스탑해야 합니다.';
   } else if (phase === 'reveal' || phase === 'finished') {
     statusText = '최종 공개!';
   }
@@ -383,7 +383,7 @@ export default function QuatroGame() {
           </div>
           {phase === 'exchange' && isMyTurn && myClosedCards.length > 0 && !selectedCardId && (
             <p className="mt-1.5 text-[11px] text-cdm-fg-subtle">
-              넘길 카드(비공개)를 먼저 고른 뒤 가상 플레이어를 선택하세요. 넘긴 카드는 공개되고, 받는
+              넘길 카드(비공개)를 먼저 고른 뒤 가상 플레이어를 선택해야 합니다. 넘긴 카드는 공개되고, 받는
               카드는 비공개입니다.
             </p>
           )}
