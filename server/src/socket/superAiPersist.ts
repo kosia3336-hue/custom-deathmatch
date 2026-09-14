@@ -21,6 +21,49 @@ import {
   type MbnwAdvisorResult,
   type MbnwAdvisorRound,
 } from '@shared/types/multiple-bnw.js';
+import {
+  buildWsAdvisorKifu,
+  type WsAdvisorResult,
+  type WsAdvisorRound,
+  type WSWinType,
+} from '@shared/types/winning-streak.js';
+import {
+  buildBnw2AdvisorKifu,
+  type Bnw2AdvisorResult,
+  type Bnw2AdvisorRound,
+  type BNW2WinType,
+} from '@shared/types/bnw2.js';
+import {
+  buildSbnwAdvisorKifu,
+  type SbnwAdvisorResult,
+  type SbnwAdvisorRound,
+  type SBNWWinType,
+} from '@shared/types/silper-bnw.js';
+import {
+  buildFtAdvisorKifu,
+  type FtAdvisorPly,
+  type FtAdvisorResult,
+  type FTWinType,
+} from '@shared/types/five-towers.js';
+import { buildGs2AdvisorKifu } from '@shared/types/grape-sugar-2-advisor.js';
+import type { Gs2AdvisorRound, Gs2AdvisorResult, GS2WinType } from '@shared/types/grape-sugar-2.js';
+import {
+  buildSms2AdvisorKifu,
+  type Sms2AdvisorResult,
+  type Sms2AdvisorRound,
+} from '@shared/types/sun-moon-star-2-advisor.js';
+import type { SMS2WinType } from '@shared/types/sun-moon-star-2.js';
+import {
+  buildBankAdvisorKifu,
+  type BankAdvisorResult,
+  type BankAdvisorRound,
+} from '@shared/types/bank-game-advisor.js';
+import type { BankWinType } from '@shared/types/bank-game.js';
+import {
+  buildQuatroAdvisorKifu,
+  type QuatroAdvisorPly,
+  type QuatroAdvisorResult,
+} from '@shared/types/quatro-advisor.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 
 const SUPER_ENGINE = { kind: 'super', thinkMs: 90_000 } as const;
@@ -233,6 +276,303 @@ export async function persistMultipleBnwAdvisorKifu(opts: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb.from as any)('super_ai_games').insert({
     game_id: GAME_IDS.MULTIPLE_BNW,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistWinningStreakAdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  history: WsAdvisorRound[];
+  result: WsAdvisorResult;
+  winType: WSWinType;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildWsAdvisorKifu({
+    history: opts.history,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.WINNING_STREAK,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistBnw2AdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: Bnw2AdvisorRound[];
+  result: Bnw2AdvisorResult;
+  winType: BNW2WinType | null;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildBnw2AdvisorKifu({
+    history: opts.history,
+    iAmFirstStart: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.BNW2,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistSilperBnwAdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: SbnwAdvisorRound[];
+  result: SbnwAdvisorResult;
+  winType: SBNWWinType | null;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildSbnwAdvisorKifu({
+    history: opts.history,
+    iAmFirstStart: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.SILPER_BNW,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistFiveTowersAdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: FtAdvisorPly[];
+  result: FtAdvisorResult;
+  winType: FTWinType | null;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildFtAdvisorKifu({
+    history: opts.history,
+    iAmFirst: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner = opts.result.kind === 'win' ? 'me' : 'opp';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.FIVE_TOWERS,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistGrapeSugar2AdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  history: Gs2AdvisorRound[];
+  result: Gs2AdvisorResult;
+  winType: GS2WinType;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildGs2AdvisorKifu({
+    history: opts.history,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.GRAPE_SUGAR_2,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistSunMoonStar2AdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: Sms2AdvisorRound[];
+  result: Sms2AdvisorResult;
+  winType: SMS2WinType;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildSms2AdvisorKifu({
+    history: opts.history,
+    iAmFirstStart: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.SUN_MOON_STAR_2,
+    member_id: opts.memberId,
+    room_id: null,
+    winner_side: winner,
+    win_type: kifu.winType,
+    total_turns: opts.history.length,
+    play_time_seconds: 0,
+    ai_turns: countAiTurns(kifu),
+    finished: true,
+    kifu,
+    engine: { ...SUPER_ENGINE, advisor: true },
+    played_at: new Date().toISOString(),
+  }).select('id').maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistBankGameAdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: BankAdvisorRound[];
+  result: BankAdvisorResult;
+  winType: BankWinType;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildBankAdvisorKifu({
+    history: opts.history,
+    iAmFirstStart: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+    winType: opts.winType,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  if (error) throw new Error(error.message);
+  return typeof data?.id === 'string' ? data.id : null;
+}
+
+export async function persistQuatroAdvisorKifu(opts: {
+  memberId: string;
+  nickname: string;
+  iAmFirst: boolean;
+  history: QuatroAdvisorPly[];
+  result: QuatroAdvisorResult;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const kifu = buildQuatroAdvisorKifu({
+    history: opts.history,
+    iAmFirstStart: opts.iAmFirst,
+    myNickname: opts.nickname,
+    result: opts.result,
+  });
+  const winner =
+    opts.result.kind === 'win' ? 'me' : opts.result.kind === 'loss' ? 'opp' : 'draw';
+
+  const sb = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.from as any)('super_ai_games').insert({
+    game_id: GAME_IDS.QUATRO,
     member_id: opts.memberId,
     room_id: null,
     winner_side: winner,

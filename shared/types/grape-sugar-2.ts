@@ -160,3 +160,190 @@ export type GS2Action =
 export function makeInitialHand(): GS2CardId[] {
   return [...CARD_IDS];
 }
+
+export type GS2DiceFace = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** 자문 한 라운드. 공개된 카드·설탕·(유효 주사위면) 눈. pending 없음. */
+export interface Gs2AdvisorRound {
+  myCard: GS2CardId;
+  mySugar: number;
+  oppCard: GS2CardId;
+  oppSugar: number;
+  myDice?: GS2DiceFace;
+  oppDice?: GS2DiceFace;
+}
+
+export type Gs2AdvisorResult =
+  | { kind: 'playing' }
+  | { kind: 'win'; reason: string }
+  | { kind: 'loss'; reason: string }
+  | { kind: 'draw'; reason: string };
+
+export interface Gs2AdvisorSide {
+  score: number;
+  sugarRemain: number;
+  hand: GS2CardId[];
+}
+
+export interface Gs2AdvisorSnapshot {
+  round: number;
+  maxRound: 8 | 9;
+  breathAvailable: boolean;
+  my: Gs2AdvisorSide;
+  opp: Gs2AdvisorSide;
+  result: Gs2AdvisorResult;
+  winType: GS2WinType;
+}
+
+export type Gs2AdvisorWinner = 'me' | 'opp' | 'draw';
+export type Gs2AdvisorAsk = 'submit' | 'over';
+
+export const GS2_CHEAP_CARDS: ReadonlySet<GS2CardId> = new Set([
+  'spaceCrush', 'noAction', 'breath',
+]);
+
+const GS2_SUGAR_TYPICAL: Record<GS2CardId, { mode: number; spread: number }> = {
+  spaceCrush: { mode: 1, spread: 1 },
+  noAction: { mode: 1, spread: 1 },
+  breath: { mode: 1, spread: 1 },
+  plus5: { mode: 2, spread: 2 },
+  minus3: { mode: 1, spread: 2 },
+  dice: { mode: 1, spread: 3 },
+  copy: { mode: 6, spread: 3 },
+  highRisk: { mode: 6, spread: 3 },
+  grapeBless: { mode: 9, spread: 4 },
+  earthCrush: { mode: 6, spread: 3 },
+};
+
+const GS2_CARD_P95: Record<GS2CardId, number> = {
+  grapeBless: 13,
+  highRisk: 11,
+  copy: 10,
+  earthCrush: 9,
+  dice: 8,
+  plus5: 5,
+  minus3: 5,
+  breath: 3,
+  noAction: 3,
+  spaceCrush: 2,
+};
+
+function addSugar(set: Set<number>, v: number, remain: number, cap: number): void {
+  if (v < 0 || v > remain || v > cap) return;
+  set.add(Math.floor(v));
+}
+
+/** 우주뿌셔를 냈는데 상대가 무행동을 낼 수 있으면 즉시패. 유일한 내 카드면 허용. */
+export function gs2IsFatalChicken(hand: GS2CardId[], oppHand: GS2CardId[], card: GS2CardId): boolean {
+  if (hand.length <= 1) return false;
+  if (card !== 'spaceCrush') return false;
+  return oppHand.includes('noAction');
+}
+
+/** 상대가 우주뿌셔만 낼 수 있으면 무행동으로 즉시 게임 승. */
+export function gs2IsInstantExecute(hand: GS2CardId[], oppHand: GS2CardId[]): boolean {
+  return hand.includes('noAction') && oppHand.length > 0 && oppHand.every((c) => c === 'spaceCrush');
+}
+
+/** 리드인데 숨고르기로 연장. 이미 연장이거나 유일한 카드가 아니면 버림. */
+export function gs2IsWastedBreath(opts: {
+  card: GS2CardId;
+  handLen: number;
+  breathAvailable: boolean;
+  myScore: number;
+  oppScore: number;
+  round: number;
+  maxRound: number;
+}): boolean {
+  if (opts.card !== 'breath') return false;
+  if (opts.handLen <= 1) return false;
+  if (!opts.breathAvailable) return true;
+  if (opts.myScore > opts.oppScore && opts.round >= opts.maxRound - 1) return true;
+  return false;
+}
+
+/**
+ * 초반 올인 금지. R1–5 설탕 ≥20은 기보 0회.
+ * 마지막 라운드만 잔여 전부.
+ */
+export function gs2SugarSoftCap(
+  card: GS2CardId,
+  remain: number,
+  roundsLeft: number,
+  lastRound: boolean,
+  scoreDiff: number,
+): number {
+  if (remain <= 0) return 0;
+  if (lastRound || roundsLeft <= 1) return remain;
+
+  const minSpend = GS2_CHEAP_CARDS.has(card) ? 1 : 2;
+  const per = roundsLeft >= 5 ? 2.5 : roundsLeft >= 3 ? 2.0 : 1.2;
+  const keep = Math.min(Math.max(0, remain - minSpend), Math.ceil((roundsLeft - 1) * per));
+  const fuelCap = remain - keep;
+  const roundCap = roundsLeft >= 6 ? 12 : roundsLeft >= 4 ? 12 : roundsLeft >= 3 ? 14 : 18;
+  let cap = Math.min(remain, GS2_CARD_P95[card], roundCap, Math.max(minSpend, fuelCap));
+  if (scoreDiff <= -2 && roundsLeft <= 3) {
+    cap = Math.min(remain, cap + 4);
+  }
+  return Math.max(0, Math.floor(cap));
+}
+
+export function gs2SugarCandidates(
+  card: GS2CardId,
+  remain: number,
+  roundsLeft: number,
+  lastRound: boolean,
+  scoreDiff = 0,
+): number[] {
+  const cap = gs2SugarSoftCap(card, remain, roundsLeft, lastRound, scoreDiff);
+  const set = new Set<number>();
+  const t = GS2_SUGAR_TYPICAL[card];
+  addSugar(set, 0, remain, cap);
+  addSugar(set, 1, remain, cap);
+  addSugar(set, t.mode, remain, cap);
+  addSugar(set, t.mode - t.spread, remain, cap);
+  addSugar(set, Math.min(t.mode + t.spread, cap), remain, cap);
+  const pace = Math.min(cap, Math.floor(remain / Math.max(1, roundsLeft)));
+  addSugar(set, pace, remain, cap);
+  addSugar(set, Math.max(1, pace - 1), remain, cap);
+  addSugar(set, pace + 1, remain, cap);
+
+  if (GS2_CHEAP_CARDS.has(card)) {
+    addSugar(set, Math.min(2, remain, cap), remain, cap);
+  } else if (lastRound || roundsLeft <= 1) {
+    addSugar(set, remain, remain, cap);
+    if (remain >= 2) addSugar(set, remain - 1, remain, cap);
+  } else {
+    addSugar(set, cap, remain, cap);
+    addSugar(set, Math.min(remain, t.mode + 2, cap), remain, cap);
+  }
+
+  if ((card === 'copy' || card === 'highRisk') && remain >= 2) {
+    set.delete(0);
+  }
+  if (card === 'spaceCrush' && remain >= 1) {
+    set.delete(0);
+  }
+  if ((card === 'dice' || card === 'grapeBless') && remain >= 2 && roundsLeft > 2) {
+    set.delete(0);
+  }
+
+  const out = [...set].filter((s) => s <= cap).sort((a, b) => a - b);
+  if (out.length > 0) return out;
+  return [Math.min(remain, cap, GS2_CHEAP_CARDS.has(card) ? 1 : Math.max(1, pace))];
+}
+
+/** 우주뿌셔로 무효가 아니면 주사위가 굴려진다. 자문은 나를 p1으로 둔다. */
+export function gs2DiceEffective(
+  myCard: GS2CardId,
+  oppCard: GS2CardId,
+  who: 'me' | 'opp',
+): boolean {
+  if (myCard === 'spaceCrush' && oppCard === 'spaceCrush') return false;
+  if (who === 'me') return myCard === 'dice' && oppCard !== 'spaceCrush';
+  return oppCard === 'dice' && myCard !== 'spaceCrush';
+}
+
+export function gs2IsDiceFace(n: unknown): n is GS2DiceFace {
+  return n === 1 || n === 2 || n === 3 || n === 4 || n === 5 || n === 6;
+}

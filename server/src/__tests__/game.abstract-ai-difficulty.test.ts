@@ -65,22 +65,46 @@ describe('추상전략 AI 난이도 계약', () => {
     expect(isAbstractStrategyGameId(GAME_IDS.BANK_GAME)).toBe(false);
   });
 
-  it('슈퍼 AI 페이지는 사목·양면·넘버4·베팅 가위바위보·배수 흑과 백을 올리고, 대국 방은 사목·양면만이다', () => {
+  it('슈퍼 AI 페이지는 사목·양면·넘버4·베팅 가위바위보·배수 흑과 백·연승·흑과백2·실퍼의 흑과백·5개의 탑·포도설탕2·해달별2·은행놀이·콰트로를 올리고, 대국 방은 사목·양면만이다', () => {
     expect(SUPER_AI_GAMES.map((g) => g.id)).toEqual([
       GAME_IDS.FOUR_GRAVITY,
       GAME_IDS.DOUBLE_SIDED_CHESS,
       GAME_IDS.NUMBER_FOUR,
       GAME_IDS.BETTING_RPS,
       GAME_IDS.MULTIPLE_BNW,
+      GAME_IDS.WINNING_STREAK,
+      GAME_IDS.BNW2,
+      GAME_IDS.SILPER_BNW,
+      GAME_IDS.FIVE_TOWERS,
+      GAME_IDS.GRAPE_SUGAR_2,
+      GAME_IDS.SUN_MOON_STAR_2,
+      GAME_IDS.BANK_GAME,
+      GAME_IDS.QUATRO,
     ]);
     expect(supportsSuperAi(GAME_IDS.FOUR_GRAVITY)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.DOUBLE_SIDED_CHESS)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.NUMBER_FOUR)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.BETTING_RPS)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.MULTIPLE_BNW)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.WINNING_STREAK)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.BNW2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.SILPER_BNW)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.FIVE_TOWERS)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.GRAPE_SUGAR_2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.SUN_MOON_STAR_2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.BANK_GAME)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.QUATRO)).toBe(true);
     expect(supportsSuperAiMatch(GAME_IDS.NUMBER_FOUR)).toBe(false);
     expect(supportsSuperAiMatch(GAME_IDS.BETTING_RPS)).toBe(false);
     expect(supportsSuperAiMatch(GAME_IDS.MULTIPLE_BNW)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.WINNING_STREAK)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.BNW2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.SILPER_BNW)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.FIVE_TOWERS)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.GRAPE_SUGAR_2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.SUN_MOON_STAR_2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.BANK_GAME)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.QUATRO)).toBe(false);
     expect(supportsSuperAiMatch(GAME_IDS.FOUR_GRAVITY)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.KINGMAKING)).toBe(false);
     expect(supportsSuperAi(GAME_IDS.TRIPLE_GOMOKU)).toBe(false);

@@ -57,19 +57,35 @@ export function resolveAbstractAiDifficulty(value: unknown): AbstractAiDifficult
   return value === 'hard' ? 'hard' : DEFAULT_ABSTRACT_AI_DIFFICULTY;
 }
 
-/** `/super-ai` 허브에 올리는 게임. 넘버4·베팅 가위바위보·배수 흑과 백은 자문, 사목·양면은 솔로 방. */
+/** `/super-ai` 허브에 올리는 게임. 넘버4·베팅 가위바위보·배수 흑과 백·연승·흑과백2·실퍼의 흑과백·5개의 탑·포도설탕2·해달별2·은행놀이·콰트로는 자문, 사목·양면은 솔로 방. */
 export const SUPER_AI_GAMES = [
   { id: GAME_IDS.FOUR_GRAVITY, name: '사중력 사목' },
   { id: GAME_IDS.DOUBLE_SIDED_CHESS, name: '양면장기' },
   { id: GAME_IDS.NUMBER_FOUR, name: '넘버4' },
   { id: GAME_IDS.BETTING_RPS, name: '베팅! 가위바위보' },
   { id: GAME_IDS.MULTIPLE_BNW, name: '배수 흑과 백' },
+  { id: GAME_IDS.WINNING_STREAK, name: '연승게임' },
+  { id: GAME_IDS.BNW2, name: '흑과백2' },
+  { id: GAME_IDS.SILPER_BNW, name: '실퍼의 흑과백' },
+  { id: GAME_IDS.FIVE_TOWERS, name: '5개의 탑' },
+  { id: GAME_IDS.GRAPE_SUGAR_2, name: '포도설탕2' },
+  { id: GAME_IDS.SUN_MOON_STAR_2, name: '해달별2' },
+  { id: GAME_IDS.BANK_GAME, name: '은행놀이' },
+  { id: GAME_IDS.QUATRO, name: '콰트로' },
 ] as const;
 
 export function superAiAdvisorHref(gameId: string | null | undefined): string | null {
   if (gameId === GAME_IDS.NUMBER_FOUR) return '/super-ai/number4';
   if (gameId === GAME_IDS.BETTING_RPS) return '/super-ai/betting-rps';
   if (gameId === GAME_IDS.MULTIPLE_BNW) return '/super-ai/multiple-bnw';
+  if (gameId === GAME_IDS.WINNING_STREAK) return '/super-ai/winning-streak';
+  if (gameId === GAME_IDS.BNW2) return '/super-ai/bnw2';
+  if (gameId === GAME_IDS.SILPER_BNW) return '/super-ai/silper-bnw';
+  if (gameId === GAME_IDS.FIVE_TOWERS) return '/super-ai/five-towers';
+  if (gameId === GAME_IDS.GRAPE_SUGAR_2) return '/super-ai/grape-sugar-2';
+  if (gameId === GAME_IDS.SUN_MOON_STAR_2) return '/super-ai/sun-moon-star-2';
+  if (gameId === GAME_IDS.BANK_GAME) return '/super-ai/bank-game';
+  if (gameId === GAME_IDS.QUATRO) return '/super-ai/quatro';
   return null;
 }
 

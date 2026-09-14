@@ -118,7 +118,23 @@ describe('넘버4 슈퍼 자문', () => {
     expect(supportsSuperAi(GAME_IDS.NUMBER_FOUR)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.BETTING_RPS)).toBe(true);
     expect(supportsSuperAi(GAME_IDS.MULTIPLE_BNW)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.WINNING_STREAK)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.BNW2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.SILPER_BNW)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.FIVE_TOWERS)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.GRAPE_SUGAR_2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.SUN_MOON_STAR_2)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.BANK_GAME)).toBe(true);
+    expect(supportsSuperAi(GAME_IDS.QUATRO)).toBe(true);
     expect(supportsSuperAiMatch(GAME_IDS.NUMBER_FOUR)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.WINNING_STREAK)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.BNW2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.SILPER_BNW)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.FIVE_TOWERS)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.GRAPE_SUGAR_2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.SUN_MOON_STAR_2)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.BANK_GAME)).toBe(false);
+    expect(supportsSuperAiMatch(GAME_IDS.QUATRO)).toBe(false);
     expect(supportsSuperAiMatch(GAME_IDS.FOUR_GRAVITY)).toBe(true);
   });
 
