@@ -1,6 +1,7 @@
 'use client';
 
 import type { SMS2GameData, SMS2PlayerPublic } from '@/shared/types/sun-moon-star-2';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * WaitingCard — "상대가 X 중…" 카드
@@ -43,7 +44,7 @@ export function buildWaitingText({
     if (mySubmittedPowder) return '상대가 분배 중...';
     return '빛가루 분배 대기';
   }
-  if (phase === 'betFirst') return `${firstPlayer.nickname} (선)이 베팅 중...`;
-  if (phase === 'betSecond') return `${secondPlayer.nickname} (후)가 베팅 중...`;
+  if (phase === 'betFirst') return `${opponentDisplayName(firstPlayer.nickname, isSpectator)} (선)이 베팅 중...`;
+  if (phase === 'betSecond') return `${opponentDisplayName(secondPlayer.nickname, isSpectator)} (후)가 베팅 중...`;
   return '대기 중...';
 }

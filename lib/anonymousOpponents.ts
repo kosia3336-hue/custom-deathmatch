@@ -9,6 +9,16 @@
 
 export const ANONYMOUS_NICKNAME = '???';
 
+/**
+ * 게임 화면(플레이어 시점)에서 상대를 부르는 이름. 익명(???)이면 '상대'.
+ * "✓ 나 (???)", "??? 선택 중..." 처럼 표시·문장 속 ??? 는 상대라는 걸 알아보기 어렵다.
+ * 관전자 시점은 두 사람 모두 ??? 일 수 있어 '상대' 라고 부를 수 없으므로 그대로 둔다.
+ */
+export function opponentDisplayName(nickname: string | null | undefined, isSpectator = false): string {
+  if (isSpectator) return nickname || '상대';
+  return !nickname || nickname === ANONYMOUS_NICKNAME ? '상대' : nickname;
+}
+
 export interface MatchParticipantRow {
   game_log_id: string;
   member_id: string | null;

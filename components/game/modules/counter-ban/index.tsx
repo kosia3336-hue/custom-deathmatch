@@ -6,6 +6,7 @@ import { getSocket } from '@/lib/socket';
 import { playBanSfx } from '@/lib/sfx';
 import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useRoomStore } from '@/stores/room';
 import { useRankMatchStore } from '@/stores/rankMatch';
@@ -70,7 +71,7 @@ export default function CounterBanGame() {
   })();
 
   const selfName = view.players.find((p) => p.id === myId)?.nickname ?? '나';
-  const oppName = view.players.find((p) => p.id !== myId)?.nickname ?? '상대';
+  const oppName = opponentDisplayName(view.players.find((p) => p.id !== myId)?.nickname, isSpectator);
 
   return (
     <div className="hidden-ban-stage relative flex h-full min-h-0 flex-1 overflow-hidden">

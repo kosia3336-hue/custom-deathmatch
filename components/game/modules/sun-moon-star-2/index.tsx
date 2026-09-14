@@ -15,6 +15,7 @@ import OpponentPowderTracker from './OpponentPowderTracker';
 import RoundHistoryTable from './RoundHistoryTable';
 import { zeroOpponentEstimate } from './types';
 import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * 해달별 II — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -168,7 +169,7 @@ function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
           leftRemain={!isSpectator && myPlayer ? gameData.selfPrivate?.powderRemain ?? null : null}
           leftIsFirst={left.side === gameData.firstPlayerSide}
           leftChips={left.chips}
-          rightLabel={right.nickname}
+          rightLabel={!isSpectator && opponent ? opponentDisplayName(opponent.nickname) : right.nickname}
           rightStage={right.powderStage}
           rightRemain={null}
           rightIsFirst={right.side === gameData.firstPlayerSide}

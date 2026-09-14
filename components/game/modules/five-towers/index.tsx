@@ -18,6 +18,7 @@ import { GAME_IDS } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
 import InferenceField, { TOWER_COLORS } from './InferenceField';
 import ActionPanel from './ActionPanel';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '3선승 달성',
@@ -523,7 +524,7 @@ export default function FiveTowersGame() {
                       <b className="text-indigo-700">내 차례</b>
                     ) : (
                       <>
-                        <b className="text-gray-700">{currentPlayer.nickname}</b> 차례
+                        <b className="text-gray-700">{opponentDisplayName(currentPlayer.nickname, isSpectator)}</b> 차례
                       </>
                     )}
                   </span>
@@ -642,7 +643,7 @@ export default function FiveTowersGame() {
             open={sheetOpen && isMyTurn}
             onClose={() => setSheetOpen(false)}
             /* 내 차례에 '<내 닉> 차례' 라고 하면 남 얘기처럼 읽힌다 */
-            title={isMyTurn ? '내 차례' : `${currentPlayer?.nickname ?? '상대'} 차례`}
+            title={isMyTurn ? '내 차례' : `${opponentDisplayName(currentPlayer?.nickname, isSpectator)} 차례`}
           >
             {actionContent}
           </BottomSheet>

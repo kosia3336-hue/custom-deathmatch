@@ -23,6 +23,7 @@ import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
+import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
 import type { GameUndoProposal, GameTimeExpiry } from '@/shared/types/events';
 
@@ -258,7 +259,11 @@ export default function GameShell({ children }: Props) {
               {reconnectingPlayers.length === 1 ? (
                 <>
                   <h3 className="mb-1 text-lg font-bold text-cdm-fg">
-                    {reconnectingPlayers[0].nickname} 님 연결이 끊어졌습니다
+                    {/* 익명(???)은 플레이어에게 '상대' 로 — "??? 님" 은 누구인지 알아보기 어렵다 */}
+                    {!isSpectator && reconnectingPlayers[0].nickname === ANONYMOUS_NICKNAME
+                      ? '상대'
+                      : `${reconnectingPlayers[0].nickname} 님`}{' '}
+                    연결이 끊어졌습니다
                   </h3>
                   <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
                   <div className="mb-4 text-3xl font-bold tabular-nums text-cdm-primary">

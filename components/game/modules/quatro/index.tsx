@@ -17,6 +17,7 @@ import {
 } from '@/shared/types/quatro';
 import FourCardCard from './skins/FourCardCard';
 import QuatroRecord from './QuatroRecord';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 /* ── 카드 표현: 문양 + 색 (스=파랑, 다=노랑, 하=빨강, 클=초록, 검정0) ── */
@@ -177,18 +178,20 @@ export default function QuatroGame() {
 
   const myClosedCards = me?.hand.filter((h) => h.card && !h.open) ?? [];
 
-  // 차례 표시는 나를 '나'로, 상대·관전 중인 두 사람은 닉네임으로 부른다
+  // 차례 표시: 플레이어에게는 나/상대(익명 ??? 가 누구인지 헷갈리지 않게), 관전자에게는 두 사람의 닉네임
   const turnName = (id: string | null) =>
-    id ? (id === myId ? '나' : gameData.players[id]?.nickname ?? '???') : null;
+    id ? (id === myId ? '나' : me ? '상대' : gameData.players[id]?.nickname ?? '???') : null;
   const currentName = turnName(gameData.currentTurnId);
   const nextName = turnName(gameData.nextTurnId ?? null);
-  const actorName = gameData.currentTurnId ? gameData.players[gameData.currentTurnId]?.nickname ?? '???' : '';
+  const actorSubject = me
+    ? '상대가'
+    : `${gameData.currentTurnId ? gameData.players[gameData.currentTurnId]?.nickname ?? '???' : ''} 님이`;
 
   let statusText = '';
   if (phase === 'mulligan') {
     statusText = isMyTurn
       ? '멀리건을 사용하면 지금 카드 4장을 모두 버리고 새 카드 4장을 받습니다. 사용할지 선택해야 합니다.'
-      : `${actorName} 님이 멀리건을 쓸지 고르는 중입니다.`;
+      : `${actorSubject} 멀리건을 쓸지 고르는 중입니다.`;
   } else if (phase === 'open') {
     statusText = !me
       ? `두 사람이 ${gameData.round}번째로 공개할 카드를 고르는 중입니다.`
@@ -199,7 +202,7 @@ export default function QuatroGame() {
     statusText = !gameData.currentTurnId
       ? '교환이 끝났습니다.'
       : !isMyTurn
-        ? `${actorName} 님이 교환하는 중입니다.`
+        ? `${actorSubject} 교환하는 중입니다.`
         : gameData.mustExchangeRemaining > 0
           ? `마지막 교환 라운드입니다. 이번 턴에 가상 플레이어 1명과 교환해야 합니다. 라운드가 끝나기 전까지 남은 ${gameData.mustExchangeRemaining}명과 모두 교환해야 해서 스탑할 수 없습니다.`
           : '이번 턴에 가상 플레이어 1명과 카드 1장을 교환하거나, 스탑해야 합니다.';
@@ -236,7 +239,7 @@ export default function QuatroGame() {
         <section className="quatro-panel rounded-cdm-lg border border-cdm-border bg-cdm-bg p-3">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-semibold text-cdm-fg">
-              {opp.nickname}
+              {opponentDisplayName(opp.nickname)}
               {gameData.firstId === opp.id && <span className="ml-1.5 rounded bg-cdm-highlight/20 px-1.5 text-[10px] font-bold text-cdm-highlight">선</span>}
             </span>
             <span className="text-xs text-cdm-fg-muted">
@@ -277,11 +280,10 @@ export default function QuatroGame() {
               >
                 <span className="text-[11px] font-bold text-cdm-fg">
                   {String.fromCharCode(65 + vp.index)}
-                  {vp.usedByMe && (
-                    <span className="text-cdm-primary"> ✓ {me?.nickname ?? '나'}</span>
-                  )}
+                  {/* 교환 표시는 닉네임 대신 나/상대 — 익명(???)이면 누구인지 헷갈린다 */}
+                  {vp.usedByMe && <span className="text-cdm-primary"> ✓ 나</span>}
                   {vp.usedByOpp && (
-                    <span className="text-cdm-fg-subtle"> ({opp?.nickname ?? '상대'})</span>
+                    <span className="text-cdm-fg-subtle"> ✓ {me ? '상대' : '교환됨'}</span>
                   )}
                 </span>
                 <div className="flex gap-0.5">

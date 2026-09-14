@@ -17,6 +17,7 @@ import ShowdownColorBanner from './skins/ShowdownColorBanner';
 import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
 import { playShowdownSubmitSfx } from './skins/showdownSfx';
 import { GameFrame } from '@/components/game/GameFrame';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
@@ -539,7 +540,7 @@ export default function BNW2Game() {
   const leftPlayer = !isSpectator && myPlayer ? myPlayer : playerEntries[0]?.[1];
   const rightPlayer = !isSpectator && opponentPlayer ? opponentPlayer : playerEntries[1]?.[1];
   const leftLabel = !isSpectator ? '나' : (playerEntries[0]?.[1]?.nickname ?? '');
-  const rightLabel = !isSpectator ? (opponentPlayer?.nickname ?? '상대') : (playerEntries[1]?.[1]?.nickname ?? '');
+  const rightLabel = !isSpectator ? opponentDisplayName(opponentPlayer?.nickname) : (playerEntries[1]?.[1]?.nickname ?? '');
 
   const isMyTurn =
     !isSpectator &&
@@ -648,8 +649,8 @@ export default function BNW2Game() {
                 <WaitingCard
                   text={
                     gameData.phase === 'firstSubmit'
-                      ? `${josa(fp?.nickname ?? '선플', '이/가')} 포인트를 제시 중...`
-                      : `${josa(sp?.nickname ?? '후플', '이/가')} 포인트를 제시 중...`
+                      ? `${josa(opponentDisplayName(fp?.nickname), '이/가')} 포인트를 제시 중...`
+                      : `${josa(opponentDisplayName(sp?.nickname), '이/가')} 포인트를 제시 중...`
                   }
                 />
               ) : null}
@@ -714,8 +715,8 @@ export default function BNW2Game() {
                 <WaitingCard
                   text={
                     gameData.phase === 'firstSubmit'
-                      ? `${josa(fp?.nickname ?? '선플', '이/가')} 포인트를 제시 중...`
-                      : `${josa(sp?.nickname ?? '후플', '이/가')} 포인트를 제시 중...`
+                      ? `${josa(opponentDisplayName(fp?.nickname), '이/가')} 포인트를 제시 중...`
+                      : `${josa(opponentDisplayName(sp?.nickname), '이/가')} 포인트를 제시 중...`
                   }
                 />
               </div>

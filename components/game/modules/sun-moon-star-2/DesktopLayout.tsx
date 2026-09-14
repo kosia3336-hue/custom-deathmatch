@@ -11,6 +11,7 @@ import PhaseArea from './PhaseArea';
 import { zeroOpponentEstimate } from './types';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * DesktopLayout — ≥ 1024px
@@ -133,7 +134,7 @@ export default function DesktopLayout({ ctx }: Props) {
             }
             leftChips={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).chips}
             rightLabel={
-              !isSpectator && opponent ? opponent.nickname : gameData.players.p2.nickname
+              !isSpectator && opponent ? opponentDisplayName(opponent.nickname) : gameData.players.p2.nickname
             }
             rightStage={
               (!isSpectator && opponent ? opponent : gameData.players.p2).powderStage

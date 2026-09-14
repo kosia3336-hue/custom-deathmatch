@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PlayingCard } from '@/components/game/cards';
 import type { IPPlayerInfo } from '@/shared/types/indian-poker';
 import type { SkinTheme } from '@/lib/skins/registry';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import MoonlitCard, { type MoonlitDealFly } from './skins/MoonlitCard';
 import MoonlitTableShell from './skins/MoonlitTableShell';
 import MoonlitDeckPile from './skins/MoonlitDeckPile';
@@ -103,7 +104,7 @@ function CardAreaContent({
     <>
       <div className="flex flex-col items-center gap-1">
         <span className={`text-[10px] lg:text-xs ${labelClass}`}>
-          {opponentPlayer?.nickname ?? '상대'} 카드
+          {opponentDisplayName(opponentPlayer?.nickname, isSpectator)} 카드
         </span>
         {showOpp ? (
           <TableCard

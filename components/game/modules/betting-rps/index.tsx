@@ -13,6 +13,7 @@ import ResultSelector from './ResultSelector';
 import BetSelector from './BetSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
@@ -143,7 +144,7 @@ export default function BettingRpsGame() {
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
                     <span>제출 완료</span>
                     <span className="text-gray-400">—</span>
-                    <span className="animate-pulse text-gray-400">{opponent?.nickname ?? '상대'} 선택 중...</span>
+                    <span className="animate-pulse text-gray-400">{opponentDisplayName(opponent?.nickname)} 선택 중...</span>
                   </div>
                 )}
               </>

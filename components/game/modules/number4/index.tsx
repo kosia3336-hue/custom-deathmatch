@@ -13,6 +13,7 @@ import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import TileTracker from './TileTracker';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
@@ -191,7 +192,7 @@ export default function NumberFourGame() {
             </div>
             <p className="text-sm" style={{ color: 'var(--dl-ink-dim)' }}>
               <span className="font-medium" style={{ color: 'var(--dl-frost)' }}>
-                {opponent?.nickname ?? '상대'}
+                {opponentDisplayName(opponent?.nickname, isSpectator)}
               </span>{' '}
               선택 중...
             </p>
@@ -201,7 +202,7 @@ export default function NumberFourGame() {
         <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
           <div className="animate-pulse text-gray-400">● ● ●</div>
           <p className="text-sm text-gray-500">
-            <span className="animate-pulse">{opponent?.nickname ?? '상대'}</span> 선택 중...
+            <span className="animate-pulse">{opponentDisplayName(opponent?.nickname, isSpectator)}</span> 선택 중...
           </p>
         </div>
       )

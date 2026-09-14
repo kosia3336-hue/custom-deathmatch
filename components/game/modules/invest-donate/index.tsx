@@ -11,6 +11,7 @@ import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
 import PlayerStatusCard from './PlayerStatusCard';
 import OpponentInferPanel from './OpponentInferPanel';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
@@ -127,7 +128,7 @@ export default function InvestDonateGame() {
                     {opponent && !opponent.submitted && (
                       <>
                         <span className="text-gray-400">—</span>
-                        <span className="animate-pulse text-gray-400">{opponent.nickname} 배분 중...</span>
+                        <span className="animate-pulse text-gray-400">{opponentDisplayName(opponent.nickname)} 배분 중...</span>
                       </>
                     )}
                   </div>
@@ -136,7 +137,7 @@ export default function InvestDonateGame() {
                 {/* Opponent coin display */}
                 {!isSpectator && opponent && (
                   <OpponentInferPanel
-                    opponentNickname={opponent.nickname}
+                    opponentNickname={opponentDisplayName(opponent.nickname)}
                     opponentCoinStock={opponent.coinStock}
                   />
                 )}
