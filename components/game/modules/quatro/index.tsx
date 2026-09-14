@@ -177,21 +177,58 @@ export default function QuatroGame() {
 
   const myClosedCards = me?.hand.filter((h) => h.card && !h.open) ?? [];
 
+  // 차례 표시는 나를 '나'로, 상대·관전 중인 두 사람은 닉네임으로 부른다
+  const turnName = (id: string | null) =>
+    id ? (id === myId ? '나' : gameData.players[id]?.nickname ?? '???') : null;
+  const currentName = turnName(gameData.currentTurnId);
+  const nextName = turnName(gameData.nextTurnId ?? null);
+  const actorName = gameData.currentTurnId ? gameData.players[gameData.currentTurnId]?.nickname ?? '???' : '';
+
+  let statusText = '';
+  if (phase === 'mulligan') {
+    statusText = isMyTurn
+      ? '멀리건을 쓸까요? 지금 카드 4장을 모두 버리고 새 카드 4장을 받습니다.'
+      : `${actorName} 님이 멀리건을 쓸지 고르는 중입니다.`;
+  } else if (phase === 'open') {
+    statusText = !me
+      ? `두 사람이 ${gameData.round}번째로 공개할 카드를 고르는 중입니다.`
+      : !gameData.iOpened
+        ? `${gameData.round}번째로 공개할 카드를 1장 고르세요. 상대도 동시에 고릅니다.`
+        : '상대가 공개할 카드를 고르는 중입니다.';
+  } else if (phase === 'exchange') {
+    statusText = !gameData.currentTurnId
+      ? '교환이 끝났습니다.'
+      : !isMyTurn
+        ? `${actorName} 님이 교환하는 중입니다.`
+        : gameData.mustExchangeRemaining > 0
+          ? `마지막 교환 라운드입니다. 이번 턴에 가상 플레이어 1명과 교환하세요. 라운드가 끝나기 전까지 남은 ${gameData.mustExchangeRemaining}명과 모두 교환해야 해서 스탑할 수 없습니다.`
+          : '이번 턴에 가상 플레이어 1명과 카드 1장을 교환하세요. 그만 바꾸려면 스탑을 누르세요.';
+  } else if (phase === 'reveal' || phase === 'finished') {
+    statusText = '최종 공개!';
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl justify-center gap-4 lg:items-start">
     <div className={cn('flex w-full min-w-0 max-w-3xl flex-col gap-4 p-3 sm:p-4', isFourCard && 'skin-four-card-table')}>
-      {/* 상태 배너 */}
+      {/* 상태 배너 — 안내 + 현재 턴 / 다음 턴(한쪽이 빠지면 현재 턴만) */}
       <div className="quatro-status rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-center text-sm font-semibold text-cdm-fg">
-        {phase === 'mulligan' && (isMyTurn ? '멀리건을 사용할까요?' : '상대가 멀리건을 결정 중…')}
-        {phase === 'open' &&
-          (me && !gameData.iOpened ? `${gameData.round}번째로 오픈할 카드를 선택하세요` : '상대의 오픈을 기다리는 중…')}
-        {phase === 'exchange' &&
-          (isMyTurn
-            ? gameData.mustExchangeRemaining > 0
-              ? `마지막 교환! 남은 가상 플레이어 ${gameData.mustExchangeRemaining}명과 모두 교환해야 합니다`
-              : '교환할 카드와 가상 플레이어를 고르세요 (또는 스탑)'
-            : '상대의 교환 차례…')}
-        {(phase === 'reveal' || phase === 'finished') && '최종 공개!'}
+        <p>{statusText}</p>
+        {(phase === 'mulligan' || phase === 'exchange') && currentName && (
+          <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-xs font-normal text-cdm-fg-muted">
+            <span>
+              현재 턴{' '}
+              <b className={cn('font-bold', isMyTurn ? 'text-cdm-primary' : 'text-cdm-fg')}>{currentName}</b>
+            </span>
+            {nextName && (
+              <>
+                <span aria-hidden className="text-cdm-fg-subtle">›</span>
+                <span>
+                  다음 턴 <b className="font-bold text-cdm-fg">{nextName}</b>
+                </span>
+              </>
+            )}
+          </p>
+        )}
       </div>
 
       {/* 상대 */}

@@ -106,6 +106,8 @@ export interface QuatroGameData {
   round: number; // 1~4 (오픈 라운드)
   firstId: string; // 이번 라운드 선
   currentTurnId: string | null; // 지금 행동할 사람 (open 단계는 null=동시)
+  /** 다음 차례 예정자(멀리건·교환 단계). 한쪽이 멀리건을 끝냈거나 스탑했으면 null — 남은 한 사람만 계속한다 */
+  nextTurnId: string | null;
   me: QuatroPlayerView | null; // 관전자는 null
   opp: QuatroPlayerView | null;
   players: Record<string, { nickname: string }>;

@@ -60,6 +60,27 @@ describe('콰트로 메모 기록', () => {
     expect(buildGameData(s, 'b').firstByRound).toEqual({ 0: 'a', 1: 'a', 2: 'b' });
   });
 
+  it('멀리건: 다음 차례를 알려 주고, 상대가 멀리건을 끝냈으면 다음 차례는 없다', () => {
+    const s = fresh();
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'a', nextTurnId: 'b' });
+    applyMulligan(s, 0, false);
+    s.mulliganQueue.shift();
+    expect(buildGameData(s, 'b')).toMatchObject({ currentTurnId: 'b', nextTurnId: null });
+  });
+
+  it('교환: 선-후-후-선 순서대로 다음 차례를 알려 주고, 상대가 스탑하면 현재 차례만 남는다', () => {
+    const { s } = playToFirstExchange();
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'a', nextTurnId: 'b' });
+    s.turnPtr = 1;
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'b', nextTurnId: 'b' });
+    s.turnPtr = 2;
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'b', nextTurnId: 'a' });
+    s.turnPtr = 3;
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'a', nextTurnId: 'a' });
+    s.players[1].stopped = true;
+    expect(buildGameData(s, 'a')).toMatchObject({ currentTurnId: 'a', nextTurnId: null });
+  });
+
   it('최종 공개 뒤에는 받은 카드도 모두에게 보인다', () => {
     const { s } = playToFirstExchange();
     s.phase = 'reveal';

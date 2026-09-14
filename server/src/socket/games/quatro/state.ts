@@ -498,6 +498,39 @@ function currentTurnId(s: QuatroState): string | null {
 }
 
 /**
+ * 다음 차례 예정자. 지금 차례인 사람이 이번 턴에 멀리건을 쓰거나 교환한다고 보고 순서표를 한 칸 앞서 읽는다.
+ * 한쪽이 이미 빠졌으면(멀리건 종료·스탑·가상 플레이어 모두 교환) 남은 사람만 이어 하므로 null 이다.
+ */
+export function nextTurnId(s: QuatroState): string | null {
+  if (s.phase === 'mulligan') {
+    const cur = currentMulliganIdx(s);
+    if (cur === -1) return null;
+    const other = player(s, cur === 0 ? 1 : 0);
+    if (other.mulliganDone || other.mulligansUsed >= QUATRO_MAX_MULLIGANS) return null;
+    for (const idx of s.mulliganQueue.slice(1)) {
+      const p = player(s, idx);
+      const used = p.mulligansUsed + (idx === cur ? 1 : 0);
+      if (!p.mulliganDone && used < QUATRO_MAX_MULLIGANS) return p.id;
+    }
+    return null;
+  }
+  if (s.phase === 'exchange') {
+    const cur = currentExchangeIdx(s);
+    if (cur === -1) return null;
+    const other = player(s, cur === 0 ? 1 : 0);
+    if (other.stopped || other.usedVps.size >= QUATRO_VP_COUNT) return null;
+    for (let i = s.turnPtr + 1; i < s.turnQueue.length; i++) {
+      const idx = s.turnQueue[i];
+      const p = player(s, idx);
+      const used = p.usedVps.size + (idx === cur ? 1 : 0);
+      if (!p.stopped && used < QUATRO_VP_COUNT) return p.id;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
  * 메모 '기록'용 진행 로그. 교환으로 받은 카드는 받은 사람에게만 보이고 상대·관전자에게는 null(뒷면)이다.
  * 최종 공개 뒤에는 모두 공개된 패이므로 가리지 않는다. 넘긴 카드·오픈한 카드·멀리건 여부는 원래 공개 정보다.
  */
@@ -523,6 +556,7 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     round: s.round,
     firstId: s.players[s.firstIdx].id,
     currentTurnId: currentTurnId(s),
+    nextTurnId: nextTurnId(s),
     me: meP ? playerView(s, meP, viewerId, true) : null,
     opp: oppP ? playerView(s, oppP, viewerId, false) : null,
     players: {
