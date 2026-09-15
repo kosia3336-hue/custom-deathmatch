@@ -23,6 +23,7 @@ import TripleGomokuGame from '@/components/game/modules/triple-gomoku';
 import ChoiceHoldemGame from '@/components/game/modules/choice-holdem';
 import SeedSeotdaGame from '@/components/game/modules/seed-seotda';
 import DoubleSidedPokerGame from '@/components/game/modules/double-sided-poker';
+import MyeongchuriGame from '@/components/game/modules/myeongchuri';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -68,6 +69,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemGame,
   [GAME_IDS.SEED_SEOTDA]: SeedSeotdaGame,
   [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerGame,
+  [GAME_IDS.MYEONGCHURI]: MyeongchuriGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 

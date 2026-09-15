@@ -44,6 +44,7 @@ export const GAME_IDS = {
   CHOICE_HOLDEM: 'game-025',
   SEED_SEOTDA: 'game-026',
   DOUBLE_SIDED_POKER: 'game-027',
+  MYEONGCHURI: 'game-028',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

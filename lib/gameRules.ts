@@ -140,6 +140,12 @@ export const GAME_RULES: GameRule[] = [
     category: '심리',
     rules: '',
   },
+  {
+    id: 'game-028',
+    name: '명추리',
+    category: '수리',
+    rules: '',
+  },
 ];
 
 /**

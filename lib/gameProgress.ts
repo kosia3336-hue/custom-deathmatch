@@ -36,6 +36,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.CHOICE_HOLDEM]: 'round',
   [GAME_IDS.SEED_SEOTDA]: 'round',
   [GAME_IDS.DOUBLE_SIDED_POKER]: 'round',
+  [GAME_IDS.MYEONGCHURI]: 'round',
 } as const;
 
 export function progressData(state: GameState | null | undefined): Record<string, unknown> {
@@ -100,6 +101,7 @@ export function getGameStatus(
     result: '라운드 결과',
     roundResult: '라운드 결과',
     'round-result': '라운드 결과',
+    thinking: '생각 시간',
   };
   return phase ? phaseLabels[phase] : undefined;
 }

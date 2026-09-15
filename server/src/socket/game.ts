@@ -434,6 +434,16 @@ import {
   getDoubleSidedPokerResultData,
 } from './games/double-sided-poker/index.js';
 import {
+  initMyeongchuri,
+  handleMyeongchuriAction,
+  cleanupMyeongchuri,
+  getMyeongchuriState,
+  emitMyeongchuriStateToSocket,
+  performMyeongchuriUndo,
+  canMyeongchuriUndo,
+  getMyeongchuriResultData,
+} from './games/myeongchuri/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -488,6 +498,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performDoubleSidedPokerUndo,
     canUndo: canDoubleSidedPokerUndo,
     getResultData: getDoubleSidedPokerResultData,
+  },
+  [GAME_IDS.MYEONGCHURI]: {
+    init: initMyeongchuri,
+    handleAction: handleMyeongchuriAction,
+    cleanup: cleanupMyeongchuri,
+    getState: getMyeongchuriState,
+    emitStateToSocket: emitMyeongchuriStateToSocket,
+    performUndo: performMyeongchuriUndo,
+    canUndo: canMyeongchuriUndo,
+    getResultData: getMyeongchuriResultData,
   },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,
