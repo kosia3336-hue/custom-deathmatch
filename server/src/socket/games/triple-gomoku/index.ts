@@ -1,6 +1,7 @@
 import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   applyTripleGomokuAction,
+  cloneTripleGomokuBoard,
   canMoveTripleGomokuStone,
   canPlaceTripleGomokuSetup,
   canPlaceTripleGomokuStone,
@@ -223,6 +224,17 @@ function applyAction(
   if (state.aiTimer) clearTimeout(state.aiTimer);
   state.aiTimer = null;
 
+  state.undoStack.push({
+    board: cloneTripleGomokuBoard(state.board),
+    reserves: { ...state.reserves },
+    currentPlayerId: state.currentPlayerId,
+    phase: state.phase,
+    turnNumber: state.turnNumber,
+    setupTurnIndex: state.setupTurnIndex,
+    setupRemaining: state.setupRemaining,
+    lastAction: state.lastAction,
+    actionLogLength: state.actionLog.length,
+  });
   state.board = applyTripleGomokuAction(state.board, action, actorId);
   if (action.type === 'place') state.reserves[actorId] = (state.reserves[actorId] ?? 0) - 1;
   const entry = { turn: state.turnNumber, actorId, action };
@@ -273,6 +285,7 @@ export function initTripleGomoku(
     setupTurnIndex: 0,
     setupRemaining: TG_SETUP_SEQUENCE[0],
     actionLog: [],
+    undoStack: [],
     lastAction: null,
     winnerId: null,
     winType: null,
@@ -322,12 +335,50 @@ export function getTripleGomokuResultData(roomId: string) {
   return state ? toTripleGomokuRecord(state) : undefined;
 }
 
-export function performTripleGomokuUndo() {
-  return false;
+/**
+ * 되돌아갈 스냅숏 위치. -1 이면 무를 수 없다.
+ * 1:1 은 마지막 행동 하나(기본 배치에서 두 개를 놓는 턴도 한 개씩)를 되돌린다.
+ * COM 판은 사람 차례가 될 때까지 되돌려 COM 의 수와 내 수를 함께 무른다.
+ */
+function undoTargetIndex(state: TripleGomokuState) {
+  const stack = state.undoStack;
+  if (state.playMode !== 'com') return stack.length - 1;
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    if (stack[index].currentPlayerId !== AI_PLAYER_ID) return index;
+  }
+  return -1;
 }
 
-export function canTripleGomokuUndo() {
-  return false;
+export function performTripleGomokuUndo(io: IO, roomId: string) {
+  const state = tripleGomokuStates.get(roomId);
+  if (!state || state.gameOver) return false;
+  const target = undoTargetIndex(state);
+  if (target < 0) return false;
+  const snapshot = state.undoStack[target];
+  state.undoStack.length = target;
+
+  clearTripleGomokuTimers(state);
+  state.board = cloneTripleGomokuBoard(snapshot.board);
+  state.reserves = { ...snapshot.reserves };
+  state.currentPlayerId = snapshot.currentPlayerId;
+  state.phase = snapshot.phase;
+  state.turnNumber = snapshot.turnNumber;
+  state.setupTurnIndex = snapshot.setupTurnIndex;
+  state.setupRemaining = snapshot.setupRemaining;
+  state.lastAction = snapshot.lastAction;
+  state.actionLog.length = snapshot.actionLogLength;
+  state.turnStartedAt = Date.now();
+
+  armTurnTimer(io, state);
+  void broadcastTripleGomokuState(io, state);
+  scheduleAi(io, state);
+  return true;
+}
+
+export function canTripleGomokuUndo(roomId: string) {
+  const state = tripleGomokuStates.get(roomId);
+  if (!state || state.gameOver) return false;
+  return undoTargetIndex(state) >= 0;
 }
 
 export { emitTripleGomokuStateToSocket };

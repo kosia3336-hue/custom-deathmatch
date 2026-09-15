@@ -43,7 +43,6 @@ function actionLabel(action: TripleGomokuArchiveRecord['actions'][number]['actio
 export default function TripleGomokuViewer({ record }: { record: GameRecordFile }) {
   const data = record.gameRecord as TripleGomokuArchiveRecord | null;
   const [turnIndex, setTurnIndex] = useState<number | null>(null);
-  const [tilted, setTilted] = useState(true);
   const frames = useMemo(() => buildFrames(data), [data]);
 
   if (!data || !Array.isArray(data.actions)) {
@@ -91,7 +90,6 @@ export default function TripleGomokuViewer({ record }: { record: GameRecordFile 
           <TripleGomokuBoardView
             board={board}
             firstPlayerId={data.firstPlayerId}
-            tilted={tilted}
             markOf={(cell) => (isFinal && winKeys.has(tripleGomokuCellKey(cell)) ? 'win' : 'none')}
             ariaLabel="삼층 오목 기록 판"
           />
@@ -130,13 +128,6 @@ export default function TripleGomokuViewer({ record }: { record: GameRecordFile 
               className="border-cdm-border rounded-cdm-md border px-3 py-2 text-xs font-bold disabled:opacity-30"
             >
               마지막
-            </button>
-            <button
-              type="button"
-              onClick={() => setTilted((value) => !value)}
-              className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-md border px-3 py-2 text-xs font-bold"
-            >
-              {tilted ? '평면' : '입체'}
             </button>
           </div>
         </Card>
