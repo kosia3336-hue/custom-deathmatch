@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { PLAY_MODE_LABEL, type Room } from '@/shared/types';
 import { cn, formatTimeLimit } from '@/lib/utils';
+import { rankedRoomMatchup } from '@/lib/rankedRoomTitle';
 
 /** 방 정보 한 줄 — 값이 없으면 줄째 뺀다. */
 export function InfoRow({ label, value }: { label: string; value?: ReactNode }) {
@@ -46,7 +47,10 @@ export default function RoomInfoSheet({
   return (
     <BottomSheet open={open} onClose={onClose} title="방 정보">
       <dl className="divide-y divide-cdm-border text-sm">
-        <InfoRow label="방 제목" value={room?.title} />
+        <InfoRow
+          label="방 제목"
+          value={room ? (room.isRanked ? rankedRoomMatchup(room, myId) : room.title) : undefined}
+        />
         <InfoRow label="게임" value={room?.gameName} />
         <InfoRow label="플레이 모드" value={room ? PLAY_MODE_LABEL[room.playMode] : undefined} />
         <InfoRow label="랭크" value={room ? (room.isRanked === true ? '랭크 게임' : '일반 게임') : undefined} />

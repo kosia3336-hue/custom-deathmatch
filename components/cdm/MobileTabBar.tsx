@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import InquiryModal from '@/components/support/InquiryModal';
 import { Icon } from './Icon';
 
 interface Props {
@@ -22,6 +23,9 @@ interface Tab {
  * 랭킹·길드는 하단 탭으로 올라갔으므로 여기서는 뺀다(같은 곳으로 가는 문이 둘이면
  * 어느 쪽이 정식인지 흐려진다). 칭호·상점·공지·출석·문의는 이 시트가 유일한 문이다.
  */
+/** 문의하기 — 회원은 이 주소로 가지 않고 모달(InquiryModal)로 연다. 비회원은 페이지 → 로그인. */
+const INQUIRY_HREF = '/support/inquiry';
+
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOnly?: boolean }[] = [
   { href: '/me', label: '내정보', icon: <Icon name="me" size="lg" />, memberOnly: true },
   { href: '/titles', label: '칭호', icon: <Icon name="title" size="lg" /> },
@@ -33,7 +37,7 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
     문의하기. 지금까지는 푸터에만 있어 모바일에서 사실상 닿지 않았다.
     비로그인도 쓸 수 있는 창구라 memberOnly 를 붙이지 않는다.
   */
-  { href: '/support/inquiry', label: '문의하기', icon: <Icon name="inquiry" size="lg" /> },
+  { href: INQUIRY_HREF, label: '문의하기', icon: <Icon name="inquiry" size="lg" /> },
 ];
 
 /*
@@ -63,6 +67,7 @@ function TabIndicator() {
 export function MobileTabBar({ isMember }: Props) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
 
   // 라우트 이동 시 시트 닫기
   useEffect(() => {
@@ -104,6 +109,7 @@ export function MobileTabBar({ isMember }: Props) {
 
   return (
     <>
+      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
       {/* 더보기 시트 */}
       {menuOpen && (
         <div className="fixed inset-0 z-(--cdm-z-overlay) sm:hidden" role="dialog" aria-label="메뉴">
@@ -121,18 +127,33 @@ export function MobileTabBar({ isMember }: Props) {
                 const active = pathname?.startsWith(m.href);
                 return (
                   <li key={m.href}>
-                    <Link
-                      href={m.href}
-                      prefetch={active ? false : undefined}
-                      onClick={() => setMenuOpen(false)}
-                      className={cn(
-                        'flex flex-col items-center gap-1 rounded-cdm-md py-3 text-[11px] font-medium transition-colors',
-                        active ? 'bg-white/10 text-white' : 'text-cdm-ink-fg-muted hover:bg-white/5 hover:text-white',
-                      )}
-                    >
-                      {m.icon}
-                      <span>{m.label}</span>
-                    </Link>
+                    {m.href === INQUIRY_HREF && isMember ? (
+                      /* 문의하기는 페이지로 옮기지 않고 모달로 연다 — 보던 화면을 떠나지 않게 */
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setInquiryOpen(true);
+                        }}
+                        className="flex w-full flex-col items-center gap-1 rounded-cdm-md py-3 text-[11px] font-medium text-cdm-ink-fg-muted transition-colors hover:bg-white/5 hover:text-white"
+                      >
+                        {m.icon}
+                        <span>{m.label}</span>
+                      </button>
+                    ) : (
+                      <Link
+                        href={m.href}
+                        prefetch={active ? false : undefined}
+                        onClick={() => setMenuOpen(false)}
+                        className={cn(
+                          'flex flex-col items-center gap-1 rounded-cdm-md py-3 text-[11px] font-medium transition-colors',
+                          active ? 'bg-white/10 text-white' : 'text-cdm-ink-fg-muted hover:bg-white/5 hover:text-white',
+                        )}
+                      >
+                        {m.icon}
+                        <span>{m.label}</span>
+                      </Link>
+                    )}
                   </li>
                 );
               })}

@@ -1,4 +1,5 @@
 import type { EquippedSkin } from './skin';
+import type { RankTier } from './rank';
 
 export const AI_PLAYER_ID = 'AI' as const;
 
@@ -82,6 +83,11 @@ export interface Player {
   turnPosition?: TurnPosition | null;
   /** v3 — 이 플레이어가 착용 중인 게임 스킨 목록 (보유·착용자만) */
   equippedSkins?: EquippedSkin[];
+  /**
+   * 랭크 방에서만 — 매칭 시점 티어(배치 중이면 'unranked'). 방 제목 '닉[티어] VS 닉[티어]' 에 쓴다.
+   * 익명 물약을 쓴 상대의 티어는 본인 외에게 null 로 가린다.
+   */
+  rankTier?: RankTier | null;
 }
 
 export interface Room {
@@ -130,4 +136,6 @@ export interface RoomSummary {
   createdAt: number;
   isRanked?: boolean;
   hiddenMatch?: boolean;
+  /** 랭크 방 — 자리 순서대로 플레이어 티어(익명 물약을 쓴 자리는 null). 로비 제목 '???[티어] VS ???[티어]' 용 */
+  rankTiers?: (RankTier | null)[];
 }

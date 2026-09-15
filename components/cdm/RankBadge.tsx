@@ -2,18 +2,10 @@
 
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { RANK_TIER_LABEL as TIER_LABEL } from '@/lib/rankedRoomTitle';
 import type { DisplayRankTier } from '@/shared/types/rank';
 
 const ICON_PX = { sm: 16, md: 20, lg: 28, xl: 56 } as const;
-
-const TIER_LABEL: Record<DisplayRankTier, string> = {
-  unranked: '언랭',
-  bronze: '브론즈',
-  silver: '실버',
-  gold: '골드',
-  diamond: '다이아',
-  challenger: '챌린저',
-};
 
 const TIER_COLOR: Record<DisplayRankTier, string> = {
   unranked: 'text-neutral-500',

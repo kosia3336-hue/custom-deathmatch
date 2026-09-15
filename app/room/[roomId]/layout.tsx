@@ -8,9 +8,13 @@ import { ROOM_CHAT_DOCK_ID } from '@/components/room/RoomChatDockPanel';
 import { RoomLayoutContext, type GameHud } from '@/contexts/RoomLayoutContext';
 import { PLAY_MODE_LABEL } from '@/shared/types';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
+import RankedRoomBadge from '@/components/room/RankedRoomBadge';
+import { useMySocketId } from '@/hooks/useMySocketId';
+import { rankedRoomMatchup } from '@/lib/rankedRoomTitle';
 
 export default function RoomLayout({ children }: { children: ReactNode }) {
   const room = useRoomStore((s) => s.room);
+  const myId = useMySocketId();
 
   const [headerLeft, setHeaderLeftState] = useState<ReactNode>(null);
   const [headerRight, setHeaderRightState] = useState<ReactNode>(null);
@@ -59,8 +63,11 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
               {headerLeft ??
                 (room ? (
                   <>
-                    <h1 className="truncate text-base font-bold text-cdm-fg md:text-lg">
-                      {room.title}
+                    <h1 className="flex min-w-0 items-center gap-1.5 text-base font-bold text-cdm-fg md:text-lg">
+                      {room.isRanked && <RankedRoomBadge />}
+                      <span className="min-w-0 truncate">
+                        {room.isRanked ? rankedRoomMatchup(room, myId) : room.title}
+                      </span>
                     </h1>
                     <p className="text-xs text-cdm-fg-muted md:text-sm">
                       {room.gameName}
