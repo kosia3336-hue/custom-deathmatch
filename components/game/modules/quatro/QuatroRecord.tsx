@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { QUATRO_MAX_MULLIGANS, type QuatroVisibleLogEntry } from '@/shared/types/quatro';
 import { cn } from '@/lib/utils';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import QuatroMiniCard from './QuatroMiniCard';
 
 const vpLabel = (index: number) => String.fromCharCode(65 + index);
@@ -25,8 +26,14 @@ export default function QuatroRecord({
   myId: string | null | undefined;
   round: number;
 }) {
-  const name = (id: string | undefined) =>
-    id ? `${players[id]?.nickname ?? '?'}${id === myId ? ' (나)' : ''}` : '?';
+  // 플레이어에게 익명 상대(???)는 '상대' 로 — 관전자는 두 사람 모두 ??? 일 수 있어 그대로 둔다
+  const isPlayer = Boolean(myId && players[myId]);
+  const name = (id: string | undefined) => {
+    if (!id) return '?';
+    const nickname = players[id]?.nickname;
+    if (id === myId) return `${nickname ?? '?'} (나)`;
+    return isPlayer ? opponentDisplayName(nickname) : (nickname ?? '?');
+  };
   const seatOf = (r: number, id: string) =>
     firstByRound[r] ? (firstByRound[r] === id ? '선' : '후') : null;
 
