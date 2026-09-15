@@ -329,6 +329,7 @@ export default function WaitingRoomPage() {
               onMoveToSpectator={isRanked ? undefined : handleMoveToSpectator}
               isGameStarted={room.status !== 'waiting'}
               onReport={(memberId, nickname) => setReportTarget({ memberId, nickname })}
+              showTurn={room.turnOrderMode !== 'random'}
             />
           ))}
           {Array.from({ length: emptySlots }).map((_, i) =>

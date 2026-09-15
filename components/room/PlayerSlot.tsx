@@ -22,6 +22,8 @@ interface Props {
   /** v2 — 게임 시작 후엔 토글 비활성 */
   isGameStarted?: boolean;
   onReport?: (memberId: string, nickname: string) => void;
+  /** 선/후공 배지 표시. 선후공이 '랜덤'이면 시작할 때 정해지므로 끈다 */
+  showTurn?: boolean;
 }
 
 export default function PlayerSlot({
@@ -33,6 +35,7 @@ export default function PlayerSlot({
   onMoveToSpectator,
   isGameStarted,
   onReport,
+  showTurn = true,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -70,7 +73,7 @@ export default function PlayerSlot({
             )}
             {player.isHost && <HostMark />}
             {isMe && <MeLabel />}
-            {turn && <TurnBadge turn={turn} size="sm" />}
+            {turn && showTurn && <TurnBadge turn={turn} size="sm" />}
           </div>
         </div>
 
