@@ -132,7 +132,10 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       .then((gsAll) => {
         const gs = filterUnreleased(
           gsAll.filter(
-            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+            (g) =>
+              g.id !== GAME_IDS.INDIAN_POKER_EVENT &&
+              g.id !== GAME_IDS.SUN_MOON_STAR_EVENT &&
+              g.id !== GAME_IDS.RING_THE_BELL,
           ),
           isAdmin,
         );

@@ -478,6 +478,7 @@ export async function initBanPick(
     (playMode === 'com' ? g.supportsCom : g.supportsMulti)
     && g.id !== GAME_IDS.INDIAN_POKER_EVENT
     && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT
+    && g.id !== GAME_IDS.RING_THE_BELL
     && (!rankingActiveOnly || g.rankingActive),
   );
   const maxBanCount = Math.floor((allGames.length - 1) / 2);

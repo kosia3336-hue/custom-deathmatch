@@ -16,6 +16,7 @@ export {
   LIVE_DUMMY_ROSTER,
   findRosterByKey,
   findRosterBySocketId,
+  isLiveDummySocketId,
   isLiveDummyWindowOpen,
 } from './roster.js';
 

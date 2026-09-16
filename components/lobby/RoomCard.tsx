@@ -8,6 +8,7 @@ import RoomTitle from './RoomTitle';
 import type { RoomSummary } from '@/shared/types';
 import { displayGameName, isUnreleasedGame } from '@/lib/unreleasedGames';
 import { cn } from '@/lib/utils';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 
 interface Props {
   rooms: RoomSummary[];
@@ -50,8 +51,10 @@ export default function RoomCardList({
 }: Props) {
   const [playingOpen, setPlayingOpen] = useState(false);
 
-  const waiting = rooms.filter((r) => r.status === 'waiting');
-  const playing = rooms.filter((r) => r.status !== 'waiting');
+  // 길드전은 상시 playing 이지만 들어갈 수 있는 방이라 앞줄에 둔다.
+  const upFront = (r: RoomSummary) => r.status === 'waiting' || r.id === GUILD_WAR_ROOM_ID;
+  const waiting = rooms.filter(upFront);
+  const playing = rooms.filter((r) => !upFront(r));
   const showPlaying = playingOpen || waiting.length === 0;
 
   const card = (room: RoomSummary) => (
@@ -115,7 +118,9 @@ function RoomCardItem({
   const isWaiting = room.status === 'waiting';
   const isFull = room.currentPlayers >= room.maxPlayers;
   const isRanked = room.isRanked === true;
-  const canJoin = isWaiting && !isFull && !isRanked;
+  // 길드전은 상시 playing 인 시스템 룸이라 waiting 조건을 타지 않는다.
+  const isGuildWar = room.id === GUILD_WAR_ROOM_ID;
+  const canJoin = isGuildWar ? !isFull : isWaiting && !isFull && !isRanked;
   const joinBlocked = canJoin && queuing;
 
   return (
@@ -130,19 +135,19 @@ function RoomCardItem({
             <span className="truncate text-[11px] font-bold text-cdm-primary">
               {displayGameName(room.gameId, room.gameName, isAdmin)}
             </span>
-            {!isWaiting && <Badge variant="warning">진행</Badge>}
+            {!isWaiting && !isGuildWar && <Badge variant="warning">진행</Badge>}
           </div>
           <div className="text-[15px] font-bold tracking-tight text-cdm-fg">
             <RoomTitle room={room} />
           </div>
           <p className="mt-0.5 truncate text-[11px] text-cdm-fg-muted">
-            방장 {room.isRanked ? '—' : room.hostNickname}
+            방장 {room.isRanked || !room.hostNickname ? '—' : room.hostNickname}
           </p>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-bold text-cdm-fg-muted tabular-nums">
             {room.currentPlayers}/{room.maxPlayers}
-            {!isWaiting && room.spectatorCount > 0 && (
+            {(!isWaiting || isGuildWar) && room.spectatorCount > 0 && (
               <span className="ml-2 font-medium">관전 {room.spectatorCount}</span>
             )}
           </span>

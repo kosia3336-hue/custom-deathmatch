@@ -36,6 +36,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.CHOICE_HOLDEM]: 'round',
   [GAME_IDS.SEED_SEOTDA]: 'round',
   [GAME_IDS.DOUBLE_SIDED_POKER]: 'round',
+  [GAME_IDS.RING_THE_BELL]: 'event',
 } as const;
 
 export function progressData(state: GameState | null | undefined): Record<string, unknown> {

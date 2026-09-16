@@ -18,11 +18,12 @@ import {
   getLiveDummyMemberIdBySocket,
 } from './state.js';
 import type { LiveDummyRuntime } from './roster.js';
-import { LIVE_DUMMY_ROSTER, findRosterBySocketId, isLiveDummyWindowOpen } from './roster.js';
+import { LIVE_DUMMY_ROSTER, isLiveDummySocketId, isLiveDummyWindowOpen } from './roster.js';
 import { isLiveDummyEnabled, isLiveDummyRankEnabled, rejoinDelayMs } from './window.js';
 import { liveDummyOnlineSignature } from './online.js';
 
 export { isLiveDummyMemberId } from './state.js';
+export { isLiveDummySocketId } from './roster.js';
 
 const joining = new Set<string>();
 let loopTimer: ReturnType<typeof setInterval> | null = null;
@@ -37,13 +38,25 @@ async function broadcastDummyPresence(io: IO): Promise<void> {
   broadcastOnlineUsers(io);
 }
 
-export function isLiveDummySocketId(socketId: string): boolean {
-  return !!findRosterBySocketId(socketId) || socketId.startsWith('live-dummy:');
+/** 데브 전환 등으로 이 더미 회원에 진짜 소켓이 붙어 있으면 봇은 손대지 않는다. */
+function isMemberHumanOccupied(memberId: string): boolean {
+  const token = sessions.getTokenByMemberId(memberId);
+  if (!token) return false;
+  const sock = sessions.getSocketByToken(token);
+  if (!sock) return false;
+  return !isLiveDummySocketId(sock);
 }
 
-function bindSession(dummy: LiveDummyRuntime, memberId: string): string {
+function bindSession(dummy: LiveDummyRuntime, memberId: string): string | null {
+  if (isMemberHumanOccupied(memberId)) return null;
   const existing = sessions.getTokenByMemberId(memberId);
-  const token = existing ?? uuid();
+  const existingSock = existing ? sessions.getSocketByToken(existing) : undefined;
+  const token =
+    existing && existingSock === dummy.socketId
+      ? existing
+      : existing && existingSock && isLiveDummySocketId(existingSock)
+        ? existing
+        : uuid();
   sessions.linkToken(dummy.socketId, token);
   sessions.setNickname(dummy.socketId, dummy.nickname, true);
   sessions.setMemberInfo(token, memberId, null, [], null, null);
@@ -52,13 +65,14 @@ function bindSession(dummy: LiveDummyRuntime, memberId: string): string {
 
 async function sitInQueue(io: IO, dummy: LiveDummyRuntime, memberId: string): Promise<void> {
   if (joining.has(dummy.key)) return;
+  if (isMemberHumanOccupied(memberId)) return;
   if (!isLiveDummyRankEnabled()) {
-    rankQueueStore.removeByMemberId(memberId);
+    rankQueueStore.removeBySocket(dummy.socketId);
     await broadcastDummyPresence(io);
     return;
   }
   if (!isLiveDummyWindowOpen(dummy.window)) {
-    rankQueueStore.removeByMemberId(memberId);
+    rankQueueStore.removeBySocket(dummy.socketId);
     await broadcastDummyPresence(io);
     return;
   }
@@ -69,7 +83,7 @@ async function sitInQueue(io: IO, dummy: LiveDummyRuntime, memberId: string): Pr
 
   joining.add(dummy.key);
   try {
-    bindSession(dummy, memberId);
+    if (!bindSession(dummy, memberId)) return;
     const row = await ensureRankStatsRow(memberId);
     if (!row.ok) {
       console.warn('[liveDummy] ensureRankStatsRow', dummy.nickname, row.error);
@@ -109,6 +123,7 @@ function afterLiveGameOver(io: IO, dummy: LiveDummyRuntime, memberId: string): v
   const delay = rejoinDelayMs();
   console.log(`[liveDummy] ${dummy.nickname} 판 끝 ${Math.round(delay / 1000)}초 뒤 재진입`);
   setTimeout(() => {
+    if (isMemberHumanOccupied(memberId)) return;
     handleLeaveRoom(io, makeDummySocket(dummy.socketId));
     void sitInQueue(io, dummy, memberId);
   }, delay);
@@ -121,6 +136,9 @@ export function maybeStartLiveDummyAgent(
   dummyMemberId: string,
   tier: DummyAiTier,
 ): void {
+  const boundSock = sessions.getSocketByToken(dummyPlayerId) ?? '';
+  if (!isLiveDummySocketId(boundSock)) return;
+
   const dummy = getLiveDummyRuntime(dummyMemberId);
   const nickname = dummy?.nickname ?? '';
   void hydrateLiveDummyRecords(dummyPlayerId, dummyMemberId).finally(() => {

@@ -14,6 +14,11 @@ import {
   getTotalPages,
   parsePageParam,
 } from '@/lib/pagination';
+import {
+  RANKING_LIST_SCAN_LIMIT,
+  findMemberIdsByNickname,
+  parseRankingNicknameQuery,
+} from '@/lib/rank/nicknameSearch';
 import RankingTabs from './RankingTabs';
 import RankingBoardTabs, { type RankingBoard } from './RankingBoardTabs';
 import RankSeasonLeaderboard from './RankSeasonLeaderboard';
@@ -44,7 +49,7 @@ interface Props {
     page?: string;
     board?: string;
     season?: string;
-    tier?: string;
+    q?: string;
   }>;
 }
 
@@ -141,6 +146,10 @@ export default async function RankingPage({ searchParams }: Props) {
   const period = (sp.period as 'weekly' | 'monthly' | 'all') ?? 'weekly';
   const page = parsePageParam(sp.page);
   const offset = (page - 1) * PAGE_SIZE;
+  const nicknameQuery = parseRankingNicknameQuery(sp.q);
+  const matchIds = nicknameQuery
+    ? new Set(await findMemberIdsByNickname(db, nicknameQuery))
+    : null;
 
   let rankings: RankRow[] = [];
   let totalCount = 0;
@@ -148,24 +157,38 @@ export default async function RankingPage({ searchParams }: Props) {
   let rankCardSkins = new Map<string, RankCardShopSkinId>();
 
   if (board === 'game') {
+    const searching = matchIds != null;
     try {
-      if (gameId) {
-        const data = await callRpc(sb, 'compute_ranking', {
-          p_game_id: gameId,
-          p_period: period,
-          p_limit: PAGE_SIZE,
-          p_offset: offset,
-        });
-        rankings = (data ?? []) as unknown as RankRow[];
-      } else if (meta.length > 0) {
-        const data = await callRpc(sb, 'compute_ranking_all', {
-          p_period: period,
-          p_limit: PAGE_SIZE,
-          p_offset: offset,
-        });
-        rankings = (data ?? []) as unknown as RankRow[];
+      if (searching && matchIds.size === 0) {
+        rankings = [];
+        totalCount = 0;
+      } else {
+        const rpcLimit = searching ? RANKING_LIST_SCAN_LIMIT : PAGE_SIZE;
+        const rpcOffset = searching ? 0 : offset;
+        if (gameId) {
+          const data = await callRpc(sb, 'compute_ranking', {
+            p_game_id: gameId,
+            p_period: period,
+            p_limit: rpcLimit,
+            p_offset: rpcOffset,
+          });
+          rankings = (data ?? []) as unknown as RankRow[];
+        } else if (meta.length > 0) {
+          const data = await callRpc(sb, 'compute_ranking_all', {
+            p_period: period,
+            p_limit: rpcLimit,
+            p_offset: rpcOffset,
+          });
+          rankings = (data ?? []) as unknown as RankRow[];
+        }
+        if (matchIds) {
+          rankings = rankings.filter((r) => matchIds.has(r.member_id));
+          totalCount = rankings.length;
+          rankings = rankings.slice(offset, offset + PAGE_SIZE);
+        } else {
+          totalCount = rankings.length > 0 ? rankings[0].total_count : 0;
+        }
       }
-      totalCount = rankings.length > 0 ? rankings[0].total_count : 0;
     } catch (e) {
       console.error('[ranking] RPC error', e);
     }
@@ -173,20 +196,21 @@ export default async function RankingPage({ searchParams }: Props) {
     if (rankings.length > 0) {
       const { data: mems } = await sb
         .from('members')
-        .select('id, displayed_title_id, displayed_effect_id')
+        .select('id, nickname, displayed_title_id, displayed_effect_id')
         .in('id', rankings.map((r) => r.member_id));
-      const resolved = await loadResolvedDisplayedTitles(
-        sb,
-        (mems ?? []) as Array<{
-          id: string;
-          displayed_title_id: string | null;
-          displayed_effect_id: string | null;
-        }>,
-      );
+      const memberRows = (mems ?? []) as Array<{
+        id: string;
+        nickname: string;
+        displayed_title_id: string | null;
+        displayed_effect_id: string | null;
+      }>;
+      const nickMap = new Map(memberRows.map((m) => [m.id, m.nickname]));
+      const resolved = await loadResolvedDisplayedTitles(sb, memberRows);
       rankings = rankings.map((r) => {
         const t = resolved.get(r.member_id);
         return {
           ...r,
+          nickname: nickMap.get(r.member_id) ?? r.nickname,
           title: t
             ? { id: t.id, name: t.name, color: t.color as TitleColor, effect: t.effect }
             : null,
@@ -231,11 +255,20 @@ export default async function RankingPage({ searchParams }: Props) {
             )}
 
             {rankings.length === 0 ? (
-              <EmptyState title="아직 집계된 랭킹이 없습니다" />
+              <EmptyState
+                title={
+                  nicknameQuery
+                    ? `"${nicknameQuery}"에 해당하는 플레이어가 없습니다`
+                    : '아직 집계된 랭킹이 없습니다'
+                }
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-cdm-fg-muted">
-                  총 {totalCount}명 · {page} / {totalPages} 페이지
+                  총 {totalCount}명
+                  {nicknameQuery ? ` · "${nicknameQuery}" 검색` : ''}
+                  {' · '}
+                  {page} / {totalPages} 페이지
                 </p>
                 {rankings.map((r) => {
                   const isMe = member != null && r.member_id === member.id;
@@ -292,7 +325,8 @@ export default async function RankingPage({ searchParams }: Props) {
                 seasonId={seasonIdNum}
                 page={page}
                 memberId={member?.id ?? null}
-                tierFilter={sp.tier ?? null}
+                nicknameQuery={nicknameQuery}
+                matchIds={matchIds}
               />
             )}
           </>

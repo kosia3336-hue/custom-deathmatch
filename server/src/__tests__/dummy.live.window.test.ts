@@ -10,7 +10,7 @@ import {
   isLiveDummyRankEnabled,
   liveDummyTierForGame,
 } from '../dummy/live/window.js';
-import { isMinsInLiveWindow } from '../dummy/live/roster.js';
+import { isMinsInLiveWindow, isLiveDummySocketId, LIVE_DUMMY_ROSTER } from '../dummy/live/roster.js';
 
 describe('타이탄 활동 창', () => {
   it('off — 예전 창 시각에도 꺼짐', () => {
@@ -106,5 +106,13 @@ describe('아이언현성 활동 창', () => {
     expect(liveDummyTierFor('아이언현성', GAME_IDS.DOUBLE_SIDED_CHESS)).toBe('중');
     expect(liveDummyTierFor('아이언현성', GAME_IDS.QUATRO)).toBe('중');
     expect(liveDummyTierFor('아이언현성', GAME_IDS.BAN_PICK)).toBe('중');
+  });
+});
+
+describe('봇 소켓 식별', () => {
+  it('live-dummy 접두만 봇이고 사람 소켓은 아니다', () => {
+    expect(isLiveDummySocketId(LIVE_DUMMY_ROSTER[0]!.socketId)).toBe(true);
+    expect(isLiveDummySocketId('live-dummy:unknown')).toBe(true);
+    expect(isLiveDummySocketId('human-sock')).toBe(false);
   });
 });

@@ -90,4 +90,6 @@ export type GuildV4Snapshot = {
   rankCard: { skinId: RankCardShopSkinId; expiresAt: string } | null;
   /** 마지막으로 읽은 길드 채팅 메시지 id. 없으면 히스토리 전부 안 읽음. */
   chatSeenMessageId: string | null;
+  /** 내 길드 공유 길드전 칩. 길드 없으면 0. */
+  warChips: number;
 };

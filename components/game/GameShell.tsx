@@ -11,6 +11,7 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { getGameProgress, getGameStatus } from '@/lib/gameProgress';
 import { useEventRoomStore } from '@/stores/eventRoom';
 import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
+import { useGuildWarStore } from '@/stores/guildWar';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
@@ -92,12 +93,16 @@ export default function GameShell({ children }: Props) {
   const progress = getGameProgress(room?.gameId, gameState);
   const eventState = useEventRoomStore((s) => s.state);
   const smsState = useSmsEventRoomStore((s) => s.state);
+  const warState = useGuildWarStore((s) => s.state);
   const eventRound = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.gameData.handNumber
-    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.gameData.roundNumber : undefined;
+    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.gameData.roundNumber
+    : room?.gameId === GAME_IDS.RING_THE_BELL ? warState?.state.setIndex : undefined;
   const round = hud?.round ?? (eventRound != null ? `${eventRound}R` : progress);
   const order = hud?.order ?? getGameStatus(gameState, myId);
   const spectatorCount = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.spectatorCount ?? 0
-    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.spectatorCount ?? 0 : room?.spectators.length ?? 0;
+    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.spectatorCount ?? 0
+    : room?.gameId === GAME_IDS.RING_THE_BELL ? warState?.spectatorCount ?? 0
+    : room?.spectators.length ?? 0;
 
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
@@ -229,7 +234,10 @@ export default function GameShell({ children }: Props) {
     }
   }, [gameStateSig, undoWaiting]);
 
-  const isEventRoom = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT || room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT;
+  const isEventRoom =
+    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
+    room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
+    room?.gameId === GAME_IDS.RING_THE_BELL;
   const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
   const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
   useEffect(() => {

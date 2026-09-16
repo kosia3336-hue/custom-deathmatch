@@ -116,6 +116,11 @@ export function findRosterBySocketId(socketId: string): LiveDummyRuntime | undef
   return LIVE_DUMMY_ROSTER.find((r) => r.socketId === socketId);
 }
 
+/** 봇 가짜 소켓. 데브 전환으로 붙은 사람 소켓은 여기 안 걸린다. */
+export function isLiveDummySocketId(socketId: string): boolean {
+  return !!findRosterBySocketId(socketId) || socketId.startsWith('live-dummy:');
+}
+
 export function findRosterByNickname(nickname: string): LiveDummyRuntime | undefined {
   return LIVE_DUMMY_ROSTER.find((r) => r.nickname === nickname);
 }

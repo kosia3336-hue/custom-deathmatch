@@ -26,3 +26,12 @@ export function ingestGuildRankPayoutMail(_p: GuildV4UnseenPayout): void {
 export function ingestGuildScoutMail(_payload: GuildScoutMail): void {
   refreshMailbox();
 }
+
+export function ingestGuildJoinRequestMail(_payload: {
+  requestId: string;
+  guildId: string;
+  guildName: string;
+  fromNickname: string;
+}): void {
+  refreshMailbox();
+}
