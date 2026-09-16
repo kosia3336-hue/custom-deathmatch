@@ -74,25 +74,29 @@ function line(start: TripleGomokuCell, dq: number, dr: number, count: number) {
 }
 
 describe('삼층 오목 판 기하', () => {
-  it('위·아래 줄의 양 끝을 도려낸 87칸이고 가로 11줄이다', () => {
+  it('여섯 모서리를 도려낸 85칸이고 가로 11줄이다', () => {
     const cells = tripleGomokuCells();
-    // 육각형 91칸에서 도려낸 귀퉁이 4칸을 뺀다
-    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1 - 4);
-    expect(cells).toHaveLength(87);
+    // 육각형 91칸에서 귀퉁이 6칸을 뺀다
+    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1 - 6);
+    expect(cells).toHaveLength(85);
     expect(new Set(cells.map((cell) => cell.r)).size).toBe(11);
-    const widest = cells.filter((cell) => cell.r === 0);
-    expect(widest).toHaveLength(11);
-    // 맨 위·맨 아래 줄만 6칸이 아니라 4칸이다
-    expect(cells.filter((cell) => cell.r === -TG_BOARD_RADIUS)).toHaveLength(4);
-    expect(cells.filter((cell) => cell.r === TG_BOARD_RADIUS)).toHaveLength(4);
+    // 줄별 칸 수. 가운데 줄은 양 끝이 잘려 11칸이 아니라 9칸이고,
+    // 그래서 가장 넓은 줄은 가운데가 아니라 바로 위아래(10칸)다.
+    const perRow = Array.from({ length: TG_BOARD_RADIUS * 2 + 1 }, (_, index) =>
+      cells.filter((cell) => cell.r === index - TG_BOARD_RADIUS).length,
+    );
+    expect(perRow).toEqual([4, 7, 8, 9, 10, 9, 10, 9, 8, 7, 4]);
   });
 
   it('판 안팎을 구분하고, 도려낸 귀퉁이는 판 밖이다', () => {
     expect(isTripleGomokuCell({ q: 0, r: 0 })).toBe(true);
     expect(isTripleGomokuCell({ q: 4, r: -5 })).toBe(true);
-    // 도려낸 네 칸
+    expect(isTripleGomokuCell({ q: 4, r: 0 })).toBe(true);
+    // 도려낸 여섯 칸
     expect(isTripleGomokuCell({ q: 5, r: -5 })).toBe(false);
     expect(isTripleGomokuCell({ q: 0, r: -5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: 5, r: 0 })).toBe(false);
+    expect(isTripleGomokuCell({ q: -5, r: 0 })).toBe(false);
     expect(isTripleGomokuCell({ q: -5, r: 5 })).toBe(false);
     expect(isTripleGomokuCell({ q: 0, r: 5 })).toBe(false);
     expect(isTripleGomokuCell({ q: 5, r: 1 })).toBe(false);
@@ -100,7 +104,7 @@ describe('삼층 오목 판 기하', () => {
     expect(isTripleGomokuCell(null)).toBe(false);
     expect(tripleGomokuNeighbors(TG_CENTER)).toHaveLength(6);
     // 어느 칸의 이웃으로도 도려낸 칸이 나오지 않는다
-    const trimmed = ['5,-5', '0,-5', '-5,5', '0,5'];
+    const trimmed = ['5,-5', '0,-5', '5,0', '-5,0', '-5,5', '0,5'];
     for (const cell of tripleGomokuCells()) {
       for (const neighbor of tripleGomokuNeighbors(cell)) {
         expect(trimmed).not.toContain(`${neighbor.q},${neighbor.r}`);
@@ -348,8 +352,10 @@ describe('삼층 오목 경기 진행', () => {
     const state = tripleGomokuStates.get(roomId)!;
     // 기본 배치를 서로 멀리 떨어진 곳에서 끝낸다
     const order: [TypedSocket, TripleGomokuCell][] = [
-      [firstSocket, { q: -5, r: 0 }],
-      [secondSocket, { q: 5, r: 0 }],
+      // (-5,0)·(5,0) 은 도려낸 꼭짓점이라 판 밖이다. 오목 판정이 r=0 줄을 쓰므로
+      // 그 줄도 피해 둔다 — 같은 줄에 두면 줄 길이 판정에 끼어든다.
+      [firstSocket, { q: -4, r: 1 }],
+      [secondSocket, { q: 4, r: -1 }],
       [secondSocket, { q: 5, r: -3 }],
       [firstSocket, { q: -5, r: 3 }],
       [firstSocket, { q: -2, r: 5 }],
@@ -510,8 +516,9 @@ describe('삼층 오목 무르기', () => {
     initTripleGomoku(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
     const state = tripleGomokuStates.get(roomId)!;
     const setup: [TypedSocket, TripleGomokuCell][] = [
-      [firstSocket, { q: -5, r: 0 }],
-      [secondSocket, { q: 5, r: 0 }],
+      // 도려낸 꼭짓점을 피하고, 무르기가 다루는 (0,0)·(1,0) 과도 떨어뜨린다
+      [firstSocket, { q: -4, r: 1 }],
+      [secondSocket, { q: 4, r: -1 }],
       [secondSocket, { q: 5, r: -3 }],
       [firstSocket, { q: -5, r: 3 }],
       [firstSocket, { q: -2, r: 5 }],

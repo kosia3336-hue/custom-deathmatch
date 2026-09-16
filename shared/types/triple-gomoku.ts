@@ -2,7 +2,7 @@
 
 /**
  * 판의 반지름. 5면 가로 11줄이다.
- * 순수 육각형(91칸)이 아니라 위·아래 줄의 양 끝을 도려낸 87칸이다
+ * 순수 육각형(91칸)이 아니라 여섯 모서리를 한 칸씩 도려낸 85칸이다
  * (도려낸 칸은 shared/logic/triple-gomoku.ts 의 TRIMMED_CORNERS).
  */
 export const TG_BOARD_RADIUS = 5;

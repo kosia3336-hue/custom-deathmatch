@@ -46,16 +46,20 @@ export function parseTripleGomokuCellKey(key: string): TripleGomokuCell | null {
 }
 
 /**
- * 실제 판에서 도려낸 귀퉁이 — 맨 윗줄과 맨 아랫줄의 양 끝.
+ * 실제 판에서 도려낸 귀퉁이 — 육각형의 꼭짓점 여섯 곳.
  *
- * 순수한 육각형이 아니다. 실물 판은 위·아래 줄이 6칸이 아니라 4칸이라
- * 그 줄만 안쪽으로 들어가 있다. 반지름 5 육각형 91칸에서 이 4칸을 뺀 87칸이다.
+ * 순수한 육각형이 아니다. 실물 판은 여섯 모서리가 모두 한 칸씩 안으로 들어가
+ * 있어서, 맨 위·맨 아래 줄은 6칸이 아닌 4칸이고 **가운데 줄도 11칸이 아닌 9칸**이다
+ * (그래서 가운데 줄이 가장 넓은 줄이 아니다 — 바로 위아래 줄이 10칸으로 더 넓다).
+ * 반지름 5 육각형 91칸에서 이 6칸을 뺀 85칸이다.
  */
 const TRIMMED_CORNERS: ReadonlySet<string> = new Set([
   `0,${-TG_BOARD_RADIUS}`,
   `${TG_BOARD_RADIUS},${-TG_BOARD_RADIUS}`,
-  `${-TG_BOARD_RADIUS},${TG_BOARD_RADIUS}`,
+  `${TG_BOARD_RADIUS},0`,
   `0,${TG_BOARD_RADIUS}`,
+  `${-TG_BOARD_RADIUS},${TG_BOARD_RADIUS}`,
+  `${-TG_BOARD_RADIUS},0`,
 ]);
 
 /** 판 안에 있는 좌표인지 확인한다. 클라이언트가 보낸 값 검증에도 쓴다. */
