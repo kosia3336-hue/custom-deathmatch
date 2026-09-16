@@ -14,7 +14,7 @@ import { roomStore } from '../store/rooms.js';
 
 const TITLE = { id: 't1', name: '고수', color: 'gold', effect: null };
 
-function player(id: string, nick: string, memberId: string): Player {
+function player(id: string, nick: string, memberId: string, rankTier?: Player['rankTier']): Player {
   return {
     id,
     nickname: nick,
@@ -23,6 +23,7 @@ function player(id: string, nick: string, memberId: string): Player {
     joinedAt: Date.now(),
     memberId,
     displayedTitle: TITLE,
+    ...(rankTier !== undefined ? { rankTier } : {}),
   };
 }
 
@@ -35,10 +36,10 @@ function createRankedRoom() {
     roomType: 'rank',
     maxPlayers: 2,
     minPlayers: 2,
-    host: player('p1', '알파', 'm1'),
+    host: player('p1', '알파', 'm1', 'diamond'),
     isRanked: true,
   });
-  roomStore.addPlayer(room.id, player('p2', '베타', 'm2'));
+  roomStore.addPlayer(room.id, player('p2', '베타', 'm2', 'unranked'));
   roomStore.addSpectator(room.id, player('spec', '구경꾼', 'm3'));
   return roomStore.get(room.id)!;
 }
@@ -107,6 +108,25 @@ describe('maskRankRoomForViewer', () => {
     expect(masked.players.map((p) => p.nickname)).toEqual([ANONYMOUS_NICKNAME, ANONYMOUS_NICKNAME]);
     expect(masked.players.find((p) => p.id === 'p2')?.displayedTitle).toEqual(TITLE);
     expect(masked.spectators[0]?.nickname).toBe('구경꾼');
+  });
+});
+
+describe('랭크 방 제목용 티어', () => {
+  it('방 안에서는 티어를 보여 주고, 익명 물약을 쓴 상대의 티어는 본인 외에게 가린다', () => {
+    const room = createRankedRoom();
+    expect(maskRankRoomForViewer(room, 'p1').players.map((p) => p.rankTier)).toEqual(['diamond', 'unranked']);
+    ensureRoomShopState(room.id).anonymizedTokens.add('p2');
+    expect(maskRankRoomForViewer(room, 'p1').players.map((p) => p.rankTier)).toEqual(['diamond', null]);
+    expect(maskRankRoomForViewer(room, 'spec').players.map((p) => p.rankTier)).toEqual(['diamond', null]);
+    expect(maskRankRoomForViewer(room, 'p2').players.find((p) => p.id === 'p2')?.rankTier).toBe('unranked');
+  });
+
+  it('로비 요약은 이름 없이 자리 순서대로 티어만 싣고, 익명 물약을 쓴 자리는 null', () => {
+    const room = createRankedRoom();
+    expect(roomStore.getSummary(room.id)?.rankTiers).toEqual(['diamond', 'unranked']);
+    expect(roomStore.getSummary(room.id)?.hostNickname).toBe('');
+    ensureRoomShopState(room.id).anonymizedTokens.add('p1');
+    expect(roomStore.getSummary(room.id)?.rankTiers).toEqual([null, 'unranked']);
   });
 });
 

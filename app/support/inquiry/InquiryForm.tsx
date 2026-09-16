@@ -10,7 +10,14 @@ import { callRpc } from '@/lib/supabase/rpc';
 import { mapInquiryError, pickSubmitCategory } from '@/lib/inquiry/categories';
 import { useInquiryCategories } from '@/hooks/useInquiryCategories';
 
-export default function InquiryForm({ reasonTag }: { reasonTag: string | null }) {
+export default function InquiryForm({
+  reasonTag,
+  onSubmitted,
+}: {
+  reasonTag: string | null;
+  /** 모달에서 쓸 때 — 접수 뒤 페이지를 옮기지 않고 이 콜백(모달 닫기)을 부른다 */
+  onSubmitted?: () => void;
+}) {
   const router = useRouter();
   const { cats, loading } = useInquiryCategories({ activeOnly: true });
   const [category, setCategory] = useState('');
@@ -51,8 +58,16 @@ export default function InquiryForm({ reasonTag }: { reasonTag: string | null })
           p_reason_tag: reasonTag ?? undefined,
         });
         fetch('/api/hidden-titles/check-inquiry', { method: 'POST' }).catch(() => {});
-        toast.success('문의가 접수되었습니다');
-        router.push('/me?tab=support');
+        if (onSubmitted) {
+          // 모달에서 보낸 경우 — 보던 화면에 그대로 두고, 내 문의로 갈 길만 열어 둔다
+          toast.success('문의가 접수되었습니다', {
+            action: { label: '내 문의 보기', onClick: () => router.push('/me?tab=support') },
+          });
+          onSubmitted();
+        } else {
+          toast.success('문의가 접수되었습니다');
+          router.push('/me?tab=support');
+        }
       } catch (e) {
         toast.error(mapInquiryError(e));
       }

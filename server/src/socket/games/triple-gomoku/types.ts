@@ -20,6 +20,19 @@ export type TripleGomokuEndGameFn = (
   },
 ) => void;
 
+/** 무르기용 — 한 행동을 적용하기 직전의 판·손 돌·차례. */
+export interface TripleGomokuUndoSnapshot {
+  board: TripleGomokuBoard;
+  reserves: Record<string, number>;
+  currentPlayerId: string;
+  phase: TripleGomokuPhase;
+  turnNumber: number;
+  setupTurnIndex: number;
+  setupRemaining: number;
+  lastAction: TripleGomokuLastAction | null;
+  actionLogLength: number;
+}
+
 export interface TripleGomokuState {
   roomId: string;
   players: [Player, Player];
@@ -37,6 +50,8 @@ export interface TripleGomokuState {
   /** 이번 기본 배치 턴에 더 놓아야 하는 돌 수. */
   setupRemaining: number;
   actionLog: TripleGomokuLastAction[];
+  /** 행동마다 적용 직전 모습을 쌓는다. 무르면 위에서부터 꺼낸다. */
+  undoStack: TripleGomokuUndoSnapshot[];
   lastAction: TripleGomokuLastAction | null;
   winnerId: string | null;
   winType: TripleGomokuWinType | null;

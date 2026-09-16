@@ -64,7 +64,6 @@ export const GAME_RULES: GameRule[] = [
     hiddenInLadder: true,
   },
   { id: 'game-016', name: '해달별 (이벤트)', category: '심리', rules: '', hiddenInLadder: true },
-  { id: 'game-028', name: '링 더 벨 (길드전)', category: '심리', rules: '', hiddenInLadder: true },
   { id: 'game-017', name: '콰트로', category: '심리', rules: '' },
   { id: 'game-018', name: '단어조합', category: '언어', rules: '' },
   { id: 'game-019', name: '트랜스레터', category: '언어', rules: '' },
@@ -141,6 +140,13 @@ export const GAME_RULES: GameRule[] = [
     category: '심리',
     rules: '',
   },
+  {
+    id: 'game-028',
+    name: '명추리',
+    category: '수리',
+    rules: '',
+  },
+  { id: 'game-029', name: '링 더 벨 (길드전)', category: '심리', rules: '', hiddenInLadder: true },
 ];
 
 /**

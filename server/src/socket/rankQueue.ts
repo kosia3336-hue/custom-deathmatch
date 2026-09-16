@@ -248,6 +248,9 @@ async function buildRankMatchedRoom(
   ]);
   hostPlayer.displayedTitle = hostTitle;
   guestPlayer.displayedTitle = guestTitle;
+  // 방 제목 '닉[티어] VS 닉[티어]' 용. 배치 중이면 언랭. 익명 물약을 쓴 쪽은 방·로비 마스킹에서 가린다.
+  hostPlayer.rankTier = hostEntry.placementDone ? hostEntry.tier : 'unranked';
+  guestPlayer.rankTier = guestEntry.placementDone ? guestEntry.tier : 'unranked';
   sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id), sessions.getGuildId(hostPlayer.id), sessions.getGuildName(hostPlayer.id));
   sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id), sessions.getGuildId(guestPlayer.id), sessions.getGuildName(guestPlayer.id));
 

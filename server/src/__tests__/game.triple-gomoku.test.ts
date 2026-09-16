@@ -22,9 +22,11 @@ import {
 import type { IO, TypedSocket } from '../socket/types.js';
 import { chooseTripleGomokuAiAction } from '../socket/games/triple-gomoku/ai.js';
 import {
+  canTripleGomokuUndo,
   cleanupTripleGomoku,
   handleTripleGomokuAction,
   initTripleGomoku,
+  performTripleGomokuUndo,
 } from '../socket/games/triple-gomoku/index.js';
 import { tripleGomokuStates } from '../socket/games/triple-gomoku/state.js';
 import { sessions } from '../store/sessions.js';
@@ -72,23 +74,38 @@ function line(start: TripleGomokuCell, dq: number, dr: number, count: number) {
 }
 
 describe('삼층 오목 판 기하', () => {
-  it('반지름 5 육각판은 91칸이고 가로 11줄이다', () => {
+  it('위·아래 줄의 양 끝을 도려낸 87칸이고 가로 11줄이다', () => {
     const cells = tripleGomokuCells();
-    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1);
-    expect(cells).toHaveLength(91);
+    // 육각형 91칸에서 도려낸 귀퉁이 4칸을 뺀다
+    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1 - 4);
+    expect(cells).toHaveLength(87);
     expect(new Set(cells.map((cell) => cell.r)).size).toBe(11);
     const widest = cells.filter((cell) => cell.r === 0);
     expect(widest).toHaveLength(11);
+    // 맨 위·맨 아래 줄만 6칸이 아니라 4칸이다
+    expect(cells.filter((cell) => cell.r === -TG_BOARD_RADIUS)).toHaveLength(4);
+    expect(cells.filter((cell) => cell.r === TG_BOARD_RADIUS)).toHaveLength(4);
   });
 
-  it('판 안팎을 구분하고 모서리 칸은 이웃이 3개다', () => {
+  it('판 안팎을 구분하고, 도려낸 귀퉁이는 판 밖이다', () => {
     expect(isTripleGomokuCell({ q: 0, r: 0 })).toBe(true);
-    expect(isTripleGomokuCell({ q: 5, r: -5 })).toBe(true);
+    expect(isTripleGomokuCell({ q: 4, r: -5 })).toBe(true);
+    // 도려낸 네 칸
+    expect(isTripleGomokuCell({ q: 5, r: -5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: 0, r: -5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: -5, r: 5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: 0, r: 5 })).toBe(false);
     expect(isTripleGomokuCell({ q: 5, r: 1 })).toBe(false);
     expect(isTripleGomokuCell({ q: 0.5, r: 0 })).toBe(false);
     expect(isTripleGomokuCell(null)).toBe(false);
     expect(tripleGomokuNeighbors(TG_CENTER)).toHaveLength(6);
-    expect(tripleGomokuNeighbors({ q: 5, r: -5 })).toHaveLength(3);
+    // 어느 칸의 이웃으로도 도려낸 칸이 나오지 않는다
+    const trimmed = ['5,-5', '0,-5', '-5,5', '0,5'];
+    for (const cell of tripleGomokuCells()) {
+      for (const neighbor of tripleGomokuNeighbors(cell)) {
+        expect(trimmed).not.toContain(`${neighbor.q},${neighbor.r}`);
+      }
+    }
   });
 
   it('모든 칸의 화면 좌표가 0~1 안에 들어온다', () => {
@@ -434,6 +451,123 @@ describe('삼층 오목 경기 진행', () => {
     expect(state.gameOver).toBe(true);
     expect(state.winnerId).toBe(second.id);
     expect(state.winType).toBe('timeout');
+  });
+});
+
+describe('삼층 오목 무르기', () => {
+  it('1:1 은 마지막 돌 하나를 되돌리고 그 돌을 둔 사람 차례로 돌아간다', () => {
+    vi.useFakeTimers();
+    const roomId = 'tg-undo';
+    roomIds.add(roomId);
+    const first = player('undo-first', '선');
+    const second = player('undo-second', '후');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
+    const io = ioStub();
+    initTripleGomoku(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = tripleGomokuStates.get(roomId)!;
+    const snapshot = () =>
+      JSON.stringify({
+        board: state.board,
+        reserves: state.reserves,
+        current: state.currentPlayerId,
+        remaining: state.setupRemaining,
+        turn: state.turnNumber,
+        phase: state.phase,
+      });
+
+    expect(canTripleGomokuUndo(roomId)).toBe(false);
+    handleTripleGomokuAction(io, firstSocket, roomId, { type: 'place', to: { q: -4, r: 0 } });
+    handleTripleGomokuAction(io, secondSocket, roomId, { type: 'place', to: { q: 4, r: 0 } });
+    const beforeSecondStone = snapshot();
+    handleTripleGomokuAction(io, secondSocket, roomId, { type: 'place', to: { q: 0, r: 4 } });
+    expect(state.currentPlayerId).toBe(first.id);
+
+    expect(canTripleGomokuUndo(roomId)).toBe(true);
+    expect(performTripleGomokuUndo(io, roomId)).toBe(true);
+    expect(snapshot()).toBe(beforeSecondStone);
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(state.actionLog).toHaveLength(2);
+    expect(state.lastAction?.action).toEqual({ type: 'place', to: { q: 4, r: 0 } });
+
+    expect(performTripleGomokuUndo(io, roomId)).toBe(true);
+    expect(performTripleGomokuUndo(io, roomId)).toBe(true);
+    expect(state.board).toEqual({});
+    expect(state.currentPlayerId).toBe(first.id);
+    expect(state.reserves[first.id]).toBe(TG_STONES_PER_PLAYER);
+    expect(performTripleGomokuUndo(io, roomId)).toBe(false);
+  });
+
+  it('돌 옮기기를 무르면 쌓였던 돌이 원래 칸으로 돌아가고, 본 게임 전으로도 되돌린다', () => {
+    vi.useFakeTimers();
+    const roomId = 'tg-undo-move';
+    roomIds.add(roomId);
+    const first = player('um-first', '선');
+    const second = player('um-second', '후');
+    const firstSocket = socketFor(first.id);
+    const secondSocket = socketFor(second.id);
+    const io = ioStub();
+    initTripleGomoku(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = tripleGomokuStates.get(roomId)!;
+    const setup: [TypedSocket, TripleGomokuCell][] = [
+      [firstSocket, { q: -5, r: 0 }],
+      [secondSocket, { q: 5, r: 0 }],
+      [secondSocket, { q: 5, r: -3 }],
+      [firstSocket, { q: -5, r: 3 }],
+      [firstSocket, { q: -2, r: 5 }],
+      [secondSocket, { q: 2, r: -5 }],
+    ];
+    for (const [socket, to] of setup) handleTripleGomokuAction(io, socket, roomId, { type: 'place', to });
+    expect(state.phase).toBe('playing');
+
+    handleTripleGomokuAction(io, firstSocket, roomId, { type: 'place', to: { q: 0, r: 0 } });
+    handleTripleGomokuAction(io, secondSocket, roomId, { type: 'place', to: { q: 1, r: 0 } });
+    handleTripleGomokuAction(io, firstSocket, roomId, {
+      type: 'move',
+      from: { q: 0, r: 0 },
+      to: { q: 1, r: 0 },
+    });
+    expect(state.board['1,0']).toEqual([second.id, first.id]);
+
+    expect(performTripleGomokuUndo(io, roomId)).toBe(true);
+    expect(state.board['0,0']).toEqual([first.id]);
+    expect(state.board['1,0']).toEqual([second.id]);
+    expect(state.currentPlayerId).toBe(first.id);
+
+    // 본 게임 두 수와 기본 배치 마지막 돌까지 무르면 기본 배치로 돌아간다
+    performTripleGomokuUndo(io, roomId);
+    performTripleGomokuUndo(io, roomId);
+    performTripleGomokuUndo(io, roomId);
+    expect(state.phase).toBe('setup');
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(state.setupRemaining).toBe(1);
+  });
+
+  it('COM 판은 COM 의 수와 내 수를 함께 물러 내 차례로 돌아가고, 끝난 판은 무를 수 없다', async () => {
+    vi.useFakeTimers();
+    const roomId = 'tg-undo-com';
+    roomIds.add(roomId);
+    const human = player('undo-human', '사람');
+    const ai = player(AI_PLAYER_ID, 'COM');
+    const humanSocket = socketFor(human.id);
+    const io = ioStub();
+    initTripleGomoku(io, roomId, [human, ai], 'com', Date.now(), null, vi.fn());
+    const state = tripleGomokuStates.get(roomId)!;
+
+    handleTripleGomokuAction(io, humanSocket, roomId, { type: 'place', to: { q: -4, r: 0 } });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(state.currentPlayerId).toBe(human.id);
+    expect(state.actionLog).toHaveLength(3);
+
+    expect(performTripleGomokuUndo(io, roomId)).toBe(true);
+    expect(state.actionLog).toHaveLength(0);
+    expect(state.board).toEqual({});
+    expect(state.currentPlayerId).toBe(human.id);
+    expect(canTripleGomokuUndo(roomId)).toBe(false);
+
+    state.gameOver = true;
+    expect(canTripleGomokuUndo(roomId)).toBe(false);
+    expect(performTripleGomokuUndo(io, roomId)).toBe(false);
   });
 });
 

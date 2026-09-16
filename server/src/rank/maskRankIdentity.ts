@@ -45,13 +45,22 @@ export function nicknameForViewer(
   return ANONYMOUS_NICKNAME;
 }
 
-/** 랭크: 본인 외 모든 viewer(상대·관전자)에게 플레이어 닉을 ???. 칭호·memberId 유지. */
+/**
+ * 랭크: 본인 외 모든 viewer(상대·관전자)에게 플레이어 닉을 ???. 칭호·memberId 유지.
+ * 티어는 방 제목('닉[티어] VS 닉[티어]')에 보이지만, 익명 물약을 쓴 사람의 티어는 본인 외에게 가린다.
+ */
 export function maskRankRoomForViewer(room: Room, viewerToken: string | null): Room {
   if (!room.isRanked) return room;
   return {
     ...room,
     players: room.players.map((p) =>
-      p.id === viewerToken ? p : { ...p, nickname: ANONYMOUS_NICKNAME },
+      p.id === viewerToken
+        ? p
+        : {
+            ...p,
+            nickname: ANONYMOUS_NICKNAME,
+            rankTier: isTokenAnonymized(room.id, p.id) ? null : (p.rankTier ?? null),
+          },
     ),
   };
 }

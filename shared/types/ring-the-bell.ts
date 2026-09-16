@@ -1,6 +1,6 @@
 /**
  * 기간 한정 길드전 「링 더 벨」 소켓 페이로드.
- * 룸 ID `guild-war`. 게임 ID `game-028`.
+ * 룸 ID `guild-war`. 게임 ID `game-029`.
  */
 
 import type { RtbAction, RtbState } from '../guild-war/types';

@@ -35,6 +35,11 @@ import {
 import { formatTimeLimitShort } from '@/lib/utils';
 import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
+import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
+import {
+  MYEONGCHURI_DEFAULT_PICK_SECONDS,
+  MYEONGCHURI_DEFAULT_THINK_SECONDS,
+} from '@/shared/types/myeongchuri';
 
 const COUNTER_MATCH_MODE_ID = 'counter-match';
 
@@ -106,6 +111,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     DEFAULT_ABSTRACT_AI_DIFFICULTY,
   );
   const [banCount, setBanCount] = useState(3);
+  const [thinkEnabled, setThinkEnabled] = useState(true);
+  const [thinkSeconds, setThinkSeconds] = useState(MYEONGCHURI_DEFAULT_THINK_SECONDS);
   const [hiddenMatch, setHiddenMatch] = useState(false);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
@@ -142,6 +149,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setAbstractAiThinkSeconds(DEFAULT_ABSTRACT_AI_THINK_SECONDS);
     setAbstractAiDifficulty(DEFAULT_ABSTRACT_AI_DIFFICULTY);
     setBanCount(3);
+    setThinkEnabled(true);
+    setThinkSeconds(MYEONGCHURI_DEFAULT_THINK_SECONDS);
     setHiddenMatch(false);
     fetchGames()
       .then((all) =>
@@ -204,7 +213,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     (isBanPick && !hiddenMatch) ||
-    showsAbstractAiThinkTime;
+    showsAbstractAiThinkTime ||
+    // 솔로 명추리는 혼자 두므로 생각 시간 항목이 없다
+    (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
 
   const selectGame = (g: Game) => {
     setListOpen(false);
@@ -215,6 +226,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     else if (g.supportsSolo) setPlayMode('solo');
     else if (g.supportsTutorial) setPlayMode('tutorial');
     setMaxPlayers(g.maxPlayers);
+    // 명추리는 알파벳 고르기 시간이 기본 3분이다(넘기면 남은 알파벳에서 무작위로 놓는다)
+    if (g.id === GAME_IDS.MYEONGCHURI) {
+      setTimeLimitEnabled(true);
+      setTimeLimitMin(Math.floor(MYEONGCHURI_DEFAULT_PICK_SECONDS / 60));
+      setTimeLimitSec(MYEONGCHURI_DEFAULT_PICK_SECONDS % 60);
+    }
     setError('');
   };
 
@@ -279,6 +296,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       }
       if (showsAbstractAiDifficulty) {
         gameOptions.aiDifficulty = abstractAiDifficulty;
+      }
+      if (selectedGame.id === GAME_IDS.MYEONGCHURI) {
+        gameOptions.thinkEnabled = thinkEnabled;
+        gameOptions.thinkSeconds = thinkSeconds;
       }
       const useHidden = isAdmin && hiddenMatch && playMode === 'multi';
       socket.emit(
@@ -590,6 +611,15 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 gameId={selectedGame?.id ?? ''}
                 value={abstractAiDifficulty}
                 onChange={setAbstractAiDifficulty}
+              />
+            )}
+
+            {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
+              <MyeongchuriThinkTimeField
+                enabled={thinkEnabled}
+                seconds={thinkSeconds}
+                onEnabledChange={setThinkEnabled}
+                onSecondsChange={setThinkSeconds}
               />
             )}
 

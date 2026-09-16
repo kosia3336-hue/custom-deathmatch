@@ -45,7 +45,20 @@ export function parseTripleGomokuCellKey(key: string): TripleGomokuCell | null {
   return { q, r };
 }
 
-/** 육각 판 안에 있는 좌표인지 확인한다. 클라이언트가 보낸 값 검증에도 쓴다. */
+/**
+ * 실제 판에서 도려낸 귀퉁이 — 맨 윗줄과 맨 아랫줄의 양 끝.
+ *
+ * 순수한 육각형이 아니다. 실물 판은 위·아래 줄이 6칸이 아니라 4칸이라
+ * 그 줄만 안쪽으로 들어가 있다. 반지름 5 육각형 91칸에서 이 4칸을 뺀 87칸이다.
+ */
+const TRIMMED_CORNERS: ReadonlySet<string> = new Set([
+  `0,${-TG_BOARD_RADIUS}`,
+  `${TG_BOARD_RADIUS},${-TG_BOARD_RADIUS}`,
+  `${-TG_BOARD_RADIUS},${TG_BOARD_RADIUS}`,
+  `0,${TG_BOARD_RADIUS}`,
+]);
+
+/** 판 안에 있는 좌표인지 확인한다. 클라이언트가 보낸 값 검증에도 쓴다. */
 export function isTripleGomokuCell(value: unknown): value is TripleGomokuCell {
   if (!value || typeof value !== 'object') return false;
   const cell = value as Partial<TripleGomokuCell>;
@@ -55,7 +68,8 @@ export function isTripleGomokuCell(value: unknown): value is TripleGomokuCell {
   return (
     Math.abs(q) <= TG_BOARD_RADIUS &&
     Math.abs(r) <= TG_BOARD_RADIUS &&
-    Math.abs(q + r) <= TG_BOARD_RADIUS
+    Math.abs(q + r) <= TG_BOARD_RADIUS &&
+    !TRIMMED_CORNERS.has(`${q},${r}`)
   );
 }
 
@@ -69,7 +83,10 @@ export function tripleGomokuCells(): TripleGomokuCell[] {
   for (let r = -TG_BOARD_RADIUS; r <= TG_BOARD_RADIUS; r += 1) {
     const minQ = Math.max(-TG_BOARD_RADIUS, -r - TG_BOARD_RADIUS);
     const maxQ = Math.min(TG_BOARD_RADIUS, -r + TG_BOARD_RADIUS);
-    for (let q = minQ; q <= maxQ; q += 1) cells.push({ q, r });
+    // 도려낸 귀퉁이는 빼고 담는다 — 줄 범위 계산만으로는 걸러지지 않는다
+    for (let q = minQ; q <= maxQ; q += 1) {
+      if (isTripleGomokuCell({ q, r })) cells.push({ q, r });
+    }
   }
   return cells;
 }

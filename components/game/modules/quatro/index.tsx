@@ -280,10 +280,10 @@ export default function QuatroGame() {
               >
                 <span className="text-[11px] font-bold text-cdm-fg">
                   {String.fromCharCode(65 + vp.index)}
-                  {/* 교환 표시는 닉네임 대신 나/상대 — 익명(???)이면 누구인지 헷갈린다 */}
-                  {vp.usedByMe && <span className="text-cdm-primary"> ✓ 나</span>}
+                  {/* 교환 표시는 닉네임 대신 [나]/[상대] — 익명(???)이면 누구인지 헷갈리고, 괄호로 묶어야 한눈에 들어온다 */}
+                  {vp.usedByMe && <span className="text-cdm-primary"> [나]</span>}
                   {vp.usedByOpp && (
-                    <span className="text-cdm-fg-subtle"> ✓ {me ? '상대' : '교환됨'}</span>
+                    <span className="text-cdm-fg-subtle"> [{me ? '상대' : '교환됨'}]</span>
                   )}
                 </span>
                 <div className="flex gap-0.5">

@@ -60,6 +60,14 @@ function toSummary(room: RoomInternal): RoomSummary {
     createdAt: room.createdAt,
     ...(room.isRanked ? { isRanked: true } : {}),
     ...(room.hiddenMatch ? { hiddenMatch: true } : {}),
+    // 로비 제목 '???[티어] VS ???[티어]' — 이름은 싣지 않고, 익명 물약을 쓴 자리의 티어는 가린다
+    ...(room.isRanked
+      ? {
+          rankTiers: room.players.map((p) =>
+            isTokenAnonymized(room.id, p.id) ? null : (p.rankTier ?? null),
+          ),
+        }
+      : {}),
   };
 }
 

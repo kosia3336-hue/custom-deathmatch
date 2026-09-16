@@ -1,6 +1,10 @@
 /** 삼층 오목 — 삼각격자에 돌을 3층까지 쌓아 세 가지 승리 조건 중 하나를 노리는 1:1 추상전략. */
 
-/** 육각형 판의 반지름. 5면 가로 11줄·91칸이다. */
+/**
+ * 판의 반지름. 5면 가로 11줄이다.
+ * 순수 육각형(91칸)이 아니라 위·아래 줄의 양 끝을 도려낸 87칸이다
+ * (도려낸 칸은 shared/logic/triple-gomoku.ts 의 TRIMMED_CORNERS).
+ */
 export const TG_BOARD_RADIUS = 5;
 export const TG_STONES_PER_PLAYER = 25;
 export const TG_MAX_HEIGHT = 3;
