@@ -94,6 +94,12 @@ export interface ChoiceHoldemGameData {
   minRaise: number | null;
   maxRaise: number | null;
   choice: ChoiceHoldemChoiceView;
+  /**
+   * 끝난 라운드 전체 기록 — 화면의 '기록'에서 내가 얼마를 걸었고 누가 무슨 패로
+   * 이겼는지 되짚는 데 쓴다. 폴드로 끝난 라운드는 패가 없으므로 holeCards 가 null 이라,
+   * 공개된 적 없는 패가 여기로 새지 않는다.
+   */
+  rounds: ChoiceHoldemRoundResult[];
   lastRoundResult: ChoiceHoldemRoundResult | null;
   roundStartedAt: number;
   turnStartedAt: number | null;

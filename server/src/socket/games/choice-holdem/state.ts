@@ -135,6 +135,7 @@ export function toChoiceHoldemGameData(
       faceUpOwnerId: state.faceUpOwnerId,
       faceDownOwnerId: state.faceDownOwnerId,
     },
+    rounds: state.roundResults.map(cloneChoiceHoldemRoundResult),
     lastRoundResult: state.lastRoundResult
       ? cloneChoiceHoldemRoundResult(state.lastRoundResult)
       : null,

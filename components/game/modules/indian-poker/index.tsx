@@ -6,6 +6,7 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { toast } from 'sonner';
 import { GAME_IDS } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
+import { playChipsSfx } from '@/lib/chipsSfx';
 import type { IndianPokerGameData } from '@/shared/types/indian-poker';
 import CardArea from './CardArea';
 import BettingPanel from './BettingPanel';
@@ -60,6 +61,12 @@ export default function IndianPokerGame() {
     });
     return () => setHud(null);
   }, [setHud, gameData, round, myId, phaseLabel]);
+
+  /* 라운드가 끝나 칩이 넘어갈 때 한 번. 라운드 번호로 묶어 결과 화면이 다시 그려져도 겹치지 않는다. */
+  const roundEnded = gameData?.phase === 'showdown' || gameData?.phase === 'dieResult';
+  useEffect(() => {
+    if (roundEnded) playChipsSfx();
+  }, [roundEnded, round]);
 
   useEffect(() => {
     if (!gameData) return;

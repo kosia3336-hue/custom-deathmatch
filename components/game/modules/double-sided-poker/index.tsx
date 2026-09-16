@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PlayingCard } from '@/components/game/cards';
 import Button from '@/components/ui/Button';
 import { useMySocketId } from '@/hooks/useMySocketId';
+import { playChipsSfx } from '@/lib/chipsSfx';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -548,6 +549,14 @@ export default function DoubleSidedPokerGame() {
   const gameData = gameState?.gameData as DoubleSidedPokerGameData | undefined;
   const myId = useMySocketId();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
+
+  /* 라운드가 끝나 칩이 넘어갈 때 한 번. 라운드 번호로 묶어 결과 화면이 다시 그려져도 겹치지 않는다. */
+  const roundEnded = gameData?.phase === 'round-result';
+  const roundNumber = gameData?.round;
+  useEffect(() => {
+    if (roundEnded) playChipsSfx();
+  }, [roundEnded, roundNumber]);
+
   if (!gameData) {
     return (
       <div className="text-cdm-fg-muted flex h-full items-center justify-center">

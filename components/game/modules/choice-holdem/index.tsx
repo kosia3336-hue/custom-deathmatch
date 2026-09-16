@@ -1,28 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
-import type {
-  ChoiceHoldemCard,
-  ChoiceHoldemEvaluation,
-  ChoiceHoldemGameData,
-  ChoiceHoldemHandCategory,
-} from '@/shared/types/choice-holdem';
+import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { playChipsSfx } from '@/lib/chipsSfx';
 import Button from '@/components/ui/Button';
+import type { ChoiceHoldemCard, ChoiceHoldemGameData } from '@/shared/types/choice-holdem';
 import CardTile from './CardTile';
-
-const CATEGORY_LABEL: Record<ChoiceHoldemHandCategory, string> = {
-  'high-card': '하이 카드',
-  'one-pair': '원 페어',
-  'two-pair': '투 페어',
-  triple: '트리플',
-  straight: '스트레이트',
-  'full-house': '풀하우스',
-  'four-kind': '포 카드',
-};
+import RecordPanel, { evaluationLabel } from './RecordPanel';
 
 const PHASE_LABEL: Record<ChoiceHoldemGameData['phase'], string> = {
   'first-betting': '1차 베팅',
@@ -33,14 +22,8 @@ const PHASE_LABEL: Record<ChoiceHoldemGameData['phase'], string> = {
   finished: '게임 종료',
 };
 
-function evaluationLabel(evaluation: ChoiceHoldemEvaluation | undefined) {
-  if (!evaluation) return '';
-  const number =
-    evaluation.primaryValues.length > 0 ? ` · ${evaluation.primaryValues.join('/')}` : '';
-  return `${CATEGORY_LABEL[evaluation.category]}${number}`;
-}
-
-function PlayerPanel({
+/** 한 사람의 자리 — 이름·칩·이번 라운드에 낸 칩. 낮게 유지해 카드 자리를 남긴다. */
+function PlayerRow({
   playerId,
   gameData,
   myId,
@@ -54,28 +37,26 @@ function PlayerPanel({
   return (
     <div
       className={cn(
-        'rounded-cdm-lg border p-2.5 transition sm:p-3',
+        'rounded-cdm-lg flex items-baseline justify-between gap-2 border px-2 py-1 transition',
         isCurrent
           ? 'border-cdm-highlight bg-cdm-highlight-soft'
           : 'border-cdm-border bg-cdm-bg-elev-1',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-cdm-fg truncate text-xs font-black sm:text-sm">
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        <p className="text-cdm-fg truncate text-xs font-black">
           {player.nickname}
           {playerId === myId ? ' (나)' : ''}
         </p>
-        <span className="text-cdm-primary text-sm font-black tabular-nums">{player.chips}칩</span>
-      </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] font-bold sm:text-xs">
-        <span className="text-cdm-fg-muted">베팅 {player.roundBet}</span>
-        <span className={isCurrent ? 'text-cdm-highlight' : 'text-cdm-fg-subtle'}>
-          {isCurrent
-            ? '행동 중'
-            : playerId === gameData.firstPlayerId
-              ? '선 플레이어'
-              : '후 플레이어'}
+        <span className="text-cdm-fg-muted shrink-0 text-[10px] font-bold">
+          {playerId === gameData.firstPlayerId ? '선' : '후'}
         </span>
+      </div>
+      <div className="flex shrink-0 items-baseline gap-2">
+        <span className="text-cdm-fg-muted text-[10px] font-bold tabular-nums">
+          낸 칩 {player.roundBet}
+        </span>
+        <span className="text-cdm-primary text-sm font-black tabular-nums">{player.chips}칩</span>
       </div>
     </div>
   );
@@ -89,18 +70,19 @@ function ChoiceArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: 
   if (gameData.phase === 'arranging-choice') {
     const canArrange = isMyTurn && options != null;
     return (
-      <section className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-lg border p-3 text-center">
-        <p className="text-cdm-fg text-sm font-black">
+      <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 text-center">
+        <p className="text-cdm-fg text-xs font-black">
           {canArrange
-            ? '앞면으로 공개할 카드를 고르세요'
+            ? '앞면으로 공개할 카드를 골라야 합니다'
             : '선 플레이어가 카드를 배치하고 있습니다'}
         </p>
-        <p className="text-cdm-fg-muted mt-0.5 text-[11px]">남은 카드는 뒷면으로 놓입니다.</p>
-        <div className="mt-3 flex justify-center gap-4">
+        <p className="text-cdm-fg-muted mt-0.5 text-[10px]">남은 카드는 뒷면으로 놓입니다.</p>
+        <div className="mt-2 flex justify-center gap-4">
           {(options ?? [null, null]).map((card, index) => (
             <CardTile
               key={index}
               value={card}
+              compact
               label={canArrange ? '앞면으로 두기' : '배치 중'}
               selected={selectedIndex === index}
               onClick={canArrange ? () => setSelectedIndex(index as 0 | 1) : undefined}
@@ -109,33 +91,31 @@ function ChoiceArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: 
         </div>
         {canArrange && (
           <Button
-            className="mt-3 w-full sm:w-auto"
+            className="mt-2"
             disabled={selectedIndex == null}
             onClick={() => {
               if (selectedIndex == null) return;
-              getSocket().emit('game:action', {
-                type: 'arrange-choice',
-                faceUpIndex: selectedIndex,
-              });
+              getSocket().emit('game:action', { type: 'arrange-choice', faceUpIndex: selectedIndex });
             }}
           >
             이 카드 공개하기
           </Button>
         )}
-      </section>
+      </div>
     );
   }
 
   if (gameData.phase === 'choosing-card') {
     const canPick = isMyTurn && myId === gameData.selectorId;
     return (
-      <section className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-lg border p-3 text-center">
-        <p className="text-cdm-fg text-sm font-black">
-          {canPick ? '가져갈 카드 한 장을 선택하세요' : '후 플레이어가 카드를 선택하고 있습니다'}
+      <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 text-center">
+        <p className="text-cdm-fg text-xs font-black">
+          {canPick ? '가져갈 카드 한 장을 골라야 합니다' : '후 플레이어가 카드를 선택하고 있습니다'}
         </p>
-        <div className="mt-3 flex justify-center gap-5">
+        <div className="mt-2 flex justify-center gap-5">
           <CardTile
             value={gameData.choice.faceUp}
+            compact
             label="앞면"
             onClick={
               canPick
@@ -145,49 +125,102 @@ function ChoiceArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: 
           />
           <CardTile
             value={gameData.choice.faceDown}
+            compact
             label="뒷면"
             onClick={
               canPick
-                ? () =>
-                    getSocket().emit('game:action', { type: 'pick-choice', choice: 'face-down' })
+                ? () => getSocket().emit('game:action', { type: 'pick-choice', choice: 'face-down' })
                 : undefined
             }
           />
         </div>
-      </section>
+      </div>
     );
   }
   return null;
 }
 
+/** 칩 한 줄 — 큰 숫자와 작은 이름표. 조작부에서 눈이 먼저 닿는 자리다. */
+function ChipStat({
+  label,
+  value,
+  tone = 'plain',
+  hint,
+}: {
+  label: string;
+  value: number;
+  tone?: 'plain' | 'primary' | 'highlight';
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0 text-center">
+      <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">{label}</p>
+      <p
+        className={cn(
+          'text-base leading-5 font-black tabular-nums',
+          tone === 'primary' && 'text-cdm-primary',
+          tone === 'highlight' && 'text-cdm-highlight',
+          tone === 'plain' && 'text-cdm-fg',
+        )}
+      >
+        {value}
+      </p>
+      {hint && <p className="text-cdm-fg-subtle text-[9px] leading-3">{hint}</p>}
+    </div>
+  );
+}
+
+/**
+ * 조작부 — 콜·레이즈·폴드.
+ *
+ * 숫자를 먼저 보여 주고 단추를 그 아래 둔다. 예전에는 '맞출 칩' 하나만 있어서
+ * 내가 이 판에 이미 얼마를 냈는지, 레이즈하면 추가로 얼마가 나가는지가 보이지
+ * 않았다. 레이즈 슬라이더의 값은 '이번 라운드 총 베팅' 이라 그대로 읽으면
+ * 그만큼이 또 나가는 것으로 오해하기 쉽다 — 그래서 총액과 추가 지불을 따로 적는다.
+ */
 function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: string }) {
   const [showRaise, setShowRaise] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState(gameData.minRaise ?? 0);
   const isBetting = gameData.phase === 'first-betting' || gameData.phase === 'second-betting';
-  const isMyTurn = isBetting && gameData.currentTurnId === myId;
+  const mine = gameData.players[myId];
+  const myBet = mine?.roundBet ?? 0;
 
   if (!isBetting) return null;
-  if (!isMyTurn) {
+
+  if (gameData.currentTurnId !== myId) {
     const currentName = gameData.currentTurnId
       ? gameData.players[gameData.currentTurnId]?.nickname
       : null;
     return (
-      <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-lg border p-4 text-center">
-        <p className="text-cdm-fg-muted animate-pulse text-sm font-bold">
+      <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border px-3 py-2.5 text-center">
+        <p className="text-cdm-fg-muted animate-pulse text-xs font-bold">
           {currentName ? `${currentName} 님이 베팅 중입니다` : '베팅을 기다리는 중입니다'}
         </p>
       </div>
     );
   }
 
+  /* 레이즈 슬라이더 값은 이번 라운드 총 베팅이다. 실제로 더 내는 칩은 그 차액. */
+  const raiseExtra = Math.max(0, raiseAmount - myBet);
+
   return (
-    <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-3">
-      <div className="mb-3 flex items-center justify-between text-xs">
-        <span className="text-cdm-fg-muted">맞출 칩</span>
-        <span className="text-cdm-fg text-base font-black tabular-nums">{gameData.toCall}</span>
+    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
+      <div className="mb-2 flex items-start justify-around gap-2">
+        <ChipStat label="팟" value={gameData.pot} tone="primary" />
+        <ChipStat
+          label="내가 낸 칩"
+          value={myBet}
+          hint={gameData.ante > 0 ? `기본 ${gameData.ante} 포함` : undefined}
+        />
+        <ChipStat
+          label={showRaise ? '추가로 낼 칩' : '맞출 칩'}
+          value={showRaise ? raiseExtra : gameData.toCall}
+          tone="highlight"
+        />
       </div>
+
       {showRaise && gameData.minRaise != null && gameData.maxRaise != null ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <input
               className="accent-cdm-primary min-w-0 flex-1"
@@ -197,20 +230,22 @@ function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId:
               value={raiseAmount}
               onChange={(event) => setRaiseAmount(Number(event.target.value))}
             />
-            <span className="text-cdm-fg w-14 text-right text-base font-black tabular-nums">
+            <span className="text-cdm-fg w-12 shrink-0 text-right text-lg font-black tabular-nums">
               {raiseAmount}
             </span>
           </div>
           <p className="text-cdm-fg-muted text-center text-[10px]">
-            이번 라운드 총 베팅 · {gameData.minRaise}–{gameData.maxRaise}
+            이번 라운드 총 베팅 {gameData.minRaise}–{gameData.maxRaise} · 이미 낸 {myBet}칩을 빼고{' '}
+            <b className="text-cdm-fg">{raiseExtra}</b>칩이 더 나갑니다
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Button
-              onClick={() =>
-                getSocket().emit('game:action', { type: 'raise', amount: raiseAmount })
-              }
+              onClick={() => {
+                setShowRaise(false);
+                getSocket().emit('game:action', { type: 'raise', amount: raiseAmount });
+              }}
             >
-              레이즈 {raiseAmount}
+              레이즈 · 총 {raiseAmount} (+{raiseExtra})
             </Button>
             <Button variant="ghost" onClick={() => setShowRaise(false)}>
               취소
@@ -225,53 +260,60 @@ function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId:
           <Button
             variant="secondary"
             disabled={gameData.minRaise == null}
-            onClick={() => setShowRaise(true)}
+            onClick={() => {
+              setRaiseAmount(gameData.minRaise ?? 0);
+              setShowRaise(true);
+            }}
           >
             레이즈
           </Button>
-          <Button
-            variant="danger"
-            onClick={() => getSocket().emit('game:action', { type: 'fold' })}
-          >
+          <Button variant="danger" onClick={() => getSocket().emit('game:action', { type: 'fold' })}>
             폴드
           </Button>
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
-function ResultArea({ gameData }: { gameData: ChoiceHoldemGameData }) {
+/** 라운드 결과는 무대 위에 겹쳐 띄운다 — 새 줄로 만들면 그 순간 판이 밀린다. */
+function ResultOverlay({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: string }) {
   const result = gameData.lastRoundResult;
   if (gameData.phase !== 'round-result' || !result) return null;
-  const winnerName = result.winnerId ? gameData.players[result.winnerId]?.nickname : null;
+  const winnerName = result.winnerId
+    ? result.winnerId === myId
+      ? '나'
+      : gameData.players[result.winnerId]?.nickname
+    : null;
   return (
-    <section className="border-cdm-highlight bg-cdm-highlight-soft rounded-cdm-lg border p-3 text-center">
-      <p className="text-cdm-fg text-base font-black">
-        {result.reason === 'tie'
-          ? '완전 동률 · 팟 이월'
-          : result.reason === 'fold'
-            ? `${winnerName ?? '상대'} 님이 폴드 승리`
-            : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`}
-      </p>
-      {result.evaluations && (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {Object.entries(result.evaluations).map(([playerId, evaluation]) => (
-            <div key={playerId} className="bg-cdm-bg/70 rounded-cdm-md px-2 py-1.5">
-              <p className="text-cdm-fg-muted truncate text-[10px]">
-                {gameData.players[playerId]?.nickname}
-              </p>
-              <p className="text-cdm-fg text-xs font-black">{evaluationLabel(evaluation)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      {result.reason === 'tie' && (
-        <p className="text-cdm-fg-muted mt-2 text-[11px]">
-          선 플레이어를 유지하고 다음 딜은 베팅 없이 진행합니다.
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+      <div className="border-cdm-highlight bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+        <p className="text-cdm-fg text-base font-black">
+          {result.reason === 'tie'
+            ? '완전 동률 · 팟 이월'
+            : result.reason === 'fold'
+              ? `${winnerName ?? '상대'} 님이 폴드 승리`
+              : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`}
         </p>
-      )}
-    </section>
+        {result.evaluations && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {Object.entries(result.evaluations).map(([playerId, evaluation]) => (
+              <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md px-2 py-1">
+                <p className="text-cdm-fg-muted truncate text-[10px]">
+                  {playerId === myId ? '나' : gameData.players[playerId]?.nickname}
+                </p>
+                <p className="text-cdm-fg text-xs font-black">{evaluationLabel(evaluation)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {result.reason === 'tie' && (
+          <p className="text-cdm-fg-muted mt-2 text-[11px]">
+            선 플레이어를 유지하고 다음 딜은 베팅 없이 진행합니다.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -279,8 +321,37 @@ export default function ChoiceHoldemGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as ChoiceHoldemGameData | undefined;
   const myId = useMySocketId();
+  const { setHud } = useRoomLayout();
 
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
+  const isPlayer = Boolean(gameData && gameData.players[myId]);
+  const myTurn = gameData?.currentTurnId === myId;
+
+  /* 차례·라운드·기록은 상단 바로 올린다. 조작부와 무대는 그만큼 넓어진다. */
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round}R`,
+      order:
+        gameData.phase === 'finished'
+          ? '종료'
+          : !isPlayer
+            ? '관전'
+            : myTurn
+              ? '내 차례'
+              : '상대 차례',
+      memo: <RecordPanel data={gameData} myId={myId} />,
+    });
+  }, [gameData, isPlayer, myTurn, myId, setHud]);
+  useEffect(() => () => setHud(null), [setHud]);
+
+  /* 라운드가 끝나 팟이 넘어갈 때 한 번. 라운드 번호로 묶어 결과 화면이 다시 그려져도 겹치지 않는다. */
+  const roundEnded = gameData?.phase === 'round-result';
+  const roundNumber = gameData?.round;
+  useEffect(() => {
+    if (roundEnded) playChipsSfx();
+  }, [roundEnded, roundNumber]);
+
   if (!gameData) {
     return (
       <div className="text-cdm-fg-muted flex h-full items-center justify-center">
@@ -288,109 +359,99 @@ export default function ChoiceHoldemGame() {
       </div>
     );
   }
-  const isPlayer = Boolean(gameData.players[myId]);
+
   const myPlayer = gameData.players[myId];
   const opponentId = playerIds.find((playerId) => playerId !== myId) ?? playerIds[1];
   const opponent = opponentId ? gameData.players[opponentId] : undefined;
   const resultCards = gameData.lastRoundResult?.holeCards;
+  const seatOrder = myPlayer ? [...playerIds.filter((id) => id !== myId), myId] : playerIds;
+  const actionKey = [gameData.round, gameData.phase, gameData.currentTurnId, gameData.toCall].join('-');
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-2 overflow-y-auto overscroll-contain p-2 sm:gap-3 sm:p-4">
-      <header className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto] items-center gap-2 border p-2.5 sm:p-3">
-        <div>
-          <p className="text-cdm-fg text-sm font-black">
+    <GameFrame
+      info={
+        <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg flex items-center justify-between gap-2 border px-2 py-1.5">
+          <p className="text-cdm-fg min-w-0 truncate text-xs leading-4 font-black">
             {PHASE_LABEL[gameData.phase]}
-            {gameData.carryRound && (
-              <span className="text-cdm-highlight ml-2">베팅 없는 이월 라운드</span>
-            )}
+            {gameData.carryRound && <span className="text-cdm-highlight ml-1.5">베팅 없는 이월</span>}
           </p>
-        </div>
-        <div className="flex items-center gap-3 text-center">
-          <div>
-            <p className="text-cdm-fg-subtle text-[9px] font-bold">ANTE</p>
-            <p className="text-cdm-fg text-lg font-black">{gameData.ante}</p>
+          <div className="flex shrink-0 items-center gap-2.5 text-center">
+            <div>
+              <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">ANTE</p>
+              <p className="text-cdm-fg text-sm leading-4 font-black tabular-nums">{gameData.ante}</p>
+            </div>
+            <div className="bg-cdm-primary-soft rounded-cdm-md px-2.5 py-0.5">
+              <p className="text-cdm-primary text-[9px] leading-3 font-bold">POT</p>
+              <p className="text-cdm-primary text-base leading-5 font-black tabular-nums">
+                {gameData.pot}
+              </p>
+            </div>
           </div>
-          <div className="bg-cdm-primary-soft rounded-cdm-md min-w-16 px-3 py-1.5">
-            <p className="text-cdm-primary text-[9px] font-bold">POT</p>
-            <p className="text-cdm-primary text-xl font-black tabular-nums">{gameData.pot}</p>
-          </div>
         </div>
-      </header>
-
-      <div className="grid grid-cols-2 gap-2">
-        {playerIds.map((playerId) => (
-          <PlayerPanel key={playerId} playerId={playerId} gameData={gameData} myId={myId} />
+      }
+      controls={
+        isPlayer ? (
+          <BettingArea key={actionKey} gameData={gameData} myId={myId} />
+        ) : (
+          gameData.phase !== 'finished' && (
+            <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
+          )
+        )
+      }
+      aside={<RecordPanel data={gameData} myId={myId} />}
+    >
+      <main className="mx-auto flex h-full w-full max-w-xl min-w-0 flex-col justify-center gap-2 overflow-hidden">
+        {seatOrder.map((playerId) => (
+          <PlayerRow key={playerId} playerId={playerId} gameData={gameData} myId={myId} />
         ))}
-      </div>
 
-      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex flex-col items-center gap-3 border p-3 sm:p-4">
-        <div className="text-center">
-          <p className="text-cdm-fg-subtle text-[10px] font-bold tracking-[0.14em]">COMMUNITY</p>
-          <div className="mt-1.5 flex justify-center gap-2">
-            {gameData.communityCards.map((card, index) => (
-              <CardTile key={index} value={card} compact />
-            ))}
+        <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex flex-col items-center gap-2 border p-2">
+          <div className="text-center">
+            <p className="text-cdm-fg-subtle text-[9px] font-bold tracking-[0.14em]">COMMUNITY</p>
+            <div className="mt-1 flex justify-center gap-1.5">
+              {gameData.communityCards.map((card, index) => (
+                <CardTile key={index} value={card} compact />
+              ))}
+            </div>
           </div>
+
+          {(myPlayer || opponent) && (
+            <div className="border-cdm-border grid w-full grid-cols-2 gap-3 border-t pt-2">
+              {[myPlayer, opponent].map(
+                (player, playerIndex) =>
+                  player && (
+                    <div key={player.id} className="text-center">
+                      <p className="text-cdm-fg-muted mb-0.5 text-[10px] font-bold">
+                        {playerIndex === 0 && isPlayer ? '내 개인 카드' : `${player.nickname} 개인 카드`}
+                      </p>
+                      <div className="flex justify-center gap-1.5">
+                        {(resultCards?.[player.id] ?? player.cards).map((card, index) => (
+                          <CardTile key={index} value={card as ChoiceHoldemCard | null} compact />
+                        ))}
+                        {player.cards.length < 2 && <CardTile value={null} compact />}
+                      </div>
+                    </div>
+                  ),
+              )}
+            </div>
+          )}
         </div>
 
-        {(myPlayer || opponent) && (
-          <div className="border-cdm-border grid w-full max-w-xl grid-cols-2 gap-4 border-t pt-3">
-            {[myPlayer, opponent].map(
-              (player, playerIndex) =>
-                player && (
-                  <div key={player.id} className="text-center">
-                    <p className="text-cdm-fg-muted mb-1 text-[10px] font-bold">
-                      {playerIndex === 0 && isPlayer
-                        ? '내 개인 카드'
-                        : `${player.nickname} 개인 카드`}
-                    </p>
-                    <div className="flex justify-center gap-1.5">
-                      {(resultCards?.[player.id] ?? player.cards).map((card, index) => (
-                        <CardTile key={index} value={card as ChoiceHoldemCard | null} compact />
-                      ))}
-                      {player.cards.length < 2 && <CardTile value={null} compact />}
-                    </div>
-                  </div>
-                ),
-            )}
+        <ChoiceArea gameData={gameData} myId={myId} />
+
+        {gameData.phase === 'finished' && (
+          <div className="bg-cdm-primary-soft rounded-cdm-lg p-3 text-center">
+            <p className="text-cdm-primary text-base font-black">
+              {gameData.winnerId
+                ? `${gameData.winnerId === myId ? '나' : gameData.players[gameData.winnerId]?.nickname} 승리!`
+                : '무승부'}
+            </p>
+            <p className="text-cdm-fg-muted mt-0.5 text-xs">{gameData.finishReason}</p>
           </div>
         )}
-
-        {gameData.choice.arranged &&
-          !['arranging-choice', 'choosing-card'].includes(gameData.phase) && (
-            <p className="text-cdm-fg-muted text-[10px]">
-              공개 선택 카드 {gameData.choice.faceUp} ·{' '}
-              {gameData.choice.faceUpOwnerId
-                ? `${gameData.players[gameData.choice.faceUpOwnerId]?.nickname} 소유`
-                : '선택 전'}
-            </p>
-          )}
       </main>
 
-      <ChoiceArea gameData={gameData} myId={myId} />
-      {isPlayer ? (
-        <BettingArea
-          key={`${gameData.phase}:${gameData.currentTurnId}:${gameData.minRaise}`}
-          gameData={gameData}
-          myId={myId}
-        />
-      ) : (
-        gameData.phase !== 'finished' && (
-          <p className="text-cdm-fg-muted text-center text-xs">실시간 경기를 관전하고 있습니다.</p>
-        )
-      )}
-      <ResultArea gameData={gameData} />
-
-      {gameData.phase === 'finished' && (
-        <section className="bg-cdm-primary-soft rounded-cdm-lg p-4 text-center">
-          <p className="text-cdm-primary text-base font-black">
-            {gameData.winnerId
-              ? `${gameData.players[gameData.winnerId]?.nickname} 승리!`
-              : '무승부'}
-          </p>
-          <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
-        </section>
-      )}
-    </div>
+      <ResultOverlay gameData={gameData} myId={myId} />
+    </GameFrame>
   );
 }
