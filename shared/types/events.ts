@@ -314,6 +314,19 @@ export interface ClientToServerEvents {
   'smsEvent:meta:get': (
     callback: (res: import('./sun-moon-star-event').SmsMetaPayload) => void,
   ) => void;
+
+  /** 길드전 (링 더 벨) — 입장. 길드+칩이면 착석, 아니면 관전. */
+  'guildWar:join': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 길드전 — 퇴장 (세트 중이면 다이). */
+  'guildWar:leave': () => void;
+  /** 길드전 — 메타 조회 (로비). */
+  'guildWar:meta:get': (
+    callback: (res: import('./ring-the-bell').RtbMetaPayload) => void,
+  ) => void;
+  /** 길드전 — 게임 행동. */
+  'guildWar:action': (payload: import('./ring-the-bell').RtbActionPayload) => void;
 }
 
 /** CDP 적립 — 랭크 게임 종료 시 본인에게만 emit */
@@ -465,6 +478,14 @@ export interface ServerToClientEvents {
     targetGuildName: string | null;
   }) => void;
 
+  /** 길드 가입 신청 — 길드장 본인만. 우편함 refresh */
+  'guild:join-request': (data: {
+    requestId: string;
+    guildId: string;
+    guildName: string;
+    fromNickname: string;
+  }) => void;
+
   /** 관리자가 칭호 부여 시 대상 유저에게 emit. 게임 중이면 게임 종료 후, 미접속이면 다음 접속 시 */
   'title:granted': (data: {
     titleId: string;
@@ -502,4 +523,11 @@ export interface ServerToClientEvents {
   'smsEvent:round:result': (payload: {
     result: import('./sun-moon-star-event').SmsRoundResultPayload;
   }) => void;
+
+  /** 길드전 상태 — 본인 시점으로 마스킹해서 보낸다. */
+  'guildWar:state': (payload: import('./ring-the-bell').RtbStatePayload) => void;
+  /** 길드전 메타 — connected 전체. 로비 방 노출·인원 표시. */
+  'guildWar:meta:changed': (payload: import('./ring-the-bell').RtbMetaPayload) => void;
+  /** 길드전 강퇴 (칩 0 · 운영 종료 · 기간 종료). */
+  'guildWar:kicked': (payload: import('./ring-the-bell').RtbKickedPayload) => void;
 }

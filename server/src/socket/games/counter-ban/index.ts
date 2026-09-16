@@ -14,7 +14,11 @@ import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../../../db/supabase.js';
 
 const BURN_MS = 2400;
-const EVENT_IDS = new Set<string>([GAME_IDS.INDIAN_POKER_EVENT, GAME_IDS.SUN_MOON_STAR_EVENT]);
+const EVENT_IDS = new Set<string>([
+  GAME_IDS.INDIAN_POKER_EVENT,
+  GAME_IDS.SUN_MOON_STAR_EVENT,
+  GAME_IDS.RING_THE_BELL,
+]);
 
 interface CounterBanState {
   games: Game[];

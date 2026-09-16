@@ -31,7 +31,25 @@ function entry(name: string, rp: number, joinedAt: number): RankQueueEntry {
   };
 }
 
-/** 각 테스트가 서로 영향을 주지 않도록 큐를 비운다 */
+function botEntry(which: 0 | 1, rp: number, joinedAt: number): RankQueueEntry {
+  const dummy = LIVE_DUMMY_ROSTER[which]!;
+  const name = which === 0 ? 'd1' : 'd2';
+  return {
+    ...entry(name, rp, joinedAt),
+    socketId: dummy.socketId,
+  };
+}
+
+function humanAsDummy(which: 0 | 1, rp: number, joinedAt: number): RankQueueEntry {
+  const dummy = LIVE_DUMMY_ROSTER[which]!;
+  const name = which === 0 ? 'd1' : 'd2';
+  return {
+    ...entry(name, rp, joinedAt),
+    socketId: `human-${name}`,
+    nickname: dummy.nickname,
+  };
+}
+
 function drain() {
   for (const n of ['a', 'b', 'c', 'd1', 'd2', 'x']) {
     rankQueueStore.removeByMemberId(`member-${n}`);
@@ -93,23 +111,24 @@ describe('rankQueueStore', () => {
     expect(rankQueueStore.enqueue(entry('b', 50, 2)).matched).toBe(false);
   });
 
-  it('우선 더미는 랭크 큐에 안 들어가고 사람과도 안 붙는다', () => {
+  it('봇 소켓은 랭크 큐에 안 들어가고 사람과도 안 붙는다', () => {
     withDummyRank(false, () => {
       registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
       const now = Date.now();
-      expect(rankQueueStore.enqueue(entry('d1', 50, now)).matched).toBe(false);
+      expect(rankQueueStore.enqueue(botEntry(0, 50, now)).matched).toBe(false);
       expect(rankQueueStore.has('member-d1')).toBe(false);
       rankQueueStore.enqueue(entry('a', 50, now));
-      expect(rankQueueStore.enqueue(entry('d1', 50, now + 1)).matched).toBe(false);
+      expect(rankQueueStore.enqueue(botEntry(0, 50, now + 1)).matched).toBe(false);
       expect(rankQueueStore.has('member-a')).toBe(true);
     });
   });
 
-  it('로스터 닉이면 등록 전이어도 큐에 안 넣는다', () => {
+  it('봇 소켓은 로스터 닉이면 등록 전이어도 큐에 안 넣는다', () => {
     withDummyRank(false, () => {
       const now = Date.now();
       const dummyNick: RankQueueEntry = {
         ...entry('x', 50, now),
+        socketId: LIVE_DUMMY_ROSTER[0]!.socketId,
         nickname: LIVE_DUMMY_ROSTER[0]!.nickname,
       };
       expect(rankQueueStore.enqueue(dummyNick).matched).toBe(false);
@@ -117,34 +136,53 @@ describe('rankQueueStore', () => {
     });
   });
 
-  it('더미끼리는 둘 다 10분 대기 전이면 안 붙고, 사람과는 즉시 붙는다', () => {
+  it('사람 소켓은 더미 회원·닉이어도 큐에 들어가 사람과 붙는다', () => {
+    withDummyRank(false, () => {
+      registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
+      const now = Date.now();
+      rankQueueStore.enqueue(entry('a', 50, now));
+      expect(rankQueueStore.enqueue(humanAsDummy(0, 50, now + 1)).matched).toBe(true);
+    });
+  });
+
+  it('봇끼리는 둘 다 10분 대기 전이면 안 붙고, 사람과는 즉시 붙는다', () => {
     withDummyRank(true, () => {
       registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
       registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
       const now = Date.now();
-      rankQueueStore.enqueue(entry('d1', 50, now));
-      expect(rankQueueStore.enqueue(entry('d2', 50, now)).matched).toBe(false);
+      rankQueueStore.enqueue(botEntry(0, 50, now));
+      expect(rankQueueStore.enqueue(botEntry(1, 50, now)).matched).toBe(false);
       expect(rankQueueStore.enqueue(entry('a', 50, now + 1)).matched).toBe(true);
     });
   });
 
-  it('더미끼리는 둘 다 큐에서 10분을 기다리면 붙는다', () => {
+  it('봇끼리는 둘 다 큐에서 10분을 기다리면 붙는다', () => {
     withDummyRank(true, () => {
       registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
       registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
       const t = Date.now() - DUMMY_VS_DUMMY_WAIT_MS;
-      rankQueueStore.enqueue(entry('d1', 50, t));
-      expect(rankQueueStore.enqueue(entry('d2', 50, t)).matched).toBe(true);
+      rankQueueStore.enqueue(botEntry(0, 50, t));
+      expect(rankQueueStore.enqueue(botEntry(1, 50, t)).matched).toBe(true);
     });
   });
 
-  it('더미 한 명만 10분을 채우면 더미끼리 안 붙는다', () => {
+  it('봇 한 명만 10분을 채우면 봇끼리 안 붙는다', () => {
     withDummyRank(true, () => {
       registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
       registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
       const now = Date.now();
-      rankQueueStore.enqueue(entry('d1', 50, now - DUMMY_VS_DUMMY_WAIT_MS));
-      expect(rankQueueStore.enqueue(entry('d2', 50, now)).matched).toBe(false);
+      rankQueueStore.enqueue(botEntry(0, 50, now - DUMMY_VS_DUMMY_WAIT_MS));
+      expect(rankQueueStore.enqueue(botEntry(1, 50, now)).matched).toBe(false);
+    });
+  });
+
+  it('사람 더미 계정과 봇 더미는 즉시 붙는다', () => {
+    withDummyRank(true, () => {
+      registerLiveDummy('member-d1', LIVE_DUMMY_ROSTER[0]!);
+      registerLiveDummy('member-d2', LIVE_DUMMY_ROSTER[1]!);
+      const now = Date.now();
+      rankQueueStore.enqueue(humanAsDummy(0, 50, now));
+      expect(rankQueueStore.enqueue(botEntry(1, 50, now)).matched).toBe(true);
     });
   });
 });

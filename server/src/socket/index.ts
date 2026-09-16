@@ -17,6 +17,12 @@ import {
   EVENT_SMS_ROOM_KEY,
   EVENT_SMS_SOCKET_CHANNEL,
 } from './smsEventRoomHandlers.js';
+import {
+  registerGuildWarRoomHandlers,
+  guildWarRoom,
+  GUILD_WAR_ROOM_ID,
+  GUILD_WAR_CHANNEL,
+} from './guildWarRoomHandlers.js';
 import { socketRoom, maskedClientRoomFor, guildRoom, emitToRoomWithViewerNickname } from './utils.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
@@ -94,6 +100,7 @@ export function setupSocketHandlers(io: IO) {
   // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
   eventRoom.init(io);
   smsEventRoom.init(io);
+  guildWarRoom.init(io);
   // ── v2 — connect 핸드셰이크에서 Supabase access_token 검증 ──────────────
   // accessToken 있으면 회원 검증 후 socket.data.member 세팅.
   // 없거나 실패하면 게스트로 연결 허용 (로비 관전 전용 — 방 생성/입장은 닉네임 체크로 차단).
@@ -250,6 +257,14 @@ export function setupSocketHandlers(io: IO) {
           return;
         }
 
+        if (roomId === GUILD_WAR_ROOM_ID) {
+          socket.leave(LOBBY_ROOM);
+          socket.join(GUILD_WAR_CHANNEL);
+          guildWarRoom.rejoinSocket(socket, token);
+          socket.emit('session:restored', { nickname, roomId });
+          return;
+        }
+
         if (roomId) {
           const room = roomStore.get(roomId);
           if (room) {
@@ -327,6 +342,7 @@ export function setupSocketHandlers(io: IO) {
     }
     registerEventRoomHandlers(io, socket);
     registerSmsEventRoomHandlers(io, socket);
+    registerGuildWarRoomHandlers(io, socket);
 
     // ── 연결 끊김 ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
@@ -370,6 +386,22 @@ export function setupSocketHandlers(io: IO) {
         } else {
           // 관전/대기 중: 즉시 퇴장 (leave() 내부에서 sessions.clearRoom 처리)
           eventRoom.handleDisconnect(socket);
+          sessions.removeSession(socket.id);
+        }
+        if (wasMember) broadcastOnlineUsers(io);
+        return;
+      }
+
+      if (token && roomId === GUILD_WAR_ROOM_ID) {
+        if (guildWarRoom.isSeatedAndInGame(token)) {
+          const timer = setTimeout(() => {
+            guildWarRoom.forceLeaveByToken(token);
+            sessions.removeSession(socket.id);
+            if (wasMember) broadcastOnlineUsers(io);
+          }, RECONNECT_GRACE_PLAYING);
+          sessions.setPendingDisconnect(token, timer);
+        } else {
+          guildWarRoom.handleDisconnect(socket);
           sessions.removeSession(socket.id);
         }
         if (wasMember) broadcastOnlineUsers(io);

@@ -1,7 +1,9 @@
 import { getServerSupabase } from '@/lib/supabase/server';
 import { loadResolvedDisplayedTitles } from '@shared/titles/resolve-displayed';
 import { compareRankRows, isChallengerSlot } from '@/lib/rank/leaderboard';
+import { RANKING_LIST_SCAN_LIMIT } from '@/lib/rank/nicknameSearch';
 import { RoutePagination } from '@/components/cdm/Pagination';
+import { EmptyState } from '@/components/cdm/EmptyState';
 import { DEFAULT_PAGE_SIZE, getTotalPages } from '@/lib/pagination';
 import RankLeaderRow from '@/components/ranking/RankLeaderRow';
 import { loadGuildMarksForMembers, loadRankCardSkinsForMembers } from './loadGuildMarks';
@@ -22,19 +24,34 @@ interface Props {
   seasonId: number;
   page: number;
   memberId: string | null;
-  tierFilter: string | null;
+  nicknameQuery: string;
+  matchIds: ReadonlySet<string> | null;
 }
 
-export default async function RankSeasonLeaderboard({ seasonId, page, memberId, tierFilter }: Props) {
+type RankedRow = StatsRow & { isChallenger: boolean; globalRank: number };
+
+export default async function RankSeasonLeaderboard({
+  seasonId,
+  page,
+  memberId,
+  nicknameQuery,
+  matchIds,
+}: Props) {
   const sb = await getServerSupabase();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = sb as any;
+
+  if (matchIds && matchIds.size === 0) {
+    return (
+      <EmptyState title={`"${nicknameQuery}"에 해당하는 플레이어가 없습니다`} />
+    );
+  }
 
   const { data: statsRows, error: statsErr } = await db
     .from('rank_stats')
     .select('member_id, tier, rp, placement_done, season_wins, season_losses, season_draws')
     .eq('season_id', seasonId)
-    .limit(5000);
+    .limit(RANKING_LIST_SCAN_LIMIT);
 
   if (statsErr || !statsRows?.length) {
     return <p className="text-sm text-cdm-fg-muted">아직 랭크 기록이 없습니다.</p>;
@@ -48,20 +65,24 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
     ),
   );
 
-  // 전체 정렬 기준으로 챌린저 여부를 미리 계산
-  const statsWithMeta = stats.map((s, i) => ({
+  // 전체 정렬 기준으로 챌린저 여부·전체 순위를 미리 계산
+  const statsWithMeta: RankedRow[] = stats.map((s, i) => ({
     ...s,
     isChallenger: isChallengerSlot(i + 1, s.tier as RankTier, s.rp),
+    globalRank: i + 1,
   }));
 
-  const filtered =
-    tierFilter === 'challenger'
-      ? statsWithMeta.filter((s) => s.isChallenger)
-      : tierFilter === 'diamond'
-        ? statsWithMeta.filter((s) => s.tier === 'diamond' && !s.isChallenger)
-        : tierFilter
-          ? statsWithMeta.filter((s) => s.tier === tierFilter)
-          : statsWithMeta;
+  let filtered = statsWithMeta;
+
+  if (matchIds) {
+    filtered = filtered.filter((s) => matchIds.has(s.member_id));
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <EmptyState title={`"${nicknameQuery}"에 해당하는 플레이어가 없습니다`} />
+    );
+  }
 
   const total = filtered.length;
   const totalPages = getTotalPages(total, DEFAULT_PAGE_SIZE);
@@ -106,7 +127,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
     return { name: t.name, color: t.color as TitleColor, effect: t.effect };
   }
 
-  let stickyRow: (StatsRow & { isChallenger: boolean }) | null = null;
+  let stickyRow: RankedRow | null = null;
   if (memberId && myRank != null && myRank > 20 && !onCurrentPage && myIndex >= 0) {
     stickyRow = filtered[myIndex]!;
   }
@@ -114,10 +135,13 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-cdm-fg-muted">
-        총 {total}명 · {page} / {totalPages} 페이지
+        총 {total}명
+        {nicknameQuery ? ` · "${nicknameQuery}" 검색` : ''}
+        {' · '}
+        {page} / {totalPages} 페이지
       </p>
       {pageSlice.map((row, i) => {
-        const rank = offset + i + 1;
+        const rank = matchIds ? row.globalRank : offset + i + 1;
         const nickname = nickMap.get(row.member_id) ?? '(알 수 없음)';
         return (
           <RankLeaderRow
@@ -142,7 +166,7 @@ export default async function RankSeasonLeaderboard({ seasonId, page, memberId, 
         <>
           <p className="pt-2 text-xs font-medium text-cdm-fg-muted">내 순위 (20위 밖)</p>
           <RankLeaderRow
-            rank={myRank!}
+            rank={matchIds ? stickyRow.globalRank : myRank!}
             nickname={nickMap.get(stickyRow.member_id) ?? '(알 수 없음)'}
             title={titleFor(stickyRow.member_id)}
             tier={stickyRow.tier as RankTier}

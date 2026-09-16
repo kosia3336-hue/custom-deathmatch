@@ -50,3 +50,28 @@ export async function notifyGuildScoutInvite(
     // 소켓 다운 — 다음 접속 시 GET /api/guild2/scout
   }
 }
+
+export async function notifyGuildJoinRequest(
+  memberId: string,
+  payload: {
+    requestId: string;
+    guildId: string;
+    guildName: string;
+    fromNickname: string;
+  },
+): Promise<void> {
+  const socketServerUrl =
+    process.env.SOCKET_SERVER_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_SOCKET_URL ??
+    'http://localhost:4001';
+  const internalSecret = process.env.INTERNAL_SECRET ?? 'dev-internal-secret';
+  try {
+    await fetch(`${socketServerUrl}/internal/notify-guild-join-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: internalSecret, memberId, ...payload }),
+    });
+  } catch {
+    // 소켓 다운 — 다음 우편함 로드 때 mailbox_items 가 보임
+  }
+}

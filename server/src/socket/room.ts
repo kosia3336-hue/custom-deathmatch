@@ -39,6 +39,7 @@ import { isAdminSocket } from '../db/member.js';
 import { eventRoom } from './eventRoom.js';
 import { smsEventRoom, EVENT_SMS_ROOM_KEY } from './smsEventRoomHandlers.js';
 import { EVENT_ROOM_KEY } from './eventRoom.js';
+import { guildWarRoom, GUILD_WAR_ROOM_ID } from './guildWarRoom.js';
 import { destroyOrphanedDummyRoom, stopDummyAgent } from '../dummy/match.js';
 
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
@@ -878,6 +879,8 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
       smsEventRoom.leave(socket);
     } else if (roomId === EVENT_ROOM_KEY) {
       eventRoom.leave(socket);
+    } else if (roomId === GUILD_WAR_ROOM_ID) {
+      guildWarRoom.leave(socket);
     }
     socket.join(LOBBY_ROOM);
     socket.emit('lobby:rooms', lobbyRoomsFor(socket));

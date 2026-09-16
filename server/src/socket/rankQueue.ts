@@ -1,5 +1,5 @@
 import type { RankQueueEntry } from '../store/rankQueue.js';
-import { isBlockedFromRankQueue, rankQueueStore } from '../store/rankQueue.js';
+import { rankQueueStore } from '../store/rankQueue.js';
 import { roomStore } from '../store/rooms.js';
 import { sessions } from '../store/sessions.js';
 import { ensureRankStatsRow } from '../db/rankStats.js';
@@ -18,7 +18,7 @@ import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { rankedRoomTitle } from '../rank/maskRankIdentity.js';
 import { makeDummySocket } from '../dummy/fakeSocket.js';
 import { isLiveDummySocketId, maybeStartLiveDummyAgent } from '../dummy/live/index.js';
-import { getLiveDummyRuntime, isLiveDummyMemberId } from '../dummy/live/state.js';
+import { getLiveDummyRuntime } from '../dummy/live/state.js';
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
 const pendingHiddenMatchStarts = new Map<string, ReturnType<typeof setTimeout>>();
@@ -358,8 +358,11 @@ async function buildRankMatchedRoom(
     startGame(io, room.id);
   }
 
-  for (const p of [hostPlayer, guestPlayer]) {
-    if (!p.memberId || !isLiveDummyMemberId(p.memberId)) continue;
+  for (const [p, entry] of [
+    [hostPlayer, hostEntry],
+    [guestPlayer, guestEntry],
+  ] as const) {
+    if (!p.memberId || !isLiveDummySocketId(entry.socketId)) continue;
     const rt = getLiveDummyRuntime(p.memberId);
     maybeStartLiveDummyAgent(
       io,
@@ -383,11 +386,6 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
 
     if (!member?.id) {
       callback({ success: false, error: '회원 로그인이 필요합니다.' });
-      return;
-    }
-
-    if (isBlockedFromRankQueue(member.id)) {
-      callback({ success: false, error: '더미 계정은 지금은 랭크에 참가하지 않습니다.' });
       return;
     }
 
@@ -428,11 +426,6 @@ export function registerRankQueueHandlers(io: IO, socket: TypedSocket): void {
     if (!nickname) {
       console.log(`[rankQueue:join] BLOCKED — no nickname for socket ${socket.id}`);
       callback({ success: false, error: '닉네임을 확인할 수 없습니다.' });
-      return;
-    }
-
-    if (isBlockedFromRankQueue(member.id, nickname)) {
-      callback({ success: false, error: '더미 계정은 지금은 랭크에 참가하지 않습니다.' });
       return;
     }
 

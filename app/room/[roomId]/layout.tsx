@@ -27,9 +27,14 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const chatDock = useDockState(ROOM_CHAT_DOCK_ID);
   const isWaitingRoom = /^\/room\/[^/]+$/.test(pathname ?? '');
+  const isDevPlay = (pathname ?? '').startsWith('/dev/');
   const sideDocked =
     chatDock.mode === 'docked' && (chatDock.edge === 'left' || chatDock.edge === 'right');
-  const headerWidth = isWaitingRoom && sideDocked ? 'max-w-2xl md:max-w-5xl' : 'max-w-2xl';
+  const headerWidth = isDevPlay
+    ? 'max-w-6xl'
+    : isWaitingRoom && sideDocked
+      ? 'max-w-2xl md:max-w-5xl'
+      : 'max-w-2xl';
 
   const setHeaderLeft = useCallback((content: ReactNode) => setHeaderLeftState(content), []);
   const setHeaderRight = useCallback((content: ReactNode) => setHeaderRightState(content), []);

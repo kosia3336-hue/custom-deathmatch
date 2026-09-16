@@ -32,6 +32,7 @@ import FiveTowersGame from '@/components/game/modules/five-towers';
 import GrapeSugar2Game from '@/components/game/modules/grape-sugar-2';
 import SunMoonStar2Game from '@/components/game/modules/sun-moon-star-2';
 import SunMoonStarEventGame from '@/components/game/modules/sun-moon-star-event';
+import RingTheBellGame from '@/components/game/modules/ring-the-bell';
 import BankGame from '@/components/game/modules/bank-game';
 import BanPickGame from '@/components/game/modules/ban-pick';
 import CounterBanGame from '@/components/game/modules/counter-ban';
@@ -57,6 +58,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Game,
   [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Game,
   [GAME_IDS.SUN_MOON_STAR_EVENT]: SunMoonStarEventGame,
+  [GAME_IDS.RING_THE_BELL]: RingTheBellGame,
   [GAME_IDS.BANK_GAME]: BankGame,
   [GAME_IDS.QUATRO]: QuatroGame,
   [GAME_IDS.WORD_PUZZLE]: WordPuzzleGame,

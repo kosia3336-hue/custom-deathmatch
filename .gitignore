@@ -72,6 +72,8 @@ docs/
 # docs/ 는 이미 ignore. 루트 AGENTS.md · logs/ 도 커밋하지 않는다.
 /AGENTS.md
 /logs/
+# 개인 메모·공식전 기보 변환본 (hwpx 원본 포함)
+/notes/
 # 게임 화면 확인용 fixture (DUMP_FIXTURES=1 로 생성)
 tmp-game-fixtures/
 public/tmp-fixtures/

@@ -7,6 +7,7 @@ import {
 import { GUILD_NAME_REGEX } from '@/lib/guild/types';
 import { DEV_GUILD_DESC_MAX, DEV_GUILD_NAME_MAX, DEV_GUILD_NAME_MIN } from '@/components/guild-v4/limits';
 import { mapGuildV4Error } from '@/lib/guild-v4/errors';
+import { sendGuildJoinRequestMail } from '@/lib/guild-v4/joinMail';
 import { notifyGuildMembershipChanged, notifyGuildMembers, notifyGuildScoutInvite } from '@/lib/guild-v4/notify';
 import { parseScoutBatchResult } from '@/lib/guild-v4/scout';
 import { parseRankCardShopSkinId } from '@shared/rank-card-skins';
@@ -42,6 +43,7 @@ type Body = {
   order?: unknown;
   skinId?: string;
   messageId?: string;
+  quantity?: number;
 };
 
 function jsonError(message: string, status: number) {
@@ -113,6 +115,11 @@ export async function POST(req: NextRequest) {
           const e = mapGuildV4Error(error.message);
           return jsonError(e.msg, e.status);
         }
+        await sendGuildJoinRequestMail(sb, {
+          guildId: body.guildId,
+          applicantId: member.id,
+          applicantNickname: member.nickname,
+        });
         return NextResponse.json({ ok: true });
       }
       case 'cancel_join': {
@@ -392,6 +399,21 @@ export async function POST(req: NextRequest) {
         const { error } = await rpc('buy_guild_rank_card_v4', {
           p_actor: member.id,
           p_skin_id: skinId,
+        });
+        if (error) {
+          const e = mapGuildV4Error(error.message);
+          return jsonError(e.msg, e.status);
+        }
+        return NextResponse.json({ ok: true });
+      }
+      case 'buy_war_chip_pack': {
+        const quantity = Math.trunc(Number(body.quantity ?? 1));
+        if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
+          return jsonError('수량은 1~99입니다.', 400);
+        }
+        const { error } = await rpc('purchase_guild_war_chip_pack', {
+          p_actor: member.id,
+          p_qty: quantity,
         });
         if (error) {
           const e = mapGuildV4Error(error.message);

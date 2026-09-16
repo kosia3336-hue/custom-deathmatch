@@ -146,6 +146,7 @@ export const GAME_RULES: GameRule[] = [
     category: '수리',
     rules: '',
   },
+  { id: 'game-029', name: '링 더 벨 (길드전)', category: '심리', rules: '', hiddenInLadder: true },
 ];
 
 /**

@@ -50,6 +50,15 @@ interface NotifyGuildScoutInviteBody {
   targetGuildName: string | null;
 }
 
+interface NotifyGuildJoinRequestBody {
+  secret: string;
+  memberId: string;
+  requestId: string;
+  guildId: string;
+  guildName: string;
+  fromNickname: string;
+}
+
 interface NotifyCdpAdjustedBody {
   secret: string;
   memberId: string;
@@ -144,6 +153,39 @@ export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null
           fromNickname: payload.fromNickname,
           targetHadGuild: payload.targetHadGuild === true,
           targetGuildName: payload.targetGuildName ?? null,
+        });
+        return reply.send({ status: 'emitted' });
+      }
+      return reply.send({ status: 'no_session' });
+    },
+  );
+
+  app.post<{ Body: NotifyGuildJoinRequestBody }>(
+    '/internal/notify-guild-join-request',
+    async (req, reply) => {
+      const { secret, memberId, requestId, guildId, guildName, fromNickname } = req.body;
+      if (!isValidInternalSecret(secret)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      if (
+        typeof memberId !== 'string' ||
+        !memberId ||
+        typeof requestId !== 'string' ||
+        !requestId
+      ) {
+        return reply.status(400).send({ error: 'invalid payload' });
+      }
+
+      const io = getIO();
+      const token = sessions.getTokenByMemberId(memberId);
+      const socketId = token ? sessions.getSocketByToken(token) : null;
+      const sock = io && socketId ? io.sockets.sockets.get(socketId) : null;
+      if (sock) {
+        sock.emit('guild:join-request', {
+          requestId,
+          guildId: typeof guildId === 'string' ? guildId : '',
+          guildName: typeof guildName === 'string' ? guildName : '',
+          fromNickname: typeof fromNickname === 'string' ? fromNickname : '',
         });
         return reply.send({ status: 'emitted' });
       }

@@ -45,6 +45,8 @@ export const GAME_IDS = {
   SEED_SEOTDA: 'game-026',
   DOUBLE_SIDED_POKER: 'game-027',
   MYEONGCHURI: 'game-028',
+  /** 기간 한정 길드전 「링 더 벨」. 시스템 룸 `guild-war` 전용. `games` 테이블에 없음. */
+  RING_THE_BELL: 'game-029',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

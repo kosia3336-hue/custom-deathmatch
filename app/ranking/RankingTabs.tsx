@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs } from '@/components/cdm/Tabs';
+import RankingNicknameSearch from './RankingNicknameSearch';
 
 interface Props {
   games: { id: string; name: string }[];
@@ -30,19 +31,23 @@ export default function RankingTabs({ games, activeGame, activePeriod }: Props) 
   }
 
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <select
-        value={activeGame ?? ''}
-        onChange={(e) => update({ game: e.target.value })}
-        className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm font-medium text-cdm-fg focus:outline-none focus:ring-2 focus:ring-cdm-primary/40 sm:w-auto w-full"
-      >
-        <option value="">전체</option>
-        {games.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name}
-          </option>
-        ))}
-      </select>
+    <div className="mb-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={activeGame ?? ''}
+          onChange={(e) => update({ game: e.target.value })}
+          className="h-10 min-w-0 shrink-0 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm font-medium text-cdm-fg focus:outline-none focus:border-cdm-primary"
+          aria-label="게임 선택"
+        >
+          <option value="">전체</option>
+          {games.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <RankingNicknameSearch />
+      </div>
       <Tabs
         tabs={PERIODS}
         value={activePeriod}

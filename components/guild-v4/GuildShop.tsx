@@ -27,6 +27,14 @@ import {
   isRankCardActive,
   type RankCardShopSkinId,
 } from '@shared/rank-card-skins';
+import {
+  GUILD_WAR_CHIP_PACK_GP,
+  GUILD_WAR_CHIP_PACK_QTY_MAX,
+  GUILD_WAR_CHIP_PACK_SIZE,
+  clampGuildWarChipPackQty,
+  guildWarChipPackChips,
+  guildWarChipPackCost,
+} from '@/lib/guild-v4/warChips';
 
 type Act = (payload: Record<string, unknown>, successMsg?: string) => Promise<boolean>;
 
@@ -35,6 +43,7 @@ const SHOP_TABS = [
   { id: 'logo', label: '로고' },
   { id: 'rank-card', label: '랭킹카드' },
   { id: 'misc', label: '기타' },
+  { id: 'war', label: '길드전' },
 ] as const;
 
 const SHOP_DENY = '길드장·부길드장만 구매할 수 있습니다.';
@@ -67,6 +76,7 @@ export function GuildShopSection({
   onScoutOpenChange,
   loadScoutTargets,
   rankCard,
+  warChips,
 }: {
   my: MyGuildState;
   busy: boolean;
@@ -76,6 +86,7 @@ export function GuildShopSection({
   onScoutOpenChange?: (open: boolean) => void;
   loadScoutTargets?: () => Promise<GuildScoutTarget[]>;
   rankCard?: { skinId: RankCardShopSkinId; expiresAt: string } | null;
+  warChips: number;
 }) {
   const g = my.guild!;
   const [tab, setTab] = useState<string>('enhance');
@@ -101,6 +112,9 @@ export function GuildShopSection({
       <p className="text-sm text-cdm-fg-muted">
         보유{' '}
         <strong className="tabular-nums text-cdm-primary">{formatGp(g.points)}</strong>
+        <span className="mx-1.5 text-cdm-border-strong">·</span>
+        길드전 칩{' '}
+        <strong className="tabular-nums text-cdm-primary">{warChips.toLocaleString('ko-KR')}개</strong>
       </p>
       <Tabs tabs={[...SHOP_TABS]} value={tab} onChange={setTab} />
       {tab === 'enhance' && (
@@ -315,6 +329,19 @@ export function GuildShopSection({
                   openScout(true);
                 });
               }}
+            />
+          </li>
+        </ul>
+      )}
+      {tab === 'war' && (
+        <ul role="list" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <li>
+            <GuildWarChipCard
+              points={g.points}
+              busy={busy}
+              canBuy={canBuy}
+              askConfirm={askConfirm}
+              act={act}
             />
           </li>
         </ul>
@@ -557,6 +584,117 @@ function GuildScoutPicker({
   );
 }
 
+function GuildWarChipCard({
+  points,
+  busy,
+  canBuy,
+  askConfirm,
+  act,
+}: {
+  points: number;
+  busy: boolean;
+  canBuy: boolean;
+  askConfirm: (confirm: GuildConfirm) => void;
+  act: Act;
+}) {
+  const [qty, setQty] = useState(1);
+  const chips = guildWarChipPackChips(qty);
+  const cost = guildWarChipPackCost(qty);
+  const insufficient = points < cost;
+
+  function setQtyClamped(n: number) {
+    setQty(clampGuildWarChipPackQty(n));
+  }
+
+  let ctaLabel = '구매';
+  let ctaVariant: 'primary' | 'secondary' = 'primary';
+  if (insufficient) {
+    ctaLabel = `${formatGp(cost - points)} 부족`;
+    ctaVariant = 'secondary';
+  }
+
+  return (
+    <article className="h-full">
+      <Card className="flex h-full flex-col gap-2 p-3!">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold leading-snug text-cdm-fg">
+            칩 {GUILD_WAR_CHIP_PACK_SIZE}개
+          </h3>
+          <span className="shrink-0 text-sm font-bold tabular-nums whitespace-nowrap text-cdm-fg">
+            {formatGp(GUILD_WAR_CHIP_PACK_GP)}
+          </span>
+        </div>
+        <p className="text-xs text-cdm-fg-muted">
+          이벤트 종료 시 남은 칩은 자동으로 수수료 20%를 떼고 GP로 환전됩니다.
+        </p>
+        <div>
+          <label className="text-xs font-semibold text-cdm-fg-muted" htmlFor="guild-war-chip-qty">
+            수량
+          </label>
+          <div className="mt-1 flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || qty <= 1}
+              onClick={() => setQtyClamped(qty - 1)}
+              aria-label="수량 줄이기"
+            >
+              −
+            </Button>
+            <input
+              id="guild-war-chip-qty"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={GUILD_WAR_CHIP_PACK_QTY_MAX}
+              value={qty}
+              onChange={(e) => setQtyClamped(Number(e.target.value))}
+              className="w-20 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-center text-sm tabular-nums"
+              disabled={busy}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || qty >= GUILD_WAR_CHIP_PACK_QTY_MAX}
+              onClick={() => setQtyClamped(qty + 1)}
+              aria-label="수량 늘리기"
+            >
+              +
+            </Button>
+          </div>
+          <p className="mt-1.5 text-xs tabular-nums text-cdm-fg-muted">
+            칩 {chips.toLocaleString('ko-KR')}개 · {formatGp(cost)}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          fullWidth
+          variant={ctaVariant}
+          disabled={busy}
+          onClick={() => {
+            buyOrToast(canBuy, () => {
+              askConfirm({
+                title: `칩 ${chips.toLocaleString('ko-KR')}개`,
+                message: `길드 포인트 ${cost.toLocaleString('ko-KR')} GP로 칩 ${chips.toLocaleString('ko-KR')}개를 구매하시겠습니까?`,
+                confirmLabel: '구매',
+                variant: 'primary',
+                run: () =>
+                  act(
+                    { action: 'buy_war_chip_pack', quantity: qty },
+                    `칩 ${chips.toLocaleString('ko-KR')}개를 구매했습니다. (-${cost.toLocaleString('ko-KR')} GP)`,
+                  ),
+              });
+            });
+          }}
+          className="mt-auto cursor-pointer"
+        >
+          {ctaLabel}
+        </Button>
+      </Card>
+    </article>
+  );
+}
+
 function GuildShopCard({
   name,
   level,
@@ -572,7 +710,7 @@ function GuildShopCard({
 }: {
   name: string;
   level?: number;
-  description: ReactNode;
+  description?: ReactNode;
   price: number;
   maxed?: boolean;
   maxedLabel?: string;
@@ -611,9 +749,11 @@ function GuildShopCard({
             </span>
           )}
         </div>
-        <div className="flex min-h-[2.4em] flex-col gap-0.5 text-xs text-cdm-fg-muted">
-          {description}
-        </div>
+        {description != null && description !== '' && (
+          <div className="flex min-h-[2.4em] flex-col gap-0.5 text-xs text-cdm-fg-muted">
+            {description}
+          </div>
+        )}
         <Button
           size="sm"
           fullWidth
