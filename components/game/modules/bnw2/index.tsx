@@ -247,6 +247,8 @@ function RoundHistoryTable({
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
                   <span className="text-cdm-ink-fg-muted">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
+                  {/* 몇 포인트를 냈는지가 이 기록을 여는 까닭이다 — 색보다 먼저 눈에 들어와야 한다 */}
+                  <span className="text-cdm-ink-fg font-bold tabular-nums">{pd.points}p</span>
                   {isWinner && <span className="text-amber-500">+1</span>}
                 </span>
               );
@@ -497,17 +499,14 @@ export default function BNW2Game() {
     playShowdownSubmitSfx();
   }, [gameData?.phase, isShowdown, isSpectator, myId, gameData?.firstPlayerId]);
 
-  // 상대 stage 변경 시 추리 estimate를 구간 상한으로 리셋
-  const opponentStageForEffect = (() => {
-    if (!gameData) return null;
-    const playerEntries = Object.entries(gameData.players);
-    const oppEntry = playerEntries.find(([id]) => id !== myId);
-    return oppEntry?.[1]?.stage ?? null;
-  })();
-  useEffect(() => {
-    if (opponentStageForEffect === null) return;
-    setOpponentEstimate(opponentStageForEffect * 20);
-  }, [opponentStageForEffect]);
+  /*
+    상대 불이 꺼질 때 추리값을 구간 상한으로 되돌리지 않는다.
+
+    예전에는 상대 stage 가 바뀔 때마다 estimate 를 stage*20 으로 리셋했다.
+    그런데 이 칸은 플레이어가 직접 좁혀 가는 메모다 — 어렵게 조여 놓은 값이
+    상대가 포인트를 쓸 때마다 상한으로 튕겨 나가 추리를 다시 시작해야 했다.
+    값은 플레이어가 스스로 조정한다.
+  */
 
   // 내 차례가 되면 바텀시트 자동 열기 (모바일)
   useEffect(() => {

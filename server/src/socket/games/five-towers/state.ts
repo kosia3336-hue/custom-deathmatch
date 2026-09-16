@@ -199,8 +199,13 @@ export function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGa
 }
 
 function buildSpectatorGameData(s: InternalState): FTGameData {
-  const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
+  /*
+    관전자도 플레이어와 같은 판정을 거쳐야 한다. 예전에는 익명 물약만 보고
+    랭크는 보지 않아, 랭크 판을 관전하면 탑 쌓기 알림·액션 로그·플레이어 목록에
+    실명이 그대로 나왔다. nicknameForViewer 는 viewerId 가 null 이면 '본인'
+    예외가 없으므로 랭크 플레이어 닉을 모두 가린다.
+  */
+  const maskNick = (id: string, nick: string) => nicknameForViewer(s.roomId, id, nick, null);
   const players: Record<string, FTPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },

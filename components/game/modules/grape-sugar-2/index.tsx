@@ -392,7 +392,7 @@ function PlayerPanel({
   candy?: boolean;
 }) {
   return (
-    <div className={`relative z-10 flex min-w-0 items-center gap-2 px-3 py-2 ${
+    <div className={`relative z-10 flex min-w-0 flex-wrap items-center gap-2 px-3 py-2 ${
       candy
         ? `skin-candy-panel ${isMe ? 'ring-1 ring-white' : ''}`
         : `rounded-lg border ${isMe ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white'}`
@@ -420,8 +420,12 @@ function PlayerPanel({
         <span className="font-bold text-sky-600">{player.hand.length}</span>
       </div>
 
-      {/* 잔여 카드 미니 배지 (sm 이상) */}
-      <div className="hidden sm:flex shrink-0 flex-wrap gap-0.5 max-w-[200px] justify-end lg:max-w-[240px]">
+      {/*
+        잔여 카드 미니 배지.
+        예전에는 sm 미만에서 숨겨 두어, 휴대폰에서는 상대에게 무슨 카드가 남았는지
+        볼 방법이 아예 없었다. 좁은 화면에서는 한 줄을 접어 내려 폭을 다 쓴다.
+      */}
+      <div className="flex w-full shrink-0 flex-wrap justify-start gap-0.5 sm:w-auto sm:max-w-[200px] sm:justify-end lg:max-w-[240px]">
         {CARD_IDS.map((c) => {
           const has = player.hand.includes(c);
           const style = CARD_STYLES[c];

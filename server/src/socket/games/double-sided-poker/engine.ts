@@ -206,11 +206,6 @@ function selectedValue(player: DoubleSidedPokerInternalPlayer) {
   return player.selection === 'front' ? player.card.front : player.card.back;
 }
 
-function revealBack(player: DoubleSidedPokerInternalPlayer, showdown: boolean) {
-  if (!showdown || !player.card) return null;
-  return player.selection === 'back' || player.selection === 'both' ? player.card.back : null;
-}
-
 function applyPayment(
   state: DoubleSidedPokerState,
   player: DoubleSidedPokerInternalPlayer,
@@ -268,7 +263,6 @@ function settleRound(
       state.playerStates[winnerId].chips += doubleBonus;
     }
   }
-  const showdown = foldedPlayerId == null;
   const result: DoubleSidedPokerRoundResult = {
     round: state.round,
     winnerId,
@@ -283,7 +277,12 @@ function settleRound(
         const internal = state.playerStates[player.id];
         return [
           player.id,
-          { front: internal.card?.front ?? 0, back: revealBack(internal, showdown) },
+          /*
+            기록에는 실제 뒷면을 그대로 남긴다. 게임이 끝난 뒤 보는 로그에서는
+            다이로 끝난 라운드의 뒷면까지 볼 수 있어야 복기가 된다.
+            게임 중 공개 범위는 state.ts 가 보는 사람 기준으로 가린다.
+          */
+          { front: internal.card?.front ?? 0, back: internal.card?.back ?? null },
         ];
       }),
     ),

@@ -126,8 +126,16 @@ describe('양면포커 경기 진행', () => {
       reason: 'showdown',
       potAmount: 4,
     });
-    expect(state.lastRoundResult?.cards[first.id].back).toBeNull();
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    // 기록에는 실제 뒷면이 남는다 — 게임이 끝난 뒤 로그에서 복기할 수 있어야 한다
+    expect(state.lastRoundResult?.cards[first.id].back).toBe(3);
+    expect(state.lastRoundResult?.cards[second.id].back).toBe(9);
+    // 게임 중 화면에는 앞면으로 겨룬 두 사람의 뒷면이 보이지 않는다(본인 것만 보인다)
+    const firstView = toDoubleSidedPokerGameData(state, first.id);
+    expect(firstView.lastRoundResult?.cards[first.id].back).toBe(3);
+    expect(firstView.lastRoundResult?.cards[second.id].back).toBeNull();
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBeNull();
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('뒷면을 선택한 플레이어의 뒷면만 승부 결과에 공개한다', () => {
@@ -136,8 +144,13 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 8, 1);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'back', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'call', side: 'front' });
+    // 기록에는 두 사람의 실제 뒷면이 남는다
     expect(state.lastRoundResult?.cards[first.id].back).toBe(9);
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    expect(state.lastRoundResult?.cards[second.id].back).toBe(1);
+    // 화면에는 뒷면으로 겨룬 사람의 뒷면만 공개된다
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBe(9);
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('동점이면 팟을 그대로 두고 선도 그대로 둔 채 다음 라운드로 넘어간다', async () => {
@@ -448,8 +461,16 @@ describe('양면포커 경기 진행', () => {
       reason: 'fold',
       doubleBonus: 10,
     });
-    expect(state.lastRoundResult?.cards[first.id].back).toBeNull();
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    // 다이로 끝나도 기록에는 두 사람의 실제 뒷면이 남는다
+    expect(state.lastRoundResult?.cards[first.id].back).toBeTypeOf('number');
+    expect(state.lastRoundResult?.cards[second.id].back).toBeTypeOf('number');
+    // 화면에서는 승부까지 가지 않았으므로 본인 것 말고는 가린다
+    const firstView = toDoubleSidedPokerGameData(state, first.id);
+    expect(firstView.lastRoundResult?.cards[first.id].back).toBeTypeOf('number');
+    expect(firstView.lastRoundResult?.cards[second.id].back).toBeNull();
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBeNull();
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('COM은 상대의 실제 비공개 뒷면이 아니라 공개 앞면의 분포만 사용한다', () => {

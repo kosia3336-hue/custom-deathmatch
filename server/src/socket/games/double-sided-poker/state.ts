@@ -129,12 +129,45 @@ export function cloneDoubleSidedPokerRoundResult(
   };
 }
 
+/**
+ * 보는 사람 기준으로 라운드 결과의 뒷면을 가린다.
+ *
+ * 게임 중에 공개되는 뒷면은 승부까지 간 라운드에서 그 면으로 겨룬 사람 것뿐이다.
+ * 다이로 끝났거나 앞면으로 겨룬 사람의 뒷면은 가린다. 본인 카드는 늘 본인에게 보인다.
+ * 기록(toDoubleSidedPokerRecord)은 이 함수를 거치지 않으므로 실제 뒷면이 남는다.
+ */
+function maskRoundResultFor(
+  result: DoubleSidedPokerRoundResult,
+  viewerId: string | null,
+): DoubleSidedPokerRoundResult {
+  const showdown = result.foldedPlayerId == null;
+  const masked = cloneDoubleSidedPokerRoundResult(result);
+  masked.cards = Object.fromEntries(
+    Object.entries(result.cards).map(([playerId, card]) => {
+      const selection = result.selections[playerId];
+      const revealed = showdown && (selection === 'back' || selection === 'both');
+      return [
+        playerId,
+        { front: card.front, back: playerId === viewerId || revealed ? card.back : null },
+      ];
+    }),
+  );
+  return masked;
+}
+
 export function toDoubleSidedPokerGameData(
   state: DoubleSidedPokerState,
   viewerId: string | null,
 ): DoubleSidedPokerGameData {
   const bounds = doubleSidedPokerBettingBounds(state);
-  const revealResult = state.phase === 'betting' ? null : state.lastRoundResult;
+  /*
+    라운드 결과는 저장된 그대로 내보내면 안 된다 — 기록에는 실제 뒷면이 들어 있어
+    다이로 끝난 라운드의 상대 뒷면까지 게임 중에 새어 나간다. 보는 사람 기준으로 가린다.
+  */
+  const maskedLast = state.lastRoundResult
+    ? maskRoundResultFor(state.lastRoundResult, viewerId)
+    : null;
+  const revealResult = state.phase === 'betting' ? null : maskedLast;
   return {
     phase: state.phase,
     playMode: state.playMode,
@@ -175,9 +208,7 @@ export function toDoubleSidedPokerGameData(
     selectOnly: state.selectOnly,
     doubleBettorId: state.doubleBettorId,
     ...bounds,
-    lastRoundResult: state.lastRoundResult
-      ? cloneDoubleSidedPokerRoundResult(state.lastRoundResult)
-      : null,
+    lastRoundResult: maskedLast,
     roundStartedAt: state.roundStartedAt,
     turnStartedAt: state.turnStartedAt,
     turnSeconds: state.turnSeconds,
