@@ -69,6 +69,8 @@ export interface MyeongchuriGameOptions {
 export interface MyeongchuriGameData {
   phase: MyeongchuriPhase;
   round: number;
+  /** 1:1 솔로 — 한 사람이 선·후 두 자리를 모두 둔다. players 에 한 명만 들어온다. */
+  isSolo: boolean;
   players: Record<string, { nickname: string }>;
   /** 이번 라운드 선 */
   firstPlayerId: string;
@@ -108,8 +110,10 @@ export interface MyeongchuriArchiveRecord {
   players: Record<string, { nickname: string }>;
   /** 1라운드 선 */
   firstPlayerId: string;
+  /** 솔로는 승자 없이 끝날 수 있다(경고 2회) */
   winnerId: string | null;
   finishReason: string;
+  isSolo: boolean;
   thinkEnabled: boolean;
   thinkSeconds: number;
 }

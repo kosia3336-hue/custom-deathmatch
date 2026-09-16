@@ -128,6 +128,9 @@ function MyeongchuriTable({
   const secondsLeft = useSecondsLeft(data.declaration?.deadline ?? null);
   const name = (id: string | null | undefined) =>
     id ? (id === myId ? '나' : (data.players[id]?.nickname ?? '상대')) : '';
+  /* 솔로는 두 자리가 모두 내 자리다 — 이름을 붙이면 "선 나 / 후 나"가 되니 자리만 보인다 */
+  const seatLabel = (seat: '선' | '후', id: string | null | undefined) =>
+    data.isSolo ? seat : `${seat} ${name(id)}`;
   const secondId = Object.keys(data.players).find((id) => id !== data.firstPlayerId) ?? null;
   const lastRound = data.rounds.at(-1) ?? null;
 
@@ -167,7 +170,17 @@ function MyeongchuriTable({
   useEffect(() => {
     setHud({
       round: `${data.round}R`,
-      order: finished ? '종료' : data.phase === 'thinking' ? '생각' : myTurn ? '내 차례' : '상대 차례',
+      order: finished
+        ? '종료'
+        : data.phase === 'thinking'
+          ? '생각'
+          : data.isSolo
+            ? data.phase === 'pick-second'
+              ? '후'
+              : '선'
+            : myTurn
+              ? '내 차례'
+              : '상대 차례',
       memo: <RecordPanel data={data} name={name} memo={memo} onMemo={isPlayer ? updateMemo : undefined} />,
     });
     // name 은 data·myId 로만 정해진다
@@ -209,10 +222,17 @@ function MyeongchuriTable({
               <span
                 className={cn(
                   'text-[10px] font-black',
-                  id === data.firstPlayerId ? 'text-cdm-primary' : 'text-cdm-fg-muted',
+                  data.isSolo || id === data.firstPlayerId ? 'text-cdm-primary' : 'text-cdm-fg-muted',
                 )}
               >
-                {id === data.firstPlayerId ? '선' : '후'}
+                {/* 솔로는 자리가 하나로 합쳐지니, 지금 두는 자리를 보인다 */}
+                {data.isSolo
+                  ? data.phase === 'pick-second'
+                    ? '후'
+                    : '선'
+                  : id === data.firstPlayerId
+                    ? '선'
+                    : '후'}
               </span>
             ),
             detail: `경고 ${data.warnings[id] ?? 0}/${MYEONGCHURI_MAX_WARNINGS}`,
@@ -306,7 +326,9 @@ function MyeongchuriTable({
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex flex-col items-center gap-0.5">
                 <span className="text-cdm-fg-subtle text-[10px] font-bold">
-                  {index < 2 ? `선 ${name(picking ? data.firstPlayerId : lastRound?.firstPlayerId)}` : `후 ${name(picking ? secondId : lastRound?.secondPlayerId)}`}
+                  {index < 2
+                    ? seatLabel('선', picking ? data.firstPlayerId : lastRound?.firstPlayerId)
+                    : seatLabel('후', picking ? secondId : lastRound?.secondPlayerId)}
                 </span>
                 <span
                   className={cn(

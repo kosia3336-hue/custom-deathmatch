@@ -211,7 +211,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     (isBanPick && !hiddenMatch) ||
     showsAbstractAiThinkTime ||
-    selectedGame?.id === GAME_IDS.MYEONGCHURI;
+    // 솔로 명추리는 혼자 두므로 생각 시간 항목이 없다
+    (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
 
   const selectGame = (g: Game) => {
     setListOpen(false);
@@ -610,7 +611,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               />
             )}
 
-            {selectedGame?.id === GAME_IDS.MYEONGCHURI && (
+            {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
               <MyeongchuriThinkTimeField
                 enabled={thinkEnabled}
                 seconds={thinkSeconds}

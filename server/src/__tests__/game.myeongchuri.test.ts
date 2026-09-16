@@ -274,3 +274,72 @@ describe('명추리 진행', () => {
     expect(toMyeongchuriGameData(state, null).tiles?.A).toEqual(n(6));
   });
 });
+
+describe('명추리 1:1 솔로', () => {
+  /** 솔로 방은 플레이어가 한 명이고 시간 제한이 없다(server/src/socket/room.ts) */
+  function startSolo(roomId: string) {
+    vi.useFakeTimers();
+    roomIds.add(roomId);
+    const only = player(`${roomId}-solo`, '혼자');
+    const io = ioStub();
+    const onEnd = vi.fn();
+    initMyeongchuri(io, roomId, [only], 'solo', Date.now(), null, onEnd, {});
+    const state = myeongchuriStates.get(roomId)!;
+    state.tiles = { ...FIXED };
+    const socket = socketFor(only.id);
+    return {
+      state,
+      only,
+      onEnd,
+      act: (data: Record<string, unknown>) => handleMyeongchuriAction(io, socket, roomId, data),
+    };
+  }
+
+  it('한 명으로 시작해 선·후 두 자리를 모두 두고, 생각 시간은 두지 않는다', () => {
+    const { state, only, act } = startSolo('mc-solo-round');
+    expect(state.players[0].id).toBe(only.id);
+    expect(state.players[1].id).toBe(only.id);
+    expect(state.thinkEnabled).toBe(false);
+    expect(state.pickSeconds).toBeNull();
+    expect(toMyeongchuriGameData(state, only.id).isSolo).toBe(true);
+
+    act({ type: 'pick', letters: ['A', 'B'] });
+    expect(state.phase).toBe('pick-second');
+    expect(state.currentPlayerId).toBe(only.id);
+
+    act({ type: 'pick', letters: ['C', 'D'] });
+    expect(state.rounds[0]).toMatchObject({ letters: ['A', 'B', 'C', 'D'], value: '69' });
+    // 생각 시간 없이 바로 다음 라운드로 넘어간다
+    expect(state.phase).toBe('pick-first');
+    expect(state.round).toBe(2);
+  });
+
+  it('명추리에 성공하면 순위는 한 줄이고 1점이다', async () => {
+    const { state, only, onEnd, act } = startSolo('mc-solo-win');
+    act({ type: 'declare' });
+    act({ type: 'answer', answer: FIXED_ANSWER });
+    expect(state.gameOver).toBe(true);
+    expect(state.winnerId).toBe(only.id);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(onEnd.mock.calls[0]?.[2]?.rankings).toEqual([
+      { playerId: only.id, nickname: '혼자', rank: 1, score: 1 },
+    ]);
+  });
+
+  it('경고 2회면 이길 상대가 없으므로 승자 없이 끝나고 0점이다', async () => {
+    const { state, only, onEnd, act } = startSolo('mc-solo-fail');
+    act({ type: 'declare' });
+    act({ type: 'answer', answer: WRONG_ANSWER });
+    expect(state.gameOver).toBe(false);
+    expect(state.warnings[only.id]).toBe(1);
+
+    act({ type: 'declare' });
+    act({ type: 'answer', answer: WRONG_ANSWER });
+    expect(state.gameOver).toBe(true);
+    expect(state.winnerId).toBeNull();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(onEnd.mock.calls[0]?.[2]?.rankings).toEqual([
+      { playerId: only.id, nickname: '혼자', rank: 1, score: 0 },
+    ]);
+  });
+});

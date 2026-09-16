@@ -29,6 +29,7 @@ export function toMyeongchuriGameData(
   return {
     phase: state.phase,
     round: state.round,
+    isSolo: state.playMode === 'solo',
     players: Object.fromEntries(
       state.players.map((player) => [
         player.id,
@@ -61,7 +62,10 @@ function toGameState(state: MyeongchuriState, data: MyeongchuriGameData): GameSt
     ? (state.finishReason ?? '게임 종료')
     : state.phase === 'thinking'
       ? `${state.round}라운드 결과 공개 — 생각 시간`
-      : `${currentName} 님이 알파벳을 고르는 중입니다.`;
+      : state.playMode === 'solo'
+        ? /* 혼자 두는 판에서 "나 님이 고르는 중"은 어색하다 — 어느 자리인지를 알린다 */
+          `${state.round}라운드 — ${state.phase === 'pick-first' ? '선' : '후'} 자리에 놓을 알파벳을 고르는 중입니다.`
+        : `${currentName} 님이 알파벳을 고르는 중입니다.`;
   return {
     roomId: state.roomId,
     message,
@@ -113,6 +117,7 @@ export function toMyeongchuriRecord(state: MyeongchuriState): MyeongchuriArchive
     firstPlayerId: state.startingPlayerId,
     winnerId: state.winnerId,
     finishReason: state.finishReason ?? '게임 종료',
+    isSolo: state.playMode === 'solo',
     thinkEnabled: state.thinkEnabled,
     thinkSeconds: state.thinkSeconds,
   };

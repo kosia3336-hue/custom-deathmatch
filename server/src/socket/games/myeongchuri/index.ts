@@ -211,6 +211,11 @@ function resolveDeclaration(
   }
   state.warnings[actorId] = (state.warnings[actorId] ?? 0) + 1;
   if (state.warnings[actorId] >= MYEONGCHURI_MAX_WARNINGS) {
+    /* 솔로는 이길 상대가 없다 — 승자 없이 끝낸다 */
+    if (state.playMode === 'solo') {
+      finishGame(io, state, null, `명추리에 ${MYEONGCHURI_MAX_WARNINGS}번 실패해 게임이 끝났습니다.`);
+      return;
+    }
     const winnerId = otherMyeongchuriPlayerId(state, actorId);
     finishGame(
       io,
@@ -223,7 +228,21 @@ function resolveDeclaration(
   void broadcastMyeongchuriState(io, state);
 }
 
-function finishGame(io: IO, state: MyeongchuriState, winnerId: string, reason: string) {
+/** 순위. 솔로는 한 줄만 — 명추리에 성공하면 1점, 경고 2회로 끝나면 0점. */
+function rankingsFor(state: MyeongchuriState, winnerId: string | null) {
+  const [first, second] = state.players;
+  if (state.playMode === 'solo') {
+    return [{ playerId: first.id, nickname: first.nickname, rank: 1, score: winnerId ? 1 : 0 }];
+  }
+  const winner = first.id === winnerId ? first : second;
+  const loser = winner.id === first.id ? second : first;
+  return [
+    { playerId: winner.id, nickname: winner.nickname, rank: 1, score: 1 },
+    { playerId: loser.id, nickname: loser.nickname, rank: 2, score: 0 },
+  ];
+}
+
+function finishGame(io: IO, state: MyeongchuriState, winnerId: string | null, reason: string) {
   if (state.gameOver) return;
   clearMyeongchuriTimers(state);
   state.gameOver = true;
@@ -235,13 +254,8 @@ function finishGame(io: IO, state: MyeongchuriState, winnerId: string, reason: s
   state.finishReason = reason;
   void broadcastMyeongchuriState(io, state);
 
-  const winner = state.players.find((player) => player.id === winnerId)!;
-  const loser = state.players.find((player) => player.id !== winnerId)!;
   const payload = {
-    rankings: [
-      { playerId: winner.id, nickname: winner.nickname, rank: 1, score: 1 },
-      { playerId: loser.id, nickname: loser.nickname, rank: 2, score: 0 },
-    ],
+    rankings: rankingsFor(state, winnerId),
     totalTurns: state.rounds.length,
     gameResultData: toMyeongchuriRecord(state),
   };
@@ -290,8 +304,11 @@ export function initMyeongchuri(
   if (previous) clearMyeongchuriTimers(previous);
   myeongchuriStates.delete(roomId);
   const first = players[0];
-  const second = players[1];
-  if (!first || !second) throw new Error('명추리에는 두 명의 플레이어가 필요합니다.');
+  if (!first) throw new Error('명추리를 시작할 플레이어가 필요합니다.');
+  /* 1:1 솔로 — 한 사람이 선·후 두 자리를 모두 둔다(수식완성N·나이트의 여행과 같은 방식) */
+  const isSolo = playMode === 'solo';
+  const second = isSolo ? first : players[1];
+  if (!second) throw new Error('멀티 명추리에는 두 명의 플레이어가 필요합니다.');
   const options = resolveMyeongchuriOptions(gameOptions);
 
   const state: MyeongchuriState = {
@@ -309,7 +326,8 @@ export function initMyeongchuri(
     rounds: [],
     warnings: { [first.id]: 0, [second.id]: 0 },
     pickSeconds: timeLimitSeconds != null && timeLimitSeconds > 0 ? timeLimitSeconds : null,
-    thinkEnabled: options.thinkEnabled,
+    // 혼자 두는 판에서는 결과를 보고 쉬어 갈 상대가 없다 — 생각 시간을 두지 않는다
+    thinkEnabled: isSolo ? false : options.thinkEnabled,
     thinkSeconds: options.thinkSeconds,
     thinkSkips: new Set(),
     phaseStartedAt: null,
