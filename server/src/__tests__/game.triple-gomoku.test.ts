@@ -74,23 +74,38 @@ function line(start: TripleGomokuCell, dq: number, dr: number, count: number) {
 }
 
 describe('삼층 오목 판 기하', () => {
-  it('반지름 5 육각판은 91칸이고 가로 11줄이다', () => {
+  it('위·아래 줄의 양 끝을 도려낸 87칸이고 가로 11줄이다', () => {
     const cells = tripleGomokuCells();
-    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1);
-    expect(cells).toHaveLength(91);
+    // 육각형 91칸에서 도려낸 귀퉁이 4칸을 뺀다
+    expect(cells).toHaveLength(3 * TG_BOARD_RADIUS ** 2 + 3 * TG_BOARD_RADIUS + 1 - 4);
+    expect(cells).toHaveLength(87);
     expect(new Set(cells.map((cell) => cell.r)).size).toBe(11);
     const widest = cells.filter((cell) => cell.r === 0);
     expect(widest).toHaveLength(11);
+    // 맨 위·맨 아래 줄만 6칸이 아니라 4칸이다
+    expect(cells.filter((cell) => cell.r === -TG_BOARD_RADIUS)).toHaveLength(4);
+    expect(cells.filter((cell) => cell.r === TG_BOARD_RADIUS)).toHaveLength(4);
   });
 
-  it('판 안팎을 구분하고 모서리 칸은 이웃이 3개다', () => {
+  it('판 안팎을 구분하고, 도려낸 귀퉁이는 판 밖이다', () => {
     expect(isTripleGomokuCell({ q: 0, r: 0 })).toBe(true);
-    expect(isTripleGomokuCell({ q: 5, r: -5 })).toBe(true);
+    expect(isTripleGomokuCell({ q: 4, r: -5 })).toBe(true);
+    // 도려낸 네 칸
+    expect(isTripleGomokuCell({ q: 5, r: -5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: 0, r: -5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: -5, r: 5 })).toBe(false);
+    expect(isTripleGomokuCell({ q: 0, r: 5 })).toBe(false);
     expect(isTripleGomokuCell({ q: 5, r: 1 })).toBe(false);
     expect(isTripleGomokuCell({ q: 0.5, r: 0 })).toBe(false);
     expect(isTripleGomokuCell(null)).toBe(false);
     expect(tripleGomokuNeighbors(TG_CENTER)).toHaveLength(6);
-    expect(tripleGomokuNeighbors({ q: 5, r: -5 })).toHaveLength(3);
+    // 어느 칸의 이웃으로도 도려낸 칸이 나오지 않는다
+    const trimmed = ['5,-5', '0,-5', '-5,5', '0,5'];
+    for (const cell of tripleGomokuCells()) {
+      for (const neighbor of tripleGomokuNeighbors(cell)) {
+        expect(trimmed).not.toContain(`${neighbor.q},${neighbor.r}`);
+      }
+    }
   });
 
   it('모든 칸의 화면 좌표가 0~1 안에 들어온다', () => {
