@@ -1,6 +1,6 @@
 /**
  * 기간 한정 길드전 운영 창.
- * - 기간: 2026-09-16 01:00 KST ~ 2026-10-01 00:00 KST (끝 시각 미포함)
+ * - 기간: 2026-09-17 01:00 KST ~ 2026-10-01 00:00 KST (끝 시각 미포함)
  * - 평일: 01:00 포함 ~ 21:00 미만 (랭크 큐의 역)
  * - 주말·공휴일: 24시간
  *
@@ -9,7 +9,7 @@
 
 import { getKstHourMinute, isKstFullDay } from '../rank/kst';
 
-export const GUILD_WAR_START_MS = Date.parse('2026-09-16T01:00:00+09:00');
+export const GUILD_WAR_START_MS = Date.parse('2026-09-17T01:00:00+09:00');
 /** 종료(미포함). 9/30 20:59:59 까지 플레이, 10/1 00:00 에 컨텐츠가 사라진다. */
 export const GUILD_WAR_END_MS = Date.parse('2026-10-01T00:00:00+09:00');
 
