@@ -22,6 +22,7 @@ import {
   type MyeongchuriLetter,
 } from '@shared/types/myeongchuri.js';
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
+import { chooseMyeongchuriAiLetters, planMyeongchuriAi } from './ai.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IO, TypedSocket } from '../../types.js';
 import {
@@ -63,6 +64,57 @@ function startPhaseTimer(state: MyeongchuriState, seconds: number | null, onExpi
   if (seconds != null) armPhaseTimer(state, seconds * 1000);
 }
 
+/** COM 이 생각하는 척하는 시간. 곧바로 두면 화면이 따라오지 못한다. */
+const AI_DELAY_MS = 1200;
+
+/**
+ * COM 차례면 잠시 뒤 대신 둔다.
+ *
+ * 부를 때마다 이전 예약을 지우므로, 여러 곳에서 불러도 한 번만 둔다.
+ * 클라이언트 경로(handleMyeongchuriAction)는 AI 를 막아 두었으므로 여기서
+ * performMyeongchuriAction 을 직접 부른다 — 다른 게임의 COM 과 같은 방식이다.
+ */
+function scheduleAi(io: IO, state: MyeongchuriState) {
+  if (state.aiTimer) clearTimeout(state.aiTimer);
+  state.aiTimer = null;
+  if (state.playMode !== 'com' || state.gameOver) return;
+  if (!state.players.some((player) => player.id === AI_PLAYER_ID)) return;
+
+  const picking = state.phase === 'pick-first' || state.phase === 'pick-second';
+  const myPickTurn = picking && state.currentPlayerId === AI_PLAYER_ID;
+  if (!myPickTurn && state.phase !== 'thinking') return;
+
+  state.aiTimer = setTimeout(() => {
+    state.aiTimer = null;
+    if (!isLive(state)) return;
+
+    // 생각 시간에는 바로 건너뛴다 — COM 은 더 볼 것이 없다
+    if (state.phase === 'thinking') {
+      performMyeongchuriAction(io, state, AI_PLAYER_ID, { type: 'skip-think' });
+      return;
+    }
+    if (state.currentPlayerId !== AI_PLAYER_ID) return;
+
+    /* 판이 하나로 굳었으면 두 라운드 뒤부터 외친다(못 굳었어도 정해진 라운드가 되면 외친다) */
+    const { solvedAtRound, plan } = planMyeongchuriAi(
+      state.rounds,
+      state.round,
+      state.aiSolvedAtRound,
+    );
+    state.aiSolvedAtRound = solvedAtRound;
+    if (plan.declare && plan.answer && !state.declaration) {
+      performMyeongchuriAction(io, state, AI_PLAYER_ID, { type: 'declare' });
+      performMyeongchuriAction(io, state, AI_PLAYER_ID, { type: 'answer', answer: plan.answer });
+      return;
+    }
+
+    performMyeongchuriAction(io, state, AI_PLAYER_ID, {
+      type: 'pick',
+      letters: chooseMyeongchuriAiLetters(state.picks),
+    });
+  }, AI_DELAY_MS);
+}
+
 function startRound(io: IO, state: MyeongchuriState) {
   state.phase = 'pick-first';
   state.picks = [];
@@ -71,6 +123,7 @@ function startRound(io: IO, state: MyeongchuriState) {
   state.currentPlayerId = state.firstPlayerId;
   startPhaseTimer(state, state.pickSeconds, () => pickAtRandom(io, state));
   void broadcastMyeongchuriState(io, state);
+  scheduleAi(io, state);
 }
 
 function nextRound(io: IO, state: MyeongchuriState) {
@@ -94,6 +147,7 @@ function applyPick(io: IO, state: MyeongchuriState, letters: MyeongchuriLetter[]
     state.currentPlayerId = otherMyeongchuriPlayerId(state, state.firstPlayerId);
     startPhaseTimer(state, state.pickSeconds, () => pickAtRandom(io, state));
     void broadcastMyeongchuriState(io, state);
+    scheduleAi(io, state);
     return;
   }
   state.picks = [...state.picks, ...letters];
@@ -121,6 +175,7 @@ function resolveRound(io: IO, state: MyeongchuriState, randomSecond: boolean) {
   state.thinkSkips.clear();
   startPhaseTimer(state, state.thinkSeconds, () => nextRound(io, state));
   void broadcastMyeongchuriState(io, state);
+  scheduleAi(io, state);
 }
 
 function validatePick(
@@ -226,6 +281,8 @@ function resolveDeclaration(
     return;
   }
   void broadcastMyeongchuriState(io, state);
+  /* 실패해도 차례는 그대로 이어진다 — COM 이 제 차례였다면 다시 깨워야 멈추지 않는다 */
+  scheduleAi(io, state);
 }
 
 /** 순위. 솔로는 한 줄만 — 명추리에 성공하면 1점, 경고 2회로 끝나면 0점. */
@@ -342,6 +399,8 @@ export function initMyeongchuri(
     gameOver: false,
     startedAt,
     finishTimer: null,
+    aiTimer: null,
+    aiSolvedAtRound: null,
     endGameCallback,
   };
   myeongchuriStates.set(roomId, state);

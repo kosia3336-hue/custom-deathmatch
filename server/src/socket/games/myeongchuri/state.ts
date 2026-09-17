@@ -100,9 +100,12 @@ export function clearMyeongchuriTimers(state: MyeongchuriState) {
   if (state.phaseTimer) clearTimeout(state.phaseTimer);
   if (state.declarationTimer) clearTimeout(state.declarationTimer);
   if (state.finishTimer) clearTimeout(state.finishTimer);
+  // 판이 끝난 뒤에도 COM 이 한 수 더 두지 않도록 함께 끈다
+  if (state.aiTimer) clearTimeout(state.aiTimer);
   state.phaseTimer = null;
   state.declarationTimer = null;
   state.finishTimer = null;
+  state.aiTimer = null;
 }
 
 export function toMyeongchuriRecord(state: MyeongchuriState): MyeongchuriArchiveRecord {

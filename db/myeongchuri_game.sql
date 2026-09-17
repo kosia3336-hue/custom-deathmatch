@@ -14,7 +14,7 @@ INSERT INTO games (id, name, description, min_players, max_players,
                    is_active, sort_order, ranking_active)
 VALUES ('game-028', '명추리',
         '3×3 타일 뒤에 숨은 숫자와 기호를 수식 결과로 추리해, 모두 먼저 맞히는 쪽이 이기는 1:1 추리 게임',
-        2, 2, true, false, true, false, true, 280, false)
+        2, 2, true, true, true, false, true, 280, false)
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,
     description = EXCLUDED.description,

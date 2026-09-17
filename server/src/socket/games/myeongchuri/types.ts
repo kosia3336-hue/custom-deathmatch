@@ -55,5 +55,9 @@ export interface MyeongchuriState {
   gameOver: boolean;
   startedAt: number;
   finishTimer: ReturnType<typeof setTimeout> | null;
+  /** COM 이 잠시 뒤 행동하도록 걸어 두는 타이머 */
+  aiTimer: ReturnType<typeof setTimeout> | null;
+  /** COM 이 판을 하나로 굳힌 라운드. 여기서 두 라운드 뒤에 명추리를 외친다 */
+  aiSolvedAtRound: number | null;
   endGameCallback: MyeongchuriEndGameFn;
 }
