@@ -79,7 +79,7 @@ export default function MyeongchuriViewer({ record }: { record: GameRecordFile }
                   </span>
                 </div>
                 <p className="text-cdm-fg-muted mt-0.5">
-                  {round.letters.slice(0, 2).join(' ')} | {round.letters.slice(2).join(' ')}
+                  {round.letters.join('')}
                   {'  →  '}
                   {round.letters.map((letter) => myeongchuriTileToken(data.tiles[letter])).join(' ')}
                   {(round.randomFirst || round.randomSecond) && ' · 시간 초과로 무작위 배치'}

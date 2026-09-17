@@ -514,7 +514,7 @@ function RecordPanel({
                   </span>
                 </div>
                 <p className="text-cdm-ink-fg font-bold tracking-wider">
-                  {round.letters.slice(0, 2).join(' ')} | {round.letters.slice(2).join(' ')}
+                  {round.letters.join('')}
                   {(round.randomFirst || round.randomSecond) && (
                     <span className="text-cdm-ink-fg-muted ml-1 font-normal tracking-normal">(시간 초과 무작위)</span>
                   )}
