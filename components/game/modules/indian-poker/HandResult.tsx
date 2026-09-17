@@ -103,7 +103,7 @@ export default function HandResult({
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-5">
         <div className="text-center text-sm font-semibold text-red-600">
-          {diedP?.nickname} 다이!
+          {diedP?.nickname}님 다이
         </div>
 
         <div className="flex justify-center items-end gap-3">

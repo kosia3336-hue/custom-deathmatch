@@ -284,6 +284,10 @@ function ResultOverlay({ gameData }: { gameData: SeedSeotdaGameData }) {
   const result = gameData.lastRoundResult;
   if (gameData.phase !== 'round-result' || !result) return null;
   const winnerName = result.winnerId ? gameData.players[result.winnerId]?.nickname : null;
+  /* 다이는 이긴 사람이 아니라 던진 사람을 부른다 — 인디언홀덤Q·양면포커와 같은 표기다 */
+  const foldedName = result.foldedPlayerId
+    ? gameData.players[result.foldedPlayerId]?.nickname
+    : null;
   const title =
     result.reason === 'tie'
       ? '동일 족보 · 재경기'
@@ -292,7 +296,7 @@ function ResultOverlay({ gameData }: { gameData: SeedSeotdaGameData }) {
         : result.reason === 'mung-gusa-rematch'
           ? '멍텅구리 구사 · 재경기'
           : result.reason === 'die'
-            ? `${winnerName ?? '상대'} 님이 다이 승리`
+            ? `${foldedName ?? '상대'}님 다이`
             : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">

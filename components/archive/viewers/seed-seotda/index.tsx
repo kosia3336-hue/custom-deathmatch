@@ -48,6 +48,10 @@ export default function SeedSeotdaViewer({ record }: { record: GameRecordFile })
       <div className="grid gap-3 lg:grid-cols-2">
         {data.rounds.map((round) => {
           const winner = round.winnerId ? data.players[round.winnerId]?.nickname : null;
+          /* 다이는 던진 사람을 부른다 — 인게임 문구와 같게 맞춘다 */
+          const folded = round.foldedPlayerId
+            ? data.players[round.foldedPlayerId]?.nickname
+            : null;
           const resultLabel =
             round.reason === 'tie'
               ? '동일 족보 · 재경기'
@@ -56,7 +60,7 @@ export default function SeedSeotdaViewer({ record }: { record: GameRecordFile })
                 : round.reason === 'mung-gusa-rematch'
                   ? '멍텅구리 구사 · 재경기'
                   : round.reason === 'die'
-                    ? `${winner} 다이 승리`
+                    ? `${folded ?? '상대'}님 다이`
                     : `${winner} 승리`;
           return (
             <Card key={round.round} className="p-3 sm:p-4">

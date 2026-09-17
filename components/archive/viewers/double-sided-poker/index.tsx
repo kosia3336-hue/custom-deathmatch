@@ -50,6 +50,10 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
       <div className="grid gap-3 lg:grid-cols-2">
         {data.rounds.map((round) => {
           const winner = round.winnerId ? data.players[round.winnerId]?.nickname : null;
+          /* 다이는 던진 사람을 부른다 — 인게임 문구와 같게 맞춘다 */
+          const folded = round.foldedPlayerId
+            ? data.players[round.foldedPlayerId]?.nickname
+            : null;
           return (
             <Card key={round.round} className="p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
@@ -61,7 +65,7 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
                     {round.reason === 'tie'
                       ? '동점 · 팟 이월'
                       : round.reason === 'fold'
-                        ? `${winner} 다이 승리`
+                        ? `${folded ?? '상대'}님 다이`
                         : `${winner} 승리`}
                   </p>
                 </div>
