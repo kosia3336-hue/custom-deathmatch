@@ -54,7 +54,12 @@ export default function PlayerSlot({
   return (
     <div
       className={cn(
-        'relative flex flex-col gap-2 rounded-cdm-lg border p-4 transition-colors',
+        /*
+          빈 자리·참여 단추가 h-24 로 고정이라, 준비 상태 줄이 없는 방장 칸은 내용이
+          그보다 짧다. 그리드가 줄 높이를 맞춰 늘리면 그만큼 아래가 비어 보인다 —
+          같은 높이를 주고 가운데로 모아 빈 줄처럼 읽히지 않게 한다.
+        */
+        'relative flex min-h-24 flex-col justify-center gap-2 rounded-cdm-lg border p-4 transition-colors',
         isMe ? 'border-cdm-primary bg-cdm-primary-soft/40' : 'border-cdm-border bg-cdm-bg-elev-1',
       )}
     >
