@@ -171,7 +171,7 @@ function ChipStat({
 }
 
 /**
- * 조작부 — 콜·레이즈·폴드.
+ * 조작부 — 콜·레이즈·다이.
  *
  * 숫자를 먼저 보여 주고 단추를 그 아래 둔다. 예전에는 '맞출 칩' 하나만 있어서
  * 내가 이 판에 이미 얼마를 냈는지, 레이즈하면 추가로 얼마가 나가는지가 보이지
@@ -268,7 +268,7 @@ function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId:
             레이즈
           </Button>
           <Button variant="danger" onClick={() => getSocket().emit('game:action', { type: 'fold' })}>
-            폴드
+            다이
           </Button>
         </div>
       )}
@@ -285,6 +285,13 @@ function ResultOverlay({ gameData, myId }: { gameData: ChoiceHoldemGameData; myI
       ? '나'
       : gameData.players[result.winnerId]?.nickname
     : null;
+  /*
+    다이는 이긴 사람이 아니라 던진 사람을 부른다 — 다른 카드 게임과 같은 표기다.
+    여기서는 '나' 로 바꾸지 않는다. '나님 다이' 가 되어 읽기 이상해진다.
+  */
+  const foldedName = result.foldedPlayerId
+    ? gameData.players[result.foldedPlayerId]?.nickname
+    : null;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
       <div className="border-cdm-highlight bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
@@ -292,7 +299,7 @@ function ResultOverlay({ gameData, myId }: { gameData: ChoiceHoldemGameData; myI
           {result.reason === 'tie'
             ? '완전 동률 · 팟 이월'
             : result.reason === 'fold'
-              ? `${winnerName ?? '상대'} 님이 폴드 승리`
+              ? `${foldedName ?? '상대'}님 다이`
               : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`}
         </p>
         {result.evaluations && (

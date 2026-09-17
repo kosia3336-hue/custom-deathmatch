@@ -36,9 +36,17 @@ function betOf(round: ChoiceHoldemRoundResult, playerId: string) {
   return last ? last.totalBet : round.ante;
 }
 
-function reasonLabel(round: ChoiceHoldemRoundResult, winnerName: string | null) {
+/*
+  다이는 이긴 사람이 아니라 던진 사람을 부르므로 이름을 따로 받는다.
+  그 사람이 나여도 '나' 로 바꾸지 않는다 — '나님 다이' 가 되어 읽기 이상해진다.
+*/
+function reasonLabel(
+  round: ChoiceHoldemRoundResult,
+  winnerName: string | null,
+  foldedName: string | null,
+) {
   if (round.reason === 'tie') return '동률 · 팟 이월';
-  if (round.reason === 'fold') return `${winnerName ?? '상대'} 폴드승`;
+  if (round.reason === 'fold') return `${foldedName ?? '상대'}님 다이`;
   return `${winnerName ?? '플레이어'} 승`;
 }
 
@@ -69,12 +77,15 @@ export default function RecordPanel({
           <ul className="max-h-72 space-y-1 overflow-y-auto">
             {[...data.rounds].reverse().map((round) => {
               const winnerName = name(round.winnerId);
+              const foldedName = round.foldedPlayerId
+                ? (data.players[round.foldedPlayerId]?.nickname ?? null)
+                : null;
               return (
                 <li key={round.round} className="rounded-md bg-white/5 px-2 py-1.5 text-xs">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-cdm-ink-fg-muted">{round.round}R</span>
                     <span className="text-cdm-ink-fg font-bold">
-                      {reasonLabel(round, winnerName)}
+                      {reasonLabel(round, winnerName, foldedName)}
                     </span>
                     <span className="text-cdm-ink-fg-muted tabular-nums">팟 {round.potAmount}</span>
                   </div>
