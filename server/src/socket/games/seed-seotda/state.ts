@@ -158,6 +158,8 @@ export function toSeedSeotdaGameData(
     firstPlayerId: state.firstPlayerId,
     bettingOpened: state.bettingOpened,
     ...bounds,
+    /* 기록에는 공개된 패만 들어 있다(다이 라운드는 던진 사람 것만) — 그대로 보낸다 */
+    rounds: state.roundResults.map(cloneSeedSeotdaRoundResult),
     lastRoundResult: state.lastRoundResult
       ? cloneSeedSeotdaRoundResult(state.lastRoundResult)
       : null,

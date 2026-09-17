@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -8,6 +8,8 @@ import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
 import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import RecordPanel from './RecordPanel';
 import type { SeedSeotdaGameData, SeedSeotdaPlayerView } from '@/shared/types/seed-seotda';
 
 const PHASE_LABEL: Record<SeedSeotdaGameData['phase'], string> = {
@@ -323,6 +325,17 @@ export default function SeedSeotdaGame() {
   const myId = useMySocketId();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
 
+  /* 상단 바 — 라운드와 '메모'(족보 표·라운드 기록). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
+  const { setHud } = useRoomLayout();
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round}R`,
+      memo: <RecordPanel data={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, myId]);
+
   if (!gameData) {
     return (
       <div className="text-cdm-fg-muted flex h-full items-center justify-center">
@@ -368,6 +381,7 @@ export default function SeedSeotdaGame() {
           <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
         </div>
       }
+      aside={<RecordPanel data={gameData} myId={myId} />}
     >
       <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4">
         <div className="text-center">

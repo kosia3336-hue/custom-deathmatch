@@ -112,6 +112,14 @@ export interface SeedSeotdaGameData {
   maxBet: number | null;
   minRaise: number | null;
   maxRaise: number | null;
+  /**
+   * 끝난 라운드 전체 기록 — 메모탭의 '기록' 에서 되짚는 데 쓴다.
+   *
+   * 기록에 담기는 패는 이미 '공개된 것' 뿐이다. 다이로 끝난 라운드는 던진 사람 패만
+   * 들어가고 이긴 사람 패는 null 이며(engine.ts settleDie), 승부까지 간 라운드만
+   * 둘 다 들어간다. 그래서 따로 가릴 것 없이 그대로 내보낸다.
+   */
+  rounds: SeedSeotdaRoundResult[];
   lastRoundResult: SeedSeotdaRoundResult | null;
   roundStartedAt: number;
   turnStartedAt: number | null;
