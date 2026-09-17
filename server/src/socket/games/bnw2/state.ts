@@ -77,6 +77,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
     [s.player1.id]: { ...playerToInfo(s.player1, socketId === s.player1.id || (_dbg && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, socketId === s.player2.id || (_dbg && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
+  const roundHistory = liveRoundHistory(s, socketId);
   return {
     phase: s.phase,
     round: s.round,
@@ -85,7 +86,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
     prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
     revealData: buildRevealData(s),
-    roundHistory: s.actionLog.map(logToRecord),
+    roundHistory,
     winner: s.winner,
     winType: s.winType,
   };
@@ -98,6 +99,8 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
     [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
+  /* 관전자는 어느 쪽도 아니므로 두 사람의 포인트를 모두 가린다 */
+  const roundHistory = liveRoundHistory(s, null);
   return {
     phase: s.phase,
     round: s.round,
@@ -106,10 +109,32 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
     prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
     revealData: buildRevealData(s),
-    roundHistory: s.actionLog.map(logToRecord),
+    roundHistory,
     winner: s.winner,
     winType: s.winType,
   };
+}
+
+/**
+ * 생중계로 나가는 라운드 기록 — 보는 사람 것만 남기고 상대의 제시 포인트는 지운다.
+ *
+ * 이 게임은 공개 시점에도 색과 꺼진 불 칸수만 알려 주지 정확한 숫자는 밝히지 않는다.
+ * 화면에 안 그리더라도 값을 실어 보내면 그대로 건너가므로 보내는 쪽에서 지운다.
+ * 관전자는 어느 쪽도 아니므로 둘 다 가린다.
+ *
+ * 기보(getBNW2ResultData·종료 payload)는 이 함수를 거치지 않는다 — 끝난 판을
+ * 복기하는 화면에서는 두 사람의 숫자가 모두 보여야 한다.
+ */
+function liveRoundHistory(s: InternalState, viewerId: string | null) {
+  return s.actionLog.map(logToRecord).map((record) => ({
+    ...record,
+    players: Object.fromEntries(
+      Object.entries(record.players).map(([pid, pd]) => [
+        pid,
+        { ...pd, points: pid === viewerId ? pd.points : null },
+      ]),
+    ),
+  }));
 }
 
 function logToRecord(log: BNW2RoundLog) {

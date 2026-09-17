@@ -247,8 +247,14 @@ function RoundHistoryTable({
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
                   <span className="text-cdm-ink-fg-muted">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
-                  {/* 몇 포인트를 냈는지가 이 기록을 여는 까닭이다 — 색보다 먼저 눈에 들어와야 한다 */}
-                  <span className="text-cdm-ink-fg font-bold tabular-nums">{pd.points}p</span>
+                  {/*
+                    내가 낸 포인트만 적는다. 이 게임은 공개 시점에도 색과 꺼진 불 칸수만
+                    알려 주지 정확한 숫자는 밝히지 않는다 — 상대 것까지 적으면 추리의
+                    핵심을 그대로 넘겨주는 셈이다.
+                  */}
+                  {pid === myId && (
+                    <span className="text-cdm-ink-fg font-bold tabular-nums">{pd.points}p</span>
+                  )}
                   {isWinner && <span className="text-amber-500">+1</span>}
                 </span>
               );

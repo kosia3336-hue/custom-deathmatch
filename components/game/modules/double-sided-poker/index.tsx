@@ -109,9 +109,17 @@ function PlayerPanel({
           {selection ? ` · ${SELECTION_LABEL[selection]}` : ' · 면 선택 전'}
         </p>
       </div>
-      <p className="text-cdm-primary shrink-0 text-base font-black tabular-nums">
-        {player.chips}칩
-      </p>
+      {/* 내 자리에는 이번 판에 내가 낸 칩(앞·뒤 합계)을 칩 수 옆에 함께 적는다 */}
+      <div className="shrink-0 text-right">
+        <p className="text-cdm-primary text-base leading-5 font-black tabular-nums">
+          {player.chips}칩
+        </p>
+        {playerId === myId && (
+          <p className="text-cdm-fg-muted text-[10px] leading-3 font-bold tabular-nums">
+            (베팅 칩 : {player.frontBet + player.backBet}개)
+          </p>
+        )}
+      </div>
     </div>
   );
 
