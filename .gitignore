@@ -64,6 +64,9 @@ docs/
 # local-only dev previews (skins, UI experiments)
 /app/dev/
 /public/dev/
+# pnpm build 가 app/dev·public/dev 를 잠깐 옮겨 두는 자리
+/tmp-app-dev/
+/tmp-public-dev/
 
 # Cursor MCP config (contains Supabase access token — do not commit)
 /.cursor/mcp.json

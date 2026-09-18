@@ -454,14 +454,17 @@ function submitComboForAbsentees(state: RtbState) {
   maybeComboDone(state);
 }
 
+function forceComboIfOpen(state: RtbState, id: string) {
+  if (state.phase !== 'combo') return;
+  forceWorstCombo(state, id);
+  maybeComboDone(state);
+}
+
 /** 벨 이후 타임아웃·퇴장: 다이 대신 강제 플레이. */
 function forcePlayAfterBell(state: RtbState, id: string) {
   if (!state.bellId || state.alive[id] !== true) return;
   if (lastSwapPending(state, id)) finishForcedLastSwap(state, id);
-  if (state.phase === 'combo') {
-    forceWorstCombo(state, id);
-    maybeComboDone(state);
-  }
+  forceComboIfOpen(state, id);
 }
 
 function afterDie(state: RtbState, diedId: string) {
@@ -1121,10 +1124,7 @@ function applyTimeout(s: RtbState, actorId: string): ApplyResult {
     pushLog(s, `${nick(s, id)} 시간 초과`);
     markKick(s, id, 'turn_timeout');
     finishForcedLastSwap(s, id);
-    if (s.phase === 'combo') {
-      forceWorstCombo(s, id);
-      maybeComboDone(s);
-    }
+    forceComboIfOpen(s, id);
     return { ok: true, state: s };
   }
 

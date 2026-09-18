@@ -44,6 +44,8 @@
   "exclude": [
     "node_modules",
     "server",
-    "app/dev"
+    "app/dev",
+    "tmp-app-dev",
+    "tmp-public-dev"
   ]
 }
