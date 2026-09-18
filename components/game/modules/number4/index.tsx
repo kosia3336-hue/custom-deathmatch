@@ -109,13 +109,20 @@ export default function NumberFourGame() {
   }, [gameData, handleAdjust, handleSpectatorAdjust, isSpectator, myId, phaseLabel, setHud, skin, spectatorTrackers, trackerBlack, trackerWhite]);
 
   useEffect(() => {
-    if (!gameData?.winner || !gameData?.winType) return;
-    if (shownWinnerRef.current === gameData.winner) return;
-    shownWinnerRef.current = gameData.winner;
+    /* 무승부는 승자가 없다 — 끝났는지는 winType 으로 보고, 알림은 따로 띄운다 */
+    if (!gameData?.winType) return;
+    const shownKey = gameData.winner ?? 'draw';
+    if (shownWinnerRef.current === shownKey) return;
+    shownWinnerRef.current = shownKey;
+
+    const reason = WIN_TYPE_LABELS[gameData.winType] ?? '';
+    if (!gameData.winner) {
+      toast.info('무승부!', { duration: 5000 });
+      return;
+    }
 
     const winnerEntry = Object.entries(gameData.players).find(([id]) => id === gameData.winner || id.replace('_p2', '') === gameData.winner);
     const winnerNick = winnerEntry?.[1].nickname ?? '???';
-    const reason = gameData.winType ? (WIN_TYPE_LABELS[gameData.winType] ?? '') : '';
     const isMe = gameData.winner === myId;
     const message = `${winnerNick} 승리! ${reason}`;
 
@@ -230,7 +237,6 @@ export default function NumberFourGame() {
               revealData={gameData.revealData}
               players={gameData.players}
               round={gameData.round}
-              winner={gameData.winner}
               winType={gameData.winType}
               tiebreakerReason={gameData.tiebreakerReason}
               skin={skin}

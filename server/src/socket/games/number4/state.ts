@@ -334,9 +334,9 @@ function autoSubmitDefaults(p: NF4PlayerInternal) {
 function resolveGame(
   io: IO,
   s: InternalState,
-  winnerId: string,
+  winnerId: string | null,
   winnerNick: string,
-  loserId: string,
+  loserId: string | null,
   loserNick: string,
   winType: InternalState['winType'],
 ) {
@@ -346,11 +346,20 @@ function resolveGame(
   s.phase = 'finished';
   broadcastState(io, s);
 
+  /* 무승부는 둘 다 1위다 — 자리 순서로 승패를 가르지 않는다 */
+  const rankings =
+    winnerId && loserId
+      ? [
+          { playerId: winnerId, nickname: winnerNick, rank: 1, score: s.player1.id === winnerId ? s.player1.score : s.player2.score },
+          { playerId: loserId, nickname: loserNick, rank: 2, score: s.player1.id === loserId ? s.player1.score : s.player2.score },
+        ]
+      : [
+          { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
+          { playerId: s.player2.id, nickname: s.player2.nickname, rank: 1, score: s.player2.score },
+        ];
+
   const payload = {
-    rankings: [
-      { playerId: winnerId, nickname: winnerNick, rank: 1, score: s.player1.id === winnerId ? s.player1.score : s.player2.score },
-      { playerId: loserId, nickname: loserNick, rank: 2, score: s.player1.id === loserId ? s.player1.score : s.player2.score },
-    ],
+    rankings,
     totalTurns: s.round,
     gameResultData: {
       winType: s.winType,
@@ -374,20 +383,29 @@ function resolveGame(
 
 /* ────────────────────── round processing ─────────────── */
 
+/** winnerId 가 null 이면 무승부로 끝낸다(승점·넘버 합·잔여 백색이 모두 같은 경우). */
 function delayedResolve(
   io: IO,
   s: InternalState,
-  winnerId: string,
-  loserId: string,
+  winnerId: string | null,
+  loserId: string | null,
   winType: InternalState['winType'],
 ) {
-  const winnerP = winnerId === s.player1.id ? s.player1 : s.player2;
-  const loserP = loserId === s.player1.id ? s.player1 : s.player2;
+  const winnerP = winnerId ? (winnerId === s.player1.id ? s.player1 : s.player2) : null;
+  const loserP = loserId ? (loserId === s.player1.id ? s.player1 : s.player2) : null;
   const gen = s.aiGeneration;
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
     if (s.aiGeneration !== gen) return;
-    resolveGame(io, s, winnerId, winnerP.nickname, loserId, loserP.nickname, winType);
+    resolveGame(
+      io,
+      s,
+      winnerId,
+      winnerP?.nickname ?? '',
+      loserId,
+      loserP?.nickname ?? '',
+      winType,
+    );
   }, REVEAL_DELAY_MS);
 }
 
@@ -459,6 +477,10 @@ export function processRound(io: IO, s: InternalState) {
   if (p1Dead && p2Dead) {
     const tb = tiebreaker(s);
     s.tiebreakerReason = tb.reason;
+    if (!tb.winnerId) {
+      delayedResolve(io, s, null, null, 'draw');
+      return;
+    }
     const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
     delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
     return;
@@ -482,8 +504,12 @@ export function processRound(io: IO, s: InternalState) {
     } else {
       const tb = tiebreaker(s);
       s.tiebreakerReason = tb.reason;
-      const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
-      delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
+      if (!tb.winnerId) {
+        delayedResolve(io, s, null, null, 'draw');
+      } else {
+        const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
+        delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
+      }
     }
     return;
   }

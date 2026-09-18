@@ -10,7 +10,6 @@ interface RevealPanelProps {
   revealData: NF4RevealData;
   players: Record<string, NF4PlayerInfo>;
   round: number;
-  winner: string | null;
   winType: NF4WinType | null;
   tiebreakerReason: string | null;
   skin?: SkinTheme | null;
@@ -27,7 +26,7 @@ function Reveal({ visible, children }: { visible: boolean; children: React.React
   );
 }
 
-export default function RevealPanel({ revealData, players, round, winner, winType, tiebreakerReason, skin }: RevealPanelProps) {
+export default function RevealPanel({ revealData, players, round, winType, tiebreakerReason, skin }: RevealPanelProps) {
   const [step, setStep] = useState(0);
   const isDuality = skin === 'duality';
 
@@ -40,7 +39,8 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
   }, [revealData]);
 
   const playerEntries = Object.entries(players);
-  const isFinished = !!winner;
+  /* 무승부는 승자가 없다 — 끝났는지는 승자가 아니라 winType 으로 본다 */
+  const isFinished = !!winType;
 
   if (isDuality) {
     return (

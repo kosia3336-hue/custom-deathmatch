@@ -51,13 +51,20 @@ describe('tiebreaker - 승점 동점 (룰 I)', () => {
     expect(tiebreaker(s).winnerId).toBe('p2');
   });
 
-  it('넘버 합·잔여 백색이 모두 같으면 선 플레이어', () => {
+  it('넘버 합도 잔여 백색도 같으면 무승부다 (자리 순서로 가르지 않는다)', () => {
+    /*
+      예전에는 여기서 선 플레이어를 이기게 했다. 룰 I 에 그런 근거가 없고
+      앉은 자리만으로 승패가 갈리는 셈이라, 승자 없음으로 돌려준다.
+    */
     const s = tieState(
-      { numbers: [1, 2], whites: [3, 3], remainingWhite: 18 },
-      { numbers: [2, 1], whites: [3, 3], remainingWhite: 18 },
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [3, 3, 3, 3, 3, 3], remainingWhite: 6 },
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [3, 3, 3, 3, 3, 3], remainingWhite: 6 },
     );
-    expect(tiebreaker(s).winnerId).toBe('p1');
+    const tb = tiebreaker(s);
+    expect(tb.winnerId).toBeNull();
+    expect(tb.reason).toContain('무승부');
   });
+
 });
 
 /**

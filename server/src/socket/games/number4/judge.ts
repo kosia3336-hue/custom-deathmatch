@@ -79,7 +79,7 @@ function getNumberSum(s: InternalState, player: NF4PlayerInternal) {
  * 졌다는 제보). 잔여 수는 매 라운드(시간 초과 자동 제출 포함) processRound 가 실제
  * 제출분만큼 깎은 remainingWhite 를 그대로 쓴다.
  */
-export function tiebreaker(s: InternalState): { winnerId: string; reason: string } {
+export function tiebreaker(s: InternalState): { winnerId: string | null; reason: string } {
   const sum1 = getNumberSum(s, s.player1);
   const sum2 = getNumberSum(s, s.player2);
 
@@ -101,8 +101,13 @@ export function tiebreaker(s: InternalState): { winnerId: string; reason: string
     };
   }
 
+  /*
+    승점·넘버 합·잔여 백색까지 모두 같으면 무승부다.
+    예전에는 선 플레이어를 이기게 했는데, 룰 I 에 그런 근거가 없고 자리만으로
+    승패가 갈리는 셈이었다. 승자 없음(null)으로 돌려주고 부르는 쪽이 무승부로 끝낸다.
+  */
   return {
-    winnerId: s.player1.id,
-    reason: '완전 동점 (선 플레이어 승리)',
+    winnerId: null,
+    reason: '완전 동점 (무승부)',
   };
 }
