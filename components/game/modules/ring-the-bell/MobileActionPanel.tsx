@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/cdm';
-import { available } from '@shared/guild-war';
+import { available, BELL_FAIL } from '@shared/guild-war';
 import { RtbCard } from './RtbCard';
 import type { PlayViewProps } from './play-view';
 
@@ -59,7 +59,7 @@ export function MobileActionPanel({
             size="sm"
             disabled={!flags.canBell}
             onClick={() => dispatch(meId, { type: 'bell' })}
-            title={flags.canBell ? '실패하면 칩 2' : '실패 대비 칩 2개가 필요합니다'}
+            title={flags.canBell ? `실패하면 칩 ${BELL_FAIL}` : `실패 대비 칩 ${BELL_FAIL}개가 필요합니다`}
           >
             벨
           </Button>

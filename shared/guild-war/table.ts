@@ -6,9 +6,11 @@ import {
   isValidCombo,
   requiredBellRank,
   assignRanks,
+  worstCombo,
 } from './combo';
 import {
   ANTE,
+  BELL_FAIL,
   COUNTDOWN_MS,
   COMBO_MS,
   RTB_MAX_PER_GUILD,
@@ -76,15 +78,40 @@ function aliveIds(state: RtbState): string[] {
   return state.players.filter((p) => state.alive[p.id]).map((p) => p.id);
 }
 
-function rotateToFirst(list: RtbPlayer[], firstId: string): RtbPlayer[] {
-  const i = list.findIndex((p) => p.id === firstId);
-  if (i <= 0) return [...list];
-  return [...list.slice(i), ...list.slice(0, i)];
-}
-
 function pickFirst(roster: RtbPlayer[], nextFirstId: string | null): string {
   if (nextFirstId && roster.some((p) => p.id === nextFirstId)) return nextFirstId;
   return roster[Math.floor(Math.random() * roster.length)]!.id;
+}
+
+/** 선은 1번, 나머지는 매 세트 셔플 (§8.5). */
+function orderSeats(list: RtbPlayer[], firstId: string): RtbPlayer[] {
+  const first = list.find((p) => p.id === firstId) ?? null;
+  const rest = list.filter((p) => p.id !== firstId);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = rest[i]!;
+    rest[i] = rest[j]!;
+    rest[j] = t;
+  }
+  return first ? [first, ...rest] : rest;
+}
+
+/** 공동 1등이면 그 세트에서 자리 번호가 빠른 사람. */
+function earliestSeated(state: RtbState, ids: string[]): string | null {
+  if (ids.length === 0) return null;
+  const want = new Set(ids);
+  const seated = state.players.find((p) => want.has(p.id));
+  return seated?.id ?? ids[0] ?? null;
+}
+
+function nextFirstFromSettle(state: RtbState, settle: SettleResult): string | null {
+  if (settle.kind === 'bell_success') {
+    return settle.winners[0]?.playerId ?? state.bellId;
+  }
+  return earliestSeated(
+    state,
+    settle.winners.map((w) => w.playerId),
+  );
 }
 
 function credit(state: RtbState, guildId: string, amount: number) {
@@ -109,6 +136,8 @@ function beginCombo(state: RtbState) {
   state.combo = {};
   state.comboTimedOut = {};
   pushLog(state, '조합을 고르세요');
+  // 벨 이후 이미 내린 사람은 1분을 기다리게 두지 않는다 (§10.5·GW-44).
+  submitComboForAbsentees(state);
 }
 
 function finishSet(state: RtbState, settle: SettleResult) {
@@ -135,7 +164,7 @@ function finishSet(state: RtbState, settle: SettleResult) {
   state.currentId = null;
   state.turnEndsAt = null;
   state.comboEndsAt = null;
-  state.nextFirstId = state.bellId;
+  state.nextFirstId = nextFirstFromSettle(state, settle);
   pushLog(state, settle.note);
   beginNextSetWait(state);
 }
@@ -263,8 +292,8 @@ function settleShowdown(state: RtbState) {
   const bellRanked = bellLive && rows.some((r) => r.id === bellId);
 
   if (rows.length === 0) {
-    // 아무도 조합을 못 냈다. 벨이 살아 있으면 실패이므로 2칩은 걷는다.
-    if (bellLive) spend(state, bellId!, 2);
+    // 아무도 조합을 못 냈다. 벨이 살아 있으면 실패이므로 벌칙은 걷는다.
+    if (bellLive) spend(state, bellId!, BELL_FAIL);
     extinctSettle(state);
     return;
   }
@@ -292,7 +321,7 @@ function settleShowdown(state: RtbState) {
       });
       return;
     }
-    spend(state, bellId!, 2);
+    spend(state, bellId!, BELL_FAIL);
     const firstIds = rows.filter((r) => ranks[r.id] === 1).map((r) => r.id);
     const split = splitFirst(state, firstIds);
     finishSet(state, {
@@ -301,15 +330,15 @@ function settleShowdown(state: RtbState) {
       winners: split.winners,
       vanished: split.vanished,
       lines: settleLines(state, ranks, bellId),
-      note: `${p.nickname} 벨 실패 (${bellRank}등). +2 후 1등에게.`,
+      note: `${p.nickname} 벨 실패 (${bellRank}등). +${BELL_FAIL} 후 1등에게.`,
       guildDeltas: {},
     });
     return;
   }
 
   if (bellLive) {
-    // 벨을 울려 놓고 조합을 안 냈다. 벌칙 2칩을 걷지 않으면 「지겠으면 안 낸다」로 회피된다.
-    spend(state, bellId!, 2);
+    // 벨을 울려 놓고 조합을 안 냈다. 벌칙을 걷지 않으면 「지겠으면 안 낸다」로 회피된다.
+    spend(state, bellId!, BELL_FAIL);
     const { ranks, split } = settleFirstOf(state, rows, bellId);
     finishSet(state, {
       kind: 'bell_fail',
@@ -317,7 +346,7 @@ function settleShowdown(state: RtbState) {
       winners: split.winners,
       vanished: split.vanished,
       lines: settleLines(state, ranks, bellId),
-      note: `${nick(state, bellId!)} 조합 미제출 · 벨 실패. +2 후 1등에게.`,
+      note: `${nick(state, bellId!)} 조합 미제출 · 벨 실패. +${BELL_FAIL} 후 1등에게.`,
       guildDeltas: {},
     });
     return;
@@ -350,6 +379,89 @@ function dumpRandomOnDeath(state: RtbState, id: string) {
   state.hands[id] = hand.filter((c) => c.id !== dumped.id);
   state.face = dumped;
   pushLog(state, `${nick(state, id)} 이탈 · 손패 한 장이 앞면으로`);
+}
+
+function randomDiscardOne(state: RtbState, id: string) {
+  const hand = state.hands[id] ?? [];
+  if (hand.length !== 5) return;
+  const dumped = hand[Math.floor(Math.random() * hand.length)]!;
+  state.hands[id] = hand.filter((c) => c.id !== dumped.id);
+  state.face = dumped;
+}
+
+/** 벨 이후 마지막 교환을 랜덤으로 끝낸다. 다이하지 않는다. */
+function forceLastSwap(state: RtbState, id: string) {
+  const hand = state.hands[id] ?? [];
+  if (hand.length >= 5) {
+    randomDiscardOne(state, id);
+    pushLog(state, `${nick(state, id)} 랜덤 교환`);
+    return;
+  }
+  if (!canPickCard(state)) {
+    pushLog(state, `${nick(state, id)} 집을 카드가 없어 건너뜀`);
+    return;
+  }
+  const canDeck = state.deck.length > 0;
+  const canFace = state.face != null;
+  const takeFace = canFace && (!canDeck || Math.random() < 0.5);
+  if (takeFace) {
+    const taken = state.face!;
+    state.face = null;
+    state.hands[id] = [...hand, taken];
+  } else {
+    const taken = state.deck.shift();
+    if (!taken) return;
+    state.hands[id] = [...hand, taken];
+  }
+  randomDiscardOne(state, id);
+  pushLog(state, `${nick(state, id)} 랜덤 교환`);
+}
+
+function finishForcedLastSwap(state: RtbState, id: string) {
+  forceLastSwap(state, id);
+  const wasCurrent = state.currentId === id;
+  state.lastSwapQueue = state.lastSwapQueue.filter((x) => x !== id);
+  if (wasCurrent) startNextLastSwap(state);
+}
+
+function forceWorstCombo(state: RtbState, id: string) {
+  if (state.combo[id] || state.comboTimedOut[id]) return;
+  const pick = worstCombo(state.hands[id] ?? []);
+  if (pick.length === 0) {
+    state.comboTimedOut[id] = true;
+    return;
+  }
+  state.combo[id] = pick;
+  pushLog(state, `${nick(state, id)} 최저 조합 제출`);
+}
+
+function lastSwapPending(state: RtbState, id: string): boolean {
+  if (state.lastSwapQueue.includes(id)) return true;
+  if (state.currentId !== id || !state.bellId) return false;
+  return state.phase === 'last_swap' || state.phase === 'pick_source' || state.phase === 'discard';
+}
+
+function onRoster(state: RtbState, id: string): boolean {
+  return state.roster.some((p) => p.id === id);
+}
+
+/** 벨 이후 명단에서 내린 생존자. 조합이 열리면 최저를 넣는다. */
+function submitComboForAbsentees(state: RtbState) {
+  if (state.phase !== 'combo' || !state.bellId) return;
+  for (const id of aliveIds(state)) {
+    if (!onRoster(state, id)) forceWorstCombo(state, id);
+  }
+  maybeComboDone(state);
+}
+
+/** 벨 이후 타임아웃·퇴장: 다이 대신 강제 플레이. */
+function forcePlayAfterBell(state: RtbState, id: string) {
+  if (!state.bellId || state.alive[id] !== true) return;
+  if (lastSwapPending(state, id)) finishForcedLastSwap(state, id);
+  if (state.phase === 'combo') {
+    forceWorstCombo(state, id);
+    maybeComboDone(state);
+  }
 }
 
 function afterDie(state: RtbState, diedId: string) {
@@ -447,7 +559,7 @@ function startSet(state: RtbState) {
   }
 
   const firstId = pickFirst(roster, state.nextFirstId);
-  const ordered = rotateToFirst(roster, firstId);
+  const ordered = orderSeats(roster, firstId);
   for (const g of Object.values(state.guilds)) {
     g.snapshot = g.balance;
     g.spent = 0;
@@ -543,10 +655,33 @@ export function canSeat(state: RtbState, guildId: string): boolean {
   return seatedCountForGuild(state, guildId) < RTB_MAX_PER_GUILD;
 }
 
+/**
+ * 테이블 8칸. 대기(`idle`)는 다음 세트 명단.
+ * 세트·정산 중에는 이번 세트 순서, 나간 칸은 비우고, 다음 세트 합류자를 빈칸에 넣는다.
+ */
+export function displaySeats(state: RtbState): Array<RtbPlayer | null> {
+  const pad = (list: Array<RtbPlayer | null>): Array<RtbPlayer | null> =>
+    Array.from({ length: RTB_MAX_SEATS }, (_, i) => list[i] ?? null);
+
+  if (state.phase === 'idle' || state.players.length === 0) {
+    return pad(state.roster);
+  }
+
+  const extras = state.roster.filter((p) => !state.players.some((x) => x.id === p.id));
+  const shown = state.players.map((p) => (state.roster.some((r) => r.id === p.id) ? p : null));
+  const seats = pad(shown);
+  let ei = 0;
+  for (let i = 0; i < seats.length && ei < extras.length; i++) {
+    if (seats[i] == null) seats[i] = extras[ei++];
+  }
+  return seats;
+}
+
 /** 좌석 추가. 다음 세트부터 참여한다. 이미 앉아 있으면 그대로. */
 export function seatPlayer(state: RtbState, p: RtbPlayer, balance: number): RtbState {
   const s = clone(state);
   if (s.roster.some((x) => x.id === p.id)) return s;
+  if (!canSeat(s, p.guildId)) return s;
   s.roster = [...s.roster, p];
   const g = s.guilds[p.guildId];
   if (g) {
@@ -588,12 +723,13 @@ export function isSetRunning(state: RtbState): boolean {
   return state.phase !== 'idle' && state.phase !== 'settle' && state.phase !== 'countdown';
 }
 
-/** 좌석 해제. 세트 중이면 다이 처리. */
+/** 좌석 해제. 세트 중이면 벨 이전은 다이, 벨 이후는 강제 플레이. */
 export function unseatPlayer(state: RtbState, playerId: string): RtbState {
   let s = clone(state);
   const inSet = isSetRunning(s) && s.players.some((p) => p.id === playerId) && s.alive[playerId] === true;
-  if (inSet) s = killPlayer(s, playerId, '퇴장');
+  // 명단을 먼저 비운다. 마지막 교환이 끝나 조합이 열릴 때 최저를 넣을 수 있다.
   s.roster = s.roster.filter((p) => p.id !== playerId);
+  if (inSet) s = killPlayer(s, playerId, '퇴장');
   const stillUsed = new Set([...s.roster, ...s.players].map((p) => p.guildId));
   for (const id of Object.keys(s.guilds)) {
     if (!stillUsed.has(id)) delete s.guilds[id];
@@ -601,11 +737,16 @@ export function unseatPlayer(state: RtbState, playerId: string): RtbState {
   return s;
 }
 
-/** 자기 차례가 아니어도 다이시킨다 (퇴장·강퇴·연결 끊김). */
+/** 자기 차례가 아니어도 처리한다 (퇴장·강퇴·연결 끊김). 벨 이후는 다이가 아니다. */
 export function killPlayer(state: RtbState, playerId: string, reason: string): RtbState {
   const s = clone(state);
   // 세트가 끝난 뒤에도 alive 는 그대로 남아 있다. 그때 죽이면 정산이 두 번 돈다.
   if (!isSetRunning(s) || s.alive[playerId] !== true) return s;
+  if (s.bellId) {
+    pushLog(s, `${nick(s, playerId)} ${reason}`);
+    forcePlayAfterBell(s, playerId);
+    return s;
+  }
   pushLog(s, `${nick(s, playerId)} ${reason} · 다이`);
   if (s.currentId === playerId) {
     dumpRandomOnDeath(s, playerId);
@@ -653,6 +794,30 @@ export function rearmCountdown(state: RtbState): RtbState {
   if (isSetRunning(state)) return state;
   const s = clone(state);
   beginNextSetWait(s);
+  return s;
+}
+
+/**
+ * 세트 사이에 명단이 바뀌었을 때 대기/카운트만 맞춘다. 타이머는 리셋하지 않는다.
+ * 3이 되는 첫 시작은 매니저의 maybeStart 가 즉시 연다.
+ */
+export function syncWaitAfterRosterChange(state: RtbState): RtbState {
+  if (isSetRunning(state)) return state;
+  const s = clone(state);
+  const ready = readySeatCount(s);
+  if (s.phase === 'idle') return s;
+  if (ready >= RTB_MIN_PLAYERS) {
+    if (s.phase === 'settle') s.phase = 'countdown';
+    return s;
+  }
+  if (s.phase === 'countdown') {
+    if (s.settle) {
+      s.phase = 'settle';
+      return s;
+    }
+    s.phase = 'idle';
+    s.countdownEndsAt = null;
+  }
   return s;
 }
 
@@ -733,7 +898,7 @@ export function actionFlags(state: RtbState, id: string) {
     avail,
     canSwap: turnCanTake || lastCanTake,
     canDie: turnish,
-    canBell: turnish && avail >= 2,
+    canBell: turnish && avail >= BELL_FAIL,
     canPickDeck:
       (turnCanTake && state.deck.length > 0) ||
       (lastCanTake && state.deck.length > 0) ||
@@ -819,7 +984,9 @@ export function apply(state: RtbState, actorId: string, action: RtbAction): Appl
 
   if (action.type === 'bell') {
     if (s.phase !== 'turn') return { ok: false, error: '지금은 벨을 칠 수 없습니다.' };
-    if (available(s, actorId) < 2) return { ok: false, error: '실패 대비 칩 2개가 필요합니다.' };
+    if (available(s, actorId) < BELL_FAIL) {
+      return { ok: false, error: `실패 대비 칩 ${BELL_FAIL}개가 필요합니다.` };
+    }
     ringBell(s, actorId);
     return { ok: true, state: s };
   }
@@ -839,7 +1006,7 @@ export function apply(state: RtbState, actorId: string, action: RtbAction): Appl
       advanceLastSwap(s, actorId);
       return { ok: true, state: s };
     }
-    // turnEndsAt 은 건드리지 않는다. 30초는 그 턴의 모든 행동을 합친 시간이다 (§13.1).
+    // turnEndsAt 은 건드리지 않는다. 1분은 그 턴의 모든 행동을 합친 시간이다 (§13.1).
     s.phase = 'pick_source';
     return { ok: true, state: s };
   }
@@ -935,10 +1102,12 @@ function applyTimeout(s: RtbState, actorId: string): ApplyResult {
           : [actorId];
     for (const id of target) {
       if (!s.alive[id] || s.combo[id] || s.comboTimedOut[id]) continue;
-      s.comboTimedOut[id] = true;
-      // 조합 30초 초과 = 패배 + 로비 강퇴 (GW-43).
+      if (s.bellId) forceWorstCombo(s, id);
+      else {
+        s.comboTimedOut[id] = true;
+        pushLog(s, `${nick(s, id)} 조합 시간 초과`);
+      }
       markKick(s, id, 'combo_timeout');
-      pushLog(s, `${nick(s, id)} 조합 시간 초과`);
     }
     maybeComboDone(s);
     return { ok: true, state: s };
@@ -947,6 +1116,17 @@ function applyTimeout(s: RtbState, actorId: string): ApplyResult {
   const id = s.currentId;
   if (!id) return { ok: false, error: '타임아웃할 차례가 없습니다.' };
   if (actorId !== 'system' && actorId !== id) return { ok: false, error: '당신 차례가 아닙니다.' };
+
+  if (s.bellId && (s.phase === 'last_swap' || s.phase === 'pick_source' || s.phase === 'discard')) {
+    pushLog(s, `${nick(s, id)} 시간 초과`);
+    markKick(s, id, 'turn_timeout');
+    finishForcedLastSwap(s, id);
+    if (s.phase === 'combo') {
+      forceWorstCombo(s, id);
+      maybeComboDone(s);
+    }
+    return { ok: true, state: s };
+  }
 
   if (s.phase === 'turn' || s.phase === 'pick_source' || s.phase === 'discard') {
     pushLog(s, `${nick(s, id)} 시간 초과 · 다이`);
@@ -958,12 +1138,6 @@ function applyTimeout(s: RtbState, actorId: string): ApplyResult {
   if (s.phase === 'four_choice') {
     // 교환까지 다 끝낸 상태다. 선언만 안 한 것이므로 강퇴하지 않고 다음 사람에게 넘긴다.
     advanceTurn(s, id);
-    return { ok: true, state: s };
-  }
-  if (s.phase === 'last_swap') {
-    pushLog(s, `${nick(s, id)} 시간 초과 · 다이`);
-    markKick(s, id, 'turn_timeout');
-    afterDie(s, id);
     return { ok: true, state: s };
   }
   return { ok: false, error: '타임아웃할 단계가 아닙니다.' };
@@ -992,4 +1166,4 @@ export function phaseLabel(phase: RtbState['phase']): string {
   }
 }
 
-export { bestCombo, comboScore, isValidCombo, isFourOfAKind, requiredBellRank };
+export { bestCombo, comboScore, isValidCombo, isFourOfAKind, requiredBellRank, worstCombo };

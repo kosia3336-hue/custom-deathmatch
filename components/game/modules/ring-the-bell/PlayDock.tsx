@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from '@/components/cdm';
-import { available } from '@shared/guild-war';
+import { available, BELL_FAIL } from '@shared/guild-war';
 import { RtbCard } from './RtbCard';
-import type { PlayViewProps } from './play-view';
+import { type PlayViewProps } from './play-view';
 
 export function PlayDock({
   meId,
@@ -16,13 +16,14 @@ export function PlayDock({
 }: PlayViewProps) {
   const myHand = state.hands[meId] ?? [];
   const myAvail = available(state, meId);
-  const dead = state.alive[meId] === false;
+  const inThisSet = state.players.some((p) => p.id === meId);
+  const dead = inThisSet && !flags.alive;
   const showCombo = state.phase === 'combo' && flags.comboOpen;
   const showBellDie = flags.isCurrent && flags.alive && state.phase === 'turn';
 
   if (dead) {
     return (
-      <div className="border-cdm-border bg-cdm-bg-elev-1 flex shrink-0 items-center justify-center border-t px-5 py-4">
+      <div className="border-cdm-border bg-cdm-bg-elev-1 flex shrink-0 items-center justify-center gap-4 border-t px-5 py-4">
         <p className="text-cdm-fg-muted text-sm font-bold">다이</p>
       </div>
     );
@@ -36,7 +37,7 @@ export function PlayDock({
             size="sm"
             disabled={!flags.canBell}
             onClick={() => dispatch(meId, { type: 'bell' })}
-            title={flags.canBell ? '실패하면 칩 2' : '실패 대비 칩 2개가 필요합니다'}
+            title={flags.canBell ? `실패하면 칩 ${BELL_FAIL}` : `실패 대비 칩 ${BELL_FAIL}개가 필요합니다`}
           >
             벨
           </Button>

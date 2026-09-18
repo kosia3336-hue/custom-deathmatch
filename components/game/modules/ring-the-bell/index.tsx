@@ -5,27 +5,27 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useGuildWarStore } from '@/stores/guildWar';
 import {
   actionFlags,
   comboScore,
   isValidCombo,
-  turnIndex,
+  RTB_MAX_PER_GUILD,
   type RtbAction,
 } from '@shared/guild-war';
 import type { RtbKickedPayload, RtbSeatBlock } from '@shared/types/ring-the-bell';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
-import type { PlayViewProps } from './play-view';
-
-const FLASH_MS = 1800;
+import { SpectateHeaderButton } from './SpectateToggle';
+import { ACTION_FLASH_MS, isPlayingThisSet, spectateToggleLabel, type PlayViewProps } from './play-view';
 
 const SEAT_BLOCK_TEXT: Record<Exclude<RtbSeatBlock, null>, string> = {
   no_guild: '길드에 소속되어 있는 유저만 플레이할 수 있습니다.',
   no_chips: '길드 공유 칩이 없어 관전 중입니다. 길드 상점에서 살 수 있습니다.',
-  guild_full: '같은 길드는 3명까지 앉을 수 있습니다. 관전 중입니다.',
-  room_full: '자리가 모두 찼습니다. 빈자리가 나면 순서대로 앉습니다.',
-  in_progress: '세트가 진행 중입니다. 다음 세트에 앉습니다.',
+  guild_full: `같은 길드는 ${RTB_MAX_PER_GUILD}명까지 앉을 수 있습니다.`,
+  room_full: '자리가 모두 찼습니다. 빈자리가 나면 눌러 앉을 수 있습니다.',
+  in_progress: '세트가 진행 중입니다. 다음 세트부터 참여합니다.',
 };
 
 function useDeadline(endsAt: number | null) {
@@ -46,6 +46,7 @@ function useDeadline(endsAt: number | null) {
  */
 export default function RingTheBellGame() {
   const router = useRouter();
+  const { setHud } = useRoomLayout();
   const payload = useGuildWarStore((s) => s.state);
   const setState = useGuildWarStore((s) => s.setState);
   const setMeta = useGuildWarStore((s) => s.setMeta);
@@ -100,13 +101,14 @@ export default function RingTheBellGame() {
     lastLogRef.current = lastLog;
     setFlash(lastLog);
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
-    flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS);
+    flashTimer.current = window.setTimeout(() => setFlash(null), ACTION_FLASH_MS);
   }, [lastLog]);
 
-  // 관전으로 떨어진 이유는 한 번만 알린다.
+  // 입장 때 길드·칩이 없으면 한 번만 알린다. 빈칸 클릭 실패는 sit 콜백에서.
   const seatBlock = payload?.seatBlock ?? null;
   useEffect(() => {
-    if (!seatBlock || seatBlock === lastBlockRef.current) return;
+    if (seatBlock !== 'no_guild' && seatBlock !== 'no_chips') return;
+    if (seatBlock === lastBlockRef.current) return;
     lastBlockRef.current = seatBlock;
     toast.info(SEAT_BLOCK_TEXT[seatBlock]);
   }, [seatBlock]);
@@ -118,9 +120,50 @@ export default function RingTheBellGame() {
     }
   }, []);
 
+  const sitEmpty = useCallback(() => {
+    getSocket().emit('guildWar:sit', (res) => {
+      if (res.success) return;
+      const code = res.errorCode as RtbSeatBlock | undefined;
+      if (code && code in SEAT_BLOCK_TEXT) toast.info(SEAT_BLOCK_TEXT[code]);
+      else toast.info(res.error ?? '앉을 수 없습니다.');
+    });
+  }, []);
+
+  const toggleSpectate = useCallback(() => {
+    getSocket().emit('guildWar:spectate', (res) => {
+      if (!res.success) {
+        toast.info(res.error ?? '관전으로 내릴 수 없습니다.');
+        return;
+      }
+      if (res.reserved) toast.info('다음 세트부터 관전합니다.');
+    });
+  }, []);
+
   const state = payload?.state ?? null;
   const phase = state?.phase ?? null;
   const setIndex = state?.setIndex ?? 0;
+
+  useEffect(() => {
+    const s = payload?.state;
+    const id = payload?.meId;
+    if (!s || !id) {
+      setHud(null);
+      return;
+    }
+    const seated = s.roster.some((p) => p.id === id);
+    setHud({
+      round: `세트 ${s.setIndex}`,
+      headerAction: seated ? (
+        <SpectateHeaderButton
+          label={spectateToggleLabel(payload.spectateReserved ?? false, isPlayingThisSet(s, id))}
+          reserved={payload.spectateReserved ?? false}
+          onClick={toggleSpectate}
+        />
+      ) : undefined,
+    });
+    return () => setHud(null);
+  }, [payload, setHud, toggleSpectate]);
+
   useEffect(() => {
     setSelected([]);
   }, [phase, setIndex]);
@@ -162,7 +205,6 @@ export default function RingTheBellGame() {
   const myHand = state.hands[meId] ?? [];
   const selectedCards = myHand.filter((c) => selected.includes(c.id));
   const comboOk = isValidCombo(selectedCards);
-  const seatNo = turnIndex(state, meId) + 1;
 
   function toggleCard(id: string) {
     if (!state) return;
@@ -194,16 +236,17 @@ export default function RingTheBellGame() {
   const waitingNote =
     payload.role === 'player'
       ? '3명 이상이 되면 시작합니다'
-      : payload.queuePosition != null
-        ? `관전 중 · 대기 ${payload.queuePosition}번`
-        : '관전 중';
+      : state.roster.length >= 8
+        ? '관전 중 · 빈자리가 나면 눌러 앉으세요'
+        : '관전 중 · 빈자리를 눌러 앉으세요';
+
+  const onTable = state.roster.some((p) => p.id === meId);
 
   const view: PlayViewProps = {
     meId,
     state,
     flags,
     selected,
-    mySeatLabel: seatNo > 0 ? `${seatNo}번` : '관전',
     prompt,
     comboOk,
     remaining,
@@ -211,6 +254,8 @@ export default function RingTheBellGame() {
     idleSlot: <p className="text-cdm-fg-muted text-xs font-bold">{waitingNote}</p>,
     dispatch,
     toggleCard,
+    onSitEmpty: onTable ? undefined : sitEmpty,
+    spectateReserved: payload.spectateReserved ?? false,
   };
 
   return (

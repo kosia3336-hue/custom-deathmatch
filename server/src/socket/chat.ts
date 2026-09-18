@@ -9,6 +9,7 @@ import { getRoomShopState } from '../shop/roomShopState.js';
 import { maskChatMessageForViewer } from '../shop/maskNicknames.js';
 import { maskRankChatForViewer } from '../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../db/supabase.js';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell.js';
 
 const lastMessageTime = new Map<string, number>();
 const COOLDOWN_MS = 500;
@@ -115,6 +116,42 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
         };
         io.to(guildRoom(guildId)).emit('chat:message', guildMsg);
       })();
+      return;
+    }
+
+    // 길드전 방 길드 채팅 — 이 방에 있는 같은 길드만. 길드 페이지(`guild`)·DB와 별개.
+    if (scope === 'guild_war') {
+      const roomId = sessions.getRoom(socket.id);
+      if (roomId !== GUILD_WAR_ROOM_ID) return;
+      const room = roomStore.get(roomId);
+      if (!room) return;
+      const guildId = sessions.getGuildIdBySocket(socket.id);
+      if (!guildId) return;
+
+      const isSpectator = room.spectators.some((s) => s.id === token);
+      const isPlayer = room.players.some((p) => p.id === token);
+      if (!isSpectator && !isPlayer) return;
+
+      const warMsg: ChatMessage = {
+        id: uuid(),
+        sender: socket.id,
+        senderNickname: nickname,
+        message: trimmed,
+        scope: 'guild_war',
+        isSystem: false,
+        timestamp: now,
+        senderTitle: senderTitle ?? null,
+        senderGuildName: senderGuildName ?? null,
+        isSpectator,
+        senderMemberId: senderMemberId ?? null,
+      };
+
+      const sockets = io.sockets.adapter.rooms.get(socketRoom(roomId));
+      if (!sockets) return;
+      for (const sid of sockets) {
+        if (sessions.getGuildIdBySocket(sid) !== guildId) continue;
+        io.sockets.sockets.get(sid)?.emit('chat:message', warMsg);
+      }
       return;
     }
 

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
+import { cn } from '@/lib/utils';
+import { available } from '@shared/guild-war';
 import { Felt } from './Felt';
 import { MobileActionPanel } from './MobileActionPanel';
 import { SeatPlate } from './SeatPlate';
@@ -12,8 +14,10 @@ export default function MobileLayout(props: PlayViewProps) {
   const { state, flags, flash } = props;
   const seats = seatedInTurnOrder(state);
   const mine = needsActionSheet(flags, state.phase);
-  const seated = state.players.some((p) => p.id === props.meId);
-  const dead = seated && !flags.alive;
+  const onTable = state.roster.some((p) => p.id === props.meId);
+  const inSet = state.players.some((p) => p.id === props.meId);
+  const dead = inSet && !flags.alive;
+  const myAvail = available(state, props.meId);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
@@ -33,6 +37,8 @@ export default function MobileLayout(props: PlayViewProps) {
               state={state}
               seatNo={i + 1}
               compact
+              onSitEmpty={props.onSitEmpty}
+              spectateReserved={props.spectateReserved}
             />
           ))}
         </div>
@@ -48,9 +54,19 @@ export default function MobileLayout(props: PlayViewProps) {
         <div className="min-h-0 flex-1" aria-hidden />
       </div>
 
-      {dead && (
-        <div className="border-cdm-border bg-cdm-bg-elev-1 flex shrink-0 items-center justify-center border-t py-2">
-          <p className="text-cdm-fg-muted text-sm font-bold">다이</p>
+      {onTable && (
+        <div
+          className={cn(
+            'flex shrink-0 items-center justify-center gap-3 border-t',
+            dead ? 'border-cdm-border bg-cdm-bg-elev-1' : 'border-cdm-border bg-cdm-bg',
+            mine ? 'px-5 py-2' : 'px-5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+          )}
+        >
+          {dead ? (
+            <p className="text-cdm-fg-muted text-sm font-bold">다이</p>
+          ) : (
+            <p className="text-cdm-fg text-sm font-black tabular-nums">길드 공용칩 {myAvail}</p>
+          )}
         </div>
       )}
 

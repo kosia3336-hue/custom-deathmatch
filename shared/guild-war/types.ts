@@ -15,17 +15,19 @@ export const COLOR_LABEL: Record<ColorId, string> = {
   purple: '보라',
 };
 
-export const TURN_MS = 30_000;
-export const COMBO_MS = 30_000;
+export const TURN_MS = 60_000;
+export const COMBO_MS = 60_000;
 export const COUNTDOWN_MS = 15_000;
 export const ANTE = 3;
+/** 벨 실패 시 팟에 넣는 칩. 누를 때 가용 ≥ 이 값이어야 한다. */
+export const BELL_FAIL = 5;
 /** 데브 프리뷰 시작 칩. 운영은 길드 금고에서 온다. */
 export const START_CHIPS = 50;
 
 export const RTB_MAX_SEATS = 8;
 export const RTB_MIN_PLAYERS = 3;
 /** 한 방에 앉을 수 있는 같은 길드 인원. */
-export const RTB_MAX_PER_GUILD = 3;
+export const RTB_MAX_PER_GUILD = 2;
 
 export interface RtbCard {
   id: string;
@@ -117,6 +119,7 @@ export interface RtbState {
   bellId: string | null;
   lastSwapQueue: string[];
   firstId: string | null;
+  /** 다음 세트 선. 칩을 먹은 사람. 없으면 시작 때 랜덤. */
   nextFirstId: string | null;
   /**
    * 엔진이 「로비로 강퇴해야 한다」고 판정한 좌석 (§13.4).
