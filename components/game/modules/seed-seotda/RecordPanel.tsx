@@ -1,6 +1,8 @@
 'use client';
 
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { SeedSeotdaCard } from '@/components/game/cards';
+import { cn } from '@/lib/utils';
 import type { SeedSeotdaGameData, SeedSeotdaRoundResult } from '@/shared/types/seed-seotda';
 
 /**
@@ -30,6 +32,52 @@ const SPECIAL_TABLE: { name: string; detail: string }[] = [
   { name: '멍텅구리 구사', detail: '4·9 열끗 두 장 — 상대가 광땡이 아니면 재경기' },
 ];
 
+/** 화투는 월마다 두 장씩, 1~10월 스무 장이다. */
+const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const CARDS_PER_MONTH = 2;
+
+/**
+ * 이번 덱에서 아직 안 나온 패를 월별로 센다.
+ *
+ * 덱이 떨어지면 다시 섞으므로(engine.ts) 그 전까지 센 것은 의미가 없다. 라운드
+ * 기록의 deckRemainingAfter 가 **늘어나는 지점**이 곧 새 덱이 시작된 자리라,
+ * 서버가 덱 회차를 따로 보내 주지 않아도 여기서 가려낼 수 있다.
+ *
+ * 세는 것은 '공개된 패' 뿐이다 — 지난 라운드의 시드와 까인 패, 그리고 지금 깔린
+ * 시드. 다이로 덮인 패는 덱에서 빠졌지만 무엇인지 알 수 없으므로 여기서는 여전히
+ * '안 나온 패' 로 남는다(사람이 손으로 세도 마찬가지다).
+ */
+function unseenByMonth(data: SeedSeotdaGameData) {
+  const seen = new Map<number, number>();
+  const markSeen = (card: { month: number } | null | undefined) => {
+    if (!card) return;
+    seen.set(card.month, (seen.get(card.month) ?? 0) + 1);
+  };
+
+  let start = 0;
+  for (let index = 1; index < data.rounds.length; index += 1) {
+    if (data.rounds[index].deckRemainingAfter > data.rounds[index - 1].deckRemainingAfter) {
+      start = index;
+    }
+  }
+  for (const round of data.rounds.slice(start)) {
+    markSeen(round.seedCard);
+    for (const cards of Object.values(round.hands)) cards?.forEach(markSeen);
+  }
+
+  /*
+    라운드 결과 화면에서는 방금 끝난 판이 기록에도 들어가 있고 시드로도 남아 있다.
+    그대로 더하면 같은 패를 두 번 센다.
+  */
+  const currentAlreadyRecorded = data.rounds.at(-1)?.round === data.round;
+  if (!currentAlreadyRecorded) markSeen(data.seedCard);
+
+  return MONTHS.map((month) => ({
+    month,
+    left: Math.max(0, CARDS_PER_MONTH - (seen.get(month) ?? 0)),
+  }));
+}
+
 const REASON_LABEL: Record<SeedSeotdaRoundResult['reason'], string> = {
   showdown: '승부',
   die: '다이',
@@ -42,13 +90,6 @@ const REASON_LABEL: Record<SeedSeotdaRoundResult['reason'], string> = {
 function betOf(round: SeedSeotdaRoundResult, playerId: string) {
   const mine = round.actions.filter((action) => action.playerId === playerId);
   return mine.at(-1)?.totalBet ?? 0;
-}
-
-/** 패를 '3·8' 처럼 월로 적는다. 공개되지 않은 패는 적지 않는다. */
-function handLabel(round: SeedSeotdaRoundResult, playerId: string) {
-  const cards = round.hands[playerId];
-  if (!cards || cards.length === 0) return null;
-  return cards.map((card) => card.month).join('·');
 }
 
 /**
@@ -66,8 +107,12 @@ export default function RecordPanel({
 }) {
   const isPlayer = Boolean(data.players[myId]);
   const opponentId = Object.keys(data.players).find((id) => id !== myId) ?? null;
-  const name = (id: string | null | undefined) =>
-    id ? (id === myId ? '나' : (data.players[id]?.nickname ?? '상대')) : null;
+  /* 내 자리도 닉네임을 그대로 보이고 뒤에 (나) 를 붙인다 — 기록에서 누가 누구인지 바로 읽히게 */
+  const name = (id: string | null | undefined) => {
+    if (!id) return null;
+    const nickname = data.players[id]?.nickname ?? '상대';
+    return id === myId ? `${nickname}(나)` : nickname;
+  };
 
   return (
     <GameInfoStack>
@@ -102,29 +147,58 @@ export default function RecordPanel({
                     </p>
                   )}
 
-                  {/* 공개된 패만 적는다 — 안 깐 패는 줄 자체를 만들지 않는다 */}
-                  <p className="text-cdm-ink-fg-muted mt-0.5">
-                    씨앗 {round.seedCard.month}
+                  {/*
+                    패는 그림으로 보여야 알아본다 — 월 숫자만 적으면 화투를 눈으로
+                    맞춰 보는 게임에서 한 번 더 머리를 쓰게 된다.
+                    공개된 패만 적는다. 안 깐 패는 줄 자체를 만들지 않는다.
+                  */}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-cdm-ink-fg-muted flex items-center gap-1">
+                      시드
+                      <SeedSeotdaCard card={round.seedCard} size="tiny" />
+                    </span>
                     {Object.keys(data.players).map((playerId) => {
-                      const hand = handLabel(round, playerId);
-                      if (!hand) return null;
+                      const hand = round.hands[playerId];
+                      if (!hand || hand.length === 0) return null;
                       const evaluation = round.evaluations[playerId];
                       return (
-                        <span key={playerId}>
-                          <span className="text-cdm-ink-fg-muted"> · {name(playerId)} </span>
-                          <span className="text-cdm-ink-fg">{hand}</span>
+                        <span key={playerId} className="flex items-center gap-1">
+                          <span className="text-cdm-ink-fg-muted">{name(playerId)}</span>
+                          {hand.map((card, index) => (
+                            <SeedSeotdaCard key={`${card.id}-${index}`} card={card} size="tiny" />
+                          ))}
                           {evaluation && (
-                            <span className="text-cdm-ink-fg-muted"> {evaluation.name}</span>
+                            <span className="text-cdm-ink-fg">{evaluation.name}</span>
                           )}
                         </span>
                       );
                     })}
-                  </p>
+                  </div>
                 </li>
               );
             })}
           </ul>
         )}
+      </GameInfoPart>
+
+      <GameInfoPart title="남은 패">
+        <p className="text-cdm-ink-fg-muted mb-1.5 text-[11px]">이번 덱에서 아직 안 나온 패</p>
+        <div className="grid grid-cols-5 gap-1">
+          {unseenByMonth(data).map(({ month, left }) => (
+            <div
+              key={month}
+              className={cn(
+                'flex items-center justify-between rounded-md px-1.5 py-1 text-xs tabular-nums',
+                left === 0 ? 'bg-white/5 opacity-40' : 'bg-white/10',
+              )}
+            >
+              <span className="text-cdm-ink-fg-muted">{month}월</span>
+              <span className={left === 0 ? 'text-cdm-ink-fg-muted' : 'text-cdm-ink-fg font-bold'}>
+                {left}
+              </span>
+            </div>
+          ))}
+        </div>
       </GameInfoPart>
 
       <GameInfoPart title="족보">
