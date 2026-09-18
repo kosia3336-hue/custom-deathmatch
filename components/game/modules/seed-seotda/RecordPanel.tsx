@@ -180,10 +180,13 @@ export default function RecordPanel({
                 onClick={() => onToggleMark(card.id)}
                 aria-pressed={marked}
                 aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장`}
-                className={cn(
-                  'rounded transition-opacity',
-                  marked ? 'opacity-25 grayscale' : 'opacity-100 hover:opacity-80',
-                )}
+                /*
+                  flex 로 둬야 카드 아래에 글자 여백이 안 붙는다(칸마다 8px 씩 버려졌다).
+                  흐리기는 클래스로 주면 먹지 않았다 — 눌러도 그대로 밝게 남았다.
+                  그림이 지워졌는지가 이 기능의 전부라 인라인으로 못 박는다.
+                */
+                className={cn('flex rounded transition-all', marked && 'grayscale')}
+                style={{ opacity: marked ? 0.25 : 1 }}
               >
                 <SeedSeotdaCard card={card} size="tiny" />
               </button>
