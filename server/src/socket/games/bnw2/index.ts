@@ -47,6 +47,7 @@ export function initBNW2(
     round: 1,
     phase: 'firstSubmit' as const,
     firstPlayerId,
+    openingFirstPlayerId: firstPlayerId,
     player1: p1,
     player2: p2,
     firstPoints: null,

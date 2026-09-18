@@ -26,6 +26,18 @@ function getSecondPlayer(s: InternalState): BNW2PlayerInternal {
   return s.player1.id === s.firstPlayerId ? s.player2 : s.player1;
 }
 
+/**
+ * 게임 시작 시의 선공과 그 상대.
+ *
+ * 라운드의 선(getFirstPlayer)과는 다르다 — 그쪽은 이전 라운드 승자가 가져가므로
+ * 판마다 바뀐다. 무승부를 가리는 자리에서는 끝까지 안 바뀌는 이 사람을 쓴다.
+ */
+function getOpeningPair(s: InternalState): [BNW2PlayerInternal, BNW2PlayerInternal] {
+  return s.player1.id === s.openingFirstPlayerId
+    ? [s.player1, s.player2]
+    : [s.player2, s.player1];
+}
+
 export function getPlayer(s: InternalState, id: string): BNW2PlayerInternal | null {
   if (s.player1.id === id) return s.player1;
   if (s.player2.id === id) return s.player2;
@@ -396,9 +408,14 @@ function checkGameOver(io: IO, s: InternalState): boolean {
     } else if (p2.score > p1.score) {
       resolveGame(io, s, p2.id, p2.nickname, p1.id, p1.nickname, 'exhaustion');
     } else {
-      const fp = getFirstPlayer(s);
-      const sp = getSecondPlayer(s);
-      resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
+      /*
+        규칙 K — 잔여 포인트가 둘 다 0 이고 승점도 같으면 선공이 이긴다.
+
+        라운드의 선이 아니라 게임 시작 시의 선공이다. 라운드의 선은 이전 판 승자가
+        가져가므로, 마지막 라운드를 이겨 동점을 만든 사람이 오히려 지는 일이 생겼다.
+      */
+      const [opener, other] = getOpeningPair(s);
+      resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
     }
     return true;
   }
@@ -533,9 +550,9 @@ export function handleBNW2Timeout(io: IO, s: InternalState) {
     const loser = winner.id === p1.id ? p2 : p1;
     resolveGame(io, s, winner.id, winner.nickname, loser.id, loser.nickname, 'timeout');
   } else {
-    const fp = getFirstPlayer(s);
-    const sp = getSecondPlayer(s);
-    resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
+    /* 아무도 못 냈다 — 무승부를 가리는 기준은 위(규칙 K)와 같은 선공이다. */
+    const [opener, other] = getOpeningPair(s);
+    resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
   }
 }
 
