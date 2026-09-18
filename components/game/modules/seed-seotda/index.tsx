@@ -330,15 +330,23 @@ export default function SeedSeotdaGame() {
   /* 카운팅 표시는 이 기기에 판마다 따로 둔다. 두 자리에 같은 패널이 그려지므로 상태는 여기 하나뿐이다. */
   const roomId = useRoomStore((state) => state.room?.id);
   const memoKey = `cdm-seed-seotda-memo:${roomId ?? ''}:${gameState?.startedAt ?? ''}`;
-  const { marks, toggleMark } = useSeedSeotdaMarks(memoKey);
+  const { seen, marks, toggleMark } = useSeedSeotdaMarks(memoKey, gameData);
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${gameData.round}R`,
-      memo: <RecordPanel data={gameData} myId={myId} marks={marks} onToggleMark={toggleMark} />,
+      memo: (
+        <RecordPanel
+          data={gameData}
+          myId={myId}
+          seen={seen}
+          marks={marks}
+          onToggleMark={toggleMark}
+        />
+      ),
     });
     return () => setHud(null);
-  }, [setHud, gameData, myId, marks, toggleMark]);
+  }, [setHud, gameData, myId, seen, marks, toggleMark]);
 
   if (!gameData) {
     return (
@@ -385,7 +393,15 @@ export default function SeedSeotdaGame() {
           <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
         </div>
       }
-      aside={<RecordPanel data={gameData} myId={myId} marks={marks} onToggleMark={toggleMark} />}
+      aside={
+        <RecordPanel
+          data={gameData}
+          myId={myId}
+          seen={seen}
+          marks={marks}
+          onToggleMark={toggleMark}
+        />
+      }
     >
       <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4">
         <div className="text-center">

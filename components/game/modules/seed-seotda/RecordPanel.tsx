@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { cn } from '@/lib/utils';
@@ -29,17 +29,28 @@ function betOf(round: SeedSeotdaRoundResult, playerId: string) {
   return mine.at(-1)?.totalBet ?? 0;
 }
 
-/** 표시해 둔 카드는 이 기기에만 둔다(판마다 새로). */
-function readMarks(key: string): string[] {
+/**
+ * 메모는 이 기기에만 둔다(판마다 새로).
+ *
+ * seen 은 내가 이미 본 카드, marks 는 내가 손으로 지운 카드다. seen 을 저장해 두는
+ * 까닭은 서버가 되돌려주지 않는 것들이 있어서다 — 시드를 쓰며 버린 내 카드, 상대가
+ * 다이해서 안 깐 채 넘어간 내 패. 그때 화면에 떠 있었으니 나는 본 것이고, 새로고침
+ * 뒤에도 그대로여야 한다.
+ */
+type SeedSeotdaMemo = { seen: string[]; marks: string[] };
+
+function readMemo(key: string): SeedSeotdaMemo {
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    if (!raw) return { seen: [], marks: [] };
+    const parsed = JSON.parse(raw) as SeedSeotdaMemo;
+    return { seen: parsed.seen ?? [], marks: parsed.marks ?? [] };
   } catch {
-    return [];
+    return { seen: [], marks: [] };
   }
 }
 
-function writeMarks(key: string, marks: string[]) {
+function writeMemo(key: string, memo: SeedSeotdaMemo) {
   try {
     for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
       const stored = window.localStorage.key(i);
@@ -47,24 +58,24 @@ function writeMarks(key: string, marks: string[]) {
         window.localStorage.removeItem(stored);
       }
     }
-    window.localStorage.setItem(key, JSON.stringify(marks));
+    window.localStorage.setItem(key, JSON.stringify(memo));
   } catch {
     // 저장하지 못해도 이번 화면에서는 그대로 쓴다
   }
 }
 
 /**
- * 지금까지 눈으로 드러난 카드 — 끝난 라운드의 시드와 공개된 패, 그리고 지금 판에서
- * 보이는 것들.
+ * 지금 이 화면에 드러나 있는 카드 — 끝난 라운드의 시드와 공개된 패, 그리고 이번
+ * 라운드의 시드와 내 손패.
  *
- * 화면에 이미 나와 있는 것만 모은다. 상대의 안 깐 패는 서버가 null 로 주므로 여기에
- * 들어올 수 없고, 다이로 덮인 패도 마찬가지다 — '빠졌지만 무엇인지 모르는' 카드는
- * 기계가 정할 수 없으니 사람이 직접 지운다.
+ * 눈에 보이는 것만 모은다. 상대가 안 깐 패는 서버가 null 로 주므로 애초에 들어올 수
+ * 없다 — 그것만 사람이 직접 지운다. 내 카드는 잠깐 보였다 사라지기도 하는데(시드를
+ * 쓰며 버린 장), 부르는 쪽이 모아 두므로 사라져도 지워진 채 남는다.
  */
-function collectSeenCards(data: SeedSeotdaGameData): Set<string> {
-  const seen = new Set<string>();
+function collectVisibleCards(data: SeedSeotdaGameData): string[] {
+  const seen: string[] = [];
   const add = (card: SeedSeotdaCardData | null | undefined) => {
-    if (card) seen.add(card.id);
+    if (card) seen.push(card.id);
   };
 
   for (const round of data.rounds) {
@@ -91,38 +102,72 @@ function collectSeenCards(data: SeedSeotdaGameData): Set<string> {
 /**
  * 카운팅 메모 상태.
  *
- * 이 패널은 상단 바 '메모' 와 옆 칸에 두 번 그려진다. 상태를 패널 안에 두면
- * 한쪽에서 지운 것이 다른 쪽에 안 보이므로, 부모가 하나만 들고 나눠 준다.
+ * 이 패널은 상단 바 '메모' 와 옆 칸에 두 번 그려지므로, 상태는 부모가 하나만 들고
+ * 나눠 준다 — 패널 안에 두면 한쪽에서 지운 것이 다른 쪽에 안 보인다.
+ *
+ * 본 카드는 쌓기만 한다. 한 번 눈에 들어온 카드는 화면에서 사라져도 덱에서 빠진
+ * 사실이 변하지 않으므로, 빼는 일이 없다.
  */
-export function useSeedSeotdaMarks(memoKey: string) {
-  const [marks, setMarks] = useState<string[]>(() => readMarks(memoKey));
+export function useSeedSeotdaMarks(memoKey: string, data: SeedSeotdaGameData | null | undefined) {
+  const visible = data ? collectVisibleCards(data) : [];
+  const [memo, setMemo] = useState<SeedSeotdaMemo>(() => readMemo(memoKey));
+
+  /* 새 판이면 처음부터 */
+  useEffect(() => {
+    setMemo(readMemo(memoKey));
+  }, [memoKey]);
+
+  useEffect(() => {
+    setMemo((previous) => {
+      /* cards 와 finalHand 가 같은 장을 가리키므로 안에서도 겹친다 */
+      const added = visible.filter(
+        (id, index) => visible.indexOf(id) === index && !previous.seen.includes(id),
+      );
+      if (added.length === 0) return previous;
+      const next = {
+        seen: [...previous.seen, ...added],
+        /* 저절로 지워졌으니 손으로 지운 기록은 치운다 */
+        marks: previous.marks.filter((id) => !added.includes(id)),
+      };
+      writeMemo(memoKey, next);
+      return next;
+    });
+    // visible 은 매 렌더 새 배열이라 값으로 비교한다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoKey, visible.join(',')]);
+
   const toggleMark = useCallback(
     (cardId: string) => {
-      setMarks((previous) => {
-        const next = previous.includes(cardId)
-          ? previous.filter((id) => id !== cardId)
-          : [...previous, cardId];
-        writeMarks(memoKey, next);
+      setMemo((previous) => {
+        const next = {
+          ...previous,
+          marks: previous.marks.includes(cardId)
+            ? previous.marks.filter((id) => id !== cardId)
+            : [...previous.marks, cardId],
+        };
+        writeMemo(memoKey, next);
         return next;
       });
     },
     [memoKey],
   );
-  return { marks, toggleMark };
+
+  return { seen: memo.seen, marks: memo.marks, toggleMark };
 }
 
 export default function RecordPanel({
   data,
   myId,
+  seen,
   marks,
   onToggleMark,
 }: {
   data: SeedSeotdaGameData;
   myId: string;
+  seen: string[];
   marks: string[];
   onToggleMark: (cardId: string) => void;
 }) {
-  const seenCards = useMemo(() => collectSeenCards(data), [data]);
   const isPlayer = Boolean(data.players[myId]);
   const opponentId = Object.keys(data.players).find((id) => id !== myId) ?? null;
   const name = (id: string | null | undefined) => {
@@ -197,23 +242,20 @@ export default function RecordPanel({
       </GameInfoPart>
 
       <GameInfoPart title="카운팅">
-        <p className="text-cdm-ink-fg-muted mb-1.5 text-[11px]">
-          드러난 패는 저절로 지워집니다. 가려진 채 빠진 패는 눌러서 지우세요.
-        </p>
         {/* 다섯 칸씩 네 줄. 칸이 폭을 정하므로 좁은 화면에서도 꽉 찬다. */}
         <div className="grid grid-cols-5 gap-1">
           {DECK.map((card) => {
-            const seen = seenCards.has(card.id);
-            const marked = seen || marks.includes(card.id);
+            const known = seen.includes(card.id);
+            const marked = known || marks.includes(card.id);
             return (
               <button
                 key={card.id}
                 type="button"
                 onClick={() => onToggleMark(card.id)}
-                /* 이미 드러난 패는 되돌릴 일이 없다 — 눌러서 되살아나면 거짓이 된다. */
-                disabled={seen}
+                /* 내가 본 패는 되돌릴 일이 없다 — 눌러서 되살아나면 거짓이 된다. */
+                disabled={known}
                 aria-pressed={marked}
-                aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장${seen ? ' · 공개됨' : ''}`}
+                aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장${known ? ' · 확인됨' : ''}`}
                 /*
                   flex 로 둬야 카드 아래에 글자 여백이 안 붙는다(칸마다 8px 씩 버려졌다).
                   흐리기는 클래스로 주면 먹지 않았다 — 눌러도 그대로 밝게 남았다.
