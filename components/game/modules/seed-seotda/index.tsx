@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
 import { GameFrame } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import RecordPanel from './RecordPanel';
+import RecordPanel, { useSeedSeotdaMarks } from './RecordPanel';
 import type { SeedSeotdaGameData, SeedSeotdaPlayerView } from '@/shared/types/seed-seotda';
 
 const PHASE_LABEL: Record<SeedSeotdaGameData['phase'], string> = {
@@ -325,16 +325,20 @@ export default function SeedSeotdaGame() {
   const myId = useMySocketId();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
 
-  /* 상단 바 — 라운드와 '메모'(족보 표·라운드 기록). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
+  /* 상단 바 — 라운드와 '메모'(라운드 기록·카운팅). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
   const { setHud } = useRoomLayout();
+  /* 카운팅 표시는 이 기기에 판마다 따로 둔다. 두 자리에 같은 패널이 그려지므로 상태는 여기 하나뿐이다. */
+  const roomId = useRoomStore((state) => state.room?.id);
+  const memoKey = `cdm-seed-seotda-memo:${roomId ?? ''}:${gameState?.startedAt ?? ''}`;
+  const { marks, toggleMark } = useSeedSeotdaMarks(memoKey);
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${gameData.round}R`,
-      memo: <RecordPanel data={gameData} myId={myId} />,
+      memo: <RecordPanel data={gameData} myId={myId} marks={marks} onToggleMark={toggleMark} />,
     });
     return () => setHud(null);
-  }, [setHud, gameData, myId]);
+  }, [setHud, gameData, myId, marks, toggleMark]);
 
   if (!gameData) {
     return (
@@ -381,7 +385,7 @@ export default function SeedSeotdaGame() {
           <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
         </div>
       }
-      aside={<RecordPanel data={gameData} myId={myId} />}
+      aside={<RecordPanel data={gameData} myId={myId} marks={marks} onToggleMark={toggleMark} />}
     >
       <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4">
         <div className="text-center">
