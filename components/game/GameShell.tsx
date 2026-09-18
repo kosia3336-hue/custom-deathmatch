@@ -94,11 +94,12 @@ export default function GameShell({ children }: Props) {
   const eventState = useEventRoomStore((s) => s.state);
   const smsState = useSmsEventRoomStore((s) => s.state);
   const warState = useGuildWarStore((s) => s.state);
+  const isGuildWar = room?.gameId === GAME_IDS.RING_THE_BELL;
   const eventRound = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.gameData.handNumber
     : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.gameData.roundNumber
-    : room?.gameId === GAME_IDS.RING_THE_BELL ? warState?.state.setIndex : undefined;
-  const round = hud?.round ?? (eventRound != null ? `${eventRound}R` : progress);
-  const order = hud?.order ?? getGameStatus(gameState, myId);
+    : isGuildWar ? warState?.state.setIndex : undefined;
+  const round = hud?.round ?? (eventRound != null ? (isGuildWar ? `세트 ${eventRound}` : `${eventRound}R`) : progress);
+  const order = isGuildWar ? hud?.order : (hud?.order ?? getGameStatus(gameState, myId));
   const spectatorCount = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.spectatorCount ?? 0
     : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.spectatorCount ?? 0
     : room?.gameId === GAME_IDS.RING_THE_BELL ? warState?.spectatorCount ?? 0
@@ -123,6 +124,7 @@ export default function GameShell({ children }: Props) {
   useEffect(() => {
     setHeaderRight(
       <>
+        {hud?.headerAction}
         {hasMemo && (
           <button
             type="button"
@@ -152,7 +154,7 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, hasMemo, chatUnread]);
+  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction]);
 
   useEffect(() => {
     const s = getSocket();

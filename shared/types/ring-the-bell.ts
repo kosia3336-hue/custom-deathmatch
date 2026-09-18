@@ -11,7 +11,7 @@ export const GUILD_WAR_GAME_NAME = '링 더 벨';
 
 export type RtbRole = 'player' | 'spectator' | 'queued';
 
-/** 착석이 막힌 이유. 관전으로 떨어질 때 안내한다. */
+/** 착석이 막힌 이유. 입장 시에는 길드·칩만, 빈칸 클릭 실패 때도 쓴다. */
 export type RtbSeatBlock =
   | 'no_guild'
   | 'no_chips'
@@ -27,7 +27,9 @@ export interface RtbStatePayload {
   seatBlock: RtbSeatBlock;
   /** 남의 손패·덱 내용이 지워진 상태. */
   state: RtbState;
+  /** 호환. FIFO 없음. 항상 null. */
   queuePosition: number | null;
+  /** 호환. FIFO 없음. 항상 0. */
   queueLength: number;
   spectatorCount: number;
   /**
@@ -38,6 +40,8 @@ export interface RtbStatePayload {
   myGuildName: string | null;
   /** 지금 입장·세트 시작이 되는 시간인가. */
   isOpen: boolean;
+  /** 이번 세트를 친 뒤 다음 세트 시작 직전에 관전으로 내린다. */
+  spectateReserved: boolean;
 }
 
 export interface RtbMetaPayload {

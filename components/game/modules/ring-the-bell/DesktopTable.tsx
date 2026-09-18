@@ -5,7 +5,8 @@ import { SeatPlate } from './SeatPlate';
 import { seatedInTurnOrder, type PlayViewProps } from './play-view';
 import styles from './desktop-table.module.css';
 
-export function DesktopTable({ meId, state, flags, remaining, dispatch }: PlayViewProps) {
+export function DesktopTable(props: PlayViewProps) {
+  const { meId, state, flags, remaining, dispatch, idleSlot, onSitEmpty } = props;
   const seats = seatedInTurnOrder(state);
 
   return (
@@ -18,10 +19,19 @@ export function DesktopTable({ meId, state, flags, remaining, dispatch }: PlayVi
             player={player}
             state={state}
             seatNo={i + 1}
+            onSitEmpty={onSitEmpty}
+            spectateReserved={props.spectateReserved}
           />
         ))}
       </div>
-      <Felt meId={meId} state={state} flags={flags} remaining={remaining} dispatch={dispatch} />
+      <Felt
+        meId={meId}
+        state={state}
+        flags={flags}
+        remaining={remaining}
+        dispatch={dispatch}
+        idleSlot={idleSlot}
+      />
     </div>
   );
 }

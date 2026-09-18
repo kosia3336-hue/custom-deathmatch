@@ -3,8 +3,8 @@
  *
  * 책임:
  * 1. 운영 창(기간 ∧ 요일 시간)에만 룸을 만들고, 닫히면 전원 로비로 보낸다.
- * 2. 좌석 8 / 최소 3 / 같은 길드 3 / 칩 1 이상 + 관전 + 대기열(FIFO)
- * 3. 서버 권위 엔진 구동 (턴 30초, 조합 30초, 세트 후 15초)
+ * 2. 좌석 8 / 최소 3 / 같은 길드 2 / 칩 1 이상. 입장은 관전, 빈칸 클릭 착석. FIFO 없음
+ * 3. 서버 권위 엔진 구동 (턴 1분, 조합 1분, 세트 후 15초)
  * 4. 세트 종료 시 길드 단위 델타를 새 RPC 로 정산하고 잔액 0 길드를 내린다.
  * 5. 기간(10/1 00:00 KST)이 끝나면 남은 칩을 GP 로 자동 환전하고 룸을 지운다.
  *
@@ -43,6 +43,7 @@ import {
   seatedCountForGuild,
   setGuildBalance,
   startNextSet,
+  syncWaitAfterRosterChange,
   unseatPlayer,
   type RtbAction,
   type RtbState,
@@ -70,8 +71,8 @@ const ACTION_BURST = 12;
 const KICK_MESSAGE: Record<RtbKickedReason, string> = {
   no_chips: '길드 칩이 모두 소진되어 퇴장했습니다. 상점에서 칩을 사고 다시 입장해 주세요.',
   ante: '길드 칩이 앤티 3개보다 적어 이번 세트에 참여할 수 없습니다. 칩을 채우고 다시 입장해 주세요.',
-  turn_timeout: '시간 초과로 다이 처리되어 퇴장했습니다.',
-  combo_timeout: '조합 제한 시간이 지나 패배 처리되어 퇴장했습니다.',
+  turn_timeout: '시간 초과로 퇴장했습니다.',
+  combo_timeout: '조합 제한 시간이 지나 퇴장했습니다.',
   closed: '길드전 운영 시간이 끝났습니다.',
   period_over: '길드전이 종료되었습니다. 남은 칩은 GP로 환전됩니다.',
 };
@@ -81,8 +82,6 @@ interface Watcher {
   memberId: string;
   nickname: string;
   guildId: string | null;
-  /** 착석 자격이 있어 FIFO 에 들어간 관전자. */
-  inQueue: boolean;
   seatBlock: RtbSeatBlock;
 }
 
@@ -95,7 +94,8 @@ class GuildWarRoomManager {
   private initialized = false;
   private state: RtbState = createTable();
   private watchers = new Map<string, Watcher>();
-  private queue: string[] = [];
+  /** 이번 세트를 친 뒤 다음 세트 시작 직전에 관전으로 내릴 사람. */
+  private spectateReserve = new Set<string>();
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private hoursTimer: ReturnType<typeof setInterval> | null = null;
   private roomLive = false;
@@ -158,7 +158,7 @@ class GuildWarRoomManager {
 
     this.state = createTable();
     this.watchers.clear();
-    this.queue = [];
+    this.spectateReserve.clear();
     this.actionRate.clear();
     this.settledSetIndex = 0;
     roomStore.removeSystemRoom(GUILD_WAR_ROOM_ID);
@@ -184,10 +184,11 @@ class GuildWarRoomManager {
   /**
    * 좌석에서 내리고 **로비로 내보낸다** (§13.4).
    *
-   * 좌석만 풀고 채널에 남겨 두면 좌석·관전·대기열 어디에도 없는 상태가 된다.
+   * 좌석만 풀고 채널에 남겨 두면 좌석·관전 어디에도 없는 상태가 된다.
    * 그 상태는 다시 앉을 수도, 안내를 받을 수도 없어서 막힌다.
    */
   private kickToLobby(token: string, reason: RtbKickedReason): void {
+    this.spectateReserve.delete(token);
     if (this.state.roster.some((p) => p.id === token)) {
       this.state = unseatPlayer(this.state, token);
       roomStore.systemRoomRemovePlayer(GUILD_WAR_ROOM_ID, token);
@@ -195,7 +196,6 @@ class GuildWarRoomManager {
     if (this.watchers.delete(token)) {
       roomStore.systemRoomRemoveSpectator(GUILD_WAR_ROOM_ID, token);
     }
-    this.removeFromQueue(token);
     this.evict(token, reason);
   }
 
@@ -249,7 +249,7 @@ class GuildWarRoomManager {
     }
 
     if (s.phase === 'combo') {
-      // 조합 30초 초과 = 패배 + 로비 강퇴. 강퇴 대상은 엔진이 pendingKick 에 적는다.
+      // 조합 1분 초과. 강퇴 대상은 엔진이 pendingKick 에 적는다.
       if (s.comboEndsAt != null && now >= s.comboEndsAt) this.dispatchSystem({ type: 'timeout' });
       return;
     }
@@ -260,8 +260,7 @@ class GuildWarRoomManager {
     }
 
     if (s.turnEndsAt != null && now >= s.turnEndsAt) {
-      // 턴 시간 초과 = 다이 + 로비 강퇴 (GW-43). 강퇴는 엔진 판정을 따른다 —
-      // 포카드 선언만 안 한 경우처럼 강퇴하지 않는 초과도 있다.
+      // 턴 시간 초과. 벨 전이면 다이+강퇴, 벨 후 마지막 교환이면 랜덤 교환+강퇴.
       this.dispatchSystem({ type: 'timeout' });
     }
   }
@@ -274,7 +273,7 @@ class GuildWarRoomManager {
    */
   private maybeRetryIdle(now: number): void {
     if (now - this.lastIdleRetry < IDLE_RETRY_MS) return;
-    if (this.state.roster.length + this.queue.length < RTB_MIN_PLAYERS) return;
+    if (this.state.roster.length < RTB_MIN_PLAYERS) return;
     this.lastIdleRetry = now;
     void this.betweenSets();
   }
@@ -290,6 +289,7 @@ class GuildWarRoomManager {
         this.refreshWindow();
         return;
       }
+      this.applySpectateReserves();
       this.state = startNextSet(this.state);
       // 앤티를 못 낸 좌석은 로비로 보낸다 (GW-22).
       this.processKicks();
@@ -358,7 +358,7 @@ class GuildWarRoomManager {
 
   /**
    * 세트 사이 정리. 정산 직후와 대기 재시도에서 부른다.
-   * DB 잔액 반영 → 잔액 0 길드 강퇴 → 대기열 승격 → 다음 세트 타이머.
+   * DB 잔액 반영 → 잔액 0 길드 강퇴 → 다음 세트 타이머.
    */
   private async betweenSets(): Promise<void> {
     if (this.between) return;
@@ -371,8 +371,6 @@ class GuildWarRoomManager {
       const { state: next, dropped } = dropBrokeGuilds(this.state);
       this.state = next;
       for (const id of dropped) this.kickToLobby(id, 'no_chips');
-
-      await this.promoteFromQueue();
 
       if (!isGuildWarOpen()) {
         this.refreshWindow();
@@ -408,52 +406,43 @@ class GuildWarRoomManager {
     } as Player;
   }
 
-  private removeFromQueue(token: string): void {
-    const i = this.queue.indexOf(token);
-    if (i >= 0) this.queue.splice(i, 1);
+  private sitBlockText(block: Exclude<RtbSeatBlock, null>): string {
+    if (block === 'no_guild') return '길드에 소속되어 있는 유저만 플레이할 수 있습니다.';
+    if (block === 'no_chips') return '길드 공유 칩이 없어 앉을 수 없습니다. 길드 상점에서 살 수 있습니다.';
+    if (block === 'guild_full') return `같은 길드는 ${RTB_MAX_PER_GUILD}명까지 앉을 수 있습니다.`;
+    if (block === 'room_full') return '자리가 모두 찼습니다. 빈자리가 나면 눌러 앉을 수 있습니다.';
+    return '지금은 앉을 수 없습니다.';
   }
 
-  /** 세트 사이에만 부른다. 자격 미달은 큐에서 빼고 관전 유지 (§5.5). */
-  private async promoteFromQueue(): Promise<void> {
-    if (playingPhase(this.state)) return;
-    while (this.queue.length > 0 && this.state.roster.length < RTB_MAX_SEATS) {
-      const token = this.queue[0]!;
-      const w = this.watchers.get(token);
-      if (!w) {
-        this.queue.shift();
-        continue;
-      }
-      const ctx = await getGuildWarContext(w.memberId);
-      if (!ctx || ctx.balance < 1) {
-        this.queue.shift();
-        w.inQueue = false;
-        w.seatBlock = ctx ? 'no_chips' : 'no_guild';
-        continue;
-      }
-      if (seatedCountForGuild(this.state, ctx.guildId) >= RTB_MAX_PER_GUILD) {
-        this.queue.shift();
-        w.inQueue = false;
-        w.seatBlock = 'guild_full';
-        continue;
-      }
-      this.queue.shift();
-      this.state = seatPlayer(
-        this.state,
-        {
-          id: token,
-          nickname: w.nickname,
-          guildId: ctx.guildId,
-          guildName: ctx.guildName,
-          guildMarkUrl: ctx.guildMarkUrl,
-          isBot: false,
-        },
-        ctx.balance,
-      );
-      this.state = setGuildBalance(this.state, ctx.guildId, ctx.balance);
-      this.watchers.delete(token);
-      roomStore.systemRoomRemoveSpectator(GUILD_WAR_ROOM_ID, token);
-      roomStore.systemRoomAddPlayer(GUILD_WAR_ROOM_ID, this.makePlayer(token, w.nickname));
+  /** 다음 세트 시작 직전에 관전 예약을 적용한다. 정산 15초는 건드리지 않는다. */
+  private applySpectateReserves(): void {
+    for (const token of [...this.spectateReserve]) {
+      this.spectateReserve.delete(token);
+      if (this.state.roster.some((p) => p.id === token)) this.moveRosterToWatcher(token);
     }
+  }
+
+  private moveRosterToWatcher(token: string): void {
+    this.spectateReserve.delete(token);
+    const seated = this.state.roster.find((p) => p.id === token);
+    if (!seated) return;
+    this.state = unseatPlayer(this.state, token);
+    roomStore.systemRoomRemovePlayer(GUILD_WAR_ROOM_ID, token);
+    const memberId = sessions.getMemberId(token);
+    this.watchers.set(token, {
+      token,
+      memberId: memberId ?? '',
+      nickname: seated.nickname,
+      guildId: seated.guildId,
+      seatBlock: null,
+    });
+    roomStore.systemRoomAddSpectator(GUILD_WAR_ROOM_ID, this.makePlayer(token, seated.nickname));
+  }
+
+  private afterRosterChanged(): void {
+    this.state = syncWaitAfterRosterChange(this.state);
+    this.maybeStart();
+    this.broadcastAll();
   }
 
   /* ────────────── 소켓 진입 ────────────── */
@@ -493,46 +482,99 @@ class GuildWarRoomManager {
     let block: RtbSeatBlock = null;
     if (!ctx) block = 'no_guild';
     else if (ctx.balance < 1) block = 'no_chips';
-    else if (seatedCountForGuild(this.state, ctx.guildId) >= RTB_MAX_PER_GUILD) block = 'guild_full';
-    else if (this.state.roster.length >= RTB_MAX_SEATS) block = 'room_full';
-    else if (playingPhase(this.state)) block = 'in_progress';
 
-    if (!block && ctx) {
-      this.state = seatPlayer(
-        this.state,
-        {
-          id: token,
-          nickname,
-          guildId: ctx.guildId,
-          guildName: ctx.guildName,
-          guildMarkUrl: ctx.guildMarkUrl,
-          isBot: false,
-        },
-        ctx.balance,
-      );
-      this.state = setGuildBalance(this.state, ctx.guildId, ctx.balance);
-      roomStore.systemRoomAddPlayer(GUILD_WAR_ROOM_ID, this.makePlayer(token, nickname));
-      this.emitRoomState(socket);
-      this.maybeStart();
-      this.broadcastAll();
-      return { success: true };
-    }
-
-    // 관전. 착석 자격이 있으면 FIFO 끝에 붙는다.
-    const eligible = Boolean(ctx && ctx.balance >= 1 && block !== 'guild_full');
     this.watchers.set(token, {
       token,
       memberId: member.id,
       nickname,
       guildId: ctx?.guildId ?? null,
-      inQueue: eligible,
       seatBlock: block,
     });
-    if (eligible) this.queue.push(token);
     roomStore.systemRoomAddSpectator(GUILD_WAR_ROOM_ID, this.makePlayer(token, nickname));
     this.emitRoomState(socket);
     this.broadcastAll();
     return { success: true };
+  }
+
+  async sit(socket: TypedSocket): Promise<{ success: boolean; error?: string; errorCode?: string }> {
+    const token = sessions.getToken(socket.id);
+    if (!token) return { success: false, error: '세션을 확인할 수 없습니다.', errorCode: 'NO_TOKEN' };
+    if (this.state.roster.some((p) => p.id === token)) return { success: true };
+    const w = this.watchers.get(token);
+    if (!w) return { success: false, error: '방에 입장한 뒤 앉아 주세요.', errorCode: 'NOT_IN_ROOM' };
+
+    const ctx = await getGuildWarContext(w.memberId);
+    if (!ctx) {
+      w.seatBlock = 'no_guild';
+      this.broadcastAll();
+      return { success: false, error: this.sitBlockText('no_guild'), errorCode: 'no_guild' };
+    }
+    if (ctx.balance < 1) {
+      w.seatBlock = 'no_chips';
+      w.guildId = ctx.guildId;
+      this.broadcastAll();
+      return { success: false, error: this.sitBlockText('no_chips'), errorCode: 'no_chips' };
+    }
+    if (this.state.roster.length >= RTB_MAX_SEATS) {
+      return { success: false, error: this.sitBlockText('room_full'), errorCode: 'room_full' };
+    }
+    if (seatedCountForGuild(this.state, ctx.guildId) >= RTB_MAX_PER_GUILD) {
+      return { success: false, error: this.sitBlockText('guild_full'), errorCode: 'guild_full' };
+    }
+
+    w.nickname = sessions.getNickname(socket.id) ?? w.nickname;
+    this.state = seatPlayer(
+      this.state,
+      {
+        id: token,
+        nickname: w.nickname,
+        guildId: ctx.guildId,
+        guildName: ctx.guildName,
+        guildMarkUrl: ctx.guildMarkUrl,
+        isBot: false,
+      },
+      ctx.balance,
+    );
+    this.state = setGuildBalance(this.state, ctx.guildId, ctx.balance);
+    this.watchers.delete(token);
+    roomStore.systemRoomRemoveSpectator(GUILD_WAR_ROOM_ID, token);
+    roomStore.systemRoomAddPlayer(GUILD_WAR_ROOM_ID, this.makePlayer(token, w.nickname));
+    this.afterRosterChanged();
+    return { success: true };
+  }
+
+  spectate(socket: TypedSocket): { success: boolean; error?: string; reserved?: boolean } {
+    const token = sessions.getToken(socket.id);
+    if (!token) return { success: false, error: '세션을 확인할 수 없습니다.' };
+    if (this.watchers.has(token)) {
+      if (this.spectateReserve.delete(token)) this.broadcastAll();
+      return { success: true, reserved: false };
+    }
+    if (!this.state.roster.some((p) => p.id === token)) {
+      return { success: false, error: '앉아 있지 않습니다.' };
+    }
+
+    const playingThisSet =
+      isSetRunning(this.state) && this.state.players.some((p) => p.id === token);
+    if (playingThisSet) {
+      if (this.spectateReserve.has(token)) {
+        this.spectateReserve.delete(token);
+        this.broadcastAll();
+        return { success: true, reserved: false };
+      }
+      this.spectateReserve.add(token);
+      this.broadcastAll();
+      return { success: true, reserved: true };
+    }
+
+    if (this.spectateReserve.delete(token)) {
+      this.broadcastAll();
+      return { success: true, reserved: false };
+    }
+
+    this.moveRosterToWatcher(token);
+    this.afterRosterChanged();
+    return { success: true, reserved: false };
   }
 
   leave(socket: TypedSocket): void {
@@ -549,16 +591,15 @@ class GuildWarRoomManager {
 
   forceLeaveByToken(token: string): void {
     this.actionRate.delete(token);
+    this.spectateReserve.delete(token);
     if (this.state.roster.some((p) => p.id === token)) {
       this.state = unseatPlayer(this.state, token);
       roomStore.systemRoomRemovePlayer(GUILD_WAR_ROOM_ID, token);
       this.afterApply();
-      // 세트 사이에 빠진 자리는 바로 대기열에서 채운다 (§5.6).
-      if (!isSetRunning(this.state) && this.queue.length > 0) void this.betweenSets();
+      if (!isSetRunning(this.state)) this.afterRosterChanged();
       return;
     }
     if (this.watchers.delete(token)) {
-      this.removeFromQueue(token);
       roomStore.systemRoomRemoveSpectator(GUILD_WAR_ROOM_ID, token);
       this.broadcastAll();
     }
@@ -623,6 +664,7 @@ class GuildWarRoomManager {
   private maybeStart(): void {
     if (this.state.phase !== 'idle') return;
     if (!isGuildWarOpen()) return;
+    this.applySpectateReserves();
     if (readySeatCount(this.state) < RTB_MIN_PLAYERS) return;
     this.state = startNextSet(this.state);
     this.processKicks();
@@ -642,8 +684,7 @@ class GuildWarRoomManager {
   private buildPayload(token: string): RtbStatePayload {
     const seated = this.state.roster.find((p) => p.id === token);
     const watcher = this.watchers.get(token);
-    const role: RtbRole = seated ? 'player' : watcher?.inQueue ? 'queued' : 'spectator';
-    const qi = this.queue.indexOf(token);
+    const role: RtbRole = seated ? 'player' : 'spectator';
     const guildId = seated?.guildId ?? watcher?.guildId ?? null;
     const guild = guildId ? this.state.guilds[guildId] : null;
     return {
@@ -651,13 +692,14 @@ class GuildWarRoomManager {
       role,
       seatBlock: seated ? null : (watcher?.seatBlock ?? null),
       state: maskStateFor(this.state, token),
-      queuePosition: qi >= 0 ? qi + 1 : null,
-      queueLength: this.queue.length,
+      queuePosition: null,
+      queueLength: 0,
       spectatorCount: this.watchers.size,
       // 같은 길드원 지출이 실시간으로 빠진 값. 화면 하단 「길드 공용칩」과 같은 정의여야 한다.
       myGuildChips: seated ? available(this.state, token) : (guild?.balance ?? 0),
       myGuildName: seated?.guildName ?? guild?.name ?? null,
       isOpen: isGuildWarOpen(),
+      spectateReserved: this.spectateReserve.has(token),
     };
   }
 

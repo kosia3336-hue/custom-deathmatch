@@ -3,6 +3,7 @@
 import { MeLabel } from '@/components/cdm';
 import { cn } from '@/lib/utils';
 import { turnIndex, type RtbCard as Card, type RtbPlayer, type RtbState } from '@shared/guild-war';
+import { waitingNextSet } from './play-view';
 import { RtbCard } from './RtbCard';
 import styles from './seat-plate.module.css';
 
@@ -57,14 +58,38 @@ export function SeatPlate({
   state,
   seatNo,
   compact = false,
+  onSitEmpty,
+  spectateReserved = false,
 }: {
   meId: string;
   player: RtbPlayer | null;
   state: RtbState;
   seatNo: number;
   compact?: boolean;
+  onSitEmpty?: () => void;
+  spectateReserved?: boolean;
 }) {
   if (!player) {
+    if (onSitEmpty) {
+      return (
+        <button
+          type="button"
+          onClick={onSitEmpty}
+          className={cn(
+            styles.plate,
+            compact && styles.compact,
+            'border-cdm-border bg-cdm-bg-elev-1 hover:border-cdm-primary hover:bg-cdm-primary-soft rounded-cdm-lg cursor-pointer border-2 border-dashed text-left',
+          )}
+          aria-label={`${seatNo}번 빈자리, 눌러서 앉기`}
+        >
+          <p className={cn('text-cdm-fg-subtle min-w-0 truncate text-sm font-black tabular-nums', compact && 'text-xs')}>
+            {seatNo}번 빈자리
+          </p>
+          <p className={cn('text-cdm-primary font-bold', compact ? 'text-[10px]' : 'text-xs')}>앉기</p>
+          <div className={styles.emptyWell} />
+        </button>
+      );
+    }
     return (
       <div
         className={cn(
@@ -82,6 +107,7 @@ export function SeatPlate({
     );
   }
 
+  const waitingNext = waitingNextSet(state, player.id);
   const idx = turnIndex(state, player.id);
   const no = idx >= 0 ? idx + 1 : seatNo;
   const isMe = player.id === meId;
@@ -99,6 +125,16 @@ export function SeatPlate({
 
   const marks = (
     <>
+      {waitingNext && (
+        <span className={cn('bg-cdm-bg-elev-2 text-cdm-fg-muted shrink-0 rounded-full font-bold', compact ? 'px-1 py-0 text-[9px]' : 'px-1.5 py-0.5 text-[10px]')}>
+          다음
+        </span>
+      )}
+      {spectateReserved && isMe && (
+        <span className={cn('bg-cdm-primary-soft text-cdm-primary shrink-0 rounded-full font-bold', compact ? 'px-1 py-0 text-[9px]' : 'px-1.5 py-0.5 text-[10px]')}>
+          예약
+        </span>
+      )}
       {won && (
         <span className={cn('bg-cdm-highlight text-cdm-fg shrink-0 rounded-full font-black', compact ? 'px-1 py-0 text-[9px]' : 'px-1.5 py-0.5 text-[10px]')}>
           WIN

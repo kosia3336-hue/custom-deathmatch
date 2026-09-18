@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Icon, UnreadBadge } from '@/components/cdm';
 import { useRoomStore } from '@/stores/room';
+import { useGuildWarStore } from '@/stores/guildWar';
 import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useNicknameStore } from '@/stores/nickname';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
@@ -12,8 +13,9 @@ import { LobbyChatInput } from '@/components/lobby/LobbyChatInput';
 import { OnlineUsersList } from '@/components/lobby/OnlineUsersList';
 import { cn } from '@/lib/utils';
 import type { ChatScope } from '@/shared/types';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 
-type RoomChatTab = 'users' | 'room' | 'lobby';
+type RoomChatTab = 'users' | 'room' | 'guild_war' | 'lobby';
 
 /** 안 읽은 방 채팅 수. 셸이 톱니 위에 얹을 때도 쓴다. */
 export function useRoomChatUnread(open: boolean): number {
@@ -67,17 +69,21 @@ export function RoomChatSheet({
 }
 
 /**
- * 채팅 탭(접속자 · 방 채팅 · 로비 채팅)과 본문. 시트와 대기실 채팅창(RoomChatDockPanel)이 함께 쓴다.
+ * 채팅 탭(접속자 · 방 채팅 · 길드전 길드 채팅 · 로비 채팅)과 본문. 시트와 대기실 채팅창(RoomChatDockPanel)이 함께 쓴다.
  * 부모가 세로 flex 여야 본문이 남은 높이를 채운다. active 는 로비 탭 입력란 자동 포커스 조건.
  */
 export function RoomChatTabs({ scope, active }: { scope: ChatScope; active: boolean }) {
   const [tab, setTab] = useState<RoomChatTab>('room');
   const onlineCount = useOnlineUsersStore((s) => s.count);
   const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
+  const isGuildWar = useRoomStore((s) => s.room?.id === GUILD_WAR_ROOM_ID);
+  const war = useGuildWarStore((s) => s.state);
+  const showGuildTab = isGuildWar && war != null && war.seatBlock !== 'no_guild';
   const lobbyInputRef = useRef<HTMLInputElement>(null);
 
   // 접속자 탭을 볼 수 없게 되면 방 채팅으로. effect 로 미루면 한 프레임 동안 빈 탭이 보인다.
   if (!canSeeUsers && tab === 'users') setTab('room');
+  if (!showGuildTab && tab === 'guild_war') setTab('room');
 
   // 로비 채팅 탭 활성화 시 입력란 포커스
   useEffect(() => {
@@ -97,6 +103,11 @@ export function RoomChatTabs({ scope, active }: { scope: ChatScope; active: bool
         <ChatTabButton active={tab === 'room'} onClick={() => setTab('room')}>
           방 채팅
         </ChatTabButton>
+        {showGuildTab && (
+          <ChatTabButton active={tab === 'guild_war'} onClick={() => setTab('guild_war')}>
+            길드 채팅
+          </ChatTabButton>
+        )}
         <ChatTabButton active={tab === 'lobby'} onClick={() => setTab('lobby')}>
           로비 채팅({onlineCount}명)
         </ChatTabButton>
@@ -106,6 +117,9 @@ export function RoomChatTabs({ scope, active }: { scope: ChatScope; active: bool
         {tab === 'users' && <OnlineUsersList />}
         {tab === 'room' && (
           <RoomChatBody scope={scope} scrollClassName="flex-1 min-h-0 max-h-none" />
+        )}
+        {tab === 'guild_war' && (
+          <RoomChatBody scope="guild_war" scrollClassName="flex-1 min-h-0 max-h-none" />
         )}
         {tab === 'lobby' && (
           <>

@@ -78,6 +78,8 @@ pnpm release      # scripts/make-release.mjs
 pm2 start ecosystem.config.cjs
 ```
 
+로컬 전용 `app/dev` · `public/dev` 는 gitignore 이고, `pnpm build` 때도 묶지 않는다 (`scripts/build-front.mjs`). `pnpm dev` 의 `/dev` 는 그대로다.
+
 ## 프로젝트 구조
 
 ```

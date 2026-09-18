@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import {
-  RTB_MAX_SEATS,
   actionFlags,
+  displaySeats,
+  isSetRunning,
   type RtbAction,
   type RtbPlayer,
   type RtbState,
@@ -9,9 +10,30 @@ import {
 
 export type ActionFlags = ReturnType<typeof actionFlags>;
 
+/** 교환·다이·벨 가운데 알림. 데브·운영 동일. */
+export const ACTION_FLASH_MS = 3000;
+
 export function seatedInTurnOrder(state: RtbState): Array<RtbPlayer | null> {
-  const list = state.players.length > 0 ? state.players : state.roster;
-  return Array.from({ length: RTB_MAX_SEATS }, (_, i) => list[i] ?? null);
+  return displaySeats(state);
+}
+
+export function waitingNextSet(state: RtbState, playerId: string): boolean {
+  if (state.players.length === 0) return false;
+  if (state.phase === 'idle') return false;
+  return (
+    state.roster.some((p) => p.id === playerId) && !state.players.some((p) => p.id === playerId)
+  );
+}
+
+export function isPlayingThisSet(state: RtbState, playerId: string): boolean {
+  return isSetRunning(state) && state.players.some((p) => p.id === playerId);
+}
+
+/** 세트 중 `관전 예약` → 예약되면 `예약 취소`. 세트 사이는 `관전하기`. */
+export function spectateToggleLabel(reserved: boolean, playingThisSet: boolean): string {
+  if (reserved) return '예약 취소';
+  if (playingThisSet) return '관전 예약';
+  return '관전하기';
 }
 
 export type PlayViewProps = {
@@ -20,7 +42,6 @@ export type PlayViewProps = {
   state: RtbState;
   flags: ActionFlags;
   selected: string[];
-  mySeatLabel: string;
   prompt: string;
   comboOk: boolean;
   remaining: number | null;
@@ -29,6 +50,9 @@ export type PlayViewProps = {
   idleSlot?: ReactNode;
   dispatch: (actorId: string, action: RtbAction) => void;
   toggleCard: (id: string) => void;
+  /** 빈칸 클릭. 관전 중일 때만 넘긴다. */
+  onSitEmpty?: () => void;
+  spectateReserved?: boolean;
 };
 
 export function settlePayouts(state: RtbState): {

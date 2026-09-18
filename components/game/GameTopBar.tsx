@@ -118,14 +118,15 @@ export function GameHudLeft({
             랭크
           </span>
         )}
-        {order != null && (
+        {typeof order === 'string' && (
           <span
             className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg max-w-[min(42vw,12rem)] truncate px-1.5 py-0.5 text-[11px] font-bold"
-            title={typeof order === 'string' ? order : undefined}
+            title={order}
           >
             {order}
           </span>
         )}
+        {order != null && typeof order !== 'string' && order}
       </div>
       <span className="ml-auto shrink-0 pl-1">
         <CountdownTimer />

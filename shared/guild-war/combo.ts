@@ -37,6 +37,15 @@ export function comboScore(cards: RtbCard[]): number {
   return cards.reduce((sum, c) => sum + c.rank, 0);
 }
 
+export function worstCombo(hand: RtbCard[]): RtbCard[] {
+  if (hand.length === 0) return [];
+  let worst = hand[0]!;
+  for (const c of hand) {
+    if (c.rank < worst.rank) worst = c;
+  }
+  return [worst];
+}
+
 export function bestCombo(hand: RtbCard[]): RtbCard[] {
   if (hand.length === 0) return [];
   let best = [hand[0]!];

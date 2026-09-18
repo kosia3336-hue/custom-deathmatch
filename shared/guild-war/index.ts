@@ -3,6 +3,7 @@ export {
   COMBO_MS,
   COUNTDOWN_MS,
   ANTE,
+  BELL_FAIL,
   START_CHIPS,
   RTB_MAX_SEATS,
   RTB_MIN_PLAYERS,
@@ -31,6 +32,7 @@ export {
   available,
   canSeat,
   createTable,
+  displaySeats,
   drainKicks,
   dropBrokeGuilds,
   endSettleDisplay,
@@ -44,6 +46,7 @@ export {
   seatedCountForGuild,
   setGuildBalance,
   startNextSet,
+  syncWaitAfterRosterChange,
   turnIndex,
   unseatPlayer,
 } from './table';
@@ -56,4 +59,5 @@ export {
   isFourOfAKind,
   isValidCombo,
   requiredBellRank,
+  worstCombo,
 } from './combo';

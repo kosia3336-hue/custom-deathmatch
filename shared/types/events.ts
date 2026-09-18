@@ -59,7 +59,7 @@ export interface UpdateRoomSettingsResult {
   error?: string;
 }
 
-export type ChatScope = 'lobby' | 'room' | 'game' | 'guild';
+export type ChatScope = 'lobby' | 'room' | 'game' | 'guild' | 'guild_war';
 
 export interface ChatMessage {
   id: string;
@@ -315,12 +315,20 @@ export interface ClientToServerEvents {
     callback: (res: import('./sun-moon-star-event').SmsMetaPayload) => void,
   ) => void;
 
-  /** 길드전 (링 더 벨) — 입장. 길드+칩이면 착석, 아니면 관전. */
+  /** 길드전 (링 더 벨) — 입장. 항상 관전. 착석은 빈칸 클릭. */
   'guildWar:join': (
     callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
   ) => void;
   /** 길드전 — 퇴장 (세트 중이면 다이). */
   'guildWar:leave': () => void;
+  /** 길드전 — 빈칸 클릭 착석. */
+  'guildWar:sit': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 길드전 — 관전으로 내리기. 세트 중이면 예약 토글. */
+  'guildWar:spectate': (
+    callback: (res: { success: boolean; error?: string; reserved?: boolean }) => void,
+  ) => void;
   /** 길드전 — 메타 조회 (로비). */
   'guildWar:meta:get': (
     callback: (res: import('./ring-the-bell').RtbMetaPayload) => void,
