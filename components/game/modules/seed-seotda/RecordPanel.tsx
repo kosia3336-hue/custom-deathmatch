@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { cn } from '@/lib/utils';
 import { createSeedSeotdaDeck } from '@/shared/logic/seed-seotda';
-import type { SeedSeotdaGameData, SeedSeotdaRoundResult } from '@/shared/types/seed-seotda';
+import type {
+  SeedSeotdaCard as SeedSeotdaCardData,
+  SeedSeotdaGameData,
+  SeedSeotdaRoundResult,
+} from '@/shared/types/seed-seotda';
 
 /** 스무 장. 월 순서, 그 안에서 a·b. */
 const DECK = createSeedSeotdaDeck();
@@ -50,12 +54,37 @@ function writeMarks(key: string, marks: string[]) {
 }
 
 /**
+ * 지금까지 눈으로 드러난 카드 — 끝난 라운드의 시드와 공개된 패, 그리고 지금 판에서
+ * 보이는 것들.
+ *
+ * 화면에 이미 나와 있는 것만 모은다. 상대의 안 깐 패는 서버가 null 로 주므로 여기에
+ * 들어올 수 없고, 다이로 덮인 패도 마찬가지다 — '빠졌지만 무엇인지 모르는' 카드는
+ * 기계가 정할 수 없으니 사람이 직접 지운다.
+ */
+function collectSeenCards(data: SeedSeotdaGameData): Set<string> {
+  const seen = new Set<string>();
+  const add = (card: SeedSeotdaCardData | null | undefined) => {
+    if (card) seen.add(card.id);
+  };
+
+  for (const round of data.rounds) {
+    add(round.seedCard);
+    for (const hand of Object.values(round.hands)) hand?.forEach(add);
+  }
+  add(data.seedCard);
+  for (const player of Object.values(data.players)) {
+    player.cards.forEach(add);
+    player.finalHand.forEach(add);
+  }
+  return seen;
+}
+
+/**
  * 메모탭 — 라운드 기록과 카운팅.
  *
- * 카운팅은 스무 장을 그대로 늘어놓고 플레이어가 직접 눌러 지운다. 자동으로 세지
- * 않는 까닭은, 다이로 덮인 패처럼 '덱에서는 빠졌지만 무엇인지 모르는' 카드가
- * 있어서다 — 기계가 세면 그 칸을 어느 쪽으로도 정할 수 없고, 반쯤 맞는 숫자는
- * 안 세느니만 못하다. 무엇을 지울지는 사람이 정한다.
+ * 카운팅은 스무 장을 늘어놓고, 드러난 카드는 저절로 지워 준다. 나머지는 눌러서
+ * 직접 지운다 — 다이로 덮인 패처럼 덱에서는 빠졌지만 무엇인지 모르는 카드가 있어,
+ * 그 칸까지 기계가 정하면 반쯤 맞는 숫자가 된다.
  *
  * 넓은 화면은 GameFrame 의 옆 칸, 좁은 화면은 상단 바 '메모' 로 연다.
  */
@@ -93,6 +122,7 @@ export default function RecordPanel({
   marks: string[];
   onToggleMark: (cardId: string) => void;
 }) {
+  const seenCards = useMemo(() => collectSeenCards(data), [data]);
   const isPlayer = Boolean(data.players[myId]);
   const opponentId = Object.keys(data.players).find((id) => id !== myId) ?? null;
   const name = (id: string | null | undefined) => {
@@ -168,27 +198,31 @@ export default function RecordPanel({
 
       <GameInfoPart title="카운팅">
         <p className="text-cdm-ink-fg-muted mb-1.5 text-[11px]">
-          나온 패를 눌러 지웁니다. 다시 누르면 되돌아옵니다.
+          드러난 패는 저절로 지워집니다. 가려진 채 빠진 패는 눌러서 지우세요.
         </p>
-        <div className="grid grid-cols-5 justify-items-center gap-1">
+        {/* 다섯 칸씩 네 줄. 칸이 폭을 정하므로 좁은 화면에서도 꽉 찬다. */}
+        <div className="grid grid-cols-5 gap-1">
           {DECK.map((card) => {
-            const marked = marks.includes(card.id);
+            const seen = seenCards.has(card.id);
+            const marked = seen || marks.includes(card.id);
             return (
               <button
                 key={card.id}
                 type="button"
                 onClick={() => onToggleMark(card.id)}
+                /* 이미 드러난 패는 되돌릴 일이 없다 — 눌러서 되살아나면 거짓이 된다. */
+                disabled={seen}
                 aria-pressed={marked}
-                aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장`}
+                aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장${seen ? ' · 공개됨' : ''}`}
                 /*
                   flex 로 둬야 카드 아래에 글자 여백이 안 붙는다(칸마다 8px 씩 버려졌다).
                   흐리기는 클래스로 주면 먹지 않았다 — 눌러도 그대로 밝게 남았다.
                   그림이 지워졌는지가 이 기능의 전부라 인라인으로 못 박는다.
                 */
-                className={cn('flex rounded transition-all', marked && 'grayscale')}
+                className={cn('flex w-full rounded transition-all', marked && 'grayscale')}
                 style={{ opacity: marked ? 0.25 : 1 }}
               >
-                <SeedSeotdaCard card={card} size="tiny" />
+                <SeedSeotdaCard card={card} size="full" />
               </button>
             );
           })}
