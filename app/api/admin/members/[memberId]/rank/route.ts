@@ -42,16 +42,28 @@ export async function GET(
   const { data: history } = await db
     .from('rank_match_history')
     .select(
-      'id, played_at, game_id, is_forfeit, winner_id, loser_id, winner_tier, loser_tier, winner_rp_before, winner_rp_after, loser_rp_before, loser_rp_after',
+      'id, played_at, game_id, is_forfeit, winner_id, loser_id, winner_tier, loser_tier, winner_rp_before, winner_rp_after, loser_rp_before, loser_rp_after, winner_rp_gain, loser_rp_loss, winner_promoted, loser_demoted',
     )
     .or(`winner_id.eq.${memberId},loser_id.eq.${memberId}`)
     .order('played_at', { ascending: false })
     .limit(10);
 
+  /* game-002 로는 무슨 게임인지 읽을 수 없어 이름을 같이 내려 준다. */
+  const rows = (history ?? []) as Record<string, unknown>[];
+  const gameIds = Array.from(new Set(rows.map((r) => String(r.game_id))));
+  const gameNames: Record<string, string> = {};
+  if (gameIds.length > 0) {
+    const { data: gameRows } = await db.from('games').select('id, name').in('id', gameIds);
+    (gameRows ?? []).forEach((g: { id: string; name: string }) => {
+      gameNames[g.id] = g.name;
+    });
+  }
+
   return NextResponse.json({
     seasons: seasons ?? [],
     activeSeason,
     stats,
-    history: history ?? [],
+    history: rows,
+    gameNames,
   });
 }
