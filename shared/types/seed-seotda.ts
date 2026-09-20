@@ -91,6 +91,13 @@ export interface SeedSeotdaRoundResult {
   chipCountsAfter: Record<string, number>;
   actions: SeedSeotdaBettingAction[];
   deckRemainingAfter: number;
+  /**
+   * 이 라운드가 몇 번째 덱에서 나왔는지.
+   *
+   * 덱은 다섯 장 밑으로 떨어지면 새로 섞는다. 카운팅은 '지금 덱에 무엇이 남았나' 를
+   * 보는 것이라, 지난 덱에서 나온 패까지 세면 스무 장이 다 차서 못 쓰게 된다.
+   */
+  deckCycle: number;
 }
 
 export interface SeedSeotdaGameData {
@@ -103,6 +110,8 @@ export interface SeedSeotdaGameData {
   seedCard: SeedSeotdaCard | null;
   pot: number;
   deckRemaining: number;
+  /** 지금까지 덱을 몇 번 썼는지(1부터). 새로 섞일 때마다 하나씩 오른다. */
+  deckCycles: number;
   currentTurnId: string | null;
   firstPlayerId: string;
   bettingOpened: boolean;

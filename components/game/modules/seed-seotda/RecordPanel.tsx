@@ -65,12 +65,15 @@ function writeMemo(key: string, memo: SeedSeotdaMemo) {
 }
 
 /**
- * 지금 이 화면에 드러나 있는 카드 — 끝난 라운드의 시드와 공개된 패, 그리고 이번
- * 라운드의 시드와 내 손패.
+ * 지금 이 화면에 드러나 있는 카드 — 이번 덱에서 끝난 라운드의 시드와 공개된 패,
+ * 그리고 이번 라운드의 시드와 내 손패.
  *
  * 눈에 보이는 것만 모은다. 상대가 안 깐 패는 서버가 null 로 주므로 애초에 들어올 수
  * 없다 — 그것만 사람이 직접 지운다. 내 카드는 잠깐 보였다 사라지기도 하는데(시드를
  * 쓰며 버린 장), 부르는 쪽이 모아 두므로 사라져도 지워진 채 남는다.
+ *
+ * 지난 덱의 라운드는 빼야 한다. 덱은 다섯 장 밑으로 떨어지면 새로 섞이는데, 그때도
+ * 계속 세면 스무 장이 모두 '본 패' 가 되어 카운팅이 통째로 잠긴다.
  */
 function collectVisibleCards(data: SeedSeotdaGameData): string[] {
   const seen: string[] = [];
@@ -79,6 +82,7 @@ function collectVisibleCards(data: SeedSeotdaGameData): string[] {
   };
 
   for (const round of data.rounds) {
+    if (round.deckCycle !== data.deckCycles) continue;
     add(round.seedCard);
     for (const hand of Object.values(round.hands)) hand?.forEach(add);
   }

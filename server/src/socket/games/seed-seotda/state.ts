@@ -154,6 +154,7 @@ export function toSeedSeotdaGameData(
     seedCard: state.seedCard ? cloneCard(state.seedCard) : null,
     pot: state.pot,
     deckRemaining: state.deck.length,
+    deckCycles: state.deckCycles,
     currentTurnId: state.currentTurnId,
     firstPlayerId: state.firstPlayerId,
     bettingOpened: state.bettingOpened,

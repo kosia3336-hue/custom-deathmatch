@@ -327,9 +327,13 @@ export default function SeedSeotdaGame() {
 
   /* 상단 바 — 라운드와 '메모'(라운드 기록·카운팅). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
   const { setHud } = useRoomLayout();
-  /* 카운팅 표시는 이 기기에 판마다 따로 둔다. 두 자리에 같은 패널이 그려지므로 상태는 여기 하나뿐이다. */
+  /*
+    카운팅 표시는 이 기기에 덱 한 벌마다 따로 둔다. 두 자리에 같은 패널이 그려지므로
+    상태는 여기 하나뿐이다. 덱 회차를 열쇠에 넣어, 덱을 새로 섞으면 카운팅도 새로
+    시작한다 — 안 그러면 한 바퀴 돈 뒤 스무 장이 다 지워진 채로 굳는다.
+  */
   const roomId = useRoomStore((state) => state.room?.id);
-  const memoKey = `cdm-seed-seotda-memo:${roomId ?? ''}:${gameState?.startedAt ?? ''}`;
+  const memoKey = `cdm-seed-seotda-memo:${roomId ?? ''}:${gameState?.startedAt ?? ''}:${gameData?.deckCycles ?? 1}`;
   const { seen, marks, toggleMark } = useSeedSeotdaMarks(memoKey, gameData);
   useEffect(() => {
     if (!gameData) return;

@@ -290,6 +290,7 @@ export function resolveSeedSeotdaShowdown(io: IO, state: SeedSeotdaState) {
     chipCountsAfter: chipCounts(state),
     actions: state.roundActions.map((action) => ({ ...action })),
     deckRemainingAfter: state.deck.length,
+    deckCycle: state.deckCycles,
   });
 }
 
@@ -338,6 +339,7 @@ function settleDie(io: IO, state: SeedSeotdaState, foldedPlayerId: string) {
     chipCountsAfter: chipCounts(state),
     actions: state.roundActions.map((action) => ({ ...action })),
     deckRemainingAfter: state.deck.length,
+    deckCycle: state.deckCycles,
   });
 }
 
