@@ -42,6 +42,9 @@ function isKstWeekend(d = new Date()): boolean {
   const HOLIDAY_24H_DATES = [
     [2026, 6, 3],
     [2026, 7, 17],
+    // 추석 연휴 (토요일인 9/26 은 주말이라 따로 적지 않는다)
+    [2026, 9, 24],
+    [2026, 9, 25],
   ];
   return HOLIDAY_24H_DATES.some(([y, m, d]) => year === y && month === m && day === d);
 }
