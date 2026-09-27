@@ -35,3 +35,45 @@ export async function findMemberIdsByNickname(
   }
   return ((data ?? []) as { id: string }[]).map((r) => r.id);
 }
+
+export async function findMemberIdsByTeamName(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  query: string,
+): Promise<string[]> {
+  if (!query) return [];
+  const { data: team, error: teamError } = await sb
+    .from('ranking_teams')
+    .select('id')
+    .eq('name', query)
+    .maybeSingle();
+  if (teamError) {
+    console.warn('[ranking] team search', teamError.message);
+    return [];
+  }
+  const teamId = (team as { id: string } | null)?.id;
+  if (!teamId) return [];
+
+  const { data, error } = await sb
+    .from('ranking_team_members')
+    .select('member_id')
+    .eq('team_id', teamId);
+  if (error) {
+    console.warn('[ranking] team members', error.message);
+    return [];
+  }
+  return ((data ?? []) as { member_id: string }[]).map((r) => r.member_id);
+}
+
+export async function findRankingSearchMemberIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  query: string,
+): Promise<string[]> {
+  if (!query) return [];
+  const [nickIds, teamIds] = await Promise.all([
+    findMemberIdsByNickname(sb, query),
+    findMemberIdsByTeamName(sb, query),
+  ]);
+  return [...new Set([...nickIds, ...teamIds])];
+}
