@@ -8091,3 +8091,1613 @@ html[data-native-app] .site-footer--home {
     transition: none !important;
   }
 }
+
+/* 복주머니: 뱃지 안 주머니가 팡 터지며 칭호 이름과 금은보화가 나온다. */
+@keyframes title-bokjumeoni-half-left {
+  0%, 10% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  15% { transform: translate(6%, 6%) scale(0.88, 1.14) rotate(0deg); }
+  22% { transform: translate(-18%, -22%) scale(1.18) rotate(-16deg); opacity: 1; }
+  30% { transform: translate(-36%, -38%) scale(1.32) rotate(-28deg); opacity: 0; }
+  30.01%, 84% { opacity: 0; transform: translate(-36%, -38%) scale(1.1) rotate(-28deg); }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes title-bokjumeoni-half-right {
+  0%, 10% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  15% { transform: translate(-6%, 6%) scale(0.88, 1.14) rotate(0deg); }
+  22% { transform: translate(18%, -22%) scale(1.18) rotate(16deg); opacity: 1; }
+  30% { transform: translate(36%, -38%) scale(1.32) rotate(28deg); opacity: 0; }
+  30.01%, 84% { opacity: 0; transform: translate(36%, -38%) scale(1.1) rotate(28deg); }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes title-bokjumeoni-knot {
+  0%, 10% { transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
+  15% { transform: translateX(-50%) scale(1.12, 0.86) rotate(-6deg); }
+  22% { transform: translate(-50%, -90%) scale(1.28) rotate(12deg); opacity: 1; }
+  30% { transform: translate(-50%, -160%) scale(1.4) rotate(18deg); opacity: 0; }
+  30.01%, 84% { opacity: 0; }
+  100% { transform: translateX(-50%); opacity: 1; }
+}
+@keyframes title-bokjumeoni-bit {
+  0%, 14% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.12) rotate(0deg);
+  }
+  18% { opacity: 1; }
+  28% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.16) rotate(var(--rot));
+  }
+  68% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 0.08em)) scale(1) rotate(var(--rot));
+  }
+  84%, 100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.55) rotate(var(--rot));
+  }
+}
+@keyframes title-bokjumeoni-name {
+  0%, 16% { opacity: 0; transform: scale(0.42); }
+  24% { opacity: 1; transform: scale(1.22); }
+  32%, 74% { opacity: 1; transform: scale(1); }
+  86%, 100% { opacity: 0; transform: scale(0.92); }
+}
+@keyframes title-bokjumeoni-flash {
+  0%, 14%, 28%, 100% { opacity: 0; }
+  19% { opacity: 0.9; }
+}
+.title-bokjumeoni-wrap {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: hidden;
+  border-radius: 999px;
+}
+.title-bokjumeoni {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-width: 4.4em;
+  padding-top: 0.42em;
+  color: #fff6d0;
+  border-color: #e4c04a;
+  background: #8a1522;
+}
+.title-bokjumeoni-flash {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 48%, #fff8d4 0%, rgba(255, 214, 80, 0.72) 26%, transparent 70%);
+  animation: title-bokjumeoni-flash 2.7s cubic-bezier(0.16, 1.4, 0.28, 1) infinite;
+  animation-fill-mode: both;
+}
+.title-bokjumeoni-burst {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+}
+.title-bokjumeoni-bit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.05em;
+  height: 1.05em;
+  opacity: 0;
+  animation: title-bokjumeoni-bit 2.7s cubic-bezier(0.16, 1.45, 0.28, 1) infinite;
+  animation-fill-mode: both;
+}
+.title-bokjumeoni-bit svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.title-bokjumeoni-bit--wonbo {
+  width: 1.45em;
+  height: 0.8em;
+}
+.title-bokjumeoni-bit--spark {
+  width: 0.42em;
+  height: 0.42em;
+}
+.title-bokjumeoni-spark-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #ffe27a;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  box-shadow: 0 0 4px #ffd24a;
+}
+.title-bokjumeoni-label {
+  position: relative;
+  z-index: 4;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff6d0;
+  text-shadow:
+    0 0 4px #5a1018,
+    0 1px 0 #2a0c0a;
+  animation: title-bokjumeoni-name 2.7s cubic-bezier(0.16, 1.4, 0.28, 1) infinite;
+  animation-fill-mode: both;
+}
+.title-bokjumeoni-bag {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+}
+.title-bokjumeoni-half {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  animation-duration: 2.7s;
+  animation-timing-function: cubic-bezier(0.16, 1.4, 0.28, 1);
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+.title-bokjumeoni-half--left {
+  clip-path: inset(0 50% 0 0);
+  animation-name: title-bokjumeoni-half-left;
+}
+.title-bokjumeoni-half--right {
+  clip-path: inset(0 0 0 50%);
+  animation-name: title-bokjumeoni-half-right;
+}
+.title-bokjumeoni-pouch {
+  position: absolute;
+  inset: 0;
+  background: #b01e2c;
+}
+.title-bokjumeoni-pouch svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.title-bokjumeoni-knot {
+  position: absolute;
+  z-index: 7;
+  top: 0;
+  left: 50%;
+  width: 1.7em;
+  height: 0.78em;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: title-bokjumeoni-knot 2.7s cubic-bezier(0.16, 1.4, 0.28, 1) infinite;
+  animation-fill-mode: both;
+}
+.title-bokjumeoni-knot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-bokjumeoni-half,
+  .title-bokjumeoni-bit,
+  .title-bokjumeoni-label,
+  .title-bokjumeoni-flash,
+  .title-bokjumeoni-knot { animation: none; }
+  .title-bokjumeoni-half { opacity: 0; }
+  .title-bokjumeoni-knot { opacity: 0; }
+  .title-bokjumeoni-bit {
+    opacity: 0.9;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot));
+  }
+  .title-bokjumeoni-label { opacity: 1; transform: none; }
+  .title-bokjumeoni-flash { opacity: 0; }
+}
+
+/* 한지: 궁서 먹글씨. 붓 끝과 글자 드러남이 --hanji-p 하나. */
+@property --hanji-p {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+@keyframes title-hanji-progress {
+  0%, 7% { --hanji-p: 0%; }
+  14% { --hanji-p: 18%; }
+  22% { --hanji-p: 42%; }
+  32% { --hanji-p: 70%; }
+  40%, 82% { --hanji-p: 100%; }
+  94%, 100% { --hanji-p: 0%; }
+}
+@keyframes title-hanji-brush {
+  0%, 5% {
+    opacity: 0;
+    transform: translate(-50%, -112%) rotate(-36deg);
+  }
+  9% {
+    opacity: 1;
+    transform: translate(-50%, -88%) rotate(-26deg);
+  }
+  14% { transform: translate(-50%, -94%) rotate(-24deg); }
+  22% { transform: translate(-50%, -91%) rotate(-28deg); }
+  32% { transform: translate(-50%, -95%) rotate(-22deg); }
+  40% { transform: translate(-50%, -93%) rotate(-20deg); }
+  46% {
+    opacity: 0.65;
+    transform: translate(-50%, -118%) rotate(-10deg);
+  }
+  52%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -128%) rotate(-8deg);
+  }
+}
+@keyframes title-hanji-spatter {
+  0%, 12%, 48%, 100% { opacity: 0; transform: scale(0.3); }
+  16% { opacity: 0.85; transform: scale(1.1); }
+  28%, 42% { opacity: 0.7; transform: scale(1); }
+}
+@keyframes title-hanji-spatter-2 {
+  0%, 20%, 48%, 100% { opacity: 0; transform: scale(0.3); }
+  26% { opacity: 0.8; transform: scale(1.05); }
+  36%, 42% { opacity: 0.65; transform: scale(1); }
+}
+@keyframes title-hanji-spatter-3 {
+  0%, 30%, 48%, 100% { opacity: 0; transform: scale(0.3); }
+  34% { opacity: 0.75; transform: scale(1.08); }
+  42% { opacity: 0.55; transform: scale(1); }
+}
+.title-hanji-wrap {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: visible;
+}
+.title-hanji {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+  font-family: 'GungsuhChe', 'Gungsuh', 'GungSeo', '궁서체', '궁서', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-weight: 400;
+  font-synthesis: none;
+  color: #110f14;
+  border-color: #b0894a;
+  background-color: #f3e6c8;
+  background-image:
+    radial-gradient(ellipse at 16% 28%, rgba(176, 138, 72, 0.16), transparent 52%),
+    radial-gradient(circle at 78% 78%, rgba(140, 104, 48, 0.1), transparent 46%),
+    repeating-linear-gradient(88deg, rgba(132, 96, 48, 0.07) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(8deg, rgba(120, 88, 40, 0.04) 0 1px, transparent 1px 11px);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 244, 214, 0.55);
+}
+.title-hanji-stage {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  max-width: 12em;
+  animation: title-hanji-progress 5.2s cubic-bezier(0.18, 0.62, 0.22, 1) infinite;
+}
+.title-hanji-ink {
+  position: relative;
+  display: inline-block;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  clip-path: inset(-40% calc(100% - var(--hanji-p)) -40% 0);
+}
+.title-hanji-bleed {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: rgba(14, 12, 18, 0.42);
+  filter: blur(0.55px);
+  transform: scale(1.045, 1.08);
+  transform-origin: 12% 50%;
+  pointer-events: none;
+}
+.title-hanji-label {
+  position: relative;
+  color: #110f14;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 0 0.35px rgba(8, 8, 12, 0.85),
+    0.35px 0.25px 0.55px rgba(16, 14, 20, 0.45),
+    -0.25px 0.2px 0.7px rgba(12, 12, 16, 0.28);
+}
+.title-hanji-spatter {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+.title-hanji-spatter span {
+  position: absolute;
+  display: block;
+  width: 0.2em;
+  height: 0.24em;
+  background: #0c0c12;
+  border-radius: 70% 40% 55% 45%;
+  opacity: 0;
+}
+.title-hanji-spatter span:nth-child(1) {
+  left: 24%;
+  top: 16%;
+  animation: title-hanji-spatter 5.2s ease-out infinite;
+}
+.title-hanji-spatter span:nth-child(2) {
+  left: 48%;
+  top: 68%;
+  width: 0.16em;
+  height: 0.16em;
+  animation: title-hanji-spatter-2 5.2s ease-out infinite;
+}
+.title-hanji-spatter span:nth-child(3) {
+  left: 70%;
+  top: 22%;
+  width: 0.14em;
+  height: 0.2em;
+  animation: title-hanji-spatter-3 5.2s ease-out infinite;
+}
+.title-hanji-brush {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: var(--hanji-p);
+  width: 1.05em;
+  height: 2.85em; /* 붓대는 뱃지 위. 뱃지 상자는 그대로. */
+  pointer-events: none;
+  transform-origin: 50% 96%;
+  animation: title-hanji-brush 5.2s cubic-bezier(0.18, 0.62, 0.22, 1) infinite;
+  animation-fill-mode: both;
+}
+.title-hanji-brush svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.title-hanji-wet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0.42em;
+  height: 0.42em;
+  transform: translate(-50%, 18%);
+  background: radial-gradient(circle, rgba(8, 8, 12, 0.7) 0%, rgba(10, 10, 14, 0.2) 48%, transparent 72%);
+  filter: blur(0.4px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-hanji-stage,
+  .title-hanji-brush,
+  .title-hanji-spatter span { animation: none; }
+  .title-hanji-stage { --hanji-p: 100%; }
+  .title-hanji-ink { clip-path: none; }
+  .title-hanji-brush,
+  .title-hanji-spatter { opacity: 0; }
+}
+
+/* 달토끼: 뱃지 자체가 달. 토끼는 달 위를 이어서 깡총, 오른쪽 밖으로 나간 뒤 왼쪽에서 다시. */
+@keyframes title-daltokki-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 220, 140, 0.4), inset 0 1px 0 rgba(255, 252, 230, 0.55); }
+  50% { box-shadow: 0 0 11px rgba(255, 236, 180, 0.7), inset 0 1px 0 rgba(255, 252, 230, 0.7); }
+}
+@keyframes title-daltokki-cross {
+  from { left: -12%; }
+  to { left: 112%; }
+}
+@keyframes title-daltokki-hop {
+  0%, 100% {
+    transform: translate(-50%, 0) scale(1.02, 0.96);
+  }
+  18% {
+    transform: translate(-50%, -14%) scale(0.98, 1.04);
+  }
+  46% {
+    transform: translate(-50%, -22%) scale(0.97, 1.07) rotate(-4deg);
+  }
+  78% {
+    transform: translate(-50%, -2%) scale(1.01, 0.98) rotate(2deg);
+  }
+}
+.title-daltokki-wrap {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: hidden;
+  border-radius: 999px;
+}
+.title-daltokki {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #3a2410;
+  border-color: #c4a04a;
+  background:
+    radial-gradient(circle at 24% 28%, rgba(255, 250, 220, 0.95) 0 18%, transparent 42%),
+    radial-gradient(circle at 78% 78%, rgba(196, 150, 60, 0.28), transparent 46%),
+    radial-gradient(circle at 50% 42%, #f7e6b4 0%, #e8c45c 58%, #d4a030 100%);
+  animation: title-daltokki-glow 4.6s ease-in-out infinite;
+}
+.title-daltokki-craters {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.title-daltokki-craters svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.title-daltokki-label {
+  position: relative;
+  z-index: 3;
+  color: #3a2410;
+  text-shadow: 0 0 5px rgba(255, 244, 200, 0.85);
+}
+.title-daltokki-rabbit {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  bottom: 0;
+  width: 1.2em;
+  height: 1.55em;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  animation:
+    title-daltokki-cross 4s linear infinite,
+    title-daltokki-hop 0.5s cubic-bezier(0.33, 0.12, 0.25, 1) infinite;
+}
+.title-daltokki-rabbit svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-daltokki,
+  .title-daltokki-rabbit { animation: none; }
+  .title-daltokki-rabbit {
+    left: 72%;
+    opacity: 1;
+    transform: translate(-50%, 6%);
+  }
+}
+
+/* 가을낙엽: 큰 단풍·은행이 살랑살랑, 어긋나서 계속 떨어진다. */
+@keyframes title-nakyeop-drop {
+  0% {
+    top: -50%;
+    opacity: 0;
+  }
+  6% { opacity: 1; }
+  90% { opacity: 1; }
+  100% {
+    top: 122%;
+    opacity: 0;
+  }
+}
+@keyframes title-nakyeop-sway {
+  0%, 100% { transform: translateX(-0.45em) rotate(-18deg); }
+  50% { transform: translateX(0.45em) rotate(18deg); }
+}
+.title-nakyeop-wrap {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: hidden;
+  border-radius: 999px;
+}
+.title-nakyeop {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(255, 248, 220, 0.7), transparent 46%),
+    linear-gradient(180deg, #fff4e0 0%, #f0c48a 58%, #e8a85a 100%);
+  color: #7a3410;
+  border-color: #c46a28;
+  box-shadow: 0 0 6px rgba(196, 106, 40, 0.28);
+}
+.title-nakyeop-label {
+  position: relative;
+  z-index: 2;
+  color: #7a3410;
+  text-shadow: 0 0 3px #fff1dc;
+}
+.title-nakyeop-tray {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.title-nakyeop-leaf {
+  position: absolute;
+  top: -50%;
+  display: block;
+  pointer-events: none;
+  animation:
+    title-nakyeop-drop var(--nakyeop-dur, 12s) linear infinite,
+    title-nakyeop-sway var(--nakyeop-sway, 1.85s) ease-in-out infinite;
+  animation-delay: var(--nakyeop-delay, 0s), var(--nakyeop-sway-delay, 0s);
+}
+.title-nakyeop-leaf:nth-child(even) {
+  animation-direction: normal, reverse;
+}
+.title-nakyeop-leaf svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0.5px 0.6px rgba(80, 30, 8, 0.28));
+}
+.title-nakyeop-leaf--maple {
+  width: 1.28em;
+  height: 1.28em;
+  margin-left: -0.64em;
+}
+.title-nakyeop-leaf--ginkgo {
+  width: 1.22em;
+  height: 1.05em;
+  margin-left: -0.61em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-nakyeop-leaf {
+    animation: none;
+    opacity: 0.85;
+    top: 28%;
+    transform: none;
+  }
+}
+
+/* 풍요한가위: 뱃지 위에 보름달·초승달·송편. 한 바퀴 4.8초. */
+@keyframes title-fullmoon-moon {
+  0%, 8% { transform: translate(-50%, -50%) scale(0.96); filter: brightness(0.92); }
+  32%, 46% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(1.45); }
+  100% { transform: translate(-50%, -50%) scale(0.96); filter: brightness(0.92); }
+}
+@keyframes title-fullmoon-glow {
+  0%, 14% {
+    box-shadow:
+      inset 0 0 0 1px #fff6d4,
+      0 0 0 1px #e8b84a,
+      0 0 6px rgba(255, 186, 48, 0.35);
+  }
+  32%, 46% {
+    box-shadow:
+      inset 0 0 0 1px #fffef6,
+      0 0 0 1.5px #fff1b0,
+      0 0 10px 2px rgba(255, 214, 80, 0.95);
+  }
+  58%, 100% {
+    box-shadow:
+      inset 0 0 0 1px #fff6d4,
+      0 0 0 1px #e8b84a,
+      0 0 6px rgba(255, 186, 48, 0.35);
+  }
+}
+@keyframes title-fullmoon-flash {
+  0%, 30% { opacity: 0; }
+  34% { opacity: 0.7; }
+  40%, 100% { opacity: 0; }
+}
+@keyframes title-fullmoon-arc-rtl {
+  0%, 14% { transform: translateX(70%); opacity: 0; }
+  18% { opacity: 1; }
+  28% { transform: translateX(-70%); opacity: 1; }
+  34%, 100% { transform: translateX(-70%); opacity: 0; }
+}
+@keyframes title-fullmoon-arc-ltr {
+  0%, 24% { transform: translateX(-70%); opacity: 0; }
+  28% { opacity: 1; }
+  38% { transform: translateX(70%); opacity: 1; }
+  44%, 100% { transform: translateX(70%); opacity: 0; }
+}
+@keyframes title-fullmoon-fall {
+  0% { top: -35%; opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { top: 120%; opacity: 0; }
+}
+@keyframes title-fullmoon-sway {
+  0%, 100% { transform: translateX(-0.22em) rotate(-16deg); }
+  50% { transform: translateX(0.22em) rotate(16deg); }
+}
+.title-fullmoon-wrap {
+  position: relative;
+  z-index: 0;
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: visible;
+}
+.title-fullmoon-moon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 2.45em;
+  height: 2.45em;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 38% 34%, #fffbe8 0%, #ffe7a4 26%, #f0b42c 62%, #e08a16 100%);
+  box-shadow:
+    0 0 8px 3px rgba(255, 196, 60, 0.75),
+    0 0 18px 6px rgba(255, 150, 30, 0.35);
+  animation: title-fullmoon-moon 4.8s ease-in-out infinite;
+}
+.title-fullmoon {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  isolation: isolate;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff1cc 100%);
+  color: #7a2c22;
+  border: 1.5px solid #c48a22;
+  animation: title-fullmoon-glow 4.8s ease-in-out infinite;
+}
+.title-fullmoon-label {
+  position: relative;
+  z-index: 4;
+  color: #7a2c22;
+  text-shadow: 0 0 2px #fff8e8;
+}
+.title-fullmoon-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  background: #fffef6;
+  pointer-events: none;
+  animation: title-fullmoon-flash 4.8s linear infinite;
+}
+.title-fullmoon-arc {
+  position: absolute;
+  z-index: 3;
+  left: 6%;
+  width: 88%;
+  height: 0.55em;
+  pointer-events: none;
+  overflow: visible;
+}
+.title-fullmoon-arc svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 2px rgba(255, 210, 80, 0.95));
+}
+.title-fullmoon-arc-a {
+  top: 0.15em;
+  animation: title-fullmoon-arc-rtl 4.8s linear infinite;
+}
+.title-fullmoon-arc-b {
+  bottom: 0.15em;
+  animation: title-fullmoon-arc-ltr 4.8s linear infinite;
+}
+.title-fullmoon-ornament {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  width: 1.35em;
+  height: 0.85em;
+  margin-top: -0.42em;
+  pointer-events: none;
+}
+.title-fullmoon-ornament svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.title-fullmoon-ornament-l { left: -0.15em; }
+.title-fullmoon-ornament-r { right: -0.15em; transform: scaleX(-1); }
+.title-fullmoon-tray {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: -1.35em;
+  bottom: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.title-fullmoon-bit {
+  position: absolute;
+  top: -10%;
+  display: block;
+  pointer-events: none;
+  animation:
+    title-fullmoon-fall var(--pungyo-dur, 2.8s) linear infinite,
+    title-fullmoon-sway var(--pungyo-sway, 1s) ease-in-out infinite;
+  animation-delay: var(--pungyo-delay, 0s), var(--pungyo-sway-delay, 0s);
+}
+.title-fullmoon-bit svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 1px rgba(255, 220, 120, 0.8));
+}
+.title-fullmoon-bit--moon {
+  width: 1.15em;
+  height: 1.15em;
+  margin-left: -0.58em;
+}
+.title-fullmoon-bit--cake {
+  width: 1.35em;
+  height: 1.05em;
+  margin-left: -0.68em;
+}
+.title-fullmoon-sm .title-fullmoon-ornament {
+  display: none;
+}
+.title-fullmoon-sm .title-fullmoon-bit--moon {
+  width: 0.92em;
+  height: 0.92em;
+  margin-left: -0.46em;
+}
+.title-fullmoon-sm .title-fullmoon-bit--cake {
+  width: 1.05em;
+  height: 0.82em;
+  margin-left: -0.52em;
+}
+.title-fullmoon-sm .title-fullmoon-moon {
+  width: 1.85em;
+  height: 1.85em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-fullmoon,
+  .title-fullmoon-moon,
+  .title-fullmoon-flash,
+  .title-fullmoon-arc,
+  .title-fullmoon-bit {
+    animation: none;
+  }
+  .title-fullmoon-flash,
+  .title-fullmoon-arc {
+    opacity: 0;
+  }
+  .title-fullmoon-moon {
+    transform: translate(-50%, -50%);
+    filter: none;
+  }
+  .title-fullmoon-bit {
+    top: 20%;
+    opacity: 0.75;
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   skin-dalmaji  —  달맞이 (해달별2 · 한가위)
+   ═══════════════════════════════════════════════════════════ */
+
+.skin-dalmaji-field {
+  --dj-gold: #e8c56a;
+  --dj-gold-deep: #c9a24a;
+  --dj-cream: #fff4d4;
+  --dj-ink: #f6e7b0;
+  --dj-sun: #ff6a2a;
+  --dj-moon: #f0d078;
+  --dj-star: #ffe8a8;
+  --dj-void: #141e38;
+  --dj-peak-hi: #4a8a80;
+  --dj-peak-a: #2a6a68;
+  --dj-peak-b: #1c524e;
+  --dj-peak-c: #12383c;
+  --dj-water: #1a5864;
+  --dj-water-2: #124850;
+  --dj-foam: #e4f2ee;
+  --dj-pine: #0c2a24;
+  --dj-rock: #2a4044;
+  --dj-panel-0: rgba(16, 24, 36, 0.88);
+  --dj-panel-1: rgba(10, 16, 24, 0.92);
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--dj-void);
+  color: var(--dj-ink);
+  transition: background-color 1.2s ease;
+}
+.skin-dalmaji-field--dawn {
+  --dj-void: #141e38;
+  --dj-peak-hi: #4a8a80;
+  --dj-peak-a: #2a6a68;
+  --dj-peak-b: #1c524e;
+  --dj-peak-c: #12383c;
+  --dj-water: #1a5864;
+  --dj-water-2: #124850;
+  --dj-pine: #0c2a24;
+  --dj-rock: #2a4044;
+}
+.skin-dalmaji-field--morning {
+  --dj-void: #4a8aaa;
+  --dj-peak-hi: #5aa890;
+  --dj-peak-a: #3a8a74;
+  --dj-peak-b: #2a6a5c;
+  --dj-peak-c: #1c4c48;
+  --dj-water: #2a7480;
+  --dj-water-2: #1c5c68;
+  --dj-pine: #0e3428;
+  --dj-rock: #3a5450;
+  --dj-panel-0: rgba(16, 28, 28, 0.8);
+  --dj-panel-1: rgba(10, 18, 18, 0.88);
+}
+.skin-dalmaji-field--night {
+  --dj-void: #070c14;
+  --dj-peak-hi: #1c5058;
+  --dj-peak-a: #14343c;
+  --dj-peak-b: #0e282e;
+  --dj-peak-c: #0a1c24;
+  --dj-water: #0c2834;
+  --dj-water-2: #081c24;
+  --dj-pine: #071814;
+  --dj-rock: #121c24;
+}
+
+.skin-dalmaji-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.skin-dalmaji-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-wash--dawn {
+  background:
+    radial-gradient(ellipse 42% 32% at 82% 18%, rgba(255, 232, 186, 0.5), transparent 58%),
+    linear-gradient(180deg, #10182c 0%, #1a2848 58%, #2a3860 82%, #4a4468 100%);
+}
+.skin-dalmaji-wash--morning {
+  background:
+    radial-gradient(ellipse 36% 28% at 16% 16%, rgba(255, 180, 120, 0.45), transparent 55%),
+    linear-gradient(180deg, #3a88b4 0%, #7eb8c4 42%, #c8dcc0 100%);
+}
+.skin-dalmaji-wash--night {
+  background:
+    radial-gradient(ellipse 36% 24% at 50% 14%, rgba(28, 40, 56, 0.35), transparent 64%),
+    linear-gradient(180deg, #060a12 0%, #0c141c 55%, #0e1818 100%);
+}
+.skin-dalmaji-field--dawn .skin-dalmaji-wash--dawn,
+.skin-dalmaji-field--morning .skin-dalmaji-wash--morning,
+.skin-dalmaji-field--night .skin-dalmaji-wash--night {
+  opacity: 1;
+}
+
+.skin-dalmaji-starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-field--night .skin-dalmaji-starfield { opacity: 1; }
+
+.skin-dalmaji-sky {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.skin-dalmaji-orb {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-field--dawn .skin-dalmaji-orb--moon { opacity: 1; }
+.skin-dalmaji-field--morning .skin-dalmaji-orb--sun { opacity: 1; }
+
+.skin-dalmaji-clouds {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-field--dawn .skin-dalmaji-clouds { opacity: 0.35; }
+.skin-dalmaji-field--morning .skin-dalmaji-clouds { opacity: 1; }
+
+.dj-peak-outline {
+  fill: none;
+  stroke: rgba(236, 232, 210, 0.5);
+  stroke-width: 1.55;
+  stroke-linejoin: round;
+}
+.dj-peak-fold {
+  fill: none;
+  stroke: rgba(220, 240, 230, 0.32);
+  stroke-width: 0.95;
+}
+.skin-dalmaji-field--night .dj-peak-fold { stroke: rgba(160, 200, 200, 0.16); }
+.dj-pine { fill: var(--dj-pine); color: var(--dj-pine); }
+.dj-bark {
+  stroke: rgba(200, 220, 210, 0.28);
+  stroke-width: 1.15;
+}
+.dj-rock { fill: var(--dj-rock); }
+.dj-rock-hole { fill: var(--dj-peak-c); }
+.dj-fall-edge {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.1;
+}
+.dj-foam-crest {
+  fill: none;
+  stroke: var(--dj-foam);
+  stroke-width: 1.8;
+  opacity: 0.7;
+}
+.dj-splash { fill: rgba(232, 246, 244, 0.5); }
+.dj-moon-reflect {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-field--dawn .dj-moon-reflect { opacity: 1; }
+.dj-podium { fill: #4a5854; }
+.dj-podium-side { fill: #3a4844; }
+.dj-juchu { fill: #5a6860; }
+.dj-column { fill: #c44a32; }
+.dj-gongpo-cheong { fill: #2a6a7a; }
+.dj-gongpo-nok { fill: #2a6a48; }
+.dj-gongpo-gold { fill: #e8c56a; }
+.dj-beam { fill: #8a3428; }
+.dj-chima { fill: #a83a28; }
+.dj-chima-curl { fill: #a83a28; }
+.dj-giwa { fill: #1a3c42; }
+.dj-giwa-line {
+  fill: none;
+  stroke: #0c2428;
+  stroke-width: 0.95;
+  opacity: 0.55;
+}
+.dj-cheongsacho {
+  fill: #c43a3a;
+  stroke: #e8c56a;
+  stroke-width: 1.15;
+}
+.dj-lantern-glow {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.skin-dalmaji-field--night .dj-lantern-glow { opacity: 1; }
+.skin-dalmaji-field--dawn .dj-lantern-glow { opacity: 0.4; }
+
+.skin-dalmaji-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dalmaji-spark 3.6s ease-in-out infinite;
+}
+.skin-dalmaji-spark-2 { animation-delay: -0.9s; }
+.skin-dalmaji-spark-3 { animation-delay: -1.8s; }
+.skin-dalmaji-spark-4 { animation-delay: -2.5s; }
+
+@keyframes dalmaji-spark {
+  0%, 100% { opacity: 0.35; transform: scale(0.72); }
+  45% { opacity: 1; transform: scale(1.08); }
+}
+
+.dj-ruyi {
+  fill: rgba(255, 248, 230, 0.82);
+  stroke: rgba(201, 162, 74, 0.7);
+  stroke-width: 1.3;
+}
+.skin-dalmaji-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 162, 74, 0.28),
+    inset 0 0 72px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.skin-dalmaji-mark {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(#101428, #0b1020) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.7), rgba(201, 162, 74, 0.45) 48%, rgba(80, 58, 20, 0.7)) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 212, 0.12);
+  transition: transform 280ms ease, opacity 280ms ease, filter 280ms ease;
+}
+.skin-dalmaji-mark--sm { min-height: 4.4rem; padding: 0.4rem 0.25rem; }
+.skin-dalmaji-mark--md { min-height: 6.2rem; padding: 0.6rem 0.4rem; }
+.skin-dalmaji-mark--sun { --dj-mark: var(--dj-sun); }
+.skin-dalmaji-mark--moon { --dj-mark: var(--dj-moon); }
+.skin-dalmaji-mark--star { --dj-mark: var(--dj-star); }
+
+.skin-dalmaji-mark--lit {
+  transform: scale(1.03);
+  background:
+    linear-gradient(#18120c, #120e18) padding-box,
+    linear-gradient(160deg, #fff4d4, var(--dj-mark) 42%, #8a6a20) border-box;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--dj-mark) 45%, transparent),
+    0 0 22px color-mix(in srgb, var(--dj-mark) 38%, transparent);
+}
+.skin-dalmaji-mark--dim {
+  opacity: 0.42;
+  filter: brightness(0.72);
+}
+
+.skin-dalmaji-mark-halo {
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+}
+.skin-dalmaji-mark-halo-bloom {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dj-mark) 55%, transparent) 0%, transparent 70%);
+  filter: blur(8px);
+}
+.skin-dalmaji-mark-halo-ring {
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--dj-mark) 70%, white 20%);
+  opacity: 0.75;
+  animation: dalmaji-halo 2.8s ease-in-out infinite;
+}
+
+@keyframes dalmaji-halo {
+  0%, 100% { transform: scale(0.92); opacity: 0.45; }
+  50% { transform: scale(1.08); opacity: 0.9; }
+}
+
+.skin-dalmaji-mark-priority {
+  position: absolute;
+  top: 0.28rem;
+  left: 0.28rem;
+  z-index: 2;
+  border-radius: 999px;
+  padding: 0 0.28rem;
+  background: rgba(8, 10, 22, 0.65);
+  color: rgba(246, 231, 176, 0.7);
+  font-size: 8px;
+  font-weight: 700;
+}
+.skin-dalmaji-mark-lit-tag {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  z-index: 2;
+  border-radius: 999px;
+  padding: 0 0.32rem;
+  background: color-mix(in srgb, var(--dj-mark) 85%, #8a4a00);
+  color: #1a1004;
+  font-size: 8px;
+  font-weight: 700;
+}
+.skin-dalmaji-mark-glyph {
+  position: relative;
+  z-index: 1;
+}
+.skin-dalmaji-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.dj-glyph-sun-corona,
+.dj-glyph-moon-halo,
+.dj-glyph-star-glow {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+}
+.dj-glyph-sun-corona {
+  animation: dalmaji-sun-corona 8s ease-in-out infinite;
+}
+.dj-glyph-sun-rays {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: dalmaji-sun-spin 56s linear infinite;
+}
+.dj-glyph-moon-halo {
+  animation: dalmaji-moon-halo 9s ease-in-out infinite;
+}
+.dj-glyph-moon-ring {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: dalmaji-moon-ring 8s ease-in-out infinite;
+}
+.dj-glyph-moon-ripple {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: dalmaji-moon-ripple 10s ease-out infinite;
+}
+.dj-glyph-moon-body {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: dalmaji-moon-float 10s ease-in-out infinite;
+}
+.dj-glyph-star-glow {
+  animation: dalmaji-glyph-breathe 3.6s ease-in-out infinite;
+}
+.dj-glyph-star-body {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dalmaji-star-twinkle 2.8s ease-in-out infinite;
+}
+.dj-glyph-star-mote {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dalmaji-spark 2.4s ease-in-out infinite;
+}
+.dj-glyph-star-mote-2 { animation-delay: -0.6s; }
+.dj-glyph-star-mote-3 { animation-delay: -1.2s; }
+.dj-glyph-star-mote-4 { animation-delay: -1.8s; }
+
+@keyframes dalmaji-glyph-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+@keyframes dalmaji-sun-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes dalmaji-sun-corona {
+  0%, 100% { transform: scale(0.88); opacity: 0.75; }
+  50% { transform: scale(1.14); opacity: 1; }
+}
+@keyframes dalmaji-moon-halo {
+  0%, 100% { transform: scale(0.86); opacity: 0.65; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+@keyframes dalmaji-moon-ring {
+  0%, 100% { transform: scale(0.9); opacity: 0.35; }
+  50% { transform: scale(1.16); opacity: 0.9; }
+}
+@keyframes dalmaji-moon-ripple {
+  0% { transform: scale(0.78); opacity: 0.8; }
+  70% { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes dalmaji-moon-float {
+  0%, 100% { transform: translateY(2px); }
+  50% { transform: translateY(-2.5px); }
+}
+@keyframes dalmaji-glyph-ring {
+  0%, 100% { opacity: 0.28; transform: scale(0.96); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+@keyframes dalmaji-star-twinkle {
+  0%, 100% { transform: scale(0.96); }
+  50% { transform: scale(1.05); }
+}
+.skin-dalmaji-mark-label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dj-cream);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+.skin-dalmaji-mark--md .skin-dalmaji-mark-label { font-size: 0.875rem; }
+.skin-dalmaji-mark-chip {
+  position: relative;
+  z-index: 1;
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  background: rgba(232, 197, 106, 0.18);
+  color: var(--dj-cream);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.skin-dalmaji-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, var(--dj-panel-0), var(--dj-panel-1)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.55), rgba(90, 70, 28, 0.55)) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 212, 0.1);
+  backdrop-filter: blur(8px);
+}
+.skin-dalmaji-panel-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--dj-cream);
+}
+.skin-dalmaji-panel-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(201, 184, 136, 0.82);
+}
+
+.skin-dalmaji-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.65rem;
+  background: rgba(8, 10, 22, 0.55);
+  border: 1px solid rgba(232, 197, 106, 0.18);
+}
+.skin-dalmaji-slot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dj-cream);
+}
+
+.skin-dalmaji-step {
+  height: 2.15rem;
+  width: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(232, 197, 106, 0.28);
+  background: rgba(20, 18, 32, 0.8);
+  color: var(--dj-cream);
+  font-size: 10px;
+  font-weight: 700;
+}
+.skin-dalmaji-step--lg {
+  width: 2.25rem;
+  font-size: 1.05rem;
+}
+.skin-dalmaji-step:hover:not(:disabled) {
+  background: rgba(232, 197, 106, 0.16);
+}
+.skin-dalmaji-step:disabled {
+  opacity: 0.35;
+}
+.skin-dalmaji-step-input {
+  height: 2.15rem;
+  min-width: 0;
+  flex: 1;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(232, 197, 106, 0.32);
+  background: rgba(8, 10, 20, 0.7);
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--dj-cream);
+  outline: none;
+}
+.skin-dalmaji-step-input:focus {
+  border-color: var(--dj-gold);
+  box-shadow: 0 0 0 2px rgba(232, 197, 106, 0.28);
+}
+
+.skin-dalmaji-dust-track {
+  position: relative;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(8, 10, 20, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(232, 197, 106, 0.18);
+}
+.skin-dalmaji-dust-fill {
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, #b88420, #f0d078 55%, #fff4d4),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.18) 0 2px,
+      transparent 2px 5px
+    );
+  background-blend-mode: overlay;
+  box-shadow: 0 0 10px rgba(240, 208, 120, 0.45);
+  transition: width 200ms ease;
+}
+
+.skin-dalmaji-btn {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.skin-dalmaji-btn:disabled { opacity: 0.38; }
+.skin-dalmaji-btn--ghost {
+  border: 1px solid rgba(232, 197, 106, 0.28);
+  background: rgba(12, 12, 24, 0.5);
+  color: var(--dj-ink);
+}
+.skin-dalmaji-btn--gold {
+  border: 1px solid #e8c56a;
+  background: linear-gradient(180deg, #f0d078, #c9a24a);
+  color: #1a1004;
+}
+.skin-dalmaji-btn--gold:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.skin-dalmaji-track {
+  padding: 0.75rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 36, 0.88), rgba(10, 12, 24, 0.92)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.45), rgba(90, 70, 28, 0.5)) border-box;
+}
+.skin-dalmaji-well {
+  height: 1.45rem;
+  flex: 1;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(232, 197, 106, 0.1);
+  transition: background 280ms ease, box-shadow 280ms ease, opacity 280ms ease;
+}
+.skin-dalmaji-well--left { border-radius: 0.4rem 0.15rem 0.15rem 0.4rem; }
+.skin-dalmaji-well--right { border-radius: 0.15rem 0.4rem 0.4rem 0.4rem; }
+.skin-dalmaji-well--dim { opacity: 0.35; }
+.skin-dalmaji-well--lit {
+  background: linear-gradient(90deg, rgba(184, 132, 32, 0.45), rgba(240, 208, 120, 0.35));
+  opacity: 0.85;
+}
+.skin-dalmaji-well--active {
+  background: linear-gradient(90deg, #c9a24a, #f0d078);
+  box-shadow: 0 0 10px rgba(240, 208, 120, 0.4);
+  opacity: 1;
+}
+.skin-dalmaji-well-label {
+  display: flex;
+  height: 1.45rem;
+  width: 4rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(232, 197, 106, 0.22);
+  background: rgba(8, 10, 20, 0.65);
+  color: rgba(201, 184, 136, 0.85);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.skin-dalmaji-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 36, 0.82), rgba(10, 12, 24, 0.88)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.4), rgba(90, 70, 28, 0.45)) border-box;
+}
+.skin-dalmaji-step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+.skin-dalmaji-step-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(232, 197, 106, 0.2);
+}
+.skin-dalmaji-step-node--active .skin-dalmaji-step-dot {
+  background: var(--dj-gold);
+  box-shadow: 0 0 8px rgba(240, 208, 120, 0.7);
+}
+.skin-dalmaji-step-node--done .skin-dalmaji-step-dot {
+  background: #c9a24a;
+}
+.skin-dalmaji-step-cap {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(201, 184, 136, 0.7);
+}
+.skin-dalmaji-step-node--active .skin-dalmaji-step-cap { color: var(--dj-cream); }
+.skin-dalmaji-step-line {
+  height: 2px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.skin-dalmaji-step-line--on {
+  background: linear-gradient(90deg, #c9a24a, #f0d078);
+}
+
+.skin-dalmaji-reveal {
+  --dj-mark: var(--dj-moon);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 0.5rem 0.7rem;
+}
+.skin-dalmaji-reveal--sun { --dj-mark: var(--dj-sun); }
+.skin-dalmaji-reveal--moon { --dj-mark: var(--dj-moon); }
+.skin-dalmaji-reveal--star { --dj-mark: var(--dj-star); }
+.skin-dalmaji-reveal-halo {
+  position: absolute;
+  inset: -6% 12%;
+  pointer-events: none;
+}
+.skin-dalmaji-reveal-halo-bloom {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--dj-mark) 50%, transparent), transparent 70%);
+  filter: blur(12px);
+}
+.skin-dalmaji-reveal-halo-ring {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--dj-mark) 75%, white 15%);
+  animation: dalmaji-halo 3.2s ease-in-out infinite;
+}
+.skin-dalmaji-reveal-halo-ring-outer {
+  inset: 4%;
+  opacity: 0.45;
+  animation-delay: -1.2s;
+}
+.skin-dalmaji-reveal-glyph {
+  position: relative;
+  z-index: 1;
+  width: 8.5rem;
+  height: 8.5rem;
+}
+.skin-dalmaji-reveal-label {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--dj-cream);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--dj-mark) 55%, transparent);
+}
+
+.skin-dalmaji-scorebar {
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 36, 0.88), rgba(10, 12, 24, 0.92)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.45), rgba(90, 70, 28, 0.5)) border-box;
+}
+.skin-dalmaji-scorebar-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+}
+.skin-dalmaji-scorebar-row--first {
+  border-bottom: 1px solid rgba(232, 197, 106, 0.16);
+}
+.skin-dalmaji-scorebar-row--me {
+  background: rgba(232, 197, 106, 0.08);
+}
+.skin-dalmaji-scorebar-name {
+  min-width: 0;
+  max-width: 5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dj-cream);
+}
+.skin-dalmaji-scorebar-cell--dim { background: rgba(255, 255, 255, 0.1); }
+.skin-dalmaji-scorebar-cell--lit { background: rgba(201, 162, 74, 0.55); }
+.skin-dalmaji-scorebar-cell--active { background: #f0d078; }
+
+.skin-dalmaji-scorepanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 36, 0.88), rgba(10, 12, 24, 0.92)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.4), rgba(90, 70, 28, 0.5)) border-box;
+}
+.skin-dalmaji-scorepanel--me {
+  box-shadow: inset 0 0 0 1px rgba(240, 208, 120, 0.28);
+}
+
+.skin-dalmaji-lit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.75rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(22, 16, 10, 0.9), rgba(12, 12, 24, 0.92)) padding-box,
+    linear-gradient(160deg, var(--dj-mark, #f0d078), rgba(90, 70, 28, 0.55)) border-box;
+}
+.skin-dalmaji-lit-banner .skin-dalmaji-reveal-label {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.skin-dalmaji-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.1rem;
+  border: 1.5px solid transparent;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 36, 0.82), rgba(10, 12, 24, 0.88)) padding-box,
+    linear-gradient(160deg, rgba(246, 231, 176, 0.35), rgba(90, 70, 28, 0.45)) border-box;
+  color: rgba(201, 184, 136, 0.85);
+  font-size: 0.875rem;
+}
+
+.skin-dalmaji-sheet {
+  border-color: rgba(232, 197, 106, 0.28);
+  background: #0c101c;
+}
+.skin-dalmaji-scene {
+  height: 1.75rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 0.45rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f6e7b0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-dalmaji-spark,
+  .skin-dalmaji-mark-halo-ring,
+  .skin-dalmaji-reveal-halo-ring,
+  .dj-glyph-sun-corona,
+  .dj-glyph-sun-rays,
+  .dj-glyph-moon-halo,
+  .dj-glyph-moon-ring,
+  .dj-glyph-moon-ripple,
+  .dj-glyph-moon-body,
+  .dj-glyph-star-glow,
+  .dj-glyph-star-body,
+  .dj-glyph-star-mote {
+    animation: none;
+  }
+  .skin-dalmaji-mark,
+  .skin-dalmaji-dust-fill,
+  .skin-dalmaji-well,
+  .skin-dalmaji-wash,
+  .skin-dalmaji-orb,
+  .skin-dalmaji-starfield,
+  .skin-dalmaji-clouds,
+  .dj-lantern-glow,
+  .dj-moon-reflect {
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════

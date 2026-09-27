@@ -69,13 +69,18 @@ export interface PurchaseSuccess {
   /** event_chip_pack 분기에서만 채워짐 */
   grantedChips?: number;
   newChipBalance?: number;
+  songpyeonBalance?: number;
+  grant?: 'skin-pick' | 'skin-random' | null;
+  pendingId?: string | null;
+  skinId?: string | null;
 }
 
 export type PurchaseErrorCode =
   | 'forbidden' | 'unauthorized' | 'invalid_request'
   | 'member_not_active' | 'item_not_found' | 'item_inactive'
   | 'item_not_available_yet' | 'item_expired' | 'out_of_stock'
-  | 'insufficient_balance' | 'already_owned' | 'effect_permanently_claimed'
+  | 'insufficient_balance' | 'insufficient_songpyeon' | 'already_owned' | 'effect_permanently_claimed'
+  | 'no_skins_left'
   | 'service_unavailable' | 'internal_error';
 
 // ── 인벤토리 / 소모성 ──────────────────────────────────────────────────

@@ -4,6 +4,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { SKIN_REGISTRY } from '@/lib/skins/registry';
 import { LEGEND_TITLE_ID } from './constants';
 import type { PoolContext, PoolEffectItem, ShopTitlePoolItem } from './types';
+import { CHUSEOK_LIMITED_SKIN_ID } from '@shared/event/chuseok';
+import { CHUSEOK_TITLE_EFFECTS } from '@shared/titles/chuseok-effects';
 
 export async function loadPoolContext(
   sb: SupabaseClient,
@@ -52,6 +54,7 @@ export async function loadPoolContext(
   if (allActiveSkinIds.length === 0) {
     allActiveSkinIds = Object.keys(SKIN_REGISTRY);
   }
+  allActiveSkinIds = allActiveSkinIds.filter((id) => id !== CHUSEOK_LIMITED_SKIN_ID);
   const permanentSkinIds = new Set<string>();
   for (const row of (memberSkinsRes.data ?? []) as Array<{ skin_id: string; expires_at: string | null }>) {
     if (row.expires_at === null) permanentSkinIds.add(row.skin_id);
@@ -89,9 +92,12 @@ export async function loadPoolContext(
   );
   const eligibleTitleIds = allBiasTitles.filter((t) => !ownedTitleIds.has(t.id));
 
+  const chuseokEffectKeys = new Set<string>(CHUSEOK_TITLE_EFFECTS.map((effect) => effect.key));
   const allActiveEffects: PoolEffectItem[] = (
     (effectDefsRes.data ?? []) as Array<{ id: string; key: string; name: string }>
-  ).map((r) => ({ id: r.id, key: r.key, name: r.name }));
+  )
+    .filter((r) => !chuseokEffectKeys.has(r.key))
+    .map((r) => ({ id: r.id, key: r.key, name: r.name }));
   const claimedEffectIds = new Set(
     ((claimedEffectsRes.data ?? []) as Array<{ effect_id: string }>).map((r) => r.effect_id),
   );

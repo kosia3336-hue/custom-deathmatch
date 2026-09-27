@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import MarkRow from './MarkRow';
+import DalmajiMarkRow from './skins/DalmajiMarkRow';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
+import DalmajiBetPanel from './skins/DalmajiBetPanel';
 import ScoreBar from './ScoreBar';
+import DalmajiScoreBar from './skins/DalmajiScoreBar';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import { GameFrame } from '@/components/game/GameFrame';
 
@@ -42,6 +45,7 @@ export default function MobileLayout({ ctx }: Props) {
     revealedBetFirst,
     markRowPendingPowder,
     litMark,
+    dalmaji,
     pendingBet,
     setPendingBet,
     resetBet,
@@ -94,6 +98,9 @@ export default function MobileLayout({ ctx }: Props) {
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
 
+  const Marks = dalmaji ? DalmajiMarkRow : MarkRow;
+  const Scores = dalmaji ? DalmajiScoreBar : ScoreBar;
+
   return (
     <>
       <GameFrame
@@ -104,11 +111,11 @@ export default function MobileLayout({ ctx }: Props) {
           '가끔 확인하는 참고' 가 아니라 매 수마다 읽는 값이다. 메모 안으로
           넣었더니 버튼을 눌러야 상대 칩이 보인다는 신고가 들어왔다.
         */
-        info={<ScoreBar p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={ctx.myId} />}
+        info={<Scores p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={ctx.myId} />}
       >
         <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden">
         <div className="w-full min-w-0">
-          <MarkRow
+          <Marks
             size="sm"
             myContribution={gameData.selfPrivate?.myMarkContribution ?? null}
             pendingPowder={markRowPendingPowder}
@@ -143,7 +150,9 @@ export default function MobileLayout({ ctx }: Props) {
           />
           {/* sheet */}
           <div
-            className="fixed inset-x-0 bottom-0 z-(--cdm-z-modal) rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl"
+            className={`fixed inset-x-0 bottom-0 z-(--cdm-z-modal) rounded-t-2xl border-t shadow-2xl ${
+              dalmaji ? 'border-white/10 bg-[#101824]' : 'border-gray-200 bg-white'
+            }`}
             style={{ animation: 'sms2SlideUp 250ms ease-out forwards' }}
           >
             <button
@@ -156,19 +165,34 @@ export default function MobileLayout({ ctx }: Props) {
               <span className="text-[11px] font-semibold text-gray-400">눌러서 접고 판 보기</span>
             </button>
             <div className="overflow-y-auto px-4" style={{ maxHeight: '70dvh', paddingBottom: 'calc(1.5rem + var(--cdm-safe-bottom, 0px))' }}>
-              <BetInput
-                turn={isBetFirst ? 'first' : 'second'}
-                myChips={myPlayer.chips}
-                opponentChips={opponent?.chips ?? 0}
-                value={pendingBet}
-                firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
-                firstSide={firstSide!}
-                submitting={submitting}
-                disabled={myPlayer.betConfirmed || submitting}
-                onChange={setPendingBet}
-                onSubmit={handleSubmitBet}
-                onReset={resetBet}
-              />
+              {dalmaji ? (
+                <DalmajiBetPanel
+                  turn={isBetFirst ? 'first' : 'second'}
+                  myChips={myPlayer.chips}
+                  opponentChips={opponent?.chips ?? 0}
+                  value={pendingBet}
+                  firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+                  submitting={submitting}
+                  disabled={myPlayer.betConfirmed || submitting}
+                  onChange={setPendingBet}
+                  onSubmit={handleSubmitBet}
+                  onReset={resetBet}
+                />
+              ) : (
+                <BetInput
+                  turn={isBetFirst ? 'first' : 'second'}
+                  myChips={myPlayer.chips}
+                  opponentChips={opponent?.chips ?? 0}
+                  value={pendingBet}
+                  firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+                  firstSide={firstSide!}
+                  submitting={submitting}
+                  disabled={myPlayer.betConfirmed || submitting}
+                  onChange={setPendingBet}
+                  onSubmit={handleSubmitBet}
+                  onReset={resetBet}
+                />
+              )}
             </div>
           </div>
         </>

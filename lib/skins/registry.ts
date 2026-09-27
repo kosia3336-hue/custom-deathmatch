@@ -8,6 +8,7 @@
  */
 
 import { GAME_IDS } from '@/shared/types/game';
+import { CHUSEOK_LIMITED_SKIN_ID } from '@shared/event/chuseok';
 
 /** 지원하는 스킨 테마 식별자 */
 export type SkinTheme =
@@ -22,7 +23,8 @@ export type SkinTheme =
   | 'treasury'
   | 'four-card'
   | 'spring-rain'
-  | 'ink-wash';
+  | 'ink-wash'
+  | 'dalmaji';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -135,6 +137,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'showdown',
     description: '황혼의 결투장. 탄띠 트랙, 조준경 제시, 현상금 포스터와 총잡이 결투 연출.',
     swatch: 'linear-gradient(160deg, #f3e6d0 0%, #d8a24a 45%, #9c5a34 100%)',
+  },
+  [CHUSEOK_LIMITED_SKIN_ID]: {
+    id: CHUSEOK_LIMITED_SKIN_ID,
+    gameId: GAME_IDS.SUN_MOON_STAR_2,
+    name: '한가위 보름',
+    theme: 'dalmaji',
+    description: '해달별2 한가위 보름. 달빛 판과 해·달·별 문양.',
+    swatch: 'linear-gradient(160deg, #141e38 0%, #1a5864 48%, #e8c56a 100%)',
   },
 };
 

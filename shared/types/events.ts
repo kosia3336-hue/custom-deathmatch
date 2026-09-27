@@ -444,6 +444,8 @@ export interface ServerToClientEvents {
 
   /** CDP 적립 — 본인 전용 emit */
   'cdp:granted': (payload: CdpGrantedPayload) => void;
+  /** 한가위 송편 적립 — 본인 전용 emit */
+  'songpyeon:granted': (payload: { amount: number; balance: number; reason: string }) => void;
   /** CDP 잔액 변동 (구매/어드민 조정) — 본인 전용 emit */
   'cdp:adjusted': (payload: CdpAdjustedPayload) => void;
   /** 상점 아이템 변경 (재고/활성) — 전체 broadcast */
