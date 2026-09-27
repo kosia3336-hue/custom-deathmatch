@@ -16,7 +16,7 @@ import {
 } from '@/lib/pagination';
 import {
   RANKING_LIST_SCAN_LIMIT,
-  findMemberIdsByNickname,
+  findRankingSearchMemberIds,
   parseRankingNicknameQuery,
 } from '@/lib/rank/nicknameSearch';
 import RankingTabs from './RankingTabs';
@@ -148,7 +148,7 @@ export default async function RankingPage({ searchParams }: Props) {
   const offset = (page - 1) * PAGE_SIZE;
   const nicknameQuery = parseRankingNicknameQuery(sp.q);
   const matchIds = nicknameQuery
-    ? new Set(await findMemberIdsByNickname(db, nicknameQuery))
+    ? new Set(await findRankingSearchMemberIds(db, nicknameQuery))
     : null;
 
   let rankings: RankRow[] = [];

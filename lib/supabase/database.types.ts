@@ -408,6 +408,17 @@ export interface AttachFileRow {
   created_at: string;
 }
 
+// 랭킹 검색 팀 (db/ranking_teams.sql)
+export interface RankingTeamRow {
+  id: string;
+  name: string;
+}
+
+export interface RankingTeamMemberRow {
+  team_id: string;
+  member_id: string;
+}
+
 // 길드 시스템 (db/guilds.sql)
 export interface GuildRow {
   id: string;
@@ -630,6 +641,16 @@ export interface Database {
         Row: AttachFileRow;
         Insert: Partial<AttachFileRow> & { member_id: string; url: string };
         Update: Partial<AttachFileRow>;
+      };
+      ranking_teams: {
+        Row: RankingTeamRow;
+        Insert: Partial<RankingTeamRow> & { name: string };
+        Update: Partial<RankingTeamRow>;
+      };
+      ranking_team_members: {
+        Row: RankingTeamMemberRow;
+        Insert: RankingTeamMemberRow;
+        Update: Partial<RankingTeamMemberRow>;
       };
       guilds: {
         Row: GuildRow;
