@@ -10,7 +10,10 @@ import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import ScorePanel from './ScorePanel';
+import DalmajiScorePanel from './skins/DalmajiScorePanel';
 import PowderTrack from './PowderTrack';
+import DalmajiPowderTrack from './skins/DalmajiPowderTrack';
+import DalmajiFieldShell from './skins/DalmajiFieldShell';
 import OpponentPowderTracker from './OpponentPowderTracker';
 import RoundHistoryTable from './RoundHistoryTable';
 import { zeroOpponentEstimate } from './types';
@@ -86,7 +89,7 @@ export default function SunMoonStar2Game() {
     );
   }
 
-  return (
+  const game = (
     <>
       <style>{`
         @keyframes sms2FadeIn {
@@ -141,16 +144,21 @@ export default function SunMoonStar2Game() {
       </div>
     </>
   );
+
+  if (!ctx.dalmaji) return game;
+  return <DalmajiFieldShell skyMark={ctx.litMark}>{game}</DalmajiFieldShell>;
 }
 
 function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
-  const { gameData, isSpectator, myId, myPlayer, opponent, mySide, firstSide, showTracker, opponentEstimate, setOpponentEstimate } = ctx;
+  const { gameData, isSpectator, myId, myPlayer, opponent, mySide, firstSide, showTracker, opponentEstimate, setOpponentEstimate, dalmaji } = ctx;
+  const Scores = dalmaji ? DalmajiScorePanel : ScorePanel;
+  const Track = dalmaji ? DalmajiPowderTrack : PowderTrack;
   if (!gameData || !firstSide) return null;
   const left = !isSpectator && myPlayer ? myPlayer : gameData.players.p1;
   const right = !isSpectator && opponent ? opponent : gameData.players.p2;
   return (
     <GameInfoStack>
-      <GameInfoPart><ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
+      <GameInfoPart><Scores p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
       {showTracker && opponentEstimate && opponent && (
         <GameInfoPart title="상대 빛가루 추리">
           <OpponentPowderTracker
@@ -163,7 +171,7 @@ function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
         </GameInfoPart>
       )}
       <GameInfoPart title="빛가루 트랙">
-        <PowderTrack
+        <Track
           leftLabel={!isSpectator && myPlayer ? '나' : left.nickname}
           leftStage={left.powderStage}
           leftRemain={!isSpectator && myPlayer ? gameData.selfPrivate?.powderRemain ?? null : null}

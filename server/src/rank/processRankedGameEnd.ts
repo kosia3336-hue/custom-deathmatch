@@ -33,6 +33,7 @@ import { grantGuildPoints, GUILD_POINTS } from '../guild/grantGuildPoints.js';
 import { applyGuildRankDeltaV4, guildRankScoreMaterial } from './applyGuildRankDeltaV4.js';
 import { claimDailyRankWin } from '../cdp/claimDailyRankWin.js';
 import { computeWinLossInputs, makeDrawInput } from '../cdp/calc.js';
+import { grantSongpyeonForRankedGame } from '../event/grantSongpyeon.js';
 
 interface MutableStats {
   tier: RankTier;
@@ -440,6 +441,27 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     }
   } else {
     console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
+  }
+
+  if (gameLogId) {
+    const forfeit = ctx.result.endedByForfeit === true;
+    const songpyeonGrants = ctx.isDraw
+      ? [
+          { memberId: ctx.idA, outcome: 'draw' as const, forfeit: false },
+          { memberId: ctx.idB, outcome: 'draw' as const, forfeit: false },
+        ]
+      : ctx.isDoubleLoss
+        ? [
+            { memberId: ctx.idA, outcome: 'loss' as const, forfeit },
+            { memberId: ctx.idB, outcome: 'loss' as const, forfeit },
+          ]
+        : ctx.cdpWinnerId && ctx.cdpLoserId
+          ? [
+              { memberId: ctx.cdpWinnerId, outcome: 'win' as const, forfeit: false },
+              { memberId: ctx.cdpLoserId, outcome: 'loss' as const, forfeit },
+            ]
+          : [];
+    void grantSongpyeonForRankedGame(io, gameLogId, songpyeonGrants);
   }
 
   // 길드 포인트 적립 (길드 미가입자는 RPC 내부 no-op)

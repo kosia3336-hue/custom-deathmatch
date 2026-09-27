@@ -5,7 +5,7 @@
  * 이펙트만으로는 뱃지를 그리지 않는다.
  */
 
-export type TitleEffectKey = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang';
+export type TitleEffectKey = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang' | 'bokjumeoni' | 'hanji' | 'daltokki' | 'nakyeop' | 'fullmoon';
 
 export interface ResolveTitleInput {
   name: string;
@@ -37,7 +37,12 @@ export function isTitleEffectKey(value: string | null | undefined): value is Tit
     value === 'frost' ||
     value === 'lightning' ||
     value === 'wave' ||
-    value === 'dojang'
+    value === 'dojang' ||
+    value === 'bokjumeoni' ||
+    value === 'hanji' ||
+    value === 'daltokki' ||
+    value === 'nakyeop' ||
+    value === 'fullmoon'
   );
 }
 

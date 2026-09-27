@@ -323,6 +323,14 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
     );
   }
 
+  if (theme === 'dalmaji') {
+    return (
+      <div className="skin-dalmaji-field skin-dalmaji-field--night relative h-24 w-full overflow-hidden rounded-lg">
+        <span className="absolute top-4 left-1/2 h-8 w-8 -translate-x-1/2 rounded-full bg-[#f0d078]" />
+      </div>
+    );
+  }
+
   return (
     <div className="skin-imperial-board relative flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg">
       <span

@@ -102,6 +102,32 @@ export function playSpringRainPlopSfx() {
   }
 }
 
+export const SKIN_REEL_GAPS_MS = [90, 90, 90, 90, 90, 90, 90, 100, 120, 150, 190, 240, 310, 400, 520, 680];
+
+export function playSkinReelSfx() {
+  try {
+    const c = getCtx();
+    if (!c) return;
+    const frames = SKIN_REEL_GAPS_MS.length + 1;
+    let t = c.currentTime + 0.015;
+    for (let i = 0; i < frames; i++) {
+      const last = i === frames - 1;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(last ? 1480 : 820 + (i % 2) * 260, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(last ? 0.5 : 0.36, t + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + (last ? 0.14 : 0.035));
+      osc.connect(gain);
+      gain.connect(getSfxOutput(c));
+      osc.start(t);
+      osc.stop(t + (last ? 0.16 : 0.04));
+      if (!last) t += (SKIN_REEL_GAPS_MS[i] ?? 22) / 1000;
+    }
+  } catch {}
+}
+
 /** 추첨 룰렛 핑 효과음 — 띵 */
 export function playLotteryPingSfx() {
   try {

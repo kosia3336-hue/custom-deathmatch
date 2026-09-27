@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import PowderInput from './PowderInput';
 import BetInput from './BetInput';
+import DalmajiPowderPanel from './skins/DalmajiPowderPanel';
+import DalmajiBetPanel from './skins/DalmajiBetPanel';
 import MarkRevealPanel from './MarkRevealPanel';
 import WaitingCard, { buildWaitingText } from './WaitingCard';
 import FinalResult from './FinalResult';
@@ -121,19 +123,34 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
           lastRecord={lastRecord}
           mySide={mySide}
         />
-        <BetInput
-          turn={isBetFirst ? 'first' : 'second'}
-          myChips={myPlayer.chips}
-          opponentChips={opponent?.chips ?? 0}
-          value={pendingBet}
-          firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
-          firstSide={firstSide}
-          submitting={submitting}
-          disabled={myPlayer.betConfirmed || submitting}
-          onChange={setPendingBet}
-          onSubmit={handleSubmitBet}
-          onReset={resetBet}
-        />
+        {ctx.dalmaji ? (
+          <DalmajiBetPanel
+            turn={isBetFirst ? 'first' : 'second'}
+            myChips={myPlayer.chips}
+            opponentChips={opponent?.chips ?? 0}
+            value={pendingBet}
+            firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+            submitting={submitting}
+            disabled={myPlayer.betConfirmed || submitting}
+            onChange={setPendingBet}
+            onSubmit={handleSubmitBet}
+            onReset={resetBet}
+          />
+        ) : (
+          <BetInput
+            turn={isBetFirst ? 'first' : 'second'}
+            myChips={myPlayer.chips}
+            opponentChips={opponent?.chips ?? 0}
+            value={pendingBet}
+            firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+            firstSide={firstSide}
+            submitting={submitting}
+            disabled={myPlayer.betConfirmed || submitting}
+            onChange={setPendingBet}
+            onSubmit={handleSubmitBet}
+            onReset={resetBet}
+          />
+        )}
       </div>
     );
   }
@@ -161,19 +178,18 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   }
 
   if (!isSpectator && myPlayer && isPowder) {
-    return (
-      <PowderInput
-        powderRemain={gameData.selfPrivate?.powderRemain ?? 0}
-        value={pendingPowder}
-        submitted={mySubmittedPowder}
-        opponentSubmitted={opponent?.submittedPowder ?? false}
-        submitting={submitting}
-        onChange={setPendingPowder}
-        onSubmit={handleSubmitPowder}
-        onCancel={handleCancelPowder}
-        onReset={resetPowder}
-      />
-    );
+    const powderProps = {
+      powderRemain: gameData.selfPrivate?.powderRemain ?? 0,
+      value: pendingPowder,
+      submitted: mySubmittedPowder,
+      opponentSubmitted: opponent?.submittedPowder ?? false,
+      submitting,
+      onChange: setPendingPowder,
+      onSubmit: handleSubmitPowder,
+      onCancel: handleCancelPowder,
+      onReset: resetPowder,
+    };
+    return ctx.dalmaji ? <DalmajiPowderPanel {...powderProps} /> : <PowderInput {...powderProps} />;
   }
 
   /* 그 외: 대기 */

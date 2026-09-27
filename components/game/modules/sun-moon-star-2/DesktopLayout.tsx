@@ -1,11 +1,14 @@
 'use client';
 
 import MarkRow from './MarkRow';
+import DalmajiMarkRow from './skins/DalmajiMarkRow';
 import PowderTrack from './PowderTrack';
+import DalmajiPowderTrack from './skins/DalmajiPowderTrack';
 import OpponentPowderTracker from './OpponentPowderTracker';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
 import RoundHistoryTable from './RoundHistoryTable';
 import ScorePanel from './ScorePanel';
+import DalmajiScorePanel from './skins/DalmajiScorePanel';
 import PhaseStepperDesktop from './PhaseStepperDesktop';
 import PhaseArea from './PhaseArea';
 import { zeroOpponentEstimate } from './types';
@@ -46,12 +49,17 @@ export default function DesktopLayout({ ctx }: Props) {
     revealedBetFirst,
     markRowPendingPowder,
     litMark,
+    dalmaji,
     showTracker,
     opponentEstimate,
     setOpponentEstimate,
   } = ctx;
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
+
+  const Track = dalmaji ? DalmajiPowderTrack : PowderTrack;
+  const Marks = dalmaji ? DalmajiMarkRow : MarkRow;
+  const Scores = dalmaji ? DalmajiScorePanel : ScorePanel;
 
   return (
     <div className="flex h-full">
@@ -74,7 +82,7 @@ export default function DesktopLayout({ ctx }: Props) {
 
           {/* 해·달·별 표식 행 */}
           <div className="w-full max-w-2xl">
-            <MarkRow
+            <Marks
               size="md"
               myContribution={gameData.selfPrivate?.myMarkContribution ?? null}
               pendingPowder={markRowPendingPowder}
@@ -104,7 +112,7 @@ export default function DesktopLayout({ ctx }: Props) {
 
         {/* ── 우측 사이드바 ── */}
         <div className="hidden lg:flex lg:w-72 lg:shrink-0 lg:flex-col lg:gap-3 lg:p-3">
-          <GameInfoPart><ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
+          <GameInfoPart><Scores p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
 
           {showTracker && opponentEstimate && opponent && (
             <GameInfoPart title="상대 빛가루 추리">
@@ -119,7 +127,7 @@ export default function DesktopLayout({ ctx }: Props) {
             </GameInfoPart>
           )}
 
-          <GameInfoPart title="빛가루 트랙"><PowderTrack
+          <GameInfoPart title="빛가루 트랙"><Track
             compact
             leftLabel={!isSpectator && myPlayer ? '나' : gameData.players.p1.nickname}
             leftStage={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).powderStage}
