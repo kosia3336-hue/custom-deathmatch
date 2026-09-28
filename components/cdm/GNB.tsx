@@ -12,6 +12,7 @@ import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
 import { UnreadBadge } from '@/components/cdm/UnreadBadge';
+import { useGuildChatUnread } from '@/components/guild-v4/GuildChatLive';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import InventoryInit from '@/components/providers/InventoryInit';
 import MailboxInit from '@/components/providers/MailboxInit';
@@ -53,6 +54,7 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
   const [devSwitchOpen, setDevSwitchOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const guildUnread = useGuildChatUnread();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -104,13 +106,14 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
                 href={it.href}
                 prefetch={pathname?.startsWith(it.href) ? false : undefined}
                 className={cn(
-                  'rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
+                  'inline-flex items-center gap-1 rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
                   pathname === it.href || pathname?.startsWith(it.href)
                     ? 'text-white bg-white/10'
                     : 'text-cdm-ink-fg-muted hover:text-white hover:bg-white/10',
                 )}
               >
                 {it.label}
+                {it.href === '/guild' ? <UnreadBadge count={guildUnread} /> : null}
               </Link>
             ))}
         </nav>

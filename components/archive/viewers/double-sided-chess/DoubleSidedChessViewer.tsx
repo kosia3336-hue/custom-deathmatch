@@ -7,6 +7,7 @@ import { formatTime } from '@/lib/utils';
 import { computeFrames } from './replayUtils';
 import ReplayBoard from './ReplayBoard';
 import MoveList from './MoveList';
+import { ReviewPlayButton } from '@/components/archive/ReviewPlayButton';
 
 interface Props {
   record: GameRecordFile;
@@ -123,6 +124,12 @@ export default function DoubleSidedChessViewer({ record }: Props) {
               <span className="min-w-[56px] text-center text-sm font-medium text-gray-700">
                 {currentFrame === 0 ? '0' : String(frame.turnNumber)} / {gameRecord.actions.length}
               </span>
+              <ReviewPlayButton
+                gameId={record.gameId}
+                gameName={record.gameName}
+                actions={gameRecord.actions.slice(0, Math.max(0, currentFrame - 1))}
+                disabled={currentFrame < 1}
+              />
               <button
                 onClick={goNext}
                 disabled={currentFrame === totalFrames}

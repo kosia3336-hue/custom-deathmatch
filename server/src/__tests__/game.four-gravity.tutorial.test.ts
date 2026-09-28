@@ -41,6 +41,7 @@ function makeState(): InternalState {
     turnTimer: null,
     playMode: 'tutorial',
     gameOver: false,
+    reviewing: false,
     actionLog: [],
     undoSnapshots: [],
     ownerToken: null,

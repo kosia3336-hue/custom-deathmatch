@@ -17,9 +17,11 @@ import {
   applyRankWin,
   calcRankRpParts,
   calcCounterRankRpParts,
+  RANK_PARITY_RP,
   peakTierMax,
   placementTierAndRp,
   rankTierNumericForRp,
+  type RankRpParts,
   type RankTier,
 } from '@shared/types/rank.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
@@ -143,6 +145,22 @@ function applyRankedLoss(s: MutableStats, loss: number): void {
 
 function tierValForRp(s: MutableStats): number {
   return rankTierNumericForRp(s.tier, s.placement_done);
+}
+
+function matchRpBreakdown(
+  parts: RankRpParts,
+  side: 'win' | 'lose',
+  counter: boolean,
+): NonNullable<RankPlayerOutcome['rpBreakdown']> {
+  const sign = side === 'win' ? 1 : -1;
+  const parity = (counter ? RANK_PARITY_RP * 2 : RANK_PARITY_RP) * sign;
+  const table = side === 'win' ? parts.winnerBaseTable : parts.loserBaseTable;
+  const streak = side === 'win' ? parts.winnerStreakBonus : parts.loserStreakPenalty;
+  return {
+    parityReference: parity,
+    tierVersusParity: (table - RANK_PARITY_RP) * sign,
+    streakVersusParity: streak * sign,
+  };
 }
 
 function snapshot(s: MutableStats): MutableStats {
@@ -636,26 +654,15 @@ export async function finalizeRankedMultiGameEnd(
   } else if (isDoubleLoss) {
     const tA = tierValForRp(statsA);
     const tB = tierValForRp(statsB);
-    const partsA = room.hiddenMatch
-      ? calcCounterRankRpParts(tB, tA)
-      : calcRankRpParts(tB, tA);
-    const partsB = room.hiddenMatch
-      ? calcCounterRankRpParts(tA, tB)
-      : calcRankRpParts(tA, tB);
+    const counter = room.hiddenMatch === true;
+    const settle = counter ? calcCounterRankRpParts : calcRankRpParts;
+    const partsA = settle(tB, tA, statsB.win_streak, statsA.loss_streak, statsA.tier);
+    const partsB = settle(tA, tB, statsA.win_streak, statsB.loss_streak, statsB.tier);
     doubleLossA = partsA.loserLoss;
     doubleLossB = partsB.loserLoss;
 
-    const parity = room.hiddenMatch ? 30 : 20;
-    const loseBrA = {
-      parityReference: -parity,
-      tierVersusParity: -(partsA.loserBaseTable - parity),
-      streakVersusParity: 0,
-    };
-    const loseBrB = {
-      parityReference: -parity,
-      tierVersusParity: -(partsB.loserBaseTable - parity),
-      streakVersusParity: 0,
-    };
+    const loseBrA = matchRpBreakdown(partsA, 'lose', counter);
+    const loseBrB = matchRpBreakdown(partsB, 'lose', counter);
     if (beforeAPlacementDone && beforeBPlacementDone) {
       rpBreakdownA = loseBrA;
       rpBreakdownB = loseBrB;
@@ -691,23 +698,19 @@ export async function finalizeRankedMultiGameEnd(
     beforeWinnerPlacementDone = winnerStats.placement_done;
     beforeLoserPlacementDone = loserStats.placement_done;
 
-    const parts = room.hiddenMatch
-      ? calcCounterRankRpParts(wTierVal, lTierVal)
-      : calcRankRpParts(wTierVal, lTierVal);
+    const counter = room.hiddenMatch === true;
+    const parts = (counter ? calcCounterRankRpParts : calcRankRpParts)(
+      wTierVal,
+      lTierVal,
+      winnerStats.win_streak,
+      loserStats.loss_streak,
+      loserStats.tier,
+    );
     winnerGain = parts.winnerGain;
     loserLoss = parts.loserLoss;
 
-    const parity = room.hiddenMatch ? 30 : 20;
-    const winBr = {
-      parityReference: parity,
-      tierVersusParity: parts.winnerBaseTable - parity,
-      streakVersusParity: 0,
-    };
-    const loseBr = {
-      parityReference: -parity,
-      tierVersusParity: -(parts.loserBaseTable - parity),
-      streakVersusParity: 0,
-    };
+    const winBr = matchRpBreakdown(parts, 'win', counter);
+    const loseBr = matchRpBreakdown(parts, 'lose', counter);
 
     if (beforeWinnerPlacementDone && beforeLoserPlacementDone) {
       rpBreakdownA = idA === winnerPl.memberId ? winBr : loseBr;

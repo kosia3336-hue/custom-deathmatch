@@ -91,6 +91,7 @@ function buildGameState(s: InternalState, viewerToken: string): GameState {
 }
 
 export async function broadcastState(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
@@ -162,6 +163,10 @@ function resolveGame(
     winLine?: InternalState['winLine'];
   },
 ) {
+  if (s.reviewing) {
+    s.gameOver = true;
+    return;
+  }
   const winnerNick = opts.winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
   const loserNick = opts.loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
 
@@ -254,6 +259,7 @@ export function armTurnTimer(io: IO, s: InternalState) {
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   pushUndoSnapshot(s);
   armTurnTimer(io, s);
 }

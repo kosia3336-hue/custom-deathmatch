@@ -1,4 +1,5 @@
 import { AI_PLAYER_ID } from '@shared/types/room.js';
+import { readReviewActions } from '@shared/review.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
 import {
   resolveAbstractAiDifficulty,
@@ -104,6 +105,7 @@ export function initFourGravity(
     aiThinkSeconds: resolveAbstractAiThinkSeconds(gameOptions),
     aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty, 'game-001'),
     gameOver: false,
+    reviewing: false,
     actionLog: [],
     undoSnapshots: [],
     ownerToken,
@@ -118,12 +120,43 @@ export function initFourGravity(
     broadcastState(io, s);
     return;
   }
+  const review = readReviewActions(gameOptions);
+  if (!review.ok) throw new Error('복기 수순을 읽지 못했습니다.');
+  if (review.actions) {
+    replayFourGravityReview(io, s, review.actions);
+  }
   startTurnTimer(io, s);
   broadcastState(io, s);
 
   // AI가 흑(첫 번째 차례)일 경우 게임 시작 시 즉시 AI 턴 실행
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
     runAITurn(io, roomId);
+  }
+}
+
+function replayFourGravityReview(io: IO, s: InternalState, actions: unknown[]) {
+  s.reviewing = true;
+  const actor = { id: s.currentPlayer, emit() {} } as unknown as TypedSocket;
+  try {
+    for (const turn of actions) {
+      const steps = (turn as { steps?: unknown }).steps;
+      if (!Array.isArray(steps)) throw new Error('복기 수순을 읽지 못했습니다.');
+      for (const step of steps) {
+        const before = s.actionLog.length;
+        const beforeSteps = s.actionLog[before - 1]?.steps.length ?? 0;
+        handleFourGravityAction(io, actor, s.roomId, step as Record<string, unknown>);
+        const grew =
+          s.actionLog.length > before ||
+          (s.actionLog[s.actionLog.length - 1]?.steps.length ?? 0) > beforeSteps;
+        if (!grew || s.gameOver) throw new Error('복기 수순을 적용하지 못했습니다.');
+      }
+    }
+  } catch (error) {
+    clearTurnTimer(s);
+    gameStates.delete(s.roomId);
+    throw error;
+  } finally {
+    s.reviewing = false;
   }
 }
 

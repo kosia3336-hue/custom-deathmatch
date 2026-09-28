@@ -87,6 +87,7 @@ function toGameState(state: TripleGomokuState, data: TripleGomokuGameData): Game
 }
 
 export async function broadcastTripleGomokuState(io: IO, state: TripleGomokuState) {
+  if (state.reviewing) return;
   const sockets = await io.in(socketRoom(state.roomId)).fetchSockets();
   for (const socket of sockets) {
     const viewerId = sessions.getToken(socket.id) ?? socket.id;

@@ -77,6 +77,7 @@ function buildGameState(s: InternalState, viewerToken: string): GameState {
 }
 
 export async function broadcastState(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
@@ -149,6 +150,10 @@ function resolveGame(
   s: InternalState,
   opts: { winnerOwner: Owner; winType: DSCWinType },
 ) {
+  if (s.reviewing) {
+    s.gameOver = true;
+    return;
+  }
   const loserOwner: Owner = opts.winnerOwner === 'first' ? 'second' : 'first';
   const winnerInfo = getPlayerInfo(s, opts.winnerOwner);
   const loserInfo = getPlayerInfo(s, loserOwner);
@@ -236,6 +241,7 @@ function armTurnTimer(io: IO, s: InternalState) {
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   pushUndoSnapshot(s);
   armTurnTimer(io, s);
 }

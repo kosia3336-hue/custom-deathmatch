@@ -983,6 +983,9 @@ export function startGame(io: IO, roomId: string) {
       );
     } catch (err) {
       console.error('[startGame] 게임 초기화 예외', { roomId, gameId: room.gameId }, err);
+      for (const sid of io.sockets.adapter.rooms.get(socketRoom(roomId)) ?? []) {
+        sessions.clearRoom(sid);
+      }
       io.to(socketRoom(roomId)).emit('room:disbanded', {
         reason: '게임을 시작하는 중 오류가 발생했습니다.',
       });

@@ -6,6 +6,7 @@ import type { Direction } from '@/shared/types/four-gravity';
 import { computeFrames } from './replayUtils';
 import ReplayBoard from './ReplayBoard';
 import MoveList from './MoveList';
+import { ReviewPlayButton } from '@/components/archive/ReviewPlayButton';
 import { formatTime } from '@/lib/utils';
 import { PLAY_MODE_LABEL } from '@/shared/types';
 
@@ -168,6 +169,12 @@ export default function FourGravityViewer({ record }: Props) {
               <span className="min-w-[56px] text-center text-sm font-medium text-gray-700">
                 {frame.stepType === 'start' ? '0' : String(frame.turnNumber)} / {totalTurns}
               </span>
+              <ReviewPlayButton
+                gameId={record.gameId}
+                gameName={record.gameName}
+                actions={gameRecord.actions.slice(0, Math.max(0, frame.turnNumber - 1))}
+                disabled={frame.turnNumber < 1}
+              />
               <button
                 onClick={goNext}
                 disabled={currentFrame === totalFrames}

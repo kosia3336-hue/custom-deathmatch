@@ -9,6 +9,7 @@ import TitleGrantedModal from '@/components/TitleGrantedModal';
 import { GuildRankPayoutModal } from '@/components/guild-v4/GuildRankPayoutModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import { GuildScoutMailListener } from '@/components/guild-v4/GuildScoutMailListener';
+import { GuildChatLive } from '@/components/guild-v4/GuildChatLive';
 import BgmProvider from '@/components/providers/BgmProvider';
 import SiteFooter from '@/components/layout/SiteFooter';
 import OfflineOverlay from '@/components/providers/OfflineOverlay';
@@ -158,6 +159,7 @@ export default async function RootLayout({
             <GuildRankPayoutModal />
             <NoticePublishedListener />
             <GuildScoutMailListener />
+            <GuildChatLive />
             <OfflineOverlay />
             <ToastProvider />
           </BgmProvider>

@@ -1,4 +1,5 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
+import { readReviewActions } from '@shared/review.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import {
   resolveAbstractAiDifficulty,
@@ -9,7 +10,7 @@ import { sessions } from '../../../store/sessions.js';
 import type { Position, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { EndGameFn, DSCPlayerInfo } from './types.js';
+import type { EndGameFn, DSCPlayerInfo, InternalState } from './types.js';
 import { createInitialBoard, getValidMoves, getValidPrisonerPlacements } from './board.js';
 import {
   gameStates,
@@ -78,17 +79,45 @@ export function initDoubleSidedChess(
     aiThinkSeconds: resolveAbstractAiThinkSeconds(gameOptions),
     aiDifficulty: resolveAbstractAiDifficulty(gameOptions?.aiDifficulty, 'game-002'),
     gameOver: false,
+    reviewing: false,
     actionLog: [],
     undoSnapshots: [],
     ownerToken,
   });
 
   const s = gameStates.get(roomId)!;
+  const review = readReviewActions(gameOptions);
+  if (!review.ok) throw new Error('복기 수순을 읽지 못했습니다.');
+  if (review.actions) {
+    replayDoubleSidedChessReview(io, s, review.actions);
+  }
   startTurnTimer(io, s);
   broadcastState(io, s);
 
   if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
     runAITurn(io, roomId);
+  }
+}
+
+function replayDoubleSidedChessReview(io: IO, s: InternalState, actions: unknown[]) {
+  s.reviewing = true;
+  const actor = { id: s.currentPlayer, emit() {} } as unknown as TypedSocket;
+  try {
+    for (const entry of actions) {
+      const action = (entry as { action?: unknown }).action;
+      if (!action || typeof action !== 'object') throw new Error('복기 수순을 읽지 못했습니다.');
+      const before = s.actionLog.length;
+      handleDoubleSidedChessAction(io, actor, s.roomId, action as Record<string, unknown>);
+      if (s.actionLog.length === before || s.gameOver) {
+        throw new Error('복기 수순을 적용하지 못했습니다.');
+      }
+    }
+  } catch (error) {
+    clearTurnTimer(s);
+    gameStates.delete(s.roomId);
+    throw error;
+  } finally {
+    s.reviewing = false;
   }
 }
 

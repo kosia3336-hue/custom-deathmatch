@@ -17,6 +17,8 @@ import {
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { PLAY_MODE_LABEL } from '@/shared/types';
 import { formatTime } from '@/lib/utils';
+import LogsFilterSelect, { type LogGameOption } from './LogsFilterSelect';
+import { parseLogOpponentFilter, type LogOpponentFilter } from './logOpponent';
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
@@ -45,20 +47,39 @@ interface LogRow {
   isRanked: boolean;
 }
 
+async function loadGameOptions(): Promise<LogGameOption[]> {
+  const sb = await getServerSupabase();
+  const res = await sb.from('games').select('id, name, sort_order').order('sort_order');
+  return ((res.data ?? []) as unknown as { id: string; name: string }[]).map((row) => ({
+    id: row.id,
+    name: row.name,
+  }));
+}
+
 async function loadLogs(
   memberId: string,
   page: number,
+  opponent: LogOpponentFilter,
+  gameId: string | null,
 ): Promise<{ logs: LogRow[]; totalCount: number }> {
   const sb = await getServerSupabase();
   const { from, to } = getRange(page, PAGE_SIZE);
 
   // 본인이 참가한 game_log_participants → game_log 매칭 (페이지네이션은 본인 행 기준)
-  const partRes = await sb
+  // AI = mode com. 유저 = 그 외(멀티·솔로·튜토리얼).
+  let partQuery = sb
     .from('game_log_participants')
-    .select('game_log_id', { count: 'exact' })
-    .eq('member_id', memberId)
-    .order('id', { ascending: false })
-    .range(from, to);
+    .select('game_log_id, game_logs!inner(mode, game_id)', { count: 'exact' })
+    .eq('member_id', memberId);
+  if (opponent === 'ai') {
+    partQuery = partQuery.eq('game_logs.mode', 'com');
+  } else if (opponent === 'user') {
+    partQuery = partQuery.neq('game_logs.mode', 'com');
+  }
+  if (gameId) {
+    partQuery = partQuery.eq('game_logs.game_id', gameId);
+  }
+  const partRes = await partQuery.order('id', { ascending: false }).range(from, to);
   const partRows = (partRes.data ?? []) as unknown as { game_log_id: string }[];
   const totalCount = partRes.count ?? 0;
 
@@ -99,26 +120,45 @@ async function loadLogs(
   return { logs, totalCount };
 }
 
+function emptyTitle(opponent: LogOpponentFilter, gameName: string | null): string {
+  const who =
+    opponent === 'ai' ? 'AI 대전 로그' : opponent === 'user' ? '유저 대전 로그' : '로그';
+  if (gameName) return `${gameName} ${who}가 없습니다`;
+  if (opponent === 'all') return '아직 게임 로그가 없습니다';
+  return `${who}가 없습니다`;
+}
+
 export default async function LogsTab({
   memberId,
   page: pageParam,
+  logOpponent,
+  logGame,
 }: {
   memberId: string;
   page: string | undefined;
+  logOpponent: string | undefined;
+  logGame: string | undefined;
 }) {
   const page = parsePageParam(pageParam);
-  const { logs, totalCount } = await loadLogs(memberId, page);
+  const opponent = parseLogOpponentFilter(logOpponent);
+  const games = await loadGameOptions();
+  const game = games.find((row) => row.id === logGame) ?? null;
+  const { logs, totalCount } = await loadLogs(memberId, page, opponent, game?.id ?? null);
   const totalPages = getTotalPages(totalCount, PAGE_SIZE);
-
-  if (totalCount === 0) {
-    return <EmptyState title="아직 게임 로그가 없습니다" />;
-  }
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-cdm-fg-muted">
-        총 {totalCount}판 · {page} / {totalPages} 페이지
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <LogsFilterSelect opponent={opponent} gameId={game?.id ?? 'all'} games={games} />
+        <p className="text-xs text-cdm-fg-muted">
+          {totalCount === 0
+            ? '0판'
+            : `총 ${totalCount}판 · ${page} / ${totalPages} 페이지`}
+        </p>
+      </div>
+      {totalCount === 0 ? (
+        <EmptyState title={emptyTitle(opponent, game?.name ?? null)} />
+      ) : null}
       {logs.map((log) => {
         const me = log.participants.find((p) => p.member_id === memberId);
         const opponent = log.participants.find((p) => p.member_id !== memberId);

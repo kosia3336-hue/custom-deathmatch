@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import InquiryModal from '@/components/support/InquiryModal';
 import { Icon } from './Icon';
+import { UnreadBadge } from './UnreadBadge';
+import { useGuildChatUnread } from '@/components/guild-v4/GuildChatLive';
 
 interface Props {
   /** 로그인 여부 — true 면 상점 탭 노출 */
@@ -66,6 +68,7 @@ function TabIndicator() {
 /** 모바일 하단 탭 바 — 앱처럼 주요 메뉴를 하단에 고정. 게임/대기실에서는 숨김. */
 export function MobileTabBar({ isMember }: Props) {
   const pathname = usePathname();
+  const guildUnread = useGuildChatUnread();
   const [menuOpen, setMenuOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
 
@@ -178,7 +181,12 @@ export function MobileTabBar({ isMember }: Props) {
                   aria-current={active ? 'page' : undefined}
                 >
                   {active && <TabIndicator />}
-                  {t.icon}
+                  <span className="relative">
+                    {t.icon}
+                    {t.href === '/guild' ? (
+                      <UnreadBadge count={guildUnread} className="absolute -top-1 -right-2" />
+                    ) : null}
+                  </span>
                   <span className="truncate">{t.label}</span>
                 </Link>
               </li>

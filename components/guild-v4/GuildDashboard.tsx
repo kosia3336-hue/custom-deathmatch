@@ -10,7 +10,7 @@ import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 import { GuildIdentityCard, GuildJoinRequestsSection, GuildMembersSection, GuildOpsSection } from './GuildClient';
 import { UnreadBadge } from '@/components/cdm';
 import { GuildConfirmModal, type GuildConfirm } from './GuildConfirmModal';
-import { GuildChatModal, GuildChatSync } from './GuildChatClient';
+import { GuildChatModal } from './GuildChatClient';
 import { GuildNoticeSection } from './GuildNotices';
 import { GuildShopSection, GuildNameChangeModal } from './GuildShop';
 import { GuildContribSection } from './GuildContrib';
@@ -79,7 +79,6 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
 
   return (
     <>
-      <GuildChatSync enabled memberId={meId} guildId={my.guild.id} />
       <GuildIdentityCard my={my} busy={busy} act={act} askConfirm={setPending} />
 
       <ul className="guild-dash-grid">

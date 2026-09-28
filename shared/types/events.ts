@@ -130,7 +130,7 @@ export interface RankPlayerOutcome {
   placementJustFinished?: boolean;
   /** 배치전 구간에서 치른 판이면 true (RP 변동 없음, 카운트만) */
   placementMatch?: boolean;
-  /** 정식 랭크 판 RP 표시용 (동티어 ±20 기준 분해). streakVersusParity 는 항상 0. */
+  /** 정식 랭크 판 RP 표시용. 일반은 동티어 ±12, 카운터는 ±24에 티어·연승을 한 번씩. */
   rpBreakdown?: {
     parityReference: number;
     tierVersusParity: number;
