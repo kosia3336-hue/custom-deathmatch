@@ -47,15 +47,17 @@ export default function TripleGomokuGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase !== 'finished';
+  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
+  const isMyTurn = isPlayer && (isSolo || gameData.currentPlayerId === myId) && gameData.phase !== 'finished';
 
   return (
     <PlaySurface
-      key={`${gameData.turnNumber}:${gameData.phase}:${myId}`}
+      key={`${gameData.turnNumber}:${gameData.phase}:${myId}:${isSolo ? gameData.currentPlayerId : ''}`}
       gameData={gameData}
       myId={myId}
       isPlayer={isPlayer}
       isMyTurn={isMyTurn}
+      isSolo={isSolo}
     />
   );
 }
@@ -65,13 +67,16 @@ function PlaySurface({
   myId,
   isPlayer,
   isMyTurn,
+  isSolo,
 }: {
   gameData: TripleGomokuGameData;
   myId: string;
   isPlayer: boolean;
   isMyTurn: boolean;
+  isSolo: boolean;
 }) {
   const canPlay = isMyTurn;
+  const seatId = isSolo ? gameData.currentPlayerId : myId;
   /* 옮기려고 고른 내 돌. 없으면 빈칸을 눌러 새 돌을 놓는다. */
   const [source, setSource] = useState<TripleGomokuCell | null>(null);
   /*
@@ -81,7 +86,7 @@ function PlaySurface({
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   const { setHud } = useRoomLayout();
   const setup = gameData.phase === 'setup';
-  const reserve = gameData.reserves[myId] ?? 0;
+  const reserve = gameData.reserves[seatId] ?? 0;
   const sidePanel = <TripleGomokuSidePanel gameData={gameData} myId={myId} />;
 
   useEffect(() => {
@@ -126,8 +131,8 @@ function PlaySurface({
   }, []);
 
   const targets = useMemo(
-    () => (source ? tripleGomokuMoveTargets(gameData.board, source, myId) : []),
-    [gameData.board, myId, source],
+    () => (source ? tripleGomokuMoveTargets(gameData.board, source, seatId) : []),
+    [gameData.board, seatId, source],
   );
   const targetKeys = useMemo(() => new Set(targets.map(tripleGomokuCellKey)), [targets]);
   const winKeys = useMemo(
@@ -147,13 +152,13 @@ function PlaySurface({
   function canPlaceHere(cell: TripleGomokuCell) {
     if (reserve <= 0) return false;
     return setup
-      ? canPlaceTripleGomokuSetup(gameData.board, cell, myId)
+      ? canPlaceTripleGomokuSetup(gameData.board, cell, seatId)
       : canPlaceTripleGomokuStone(gameData.board, cell);
   }
 
   /** 본 게임에서 맨 위가 내 돌인 칸 — 누르면 옮길 돌로 고른다. */
   function isMyStack(cell: TripleGomokuCell) {
-    return !setup && tripleGomokuTopOwner(gameData.board, cell) === myId;
+    return !setup && tripleGomokuTopOwner(gameData.board, cell) === seatId;
   }
 
   function isEnabled(cell: TripleGomokuCell) {
@@ -180,7 +185,7 @@ function PlaySurface({
   function handleClick(cell: TripleGomokuCell) {
     if (!active) return;
     const key = tripleGomokuCellKey(cell);
-    if (source && canMoveTripleGomokuStone(gameData.board, source, cell, myId)) {
+    if (source && canMoveTripleGomokuStone(gameData.board, source, cell, seatId)) {
       const from = source;
       placement.tap(key, () => {
         setPendingSignature(acceptedSignature);
@@ -215,7 +220,7 @@ function PlaySurface({
             entries={Object.entries(gameData.players).map(([playerId, player]) => ({
               id: playerId,
               name: player.nickname,
-              isMe: playerId === myId,
+              isMe: isSolo || playerId === myId,
               marker: (
                 <span className="block h-3.5 w-3.5">
                   <GamePiece3D tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'} />
@@ -253,7 +258,7 @@ function PlaySurface({
           markOf={markOf}
           onCellClick={handleClick}
           isEnabled={isEnabled}
-          previewOwnerId={active ? myId : null}
+          previewOwnerId={active ? seatId : null}
           armedKey={placement.armed}
           ariaLabel="삼층 오목 판"
           maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}

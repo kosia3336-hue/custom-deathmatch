@@ -603,6 +603,24 @@ export async function listGuildMemberIds(guildId: string): Promise<string[]> {
   return ((data ?? []) as { member_id: string }[]).map((r) => r.member_id);
 }
 
+/** 헤더 배지용. 길드와 마지막으로 읽은 채팅 id만. */
+export async function loadGuildChatBadge(memberId: string): Promise<{
+  guildId: string | null;
+  chatSeenMessageId: string | null;
+}> {
+  const sb = getSupabaseServiceRole();
+  const guildId = await findGuildIdForMember(memberId);
+  if (!guildId) return { guildId: null, chatSeenMessageId: null };
+  const { data } = await from(sb, 'guild_chat_seen_v4')
+    .select('last_message_id')
+    .eq('member_id', memberId)
+    .eq('guild_id', guildId)
+    .maybeSingle();
+  const chatSeenMessageId =
+    (data as { last_message_id?: string } | null)?.last_message_id ?? null;
+  return { guildId, chatSeenMessageId };
+}
+
 export async function findGuildIdForMember(memberId: string): Promise<string | null> {
   const sb = getSupabaseServiceRole();
   const { data } = await sb.from('guild_members').select('guild_id').eq('member_id', memberId).maybeSingle();

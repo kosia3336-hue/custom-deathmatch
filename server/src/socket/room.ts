@@ -27,6 +27,7 @@ import {
 } from './roomCountdown.js';
 import { socketRoom, emitRoomStateToRoom, maskedClientRoomForSocket, emitToRoomWithViewerNickname } from './utils.js';
 import { isCheonhaNickname } from '@shared/cheonha.js';
+import { isAbstractReviewGame, readReviewActions } from '@shared/review.js';
 import type { IO, TypedSocket } from './types.js';
 import { LOBBY_ROOM } from './types.js';
 import {
@@ -217,8 +218,17 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     const playMode = isRandom ? ('multi' as const) : data.playMode;
     const maxPlayers = isRandom ? game.maxPlayers : data.maxPlayers;
+    const review = isRandom ? { ok: true as const, actions: null } : readReviewActions(data.gameOptions);
+    if (!review.ok) {
+      return callback({ success: false, error: '복기 수순을 읽지 못했습니다.' });
+    }
+    const reviewSolo =
+      review.actions !== null && playMode === 'solo' && isAbstractReviewGame(game.id);
+    if (review.actions !== null && !reviewSolo) {
+      return callback({ success: false, error: '이 게임은 복기할 수 없습니다.' });
+    }
 
-    if (!supportsPlayMode(game, playMode)) {
+    if (!supportsPlayMode(game, playMode) && !reviewSolo) {
       return callback({
         success: false,
         error: '선택한 게임은 이 플레이 모드를 지원하지 않습니다.',
@@ -261,6 +271,14 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
 
     if (isSoloLikePlayMode(room.playMode)) {
       startGame(io, room.id);
+      if (!roomStore.get(room.id)) {
+        return callback({
+          success: false,
+          error: reviewSolo
+            ? '복기 수순을 적용하지 못했습니다.'
+            : '게임을 시작하지 못했습니다.',
+        });
+      }
     }
 
     callback({ success: true, roomId: room.id });

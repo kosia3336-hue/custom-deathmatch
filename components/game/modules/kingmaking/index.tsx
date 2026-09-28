@@ -36,6 +36,7 @@ export default function KingmakingGame() {
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.KINGMAKING);
   useAbstractStrategyMoveSfx(gameData?.board, skin === 'spring-rain' ? 'spring-rain' : 'default');
   const myId = useMySocketId();
+  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
 
   if (!gameData) {
     return (
@@ -51,9 +52,10 @@ export default function KingmakingGame() {
   */
   return (
     <KingmakingBoard
-      key={`${gameData.turnNumber}:${myId}`}
+      key={`${gameData.turnNumber}:${myId}:${isSolo ? gameData.currentPlayerId : ''}`}
       gameData={gameData}
       myId={myId}
+      isSolo={isSolo}
       springRain={skin === 'spring-rain'}
     />
   );
@@ -62,10 +64,12 @@ export default function KingmakingGame() {
 function KingmakingBoard({
   gameData,
   myId,
+  isSolo,
   springRain,
 }: {
   gameData: KingmakingGameData;
   myId: string;
+  isSolo: boolean;
   springRain: boolean;
 }) {
   const { setHud } = useRoomLayout();
@@ -85,8 +89,9 @@ function KingmakingBoard({
 
   const playerIds = Object.keys(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
-  const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase === 'playing';
-  const myReserve = gameData.reserves[myId] ?? { normal: 0, special: 0 };
+  const seatId = isSolo ? gameData.currentPlayerId : myId;
+  const isMyTurn = isPlayer && (isSolo || gameData.currentPlayerId === myId) && gameData.phase === 'playing';
+  const myReserve = gameData.reserves[seatId] ?? { normal: 0, special: 0 };
   const canPlay = isMyTurn;
   const sidePanel = <KingmakingSidePanel gameData={gameData} myId={myId} springRain={springRain} />;
 
@@ -182,7 +187,7 @@ function KingmakingBoard({
               return {
                 id: playerId,
                 name: gameData.players[playerId]?.nickname ?? '',
-                isMe: playerId === myId,
+                isMe: isSolo || playerId === myId,
                 marker: (
                   <span className="block h-3.5 w-3.5">
                     <GamePiece3D tone={index === 0 ? 'primary' : 'highlight'} />

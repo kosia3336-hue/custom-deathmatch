@@ -58,6 +58,8 @@ export interface TripleGomokuState {
   winCells: TripleGomokuCell[];
   finishReason: string | null;
   gameOver: boolean;
+  /** 복기 수순을 조용히 다시 적용하는 동안. 방송·종료 예약을 막는다. */
+  reviewing: boolean;
   startedAt: number;
   turnStartedAt: number;
   timeLimitSeconds: number | null;

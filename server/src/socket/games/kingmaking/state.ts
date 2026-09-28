@@ -86,6 +86,7 @@ function toGameState(state: KingmakingState, data: KingmakingGameData): GameStat
 }
 
 export async function broadcastKingmakingState(io: IO, state: KingmakingState) {
+  if (state.reviewing) return;
   const sockets = await io.in(socketRoom(state.roomId)).fetchSockets();
   for (const socket of sockets) {
     const viewerId = sessions.getToken(socket.id) ?? socket.id;

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/cdm/Card';
 import { TripleGomokuBoardView } from '@/components/game/modules/triple-gomoku/BoardView';
+import { ReviewPlayButton } from '@/components/archive/ReviewPlayButton';
 import { cn } from '@/lib/utils';
 import { applyTripleGomokuAction, tripleGomokuCellKey } from '@/shared/logic/triple-gomoku';
 import type { GameRecordFile } from '@/shared/types/archive';
@@ -129,6 +130,12 @@ export default function TripleGomokuViewer({ record }: { record: GameRecordFile 
             >
               마지막
             </button>
+            <ReviewPlayButton
+              gameId={record.gameId}
+              gameName={record.gameName}
+              actions={data.actions.slice(0, Math.max(0, selected - 1))}
+              disabled={selected < 1}
+            />
           </div>
         </Card>
 

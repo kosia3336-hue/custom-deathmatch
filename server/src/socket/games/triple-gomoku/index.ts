@@ -10,6 +10,8 @@ import {
 } from '@shared/logic/triple-gomoku.js';
 import { resolveAbstractAiDifficulty } from '@shared/types/game.js';
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
+import { readReviewActions } from '@shared/review.js';
+import { soloReviewSeats } from '../reviewSeat.js';
 import {
   TG_SETUP_SEQUENCE,
   TG_STONES_PER_PLAYER,
@@ -66,6 +68,10 @@ function finishGame(
   win: { playerId: string; type: TripleGomokuWinType; cells: TripleGomokuWin['cells'] },
 ) {
   if (state.gameOver) return;
+  if (state.reviewing) {
+    state.gameOver = true;
+    return;
+  }
   clearTripleGomokuTimers(state);
   const nickname =
     state.players.find((player) => player.id === win.playerId)?.nickname ?? '플레이어';
@@ -212,12 +218,12 @@ function applyAction(
   actorId: string,
   action: TripleGomokuAction,
   socket?: TypedSocket,
-) {
-  if (state.gameOver) return;
+): boolean {
+  if (state.gameOver) return false;
   const error = validate(state, actorId, action);
   if (error) {
     socket?.emit('error', { message: error });
-    return;
+    return false;
   }
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
@@ -244,15 +250,22 @@ function applyAction(
   // 행동한 쪽을 먼저 본다. 같은 수에 양쪽 조건이 동시에 서면 행동한 쪽이 이긴다.
   const opponent = otherPlayer(state, actorId);
   const actorWin = findTripleGomokuWin(state.board, actorId);
-  if (actorWin) return finishGame(io, state, actorWin);
+  if (actorWin) {
+    finishGame(io, state, actorWin);
+    return true;
+  }
   const opponentWin = findTripleGomokuWin(state.board, opponent.id);
-  if (opponentWin) return finishGame(io, state, opponentWin);
+  if (opponentWin) {
+    finishGame(io, state, opponentWin);
+    return true;
+  }
 
   if (state.phase === 'setup') {
     advanceSetup(io, state);
-    return;
+    return !state.gameOver;
   }
   passTurnTo(io, state, opponent.id);
+  return !state.gameOver;
 }
 
 export function initTripleGomoku(
@@ -267,8 +280,10 @@ export function initTripleGomoku(
 ) {
   const previous = tripleGomokuStates.get(roomId);
   if (previous) clearTripleGomokuTimers(previous);
-  const first = players[0];
-  const second = players[1];
+  const human = players[0];
+  const seated = playMode === 'solo' && human && !players[1] ? soloReviewSeats(human) : null;
+  const first = seated?.[0] ?? players[0];
+  const second = seated?.[1] ?? players[1];
   if (!first || !second) throw new Error('삼층 오목은 두 명의 플레이어가 필요합니다.');
   const now = Date.now();
   const state: TripleGomokuState = {
@@ -292,6 +307,7 @@ export function initTripleGomoku(
     winCells: [],
     finishReason: null,
     gameOver: false,
+    reviewing: false,
     startedAt,
     turnStartedAt: now,
     timeLimitSeconds,
@@ -301,9 +317,48 @@ export function initTripleGomoku(
     endGameCallback,
   };
   tripleGomokuStates.set(roomId, state);
+  const review = readReviewActions(gameOptions);
+  if (!review.ok) {
+    tripleGomokuStates.delete(roomId);
+    throw new Error('복기 수순을 읽지 못했습니다.');
+  }
+  if (review.actions) {
+    try {
+      replayTripleGomokuReview(io, state, review.actions);
+      state.undoStack = [];
+    } catch (error) {
+      clearTripleGomokuTimers(state);
+      tripleGomokuStates.delete(roomId);
+      throw error;
+    }
+  }
   armTurnTimer(io, state);
   void broadcastTripleGomokuState(io, state);
   scheduleAi(io, state);
+}
+
+function replayTripleGomokuReview(io: IO, state: TripleGomokuState, actions: unknown[]) {
+  const seats = new Map<string, string>();
+  state.reviewing = true;
+  try {
+    for (const raw of actions) {
+      if (!raw || typeof raw !== 'object') throw new Error('복기 수순을 읽지 못했습니다.');
+      const entry = raw as { actorId?: unknown; action?: TripleGomokuAction };
+      if (typeof entry.actorId !== 'string' || !entry.action || typeof entry.action !== 'object') {
+        throw new Error('복기 수순을 읽지 못했습니다.');
+      }
+      let seat = seats.get(entry.actorId);
+      if (!seat) {
+        if (seats.size >= 2) throw new Error('복기 수순을 읽지 못했습니다.');
+        seat = seats.size === 0 ? state.players[0].id : state.players[1].id;
+        seats.set(entry.actorId, seat);
+      }
+      const ok = applyAction(io, state, seat, entry.action);
+      if (!ok || state.gameOver) throw new Error('복기 수순을 적용하지 못했습니다.');
+    }
+  } finally {
+    state.reviewing = false;
+  }
 }
 
 export function handleTripleGomokuAction(
@@ -315,6 +370,11 @@ export function handleTripleGomokuAction(
   const state = tripleGomokuStates.get(roomId);
   if (!state || state.gameOver) return;
   const actorId = sessions.getToken(socket.id) ?? socket.id;
+  if (state.playMode === 'solo') {
+    if (actorId !== state.players[0].id) return;
+    applyAction(io, state, state.currentPlayerId, rawData as TripleGomokuAction, socket);
+    return;
+  }
   if (!state.players.some((player) => player.id === actorId) || actorId === AI_PLAYER_ID) return;
   applyAction(io, state, actorId, rawData as TripleGomokuAction, socket);
 }
