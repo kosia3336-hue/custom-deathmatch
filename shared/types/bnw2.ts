@@ -5,7 +5,19 @@ export const BNW2_TOTAL_STAGES = 10;
 
 export type BNW2Phase = 'firstSubmit' | 'secondSubmit' | 'reveal' | 'finished';
 export type BNW2Color = 'black' | 'white';
-export type BNW2WinType = 'score' | 'exhaustion' | 'draw' | 'timeout' | 'leave';
+/**
+ * 게임이 어떻게 끝났는지.
+ *
+ * tiebreak 은 규칙 K — 잔여 포인트가 둘 다 0 이고 승점도 같을 때 1라운드 선공이
+ * 가져간다. 승자가 있으므로 draw 가 아니다. draw 는 옛 기록에만 남아 있다.
+ */
+export type BNW2WinType =
+  | 'score'
+  | 'exhaustion'
+  | 'tiebreak'
+  | 'draw'
+  | 'timeout'
+  | 'leave';
 
 export function calcBNW2Stage(remainingPoints: number): number {
   if (remainingPoints <= 0) return 0;

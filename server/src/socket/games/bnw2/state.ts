@@ -105,8 +105,14 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
 }
 
 function buildSpectatorGameData(s: InternalState): BNW2GameData {
+  /*
+    관전자에게도 랭크 신원을 가린다.
+    isTokenAnonymized 는 익명 물약만 본다 — 그것만 쓰면 랭크 판에서 두 사람의
+    실명이 관전석에 그대로 떴다. nicknameForViewer 가 물약과 랭크를 함께 처리하며,
+    viewerId=null 이 '어느 쪽도 아닌 사람' 이다.
+  */
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, null);
   const players: Record<string, BNW2PlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
@@ -415,7 +421,7 @@ function checkGameOver(io: IO, s: InternalState): boolean {
         가져가므로, 마지막 라운드를 이겨 동점을 만든 사람이 오히려 지는 일이 생겼다.
       */
       const [opener, other] = getOpeningPair(s);
-      resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
+      resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'tiebreak');
     }
     return true;
   }
@@ -550,9 +556,13 @@ export function handleBNW2Timeout(io: IO, s: InternalState) {
     const loser = winner.id === p1.id ? p2 : p1;
     resolveGame(io, s, winner.id, winner.nickname, loser.id, loser.nickname, 'timeout');
   } else {
-    /* 아무도 못 냈다 — 무승부를 가리는 기준은 위(규칙 K)와 같은 선공이다. */
+    /*
+      아무도 못 냈다 — 가리는 기준은 위(규칙 K)와 같은 선공이다.
+      끝난 사유는 시간 초과이지 무승부가 아니다. draw 로 적으면 승자가 있는데도
+      화면이 '무승부' 라고 말하게 된다.
+    */
     const [opener, other] = getOpeningPair(s);
-    resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
+    resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'timeout');
   }
 }
 
