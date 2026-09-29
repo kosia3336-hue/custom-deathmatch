@@ -574,17 +574,22 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
   };
 }
 
-function phaseMessage(s: QuatroState): string {
+/*
+  안내 문구에도 닉이 들어간다. 화면 데이터의 players 만 가리고 여기를 빼먹어
+  랭크 판 관전석에 '○○ 멀리건 결정 중' 으로 실명이 그대로 떴다.
+  보는 사람마다 달라지므로 viewerId 를 받아 같은 maskNick 을 거친다.
+*/
+function phaseMessage(s: QuatroState, viewerId: string | null): string {
   switch (s.phase) {
     case 'mulligan': {
       const idx = currentMulliganIdx(s);
-      return idx === -1 ? '카드 분배 중…' : `${s.players[idx].nickname} 멀리건 결정 중`;
+      return idx === -1 ? '카드 분배 중…' : `${maskNick(s, viewerId, s.players[idx])} 멀리건 결정 중`;
     }
     case 'open':
       return `${s.round}번째 카드 오픈 — 공개할 카드를 선택해야 합니다`;
     case 'exchange': {
       const idx = currentExchangeIdx(s);
-      return idx === -1 ? '교환 종료' : `${s.players[idx].nickname} 교환 차례`;
+      return idx === -1 ? '교환 종료' : `${maskNick(s, viewerId, s.players[idx])} 교환 차례`;
     }
     case 'reveal':
     case 'finished':
@@ -592,10 +597,10 @@ function phaseMessage(s: QuatroState): string {
   }
 }
 
-function buildGameState(s: QuatroState, gameData: QuatroGameData): GameState {
+function buildGameState(s: QuatroState, gameData: QuatroGameData, viewerId: string | null): GameState {
   return {
     roomId: s.roomId,
-    message: phaseMessage(s),
+    message: phaseMessage(s, viewerId),
     currentTurn: currentTurnId(s),
     turnNumber: s.round,
     startedAt: s.startedAt,
@@ -630,7 +635,7 @@ export async function broadcastState(io: IO, s: QuatroState) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = playerIdxById(s, pid) !== -1;
     emitQuatroDbg(sock, s, pid, isPlayer);
-    sock.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
+    sock.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null), isPlayer ? pid : null));
   }
 }
 
@@ -638,7 +643,7 @@ export function emitStateToSocketImpl(socket: TypedSocket, s: QuatroState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = playerIdxById(s, pid) !== -1;
   emitQuatroDbg(socket, s, pid, isPlayer);
-  socket.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
+  socket.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null), isPlayer ? pid : null));
 }
 
 /* ────────── 종료 ────────── */
