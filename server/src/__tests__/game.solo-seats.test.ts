@@ -15,9 +15,11 @@ import {
 } from '../socket/games/triple-gomoku/index.js';
 import { tripleGomokuStates } from '../socket/games/triple-gomoku/state.js';
 import {
+  canKingmakingUndo,
   cleanupKingmaking,
   handleKingmakingAction,
   initKingmaking,
+  performKingmakingUndo,
 } from '../socket/games/kingmaking/index.js';
 import { kingmakingStates } from '../socket/games/kingmaking/state.js';
 import { sessions } from '../store/sessions.js';
@@ -134,5 +136,67 @@ describe('1:1 솔로 좌석', () => {
 
     handleTripleGomokuAction(io, stranger, roomId, { type: 'place', to: { q: -4, r: 0 } });
     expect(state.board['-4,0']).toBeUndefined();
+  });
+});
+
+describe('킹메이킹 무르기', () => {
+  it('한 수 물리면 판·보유 말·차례가 되돌아간다', () => {
+    const roomId = 'km-undo';
+    roomIds.add(roomId);
+    const first = player('km-first', '선');
+    const second = { ...player('km-second', '후'), isHost: false };
+    const firstSocket = socketFor(first.id);
+    const io = ioStub();
+
+    initKingmaking(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = kingmakingStates.get(roomId)!;
+    const beforeNormals = state.reserves[first.id].normal.length;
+
+    expect(canKingmakingUndo(roomId)).toBe(false);
+
+    handleKingmakingAction(io, firstSocket, roomId, {
+      type: 'place',
+      kind: 'normal',
+      to: { row: 0, col: 0 },
+    });
+    expect(state.board[0][0]).toHaveLength(1);
+    expect(state.reserves[first.id].normal).toHaveLength(beforeNormals - 1);
+    expect(state.currentPlayerId).toBe(second.id);
+    expect(canKingmakingUndo(roomId)).toBe(true);
+
+    expect(performKingmakingUndo(io, roomId)).toBe(true);
+
+    expect(state.board[0][0]).toHaveLength(0);
+    expect(state.reserves[first.id].normal).toHaveLength(beforeNormals);
+    expect(state.currentPlayerId).toBe(first.id);
+    expect(state.actionLog).toHaveLength(0);
+    expect(canKingmakingUndo(roomId)).toBe(false);
+  });
+
+  it('무른 뒤 같은 자리에 다시 둘 수 있다 (반복 금지에 걸리지 않는다)', () => {
+    const roomId = 'km-undo2';
+    roomIds.add(roomId);
+    const first = player('km2-first', '선');
+    const second = { ...player('km2-second', '후'), isHost: false };
+    const firstSocket = socketFor(first.id);
+    const io = ioStub();
+
+    initKingmaking(io, roomId, [first, second], 'multi', Date.now(), null, vi.fn());
+    const state = kingmakingStates.get(roomId)!;
+
+    handleKingmakingAction(io, firstSocket, roomId, {
+      type: 'place',
+      kind: 'normal',
+      to: { row: 0, col: 0 },
+    });
+    performKingmakingUndo(io, roomId);
+
+    /* 같은 수를 그대로 다시 — positionHistory 를 안 되돌리면 여기서 막힌다 */
+    handleKingmakingAction(io, firstSocket, roomId, {
+      type: 'place',
+      kind: 'normal',
+      to: { row: 0, col: 0 },
+    });
+    expect(state.board[0][0]).toHaveLength(1);
   });
 });
