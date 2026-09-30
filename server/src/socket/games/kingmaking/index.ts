@@ -305,6 +305,8 @@ export function initKingmaking(
   if (review.actions) {
     try {
       replayKingmakingReview(io, state, review.actions);
+      /* 불러온 수순은 '시작 판' 이다 — 그보다 앞으로는 무르지 못하게 더미를 비운다(삼층 오목과 동일). */
+      state.undoStack = [];
     } catch (error) {
       clearKingmakingTimers(state);
       kingmakingStates.delete(roomId);
