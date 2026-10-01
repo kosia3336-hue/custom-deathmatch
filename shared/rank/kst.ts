@@ -45,6 +45,10 @@ function isKstWeekend(d = new Date()): boolean {
     // 추석 연휴 (토요일인 9/26 은 주말이라 따로 적지 않는다)
     [2026, 9, 24],
     [2026, 9, 25],
+    // 개천절 대체휴일 (10/3 이 토요일이라 월요일로 밀렸다)
+    [2026, 10, 5],
+    // 한글날
+    [2026, 10, 9],
   ];
   return HOLIDAY_24H_DATES.some(([y, m, d]) => year === y && month === m && day === d);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import type { BNW2Color, BNW2PlayerInfo, BNW2RevealData } from '@/shared/types/bnw2';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 interface Props {
   revealData: BNW2RevealData;
@@ -111,6 +112,8 @@ export default function ShowdownRevealPanel({ revealData, players, myId, firstPl
 
   // 결투 배치는 트랙과 동일하게 좌=나(관전자는 첫 참가자), 우=상대
   const leftId = entries.some(([id]) => id === myId) ? myId : (entries[0]?.[0] ?? '');
+  /* 내가 플레이어 목록에 없으면 관전자다. 관전석은 두 사람 다 익명일 수 있어 '상대' 로 부르지 않는다. */
+  const isSpectator = !players[myId];
   const rightId = entries.find(([id]) => id !== leftId)?.[0] ?? '';
 
   /*
@@ -152,8 +155,13 @@ export default function ShowdownRevealPanel({ revealData, players, myId, firstPl
                       : 'border-gray-200 bg-gray-50'
               }`}
             >
+              {/*
+                이름을 못 찾을 때 pid(플레이어 토큰)를 그대로 찍고 있었다.
+                식별자를 화면에 내보이는 셈이라 '상대' 로 둔다. 랭크에서 서버가
+                '???' 로 내려 주면 opponentDisplayName 이 '상대' 로 읽어 준다.
+              */}
               <p className="truncate text-xs font-medium text-gray-500">
-                {isMe ? '나' : (pInfo?.nickname ?? pid)}
+                {isMe ? '나' : opponentDisplayName(pInfo?.nickname, isSpectator)}
               </p>
               <div className="my-2 flex justify-center">
                 <ColorBadge color={pd.color} visible={colorVisible} />

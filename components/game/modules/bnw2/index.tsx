@@ -23,6 +23,7 @@ import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '10점 달성',
   exhaustion: '포인트 소진',
+  tiebreak: '완전 동점 · 1R 선공 승',
   draw: '무승부',
   timeout: '시간 초과',
   leave: '기권',
@@ -434,14 +435,19 @@ export default function BNW2Game() {
     if (shownEndRef.current === key) return;
     shownEndRef.current = key;
 
-    if (gameData.winType === 'draw') {
-      toast.info('무승부!', { duration: 5000 });
-    } else if (gameData.winner) {
+    /*
+      승자를 먼저 본다. 완전 동점(규칙 K)은 1R 선공이 가져가므로 승자가 있는데,
+      끝난 사유만 보고 '무승부' 라고 적어 실제 판정과 어긋났다. 옛 기록도
+      winType 은 draw 지만 승자는 남아 있어 이렇게 두면 같이 바로잡힌다.
+    */
+    if (gameData.winner) {
       const winnerNick = gameData.players[gameData.winner]?.nickname ?? '???';
       const reason = WIN_TYPE_LABELS[gameData.winType] ?? '';
       const isMe = gameData.winner === myId;
       if (isMe) toast.success(`${winnerNick} 승리! ${reason}`, { duration: 5000 });
       else toast.error(`${winnerNick} 승리! ${reason}`, { duration: 5000 });
+    } else {
+      toast.info('무승부!', { duration: 5000 });
     }
   }, [gameData?.winner, gameData?.winType, myId, gameData?.players]);
 

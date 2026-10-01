@@ -37,6 +37,13 @@ export default function TripleGomokuGame() {
   const gameData = gameState?.gameData as TripleGomokuGameData | undefined;
   useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
+  /*
+    훅은 조기 return 위에 둬야 한다. 아래에 두면 gameData 가 없던 첫 렌더와
+    도착한 다음 렌더의 훅 개수가 달라져 React 가 렌더를 통째로 실패시킨다
+    (화면에는 '일시적인 오류' 가 떴다). 솔로는 판이 곧바로 시작돼 화면이
+    상태보다 먼저 뜨는 일이 잦아 거기서 먼저 드러났다.
+  */
+  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
 
   if (!gameData) {
     return (
@@ -47,7 +54,6 @@ export default function TripleGomokuGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
   const isMyTurn = isPlayer && (isSolo || gameData.currentPlayerId === myId) && gameData.phase !== 'finished';
 
   return (

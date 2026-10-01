@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
@@ -26,6 +26,16 @@ import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
+
+/*
+  상단 바 단추 — 그림 아래에 이름을 적는다.
+
+  그림만 두었더니 무엇인지 눌러 봐야 알 수 있었다. 글자는 10px 로 작게 두고 줄간격을
+  죽여, 단추가 커져 상단 바가 밀리지 않게 한다.
+*/
+const HEADER_BTN =
+  'flex flex-col items-center gap-0.5 rounded-cdm-md px-1.5 py-1 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white';
+const HEADER_BTN_LABEL = 'text-[10px] leading-none font-medium';
 import type { GameUndoProposal, GameTimeExpiry } from '@/shared/types/events';
 
 interface Props {
@@ -53,6 +63,18 @@ export default function GameShell({ children }: Props) {
   const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
+  /* 상단 바(무르기)와 설정 시트가 함께 쓰므로 헤더를 그리기 전에 정해 둔다. */
+  const isEventRoom =
+    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
+    room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
+    room?.gameId === GAME_IDS.RING_THE_BELL;
+  const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
+  const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
+  /* 멀티는 상대 동의가 필요해 기다림 상태로 들어간다. 혼자 두는 판은 바로 돌아간다. */
+  const requestUndo = useCallback(() => {
+    if (room?.playMode === 'multi') setUndoWaiting(true);
+    getSocket().emit('game:undo:request');
+  }, [room?.playMode]);
   const gameStateSigRef = useRef<string | null>(null);
   const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
 
@@ -131,9 +153,10 @@ export default function GameShell({ children }: Props) {
             onClick={() => setShowMemo(true)}
             aria-label="메모"
             title="라운드 기록·메모"
-            className="rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+            className={cn(HEADER_BTN, 'lg:hidden')}
           >
             <Icon name="memo" />
+            <span className={HEADER_BTN_LABEL}>메모</span>
           </button>
         )}
         <button
@@ -141,20 +164,37 @@ export default function GameShell({ children }: Props) {
           onClick={() => setShowChat(true)}
           aria-label="채팅"
           title="채팅"
-          className="relative rounded-cdm-md p-2 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white"
+          className={cn(HEADER_BTN, 'relative')}
         >
           <Icon name="chat" />
+          <span className={HEADER_BTN_LABEL}>채팅</span>
           <UnreadBadge
             count={chatUnread}
             label={`안 읽은 채팅 ${chatUnread}건`}
             className="absolute -top-0.5 -right-0.5"
           />
         </button>
-        <button type="button" onClick={() => setShowSettings(true)} aria-label="설정" title="설정" className="rounded-cdm-md p-2 text-cdm-ink-fg-muted hover:bg-white/10 hover:text-white"><Icon name="settings" /></button>
+        {showUndo && (
+          <button
+            type="button"
+            onClick={requestUndo}
+            disabled={undoWaiting}
+            aria-label="무르기"
+            title={undoWaiting ? '무르기 응답 대기 중…' : '무르기'}
+            className={cn(HEADER_BTN, 'disabled:opacity-40')}
+          >
+            <Icon name="undo" />
+            <span className={HEADER_BTN_LABEL}>무르기</span>
+          </button>
+        )}
+        <button type="button" onClick={() => setShowSettings(true)} aria-label="설정" title="설정" className={HEADER_BTN}>
+          <Icon name="settings" />
+          <span className={HEADER_BTN_LABEL}>설정</span>
+        </button>
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction]);
+  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo]);
 
   useEffect(() => {
     const s = getSocket();
@@ -236,12 +276,6 @@ export default function GameShell({ children }: Props) {
     }
   }, [gameStateSig, undoWaiting]);
 
-  const isEventRoom =
-    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
-    room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
-    room?.gameId === GAME_IDS.RING_THE_BELL;
-  const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
-  const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
   useEffect(() => {
     setFooter(null);
     setFooterHidden(true);
@@ -320,11 +354,7 @@ export default function GameShell({ children }: Props) {
         <SoundSettings className="py-3" />
         <ul className="divide-y divide-cdm-border">
           <SettingRow label="게임 규칙" onClick={() => { setShowSettings(false); setShowRules(true); }} />
-          {showUndo && <SettingRow label={undoWaiting ? '무르기 응답 대기 중…' : '무르기'} disabled={undoWaiting} onClick={() => {
-            if (room?.playMode === 'multi') setUndoWaiting(true);
-            getSocket().emit('game:undo:request');
-            setShowSettings(false);
-          }} />}
+          {/* 무르기는 상단 바로 꺼냈다 — 판 도중에 자주 쓰는데 시트를 열어야 해서 묻혀 있었다 */}
           {showResign && <SettingRow label="항복" danger onClick={() => { setShowSettings(false); setLeaveMode('resign'); setShowLeave(true); }} />}
           <SettingRow
             label="나가기"

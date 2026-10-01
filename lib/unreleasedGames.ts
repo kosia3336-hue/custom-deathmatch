@@ -14,7 +14,7 @@
  * 아래 배열에 게임 ID 를 넣으면 즉시 감춰진다. 출시할 때 지우면 된다.
  */
 export const UNRELEASED_GAME_IDS: readonly string[] = [
-  'game-028', // 명추리 — DB 등록(db/myeongchuri_game.sql) 전이라 아직 감춘다
+  // 비어 있음 — 감출 게임이 생기면 여기에 ID 를 넣는다.
 ];
 
 export function isUnreleasedGame(gameId: string): boolean {

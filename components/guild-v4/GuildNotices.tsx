@@ -153,6 +153,12 @@ function NoticeWriteForm({
 }) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [body, setBody] = useState(initial?.body ?? '');
+  /*
+    스토어는 컴포넌트에서 한 번만 집어 둔다. 예전에는 단추 콜백 안에서 불렀는데,
+    이름이 use- 로 시작해 훅 규칙(rules-of-hooks)에 걸렸다 — 콜백에서 부르는 훅은
+    렌더마다 개수가 달라질 수 있어 React 가 렌더를 통째로 실패시킬 수 있다.
+  */
+  const storeApi = useGuildDevStoreApi();
   const titleLen = title.length;
   const bodyLen = body.length;
   const editing = Boolean(initial);
@@ -210,7 +216,7 @@ function NoticeWriteForm({
             onPosted(initial!.id);
             return;
           }
-          const latest = useGuildDevStoreApi().getState().notices[0];
+          const latest = storeApi.getState().notices[0];
           if (latest) onPosted(latest.id);
         }}
       >
