@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { FourGravityGameData } from '@shared/types/four-gravity.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
@@ -13,8 +14,7 @@ import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { tutorialHint } from './tutorial.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -31,7 +31,7 @@ function randDelay(): number {
 
 export function toGameData(s: InternalState, viewerToken: string): FourGravityGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerToken);
   return {
     board: s.board,
     currentPlayer: s.currentPlayer,
@@ -91,6 +91,7 @@ function buildGameState(s: InternalState, viewerToken: string): GameState {
 }
 
 export async function broadcastState(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
@@ -162,6 +163,10 @@ function resolveGame(
     winLine?: InternalState['winLine'];
   },
 ) {
+  if (s.reviewing) {
+    s.gameOver = true;
+    return;
+  }
   const winnerNick = opts.winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
   const loserNick = opts.loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
 
@@ -248,12 +253,13 @@ export function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => {
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayer, () => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   pushUndoSnapshot(s);
   armTurnTimer(io, s);
 }
@@ -429,7 +435,12 @@ function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMo
     lastGravityBlack: s.lastGravityBlack,
     lastGravityWhite: s.lastGravityWhite,
     useSuper: s.superAi === true,
-    useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
+    useStrong: s.ownerToken !== null,
+    timeLimitMs: s.superAi
+      ? undefined
+      : s.ownerToken !== null
+        ? 30_000
+        : s.aiThinkSeconds * 1000,
   };
 
   return new Promise((resolve) => {

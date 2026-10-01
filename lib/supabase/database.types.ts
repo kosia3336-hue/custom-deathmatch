@@ -26,7 +26,7 @@ export type ReportCategory = 'abuse' | 'spam' | 'cheat' | 'bad_manner' | 'improp
 export type ReportStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
 export type ReportResolution = 'warning' | 'suspended' | 'banned' | 'rejected';
 export type ReportContext = 'chat' | 'room' | 'ingame' | 'postgame' | 'profile';
-export type InquiryCategory = 'bug' | 'account' | 'rules' | 'report_followup' | 'etc';
+export type InquiryCategory = string;
 export type InquiryStatus = 'pending' | 'processing' | 'answered' | 'replied' | 'closed';
 export type SanctionKind = 'warning' | 'suspension' | 'ban' | 'lift';
 export type NotificationKind =
@@ -199,6 +199,15 @@ export interface ReportRow {
   resolved_at: string | null;
   resolved_by: string | null;
   admin_memo: string | null;
+  created_at: string;
+}
+
+export interface InquiryCategoryRow {
+  slug: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
   created_at: string;
 }
 
@@ -399,6 +408,17 @@ export interface AttachFileRow {
   created_at: string;
 }
 
+// 랭킹 검색 팀 (db/ranking_teams.sql)
+export interface RankingTeamRow {
+  id: string;
+  name: string;
+}
+
+export interface RankingTeamMemberRow {
+  team_id: string;
+  member_id: string;
+}
+
 // 길드 시스템 (db/guilds.sql)
 export interface GuildRow {
   id: string;
@@ -560,6 +580,7 @@ export interface Database {
       member_game_stats: { Row: MemberGameStatsRow; Insert: Partial<MemberGameStatsRow> & { member_id: string; game_id: string }; Update: Partial<MemberGameStatsRow> };
       reports: { Row: ReportRow; Insert: Partial<ReportRow> & { reporter_id: string; category: ReportCategory; reason: string; context_kind: ReportContext }; Update: Partial<ReportRow> };
       inquiries: { Row: InquiryRow; Insert: Partial<InquiryRow> & { author_id: string; category: InquiryCategory; title: string; body: string }; Update: Partial<InquiryRow> };
+      inquiry_categories: { Row: InquiryCategoryRow; Insert: Partial<InquiryCategoryRow> & { slug: string; label: string }; Update: Partial<InquiryCategoryRow> };
       notifications: { Row: NotificationRow; Insert: Omit<NotificationRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<NotificationRow> };
       sanctions: { Row: SanctionRow; Insert: Omit<SanctionRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<SanctionRow> };
       admin_actions: { Row: AdminActionRow; Insert: Omit<AdminActionRow, 'id' | 'created_at'> & { created_at?: string }; Update: Partial<AdminActionRow> };
@@ -620,6 +641,16 @@ export interface Database {
         Row: AttachFileRow;
         Insert: Partial<AttachFileRow> & { member_id: string; url: string };
         Update: Partial<AttachFileRow>;
+      };
+      ranking_teams: {
+        Row: RankingTeamRow;
+        Insert: Partial<RankingTeamRow> & { name: string };
+        Update: Partial<RankingTeamRow>;
+      };
+      ranking_team_members: {
+        Row: RankingTeamMemberRow;
+        Insert: RankingTeamMemberRow;
+        Update: Partial<RankingTeamMemberRow>;
       };
       guilds: {
         Row: GuildRow;
@@ -723,7 +754,7 @@ export interface Database {
       };
       submit_inquiry: {
         Args: {
-          p_category: InquiryCategory;
+          p_category: string;
           p_title: string;
           p_body: string;
           p_attachments?: Json;
@@ -845,6 +876,8 @@ export interface Database {
       admin_resolve_report: { Args: { p_report_id: string; p_resolution: ReportResolution; p_reason?: string; p_sanction_until?: string }; Returns: void };
       admin_reject_report: { Args: { p_report_id: string; p_reason?: string }; Returns: void };
       admin_answer_inquiry: { Args: { p_id: string; p_body: string }; Returns: void };
+      admin_create_inquiry_category: { Args: { p_label: string }; Returns: string };
+      admin_set_inquiry_category_active: { Args: { p_slug: string; p_active: boolean }; Returns: void };
       admin_set_role: { Args: { p_member_id: string; p_role: 'user' | 'admin' }; Returns: void };
 
       // 공지사항 (v2.7)
@@ -1034,7 +1067,6 @@ export interface Database {
       report_status: ReportStatus;
       report_resolution: ReportResolution;
       report_context: ReportContext;
-      inquiry_category: InquiryCategory;
       inquiry_status: InquiryStatus;
       sanction_kind: SanctionKind;
       notification_kind: NotificationKind;

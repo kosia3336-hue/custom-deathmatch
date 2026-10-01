@@ -8,11 +8,25 @@ import { useLobbyStore } from '@/stores/lobby';
 import { useNicknameStore } from '@/stores/nickname';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
 import type { RoomSummary } from '@/shared/types';
+import { isCheonhaNickname } from '@/shared/cheonha';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 
 export function useLobby() {
   const store = useLobbyStore();
   const router = useRouter();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
+
+  /** 길드전은 시스템 룸이라 room:join 을 타지 않는다. 참가·관전 모두 같은 입구. */
+  const enterGuildWar = useCallback(() => {
+    getSocket().emit('guildWar:join', (res) => {
+      if (!res.success) {
+        toast.error(res.error ?? '입장에 실패했습니다.');
+        return;
+      }
+      useLobbyChatStore.getState().clearAll();
+      router.push(`/room/${GUILD_WAR_ROOM_ID}/play`);
+    });
+  }, [router]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -46,7 +60,11 @@ export function useLobby() {
 
   const joinRoom = useCallback((room: RoomSummary, onPrivate: () => void) => {
     requireNickname(() => {
-      if (room.roomType === 'private') {
+      if (room.id === GUILD_WAR_ROOM_ID) {
+        enterGuildWar();
+        return;
+      }
+      if (room.roomType === 'private' && !isCheonhaNickname(useNicknameStore.getState().nickname)) {
         onPrivate();
         return;
       }
@@ -59,11 +77,15 @@ export function useLobby() {
         }
       });
     });
-  }, [requireNickname, router]);
+  }, [requireNickname, router, enterGuildWar]);
 
   const spectateRoom = useCallback((room: RoomSummary, onPrivate: () => void) => {
     requireNickname(() => {
-      if (room.roomType === 'private') {
+      if (room.id === GUILD_WAR_ROOM_ID) {
+        enterGuildWar();
+        return;
+      }
+      if (room.roomType === 'private' && !isCheonhaNickname(useNicknameStore.getState().nickname)) {
         onPrivate();
         return;
       }
@@ -76,7 +98,7 @@ export function useLobby() {
         }
       });
     });
-  }, [requireNickname, router]);
+  }, [requireNickname, router, enterGuildWar]);
 
   return { ...store, joinRoom, spectateRoom };
 }

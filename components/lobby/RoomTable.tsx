@@ -3,9 +3,10 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
-import TimeLimitBadge from '@/components/ui/TimeLimitBadge';
+import RoomTitle from './RoomTitle';
 import type { RoomSummary } from '@/shared/types';
 import { displayGameName } from '@/lib/unreleasedGames';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 
 interface Props {
   rooms: RoomSummary[];
@@ -34,7 +35,7 @@ export default function RoomTable({
             <th className="px-4 py-3">방 제목</th>
             <th className="px-4 py-3 whitespace-nowrap">방장</th>
             <th className="px-4 py-3 w-36 whitespace-nowrap">인원</th>
-            <th className="px-4 py-3 w-16 whitespace-nowrap">관전</th>
+            <th className="px-4 py-3 w-16 whitespace-nowrap text-center">관전</th>
             <th className="px-4 py-3 w-20"></th>
           </tr>
         </thead>
@@ -43,7 +44,9 @@ export default function RoomTable({
             const isWaiting = room.status === 'waiting';
             const isFull = room.currentPlayers >= room.maxPlayers;
             const isRanked = room.isRanked === true;
-            const canJoin = isWaiting && !isFull && !isRanked;
+            // 길드전은 상시 playing 인 시스템 룸이라 waiting 조건을 타지 않는다.
+            const isGuildWar = room.id === GUILD_WAR_ROOM_ID;
+            const canJoin = isGuildWar ? !isFull : isWaiting && !isFull && !isRanked;
             const joinBlocked = canJoin && queuing;
 
             return (
@@ -54,8 +57,8 @@ export default function RoomTable({
               >
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
-                    <Badge variant={isWaiting ? 'info' : 'warning'}>
-                      {isWaiting ? '대기' : '진행'}
+                    <Badge variant={isWaiting || isGuildWar ? 'info' : 'warning'}>
+                      {isGuildWar ? '상시' : isWaiting ? '대기' : '진행'}
                     </Badge>
                   </div>
                 </td>
@@ -63,23 +66,18 @@ export default function RoomTable({
                   {displayGameName(room.gameId, room.gameName, isAdmin)}
                 </td>
                 <td className="px-4 py-3 text-cdm-fg max-w-[180px]">
-                  <span className="truncate">{room.title}</span>
-                  {room.timeLimitSeconds != null && (
-                    <span className="ml-1.5">
-                      <TimeLimitBadge seconds={room.timeLimitSeconds} />
-                    </span>
-                  )}
+                  <RoomTitle room={room} />
                 </td>
-                <td className="px-4 py-3 text-cdm-fg-muted whitespace-nowrap max-w-[100px] truncate">{room.hostNickname}</td>
+                <td className="px-4 py-3 text-cdm-fg-muted whitespace-nowrap max-w-[100px] truncate">{room.isRanked || !room.hostNickname ? '—' : room.hostNickname}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <ProgressBar current={room.currentPlayers} max={room.maxPlayers} />
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-cdm-fg-muted">
-                  {!isWaiting && (
+                <td className="px-4 py-3 whitespace-nowrap text-center tabular-nums text-cdm-fg-muted">
+                  {(!isWaiting || isGuildWar) && (
                     <span className="text-xs">{room.spectatorCount}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap text-center">
                   {canJoin ? (
                     <Button
                       size="sm"

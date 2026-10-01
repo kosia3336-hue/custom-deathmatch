@@ -12,8 +12,7 @@ import {
 import { transletterWordEntries } from '@shared/data/transletter-words.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import type { IO, TypedSocket } from '../../types.js';
 
 type EndGameFn = (
@@ -81,7 +80,7 @@ function makePuzzles(): Puzzle[] {
 }
 
 function maskNick(s: TLState, viewerId: string | null, p: Player): string {
-  return isTokenAnonymized(s.roomId, p.id) && p.id !== viewerId ? ANONYMOUS_NICKNAME : p.nickname;
+  return nicknameForViewer(s.roomId, p.id, p.nickname, viewerId);
 }
 
 function buildGameData(s: TLState, viewerId: string | null): TransletterGameData {

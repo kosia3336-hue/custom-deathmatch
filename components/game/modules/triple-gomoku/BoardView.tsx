@@ -16,9 +16,7 @@ import {
   type TripleGomokuCell,
 } from '@/shared/types/triple-gomoku';
 
-/** 판을 눕히는 각도. 0이면 위에서 내려다보는 평면이다. */
-const TILT_DEGREES = 34;
-/** 한 층이 올라갈 때 돌 지름 대비 얼마나 밀려 올라가는지. */
+/** 한 층이 올라갈 때 돌 지름 대비 얼마나 밀려 올라가는지. 위에서 봐도 층이 보이게 한다. */
 const LAYER_RISE_PERCENT = 46;
 /** 돌 지름을 칸 간격 대비 얼마로 그릴지. */
 const STONE_WIDTH_PERCENT = 106;
@@ -38,12 +36,13 @@ export interface TripleGomokuBoardViewProps {
   board: TripleGomokuBoard;
   /** 첫 번째 플레이어 id. 색을 정하는 기준이다. */
   firstPlayerId: string;
-  tilted?: boolean;
   markOf?: (cell: TripleGomokuCell) => TripleGomokuCellMark;
   onCellClick?: (cell: TripleGomokuCell) => void;
   isEnabled?: (cell: TripleGomokuCell) => boolean;
   /** 커서를 올린 칸에 이 사람의 돌을 미리 보여 준다. null 이면 미리보기 없음. */
   previewOwnerId?: string | null;
+  /** 터치 첫 탭으로 자리만 보여 주는 칸. 커서가 없어도 미리보기 돌을 띄운다. */
+  armedKey?: string | null;
   ariaLabel: string;
   className?: string;
   footer?: ReactNode;
@@ -59,14 +58,32 @@ const MARK_RING: Record<TripleGomokuCellMark, string> = {
   last: 'ring-1 ring-cdm-highlight',
 };
 
+/** 한 칸에 쌓인 돌(또는 미리보기 돌) 하나. 아래층은 격자점에, 윗층은 그만큼 위로 그린다. */
+function StoneLayer({ layer, children, opacity }: { layer: number; children: ReactNode; opacity?: number }) {
+  return (
+    <span
+      className="pointer-events-none absolute bottom-1/2 left-1/2 block"
+      style={{
+        width: `${STONE_WIDTH_PERCENT}%`,
+        aspectRatio: STONE_ASPECT,
+        transform: `translate(-50%, ${STONE_BASE_DROP_PERCENT - layer * LAYER_RISE_PERCENT}%)`,
+        opacity,
+        zIndex: layer + 1,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function TripleGomokuBoardView({
   board,
   firstPlayerId,
-  tilted = true,
   markOf,
   onCellClick,
   isEnabled,
   previewOwnerId = null,
+  armedKey = null,
   ariaLabel,
   className,
   footer,
@@ -74,174 +91,133 @@ export function TripleGomokuBoardView({
 }: TripleGomokuBoardViewProps) {
   const cells = tripleGomokuCells();
   const edges = tripleGomokuEdges();
-  const tilt = tilted ? TILT_DEGREES : 0;
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   return (
     <div className={cn('w-full', className)}>
       <div
-        className="mx-auto flex w-full items-center justify-center"
-        style={{
-          maxWidth,
-          perspective: '1800px',
-          // 눕히면 세로가 짧아 보이지만, 쌓인 돌이 위로 솟으므로 높이는 그대로 잡는다.
-          aspectRatio: `${TG_BOARD_ASPECT}`,
-        }}
+        className="relative mx-auto w-full"
+        style={{ maxWidth, aspectRatio: `${TG_BOARD_ASPECT}` }}
+        role="group"
+        aria-label={ariaLabel}
       >
-        <div
-          className="relative w-full origin-center transition-transform duration-300"
-          style={{
-            aspectRatio: `${TG_BOARD_ASPECT}`,
-            transform: `rotateX(${tilt}deg)`,
-            transformStyle: 'preserve-3d',
-          }}
-          role="group"
-          aria-label={ariaLabel}
+        <svg
+          viewBox="0 0 1000 866"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+          aria-hidden="true"
         >
-          <svg
-            viewBox="0 0 1000 866"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden="true"
-          >
-            <defs>
-              <radialGradient id="tg-surface" cx="50%" cy="42%" r="70%">
-                <stop offset="0%" stopColor="var(--cdm-bg-elev-2)" />
-                <stop offset="100%" stopColor="var(--cdm-bg-elev-1)" />
-              </radialGradient>
-            </defs>
-            <rect
-              width="1000"
-              height="866"
-              rx="28"
-              fill="url(#tg-surface)"
-              stroke="var(--cdm-border-strong)"
-              strokeWidth={2}
-            />
-            {edges.map(([from, to]) => {
-              const a = tripleGomokuPosition(from);
-              const b = tripleGomokuPosition(to);
-              return (
-                <line
-                  key={`${tripleGomokuCellKey(from)}-${tripleGomokuCellKey(to)}`}
-                  x1={a.x * 1000}
-                  y1={a.y * 866}
-                  x2={b.x * 1000}
-                  y2={b.y * 866}
-                  stroke="var(--cdm-fg-subtle)"
-                  strokeWidth={GRID_STROKE_WIDTH}
-                  strokeLinecap="round"
-                  opacity={GRID_STROKE_OPACITY}
-                />
-              );
-            })}
-            {cells.map((cell) => {
-              const point = tripleGomokuPosition(cell);
-              return (
-                <circle
-                  key={tripleGomokuCellKey(cell)}
-                  cx={point.x * 1000}
-                  cy={point.y * 866}
-                  r={6}
-                  fill="var(--cdm-fg-muted)"
-                  opacity={0.85}
-                />
-              );
-            })}
-          </svg>
-
-          {cells.map((cell) => {
-            const key = tripleGomokuCellKey(cell);
-            const point = tripleGomokuPosition(cell);
-            const stack = board[key] ?? [];
-            const mark = markOf?.(cell) ?? 'none';
-            const enabled = Boolean(onCellClick) && (isEnabled?.(cell) ?? false);
-            // 놓을 수 있는 칸에 커서를 올렸을 때만 반투명 돌로 결과를 미리 보여 준다.
-            const showPreview =
-              enabled &&
-              previewOwnerId != null &&
-              hoveredKey === key &&
-              stack.length < TG_MAX_HEIGHT;
-            const Tag = onCellClick ? 'button' : 'div';
+          <defs>
+            <radialGradient id="tg-surface" cx="50%" cy="42%" r="70%">
+              <stop offset="0%" stopColor="var(--cdm-bg-elev-2)" />
+              <stop offset="100%" stopColor="var(--cdm-bg-elev-1)" />
+            </radialGradient>
+          </defs>
+          <rect
+            width="1000"
+            height="866"
+            rx="28"
+            fill="url(#tg-surface)"
+            stroke="var(--cdm-border-strong)"
+            strokeWidth={2}
+          />
+          {edges.map(([from, to]) => {
+            const a = tripleGomokuPosition(from);
+            const b = tripleGomokuPosition(to);
             return (
-              <Tag
-                key={key}
-                {...(onCellClick
-                  ? {
-                      type: 'button' as const,
-                      onClick: () => onCellClick(cell),
-                      disabled: !enabled,
-                      onMouseEnter: () => setHoveredKey(key),
-                      onMouseLeave: () =>
-                        setHoveredKey((current) => (current === key ? null : current)),
-                      onFocus: () => setHoveredKey(key),
-                      onBlur: () => setHoveredKey((current) => (current === key ? null : current)),
-                      'aria-label': `${cell.q},${cell.r} 칸${stack.length ? `, ${stack.length}층` : ', 빈칸'}`,
-                    }
-                  : { 'aria-hidden': true as const })}
-                className={cn(
-                  'absolute rounded-full transition-colors',
-                  mark !== 'none' && MARK_RING[mark],
-                  enabled ? 'cursor-pointer' : 'cursor-default',
-                )}
-                style={{
-                  left: `${point.x * 100}%`,
-                  top: `${point.y * 100}%`,
-                  width: '8%',
-                  aspectRatio: '1',
-                  transform: 'translate(-50%, -50%)',
-                  transformStyle: 'preserve-3d',
-                }}
-              >
-                {stack.map((ownerId, layer) => (
-                  <span
-                    key={`${key}-${layer}`}
-                    className="pointer-events-none absolute bottom-1/2 left-1/2 block"
-                    style={{
-                      width: `${STONE_WIDTH_PERCENT}%`,
-                      aspectRatio: STONE_ASPECT,
-                      // 아래층은 칸 위에, 윗층은 그만큼 솟는다. 마지막 회전으로 정면을 본다.
-                      transform: `translate(-50%, ${STONE_BASE_DROP_PERCENT - layer * LAYER_RISE_PERCENT}%) rotateX(${-tilt}deg)`,
-                      // 바닥을 축으로 세워야 돌이 격자점 위에 서 있는 것처럼 보인다.
-                      transformOrigin: 'bottom center',
-                      zIndex: layer + 1,
-                    }}
-                  >
-                    <GamePiece3D
-                      tone={ownerId === firstPlayerId ? 'primary' : 'highlight'}
-                      selected={mark === 'selected' && layer === stack.length - 1}
-                    />
-                  </span>
-                ))}
-                {showPreview && (
-                  <span
-                    className="pointer-events-none absolute bottom-1/2 left-1/2 block"
-                    style={{
-                      width: `${STONE_WIDTH_PERCENT}%`,
-                      aspectRatio: STONE_ASPECT,
-                      transform: `translate(-50%, ${STONE_BASE_DROP_PERCENT - stack.length * LAYER_RISE_PERCENT}%) rotateX(${-tilt}deg)`,
-                      transformOrigin: 'bottom center',
-                      opacity: PREVIEW_OPACITY,
-                      zIndex: stack.length + 1,
-                    }}
-                  >
-                    <GamePiece3D
-                      tone={previewOwnerId === firstPlayerId ? 'primary' : 'highlight'}
-                    />
-                  </span>
-                )}
-                {stack.length === TG_MAX_HEIGHT && (
-                  <span
-                    className="bg-cdm-fg text-cdm-fg-inverse pointer-events-none absolute -top-1 -right-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-black"
-                    style={{ transform: `rotateX(${-tilt}deg)` }}
-                  >
-                    3
-                  </span>
-                )}
-              </Tag>
+              <line
+                key={`${tripleGomokuCellKey(from)}-${tripleGomokuCellKey(to)}`}
+                x1={a.x * 1000}
+                y1={a.y * 866}
+                x2={b.x * 1000}
+                y2={b.y * 866}
+                stroke="var(--cdm-fg-subtle)"
+                strokeWidth={GRID_STROKE_WIDTH}
+                strokeLinecap="round"
+                opacity={GRID_STROKE_OPACITY}
+              />
             );
           })}
-        </div>
+          {cells.map((cell) => {
+            const point = tripleGomokuPosition(cell);
+            return (
+              <circle
+                key={tripleGomokuCellKey(cell)}
+                cx={point.x * 1000}
+                cy={point.y * 866}
+                r={6}
+                fill="var(--cdm-fg-muted)"
+                opacity={0.85}
+              />
+            );
+          })}
+        </svg>
+
+        {cells.map((cell) => {
+          const key = tripleGomokuCellKey(cell);
+          const point = tripleGomokuPosition(cell);
+          const stack = board[key] ?? [];
+          const mark = markOf?.(cell) ?? 'none';
+          const enabled = Boolean(onCellClick) && (isEnabled?.(cell) ?? false);
+          // 놓을 수 있는 칸에 커서를 올렸을 때만 반투명 돌로 결과를 미리 보여 준다.
+          const showPreview =
+            enabled &&
+            previewOwnerId != null &&
+            (hoveredKey === key || armedKey === key) &&
+            stack.length < TG_MAX_HEIGHT;
+          const Tag = onCellClick ? 'button' : 'div';
+          return (
+            <Tag
+              key={key}
+              {...(onCellClick
+                ? {
+                    type: 'button' as const,
+                    onClick: () => onCellClick(cell),
+                    disabled: !enabled,
+                    onMouseEnter: () => setHoveredKey(key),
+                    onMouseLeave: () =>
+                      setHoveredKey((current) => (current === key ? null : current)),
+                    onFocus: () => setHoveredKey(key),
+                    onBlur: () => setHoveredKey((current) => (current === key ? null : current)),
+                    'aria-label': `${cell.q},${cell.r} 칸${stack.length ? `, ${stack.length}층` : ', 빈칸'}`,
+                  }
+                : { 'aria-hidden': true as const })}
+              className={cn(
+                'absolute rounded-full transition-colors',
+                mark !== 'none' && MARK_RING[mark],
+                // 목적지 표시(target) 위에서도 '여기 둘 예정' 이 보이게 테두리를 덮어쓴다
+                armedKey === key && enabled && 'ring-2 ring-cdm-primary',
+                enabled ? 'cursor-pointer' : 'cursor-default',
+              )}
+              style={{
+                left: `${point.x * 100}%`,
+                top: `${point.y * 100}%`,
+                width: '8%',
+                aspectRatio: '1',
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {stack.map((ownerId, layer) => (
+                <StoneLayer key={`${key}-${layer}`} layer={layer}>
+                  <GamePiece3D
+                    tone={ownerId === firstPlayerId ? 'primary' : 'highlight'}
+                    selected={mark === 'selected' && layer === stack.length - 1}
+                  />
+                </StoneLayer>
+              ))}
+              {showPreview && (
+                <StoneLayer layer={stack.length} opacity={PREVIEW_OPACITY}>
+                  <GamePiece3D tone={previewOwnerId === firstPlayerId ? 'primary' : 'highlight'} />
+                </StoneLayer>
+              )}
+              {stack.length === TG_MAX_HEIGHT && (
+                <span className="bg-cdm-fg text-cdm-fg-inverse pointer-events-none absolute -top-1 -right-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-black">
+                  3
+                </span>
+              )}
+            </Tag>
+          );
+        })}
       </div>
       {footer}
     </div>

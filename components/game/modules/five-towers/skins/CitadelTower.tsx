@@ -102,7 +102,11 @@ export default function CitadelTower({
       >
         <span className="skin-citadel-pillar-label">{id}</span>
         <span className="skin-citadel-pillar-count tabular-nums">
-          {showCompleted ? '완성' : userCount}
+          {/*
+            아직 안 센 탑에 0 을 적지 않는다. 이름 옆에 붙어 'A0 B0 C0' 처럼 읽혀
+            탑 이름이 A0 인 줄 알게 된다. 셈이 시작되면 그때 숫자가 나타난다.
+          */}
+          {showCompleted ? '완성' : userCount > 0 ? userCount : ''}
         </span>
         <span
           className={`skin-citadel-flame ${flameClass(collapsing ? 10 : userCount, showCompleted)}`}

@@ -13,47 +13,6 @@ import { getSocket } from '@/lib/socket';
 import { useGuildChatStore } from '@/stores/guildChat';
 import { useGuildDevStore } from './store';
 
-/** 대시보드가 열려 있는 동안 길드 채팅 히스토리·실시간 메시지를 받는다. */
-export function GuildChatSync({
-  enabled,
-  memberId,
-  guildId,
-}: {
-  enabled: boolean;
-  memberId: string;
-  guildId: string;
-}) {
-  useEffect(() => {
-    if (!enabled || !memberId || !guildId) {
-      useGuildChatStore.getState().clearAll();
-      return;
-    }
-    useGuildChatStore.getState().bindSeenScope(memberId, guildId);
-    const s = getSocket();
-    const onHistory = (payload: { messages: ChatMessage[] }) => {
-      useGuildChatStore.getState().setHistory(payload.messages);
-    };
-    const onMessage = (msg: ChatMessage) => {
-      if (msg.scope !== 'guild') return;
-      useGuildChatStore.getState().addMessage(msg);
-    };
-    const onConnect = () => {
-      if (!useGuildChatStore.getState().historyLoaded) s.emit('guild:chat:load');
-    };
-    s.on('guild:chat:history', onHistory);
-    s.on('chat:message', onMessage);
-    s.on('connect', onConnect);
-    if (!useGuildChatStore.getState().historyLoaded) s.emit('guild:chat:load');
-    return () => {
-      s.off('guild:chat:history', onHistory);
-      s.off('chat:message', onMessage);
-      s.off('connect', onConnect);
-      useGuildChatStore.getState().clearAll();
-    };
-  }, [enabled, memberId, guildId]);
-  return null;
-}
-
 /**
  * 내 길드 대시보드에서 여는 채팅 창.
  * 말풍선 UI는 더미와 같고, 메시지는 운영 길드 채팅 소켓을 쓴다.

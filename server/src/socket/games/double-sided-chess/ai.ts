@@ -10,7 +10,7 @@ export interface AIWorkerData {
   currentOwner: Owner;
   useStrong?: boolean;
   useSuper?: boolean;
-  /** 있으면 COM 워커 기본 5s/90s 대신 이 예산(ms)을 쓴다. 더미 상중하. */
+  /** 있으면 COM 워커 기본 5s/90s 대신 이 예산(ms)을 쓴다. 슈퍼 AI는 넘기지 않는다. */
   timeLimitMs?: number;
   /** 실제 턴. 강한 AI 초반/종반 평가용. */
   turnNumber?: number;

@@ -8,7 +8,7 @@
  * 꺼져 있으면 울리지 않는다. 다른 효과음들과 같은 규칙을 따른다(lib/sfxSettings).
  */
 
-import { isSfxMuted } from './sfxSettings';
+import { isSfxMuted, getSfxOutput } from './sfxSettings';
 
 /** 매칭 성사 알림음. 효과음이 꺼져 있으면 아무것도 하지 않는다. */
 export function notifyRankMatched(): void {
@@ -40,7 +40,7 @@ function playChime(): void {
       gain.gain.setValueAtTime(0.0001, now + at);
       gain.gain.exponentialRampToValueAtTime(0.25, now + at + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + at + dur);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(getSfxOutput(ctx));
       osc.start(now + at);
       osc.stop(now + at + dur);
     });

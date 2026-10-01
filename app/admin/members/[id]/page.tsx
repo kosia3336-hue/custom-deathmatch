@@ -10,6 +10,7 @@ import MemberAdminActions from '@/app/admin/MemberAdminActions';
 import { AdminGuildLabel } from '@/app/admin/AdminGuildLabel';
 import { fetchMemberGuilds } from '@/app/admin/fetchMemberGuilds';
 import { getSupabaseServiceRole } from '@/lib/supabase/service-role';
+import { fetchInquiryCategories, inquiryCategoryLabel } from '@/lib/inquiry/categories';
 import MemberDetailClient from './MemberDetailClient';
 import {
   DEFAULT_PAGE_SIZE,
@@ -32,6 +33,8 @@ import type {
   SanctionKind,
   ReportCategory,
   ReportStatus,
+  InquiryCategory,
+  InquiryStatus,
 } from '@/lib/supabase/database.types';
 
 export const metadata: Metadata = { title: '회원 상세', robots: { index: false } };
@@ -99,6 +102,17 @@ interface RawTitle {
 interface RawGame {
   id: string;
   name: string;
+}
+interface RawInquiry {
+  id: string;
+  title: string;
+  category: InquiryCategory;
+  status: InquiryStatus;
+  created_at: string;
+  body: string;
+  answer_body: string | null;
+  answered_at: string | null;
+  answered_by: string | null;
 }
 
 interface Props {
@@ -202,7 +216,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
     sb
       .from('inquiries')
       .select(
-        'id, title, category, status, created_at, body, answer_body, answered_at',
+        'id, title, category, status, created_at, body, answer_body, answered_at, answered_by',
         { count: 'exact' },
       )
       .eq('author_id', id)
@@ -224,6 +238,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
   const memberTitlesRaw = (memberTitlesRawRes.data ?? []) as unknown as RawMemberTitle[];
   const sanctionsRaw = (sanctionsRawRes.data ?? []) as unknown as RawSanction[];
   const gameStatsRaw = (gameStatsRawRes.data ?? []) as unknown as RawGameStat[];
+  const inquiriesRaw = (inquiriesRes.data ?? []) as unknown as RawInquiry[];
 
   // ─── Phase 2: 보조 ID 수집 ──────────────────────────────────────
   const titleIdsNeeded = [...new Set(memberTitlesRaw.map((t) => t.title_id))];
@@ -232,12 +247,13 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
       ...(memberTitlesRaw.map((t) => t.granted_by).filter(Boolean) as string[]),
       ...(memberTitlesRaw.map((t) => t.revoked_by).filter(Boolean) as string[]),
       ...(sanctionsRaw.map((s) => s.issued_by)),
+      ...(inquiriesRaw.map((i) => i.answered_by).filter(Boolean) as string[]),
     ]),
   ];
   const gameIdsNeeded = gameStatsRaw.map((g) => g.game_id);
 
   // ─── Phase 2: 보조 조회 ──────────────────────────────────────────
-  const [titleInfoRes, memberNamesRes, gameNamesRes] = await Promise.all([
+  const [titleInfoRes, memberNamesRes, gameNamesRes, inquiryCats] = await Promise.all([
     titleIdsNeeded.length
       ? sb.from('titles').select('id, name, color, description').in('id', titleIdsNeeded)
       : { data: [] as RawTitle[] },
@@ -247,6 +263,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
     gameIdsNeeded.length
       ? sb.from('games').select('id, name').in('id', gameIdsNeeded)
       : { data: [] as RawGame[] },
+    fetchInquiryCategories(sb),
   ]);
 
   // ─── 맵 빌드 ────────────────────────────────────────────────────
@@ -319,7 +336,18 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
     other_nickname: (r.target_snapshot as Record<string, string>)?.nickname ?? '알 수 없음',
   }));
 
-  const inquiries = (inquiriesRes.data ?? []) as unknown as InquiryData[];
+  const inquiries: InquiryData[] = inquiriesRaw.map((i) => ({
+    id: i.id,
+    title: i.title,
+    category: i.category,
+    status: i.status,
+    created_at: i.created_at,
+    body: i.body,
+    answer_body: i.answer_body,
+    answered_at: i.answered_at,
+    answered_by_nickname: i.answered_by ? (nameMap.get(i.answered_by) ?? null) : null,
+    category_label: inquiryCategoryLabel(i.category, inquiryCats),
+  }));
 
   const isWithdrawn = !!member.withdrawn_at;
   const status: MemberStatus = isWithdrawn ? 'withdrawn' : (priv?.status ?? 'active');

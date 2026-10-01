@@ -39,10 +39,10 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
  */
 export function RoomChatBody({ scope, scrollClassName }: Props) {
   const allMessages = useRoomStore((s) => s.messages);
-  const messages = useMemo(
-    () => allMessages.filter((m) => m.scope === scope || m.scope === 'room'),
-    [allMessages, scope],
-  );
+  const messages = useMemo(() => {
+    if (scope === 'guild_war') return allMessages.filter((m) => m.scope === 'guild_war');
+    return allMessages.filter((m) => m.scope === 'room' || m.scope === 'game');
+  }, [allMessages, scope]);
   const spectators = useRoomStore((s) => s.room?.spectators ?? EMPTY_SPECTATORS);
   const nickname = useNicknameStore((s) => s.nickname);
   const [input, setInput] = useState('');
@@ -78,16 +78,18 @@ export function RoomChatBody({ scope, scrollClassName }: Props) {
           />
         ))}
         {messages.length === 0 && (
-          <p className="py-8 text-center text-xs text-cdm-fg-subtle">메시지가 없습니다</p>
+          <p className="py-8 text-center text-xs text-cdm-fg-subtle">
+            {scope === 'guild_war' ? '같은 길드만 보입니다' : '메시지가 없습니다'}
+          </p>
         )}
       </div>
       <div className="flex gap-2 border-t border-cdm-border p-3">
         <input
-          className="flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"
+          className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder="메시지 입력..."
+                  placeholder={scope === 'guild_war' ? '같은 길드에게만 보입니다' : '메시지 입력...'}
           maxLength={200}
         />
         <Button size="sm" onClick={send} className="shrink-0">

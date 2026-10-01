@@ -8,7 +8,7 @@ import ScorePanel from './ScorePanel';
 import OpponentInventoryTracker from './OpponentInventoryTracker';
 import PhaseStepperDesktop from './PhaseStepperDesktop';
 import PhaseArea from './PhaseArea';
-import { PHASE_PILL_COLORS, PHASE_LABELS } from './constants';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 /* ════════════════════════════════════════════════════════════
  * DesktopLayout — ≥ 1024px
@@ -47,32 +47,12 @@ export default function DesktopLayout({ ctx }: Props) {
   const myIsFirst = mySide === firstSide;
   const firstBetCount = firstPlayer.publicBetCount;
   const showBanner = (isFirstReveal || isSecondSubmit) && firstBetCount != null;
-  const phaseLabel = phase ? (PHASE_LABELS[phase] ?? phase) : '';
-  const phasePill = phase ? (PHASE_PILL_COLORS[phase] ?? '') : '';
 
   return (
     <div className="bank-layout bank-layout-desktop flex h-full">
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* ── 메인 영역 (가운데 정렬) ── */}
         <div className="bank-main flex flex-1 flex-col items-center gap-3 overflow-y-auto p-5">
-          {/* 라운드 헤더 */}
-          <div className="bank-round-header w-full max-w-2xl text-center">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xl font-extrabold text-gray-800 tabular-nums">
-                R {gameData.round}
-              </span>
-              <span className="text-xs text-gray-400 tabular-nums">/ {gameData.maxRound}</span>
-              {phaseLabel && (
-                <span
-                  className={`bank-phase-pill rounded-full px-2.5 py-0.5 text-xs font-bold ${phasePill}`}
-                >
-                  {phaseLabel}
-                </span>
-              )}
-            </div>
-            <div className="mt-0.5 text-sm text-amber-600">{firstPlayer.nickname} 선</div>
-          </div>
-
           {/* 페이즈 스테퍼 */}
           <div className="w-full max-w-2xl">
             <PhaseStepperDesktop
@@ -113,26 +93,16 @@ export default function DesktopLayout({ ctx }: Props) {
             <PhaseArea ctx={ctx} size="md" />
           </div>
 
-          {/* 상대 금액 추리 — 메인 영역 */}
-          {showOpponentTracker && (
-            <div className="w-full max-w-2xl">
-              <OpponentInventoryTracker />
-            </div>
-          )}
         </div>
 
         {/* ── 우측 사이드바 ── */}
-        <div className="bank-sidebar hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col lg:gap-3 lg:border-l lg:border-gray-200 lg:p-4">
-          <ScorePanel
-            p1={gameData.players.p1}
-            p2={gameData.players.p2}
-            firstSide={firstSide}
-            myId={myId}
-          />
+        <div className="bank-sidebar hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col lg:gap-3 lg:p-3">
+          <GameInfoPart><ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
+          {showOpponentTracker && <GameInfoPart title="상대 잔여 추리"><OpponentInventoryTracker /></GameInfoPart>}
 
           {/* 라운드 기록 */}
           {gameData.history.length > 0 && (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <GameInfoPart className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <p className="bank-sidebar-heading mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">
                 라운드 기록
               </p>
@@ -144,7 +114,7 @@ export default function DesktopLayout({ ctx }: Props) {
                   variant="desktop"
                 />
               </div>
-            </div>
+            </GameInfoPart>
           )}
         </div>
       </div>

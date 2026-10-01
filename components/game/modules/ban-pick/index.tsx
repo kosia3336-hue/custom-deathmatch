@@ -8,6 +8,7 @@ import { useRankMatchStore } from '@/stores/rankMatch';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { cn } from '@/lib/utils';
 import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx, playUnbanSfx, playUnbanTurnStartSfx } from '@/lib/sfx';
+import { serverNow } from '@/lib/serverClock';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import type { Game } from '@/shared/types/game';
 import type { RankTier } from '@/shared/types/rank';
@@ -99,7 +100,7 @@ function BanTimer({ deadline, timeLimit }: { deadline: number | null; timeLimit:
 
   useEffect(() => {
     if (!deadline || timeLimit <= 0) return;
-    const tick = () => setRemaining(Math.max(0, (deadline - Date.now()) / 1000));
+    const tick = () => setRemaining(Math.max(0, (deadline - serverNow()) / 1000));
     tick();
     const id = setInterval(tick, 200);
     return () => clearInterval(id);
@@ -506,7 +507,7 @@ export default function BanPickGame() {
                 ...prev,
                 currentTurn: payload.currentTurn!,
                 erasableGameIds: new Set(),
-                turnDeadline: payload.turnDeadline ?? Date.now() + 15_000,
+                turnDeadline: payload.turnDeadline ?? serverNow() + 15_000,
               }
             : null,
         );

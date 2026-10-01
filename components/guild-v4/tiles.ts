@@ -10,6 +10,7 @@ export const DEV_TILE_IDS = [
   'shop',
   'invest',
   'grant',
+  'war',
   'list',
 ] as const;
 
@@ -25,6 +26,7 @@ export const DEV_TILE_LABEL: Record<DevTileId, string> = {
   shop: '상점',
   invest: '투자',
   grant: '지급',
+  war: '길드전',
   list: '랭킹',
 };
 

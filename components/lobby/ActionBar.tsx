@@ -46,7 +46,10 @@ export default function ActionBar({ onCreateRoom, isAdmin = false }: Props) {
           // 필터 목록에 종목이 남아 있으면 감춘 의미가 없다.
           filterUnreleased(
             all.filter(
-              (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+              (g) =>
+                g.id !== GAME_IDS.INDIAN_POKER_EVENT &&
+                g.id !== GAME_IDS.SUN_MOON_STAR_EVENT &&
+                g.id !== GAME_IDS.RING_THE_BELL,
             ),
             isAdmin,
           ),

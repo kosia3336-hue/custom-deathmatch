@@ -1,11 +1,12 @@
 'use client';
 
+import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
-import type { MultipleBnwGameData, MBNWTile, MBNWSuspectResult } from '@/shared/types/multiple-bnw';
+import type { MultipleBnwGameData, MBNWTile, MBNWSuspectResult, MBNWTileColor } from '@/shared/types/multiple-bnw';
 import { MBNW_TOTAL_ROUNDS } from '@/shared/types/multiple-bnw';
 import TileSelector from './TileSelector';
 import SuspectPanel from './SuspectPanel';
@@ -13,8 +14,13 @@ import ResultPanel from './ResultPanel';
 import InfoPanel from './InfoPanel';
 import OpponentTileTracker from './OpponentTileTracker';
 import { WIN_TYPE_LABELS } from './constants';
-import Modal from '@/components/ui/Modal';
 import { GameFrame } from '@/components/game/GameFrame';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
+import InkWashFieldFx from './skins/InkWashFieldFx';
 
 interface SuspectAnim {
   player: 'first' | 'second';
@@ -27,11 +33,12 @@ export default function MultipleBnwGame() {
   const gameData = gameState?.gameData as MultipleBnwGameData | undefined;
   const myId = useMySocketId();
   useTurnTimer();
+  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.MULTIPLE_BNW);
+  const isInkWash = skin === 'ink-wash';
 
   // Opponent tile manual tracker (client-side only)
   const [trackedOpponentUsed, setTrackedOpponentUsed] = useState<MBNWTile[]>([]);
-  const [trackerOpen, setTrackerOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const { setHud } = useRoomLayout();
   const handleTrackerToggle = (tile: MBNWTile) => {
     setTrackedOpponentUsed(prev =>
       prev.includes(tile) ? prev.filter(t => t !== tile) : [...prev, tile],
@@ -56,6 +63,55 @@ export default function MultipleBnwGame() {
 
   // Winner/draw toast
   const shownWinnerRef = useRef<string | null>(null);
+
+  const memoOpponentColor = gameData && ['suspectFirst', 'suspectSecond'].includes(gameData.phase)
+    ? (() => {
+        const me = gameData.players[myId];
+        return me?.isFirst
+          ? gameData.colorReveal?.secondPlayerColor ?? null
+          : gameData.colorReveal?.firstPlayerColor ?? null;
+      })()
+    : null;
+  const memoShowTracker = !!gameData && !isSpectator && ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(gameData.phase);
+  /* 자리와 단계를 같이 — '선 플레이어 타일 선택' 만으로는 내 차례인지 모른다 (lib/gameSeat.ts) */
+  const mbnwIsFirst = gameData ? myId === gameData.firstPlayerId : false;
+  const mbnwSeat = isSpectator ? null : mbnwIsFirst ? '선' : '후';
+  const mbnwFirstTurn = gameData?.phase === 'tileSubmit' || gameData?.phase === 'suspectFirst';
+  const mbnwSecondTurn = gameData?.phase === 'tileRespond' || gameData?.phase === 'suspectSecond';
+  const mbnwStep =
+    gameData?.phase === 'tileSubmit' || gameData?.phase === 'tileRespond' ? '타일' : '배수의심';
+  const phaseLabel = seatStage(
+    mbnwSeat,
+    mbnwFirstTurn || mbnwSecondTurn
+      ? turnStage({
+          finished: false,
+          isSpectator,
+          isMyTurn: (mbnwFirstTurn && mbnwIsFirst) || (mbnwSecondTurn && !mbnwIsFirst),
+          spectatorStage: `${mbnwFirstTurn ? '선' : '후'} ${mbnwStep}`,
+        })
+      : gameData?.phase === 'result'
+        ? '라운드 결과'
+        : gameData?.phase === 'finished'
+          ? '종료'
+          : undefined,
+  );
+
+  useEffect(() => {
+    if (!gameData) return;
+    const panel = (
+      <MultipleBnwSidePanel
+        gameData={gameData}
+        myId={myId}
+        showTracker={memoShowTracker}
+        trackedOpponentUsed={trackedOpponentUsed}
+        onTrackerToggle={handleTrackerToggle}
+        opponentCurrentColor={memoOpponentColor}
+        inkWash={isInkWash}
+      />
+    );
+    setHud({ round: `${gameData.round} / ${MBNW_TOTAL_ROUNDS}R`, order: phaseLabel, memo: panel });
+    return () => setHud(null);
+  }, [gameData, isInkWash, memoOpponentColor, memoShowTracker, myId, phaseLabel, setHud, trackedOpponentUsed]);
 
   useEffect(() => {
     if (!gameData?.winType) return;
@@ -157,13 +213,11 @@ export default function MultipleBnwGame() {
 
   const playerEntries = Object.entries(gameData.players);
   const myPlayer = playerEntries.find(([id]) => id === myId)?.[1];
-  const opponent = playerEntries.find(([id]) => id !== myId)?.[1];
 
   const isFirst = myPlayer?.isFirst ?? false;
   const fp = playerEntries.find(([, p]) => p.isFirst)?.[1];
   const sp = playerEntries.find(([, p]) => !p.isFirst)?.[1];
 
-  const opponentId = playerEntries.find(([id]) => id !== myId)?.[0];
   const opponentCurrentColor = gameData.phase === 'suspectFirst' || gameData.phase === 'suspectSecond'
     ? (isFirst ? gameData.colorReveal?.secondPlayerColor : gameData.colorReveal?.firstPlayerColor) ?? null
     : null;
@@ -173,95 +227,26 @@ export default function MultipleBnwGame() {
   return (
     <>
       <GameFrame
-        info={<div className="flex w-full flex-col gap-1">
-            {/* Mobile: compact score bar */}
-            <div className="flex w-full justify-between gap-2">
-              {playerEntries.map(([id, p]) => {
-                const isMe = id === myId;
-                return (
-                  <div
-                    key={id}
-                    className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-1.5 text-xs ${
-                      isMe ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <span className={`truncate font-medium ${isMe ? 'text-indigo-700' : 'text-gray-700'}`}>
-                      {isMe ? '나' : p.nickname}
-                    </span>
-                    <span className="ml-1 shrink-0 tabular-nums font-bold text-gray-700">
-                      {p.score}점
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Round header */}
-            <div className="text-center text-xl font-bold text-gray-800 sm:text-2xl">
-              라운드 {gameData.round} / {MBNW_TOTAL_ROUNDS}
-              {fp && (
-                <span className="ml-2 text-sm font-normal text-amber-600">
-                  {fp.nickname} 선플
-                </span>
-              )}
-            </div>
-
-            {/* Status message */}
-            <div className="text-center text-sm text-gray-500">
-              {gameState?.message}
-            </div>
-        </div>}
-        controls={
-          /*
-            타일 선택 패널이 이 게임의 본체라 무대에 두고, 아래에는 참고용
-            도구만 단추로 남긴다. 추리판·기록을 모두 아래에 깔면 640px 화면에서
-            무대가 눌려 선택 패널이 잘린다.
-          */
-          <div className="flex gap-1.5">
-            {showTracker && (
-              <button
-                type="button"
-                onClick={() => setTrackerOpen(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                상대 타일 추리
-              </button>
-            )}
-            {gameData.roundHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 lg:hidden"
-              >
-                라운드 기록 ({gameData.roundHistory.length})
-              </button>
-            )}
-          </div>
-        }
+        className={isInkWash ? 'skin-ink-wash-field' : undefined}
         aside={
-          <div className="flex h-full flex-col gap-3 border-l border-gray-200 p-4">
-            {showTracker && (
-              <OpponentTileTracker
-                markedTiles={trackedOpponentUsed}
-                onToggle={handleTrackerToggle}
-                opponentCurrentColor={opponentCurrentColor}
-              />
-            )}
-            <InfoPanel
-              round={gameData.round}
-              players={gameData.players}
-              roundHistory={gameData.roundHistory}
-              myId={myId}
-            />
-          </div>
+          <MultipleBnwSidePanel
+            gameData={gameData}
+            myId={myId}
+            showTracker={showTracker}
+            trackedOpponentUsed={trackedOpponentUsed}
+            onTrackerToggle={handleTrackerToggle}
+            opponentCurrentColor={opponentCurrentColor}
+            inkWash={isInkWash}
+          />
         }
       >
-        <div className="flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
-            <div className="w-full max-w-lg space-y-3">
+        <div className="mbnw-stage flex h-full w-full max-w-lg flex-col justify-center overflow-hidden">
+            {isInkWash && <InkWashFieldFx />}
+            <div className="mbnw-stage-content w-full max-w-lg space-y-3">
 
               {/* Color reveal badges */}
               {gameData.colorReveal && (
-                <div className="flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3">
+                <div className="mbnw-panel mbnw-color-reveal flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3">
                   {/* First player color */}
                   {gameData.colorReveal.firstPlayerColor && (
                     <div className={`flex flex-col items-center gap-1 transition-all duration-350 ${
@@ -295,7 +280,7 @@ export default function MultipleBnwGame() {
 
               {/* Spectator overlay */}
               {isSpectator && ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(gameData.phase) && (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400">
+                <div className="mbnw-panel mbnw-waiting-card flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400">
                   <WaitingDots />
                   <span className="ml-1">플레이어들이 선택 중...</span>
                 </div>
@@ -310,7 +295,7 @@ export default function MultipleBnwGame() {
                       actionType="submitTile"
                     />
                   ) : (
-                    <WaitingCard text={`${fp?.nickname ?? '선플'}이 타일을 선택 중...`} />
+                    <WaitingCard text={`${josa(fp?.nickname ?? '선플', '이/가')} 타일을 선택 중...`} />
                   )}
                 </>
               )}
@@ -325,7 +310,7 @@ export default function MultipleBnwGame() {
                       firstColor={gameData.colorReveal?.firstPlayerColor}
                     />
                   ) : (
-                    <WaitingCard text={`${sp?.nickname ?? '후플'}이 응답 중...`} />
+                    <WaitingCard text={`${josa(sp?.nickname ?? '후플', '이/가')} 응답 중...`} />
                   )}
                 </>
               )}
@@ -341,7 +326,7 @@ export default function MultipleBnwGame() {
                       trackedUsedTiles={trackedOpponentUsed}
                     />
                   ) : (
-                    <WaitingCard text={`${fp?.nickname ?? '선플'}이 배수의심 여부를 결정 중...`} />
+                    <WaitingCard text={`${josa(fp?.nickname ?? '선플', '이/가')} 배수의심 여부를 결정 중...`} />
                   )}
                 </>
               )}
@@ -362,7 +347,7 @@ export default function MultipleBnwGame() {
                     />
                   ) : (
                     <WaitingCard
-                      text={`${sp?.nickname ?? '후플'}이 배수의심 여부를 결정 중...`}
+                      text={`${josa(sp?.nickname ?? '후플', '이/가')} 배수의심 여부를 결정 중...`}
                       extra={
                         gameData.suspectResult?.firstSuspected === true &&
                         gameData.suspectResult?.firstSuccess === false
@@ -389,30 +374,12 @@ export default function MultipleBnwGame() {
         </div>
       </GameFrame>
 
-      <Modal open={trackerOpen} onClose={() => setTrackerOpen(false)} title="상대 타일 추리">
-        {/* Opponent tile tracker */}
-        {showTracker && (
-          <OpponentTileTracker
-            markedTiles={trackedOpponentUsed}
-            onToggle={handleTrackerToggle}
-            opponentCurrentColor={opponentCurrentColor}
-          />
-        )}      </Modal>
-
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="라운드 기록">
-        <MobileRoundHistory
-          history={gameData.roundHistory}
-          players={gameData.players}
-          myId={myId}
-        />
-      </Modal>
-
       {/* Suspect animation overlay */}
       <div className={`pointer-events-none fixed inset-0 z-(--cdm-z-modal) flex items-center justify-center transition-all duration-300 ${
         suspectAnim ? 'opacity-100' : 'opacity-0'
       }`}>
         {suspectAnim && (
-          <div className={`flex flex-col items-center gap-3 rounded-2xl px-10 py-6 text-center shadow-2xl transition-transform duration-300 ${
+          <div className={`mbnw-suspect-overlay ${isInkWash ? 'mbnw-suspect-overlay--ink-wash' : ''} flex flex-col items-center gap-3 rounded-2xl px-10 py-6 text-center shadow-2xl transition-transform duration-300 ${
             suspectAnim ? 'scale-100' : 'scale-75'
           } ${
             suspectAnim.success
@@ -436,7 +403,7 @@ export default function MultipleBnwGame() {
         roundOverlay ? 'opacity-100' : 'opacity-0'
       }`}>
         {roundOverlay && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm">
+          <div className={`mbnw-round-overlay flex flex-col items-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-900/90 px-10 py-6 text-center text-white shadow-2xl backdrop-blur-sm ${isInkWash ? 'mbnw-round-overlay--ink-wash' : ''}`}>
             <p className="text-2xl font-bold">라운드 {roundOverlay.round} 시작</p>
             <p className="text-sm text-indigo-300">{roundOverlay.firstNick} 선플</p>
           </div>
@@ -448,7 +415,7 @@ export default function MultipleBnwGame() {
 
 function ColorBadge({ color, pulse }: { color: 'white' | 'black'; pulse?: boolean }) {
   return (
-    <span className={`inline-flex h-10 items-center rounded-lg px-4 text-base font-semibold transition-all duration-200 ${
+    <span className={`mbnw-color-badge mbnw-color-badge--${color} inline-flex h-10 items-center rounded-lg px-4 text-base font-semibold transition-all duration-200 ${
       pulse ? 'ring-2 ring-offset-1 ring-current' : ''
     } ${
       color === 'black'
@@ -472,7 +439,7 @@ function WaitingDots() {
 
 function WaitingCard({ text, extra }: { text: string; extra?: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
+    <div className="mbnw-panel mbnw-waiting-card flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
       <WaitingDots />
       <p className="text-sm text-gray-500">{text}</p>
       {extra && (
@@ -482,35 +449,41 @@ function WaitingCard({ text, extra }: { text: string; extra?: string }) {
   );
 }
 
-function MobileRoundHistory({ history, players, myId }: {
-  history: MultipleBnwGameData['roundHistory'];
-  players: MultipleBnwGameData['players'];
+function MultipleBnwSidePanel({
+  gameData,
+  myId,
+  showTracker,
+  trackedOpponentUsed,
+  onTrackerToggle,
+  opponentCurrentColor,
+  inkWash,
+}: {
+  gameData: MultipleBnwGameData;
   myId: string;
+  showTracker: boolean;
+  trackedOpponentUsed: MBNWTile[];
+  onTrackerToggle: (tile: MBNWTile) => void;
+  opponentCurrentColor: MBNWTileColor | null;
+  inkWash: boolean;
 }) {
   return (
-    <div className="space-y-1 text-xs">
-      {history.map(r => {
-        const entries = Object.entries(r.players);
-        return (
-          <div key={r.round} className="flex gap-2">
-            <span className="font-medium text-gray-500">R{r.round}</span>
-            {entries.map(([pid, pr]) => (
-              <span key={pid} className="flex items-center gap-1">
-                <span className={`rounded px-1 text-[10px] font-bold ${
-                  pr.color === 'black' ? 'bg-slate-800 text-slate-100' : 'border border-gray-200 bg-white text-slate-700'
-                }`}>
-                  {pr.color === 'black' ? '흑' : '백'}
-                </span>
-                <span className="text-gray-500">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
-                {' '}
-                <span className={pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'}>
-                  +{pr.bonusPoint + pr.normalPoint}
-                </span>
-              </span>
-            ))}
-          </div>
-        );
-      })}
-    </div>
+    <GameInfoStack className={inkWash ? 'skin-ink-wash-memo' : undefined}>
+      {showTracker && (
+        <GameInfoPart>
+          <OpponentTileTracker
+            markedTiles={trackedOpponentUsed}
+            onToggle={onTrackerToggle}
+            opponentCurrentColor={opponentCurrentColor}
+          />
+        </GameInfoPart>
+      )}
+      <GameInfoPart>
+        <InfoPanel
+          players={gameData.players}
+          roundHistory={gameData.roundHistory}
+          myId={myId}
+        />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

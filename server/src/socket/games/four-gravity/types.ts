@@ -1,5 +1,4 @@
 import type { GameResult } from '@shared/types/events.js';
-import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { PlayMode } from '@shared/types/room.js';
 import type {
   CellType,
@@ -10,6 +9,7 @@ import type {
   FourGravityAction,
   FgTutorialStepId,
 } from '@shared/types/four-gravity.js';
+import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { IO } from './constants.js';
 
 export type EndGameFn = (
@@ -77,10 +77,13 @@ export interface InternalState {
   timeLimitSeconds: number | null;
   turnTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
+  aiThinkSeconds: number;
   aiDifficulty: AbstractAiDifficulty;
   /** `/super-ai` 방. COM 어려움과 다른 엔진. */
   superAi: boolean;
   gameOver: boolean;
+  /** 복기 수순을 조용히 다시 적용하는 동안. 방송·종료 예약을 막는다. */
+  reviewing: boolean;
   actionLog: TurnActionLog[];
   undoSnapshots: FourGravityUndoSnapshot[];
   ownerToken: string | null;

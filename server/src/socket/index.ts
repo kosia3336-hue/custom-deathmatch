@@ -18,9 +18,13 @@ import {
   EVENT_SMS_ROOM_KEY,
   EVENT_SMS_SOCKET_CHANNEL,
 } from './smsEventRoomHandlers.js';
-import { socketRoom, maskedClientRoomFor, guildRoom } from './utils.js';
-import { isTokenAnonymized } from '../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
+import {
+  registerGuildWarRoomHandlers,
+  guildWarRoom,
+  GUILD_WAR_ROOM_ID,
+  GUILD_WAR_CHANNEL,
+} from './guildWarRoomHandlers.js';
+import { socketRoom, maskedClientRoomFor, guildRoom, emitToRoomWithViewerNickname } from './utils.js';
 import { getMemberFromAccessToken } from '../db/member.js';
 import { fetchAndMarkPendingTitles, markAllTitleNotifsRead } from '../db/notifications.js';
 import { scheduleSkinExpiries, cancelSkinExpiries } from './skinExpiry.js';
@@ -70,10 +74,34 @@ function bindMemberToSession(
   if (member.guildId) socket.join(guildRoom(member.guildId));
 }
 
+/**
+ * `session:restore` 로 들어온 토큰을 어떻게 다룰지 가른다.
+ *
+ *   'restore'  이 소켓의 것이 맞다 — 세션을 이어 준다.
+ *   'reauth'   회원에게 묶인 토큰인데 이 연결은 인증이 안 붙었다. 넘겨주지도,
+ *              버리지도 않는다 — 클라이언트가 인증을 다시 받아 붙으면 된다.
+ *   'reissue'  형식이 틀렸거나 '다른 회원' 의 토큰이다 — 새 토큰을 발급한다.
+ *
+ * reauth 를 reissue 와 갈라 놓는 것이 핵심이다. 액세스 토큰 갱신이 한 번
+ * 실패하면 그 연결은 게스트로 붙는데, 그걸 탈취로 보아 토큰을 갈아 끼우면
+ * 진행 중이던 판에 묶인 토큰이 사라져 새로고침해도 게임으로 못 돌아온다.
+ */
+export function classifyRestoreToken(
+  rawToken: unknown,
+  boundMemberId: string | null,
+  authedMemberId: string | null,
+): 'restore' | 'reauth' | 'reissue' {
+  if (typeof rawToken !== 'string' || rawToken.length < 8) return 'reissue';
+  if (boundMemberId === null) return 'restore';
+  if (authedMemberId === null) return 'reauth';
+  return boundMemberId === authedMemberId ? 'restore' : 'reissue';
+}
+
 export function setupSocketHandlers(io: IO) {
   // 이벤트 룸 싱글톤 초기화 (운영 시간 폴링 시작)
   eventRoom.init(io);
   smsEventRoom.init(io);
+  guildWarRoom.init(io);
   // ── v2 — connect 핸드셰이크에서 Supabase access_token 검증 ──────────────
   // accessToken 있으면 회원 검증 후 socket.data.member 세팅.
   // 없거나 실패하면 게스트로 연결 허용 (로비 관전 전용 — 방 생성/입장은 닉네임 체크로 차단).
@@ -103,6 +131,14 @@ export function setupSocketHandlers(io: IO) {
 
   io.on('connection', (socket) => {
 
+    // ── 시각 맞추기 ──────────────────────────────────────────────────────
+    // 타이머 마감은 서버 시각(turnStartedAt 등)으로 온다. 기기 시계가 몇 초씩
+    // 어긋나 있으면 사람마다 남은 시간이 다르게 보이므로, 클라이언트가 이 값으로
+    // 오차를 잰다(lib/serverClock.ts).
+    socket.on('time:sync', (callback) => {
+      if (typeof callback === 'function') callback(Date.now());
+    });
+
     // ── 세션 복원 ─────────────────────────────────────────────────────────
     socket.on('session:restore', ({ token: rawToken, confirmed }) => {
       // 세션 토큰은 Player.id 로 쓰이며 room:state 를 통해 같은 방의 다른 참가자에게
@@ -113,12 +149,19 @@ export function setupSocketHandlers(io: IO) {
       const authedMemberId = getSocketMember(socket)?.id ?? null;
       const boundMemberId =
         typeof rawToken === 'string' ? sessions.getMemberId(rawToken) : null;
-      const tokenRejected =
-        typeof rawToken !== 'string' ||
-        rawToken.length < 8 ||
-        (boundMemberId !== null && boundMemberId !== authedMemberId);
 
-      if (tokenRejected) {
+      const verdict = classifyRestoreToken(rawToken, boundMemberId, authedMemberId);
+
+      if (verdict === 'reauth') {
+        // 이번 연결만 임시 토큰으로 게스트 처리한다. 클라이언트의 토큰은 그대로 둬야
+        // 인증을 다시 받아 붙었을 때 진행 중이던 판으로 돌아올 수 있다.
+        const temp = randomUUID();
+        sessions.linkToken(socket.id, temp);
+        socket.emit('session:reauth');
+        return;
+      }
+
+      if (verdict === 'reissue') {
         const fresh = randomUUID();
         sessions.linkToken(socket.id, fresh);
         bindMemberToSession(socket, fresh);
@@ -215,6 +258,14 @@ export function setupSocketHandlers(io: IO) {
           return;
         }
 
+        if (roomId === GUILD_WAR_ROOM_ID) {
+          socket.leave(LOBBY_ROOM);
+          socket.join(GUILD_WAR_CHANNEL);
+          guildWarRoom.rejoinSocket(socket, token);
+          socket.emit('session:restored', { nickname, roomId });
+          return;
+        }
+
         if (roomId) {
           const room = roomStore.get(roomId);
           if (room) {
@@ -228,13 +279,17 @@ export function setupSocketHandlers(io: IO) {
             if (room.status === 'playing') emitGameStateToSocket(socket, roomId, room.gameId);
 
             // 방 전체에 재연결 성공 알림 (playerId = token = Player.id)
-            const reconnectedNickname = isTokenAnonymized(roomId, token)
-              ? ANONYMOUS_NICKNAME
-              : nickname;
-            io.to(socketRoom(roomId)).emit('player:reconnected', {
-              playerId: token,
-              nickname: reconnectedNickname,
-            });
+            // 플레이어만 알린다. 관전자는 방 화면을 열 때마다 여기로 들어와서, 조건이
+            // 없으면 관전자가 들어올 때마다 '님이 재연결되었습니다' 가 떴다.
+            if (room.players.some((p) => p.id === token)) {
+              emitToRoomWithViewerNickname(
+                io,
+                roomId,
+                'player:reconnected',
+                { playerId: token },
+                nickname,
+              );
+            }
           }
         }
 
@@ -289,6 +344,7 @@ export function setupSocketHandlers(io: IO) {
     registerSuperAiHandlers(io, socket);
     registerEventRoomHandlers(io, socket);
     registerSmsEventRoomHandlers(io, socket);
+    registerGuildWarRoomHandlers(io, socket);
 
     // ── 연결 끊김 ─────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
@@ -338,6 +394,22 @@ export function setupSocketHandlers(io: IO) {
         return;
       }
 
+      if (token && roomId === GUILD_WAR_ROOM_ID) {
+        if (guildWarRoom.isSeatedAndInGame(token)) {
+          const timer = setTimeout(() => {
+            guildWarRoom.forceLeaveByToken(token);
+            sessions.removeSession(socket.id);
+            if (wasMember) broadcastOnlineUsers(io);
+          }, RECONNECT_GRACE_PLAYING);
+          sessions.setPendingDisconnect(token, timer);
+        } else {
+          guildWarRoom.handleDisconnect(socket);
+          sessions.removeSession(socket.id);
+        }
+        if (wasMember) broadcastOnlineUsers(io);
+        return;
+      }
+
       // ── 일반 게임 룸 처리 ─────────────────────────────────────────────
       if (token && roomId) {
         const room = roomStore.get(roomId);
@@ -347,15 +419,15 @@ export function setupSocketHandlers(io: IO) {
         if (isPlayer && room?.status === 'playing') {
           // ─── 인게임: 30초 유예 ─────────────────────────────────────────
           const realNickname = sessions.getNickname(socket.id) ?? '알 수 없음';
-          const nickname = isTokenAnonymized(roomId, token)
-            ? ANONYMOUS_NICKNAME
-            : realNickname;
 
-          socket.to(socketRoom(roomId)).emit('player:reconnecting', {
-            playerId: token,
-            nickname,
-            secondsLeft: RECONNECT_GRACE_PLAYING / 1000,
-          });
+          emitToRoomWithViewerNickname(
+            io,
+            roomId,
+            'player:reconnecting',
+            { playerId: token, secondsLeft: RECONNECT_GRACE_PLAYING / 1000 },
+            realNickname,
+            socket.id,
+          );
 
           const timer = setTimeout(() => {
             handleLeaveRoom(io, socket);

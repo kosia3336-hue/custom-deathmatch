@@ -352,6 +352,8 @@ export default function AdminRankTools({
         open={matchOpen}
         onClose={() => setMatchOpen(false)}
         title="최근 전적 · 삭제"
+        /* 게임명과 점수 변화까지 한 줄에 들어가야 해서 기본(max-w-md)으로는 좁다 */
+        className="max-w-4xl"
       >
         {matchTarget ? (
           <RankMatchHistoryPanel

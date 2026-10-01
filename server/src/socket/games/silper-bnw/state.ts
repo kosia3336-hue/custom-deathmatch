@@ -1,3 +1,5 @@
+import { josa } from '@shared/lib/josa.js';
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type {
   SBNWGameData,
@@ -16,6 +18,7 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized, getRoomShopState } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import {
   REMATCH_INTRO_MS,
   REVEAL_DELAY_MS,
@@ -44,6 +47,7 @@ import type {
   SBNWPlayerSnapshot,
   SBNWUndoSnapshot,
 } from './types.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -201,7 +205,7 @@ function cloneRoundHistory(actionLog: SBNWRoundRecord[], viewerId: string | null
         return [
           pid,
           {
-            nickname: roomId && isTokenAnonymized(roomId, pid) && pid !== viewerId ? ANONYMOUS_NICKNAME : pd.nickname,
+            nickname: roomId ? nicknameForViewer(roomId, pid, pd.nickname, viewerId) : pd.nickname,
             tilesUsed: isSelf ? [...pd.tilesUsed] : [],
             digits: pd.digits,
             valueStr: isSelf ? pd.valueStr : '',
@@ -235,7 +239,7 @@ function buildGameDataFor(s: InternalState, viewerId: string | null, dbgView = f
   const isP2 = viewerId === s.player2.id;
   const seeBothTiles = dbgView && (isP1 || isP2);
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   return {
     phase: s.phase,
     round: s.round,
@@ -281,7 +285,8 @@ function buildGameState(s: InternalState, gameData: SBNWGameData): GameState {
           : null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['firstSubmit', 'secondSubmit'], s.turnStartedAt),
     activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
@@ -348,19 +353,19 @@ export function clearRoundTimer(s: InternalState) {
   }
 }
 
-function armTimer(s: InternalState, onTimeout: () => void) {
+function armTimer(io: IO, s: InternalState, onTimeout: () => void) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(onTimeout, s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => s.phase === 'firstSubmit' ? getFirstPlayer(s).id : s.phase === 'secondSubmit' ? getSecondPlayer(s).id : null, onTimeout, s.timeLimitSeconds * 1000);
 }
 
 export function startFirstSubmitTimer(io: IO, s: InternalState) {
-  armTimer(s, () => handleFirstTimeout(io, s));
+  armTimer(io, s, () => handleFirstTimeout(io, s));
 }
 
 function startSecondSubmitTimer(io: IO, s: InternalState) {
-  armTimer(s, () => handleSecondTimeout(io, s));
+  armTimer(io, s, () => handleSecondTimeout(io, s));
 }
 
 function handleFirstTimeout(io: IO, s: InternalState) {
@@ -502,7 +507,7 @@ function buildFinishReasonText(
   if (resolution === 'tiebreakTile') {
     const winner = winnerId === p1.id ? p1 : p2;
     const m = maxTile(winner.tiles);
-    return `승점 동률 ${p1.score}:${p2.score} — 남은 최대 타일 ${m}로 ${winner.nickname} 승`;
+    return `승점 동률 ${p1.score}:${p2.score} — 남은 최대 타일 ${josa(String(m), '으로/로')} ${winner.nickname} 승`;
   }
   if (resolution === 'rematchNeeded') {
     return '승점·최대 타일 모두 동률 — 재대결';

@@ -53,13 +53,18 @@ function StageRow({
       ? 'bg-amber-950 opacity-70'
       : 'bg-gray-800 opacity-25';
 
+  /*
+    칸 높이를 못 박지 않는다. 10칸짜리 사다리가 세로로 길어, 고정 높이로 두면
+    화면이 조금만 낮아도 무대 밖으로 밀려 위쪽이 잘렸다. 남은 높이를 10칸이
+    나눠 갖되(flex-1) 넉넉할 때는 1.75rem 을 넘기지 않는다.
+  */
   return (
-    <div className="flex items-center gap-1">
-      <div className={`h-6 flex-1 rounded-l-md transition-colors duration-300 sm:h-7 ${leftCls}`} />
-      <div className="flex h-6 w-20 shrink-0 items-center justify-center rounded border border-gray-200 bg-white text-[11px] font-medium text-gray-500 sm:h-7">
+    <div className="flex min-h-0 flex-1 items-center gap-1">
+      <div className={`h-full max-h-7 min-h-2.5 flex-1 rounded-l-md transition-colors duration-300 ${leftCls}`} />
+      <div className="flex h-full max-h-7 min-h-2.5 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-gray-200 bg-white text-[11px] leading-none font-medium text-gray-500">
         {label}
       </div>
-      <div className={`h-6 flex-1 rounded-r-md transition-colors duration-300 sm:h-7 ${rightCls}`} />
+      <div className={`h-full max-h-7 min-h-2.5 flex-1 rounded-r-md transition-colors duration-300 ${rightCls}`} />
     </div>
   );
 }
@@ -69,16 +74,17 @@ export default function PointTrack({ leftPlayer, rightPlayer, leftLabel, rightLa
   const rightStage = rightPlayer.stage;
 
   return (
-    <div className="space-y-1">
+    /* 무대가 준 높이를 그대로 채운다 — 넘치는 쪽이 아니라 줄어드는 쪽으로. */
+    <div className="flex h-full min-h-0 flex-col gap-1">
       {/* Player headers */}
-      <div className="flex items-center gap-1 pb-1">
+      <div className="flex shrink-0 items-center gap-1 pb-1">
         <div className="flex-1 truncate text-center text-xs font-semibold text-indigo-600">{leftLabel}</div>
         <div className="w-20 shrink-0" />
         <div className="flex-1 truncate text-center text-xs font-semibold text-amber-600">{rightLabel}</div>
       </div>
 
       {/* Score row */}
-      <div className="flex items-center gap-1 pb-2">
+      <div className="flex shrink-0 items-center gap-1 pb-2">
         <div className="flex-1 text-center text-2xl font-bold text-indigo-700">{leftPlayer.score}</div>
         <div className="w-20 shrink-0 text-center text-[10px] text-gray-400">점수</div>
         <div className="flex-1 text-center text-2xl font-bold text-amber-700">{rightPlayer.score}</div>
@@ -96,7 +102,7 @@ export default function PointTrack({ leftPlayer, rightPlayer, leftLabel, rightLa
       ))}
 
       {/* Remaining points / stage hint */}
-      <div className="flex items-center gap-1 pt-1">
+      <div className="flex shrink-0 items-center gap-1 pt-1">
         <div className="flex-1 text-center text-[11px] text-gray-400">
           {leftPlayer.remainingPoints !== null ? `${leftPlayer.remainingPoints}p` : `${leftStage}단계`}
         </div>

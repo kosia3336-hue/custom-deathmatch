@@ -20,6 +20,8 @@ export interface GameHud {
    * null 이면 메모 아이콘 자체가 안 나온다.
    */
   memo?: ReactNode;
+  /** 상단 바 오른쪽, 채팅 왼쪽. 길드전 관전 예약처럼 눈에 띄는 행동. */
+  headerAction?: ReactNode;
 }
 
 export interface RoomLayoutContextValue {

@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   SEED_SEOTDA_ANTE,
   type SeedSeotdaAction,
@@ -96,7 +97,7 @@ function scheduleDecision(io: IO, state: SeedSeotdaState) {
   state.turnStartedAt = Date.now();
   const actorId = state.currentTurnId;
   if (state.turnSeconds != null) {
-    state.turnTimer = setTimeout(() => {
+    state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentTurnId, () => {
       if (
         seedSeotdaStates.get(state.roomId) !== state ||
         state.gameOver ||
@@ -251,7 +252,9 @@ function settleRound(io: IO, state: SeedSeotdaState, result: SeedSeotdaRoundResu
       result.reason === 'gusa-rematch' ||
       result.reason === 'mung-gusa-rematch';
     state.carryRound = replay;
-    if (!replay) state.firstPlayerId = otherSeedSeotdaPlayerId(state, state.firstPlayerId);
+    // 정상 승부와 다이는 직전 라운드 승자가 다음 라운드의 선 베팅을 맡는다.
+    // 팟을 이월하는 재경기는 기존 선 플레이어를 그대로 유지한다.
+    if (!replay && result.winnerId != null) state.firstPlayerId = result.winnerId;
     beginSeedSeotdaRound(io, state);
   }, SEED_SEOTDA_ROUND_RESULT_MS);
 }
@@ -287,6 +290,7 @@ export function resolveSeedSeotdaShowdown(io: IO, state: SeedSeotdaState) {
     chipCountsAfter: chipCounts(state),
     actions: state.roundActions.map((action) => ({ ...action })),
     deckRemainingAfter: state.deck.length,
+    deckCycle: state.deckCycles,
   });
 }
 
@@ -335,6 +339,7 @@ function settleDie(io: IO, state: SeedSeotdaState, foldedPlayerId: string) {
     chipCountsAfter: chipCounts(state),
     actions: state.roundActions.map((action) => ({ ...action })),
     deckRemainingAfter: state.deck.length,
+    deckCycle: state.deckCycles,
   });
 }
 

@@ -4,12 +4,15 @@ import { Card } from '@/components/cdm/Card';
 import { Button } from '@/components/cdm/Button';
 import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
+import { SongpyeonIcon } from '@/components/cdm/SongpyeonIcon';
 import type { ShopItem } from '@/lib/cdp/types';
 
 interface Props {
   item: ShopItem;
   owned: boolean;
   balance: number;
+  /** 추석 상품은 CDP가 아니라 이 잔액으로 부족 여부를 본다. */
+  songpyeonBalance?: number;
   merchantDiscount: boolean;
   onBuy: () => void;
 }
@@ -23,6 +26,11 @@ interface PayloadShape {
   bias_game_id?: string;
   bias_weight?: number;
   discount_rate?: number;
+  /** 한가위 상품. 송편으로 산다. */
+  priceUnit?: 'songpyeon';
+  preview?: boolean;
+  exchangeCdp?: number;
+  grant?: string;
 }
 
 function effectivePrice(item: ShopItem, merchantDiscount: boolean): { paid: number; original: number; discounted: boolean } {
@@ -34,14 +42,18 @@ function effectivePrice(item: ShopItem, merchantDiscount: boolean): { paid: numb
   return { paid, original: item.price, discounted: paid !== item.price };
 }
 
-export default function ShopItemCard({ item, owned, balance, merchantDiscount, onBuy }: Props) {
+export default function ShopItemCard({ item, owned, balance, songpyeonBalance = 0, merchantDiscount, onBuy }: Props) {
   const payload = (item.payload ?? {}) as PayloadShape;
   const isUnique = Boolean(payload.unique);
+  const isSongpyeon = payload.priceUnit === 'songpyeon';
+  const locksWhenOwned = isUnique || (isSongpyeon && !payload.grant && payload.exchangeCdp == null);
   const isSoldOut = item.stock !== null && item.stock <= 0;
-  const isOwnedExclusive = isUnique && owned;
+  const isOwnedExclusive = locksWhenOwned && owned;
   const isPreSale = !!item.availableFrom && new Date(item.availableFrom) > new Date();
   const { paid, original, discounted } = effectivePrice(item, merchantDiscount);
-  const insufficient = balance < paid;
+  const payBalance = isSongpyeon ? songpyeonBalance : balance;
+  const insufficient = payBalance < paid;
+  const priceLabel = isSongpyeon ? formatCdp(paid) : null;
 
   const isSoldOutOnly = isSoldOut && !isOwnedExclusive;
 
@@ -62,7 +74,8 @@ export default function ShopItemCard({ item, owned, balance, merchantDiscount, o
     ctaVariant = 'secondary';
     ctaDisabled = true;
   } else if (insufficient) {
-    ctaLabel = `구매 (${formatCdp(paid - balance)} 부족)`;
+    const held = isSongpyeon ? songpyeonBalance : balance;
+    ctaLabel = `구매 (${formatCdp(paid - held)} 부족)`;
     ctaVariant = 'secondary';
   }
 
@@ -88,6 +101,20 @@ export default function ShopItemCard({ item, owned, balance, merchantDiscount, o
                   -10%
                 </span>
               </div>
+            ) : isSongpyeon ? (
+              <span className="inline-flex items-center gap-1 text-sm font-bold tabular-nums text-cdm-fg whitespace-nowrap">
+                <SongpyeonIcon size={20} />
+                {typeof payload.exchangeCdp === 'number' ? (
+                  <>
+                    {formatCdp(paid)}
+                    <span className="font-semibold text-cdm-fg-muted">=</span>
+                    <CdpIcon size={14} />
+                    {payload.exchangeCdp}
+                  </>
+                ) : (
+                  priceLabel
+                )}
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-sm font-bold tabular-nums text-cdm-fg whitespace-nowrap">
                 <CdpIcon size={14} />
@@ -107,6 +134,11 @@ export default function ShopItemCard({ item, owned, balance, merchantDiscount, o
               보유
             </span>
           )}
+          {item.stock !== null && item.stock > 0 && (
+            <span className="rounded-full bg-cdm-fg/10 px-1.5 py-0.5 text-[10px] font-bold text-cdm-fg-muted">
+              {item.stock}개
+            </span>
+          )}
           {isSoldOutOnly && (
             <span className="rounded-full bg-cdm-fg/15 px-1.5 py-0.5 text-[10px] font-bold text-cdm-fg-muted">
               품절
@@ -120,7 +152,11 @@ export default function ShopItemCard({ item, owned, balance, merchantDiscount, o
           variant={ctaVariant}
           disabled={ctaDisabled}
           onClick={onBuy}
-          aria-label={`${item.name} 을(를) ${formatCdp(paid)} CDP 로 구매`}
+          aria-label={
+            isSoldOut
+              ? `${item.name} 품절`
+              : `${item.name} 을(를) ${isSongpyeon ? priceLabel : `${formatCdp(paid)} CDP`} 로 구매`
+          }
         >
           {ctaLabel}
         </Button>

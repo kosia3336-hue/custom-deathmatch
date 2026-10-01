@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   applyKingmakingAction,
   canMoveKingmakingStack,
@@ -14,6 +15,8 @@ import {
   type KingmakingWinType,
 } from '@shared/types/kingmaking.js';
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
+import { readReviewActions } from '@shared/review.js';
+import { soloReviewSeats } from '../reviewSeat.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { chooseKingmakingAiAction, enumerateKingmakingActions } from './ai.js';
@@ -68,6 +71,10 @@ function formatFinishReason(state: KingmakingState, winnerId: string, winType: K
 
 function finishGame(io: IO, state: KingmakingState, winnerId: string, winType: KingmakingWinType) {
   if (state.gameOver) return;
+  if (state.reviewing) {
+    state.gameOver = true;
+    return;
+  }
   clearKingmakingTimers(state);
   state.gameOver = true;
   state.winnerId = winnerId;
@@ -96,7 +103,7 @@ function armTurnTimer(io: IO, state: KingmakingState) {
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
   if (!state.timeLimitSeconds || state.currentPlayerId === AI_PLAYER_ID || state.gameOver) return;
-  state.turnTimer = setTimeout(() => {
+  state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentPlayerId, () => {
     if (kingmakingStates.get(state.roomId) !== state || state.gameOver) return;
     finishGame(io, state, otherPlayer(state, state.currentPlayerId).id, 'timeout');
   }, state.timeLimitSeconds * 1000);
@@ -190,18 +197,18 @@ function applyAction(
   actorId: string,
   action: KingmakingAction,
   socket?: TypedSocket,
-) {
-  if (state.gameOver) return;
+): boolean {
+  if (state.gameOver) return false;
   const validated = validateAndApply(state, actorId, action);
   if (validated.error) {
     socket?.emit('error', { message: validated.error });
-    return;
+    return false;
   }
   const nextBoard = applyKingmakingAction(state.board, action, validated.placedPiece);
   const nextPositionKey = kingmakingBoardPositionKey(nextBoard);
   if (state.positionHistory.has(nextPositionKey)) {
     socket?.emit('error', { message: '이전에 나온 판 배치를 반복할 수 없습니다.' });
-    return;
+    return false;
   }
   if (action.type === 'place') takePiece(state.reserves[actorId], action.kind);
   if (state.turnTimer) clearTimeout(state.turnTimer);
@@ -223,9 +230,10 @@ function applyAction(
   state.actionLog.push(logEntry);
   if (winnerId) {
     finishGame(io, state, winnerId, 'six-stack');
-    return;
+    return true;
   }
   finishTurn(io, state);
+  return true;
 }
 
 export function initKingmaking(
@@ -236,11 +244,14 @@ export function initKingmaking(
   startedAt: number,
   timeLimitSeconds: number | null,
   endGameCallback: KingmakingEndGameFn,
+  gameOptions?: Record<string, unknown>,
 ) {
   const previous = kingmakingStates.get(roomId);
   if (previous) clearKingmakingTimers(previous);
-  const first = players[0];
-  const second = players[1];
+  const human = players[0];
+  const seated = playMode === 'solo' && human && !players[1] ? soloReviewSeats(human) : null;
+  const first = seated?.[0] ?? players[0];
+  const second = seated?.[1] ?? players[1];
   if (!first || !second) throw new Error('킹메이킹은 두 명의 플레이어가 필요합니다.');
   const board = createKingmakingBoard();
   const now = Date.now();
@@ -264,15 +275,54 @@ export function initKingmaking(
     winType: null,
     finishReason: null,
     gameOver: false,
+    reviewing: false,
     turnTimer: null,
     aiTimer: null,
     finishTimer: null,
     endGameCallback,
   };
   kingmakingStates.set(roomId, state);
+  const review = readReviewActions(gameOptions);
+  if (!review.ok) {
+    kingmakingStates.delete(roomId);
+    throw new Error('복기 수순을 읽지 못했습니다.');
+  }
+  if (review.actions) {
+    try {
+      replayKingmakingReview(io, state, review.actions);
+    } catch (error) {
+      clearKingmakingTimers(state);
+      kingmakingStates.delete(roomId);
+      throw error;
+    }
+  }
   armTurnTimer(io, state);
   void broadcastKingmakingState(io, state);
   scheduleAi(io, state);
+}
+
+function replayKingmakingReview(io: IO, state: KingmakingState, actions: unknown[]) {
+  const seats = new Map<string, string>();
+  state.reviewing = true;
+  try {
+    for (const raw of actions) {
+      if (!raw || typeof raw !== 'object') throw new Error('복기 수순을 읽지 못했습니다.');
+      const entry = raw as { actorId?: unknown; action?: KingmakingAction };
+      if (typeof entry.actorId !== 'string' || !entry.action || typeof entry.action !== 'object') {
+        throw new Error('복기 수순을 읽지 못했습니다.');
+      }
+      let seat = seats.get(entry.actorId);
+      if (!seat) {
+        if (seats.size >= 2) throw new Error('복기 수순을 읽지 못했습니다.');
+        seat = seats.size === 0 ? state.players[0].id : state.players[1].id;
+        seats.set(entry.actorId, seat);
+      }
+      const ok = applyAction(io, state, seat, entry.action);
+      if (!ok || state.gameOver) throw new Error('복기 수순을 적용하지 못했습니다.');
+    }
+  } finally {
+    state.reviewing = false;
+  }
 }
 
 export function handleKingmakingAction(
@@ -284,6 +334,11 @@ export function handleKingmakingAction(
   const state = kingmakingStates.get(roomId);
   if (!state || state.gameOver) return;
   const actorId = sessions.getToken(socket.id) ?? socket.id;
+  if (state.playMode === 'solo') {
+    if (actorId !== state.players[0].id) return;
+    applyAction(io, state, state.currentPlayerId, rawData as KingmakingAction, socket);
+    return;
+  }
   if (!state.players.some((player) => player.id === actorId) || actorId === AI_PLAYER_ID) return;
   applyAction(io, state, actorId, rawData as KingmakingAction, socket);
 }

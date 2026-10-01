@@ -43,6 +43,7 @@ function makeState(): InternalState {
     aiDifficulty: 'normal',
     superAi: false,
     gameOver: false,
+    reviewing: false,
     actionLog: [],
     undoSnapshots: [],
     ownerToken: null,

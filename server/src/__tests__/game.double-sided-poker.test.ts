@@ -126,8 +126,16 @@ describe('양면포커 경기 진행', () => {
       reason: 'showdown',
       potAmount: 4,
     });
-    expect(state.lastRoundResult?.cards[first.id].back).toBeNull();
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    // 기록에는 실제 뒷면이 남는다 — 게임이 끝난 뒤 로그에서 복기할 수 있어야 한다
+    expect(state.lastRoundResult?.cards[first.id].back).toBe(3);
+    expect(state.lastRoundResult?.cards[second.id].back).toBe(9);
+    // 게임 중 화면에는 앞면으로 겨룬 두 사람의 뒷면이 보이지 않는다(본인 것만 보인다)
+    const firstView = toDoubleSidedPokerGameData(state, first.id);
+    expect(firstView.lastRoundResult?.cards[first.id].back).toBe(3);
+    expect(firstView.lastRoundResult?.cards[second.id].back).toBeNull();
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBeNull();
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('뒷면을 선택한 플레이어의 뒷면만 승부 결과에 공개한다', () => {
@@ -136,8 +144,13 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 8, 1);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'back', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'call', side: 'front' });
+    // 기록에는 두 사람의 실제 뒷면이 남는다
     expect(state.lastRoundResult?.cards[first.id].back).toBe(9);
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    expect(state.lastRoundResult?.cards[second.id].back).toBe(1);
+    // 화면에는 뒷면으로 겨룬 사람의 뒷면만 공개된다
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBe(9);
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('동점이면 팟을 그대로 두고 선도 그대로 둔 채 다음 라운드로 넘어간다', async () => {
@@ -210,7 +223,7 @@ describe('양면포커 경기 진행', () => {
     ).toBeNull();
   });
 
-  it('올인 상태에서 무승부가 나면 끝내지 않고 다음 라운드 앞면으로 팟 주인을 가린다', async () => {
+  it('올인 상태에서 무승부가 나면 끝내지 않고 다음 라운드에 면을 골라 팟 주인을 가린다', async () => {
     const { io, state, first, second } = setup('double-poker-allin-tie');
     // 둘 다 올인해 같은 숫자로 비긴다.
     state.playerStates[first.id].chips = 4;
@@ -243,31 +256,88 @@ describe('양면포커 경기 진행', () => {
     expect(state.round).toBe(2);
 
     /*
-      둘 다 베팅할 칩이 없으므로 새 라운드는 카드를 받자마자 앞면끼리 비교해
-      끝난다. 앞면 9 를 받은 players[0] 이 이월된 팟을 가져간다.
+      둘 다 베팅할 칩이 없다. 예전에는 서버가 앞면끼리 자동 비교했지만 이제는
+      각자 겨룰 면을 고른다 — 뒷면이 더 좋은 쪽은 그걸 쓸 수 있어야 한다.
     */
-    const winner = state.players[0].id;
-    const loser = state.players[1].id;
+    expect(state.selectOnly).toBe(true);
+    const winner = state.players[0].id; // 앞면 9 · 뒷면 4
+    const loser = state.players[1].id; // 앞면 2 · 뒷면 5
+
+    // 베팅은 못 하고 면만 고를 수 있다.
+    expect(
+      performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+        type: 'bet',
+        side: 'front',
+        amount: 1,
+      }),
+    ).toBe('겨룰 면을 골라 주세요.');
+
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === winner ? 'front' : 'back',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === winner ? 'front' : 'back',
+    });
+
+    // 9 대 5 — 앞면 9 를 고른 쪽이 이월된 팟을 가져간다.
     expect(state.playerStates[winner].chips).toBe(carriedPot);
     expect(state.playerStates[loser].chips).toBe(0);
   });
 
-  it('양면베팅은 양쪽 베팅칸에 같은 칩을 내고 상대 응답을 기다린다', () => {
-    const { io, state, first, second } = setup('double-poker-double-wait');
+  it('면만 고르는 라운드에서는 뒷면을 골라 앞면 열세를 뒤집을 수 있다', () => {
+    const { io, state, first, second } = setup('double-poker-select-only');
+    // 둘 다 걸 칩이 없는 이월 라운드를 만든다.
+    state.playerStates[first.id].chips = 0;
+    state.playerStates[second.id].chips = 0;
+    state.carryRound = true;
+    state.pot = 8;
+    // pop 으로 꺼내므로 마지막 원소가 players[0] 에게 간다.
+    state.deck = [card('lo', 6, 1), card('hi', 3, 10)];
+    beginDoubleSidedPokerRound(io, state);
+
+    expect(state.selectOnly).toBe(true);
+    const underdog = state.players[0].id; // 앞면 3 · 뒷면 10
+    const favourite = state.players[1].id; // 앞면 6 · 뒷면 1
+
+    // 앞면만 비교하던 예전 규칙이라면 6 이 이겼다. 뒷면 10 을 고를 수 있어야 한다.
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === underdog ? 'back' : 'front',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === underdog ? 'back' : 'front',
+    });
+
+    expect(state.lastRoundResult?.winnerId).toBe(underdog);
+    expect(state.playerStates[underdog].chips).toBe(8);
+    expect(state.playerStates[favourite].chips).toBe(0);
+  });
+
+  it('양면베팅으로 상대 기준액을 콜하면 즉시 카드를 비교하고 라운드를 끝낸다', () => {
+    const { io, state, first, second } = setup('double-poker-double-call');
     state.playerStates[first.id].card = card('a', 5, 2);
     state.playerStates[second.id].card = card('b', 8, 7);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 2 });
     expect(performDoubleSidedPokerAction(io, state, second.id, { type: 'double' })).toBeNull();
-    expect(state.phase).toBe('betting');
-    expect(state.currentTurnId).toBe(first.id);
+    expect(state.phase).toBe('round-result');
+    expect(state.currentTurnId).toBeNull();
     expect(state.playerStates[second.id]).toMatchObject({
       selection: 'both',
       stake: 2,
       frontBet: 2,
       backBet: 2,
-      chips: 20,
+      chips: 38,
     });
-    expect(state.pot).toBe(8);
+    expect(state.pot).toBe(0);
+    expect(state.lastRoundResult).toMatchObject({
+      winnerId: second.id,
+      reason: 'showdown',
+      doubleBettorId: second.id,
+      potAmount: 8,
+    });
   });
 
   it('양면베팅으로 받을 때 금액을 올리면 양면 레이즈가 되어 차례가 넘어간다', () => {
@@ -309,9 +379,10 @@ describe('양면포커 경기 진행', () => {
       amount: 999,
     });
     expect(tooHigh).toBe('양면베팅에 가능한 범위의 칩을 골라 주세요.');
-    // 금액을 안 주면 예전처럼 기준액을 그대로 맞춘다.
+    // 금액을 안 주면 기준액을 그대로 맞추고 즉시 승부한다.
     expect(performDoubleSidedPokerAction(io, state, responder, { type: 'double' })).toBeNull();
     expect(state.playerStates[responder].stake).toBe(3);
+    expect(state.phase).toBe('round-result');
   });
 
   it('기본 베팅으로 칩이 0 이 되어도 그 라운드를 치른다', async () => {
@@ -326,9 +397,18 @@ describe('양면포커 경기 진행', () => {
 
     // 예전에는 기본 베팅 뒤 칩 0 을 보고 바로 끝냈다.
     expect(state.gameOver).toBe(false);
-    // 1칩짜리는 기본 베팅으로 0 이 되지만 그대로 라운드를 치른다.
+    // 1칩짜리는 기본 베팅으로 0 이 된다 — 걸 칩이 없으니 면만 고르는 라운드다.
+    expect(state.selectOnly).toBe(true);
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === state.players[0].id ? 'front' : 'back',
+    });
+    performDoubleSidedPokerAction(io, state, state.currentTurnId!, {
+      type: 'select',
+      side: state.currentTurnId === state.players[0].id ? 'front' : 'back',
+    });
     expect(state.lastRoundResult).not.toBeNull();
-    // 앞면 9 를 받은 players[0] 이 팟 2칩을 가져간다.
+    // 앞면 9 를 고른 players[0] 이 팟 2칩을 가져간다(상대는 뒷면 6).
     expect(state.playerStates[state.players[0].id].chips).toBeGreaterThan(0);
   });
 
@@ -338,7 +418,6 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 8, 7);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'call' });
     expect(state.lastRoundResult).toMatchObject({
       winnerId: second.id,
       doubleBettorId: second.id,
@@ -354,7 +433,6 @@ describe('양면포커 경기 진행', () => {
     state.playerStates[second.id].card = card('b', 6, 9);
     performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
     performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'call' });
     expect(state.lastRoundResult).toMatchObject({ winnerId: first.id, doubleBonus: 0 });
   });
 
@@ -362,27 +440,37 @@ describe('양면포커 경기 진행', () => {
     const { io, state, first, second } = setup('double-poker-double-raise');
     state.playerStates[first.id].card = card('a', 5, 2);
     state.playerStates[second.id].card = card('b', 8, 7);
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 2 });
-    performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'raise', amount: 3 });
-    expect(state.currentTurnId).toBe(second.id);
-    expect(performDoubleSidedPokerAction(io, state, second.id, { type: 'call' })).toBeNull();
+    performDoubleSidedPokerAction(io, state, first.id, { type: 'double', amount: 2 });
+    performDoubleSidedPokerAction(io, state, second.id, {
+      type: 'raise',
+      side: 'front',
+      amount: 3,
+    });
+    expect(state.currentTurnId).toBe(first.id);
+    expect(performDoubleSidedPokerAction(io, state, first.id, { type: 'call' })).toBeNull();
     expect(state.lastRoundResult?.actions.at(-1)).toMatchObject({ payment: 2, stake: 3 });
-    expect(state.lastRoundResult?.bets[second.id]).toEqual({ front: 3, back: 3 });
+    expect(state.lastRoundResult?.bets[first.id]).toEqual({ front: 3, back: 3 });
   });
 
   it('양면베팅을 받은 상대가 다이해도 양면베팅자가 추가 칩을 가져온다', () => {
     const { io, state, first, second } = setup('double-poker-double-fold-bonus');
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'bet', side: 'front', amount: 1 });
-    performDoubleSidedPokerAction(io, state, second.id, { type: 'double' });
-    performDoubleSidedPokerAction(io, state, first.id, { type: 'fold' });
+    performDoubleSidedPokerAction(io, state, first.id, { type: 'double', amount: 1 });
+    performDoubleSidedPokerAction(io, state, second.id, { type: 'fold' });
     expect(state.lastRoundResult).toMatchObject({
-      winnerId: second.id,
+      winnerId: first.id,
       reason: 'fold',
       doubleBonus: 10,
     });
-    expect(state.lastRoundResult?.cards[first.id].back).toBeNull();
-    expect(state.lastRoundResult?.cards[second.id].back).toBeNull();
+    // 다이로 끝나도 기록에는 두 사람의 실제 뒷면이 남는다
+    expect(state.lastRoundResult?.cards[first.id].back).toBeTypeOf('number');
+    expect(state.lastRoundResult?.cards[second.id].back).toBeTypeOf('number');
+    // 화면에서는 승부까지 가지 않았으므로 본인 것 말고는 가린다
+    const firstView = toDoubleSidedPokerGameData(state, first.id);
+    expect(firstView.lastRoundResult?.cards[first.id].back).toBeTypeOf('number');
+    expect(firstView.lastRoundResult?.cards[second.id].back).toBeNull();
+    const spectatorView = toDoubleSidedPokerGameData(state, null);
+    expect(spectatorView.lastRoundResult?.cards[first.id].back).toBeNull();
+    expect(spectatorView.lastRoundResult?.cards[second.id].back).toBeNull();
   });
 
   it('COM은 상대의 실제 비공개 뒷면이 아니라 공개 앞면의 분포만 사용한다', () => {

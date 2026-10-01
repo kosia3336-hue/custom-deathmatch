@@ -8,6 +8,7 @@ import { Card } from '@/components/cdm/Card';
 import { Board3D, BoardCell3D } from '@/components/game/abstract-strategy';
 import { cn } from '@/lib/utils';
 import { StackVisual } from '@/components/game/modules/kingmaking/StackVisual';
+import { ReviewPlayButton } from '@/components/archive/ReviewPlayButton';
 
 export default function KingmakingViewer({ record }: { record: GameRecordFile }) {
   const data = record.gameRecord as KingmakingArchiveRecord | null;
@@ -36,7 +37,7 @@ export default function KingmakingViewer({ record }: { record: GameRecordFile })
       <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,32rem)_minmax(15rem,20rem)] lg:justify-center">
         <Card className="p-3">
           <ArchiveBoard board={frame} playerIds={playerIds} />
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => setTurnIndex(0)}
@@ -72,6 +73,12 @@ export default function KingmakingViewer({ record }: { record: GameRecordFile })
             >
               마지막
             </button>
+            <ReviewPlayButton
+              gameId={record.gameId}
+              gameName={record.gameName}
+              actions={data.actions.slice(0, Math.max(0, selected - 1))}
+              disabled={selected < 1}
+            />
           </div>
         </Card>
         <Card className="p-3">

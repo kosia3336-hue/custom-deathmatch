@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/cdm/Card';
-import { DoubleSidedPokerCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { DoubleSidedPokerArchiveRecord } from '@/shared/types/double-sided-poker';
 
@@ -10,6 +10,7 @@ const ACTION_LABEL = {
   call: '콜',
   raise: '레이즈',
   double: '양면베팅',
+  select: '면 선택',
   fold: '다이',
 } as const;
 
@@ -49,6 +50,10 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
       <div className="grid gap-3 lg:grid-cols-2">
         {data.rounds.map((round) => {
           const winner = round.winnerId ? data.players[round.winnerId]?.nickname : null;
+          /* 다이는 던진 사람을 부른다 — 인게임 문구와 같게 맞춘다 */
+          const folded = round.foldedPlayerId
+            ? data.players[round.foldedPlayerId]?.nickname
+            : null;
           return (
             <Card key={round.round} className="p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
@@ -60,7 +65,7 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
                     {round.reason === 'tie'
                       ? '동점 · 팟 이월'
                       : round.reason === 'fold'
-                        ? `${winner} 다이 승리`
+                        ? `${folded ?? '상대'}님 다이`
                         : `${winner} 승리`}
                   </p>
                 </div>
@@ -83,9 +88,9 @@ export default function DoubleSidedPokerViewer({ record }: { record: GameRecordF
                     <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md p-2 text-center">
                       <p className="text-cdm-fg-muted truncate text-[10px]">{player.nickname}</p>
                       <div className="mt-1 flex justify-center gap-1">
-                        {card && <DoubleSidedPokerCard value={card.front} face="front" size="sm" />}
+                        {card && <PlayingCard value={card.front} face="front" size="sm" />}
                         {card?.back != null && (
-                          <DoubleSidedPokerCard value={card.back} face="back" size="sm" />
+                          <PlayingCard value={card.back} face="back" size="sm" />
                         )}
                       </div>
                       {card && card.back == null && (

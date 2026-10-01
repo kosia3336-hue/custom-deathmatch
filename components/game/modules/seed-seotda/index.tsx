@@ -1,14 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
 import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import RecordPanel, { useSeedSeotdaMarks } from './RecordPanel';
 import type { SeedSeotdaGameData, SeedSeotdaPlayerView } from '@/shared/types/seed-seotda';
 
 const PHASE_LABEL: Record<SeedSeotdaGameData['phase'], string> = {
@@ -285,6 +286,10 @@ function ResultOverlay({ gameData }: { gameData: SeedSeotdaGameData }) {
   const result = gameData.lastRoundResult;
   if (gameData.phase !== 'round-result' || !result) return null;
   const winnerName = result.winnerId ? gameData.players[result.winnerId]?.nickname : null;
+  /* 다이는 이긴 사람이 아니라 던진 사람을 부른다 — 인디언홀덤Q·양면포커와 같은 표기다 */
+  const foldedName = result.foldedPlayerId
+    ? gameData.players[result.foldedPlayerId]?.nickname
+    : null;
   const title =
     result.reason === 'tie'
       ? '동일 족보 · 재경기'
@@ -293,7 +298,7 @@ function ResultOverlay({ gameData }: { gameData: SeedSeotdaGameData }) {
         : result.reason === 'mung-gusa-rematch'
           ? '멍텅구리 구사 · 재경기'
           : result.reason === 'die'
-            ? `${winnerName ?? '상대'} 님이 다이 승리`
+            ? `${foldedName ?? '상대'}님 다이`
             : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
@@ -318,8 +323,34 @@ export default function SeedSeotdaGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as SeedSeotdaGameData | undefined;
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
+
+  /* 상단 바 — 라운드와 '메모'(라운드 기록·카운팅). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
+  const { setHud } = useRoomLayout();
+  /*
+    카운팅 표시는 이 기기에 덱 한 벌마다 따로 둔다. 두 자리에 같은 패널이 그려지므로
+    상태는 여기 하나뿐이다. 덱 회차를 열쇠에 넣어, 덱을 새로 섞으면 카운팅도 새로
+    시작한다 — 안 그러면 한 바퀴 돈 뒤 스무 장이 다 지워진 채로 굳는다.
+  */
+  const roomId = useRoomStore((state) => state.room?.id);
+  const memoKey = `cdm-seed-seotda-memo:${roomId ?? ''}:${gameState?.startedAt ?? ''}:${gameData?.deckCycles ?? 1}`;
+  const { seen, marks, toggleMark } = useSeedSeotdaMarks(memoKey, gameData);
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      round: `${gameData.round}R`,
+      memo: (
+        <RecordPanel
+          data={gameData}
+          myId={myId}
+          seen={seen}
+          marks={marks}
+          onToggleMark={toggleMark}
+        />
+      ),
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, myId, seen, marks, toggleMark]);
 
   if (!gameData) {
     return (
@@ -339,9 +370,6 @@ export default function SeedSeotdaGame() {
       info={
         <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg flex items-center justify-between gap-2 border px-2 py-1.5">
           <div className="min-w-0">
-            <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold tracking-[0.16em]">
-              ROUND {gameData.round}
-            </p>
             <p className="text-cdm-fg truncate text-xs leading-4 font-black">
               {PHASE_LABEL[gameData.phase]}
               {gameData.carryRound && <span className="text-cdm-highlight ml-1.5">재경기</span>}
@@ -360,17 +388,6 @@ export default function SeedSeotdaGame() {
                 {gameData.pot}
               </p>
             </div>
-            <div>
-              <p className="text-cdm-fg-subtle text-[9px] leading-3 font-bold">TIME</p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-sm leading-4 font-black tabular-nums',
-                  remaining != null && remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {remaining == null ? '∞' : Math.ceil(remaining)}
-              </p>
-            </div>
           </div>
         </div>
       }
@@ -379,6 +396,15 @@ export default function SeedSeotdaGame() {
           <SeedChoiceArea key={`seed-${actionKey}`} gameData={gameData} myId={myId} />
           <BettingArea key={`bet-${actionKey}`} gameData={gameData} myId={myId} />
         </div>
+      }
+      aside={
+        <RecordPanel
+          data={gameData}
+          myId={myId}
+          seen={seen}
+          marks={marks}
+          onToggleMark={toggleMark}
+        />
       }
     >
       <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4">

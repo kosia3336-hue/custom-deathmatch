@@ -2,7 +2,7 @@
  * 해달별 (이벤트) — Web Audio API SFX
  */
 
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
@@ -32,7 +32,7 @@ function tone(
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getSfxOutput(ctx));
   osc.type = type;
   const t = ctx.currentTime + startOffset;
   osc.frequency.setValueAtTime(freq, t);

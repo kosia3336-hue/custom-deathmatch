@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
 import type {
@@ -14,8 +15,9 @@ import type {
 import { judgeMultiple } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
+import { inputPhaseClock } from '../../gameClock.js';
+import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -65,7 +67,7 @@ function toClientRoundHistory(history: MBNWRoundActionLog[]): MBNWRoundRecord[] 
 function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.gameOver) return '게임이 종료되었습니다.';
   const maskNick = (p: MBNWPlayerInternal) =>
-    isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname;
+    nicknameForViewer(s.roomId, p.id, p.nickname, viewerToken);
   const fp = getFirstPlayer(s);
   const sp = getSecondPlayer(s);
   switch (s.phase) {
@@ -82,7 +84,7 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
   const isPlayer = pid === s.player1.id || pid === s.player2.id;
   const myPlayer = pid === s.player1.id ? s.player1 : pid === s.player2.id ? s.player2 : null;
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== pid ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, pid);
 
   const players: Record<string, MBNWPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1), nickname: maskNick(s.player1.id, s.player1.nickname) },
@@ -181,8 +183,10 @@ function buildGameState(s: InternalState, gameData: MultipleBnwGameData, viewerT
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'], s.turnStartedAt),
     gameData,
+    activeSkin: getActiveSkin(s.roomId),
   };
 }
 
@@ -221,7 +225,7 @@ function armRoundTimer(io: IO, s: InternalState) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(() => handleTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => (s.phase === 'tileSubmit' || s.phase === 'suspectFirst') ? getFirstPlayer(s).id : (s.phase === 'tileRespond' || s.phase === 'suspectSecond') ? getSecondPlayer(s).id : null, () => handleTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 export function startPhaseTimer(io: IO, s: InternalState) {

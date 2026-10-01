@@ -1,34 +1,44 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { TextInput } from '@/components/cdm/TextInput';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
-import type { InquiryCategory } from '@/lib/supabase/database.types';
+import { mapInquiryError, pickSubmitCategory } from '@/lib/inquiry/categories';
+import { useInquiryCategories } from '@/hooks/useInquiryCategories';
 
-const CATEGORIES: { id: InquiryCategory; label: string }[] = [
-  { id: 'bug', label: '버그/오류' },
-  { id: 'account', label: '계정/정지' },
-  { id: 'rules', label: '규칙/정책' },
-  { id: 'report_followup', label: '신고 처리 문의' },
-  { id: 'etc', label: '기타' },
-];
-
-export default function InquiryForm({ reasonTag }: { reasonTag: string | null }) {
+export default function InquiryForm({
+  reasonTag,
+  onSubmitted,
+}: {
+  reasonTag: string | null;
+  /** 모달에서 쓸 때 — 접수 뒤 페이지를 옮기지 않고 이 콜백(모달 닫기)을 부른다 */
+  onSubmitted?: () => void;
+}) {
   const router = useRouter();
-  const [category, setCategory] = useState<InquiryCategory>(
-    reasonTag === 'suspension' || reasonTag === 'ban' ? 'account' : 'etc',
-  );
+  const { cats, loading } = useInquiryCategories({ activeOnly: true });
+  const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [busy, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (cats.length === 0) return;
+    setCategory((prev) =>
+      cats.some((c) => c.slug === prev) ? prev : pickSubmitCategory(reasonTag, cats),
+    );
+  }, [cats, reasonTag]);
+
   function submit() {
     const t = title.trim();
     const b = body.trim();
+    if (!category) {
+      toast.error('분류를 골라 주세요.');
+      return;
+    }
     if (t.length < 5) {
       toast.error('제목은 5자 이상 입력해 주세요');
       return;
@@ -48,10 +58,18 @@ export default function InquiryForm({ reasonTag }: { reasonTag: string | null })
           p_reason_tag: reasonTag ?? undefined,
         });
         fetch('/api/hidden-titles/check-inquiry', { method: 'POST' }).catch(() => {});
-        toast.success('문의가 접수되었습니다');
-        router.push('/me?tab=support');
+        if (onSubmitted) {
+          // 모달에서 보낸 경우 — 보던 화면에 그대로 두고, 내 문의로 갈 길만 열어 둔다
+          toast.success('문의가 접수되었습니다', {
+            action: { label: '내 문의 보기', onClick: () => router.push('/me?tab=support') },
+          });
+          onSubmitted();
+        } else {
+          toast.success('문의가 접수되었습니다');
+          router.push('/me?tab=support');
+        }
       } catch (e) {
-        toast.error(`접수 실패: ${(e as Error).message}`);
+        toast.error(mapInquiryError(e));
       }
     });
   }
@@ -62,11 +80,13 @@ export default function InquiryForm({ reasonTag }: { reasonTag: string | null })
         <label className="text-sm font-medium text-cdm-fg">분류</label>
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value as InquiryCategory)}
+          onChange={(e) => setCategory(e.target.value)}
+          disabled={loading || cats.length === 0}
           className="h-10 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm text-cdm-fg"
         >
-          {CATEGORIES.map((c) => (
-            <option key={c.id} value={c.id}>
+          {cats.length === 0 && <option value="">{loading ? '불러오는 중…' : '분류 없음'}</option>}
+          {cats.map((c) => (
+            <option key={c.slug} value={c.slug}>
               {c.label}
             </option>
           ))}
@@ -95,7 +115,7 @@ export default function InquiryForm({ reasonTag }: { reasonTag: string | null })
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={submit} loading={busy}>
+        <Button onClick={submit} loading={busy} disabled={!category}>
           접수하기
         </Button>
       </div>

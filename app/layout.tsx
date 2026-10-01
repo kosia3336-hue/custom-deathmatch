@@ -9,8 +9,10 @@ import TitleGrantedModal from '@/components/TitleGrantedModal';
 import { GuildRankPayoutModal } from '@/components/guild-v4/GuildRankPayoutModal';
 import { NoticePublishedListener } from '@/components/notice/NoticePublishedListener';
 import { GuildScoutMailListener } from '@/components/guild-v4/GuildScoutMailListener';
+import { GuildChatLive } from '@/components/guild-v4/GuildChatLive';
 import BgmProvider from '@/components/providers/BgmProvider';
 import SiteFooter from '@/components/layout/SiteFooter';
+import OfflineOverlay from '@/components/providers/OfflineOverlay';
 import { getAccountSettings } from '@/lib/auth/server';
 import { getSiteUrl } from '@/lib/site';
 
@@ -97,8 +99,17 @@ export const viewport: Viewport = {
   themeColor: '#FFFFFF',
   width: 'device-width',
   initialScale: 1,
-  viewportFit: 'cover',
 };
+
+/*
+  앱(Capacitor 웹뷰)인지 첫 화면을 그리기 전에 표시해 둔다.
+
+  푸터처럼 앱에는 두지 않는 것을 CSS(html[data-native-app])로 처음부터 뺀다 —
+  React 가 뜬 뒤에 감추면 한 번 보였다가 사라진다. 웹뷰가 주입하는
+  window.Capacitor, 또는 앱 셸이 붙이는 사용자 에이전트 표식으로 판단한다
+  (mobile/capacitor.config.json appendUserAgent).
+*/
+const NATIVE_APP_SCRIPT = `try{var c=window.Capacitor;if((c&&c.isNativePlatform&&c.isNativePlatform())||/CustomDeathmatchApp/.test(navigator.userAgent)){document.documentElement.setAttribute('data-native-app','')}}catch(e){}`;
 
 interface BgmInitial {
   bgmMuted?: boolean;
@@ -128,7 +139,15 @@ export default async function RootLayout({
   const { isLoggedIn, initial } = await getBgmInitial();
 
   return (
-    <html lang="ko" className={`${geistMono.variable} ${songMyung.variable} h-full antialiased`}>
+    // data-native-app 을 인라인 스크립트가 붙이므로 html 속성 불일치 경고는 끈다
+    <html
+      lang="ko"
+      suppressHydrationWarning
+      className={`${geistMono.variable} ${songMyung.variable} h-full antialiased`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NATIVE_APP_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-cdm-bg text-cdm-fg">
         <SocketProvider>
           <BgmProvider isLoggedIn={isLoggedIn} initial={initial}>
@@ -140,6 +159,8 @@ export default async function RootLayout({
             <GuildRankPayoutModal />
             <NoticePublishedListener />
             <GuildScoutMailListener />
+            <GuildChatLive />
+            <OfflineOverlay />
             <ToastProvider />
           </BgmProvider>
         </SocketProvider>

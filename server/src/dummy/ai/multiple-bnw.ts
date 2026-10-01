@@ -93,13 +93,13 @@ function ofColorPool(remaining: MBNWTile[], color: MBNWTileColor | null): MBNWTi
 /** 상대가 나를 의심 성공: myTile % oppTile === 0 */
 function riskRate(myTile: MBNWTile, opRemaining: MBNWTile[]): number {
   if (opRemaining.length === 0) return 0;
-  return opRemaining.filter((t) => myTile % t === 0 && t !== myTile).length / opRemaining.length;
+  return opRemaining.filter((t) => myTile % t === 0).length / opRemaining.length;
 }
 
 /** 내가 상대를 의심 성공: oppTile % myTile === 0 */
 function opportunityRate(myTile: MBNWTile, opRemaining: MBNWTile[]): number {
   if (opRemaining.length === 0) return 0;
-  return opRemaining.filter((t) => t % myTile === 0 && t !== myTile).length / opRemaining.length;
+  return opRemaining.filter((t) => t % myTile === 0).length / opRemaining.length;
 }
 
 function normalWinRate(myTile: MBNWTile, opTiles: MBNWTile[]): number {
@@ -114,7 +114,7 @@ function suspectSuccessProb(
 ): number {
   const colorTiles = ofColor(opponentRemaining, opponentColor);
   if (colorTiles.length === 0) return 0;
-  return colorTiles.filter((t) => t % myTile === 0 && t !== myTile).length / colorTiles.length;
+  return colorTiles.filter((t) => t % myTile === 0).length / colorTiles.length;
 }
 
 function scoreTileChoice(

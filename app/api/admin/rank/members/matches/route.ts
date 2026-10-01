@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  let body: { memberId?: string; seasonId?: number; limit?: number };
+  let body: { memberId?: string; seasonId?: number; limit?: number; offset?: number };
   try {
     body = await req.json();
   } catch {
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'memberId 가 필요합니다.' }, { status: 400 });
   }
   const limit = Math.min(Math.max(Number(body.limit) || 20, 1), 50);
+  const offset = Math.max(Number(body.offset) || 0, 0);
 
   const sb = await getServerSupabase();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,21 +40,32 @@ export async function POST(req: Request) {
     seasonId = season.id as number;
   }
 
+  /* 한 건 더 받아 '다음이 있는지' 를 본다 — 총 건수를 따로 세지 않아도 된다. */
   const { data, error } = await db
     .from('rank_match_history')
     .select(
-      'id, season_id, winner_id, loser_id, winner_rp_gain, loser_rp_loss, winner_promoted, loser_demoted, game_id, is_forfeit, played_at',
+      'id, season_id, winner_id, loser_id, winner_rp_gain, loser_rp_loss, winner_rp_before, winner_rp_after, loser_rp_before, loser_rp_after, winner_tier, loser_tier, winner_promoted, loser_demoted, game_id, is_forfeit, played_at',
     )
     .eq('season_id', seasonId)
     .or(`winner_id.eq.${memberId},loser_id.eq.${memberId}`)
     .order('played_at', { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const rows = (data ?? []) as Record<string, unknown>[];
+  const fetched = (data ?? []) as Record<string, unknown>[];
+  const hasMore = fetched.length > limit;
+  const rows = hasMore ? fetched.slice(0, limit) : fetched;
+
+  // 게임 이름 붙이기 (game-002 로는 무슨 게임인지 못 읽는다)
+  const gameIds = Array.from(new Set(rows.map((r) => String(r.game_id))));
+  const gameNameMap = new Map<string, string>();
+  if (gameIds.length > 0) {
+    const { data: gameRows } = await db.from('games').select('id, name').in('id', gameIds);
+    (gameRows ?? []).forEach((g: { id: string; name: string }) => gameNameMap.set(g.id, g.name));
+  }
 
   // 상대 닉네임 붙이기
   const opponentIds = Array.from(
@@ -74,16 +86,23 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     seasonId,
+    hasMore,
+    nextOffset: offset + rows.length,
     rows: rows.map((r) => {
       const won = r.winner_id === memberId;
       const opponentId = won ? String(r.loser_id) : String(r.winner_id);
+      const gameId = String(r.game_id);
       return {
         id: String(r.id),
         playedAt: String(r.played_at),
         result: won ? ('win' as const) : ('loss' as const),
         rpDelta: won ? Number(r.winner_rp_gain) : -Number(r.loser_rp_loss),
+        rpBefore: Number(won ? r.winner_rp_before : r.loser_rp_before),
+        rpAfter: Number(won ? r.winner_rp_after : r.loser_rp_after),
+        tierAfter: String((won ? r.winner_tier : r.loser_tier) ?? ''),
         tierChanged: won ? Boolean(r.winner_promoted) : Boolean(r.loser_demoted),
-        gameId: String(r.game_id),
+        gameId,
+        gameName: gameNameMap.get(gameId) ?? gameId,
         isForfeit: Boolean(r.is_forfeit),
         opponentId,
         opponentName: nameMap.get(opponentId) ?? '(탈퇴)',

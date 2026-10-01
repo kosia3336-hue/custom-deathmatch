@@ -3,15 +3,17 @@
 /**
  * 모바일 홈(로비) 상단 헤더 — 앱 재설계안 적용.
  *
- * 디자인 결정: 1c(리스트형 밀도) 위에 1b 의 랭크 카드를 얹는다.
- * - ink(#14142b) 헤더 위에 랭크 카드 하나로 "내 시즌 상태 + 다음 행동"을 모은다.
- * - 랭크 매칭은 카드 안에 있으므로, 아래 행동 줄은 빠른 입장 / 방 만들기 둘만 둔다.
+ * 디자인 결정: 1c(리스트형 밀도) + 1b 의 랭크 표시.
+ * - 위쪽 ink 헤더에는 로고와 소리·채팅·우편·로그인만 둔다.
+ * - 랭크 표시와 랭크 매칭·빠른 입장·방 만들기는 한 덩어리로 탭 바 바로 위에 고정한다.
+ *   내 시즌 상태를 보고 바로 누르는 흐름이고, 한 손으로 쥐었을 때 엄지가 닿는 자리다.
  * - 방 목록 필터는 1c 의 칩 줄로 옮겼다.
  *
  * 데스크톱에서는 렌더하지 않는다(기존 ActionBar 가 그대로 담당).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,6 +31,8 @@ import { Icon, BgmButton } from '@/components/cdm';
 import { Logo } from '@/components/cdm/Logo';
 import { OnlineUsersModalButton } from '@/components/lobby/OnlineUsersPanel';
 import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
+import { useQueueElapsed } from '@/components/rank/RankQueueFloatingIndicator';
+import { formatQueueElapsed } from '@/components/rank/RankQueueModal';
 
 interface Props {
   onCreateRoom: () => void;
@@ -70,6 +74,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const queuing = useRankMatchStore((s) => s.queuing);
   const setQueuing = useRankMatchStore((s) => s.setQueuing);
+  const setQueueModalOpen = useRankMatchStore((s) => s.setQueueModalOpen);
+  const queueElapsed = useQueueElapsed();
 
   const { tabFilters, toggleTabFilter, clearFilters, rooms } = useLobbyStore();
 
@@ -97,8 +103,28 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
 
   const waitingCount = rooms.filter((r) => r.status === 'waiting').length;
 
+  // 고정 행동 바 높이를 --cdm-lobby-bar-h 로 알려, 본문 하단 여백이 바에 가리지 않게 한다.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const sync = () => root.style.setProperty('--cdm-lobby-bar-h', `${el.offsetHeight}px`);
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--cdm-lobby-bar-h');
+    };
+  }, []);
+
   const handleRank = () => {
-    if (queuing) return;
+    // 이미 대기 중이면 대기 화면을 다시 연다(내려둔 상태에서 돌아오는 입구)
+    if (queuing) {
+      setQueueModalOpen(true);
+      return;
+    }
     if (!member) {
       toast.error('랭크 게임은 로그인 후 이용할 수 있습니다.');
       return;
@@ -138,7 +164,8 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
   };
 
   const chips: { key: TabFilter | 'all'; label: string }[] = [
-    { key: 'all', label: `전체 ${rooms.length}` },
+    // 전체 수는 바로 위 '지금 열린 방' 제목이 말한다
+    { key: 'all', label: '전체' },
     { key: 'waiting', label: `대기 ${waitingCount}` },
     { key: 'rank', label: '랭크' },
     { key: 'private', label: '비밀방' },
@@ -146,9 +173,9 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
 
   return (
     <div className="-mx-4 -mt-4 mb-3 sm:hidden">
-      {/* ── ink 헤더: 재화 스트립 + 랭크 카드 ── */}
-      <div className="bg-cdm-ink px-4 pb-4 pt-3">
-        <div className="mb-3 flex items-center justify-between">
+      {/* ── ink 헤더: 로고 + 소리·채팅·우편·로그인 ── */}
+      <div className="bg-cdm-ink px-4 py-3">
+        <div className="flex items-center justify-between">
           <Link href="/lobby" aria-label="홈" className="flex min-w-0 shrink items-center">
             <Logo size="md" className="h-5 w-auto" />
           </Link>
@@ -171,92 +198,103 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
             )}
           </div>
         </div>
+      </div>
 
-        <div
-          className="rounded-cdm-lg border border-white/12 p-4"
-          style={{
-            background:
-              'linear-gradient(150deg, rgba(255,255,255,.10), rgba(255,255,255,.04))',
-          }}
+      {/*
+        ── 하단 행동 바: 랭크 표시 + 랭크 매칭·빠른 입장·방 만들기 ──
+        내 티어를 보고 바로 누르는 한 덩어리라 붙여 두고, 한 손으로 쥐었을 때 엄지가
+        닿도록 하단 탭 바 바로 위에 고정한다. 대기 중이면 랭크 버튼이 경과 시간을
+        보여 주고, 누르면 대기 화면을 다시 연다.
+      */}
+      <div
+        ref={barRef}
+        className="lobby-action-bar fixed inset-x-0 z-(--cdm-z-sticky) border-t border-cdm-ink-border bg-cdm-ink/95 px-3 pt-2.5 pb-2 backdrop-blur"
+        style={{ bottom: 'calc(var(--cdm-tabbar-h) + env(safe-area-inset-bottom))' }}
+      >
+        <Link
+          href="/ranking"
+          aria-label={`${TIER_LABEL[tier]} ${rp} RP · 티어표와 랭킹 보기`}
+          className="mb-2.5 flex items-center gap-2.5 px-1"
         >
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-lg font-extrabold tracking-tight text-white">
-              {TIER_LABEL[tier]}{' '}
-              <span className="text-sm font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
-            </p>
-            {rank?.season && (
-              <span className="text-[11px] font-semibold text-cdm-ink-fg-muted">
-                {rank.season.name}
+          {/* 티어는 옆 글자가 말하므로 엠블럼은 꾸밈으로 둔다 */}
+          <Image
+            src={`/rank/tier-${tier}.png`}
+            alt=""
+            width={36}
+            height={36}
+            className="size-9 flex-none object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="shrink-0 text-sm font-extrabold tracking-tight text-white">
+                {TIER_LABEL[tier]}{' '}
+                <span className="text-xs font-bold text-cdm-highlight tabular-nums">{rp} RP</span>
+              </p>
+              <p className="flex min-w-0 gap-1.5 text-[11px] text-cdm-ink-fg-muted">
+                <span className="truncate">
+                  {tier === 'unranked' || inPlacement
+                    ? `배치전 ${stats?.placement_games ?? 0}/5`
+                    : next
+                      ? `${next.label}까지 ${Math.max(0, next.at - rp)} RP`
+                      : '최고 티어'}
+                </span>
+                {(stats?.win_streak ?? 0) >= 2 && (
+                  <span className="shrink-0 font-semibold text-cdm-success">{stats?.win_streak}연승</span>
+                )}
+              </p>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/13">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
+                }}
+              />
+            </div>
+          </div>
+          <Icon name="chevronRight" size="sm" className="flex-none text-cdm-ink-fg-muted" />
+        </Link>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleRank}
+            className="flex h-12 flex-[1.5] items-center justify-center gap-1.5 rounded-cdm-md bg-cdm-primary text-[15px] font-bold text-white"
+          >
+            <Icon name="bolt" size="sm" />
+            {queuing ? (
+              <span>
+                매칭 중 <span className="tabular-nums">{formatQueueElapsed(queueElapsed)}</span>
               </span>
+            ) : (
+              '랭크 매칭'
             )}
-          </div>
-
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/13">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, var(--cdm-primary), #8b90e0)',
-              }}
-            />
-          </div>
-
-          <div className="mt-1.5 flex justify-between text-[11px] text-cdm-ink-fg-muted">
-            <span>
-              {tier === 'unranked' || inPlacement
-                ? `배치전 ${stats?.placement_games ?? 0}/5 — 5판이면 티어가 정해집니다`
-                : next
-                  ? `${next.label}까지 ${Math.max(0, next.at - rp)} RP`
-                  : '최고 티어'}
-            </span>
-            {(stats?.win_streak ?? 0) >= 2 && (
-              <span className="font-semibold text-cdm-success">{stats?.win_streak}연승</span>
-            )}
-          </div>
-
-          <div className="mt-3.5 flex gap-2">
-            <button
-              type="button"
-              onClick={handleRank}
-              disabled={queuing}
-              className="flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-cdm-md bg-cdm-primary text-[15px] font-bold text-white disabled:opacity-60"
-            >
-              <Icon name="bolt" size="sm" />
-              {queuing ? '매칭 중…' : '랭크 매칭'}
-            </button>
-            <Link
-              href="/ranking"
-              className="flex h-11 flex-1 items-center justify-center rounded-cdm-md border border-white/20 text-sm font-semibold text-cdm-ink-fg"
-            >
-              티어표
-            </Link>
-          </div>
-        </div>
-
-        {/* ── 1c 행동 줄: 랭크는 카드로 갔으므로 둘만 ── */}
-        <div className="mt-2.5 flex gap-2">
+          </button>
           <button
             type="button"
             onClick={handleQuickJoin}
             disabled={quickJoining}
-            className="flex h-12 flex-1 flex-col items-center justify-center rounded-cdm-md border border-white/16 bg-white/10 leading-tight text-cdm-ink-fg disabled:opacity-60"
+            className="h-12 flex-1 rounded-cdm-md border border-white/16 bg-white/10 text-sm font-bold text-cdm-ink-fg disabled:opacity-60"
           >
-            <span className="text-sm font-bold">빠른 입장</span>
-            <span className="text-[9.5px] text-cdm-ink-fg-muted">빈 방 아무데나</span>
+            빠른 입장
           </button>
           <button
             type="button"
             onClick={onCreateRoom}
-            className="flex h-12 flex-1 flex-col items-center justify-center rounded-cdm-md border border-white/16 bg-white/10 leading-tight text-cdm-ink-fg"
+            className="h-12 flex-1 rounded-cdm-md border border-white/16 bg-white/10 text-sm font-bold text-cdm-ink-fg"
           >
-            <span className="text-sm font-bold">방 만들기</span>
-            <span className="text-[9.5px] text-cdm-ink-fg-muted">내가 고른 게임</span>
+            방 만들기
           </button>
         </div>
       </div>
 
-      {/* ── 필터 칩 줄 ── */}
-      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2.5 pt-3">
+      {/* ── 지금 열린 방: 제목 + 필터 칩 줄 ── */}
+      <h2 className="px-4 pt-5 pb-2 text-base font-extrabold tracking-tight text-cdm-fg">
+        지금 열린 방{' '}
+        <span className="text-[13px] font-semibold text-cdm-fg-muted tabular-nums">{rooms.length}</span>
+      </h2>
+      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2.5">
         {chips.map((c) => {
           const active = c.key === 'all' ? tabFilters.length === 0 : tabFilters.includes(c.key as TabFilter);
           return (

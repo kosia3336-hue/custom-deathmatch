@@ -1,5 +1,71 @@
 import { describe, it, expect } from 'vitest';
-import { judgeNumber } from '../socket/games/number4/judge.js';
+import { judgeNumber, tiebreaker } from '../socket/games/number4/judge.js';
+import type { InternalState } from '../socket/games/number4/types.js';
+
+/** 동점 판정에 필요한 것만 채운 상태: 라운드별 넘버·백색 제출 + 잔여 백색 */
+function tieState(
+  p1: { numbers: number[]; whites: number[]; remainingWhite: number },
+  p2: { numbers: number[]; whites: number[]; remainingWhite: number },
+): InternalState {
+  const roundHistory = p1.numbers.map((_, i) => ({
+    round: i + 1,
+    players: {
+      p1: { white: p1.whites[i], black: 7 - p1.whites[i], number: p1.numbers[i] },
+      p2: { white: p2.whites[i], black: 7 - p2.whites[i], number: p2.numbers[i] },
+    },
+  }));
+  return {
+    player1: { id: 'p1', remainingWhite: p1.remainingWhite },
+    player2: { id: 'p2', remainingWhite: p2.remainingWhite },
+    roundHistory,
+  } as unknown as InternalState;
+}
+
+describe('tiebreaker - 승점 동점 (룰 I)', () => {
+  it('넘버 합이 낮은 쪽이 이긴다 (잔여 백색과 무관)', () => {
+    const s = tieState(
+      { numbers: [4, 4, 3, 2, 1, 1], whites: [1, 1, 1, 1, 1, 1], remainingWhite: 18 },
+      { numbers: [1, 1, 1, 1, 1, 1], whites: [4, 4, 4, 4, 4, 4], remainingWhite: 0 },
+    );
+    const tb = tiebreaker(s);
+    expect(tb.winnerId).toBe('p2');
+    expect(tb.reason).toContain('넘버 합 15 vs 6');
+  });
+
+  it('넘버 합이 같으면 잔여 백색 타일이 많은 쪽이 이긴다 (제보: 잔여가 많은데 짐)', () => {
+    // p1 은 백색을 적게 써서 잔여 백색이 많다. 예전 코드는 '쓴 백색 합'이 많은 p2 를 이기게 했다.
+    const s = tieState(
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [1, 2, 1, 2, 1, 2], remainingWhite: 15 },
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [4, 4, 4, 4, 4, 4], remainingWhite: 0 },
+    );
+    const tb = tiebreaker(s);
+    expect(tb.winnerId).toBe('p1');
+    expect(tb.reason).toContain('잔여 백색 타일 15 vs 0');
+  });
+
+  it('반대편이 잔여가 많아도 똑같이 판정한다', () => {
+    const s = tieState(
+      { numbers: [3, 3, 0, 0, 1, 1], whites: [5, 5, 5, 3, 3, 3], remainingWhite: 0 },
+      { numbers: [1, 1, 2, 2, 1, 1], whites: [2, 2, 2, 2, 2, 2], remainingWhite: 12 },
+    );
+    expect(tiebreaker(s).winnerId).toBe('p2');
+  });
+
+  it('넘버 합도 잔여 백색도 같으면 무승부다 (자리 순서로 가르지 않는다)', () => {
+    /*
+      예전에는 여기서 선 플레이어를 이기게 했다. 룰 I 에 그런 근거가 없고
+      앉은 자리만으로 승패가 갈리는 셈이라, 승자 없음으로 돌려준다.
+    */
+    const s = tieState(
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [3, 3, 3, 3, 3, 3], remainingWhite: 6 },
+      { numbers: [2, 2, 2, 2, 2, 2], whites: [3, 3, 3, 3, 3, 3], remainingWhite: 6 },
+    );
+    const tb = tiebreaker(s);
+    expect(tb.winnerId).toBeNull();
+    expect(tb.reason).toContain('무승부');
+  });
+
+});
 
 /**
  * judgeNumber(myWhite, myBlack, opWhite, opBlack, myNumber)

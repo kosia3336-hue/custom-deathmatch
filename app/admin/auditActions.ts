@@ -21,6 +21,8 @@ export const ACTION_LABELS: Record<string, { label: string; variant: string }> =
   'report.reject':         { label: '신고 반려',    variant: 'default' },
   'inquiry.answer':        { label: '문의 답변',    variant: 'default' },
   'inquiry.close':         { label: '문의 종결',    variant: 'default' },
+  'inquiry.category_create': { label: '문의 분류 추가', variant: 'accent' },
+  'inquiry.category_set_active': { label: '문의 분류 상태', variant: 'default' },
   'agreement.publish':     { label: '약관 게시',    variant: 'default' },
   'word.add':              { label: '금칙어 추가',   variant: 'default' },
   'word.delete':           { label: '금칙어 삭제',   variant: 'default' },

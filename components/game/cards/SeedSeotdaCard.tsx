@@ -3,7 +3,7 @@ import type { SeedSeotdaCard as SeedSeotdaCardData } from '@/shared/types/seed-s
 import { cn } from '@/lib/utils';
 import styles from './SeedSeotdaCard.module.css';
 
-export type SeedSeotdaCardSize = 'tiny' | 'sm' | 'md' | 'lg';
+export type SeedSeotdaCardSize = 'tiny' | 'full' | 'sm' | 'md' | 'lg';
 
 const COLUMNS = 6;
 const ROWS = 4;

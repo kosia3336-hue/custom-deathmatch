@@ -241,6 +241,7 @@ export default async function AuditTab({
         return { label: `신고자: ${p.reporter}`, sub: [`피신고: ${p.reported}`] };
       }
       case 'inquiry':
+        if (!/^[0-9a-fA-F]{8}-/.test(id)) return { label: `분류 ${id}` };
         return { label: `문의자: ${inquiryAuthorMap.get(id) ?? `#${id.slice(0, 8)}`}` };
       case 'agreement':
         return { label: `약관 #${id.slice(0, 8)}` };

@@ -8,6 +8,7 @@ import type {
 } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, sumBet } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * RoundHistoryTable — 라운드별 상세 기록
@@ -28,7 +29,7 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
     return <p className="text-[11px] text-gray-400">아직 기록이 없습니다.</p>;
   }
   const nick = (side: SMS2Side) =>
-    mySide && side === mySide ? '나' : players[side].nickname;
+    mySide ? (side === mySide ? '나' : opponentDisplayName(players[side].nickname)) : players[side].nickname;
 
   return (
     <ul className="space-y-2 text-[11px]">
@@ -78,7 +79,7 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
                   <span className="shrink-0 text-gray-400">💡 단계</span>
                   <StageDiff label="나" diff={myStageDiff} />
                   <span className="text-gray-300">/</span>
-                  <StageDiff label={players[oppSide].nickname} diff={oppStageDiff} />
+                  <StageDiff label={opponentDisplayName(players[oppSide].nickname)} diff={oppStageDiff} />
                 </div>
               )}
 
@@ -95,7 +96,7 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
                   />
                 )}
                 <BetRow
-                  label={mySide ? players[oppSide].nickname : players.p1.nickname}
+                  label={mySide ? opponentDisplayName(players[oppSide].nickname) : players.p1.nickname}
                   bet={mySide ? r.bets[oppSide] : r.bets.p1}
                   delta={oppDelta ?? r.chipDelta.p1}
                   after={oppAfter ?? r.chipAfter.p1}

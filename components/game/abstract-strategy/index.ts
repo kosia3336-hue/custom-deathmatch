@@ -11,3 +11,5 @@ export {
   type GamePiece3DShape,
   type GamePiece3DTone,
 } from './GamePiece3D';
+export { PlayerStrip, type PlayerStripEntry } from './PlayerStrip';
+export { usePlacementConfirm, useTouchPrimary } from './usePlacementConfirm';

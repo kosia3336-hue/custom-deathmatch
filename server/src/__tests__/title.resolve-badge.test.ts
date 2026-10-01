@@ -143,6 +143,16 @@ describe('resolveBadge', () => {
     });
   });
 
+  it('한가위 이펙트 overlay', () => {
+    for (const key of ['bokjumeoni', 'hanji', 'daltokki', 'nakyeop', 'fullmoon'] as const) {
+      expect(resolveBadge(normal, { key })).toEqual({
+        name: '수집가',
+        color: 'lime',
+        effect: key,
+      });
+    }
+  });
+
   it('composeDisplayedTitle 는 id 를 유지하고 effect 만 합성한다', () => {
     expect(
       composeDisplayedTitle({ id: 't1', ...normal }, { key: 'issen' }),

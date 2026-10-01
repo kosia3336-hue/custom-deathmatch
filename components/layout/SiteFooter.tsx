@@ -20,6 +20,7 @@ import { usePathname } from 'next/navigation';
 /** 푸터를 감출 경로 — 몰입이 필요하거나(인게임) 관리/인증 흐름인 화면 */
 const HIDDEN_PREFIXES = [
   '/room',        // 인게임·대기실
+  '/dev',         // 로컬 인게임 프리뷰
   '/admin',
   '/auth',
   '/signup',
@@ -43,13 +44,20 @@ export default function SiteFooter() {
     return null;
   }
 
+  // 홈(로비)은 모바일 화면(하단 탭 바 폭)과 앱(웹뷰)에서 globals.css 가 감춘다(.site-footer--home).
+  // 다른 화면은 약관·개인정보 처리방침 입구로 푸터를 둔다(임시 — 설정 화면에 입구가 생기면 재검토).
+  const isHome = pathname === '/lobby';
+
   return (
-    <footer className="mt-auto border-t border-cdm-ink-border bg-cdm-ink">
+    <footer
+      className={`site-footer mt-auto border-t border-cdm-ink-border bg-cdm-ink${isHome ? ' site-footer--home' : ''}`}
+    >
       {/*
         모바일에서는 하단 탭바가 화면 아래에 고정되어 푸터를 덮으므로,
-        sm 미만에서만 탭바 높이만큼 여백을 더 준다.
+        sm 미만에서만 탭바 높이만큼 여백을 더 준다. 로비 행동 바가 있으면
+        globals.css 가 그만큼 더 늘린다(.site-footer__inner).
       */}
-      <div className="mx-auto w-full max-w-6xl px-4 pt-7 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] text-center sm:pb-7 md:px-6">
+      <div className="site-footer__inner mx-auto w-full max-w-6xl px-4 pt-7 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] text-center sm:pb-7 md:px-6">
         <nav
           aria-label="사이트 정보"
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"

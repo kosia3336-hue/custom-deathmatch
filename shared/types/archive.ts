@@ -62,6 +62,10 @@ export interface FourGravityRecord {
   winType: string | null;
   winLine: Position[] | null;
   actions: FourGravityTurnAction[];
+  players?: {
+    black: { nickname: string };
+    white: { nickname: string };
+  };
 }
 
 export interface DSCTurnActionLog {

@@ -70,6 +70,18 @@ export type QuatroLogEntry =
   | { round: number; type: 'exchange'; actorId: string; vpIndex: number; gave: QuatroCard; received: QuatroCard }
   | { round: number; type: 'stop'; actorId: string };
 
+/** 진행 중 화면(메모 '기록')용 로그. 교환으로 받은 카드는 받은 사람에게만 보이고, 상대·관전자에게는 null(뒷면). */
+export type QuatroVisibleLogEntry =
+  | Exclude<QuatroLogEntry, { type: 'exchange' }>
+  | {
+      round: number;
+      type: 'exchange';
+      actorId: string;
+      vpIndex: number;
+      gave: QuatroCard;
+      received: QuatroCard | null;
+    };
+
 export interface QuatroPlayerView {
   id: string;
   nickname: string;
@@ -94,6 +106,8 @@ export interface QuatroGameData {
   round: number; // 1~4 (오픈 라운드)
   firstId: string; // 이번 라운드 선
   currentTurnId: string | null; // 지금 행동할 사람 (open 단계는 null=동시)
+  /** 다음 차례 예정자(멀리건·교환 단계). 한쪽이 멀리건을 끝냈거나 스탑했으면 null — 남은 한 사람만 계속한다 */
+  nextTurnId: string | null;
   me: QuatroPlayerView | null; // 관전자는 null
   opp: QuatroPlayerView | null;
   players: Record<string, { nickname: string }>;
@@ -106,6 +120,10 @@ export interface QuatroGameData {
   result: QuatroResultSummary | null;
   /** 턴 제한(초). 0 = 무제한 */
   turnSeconds: number;
+  /** 진행 기록(메모 '기록') — 보는 사람 기준으로 가린 로그 */
+  log: QuatroVisibleLogEntry[];
+  /** 라운드별 선 플레이어 id. 0 = 멀리건 단계 */
+  firstByRound: Record<number, string>;
 }
 
 export const QUATRO_SUITS: QuatroSuit[] = ['spade', 'diamond', 'heart', 'club'];

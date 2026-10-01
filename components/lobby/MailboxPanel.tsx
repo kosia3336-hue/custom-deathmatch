@@ -309,6 +309,7 @@ function MailDetail({
   const meta = KIND_META[mail.kind];
   const remove = useMailboxStore((s) => s.remove);
   const setFocusId = useMailboxStore((s) => s.setFocusId);
+  const setOpen = useMailboxStore((s) => s.setOpen);
   const remaining = mail.expiresAt ? formatRemaining(mail.expiresAt) : null;
   // 받지 않은 보상이 달렸으면 서버가 삭제를 거부한다. 여기서도 미리 막아
   // 눌러 봐야 실패하는 버튼을 두지 않는다.
@@ -389,9 +390,19 @@ function MailDetail({
               {mail.kind === 'notice' && mail.id.startsWith('notice:') && (
                 <Link
                   href={`/notice/${mail.id.slice('notice:'.length)}`}
+                  onClick={() => setOpen(false)}
                   className="mt-3 inline-block text-sm font-semibold text-cdm-primary hover:underline"
                 >
                   공지 보기
+                </Link>
+              )}
+              {mail.id.startsWith('guild-join:') && (
+                <Link
+                  href="/guild"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 inline-block text-sm font-semibold text-cdm-primary hover:underline"
+                >
+                  가입 신청 보기
                 </Link>
               )}
               {mail.scoutInvite ? (

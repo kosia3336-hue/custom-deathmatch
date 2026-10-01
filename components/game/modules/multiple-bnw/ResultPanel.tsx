@@ -36,8 +36,8 @@ export default function ResultPanel({ resultData, players, round, winner, winTyp
   const hasSuspectWinner = entries.some(([, pr]) => pr.suspectSuccess === true);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-      <p className="text-center text-sm font-semibold text-indigo-800">
+    <div className="mbnw-panel mbnw-result-panel flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+      <p className="mbnw-panel-title text-center text-sm font-semibold text-indigo-800">
         라운드 {round} 결과
       </p>
 
@@ -50,7 +50,7 @@ export default function ResultPanel({ resultData, players, round, winner, winTyp
           return (
             <div
               key={pid}
-              className={`flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all duration-500 ${
+              className={`mbnw-result-player ${hasScoreGain ? 'mbnw-result-player--gain' : ''} flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all duration-500 ${
                 hasScoreGain
                   ? 'border-indigo-300 bg-white shadow-sm'
                   : 'border-gray-200 bg-gray-50'
@@ -62,7 +62,7 @@ export default function ResultPanel({ resultData, players, round, winner, winTyp
               </span>
 
               {/* Color badge — Step 0 (always visible, pulses on mount) */}
-              <div className={`flex h-[52px] w-[52px] items-center justify-center rounded-lg border-2 text-sm font-bold transition-all duration-300 ${
+              <div className={`mbnw-result-color mbnw-result-color--${pr.color} flex h-[52px] w-[52px] items-center justify-center rounded-lg border-2 text-sm font-bold transition-all duration-300 ${
                 step === 0 ? 'scale-110' : 'scale-100'
               } ${
                 pr.color === 'black'

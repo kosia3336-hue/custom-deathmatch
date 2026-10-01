@@ -110,6 +110,7 @@ function advance(io: IO, s: QuatroState) {
       } else {
         if (!s2.firstStopperId) s2.firstStopperId = p.id;
         p.stopped = true;
+        s2.log.push({ round: s2.round, type: 'stop', actorId: p.id });
       }
       s2.turnPtr++;
       advance(io2, s2);
@@ -158,6 +159,7 @@ function applyAiAction(
         // 실패 시 스탑으로 폴백 (교착 방지)
         if (!s.firstStopperId) s.firstStopperId = p.id;
         p.stopped = true;
+        s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       }
       s.turnPtr++;
       advance(io, s);
@@ -177,6 +179,7 @@ function applyAiAction(
       } else {
         if (!s.firstStopperId) s.firstStopperId = p.id;
         p.stopped = true;
+        s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       }
       s.turnPtr++;
       advance(io, s);
@@ -249,12 +252,13 @@ export function handleQuatroAction(
       }
       if (isLastExchangePhase(s) && p.usedVps.size < QUATRO_VP_COUNT) {
         socket.emit('error', {
-          message: `마지막 교환입니다 — 남은 가상 플레이어 ${QUATRO_VP_COUNT - p.usedVps.size}명과 모두 교환해야 해요.`,
+          message: `마지막 교환 라운드라 스탑할 수 없습니다. 라운드가 끝나기 전까지 아직 교환하지 않은 가상 플레이어 ${QUATRO_VP_COUNT - p.usedVps.size}명과 모두 교환해야 합니다.`,
         });
         return;
       }
       if (!s.firstStopperId) s.firstStopperId = p.id;
       p.stopped = true;
+      s.log.push({ round: s.round, type: 'stop', actorId: p.id });
       s.turnPtr++;
       advance(io, s);
       return;

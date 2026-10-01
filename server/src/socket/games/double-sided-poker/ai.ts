@@ -67,6 +67,9 @@ export function chooseDoubleSidedPokerAiAction(
   const side = bestSide(actor.card.front, actor.card.back);
   const ownValue = valueForSelection(state, AI_PLAYER_ID, side);
 
+  // 걸 칩이 없는 이월 라운드 — 고를 것은 겨룰 면뿐이니 큰 쪽을 고른다.
+  if (state.selectOnly) return { type: 'select', side };
+
   if (!state.bettingOpened) {
     const amount =
       bounds.maxBet == null

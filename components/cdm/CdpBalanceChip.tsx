@@ -73,11 +73,21 @@ export function CdpBalanceChip({ initialBalance, className, variant = 'desktop' 
         });
       }
     };
+    const onSongpyeon = (p: { amount: number; balance: number }) => {
+      if (typeof p.amount === 'number' && p.amount > 0) {
+        toast.success(`송편 +${p.amount}`, {
+          description: `보유 ${p.balance}`,
+        });
+        window.dispatchEvent(new CustomEvent('cdm:songpyeon', { detail: { balance: p.balance } }));
+      }
+    };
     socket.on('cdp:granted', onGranted);
     socket.on('cdp:adjusted', onAdjusted);
+    socket.on('songpyeon:granted', onSongpyeon);
     return () => {
       socket.off('cdp:granted', onGranted);
       socket.off('cdp:adjusted', onAdjusted);
+      socket.off('songpyeon:granted', onSongpyeon);
     };
   }, [setBalance]);
 

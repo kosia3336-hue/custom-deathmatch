@@ -3,7 +3,6 @@ import type {
   SanctionKind,
   ReportCategory,
   ReportStatus,
-  InquiryCategory,
   InquiryStatus,
 } from '@/lib/supabase/database.types';
 
@@ -81,10 +80,12 @@ export interface ReportData {
 export interface InquiryData {
   id: string;
   title: string;
-  category: InquiryCategory;
+  category: string;
   status: InquiryStatus;
   created_at: string;
   body: string;
   answer_body: string | null;
   answered_at: string | null;
+  answered_by_nickname: string | null;
+  category_label: string;
 }

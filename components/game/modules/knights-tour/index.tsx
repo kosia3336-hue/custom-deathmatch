@@ -8,6 +8,8 @@ import type { KnightTourCell, KnightTourGameData } from '@/shared/types/knights-
 import { useRoomStore } from '@/stores/room';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Modal from '@/components/ui/Modal';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 function cellKey(cell: KnightTourCell) {
   return `${cell.row}:${cell.col}`;
@@ -19,10 +21,6 @@ function isKnightMove(from: KnightTourCell, to: KnightTourCell) {
   return (rowDistance === 1 && colDistance === 2) || (rowDistance === 2 && colDistance === 1);
 }
 
-function formatClock(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  return `${minutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
-}
 
 export default function KnightsTourGame() {
   const gameState = useRoomStore((state) => state.gameState);
@@ -45,13 +43,8 @@ export default function KnightsTourGame() {
 
 function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
   // 첫 값은 라운드 시작 시각. 렌더 중에 Date.now() 를 부르면 순수하지 않다.
-  const [now, setNow] = useState(gameData.roundStartedAt);
   const [showHelp, setShowHelp] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(interval);
-  }, []);
+  const { setHud } = useRoomLayout();
 
   const serverPath = useMemo(() => gameData.progress[myId]?.path ?? [], [gameData.progress, myId]);
   const [path, setPath] = useState<KnightTourCell[]>(serverPath);
@@ -59,11 +52,6 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
     setPath(serverPath);
   }, [serverPath]);
 
-  const remaining = Math.max(
-    0,
-    Math.ceil((gameData.roundStartedAt + gameData.roundSeconds * 1000 - now) / 1000),
-  );
-  const entries = Object.entries(gameData.players);
   const isPlayer = Boolean(gameData.players[myId]);
   const submitted = Boolean(gameData.progress[myId]?.submitted);
   const canPlay = isPlayer && gameData.phase === 'playing' && !submitted;
@@ -72,6 +60,16 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
   const winningCount = result?.winnerId
     ? (result.visitedCounts[result.winnerId] ?? result.winningPath.length)
     : null;
+  const sidePanel = <GameInfoPart><TourReference gameData={gameData} /></GameInfoPart>;
+
+  useEffect(() => {
+    setHud({
+      round: `${gameData.round} / ${gameData.totalRounds}R`,
+      order: gameData.phase === 'playing' ? '경로 탐색' : gameData.phase === 'finished' ? '종료' : '라운드 결과',
+      memo: <GameInfoPart><TourReference gameData={gameData} /></GameInfoPart>,
+    });
+    return () => setHud(null);
+  }, [gameData, setHud]);
 
   const active = useMemo(
     () => new Set(gameData.board.activeCells.map(cellKey)),
@@ -137,46 +135,6 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
   return (
     <>
       <GameFrame
-        info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
-            {entries.map(([playerId, player], index) => (
-              <div
-                key={playerId}
-                className={cn(
-                  'border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
-                  index === 1 && 'order-3 justify-self-end text-right',
-                )}
-              >
-                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
-                  {player.nickname}
-                  {playerId === myId ? ' (나)' : ''}
-                  {gameData.progress[playerId]?.submitted && (
-                    <span className="bg-cdm-success-soft text-cdm-success ml-1 rounded-full px-1.5 text-[9px] font-black">
-                      제출
-                    </span>
-                  )}
-                </p>
-                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
-                  {gameData.isSolo ? '누적' : '승점'} {gameData.scores[playerId] ?? 0} ·{' '}
-                  {gameData.progress[playerId]?.visitedCount ?? 0}칸
-                </p>
-              </div>
-            ))}
-            <div className="order-2 px-1 text-center">
-              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-                R{gameData.round}/{gameData.totalRounds}
-              </p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-lg leading-6 font-black tabular-nums',
-                  remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {formatClock(remaining)}
-              </p>
-            </div>
-          </div>
-        }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
             <div className="grid grid-cols-[1fr_1fr_1.3fr_auto] gap-1.5">
@@ -226,7 +184,7 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
             </p>
           </div>
         }
-        aside={<TourReference gameData={gameData} />}
+        aside={sidePanel}
       >
         <div
           className="mx-auto grid aspect-square w-full gap-1"

@@ -7,6 +7,37 @@ import { isTokenAnonymized } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
 import { listLiveDummyOnlineUsers } from '../dummy/live/online.js';
+import { isAdminSocket } from '../db/member.js';
+import type { RoomSummary } from '@shared/types/room.js';
+
+function isHiddenCustomRoom(summary: Pick<RoomSummary, 'hiddenMatch' | 'isRanked'>) {
+  return summary.hiddenMatch === true && summary.isRanked !== true;
+}
+
+function canSeeLobbyRoom(socket: TypedSocket, summary: RoomSummary) {
+  return !isHiddenCustomRoom(summary) || isAdminSocket(socket);
+}
+
+export function lobbyRoomsFor(socket: TypedSocket): RoomSummary[] {
+  return roomStore.getAllSummaries().filter((r) => canSeeLobbyRoom(socket, r));
+}
+
+export function canJoinHiddenCustomRoom(socket: TypedSocket, room: { hiddenMatch?: boolean; isRanked?: boolean }) {
+  if (!isHiddenCustomRoom(room)) return true;
+  return isAdminSocket(socket);
+}
+
+function emitLobbySummary(
+  io: IO,
+  event: 'lobby:room:created' | 'lobby:room:updated',
+  summary: RoomSummary,
+) {
+  for (const socket of io.sockets.sockets.values()) {
+    if (!socket.rooms.has(LOBBY_ROOM)) continue;
+    if (!canSeeLobbyRoom(socket, summary)) continue;
+    socket.emit(event, summary);
+  }
+}
 
 function isDevSandboxRoom(roomId: string): boolean {
   const room = roomStore.get(roomId);
@@ -84,7 +115,7 @@ export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
     // LOBBY_ROOM 에는 계속 합류시킨다(중복 소켓방 가입은 안전·멱등). 방 목록(lobby:rooms)
     // 자동 갱신은 로비 페이지에서만 의미가 있지만, 그냥 받아도 무해하다.
     socket.join(LOBBY_ROOM);
-    socket.emit('lobby:rooms', roomStore.getAllSummaries());
+    socket.emit('lobby:rooms', lobbyRoomsFor(socket));
     emitOnlineUsers(socket, getOnlineUsers(io));
   });
 
@@ -96,7 +127,7 @@ export function registerLobbyHandlers(io: IO, socket: TypedSocket) {
 export function broadcastRoomCreated(io: IO, roomId: string) {
   if (!isDevSandboxRoom(roomId)) {
     const summary = roomStore.getSummary(roomId);
-    if (summary) io.to(LOBBY_ROOM).emit('lobby:room:created', summary);
+    if (summary) emitLobbySummary(io, 'lobby:room:created', summary);
   }
   broadcastOnlineUsers(io);
 }
@@ -104,7 +135,7 @@ export function broadcastRoomCreated(io: IO, roomId: string) {
 export function broadcastRoomUpdated(io: IO, roomId: string) {
   if (!isDevSandboxRoom(roomId)) {
     const summary = roomStore.getSummary(roomId);
-    if (summary) io.to(LOBBY_ROOM).emit('lobby:room:updated', summary);
+    if (summary) emitLobbySummary(io, 'lobby:room:updated', summary);
   }
   broadcastOnlineUsers(io);
 }

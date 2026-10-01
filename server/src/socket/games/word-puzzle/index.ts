@@ -12,9 +12,9 @@ import {
 import { wordPickPool, wordDictStats, isRealWord } from '@shared/data/word-pool.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized, hasWordSearchChance } from '../../../shop/roomShopState.js';
+import { hasWordSearchChance } from '../../../shop/roomShopState.js';
 import { consumeWordSearchForRoom } from '../../../shop/applyAutoConsumables.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import type { IO, TypedSocket } from '../../types.js';
 
 type EndGameFn = (
@@ -90,7 +90,7 @@ function multisetEqual(a: string[], b: string[]): boolean {
 }
 
 function maskNick(s: WPState, viewerId: string | null, p: Player): string {
-  return isTokenAnonymized(s.roomId, p.id) && p.id !== viewerId ? ANONYMOUS_NICKNAME : p.nickname;
+  return nicknameForViewer(s.roomId, p.id, p.nickname, viewerId);
 }
 
 function buildGameData(s: WPState, viewerId: string | null): WordPuzzleGameData {

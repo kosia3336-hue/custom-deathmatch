@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { BNW2GameData, BNW2PlayerInfo, BNW2RevealData } from '@shared/types/bnw2.js';
 import { sessions } from '../../../store/sessions.js';
@@ -6,10 +7,12 @@ import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { BNW2_INITIAL_POINTS, BNW2_MAX_SCORE, REVEAL_DELAY_MS, WIN_DISPLAY_MS, calcBNW2Stage, calcBNW2Color } from './constants.js';
 import { judgeRound, autoSubmitPoints } from './judge.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { InternalState, BNW2PlayerInternal, BNW2RoundLog, BNW2PlayerSnapshot, BNW2UndoSnapshot } from './types.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -21,6 +24,18 @@ function getFirstPlayer(s: InternalState): BNW2PlayerInternal {
 
 function getSecondPlayer(s: InternalState): BNW2PlayerInternal {
   return s.player1.id === s.firstPlayerId ? s.player2 : s.player1;
+}
+
+/**
+ * 게임 시작 시의 선공과 그 상대.
+ *
+ * 라운드의 선(getFirstPlayer)과는 다르다 — 그쪽은 이전 라운드 승자가 가져가므로
+ * 판마다 바뀐다. 무승부를 가리는 자리에서는 끝까지 안 바뀌는 이 사람을 쓴다.
+ */
+function getOpeningPair(s: InternalState): [BNW2PlayerInternal, BNW2PlayerInternal] {
+  return s.player1.id === s.openingFirstPlayerId
+    ? [s.player1, s.player2]
+    : [s.player2, s.player1];
 }
 
 export function getPlayer(s: InternalState, id: string): BNW2PlayerInternal | null {
@@ -69,11 +84,12 @@ function buildRevealData(s: InternalState): BNW2RevealData | null {
 function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameData {
   const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
   const players: Record<string, BNW2PlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, socketId === s.player1.id || (_dbg && socketId === s.player2.id)), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, socketId === s.player2.id || (_dbg && socketId === s.player1.id)), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
+  const roundHistory = liveRoundHistory(s, socketId);
   return {
     phase: s.phase,
     round: s.round,
@@ -82,7 +98,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
     prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
     revealData: buildRevealData(s),
-    roundHistory: s.actionLog.map(logToRecord),
+    roundHistory,
     winner: s.winner,
     winType: s.winType,
   };
@@ -95,6 +111,8 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
     [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
   };
+  /* 관전자는 어느 쪽도 아니므로 두 사람의 포인트를 모두 가린다 */
+  const roundHistory = liveRoundHistory(s, null);
   return {
     phase: s.phase,
     round: s.round,
@@ -103,10 +121,32 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
     prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
     revealData: buildRevealData(s),
-    roundHistory: s.actionLog.map(logToRecord),
+    roundHistory,
     winner: s.winner,
     winType: s.winType,
   };
+}
+
+/**
+ * 생중계로 나가는 라운드 기록 — 보는 사람 것만 남기고 상대의 제시 포인트는 지운다.
+ *
+ * 이 게임은 공개 시점에도 색과 꺼진 불 칸수만 알려 주지 정확한 숫자는 밝히지 않는다.
+ * 화면에 안 그리더라도 값을 실어 보내면 그대로 건너가므로 보내는 쪽에서 지운다.
+ * 관전자는 어느 쪽도 아니므로 둘 다 가린다.
+ *
+ * 기보(getBNW2ResultData·종료 payload)는 이 함수를 거치지 않는다 — 끝난 판을
+ * 복기하는 화면에서는 두 사람의 숫자가 모두 보여야 한다.
+ */
+function liveRoundHistory(s: InternalState, viewerId: string | null) {
+  return s.actionLog.map(logToRecord).map((record) => ({
+    ...record,
+    players: Object.fromEntries(
+      Object.entries(record.players).map(([pid, pd]) => [
+        pid,
+        { ...pd, points: pid === viewerId ? pd.points : null },
+      ]),
+    ),
+  }));
 }
 
 function logToRecord(log: BNW2RoundLog) {
@@ -137,7 +177,8 @@ function buildGameState(s: InternalState, gameData: BNW2GameData): GameState {
     currentTurn: s.phase === 'firstSubmit' ? s.firstPlayerId : null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['firstSubmit', 'secondSubmit'], s.turnStartedAt),
     activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
@@ -210,7 +251,7 @@ function armTimer(io: IO, s: InternalState, onTimeout: () => void) {
   clearRoundTimer(s);
   if (!s.timeLimitSeconds) return;
   s.turnStartedAt = Date.now();
-  s.roundTimer = setTimeout(onTimeout, s.timeLimitSeconds * 1000);
+  s.roundTimer = scheduleTurnExpiry(io, s, 'roundTimer', () => s.phase === 'firstSubmit' ? getFirstPlayer(s).id : s.phase === 'secondSubmit' ? getSecondPlayer(s).id : null, onTimeout, s.timeLimitSeconds * 1000);
 }
 
 export function startFirstSubmitTimer(io: IO, s: InternalState) {
@@ -367,9 +408,14 @@ function checkGameOver(io: IO, s: InternalState): boolean {
     } else if (p2.score > p1.score) {
       resolveGame(io, s, p2.id, p2.nickname, p1.id, p1.nickname, 'exhaustion');
     } else {
-      const fp = getFirstPlayer(s);
-      const sp = getSecondPlayer(s);
-      resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
+      /*
+        규칙 K — 잔여 포인트가 둘 다 0 이고 승점도 같으면 선공이 이긴다.
+
+        라운드의 선이 아니라 게임 시작 시의 선공이다. 라운드의 선은 이전 판 승자가
+        가져가므로, 마지막 라운드를 이겨 동점을 만든 사람이 오히려 지는 일이 생겼다.
+      */
+      const [opener, other] = getOpeningPair(s);
+      resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
     }
     return true;
   }
@@ -504,9 +550,9 @@ export function handleBNW2Timeout(io: IO, s: InternalState) {
     const loser = winner.id === p1.id ? p2 : p1;
     resolveGame(io, s, winner.id, winner.nickname, loser.id, loser.nickname, 'timeout');
   } else {
-    const fp = getFirstPlayer(s);
-    const sp = getSecondPlayer(s);
-    resolveGame(io, s, fp.id, fp.nickname, sp.id, sp.nickname, 'draw');
+    /* 아무도 못 냈다 — 무승부를 가리는 기준은 위(규칙 K)와 같은 선공이다. */
+    const [opener, other] = getOpeningPair(s);
+    resolveGame(io, s, opener.id, opener.nickname, other.id, other.nickname, 'draw');
   }
 }
 

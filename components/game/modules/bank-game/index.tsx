@@ -9,6 +9,9 @@ import MobileLayout from './MobileLayout';
 import DesktopLayout from './DesktopLayout';
 import { useBankContext } from './hooks/useBankContext';
 import TreasuryFieldFx from './skins/TreasuryFieldFx';
+import ScorePanel from './ScorePanel';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { seatStage, turnStage } from '@/lib/gameSeat';
 
 /* ════════════════════════════════════════════════════════════
  * 은행놀이 — 메인 게임 컴포넌트 (얇은 컨테이너)
@@ -26,6 +29,7 @@ export default function BankGame() {
     isSpectator,
     phase,
     stepperActiveTurn,
+    firstSide,
     firstPlayer,
     secondPlayer,
     myIsFirst,
@@ -41,32 +45,60 @@ export default function BankGame() {
   const { setHud } = useRoomLayout();
   const round = gameData?.round ?? 0;
   const historyLen = gameData?.history?.length ?? 0;
+  /*
+    자리와 단계를 같이 적는다 — '선 플레이어 베팅' 만으로는 그게 나인지 상대인지
+    알 수 없다. 은행놀이는 선의 베팅을 보고 후가 거는 구조라 특히 그렇다.
+    (lib/gameSeat.ts)
+  */
+  const bankSeat = ctx.isSpectator ? null : myIsFirst ? '선' : '후';
+  const bankMyTurn =
+    (phase === 'firstSubmit' && myIsFirst) || (phase === 'secondSubmit' && !myIsFirst);
+  const phaseLabel = seatStage(
+    bankSeat,
+    phase === 'firstSubmit' || phase === 'secondSubmit'
+      ? turnStage({
+          finished: false,
+          isSpectator: ctx.isSpectator,
+          isMyTurn: bankMyTurn,
+          spectatorStage: phase === 'firstSubmit' ? '선 베팅' : '후 베팅',
+        })
+      : phase === 'firstReveal'
+        ? '선 베팅 공개'
+        : phase === 'reveal' || phase === 'roundEnd'
+          ? '라운드 정산'
+          : phase === 'finished'
+            ? '종료'
+            : undefined,
+  );
 
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${round} / ${gameData.maxRound}R`,
-      order: myIsFirst ? '선' : '후',
+      order: phaseLabel,
       memo: (
-        <div className="space-y-5">
-          <section>
-            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">라운드 기록</h3>
+        <GameInfoStack>
+          {firstSide && (
+            <GameInfoPart>
+              <ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={ctx.myId} />
+            </GameInfoPart>
+          )}
+          <GameInfoPart title="라운드 기록">
             <RoundHistoryTable
               history={gameData.history}
               mySide={mySide}
               players={gameData.players}
               variant="mobile"
             />
-          </section>
-          <section>
-            <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">상대 잔여 추리</h3>
+          </GameInfoPart>
+          <GameInfoPart title="상대 잔여 추리">
             <OpponentInventoryTracker />
-          </section>
-        </div>
+          </GameInfoPart>
+        </GameInfoStack>
       ),
     });
     return () => setHud(null);
-  }, [setHud, gameData, round, historyLen, myIsFirst, mySide]);
+  }, [setHud, gameData, round, historyLen, myIsFirst, mySide, phaseLabel, ctx.myId, firstSide]);
 
   if (!gameData) {
     return (

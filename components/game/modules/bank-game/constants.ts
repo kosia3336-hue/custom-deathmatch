@@ -1,3 +1,4 @@
+import { josa } from '@/shared/lib/josa';
 import type { BankDenomination, BankWinType } from '@/shared/types/bank-game';
 
 /* ════════════════════════════════════════════════════════════
@@ -104,9 +105,9 @@ export function buildBankTurnLabel(opts: {
 }): string {
   const { phase, isMyTurn, isSpectator, firstNick, secondNick, myIsFirst } = opts;
   if (isSpectator) {
-    if (phase === 'firstSubmit') return `${firstNick}이(가) 베팅 중`;
-    if (phase === 'firstReveal') return `${secondNick}이(가) 추리 중`;
-    if (phase === 'secondSubmit') return `${secondNick}이(가) 베팅 중`;
+    if (phase === 'firstSubmit') return `${josa(firstNick, '이/가')} 베팅 중`;
+    if (phase === 'firstReveal') return `${josa(secondNick, '이/가')} 추리 중`;
+    if (phase === 'secondSubmit') return `${josa(secondNick, '이/가')} 베팅 중`;
     if (phase === 'reveal' || phase === 'roundEnd') return '정산 중';
     if (phase === 'finished') return '게임 종료';
     return '대기 중';

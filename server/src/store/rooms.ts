@@ -26,7 +26,13 @@ function makeAiPlayer(): Player {
   };
 }
 
-type RoomInternal = Room & { _password?: string; _minPlayers: number; _fromBanPick?: boolean };
+type RoomInternal = Room & {
+  _password?: string;
+  _minPlayers: number;
+  _fromBanPick?: boolean;
+  /** 시스템 룸인데 로비 목록에 띄우는 예외 (길드전). */
+  _lobbyVisible?: boolean;
+};
 
 const rooms = new Map<string, RoomInternal>();
 const inviteTokens = new Map<string, string>();
@@ -44,11 +50,24 @@ function toSummary(room: RoomInternal): RoomSummary {
     currentPlayers: room.players.length,
     spectatorCount: room.spectators.length,
     status: room.status,
-    hostNickname: host ? (isTokenAnonymized(room.id, host.id) ? '???' : host.nickname) : '',
+    hostNickname: room.isRanked
+      ? ''
+      : host
+        ? (isTokenAnonymized(room.id, host.id) ? '???' : host.nickname)
+        : '',
     timeLimitSeconds: room.timeLimitSeconds,
     gameOptions: room.gameOptions,
     createdAt: room.createdAt,
     ...(room.isRanked ? { isRanked: true } : {}),
+    ...(room.hiddenMatch ? { hiddenMatch: true } : {}),
+    // 로비 제목 '???[티어] VS ???[티어]' — 이름은 싣지 않고, 익명 물약을 쓴 자리의 티어는 가린다
+    ...(room.isRanked
+      ? {
+          rankTiers: room.players.map((p) =>
+            isTokenAnonymized(room.id, p.id) ? null : (p.rankTier ?? null),
+          ),
+        }
+      : {}),
   };
 }
 
@@ -90,6 +109,7 @@ export const roomStore = {
     isRanked?: boolean;
     rankSeasonId?: number;
     spectatorAllowed?: boolean;
+    hiddenMatch?: boolean;
   }): Room {
     let id: string;
     do {
@@ -121,6 +141,7 @@ export const roomStore = {
       ...(opts.isRanked === true ? { isRanked: true as const } : {}),
       ...(opts.rankSeasonId != null ? { rankSeasonId: opts.rankSeasonId } : {}),
       ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
+      ...(opts.hiddenMatch === true ? { hiddenMatch: true as const } : {}),
     };
     if (opts.roomType === 'private' && opts.password) {
       room._password = opts.password;
@@ -156,9 +177,9 @@ export const roomStore = {
   },
 
   getAllSummaries(): RoomSummary[] {
-    // 시스템 룸(hostId === '')은 로비에 노출하지 않는다.
+    // 시스템 룸(hostId === '')은 로비에 노출하지 않는다. 길드전만 예외.
     return Array.from(rooms.values())
-      .filter((r) => r.hostId !== '')
+      .filter((r) => r.hostId !== '' || r._lobbyVisible === true)
       .filter((r) => !r.players.some((p) => isDummyPlayerId(p.id)))
       .map(toSummary);
   },
@@ -522,6 +543,8 @@ export const roomStore = {
     gameName: string;
     maxPlayers: number;
     spectatorAllowed?: boolean;
+    /** 로비 목록 노출 (길드전). 기본은 숨김. */
+    lobbyVisible?: boolean;
   }): Room {
     const existing = rooms.get(opts.id);
     if (existing) return existing;
@@ -545,9 +568,18 @@ export const roomStore = {
       createdAt: Date.now(),
       _minPlayers: 0,
       ...(opts.spectatorAllowed === true ? { spectatorAllowed: true as const } : {}),
+      ...(opts.lobbyVisible === true ? { _lobbyVisible: true } : {}),
     };
     rooms.set(opts.id, room);
     return room;
+  },
+
+  /** 시스템 룸 제거 (기간 한정 컨텐츠 종료). 없으면 false. */
+  removeSystemRoom(roomId: string): boolean {
+    const room = rooms.get(roomId);
+    if (!room || room.hostId !== '') return false;
+    rooms.delete(roomId);
+    return true;
   },
 
   /** 시스템 룸에 좌석 추가 (status/min 가드 우회). 이미 있으면 false. */

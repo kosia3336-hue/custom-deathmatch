@@ -1,8 +1,26 @@
 import type { SkinTheme } from '@/lib/skins/registry';
 import FourCardCard from '@/components/game/modules/quatro/skins/FourCardCard';
+import { StackVisual } from '@/components/game/modules/kingmaking/StackVisual';
+import type { KingmakingStack } from '@/shared/types/kingmaking';
 
 const CLIP_FIRST = 'polygon(15% 100%, 0% 30%, 50% 0%, 100% 30%, 85% 100%)';
 const CLIP_SECOND = 'polygon(15% 0%, 0% 70%, 50% 100%, 100% 70%, 85% 0%)';
+
+const SPRING_RAIN_PLAYERS = ['spring-jade', 'spring-coral'];
+const SPRING_RAIN_STACKS: KingmakingStack[] = [
+  [
+    { id: 'preview-jade-1', ownerId: SPRING_RAIN_PLAYERS[0], kind: 'normal' },
+    { id: 'preview-jade-2', ownerId: SPRING_RAIN_PLAYERS[0], kind: 'normal' },
+    { id: 'preview-coral-1', ownerId: SPRING_RAIN_PLAYERS[1], kind: 'normal' },
+  ],
+  [
+    { id: 'preview-coral-special', ownerId: SPRING_RAIN_PLAYERS[1], kind: 'special' },
+  ],
+  [
+    { id: 'preview-coral-2', ownerId: SPRING_RAIN_PLAYERS[1], kind: 'normal' },
+    { id: 'preview-jade-special', ownerId: SPRING_RAIN_PLAYERS[0], kind: 'special' },
+  ],
+];
 
 /** 마이페이지 스킨 카드용 정적 비주얼 프리뷰 (게임 데이터 불필요) */
 /*
@@ -26,6 +44,39 @@ function ShowdownBundle({ state }: { state: 'lit' | 'active' }) {
 }
 
 export default function SkinPreview({ theme }: { theme: SkinTheme }) {
+  if (theme === 'spring-rain') {
+    return (
+      <div className="skin-bg-spring-rain skin-spring-rain-preview relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg">
+        <div className="skin-spring-rain-preview-pond">
+          {SPRING_RAIN_STACKS.map((stack, index) => (
+            <span key={index} className="skin-spring-rain-preview-cell">
+              <StackVisual stack={stack} playerIds={SPRING_RAIN_PLAYERS} compact springRain />
+              {index === 0 && <span className="kingmaking-spring-rain-ripple" aria-hidden />}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (theme === 'ink-wash') {
+    return (
+      <div className="skin-bg-ink-wash skin-ink-wash-preview relative flex h-24 w-full items-center justify-center gap-2 overflow-hidden rounded-lg">
+        <span className="skin-ink-wash-preview-seal" aria-hidden>墨</span>
+        {[3, 5].map((tile) => (
+          <span key={tile} className="mbnw-tile mbnw-tile--white flex h-10 w-10 items-center justify-center border text-sm font-bold">
+            {tile}
+          </span>
+        ))}
+        {[8, 12].map((tile) => (
+          <span key={tile} className="mbnw-tile mbnw-tile--black flex h-10 w-10 items-center justify-center border text-sm font-bold">
+            {tile}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   if (theme === 'four-card') {
     return (
       <div className="skin-four-card-preview relative flex h-24 w-full items-center justify-center gap-2 overflow-hidden rounded-lg">
@@ -268,6 +319,14 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
             ))}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (theme === 'dalmaji') {
+    return (
+      <div className="skin-dalmaji-field skin-dalmaji-field--night relative h-24 w-full overflow-hidden rounded-lg">
+        <span className="absolute top-4 left-1/2 h-8 w-8 -translate-x-1/2 rounded-full bg-[#f0d078]" />
       </div>
     );
   }

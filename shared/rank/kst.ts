@@ -42,8 +42,16 @@ function isKstWeekend(d = new Date()): boolean {
   const HOLIDAY_24H_DATES = [
     [2026, 6, 3],
     [2026, 7, 17],
+    // 추석 연휴 (토요일인 9/26 은 주말이라 따로 적지 않는다)
+    [2026, 9, 24],
+    [2026, 9, 25],
   ];
   return HOLIDAY_24H_DATES.some(([y, m, d]) => year === y && month === m && day === d);
+}
+
+/** 주말 또는 공휴일 = 24시간 운영일. 길드전도 같은 목록을 쓴다. */
+export function isKstFullDay(d = new Date()): boolean {
+  return isKstWeekend(d);
 }
 
 /** 랭크 시즌 잠금 스위치 — true 면 요일/시간과 무관하게 랭크 큐 닫힘 */

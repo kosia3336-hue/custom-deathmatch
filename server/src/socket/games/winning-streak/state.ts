@@ -14,8 +14,7 @@ import type {
 import { judgeMatch } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -68,7 +67,7 @@ function phaseMessage(s: InternalState): string {
 function buildGameDataForPlayer(s: InternalState, socketId: string): WinningStreakGameData {
   const _dbg = isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
   const players: Record<string, WSPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2), nickname: maskNick(s.player2.id, s.player2.nickname) },
@@ -146,7 +145,13 @@ function buildGameState(s: InternalState, gameData: WinningStreakGameData): Game
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    /*
+      카드를 고르는 동안에만 시계를 보낸다. 공개·결과 단계까지 보내면 상단 바가
+      직전 라운드 시작 시각을 계속 세어 0:00 까지 내려가고 마지막 5초 경고음까지
+      울린다 — 아무도 착수를 기다리지 않는 구간에서. 포도설탕2 는 이미 입력
+      단계에서만 보내고 있었다.
+    */
+    turnStartedAt: s.timeLimitSeconds && s.phase === 'cardSelect' ? s.turnStartedAt : null,
     gameData,
   };
 }

@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   DOUBLE_SIDED_POKER_ANTE,
   DOUBLE_SIDED_POKER_DOUBLE_BONUS,
@@ -93,7 +94,7 @@ function scheduleDecision(io: IO, state: DoubleSidedPokerState) {
   state.turnStartedAt = Date.now();
   const actorId = state.currentTurnId;
   if (state.turnSeconds != null) {
-    state.turnTimer = setTimeout(() => {
+    state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentTurnId, () => {
       if (
         doubleSidedPokerStates.get(state.roomId) !== state ||
         state.gameOver ||
@@ -101,7 +102,17 @@ function scheduleDecision(io: IO, state: DoubleSidedPokerState) {
       ) {
         return;
       }
-      performDoubleSidedPokerAction(io, state, actorId, { type: 'fold' });
+      /*
+        면만 고르는 라운드에서는 시간이 지나도 다이로 처리하지 않는다. 걸 칩이
+        없어 베팅도 못 한 사람에게서 이월된 팟을 통째로 뺏는 꼴이 된다.
+        공개되어 있는 앞면으로 겨루게 두는 편이 낫다.
+      */
+      performDoubleSidedPokerAction(
+        io,
+        state,
+        actorId,
+        state.selectOnly ? { type: 'select', side: 'front' } : { type: 'fold' },
+      );
     }, state.turnSeconds * 1000);
   }
   if (state.playMode === 'com' && actorId === AI_PLAYER_ID) {
@@ -162,6 +173,7 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
   }
   state.ante = carried ? 0 : DOUBLE_SIDED_POKER_ANTE;
   state.bettingOpened = false;
+  state.selectOnly = false;
   state.doubleBettorId = null;
   state.roundActions = [];
   state.lastRoundResult = null;
@@ -171,17 +183,18 @@ export function beginDoubleSidedPokerRound(io: IO, state: DoubleSidedPokerState)
 
   /*
     기본 베팅을 내고 칩이 0 이 되어도 여기서 끝내지 않는다. 이미 낸 1칩이 팟에
-    걸려 있으므로 그 라운드를 치러 되찾을 기회를 줘야 한다. 베팅할 칩이 없으면
-    바로 아래에서 앞면끼리 겨뤄 팟 주인을 가린다. 정말 못 버티는 경우는 다음
-    라운드 시작 때 기본 베팅을 못 내는 것으로 걸린다.
+    걸려 있으므로 그 라운드를 치러 되찾을 기회를 줘야 한다. 정말 못 버티는
+    경우는 다음 라운드 시작 때 기본 베팅을 못 내는 것으로 걸린다.
   */
   /*
-    아무도 베팅할 칩이 없으면(이월 라운드에서 한쪽이 올인이었던 경우) 고를 면이
-    없다. 공개된 앞면끼리 비교해 이월된 팟의 주인을 가린다.
+    아무도 베팅할 칩이 없는 경우(이월 라운드에서 한쪽이 올인이었던 경우).
+
+    예전에는 서버가 공개된 앞면끼리 자동으로 비교했다. 그러면 뒷면이 더 좋은
+    사람이 그걸 쓸 방법이 없다 — 칩이 없다는 이유로 선택지까지 뺏은 셈이다.
+    베팅만 없을 뿐, 겨룰 면은 각자 고른다.
   */
   if (doubleSidedPokerBettingBounds(state).maxBet == null) {
-    resolveDoubleSidedPokerShowdown(io, state);
-    return;
+    state.selectOnly = true;
   }
   publishDecision(io, state);
 }
@@ -191,11 +204,6 @@ function selectedValue(player: DoubleSidedPokerInternalPlayer) {
   // 베팅할 칩이 없어 면을 고르지 못했다면 공개된 앞면으로 겨룬다.
   if (player.selection == null) return player.card.front;
   return player.selection === 'front' ? player.card.front : player.card.back;
-}
-
-function revealBack(player: DoubleSidedPokerInternalPlayer, showdown: boolean) {
-  if (!showdown || !player.card) return null;
-  return player.selection === 'back' || player.selection === 'both' ? player.card.back : null;
 }
 
 function applyPayment(
@@ -255,7 +263,6 @@ function settleRound(
       state.playerStates[winnerId].chips += doubleBonus;
     }
   }
-  const showdown = foldedPlayerId == null;
   const result: DoubleSidedPokerRoundResult = {
     round: state.round,
     winnerId,
@@ -270,7 +277,12 @@ function settleRound(
         const internal = state.playerStates[player.id];
         return [
           player.id,
-          { front: internal.card?.front ?? 0, back: revealBack(internal, showdown) },
+          /*
+            기록에는 실제 뒷면을 그대로 남긴다. 게임이 끝난 뒤 보는 로그에서는
+            다이로 끝난 라운드의 뒷면까지 볼 수 있어야 복기가 된다.
+            게임 중 공개 범위는 state.ts 가 보는 사람 기준으로 가린다.
+          */
+          { front: internal.card?.front ?? 0, back: internal.card?.back ?? null },
         ];
       }),
     ),
@@ -365,6 +377,30 @@ function performBettingAction(
   const actor = state.playerStates[playerId];
   const opponentId = otherDoubleSidedPokerPlayerId(state, playerId);
 
+  /*
+    걸 칩이 없는 이월 라운드. 고를 수 있는 것은 겨룰 면뿐이고, 다이는 받는다 —
+    낼 칩이 없을 뿐 팟을 포기하는 것은 여전히 본인의 선택이다.
+  */
+  if (state.selectOnly) {
+    if (action.type === 'fold') {
+      pushAction(state, playerId, 'fold', 0);
+      settleRound(io, state, opponentId, 'fold', playerId);
+      return null;
+    }
+    if (action.type !== 'select') return '겨룰 면을 골라 주세요.';
+    if (!setSelection(actor, action.side)) return '겨룰 면을 골라 주세요.';
+    pushAction(state, playerId, 'select', 0);
+    if (state.playerStates[opponentId].selection != null) {
+      resolveDoubleSidedPokerShowdown(io, state);
+      return null;
+    }
+    state.currentTurnId = opponentId;
+    publishDecision(io, state);
+    return null;
+  }
+
+  if (action.type === 'select') return '지금은 면만 고를 수 없습니다.';
+
   if (action.type === 'fold') {
     pushAction(state, playerId, 'fold', 0);
     settleRound(io, state, opponentId, 'fold', playerId);
@@ -434,6 +470,13 @@ function performBettingAction(
     const payment = applyPayment(state, actor, stake);
     state.doubleBettorId = playerId;
     pushAction(state, playerId, 'double', payment);
+
+    // 상대와 같은 기준액을 건 양면베팅은 콜이다. 베팅이 맞춰졌으므로 즉시 공개한다.
+    if (stake === bounds.currentStake) {
+      resolveDoubleSidedPokerShowdown(io, state);
+      return null;
+    }
+
     state.currentTurnId = opponentId;
     publishDecision(io, state);
     return null;
@@ -474,7 +517,12 @@ function isAction(value: unknown): value is DoubleSidedPokerAction {
   if (!value || typeof value !== 'object') return false;
   const type = (value as { type?: unknown }).type;
   return (
-    type === 'bet' || type === 'call' || type === 'raise' || type === 'double' || type === 'fold'
+    type === 'bet' ||
+    type === 'call' ||
+    type === 'raise' ||
+    type === 'double' ||
+    type === 'select' ||
+    type === 'fold'
   );
 }
 

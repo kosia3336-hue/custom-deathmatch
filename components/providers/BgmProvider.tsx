@@ -17,6 +17,7 @@ const LS_MUTED = 'bgm-muted';
 const LS_VOLUME = 'bgm-volume';
 
 const DEFAULT_VOLUME = 0.3;
+const MIN_AUDIBLE_VOLUME = 0.05;
 const SAVE_DEBOUNCE_MS = 400;
 
 interface BgmContextValue {
@@ -105,6 +106,7 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   const queueIdxRef = useRef(0);
   const lastTrackRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSettingsRef = useRef<{ bgmMuted?: boolean; bgmVolume?: number }>({});
   // advance 를 ref 로 — Audio 생성 effect 가 advance 에 의존하지 않도록
   const advanceRef = useRef<() => void>(() => {});
 
@@ -263,12 +265,12 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
         // localStorage 불가 환경 무시
       }
       if (!isLoggedIn) return;
+      pendingSettingsRef.current = { ...pendingSettingsRef.current, ...patch };
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         const supabase = getBrowserSupabase();
-        const rpcPatch: Record<string, Json> = {};
-        if (patch.bgmMuted !== undefined) rpcPatch.bgmMuted = patch.bgmMuted;
-        if (patch.bgmVolume !== undefined) rpcPatch.bgmVolume = patch.bgmVolume;
+        const rpcPatch = pendingSettingsRef.current;
+        pendingSettingsRef.current = {};
         callRpc(supabase, 'update_member_settings', {
           p_patch: rpcPatch as Json,
         }).catch(() => {});
@@ -277,8 +279,21 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
     [isLoggedIn],
   );
 
+  /*
+    음소거를 풀 때 음량이 사실상 0 이면 기본 음량으로 되돌린다. 슬라이더를 0 까지
+    내렸다가 상단 소리 버튼으로 켜면 '켜졌는데 안 들리는' 상태가 되기 때문이다.
+    효과음 쪽(lib/sfxSettings.ts)도 같은 규칙을 따른다.
+  */
   const setMuted = useCallback(
-    (next: boolean) => { setMutedState(next); persist({ bgmMuted: next }); },
+    (next: boolean) => {
+      setMutedState(next);
+      if (!next && volumeRef.current < MIN_AUDIBLE_VOLUME) {
+        setVolumeState(DEFAULT_VOLUME);
+        persist({ bgmMuted: next, bgmVolume: DEFAULT_VOLUME });
+        return;
+      }
+      persist({ bgmMuted: next });
+    },
     [persist],
   );
 

@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Tabs } from '@/components/cdm/Tabs';
+import RankingNicknameSearch from './RankingNicknameSearch';
 
 export interface SeasonOption {
   id: number;
@@ -18,6 +19,9 @@ interface Props {
   defaultSeasonId: number | null;
 }
 
+const SELECT_CLASS =
+  'h-10 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm text-cdm-fg focus:outline-none focus:border-cdm-primary';
+
 export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,14 +37,6 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
       p.delete('game');
       p.delete('period');
     }
-    p.delete('page');
-    router.replace(`${pathname}?${p.toString()}`);
-  }
-
-  function setTier(value: string) {
-    const p = new URLSearchParams(searchParams.toString());
-    if (value) p.set('tier', value);
-    else p.delete('tier');
     p.delete('page');
     router.replace(`${pathname}?${p.toString()}`);
   }
@@ -72,7 +68,7 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
               ?? (defaultSeasonId != null ? String(defaultSeasonId) : '')
             }
             onChange={(e) => setSeason(e.target.value)}
-            className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg"
+            className={`${SELECT_CLASS} shrink-0`}
           >
             {seasons.map((s) => (
               <option key={s.id} value={String(s.id)}>
@@ -81,19 +77,7 @@ export default function RankingBoardTabs({ board, seasons, defaultSeasonId }: Pr
               </option>
             ))}
           </select>
-          <select
-            value={searchParams.get('tier') ?? ''}
-            onChange={(e) => setTier(e.target.value)}
-            className="rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg"
-          >
-            <option value="">전체 티어</option>
-            <option value="challenger">챌린저</option>
-            <option value="diamond">다이아</option>
-            <option value="gold">골드</option>
-            <option value="silver">실버</option>
-            <option value="bronze">브론즈</option>
-            <option value="unranked">언랭</option>
-          </select>
+          <RankingNicknameSearch />
         </div>
       )}
     </div>

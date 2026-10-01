@@ -16,9 +16,12 @@ import {
   applyRankLoss,
   applyRankWin,
   calcRankRpParts,
+  calcCounterRankRpParts,
+  RANK_PARITY_RP,
   peakTierMax,
   placementTierAndRp,
   rankTierNumericForRp,
+  type RankRpParts,
   type RankTier,
 } from '@shared/types/rank.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
@@ -32,6 +35,7 @@ import { grantGuildPoints, GUILD_POINTS } from '../guild/grantGuildPoints.js';
 import { applyGuildRankDeltaV4, guildRankScoreMaterial } from './applyGuildRankDeltaV4.js';
 import { claimDailyRankWin } from '../cdp/claimDailyRankWin.js';
 import { computeWinLossInputs, makeDrawInput } from '../cdp/calc.js';
+import { grantSongpyeonForRankedGame } from '../event/grantSongpyeon.js';
 
 interface MutableStats {
   tier: RankTier;
@@ -56,6 +60,11 @@ interface DbPersistContext {
   idB: string;
   statsB: MutableStats;
   isDraw: boolean;
+  isDoubleLoss: boolean;
+  doubleLossA: number;
+  doubleLossB: number;
+  beforeAPlacementDone: boolean;
+  beforeBPlacementDone: boolean;
   winnerMemberId: string | null;
   loserMemberId: string | null;
   wBefore: MutableStats | null;
@@ -118,8 +127,40 @@ function maybeFinalizePlacement(s: MutableStats): void {
   if (s.placement_games >= 5) finalizePlacementMut(s);
 }
 
+function applyRankedLoss(s: MutableStats, loss: number): void {
+  if (!s.placement_done) {
+    s.placement_games += 1;
+    s.season_losses += 1;
+    maybeFinalizePlacement(s);
+    return;
+  }
+  const lr = applyRankLoss(s.tier, s.rp, loss);
+  s.tier = lr.tier;
+  s.rp = lr.rp;
+  s.loss_streak += 1;
+  s.win_streak = 0;
+  s.season_losses += 1;
+  s.season_peak_tier = peakTierMax(s.season_peak_tier, s.tier);
+}
+
 function tierValForRp(s: MutableStats): number {
   return rankTierNumericForRp(s.tier, s.placement_done);
+}
+
+function matchRpBreakdown(
+  parts: RankRpParts,
+  side: 'win' | 'lose',
+  counter: boolean,
+): NonNullable<RankPlayerOutcome['rpBreakdown']> {
+  const sign = side === 'win' ? 1 : -1;
+  const parity = (counter ? RANK_PARITY_RP * 2 : RANK_PARITY_RP) * sign;
+  const table = side === 'win' ? parts.winnerBaseTable : parts.loserBaseTable;
+  const streak = side === 'win' ? parts.winnerStreakBonus : parts.loserStreakPenalty;
+  return {
+    parityReference: parity,
+    tierVersusParity: (table - RANK_PARITY_RP) * sign,
+    streakVersusParity: streak * sign,
+  };
 }
 
 function snapshot(s: MutableStats): MutableStats {
@@ -353,9 +394,16 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
   ]);
   console.log(`[rank:persist] saveStats done idA=${ctx.idA} idB=${ctx.idB}`);
 
-  // rank_match_history 저장 (승/패 케이스)
+  // rank_match_history 저장 (승/패 케이스 — 쌍패는 winner 컬럼이 없어 생략)
   let rankMatchId: string | null = null;
-  if (!ctx.isDraw && ctx.winnerMemberId && ctx.loserMemberId && ctx.wBefore && ctx.lBefore) {
+  if (
+    !ctx.isDraw
+    && !ctx.isDoubleLoss
+    && ctx.winnerMemberId
+    && ctx.loserMemberId
+    && ctx.wBefore
+    && ctx.lBefore
+  ) {
     const wAfter = ctx.winnerMemberId === ctx.idA ? ctx.statsA : ctx.statsB;
     const lAfter = ctx.loserMemberId === ctx.idA ? ctx.statsA : ctx.statsB;
 
@@ -386,8 +434,8 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     rankMatchId = (rmhRow as { id?: string } | null)?.id ?? null;
   }
 
-  // CDP 적립
-  const cdpRefId = !ctx.isDraw ? rankMatchId : gameLogId;
+  // CDP 적립 (쌍패는 승자 없음 → 승 지급 없음. history id도 없음)
+  const cdpRefId = ctx.isDoubleLoss ? null : !ctx.isDraw ? rankMatchId : gameLogId;
   if (cdpRefId) {
     try {
       if (ctx.isDraw) {
@@ -413,12 +461,38 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     console.log('[cdp:grant] skip — refId(=rankMatchId/gameLogId) 없음');
   }
 
+  if (gameLogId) {
+    const forfeit = ctx.result.endedByForfeit === true;
+    const songpyeonGrants = ctx.isDraw
+      ? [
+          { memberId: ctx.idA, outcome: 'draw' as const, forfeit: false },
+          { memberId: ctx.idB, outcome: 'draw' as const, forfeit: false },
+        ]
+      : ctx.isDoubleLoss
+        ? [
+            { memberId: ctx.idA, outcome: 'loss' as const, forfeit },
+            { memberId: ctx.idB, outcome: 'loss' as const, forfeit },
+          ]
+        : ctx.cdpWinnerId && ctx.cdpLoserId
+          ? [
+              { memberId: ctx.cdpWinnerId, outcome: 'win' as const, forfeit: false },
+              { memberId: ctx.cdpLoserId, outcome: 'loss' as const, forfeit },
+            ]
+          : [];
+    void grantSongpyeonForRankedGame(io, gameLogId, songpyeonGrants);
+  }
+
   // 길드 포인트 적립 (길드 미가입자는 RPC 내부 no-op)
   try {
     if (ctx.isDraw) {
       await grantGuildPoints([
         { memberId: ctx.idA, amount: GUILD_POINTS.rankDraw, reason: 'rank_draw', ref: gameLogId },
         { memberId: ctx.idB, amount: GUILD_POINTS.rankDraw, reason: 'rank_draw', ref: gameLogId },
+      ]);
+    } else if (ctx.isDoubleLoss) {
+      await grantGuildPoints([
+        { memberId: ctx.idA, amount: GUILD_POINTS.rankLoss, reason: 'rank_loss', ref: gameLogId },
+        { memberId: ctx.idB, amount: GUILD_POINTS.rankLoss, reason: 'rank_loss', ref: gameLogId },
       ]);
     } else if (ctx.cdpWinnerId && ctx.cdpLoserId) {
       await grantGuildPoints([
@@ -436,6 +510,15 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
       const drawM = guildRankScoreMaterial('draw', 0);
       await applyGuildRankDeltaV4(ctx.idA, drawM);
       await applyGuildRankDeltaV4(ctx.idB, drawM);
+    } else if (ctx.isDoubleLoss) {
+      const lossA = ctx.beforeAPlacementDone
+        ? guildRankScoreMaterial('loss', ctx.doubleLossA)
+        : 0;
+      const lossB = ctx.beforeBPlacementDone
+        ? guildRankScoreMaterial('loss', ctx.doubleLossB)
+        : 0;
+      await applyGuildRankDeltaV4(ctx.idA, lossA);
+      await applyGuildRankDeltaV4(ctx.idB, lossB);
     } else if (ctx.cdpWinnerId && ctx.cdpLoserId) {
       const winDelta = ctx.beforeWinnerPlacementDone
         ? guildRankScoreMaterial('win', ctx.winnerGain)
@@ -450,22 +533,24 @@ async function persistRankedGameEndToDb(io: IO, ctx: DbPersistContext): Promise<
     console.warn('[guild:rankDelta] 적립 실패(무시):', (err as Error).message);
   }
 
-  // #3 일일 랭크 승리 보너스 (하루 첫 승리 1회 100 CDP) — 승자만, 무승부 제외
-  if (!ctx.isDraw && ctx.cdpWinnerId) {
+  // #3 일일 랭크 승리 보너스 (하루 첫 승리 1회 100 CDP) — 승자만, 무승부·쌍패 제외
+  if (!ctx.isDraw && !ctx.isDoubleLoss && ctx.cdpWinnerId) {
     void claimDailyRankWin(io, ctx.cdpWinnerId);
   }
 
   // ── 히든 칭호 훅 (천공의 주인 · 심연의 수문장) ────────────────────────
   // rank_match_history 저장 완료 후 호출하므로 이번 판도 포함된다.
-  // 승패/무승부 무관하게 두 참가자 모두 체크한다.
-  void hiddenOnRankedGameEnd(io, {
-    winnerId: ctx.winnerMemberId ?? ctx.idA,
-    loserId: ctx.loserMemberId ?? ctx.idB,
-    winnerTierAfter: (ctx.winnerMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
-    loserTierAfter: (ctx.loserMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
-  }).catch((err) => {
-    console.warn('[hidden-titles] onRankedGameEnd 실패:', (err as Error).message);
-  });
+  // 승패/무승부 무관하게 두 참가자 모두 체크한다. 쌍패는 가짜 승자를 넘기지 않는다.
+  if (!ctx.isDoubleLoss) {
+    void hiddenOnRankedGameEnd(io, {
+      winnerId: ctx.winnerMemberId ?? ctx.idA,
+      loserId: ctx.loserMemberId ?? ctx.idB,
+      winnerTierAfter: (ctx.winnerMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
+      loserTierAfter: (ctx.loserMemberId === ctx.idA ? ctx.statsA : ctx.statsB).tier,
+    }).catch((err) => {
+      console.warn('[hidden-titles] onRankedGameEnd 실패:', (err as Error).message);
+    });
+  }
 }
 
 export async function finalizeRankedMultiGameEnd(
@@ -506,13 +591,18 @@ export async function finalizeRankedMultiGameEnd(
 
   const nonAiRankings = result.rankings.filter((r) => r.playerId !== AI_PLAYER_ID);
   const isDraw = nonAiRankings.length > 1 && nonAiRankings.every((r) => r.rank === 1);
+  const isDoubleLoss =
+    room.hiddenMatch === true
+    && !isDraw
+    && nonAiRankings.length > 1
+    && nonAiRankings.every((r) => r.rank !== 1);
 
   // ── PHASE 1: loadStats + 인메모리 계산 (await) ─────────────────
   const [statsAOrNull, statsBOrNull] = await Promise.all([
     loadStats(seasonId, idA),
     loadStats(seasonId, idB),
   ]);
-  console.log(`[rank:finalize] loadStats idA=${idA} ok=${!!statsAOrNull} idB=${idB} ok=${!!statsBOrNull} isDraw=${isDraw}`);
+  console.log(`[rank:finalize] loadStats idA=${idA} ok=${!!statsAOrNull} idB=${idB} ok=${!!statsBOrNull} isDraw=${isDraw} isDoubleLoss=${isDoubleLoss}`);
   if (!statsAOrNull || !statsBOrNull) {
     console.log('[rank:finalize] skip — loadStats returned null');
     return { ...result, isRanked: true };
@@ -543,6 +633,10 @@ export async function finalizeRankedMultiGameEnd(
   let cdpLoserId: string | null = null;
   let cdpWinnerTierAfter: RankTier = 'unranked';
   let cdpLoserTierAfter: RankTier = 'unranked';
+  let doubleLossA = 0;
+  let doubleLossB = 0;
+  let beforeAPlacementDone = beforeA.placement_done;
+  let beforeBPlacementDone = beforeB.placement_done;
 
   if (isDraw) {
     if (!statsA.placement_done) {
@@ -557,6 +651,31 @@ export async function finalizeRankedMultiGameEnd(
     statsB.season_draws += 1;
     statsA.season_peak_tier = peakTierMax(statsA.season_peak_tier, statsA.tier);
     statsB.season_peak_tier = peakTierMax(statsB.season_peak_tier, statsB.tier);
+  } else if (isDoubleLoss) {
+    const tA = tierValForRp(statsA);
+    const tB = tierValForRp(statsB);
+    const counter = room.hiddenMatch === true;
+    const settle = counter ? calcCounterRankRpParts : calcRankRpParts;
+    const partsA = settle(tB, tA, statsB.win_streak, statsA.loss_streak, statsA.tier);
+    const partsB = settle(tA, tB, statsA.win_streak, statsB.loss_streak, statsB.tier);
+    doubleLossA = partsA.loserLoss;
+    doubleLossB = partsB.loserLoss;
+
+    const loseBrA = matchRpBreakdown(partsA, 'lose', counter);
+    const loseBrB = matchRpBreakdown(partsB, 'lose', counter);
+    if (beforeAPlacementDone && beforeBPlacementDone) {
+      rpBreakdownA = loseBrA;
+      rpBreakdownB = loseBrB;
+    }
+
+    applyRankedLoss(statsA, partsA.loserLoss);
+    applyRankedLoss(statsB, partsB.loserLoss);
+    await recalcChallengerZone(seasonId, idA, statsA, idB, statsB);
+
+    if (beforeAPlacementDone) rpDeltaA = -partsA.loserLoss;
+    if (beforeBPlacementDone) rpDeltaB = -partsB.loserLoss;
+    recordRankPairCooldown(idA, idB, Date.now());
+    console.log(`[rank:finalize] doubleLoss lossA=${partsA.loserLoss} lossB=${partsB.loserLoss}`);
   } else {
     const wRank = nonAiRankings.find((r) => r.rank === 1);
     const lRank = nonAiRankings.find((r) => r.rank !== 1);
@@ -579,35 +698,19 @@ export async function finalizeRankedMultiGameEnd(
     beforeWinnerPlacementDone = winnerStats.placement_done;
     beforeLoserPlacementDone = loserStats.placement_done;
 
-    const parts = calcRankRpParts(
+    const counter = room.hiddenMatch === true;
+    const parts = (counter ? calcCounterRankRpParts : calcRankRpParts)(
       wTierVal,
       lTierVal,
       winnerStats.win_streak,
       loserStats.loss_streak,
+      loserStats.tier,
     );
     winnerGain = parts.winnerGain;
     loserLoss = parts.loserLoss;
 
-    // 다이아·챌린저가 '하위 티어에게' 졌을 때만 붙던 티어 격차 추가 차감을 제거.
-    // 동급 기준치(12)를 상한으로 잡아, 상위 티어에게 졌을 때의 감액 혜택(10/8/6)은 유지한다.
-    // 패배 자체의 RP 차감과 연패 가산은 그대로 적용된다.
-    const PARITY_BASE_TABLE = 12;
-    const loserIsHighTier = loserStats.tier === 'challenger' || loserStats.tier === 'diamond';
-    const loserBaseTable = loserIsHighTier
-      ? Math.min(parts.loserBaseTable, PARITY_BASE_TABLE)
-      : parts.loserBaseTable;
-    loserLoss = Math.max(5, loserBaseTable + parts.loserStreakPenalty);
-
-    const winBr = {
-      parityReference: 20,
-      tierVersusParity: parts.winnerBaseTable - 20,
-      streakVersusParity: parts.winnerStreakBonus,
-    };
-    const loseBr = {
-      parityReference: -20,
-      tierVersusParity: -(loserBaseTable - 20),
-      streakVersusParity: -parts.loserStreakPenalty,
-    };
+    const winBr = matchRpBreakdown(parts, 'win', counter);
+    const loseBr = matchRpBreakdown(parts, 'lose', counter);
 
     if (beforeWinnerPlacementDone && beforeLoserPlacementDone) {
       rpBreakdownA = idA === winnerPl.memberId ? winBr : loseBr;
@@ -698,6 +801,11 @@ export async function finalizeRankedMultiGameEnd(
     idB,
     statsB,
     isDraw,
+    isDoubleLoss,
+    doubleLossA,
+    doubleLossB,
+    beforeAPlacementDone,
+    beforeBPlacementDone,
     winnerMemberId,
     loserMemberId,
     wBefore,

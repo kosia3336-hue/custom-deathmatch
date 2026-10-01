@@ -13,6 +13,8 @@ interface Props {
   isTutorialTarget?: boolean;
   isDimmed: boolean;
   previewColor: 'black' | 'white' | null;
+  /** 터치 첫 탭 — 둘 자리를 반투명으로 보여 준다. 한 번 더 누르면 둔다. */
+  armed?: boolean;
   gameOver: boolean;
   skin?: SkinTheme | null;
   onClick: () => void;
@@ -27,6 +29,7 @@ export default function Cell({
   isTutorialTarget = false,
   isDimmed,
   previewColor,
+  armed = false,
   gameOver,
   skin,
   onClick,
@@ -69,6 +72,7 @@ export default function Cell({
         ${bg} ${border}
         ${clickable ? 'cursor-pointer' : ''}
         ${isDimmed ? 'fg-tutorial-dim' : ''}
+        ${armed ? 'ring-2 ring-inset ring-cdm-primary' : ''}
         group
       `}
       onClick={clickable ? onClick : undefined}
@@ -97,7 +101,7 @@ export default function Cell({
       {clickable && cellType === 'empty' && previewColor && (
         <div
           className={`
-            absolute h-[80%] w-[80%] rounded-full opacity-0 transition-opacity group-hover:opacity-40
+            absolute h-[80%] w-[80%] rounded-full transition-opacity ${armed ? 'opacity-50' : 'opacity-0 group-hover:opacity-40'}
             ${isCosmos
               ? (previewColor === 'black' ? 'skin-cosmos-stone-black' : 'skin-cosmos-stone-white')
               : (previewColor === 'black' ? 'bg-[#1a1a2e]' : 'border border-gray-300 bg-white')}
@@ -106,7 +110,9 @@ export default function Cell({
       )}
 
       {isNeutralCandidate && cellType === 'empty' && !isTutorialTarget && (
-        <div className={`absolute h-[40%] w-[40%] rotate-45 rounded-sm opacity-40 ${isCosmos ? 'bg-amber-300' : 'bg-blue-300'}`} />
+        armed
+          ? <div className={`absolute h-[52%] w-[52%] rotate-45 rounded-sm opacity-60 shadow-sm ${isCosmos ? 'bg-amber-200' : 'bg-gray-400'}`} />
+          : <div className={`absolute h-[40%] w-[40%] rotate-45 rounded-sm opacity-40 ${isCosmos ? 'bg-amber-300' : 'bg-blue-300'}`} />
       )}
 
       {isTutorialTarget && cellType === 'empty' && (

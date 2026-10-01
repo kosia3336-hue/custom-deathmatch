@@ -14,10 +14,7 @@
  * 아래 배열에 게임 ID 를 넣으면 즉시 감춰진다. 출시할 때 지우면 된다.
  */
 export const UNRELEASED_GAME_IDS: readonly string[] = [
-  'game-024', // 삼층 오목
-  'game-025', // 초이스 홀덤
-  'game-026', // 시드섯다
-  'game-027', // 양면포커
+  'game-028', // 명추리 — DB 등록(db/myeongchuri_game.sql) 전이라 아직 감춘다
 ];
 
 export function isUnreleasedGame(gameId: string): boolean {

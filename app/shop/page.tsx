@@ -7,7 +7,9 @@ import { Card } from '@/components/cdm/Card';
 import type { ShopItem, CdpSummary } from '@/lib/cdp/types';
 import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
+import { getSupabaseServiceRole, isSupabaseServiceRoleConfigured } from '@/lib/supabase/service-role';
 import ShopClient from './ShopClient';
+import SongpyeonBalance from './SongpyeonBalance';
 
 export const metadata: Metadata = {
   title: '상점',
@@ -66,6 +68,34 @@ export default async function ShopPage({ searchParams }: Props) {
     .or(`available_until.is.null,available_until.gt.${nowIso}`)
     .order('sort_order', { ascending: false })
     .order('created_at', { ascending: false });
+
+  let songpyeonBalance = 0;
+  let ownedSkinIds: string[] = [];
+  let pendingSkinPick: { pendingId: string; itemId: string } | null = null;
+  if (isSupabaseServiceRoleConfigured()) {
+    const service = getSupabaseServiceRole();
+    const [burned, skins, pending] = await Promise.all([
+      (service.rpc as any)('burn_songpyeon_if_ended', { p_member_id: member.id }).then(
+        (res: { data?: number | null; error?: unknown }) => (res.error ? 0 : Number(res.data ?? 0)),
+        () => 0,
+      ),
+      service.from('member_skins').select('skin_id').eq('member_id', member.id).is('revoked_at', null),
+      (service.from as any)('songpyeon_skin_grants')
+        .select('id, item_id')
+        .eq('member_id', member.id)
+        .eq('status', 'pending')
+        .limit(1)
+        .maybeSingle()
+        .then((res: { data?: { id?: string; item_id?: string } | null }) => res.data ?? null)
+        .catch(() => null),
+    ]);
+    songpyeonBalance = burned;
+    ownedSkinIds = ((skins.data ?? []) as Array<{ skin_id: string }>).map((row) => row.skin_id);
+    const pendingRow = pending as { id?: string; item_id?: string } | null;
+    if (pendingRow?.id && pendingRow.item_id) {
+      pendingSkinPick = { pendingId: pendingRow.id, itemId: pendingRow.item_id };
+    }
+  }
 
   const itemRows = (itemsRes.data as unknown as ShopItemRowSel[] | null) ?? [];
   const items: ShopItem[] = itemRows.map((r) => ({
@@ -142,6 +172,7 @@ export default async function ShopPage({ searchParams }: Props) {
                 누적 획득 {formatCdp(cdp.totalEarned)} · 누적 소비 {formatCdp(cdp.totalSpent)}
               </p>
             </div>
+            <SongpyeonBalance initialBalance={songpyeonBalance} />
           </div>
         </Card>
 
@@ -151,6 +182,9 @@ export default async function ShopPage({ searchParams }: Props) {
           initialBalance={cdp.balance}
           initialType={initialType}
           merchantDiscount={merchantDiscount}
+          songpyeonBalance={songpyeonBalance}
+          ownedSkinIds={ownedSkinIds}
+          pendingSkinPick={pendingSkinPick}
         />
       </main>
     </>

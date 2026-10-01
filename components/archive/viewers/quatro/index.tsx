@@ -1,39 +1,18 @@
 'use client';
 
 import type { GameRecordFile } from '@/shared/types/archive';
-import type { QuatroCard, QuatroLogEntry, QuatroResultSummary, QuatroSuit } from '@/shared/types/quatro';
+import type { QuatroCard, QuatroLogEntry, QuatroResultSummary } from '@/shared/types/quatro';
 import { cn } from '@/lib/utils';
+import MiniCard from '@/components/game/modules/quatro/QuatroMiniCard';
 
 /** record.gameRecord 예상 형태 (server quatro finishGame 의 gameResultData) */
 interface QuatroRecord {
   result?: QuatroResultSummary;
   log?: QuatroLogEntry[];
+  /** 라운드별 선 플레이어 id (0 = 멀리건). 2026-09-14 이후 기록에만 있다 */
+  firstByRound?: Record<number, string>;
   vpHands?: QuatroCard[][];
   players?: Record<string, { nickname: string }>;
-}
-
-const SUIT_INFO: Record<QuatroSuit, { symbol: string; cls: string }> = {
-  spade: { symbol: '♠', cls: 'text-blue-600 border-blue-300 bg-blue-50' },
-  diamond: { symbol: '♦', cls: 'text-yellow-600 border-yellow-300 bg-yellow-50' },
-  heart: { symbol: '♥', cls: 'text-red-600 border-red-300 bg-red-50' },
-  club: { symbol: '♣', cls: 'text-green-600 border-green-300 bg-green-50' },
-  black: { symbol: '●', cls: 'text-white border-gray-700 bg-gray-900' },
-};
-
-function MiniCard({ card, dimmed }: { card: QuatroCard; dimmed?: boolean }) {
-  const info = SUIT_INFO[card.suit];
-  return (
-    <span
-      className={cn(
-        'inline-flex h-9 w-7 flex-col items-center justify-center rounded border text-[11px] font-bold leading-none',
-        info.cls,
-        dimmed && 'opacity-50',
-      )}
-    >
-      <span>{info.symbol}</span>
-      <span>{card.num}</span>
-    </span>
-  );
 }
 
 export default function QuatroViewer({ record }: { record: GameRecordFile }) {
@@ -95,6 +74,7 @@ export default function QuatroViewer({ record }: { record: GameRecordFile }) {
                     : 'border-cdm-border text-cdm-fg-muted',
                 )}
               >
+                {data.firstByRound?.[0] ? `${data.firstByRound[0] === m.actorId ? '선' : '후'} · ` : ''}
                 {nicknames[m.actorId] ?? '?'} — {m.type === 'mulligan' && m.used ? '사용' : '패스'}
               </span>
             ))}
@@ -111,7 +91,14 @@ export default function QuatroViewer({ record }: { record: GameRecordFile }) {
             if (entries.length === 0) return null;
             return (
               <div key={r} className="rounded-cdm-md border border-cdm-border bg-cdm-bg p-3">
-                <p className="mb-2 text-xs font-bold text-cdm-fg-muted">라운드 {r}</p>
+                <p className="mb-2 text-xs font-bold text-cdm-fg-muted">
+                  라운드 {r}
+                  {data.firstByRound?.[r] && (
+                    <span className="ml-1.5 font-normal text-cdm-fg-subtle">
+                      선 {nicknames[data.firstByRound[r]] ?? '?'}
+                    </span>
+                  )}
+                </p>
                 <ul className="flex flex-col gap-1.5">
                   {entries.map((e, i) => (
                     <li key={i} className="flex flex-wrap items-center gap-1.5 text-xs text-cdm-fg">

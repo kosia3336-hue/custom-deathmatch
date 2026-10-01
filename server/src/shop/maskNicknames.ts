@@ -132,14 +132,44 @@ export function maskGameResultDataForViewer(
     result = { ...result, players: maskedPlayers };
   }
 
-  // finishReason 문자열 내 실명 마스킹
-  if (anonNicknames && anonNicknames.length > 0 && typeof data.finishReason === 'string') {
-    let reason = data.finishReason as string;
-    for (const nick of anonNicknames) {
-      reason = reason.replaceAll(nick, ANONYMOUS_NICKNAME);
-    }
-    if (reason !== data.finishReason) {
-      result = { ...result, finishReason: reason };
+  /*
+    남은 자리를 전부 훑어 실명을 지운다.
+
+    예전에는 최상위 players 와 finishReason 두 군데만 가렸다. 그런데 게임마다
+    결과 데이터 모양이 달라서, 실명은 훨씬 깊은 곳에도 들어간다 — 연승게임은
+    actions[].players[token].nickname 과 matchDescription 문장 안에 이름을
+    담는다. 그 자리가 그대로 나가면 익명 물약을 쓴 뜻이 없다.
+
+    게임별로 자리를 하나씩 세는 대신, 기록 전체를 훑어 이름 문자열을 치환한다.
+    조회 화면(lib/maskGameRecord.ts)이 같은 이유로 이미 그렇게 하고 있다 —
+    저장된 기록은 가려지는데 방금 끝난 판의 결과 화면은 안 가려지는 것이
+    앞뒤가 맞지 않았다.
+  */
+  if (anonNicknames && anonNicknames.length > 0) {
+    // 긴 이름부터 — 짧은 쪽이 긴 쪽의 일부일 때 조각이 남지 않는다
+    const targets = [...anonNicknames]
+      .filter((nick) => nick && nick !== ANONYMOUS_NICKNAME)
+      .sort((a, b) => b.length - a.length);
+
+    if (targets.length > 0) {
+      const walk = (value: unknown): unknown => {
+        if (typeof value === 'string') {
+          let next = value;
+          for (const nick of targets) next = next.replaceAll(nick, ANONYMOUS_NICKNAME);
+          return next;
+        }
+        if (Array.isArray(value)) return value.map(walk);
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+              key,
+              walk(child),
+            ]),
+          );
+        }
+        return value;
+      };
+      result = walk(result) as Record<string, unknown>;
     }
   }
 

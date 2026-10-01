@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type {
   FTAction,
@@ -48,6 +49,7 @@ import type {
 } from './types.js';
 import { isTokenAnonymized } from '../../../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, InternalState>();
@@ -108,7 +110,7 @@ function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.phase === 'finished') return '게임이 종료되었습니다.';
   const p = getPlayer(s, s.currentPlayerId);
   const nick = p
-    ? (isTokenAnonymized(s.roomId, p.id) && p.id !== viewerToken ? ANONYMOUS_NICKNAME : p.nickname)
+    ? nicknameForViewer(s.roomId, p.id, p.nickname, viewerToken)
     : '플레이어';
   return `${s.turn}턴 — ${nick} 차례`;
 }
@@ -158,7 +160,7 @@ function buildUnresolvedSecrets(s: InternalState, viewerId: string | null): FTUn
 
 export function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   const players: Record<string, FTPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, viewerId === s.player1.id), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, viewerId === s.player2.id), nickname: maskNick(s.player2.id, s.player2.nickname) },
@@ -197,8 +199,13 @@ export function buildGameDataForPlayer(s: InternalState, viewerId: string): FTGa
 }
 
 function buildSpectatorGameData(s: InternalState): FTGameData {
-  const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
+  /*
+    관전자도 플레이어와 같은 판정을 거쳐야 한다. 예전에는 익명 물약만 보고
+    랭크는 보지 않아, 랭크 판을 관전하면 탑 쌓기 알림·액션 로그·플레이어 목록에
+    실명이 그대로 나왔다. nicknameForViewer 는 viewerId 가 null 이면 '본인'
+    예외가 없으므로 랭크 플레이어 닉을 모두 가린다.
+  */
+  const maskNick = (id: string, nick: string) => nicknameForViewer(s.roomId, id, nick, null);
   const players: Record<string, FTPlayerInfo> = {
     [s.player1.id]: { ...playerToInfo(s.player1, false), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToInfo(s.player2, false), nickname: maskNick(s.player2.id, s.player2.nickname) },
@@ -391,7 +398,7 @@ export function startTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   s.turnStartedAt = Date.now();
   if (!s.timeLimitSeconds) return;
-  s.turnTimer = setTimeout(() => handleTurnTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayerId, () => handleTurnTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 function handleTurnTimeout(io: IO, s: InternalState) {

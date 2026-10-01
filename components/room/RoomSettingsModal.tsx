@@ -10,6 +10,7 @@ import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
@@ -18,6 +19,7 @@ import {
   isAbstractStrategyGameId,
   isSoloLikePlayMode,
   resolveAbstractAiDifficulty,
+  resolveAbstractAiThinkSeconds,
 } from '@/shared/types';
 import type {
   AbstractAiDifficulty,
@@ -35,7 +37,14 @@ import {
   OptionButton,
   GameListPicker,
 } from '@/components/room-modal/RoomModalKit';
+import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
+import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
+import { resolveMyeongchuriOptions } from '@/shared/logic/myeongchuri';
+import {
+  MYEONGCHURI_DEFAULT_PICK_SECONDS,
+  MYEONGCHURI_DEFAULT_THINK_SECONDS,
+} from '@/shared/types/myeongchuri';
 
 interface Props {
   open: boolean;
@@ -63,9 +72,14 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
+    DEFAULT_ABSTRACT_AI_THINK_SECONDS,
+  );
   const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
     DEFAULT_ABSTRACT_AI_DIFFICULTY,
   );
+  const [thinkEnabled, setThinkEnabled] = useState(true);
+  const [thinkSeconds, setThinkSeconds] = useState(MYEONGCHURI_DEFAULT_THINK_SECONDS);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
   /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
@@ -119,13 +133,20 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         ? room.gameOptions.numberCount
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
-    setAbstractAiDifficulty(resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty));
+    setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
+    setAbstractAiDifficulty(resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId));
+    const myeongchuri = resolveMyeongchuriOptions(room.gameOptions);
+    setThinkEnabled(myeongchuri.thinkEnabled);
+    setThinkSeconds(myeongchuri.thinkSeconds);
 
     fetchGames()
       .then((gsAll) => {
         const gs = filterUnreleased(
           gsAll.filter(
-            (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+            (g) =>
+              g.id !== GAME_IDS.INDIAN_POKER_EVENT &&
+              g.id !== GAME_IDS.SUN_MOON_STAR_EVENT &&
+              g.id !== GAME_IDS.RING_THE_BELL,
           ),
           isAdmin,
         );
@@ -152,8 +173,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   }, [open, onClose]);
 
   const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
-  const showsAbstractAiDifficulty =
+  const showsAbstractAiThinkTime =
     playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiDifficulty = showsAbstractAiThinkTime;
   const computedTimeLimit =
     canConfigureTimeLimit && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 
@@ -180,6 +202,12 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
           ? 2
           : 1,
     );
+    // 명추리로 바꾸면 알파벳 고르기 시간을 기본 3분으로 맞춘다(넘기면 무작위로 놓는다)
+    if (g.id === GAME_IDS.MYEONGCHURI && room.gameId !== GAME_IDS.MYEONGCHURI) {
+      setTimeLimitEnabled(true);
+      setTimeLimitMin(Math.floor(MYEONGCHURI_DEFAULT_PICK_SECONDS / 60));
+      setTimeLimitSec(MYEONGCHURI_DEFAULT_PICK_SECONDS % 60);
+    }
     setError('');
   };
 
@@ -244,8 +272,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
       gameOptions.numberCount = formulaNumberCount;
     }
+    if (showsAbstractAiThinkTime) {
+      gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
+    }
     if (showsAbstractAiDifficulty) {
       gameOptions.aiDifficulty = abstractAiDifficulty;
+    }
+    if (selectedGame.id === GAME_IDS.MYEONGCHURI) {
+      gameOptions.thinkEnabled = thinkEnabled;
+      gameOptions.thinkSeconds = thinkSeconds;
     }
 
     const isGameChanged = selectedGame.id !== room.gameId;
@@ -450,10 +485,28 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
               </SettingField>
             )}
 
+            {showsAbstractAiThinkTime && (
+              <AbstractAiThinkTimeField
+                value={abstractAiThinkSeconds}
+                onChange={setAbstractAiThinkSeconds}
+              />
+            )}
+
             {showsAbstractAiDifficulty && (
               <AbstractAiDifficultyField
+                gameId={selectedGame?.id ?? room.gameId}
                 value={abstractAiDifficulty}
                 onChange={setAbstractAiDifficulty}
+              />
+            )}
+
+            {/* 솔로 명추리는 혼자 두므로 생각 시간 항목이 없다 */}
+            {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
+              <MyeongchuriThinkTimeField
+                enabled={thinkEnabled}
+                seconds={thinkSeconds}
+                onEnabledChange={setThinkEnabled}
+                onSecondsChange={setThinkSeconds}
               />
             )}
 

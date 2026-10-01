@@ -44,7 +44,14 @@ export interface BNW2RoundRecord {
   firstPlayerId: string;
   players: Record<string, {
     color: BNW2Color;
-    points: number;
+    /**
+     * 제시한 포인트.
+     *
+     * 게임 중에는 본인 것만 값이 오고 상대 것은 null 이다 — 이 게임은 공개 시점에도
+     * 색과 꺼진 불 칸수만 알려 주지 정확한 숫자는 밝히지 않는다.
+     * 게임이 끝난 뒤 보는 기보에는 두 사람 값이 모두 남는다.
+     */
+    points: number | null;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;

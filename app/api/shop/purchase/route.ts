@@ -54,6 +54,16 @@ const ERROR_HTTP: Record<string, { code: PurchaseErrorCode; status: number; msg:
     status: 402,
     msg: 'CDP가 부족합니다.',
   },
+  insufficient_songpyeon: {
+    code: 'insufficient_songpyeon',
+    status: 402,
+    msg: '송편이 부족합니다.',
+  },
+  no_skins_left: {
+    code: 'no_skins_left',
+    status: 409,
+    msg: '고를 수 있는 스킨이 없습니다.',
+  },
   already_owned: { code: 'already_owned', status: 409, msg: '이미 보유하고 있습니다.' },
   effect_permanently_claimed: {
     code: 'effect_permanently_claimed',
@@ -117,9 +127,9 @@ export async function POST(req: NextRequest) {
     );
   }
   const quantity = Math.floor(Number(body.quantity ?? 1));
-  if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
+  if (!Number.isFinite(quantity) || quantity < 1) {
     return NextResponse.json(
-      { error: '수량은 1~99개까지 가능합니다.', code: 'invalid_request' as const },
+      { error: '수량이 올바르지 않습니다.', code: 'invalid_request' as const },
       { status: 400 },
     );
   }
@@ -134,7 +144,81 @@ export async function POST(req: NextRequest) {
       .select('id, type, payload')
       .eq('id', itemId)
       .maybeSingle();
-    const payload = (itemRow as { payload?: { kind?: string } } | null)?.payload ?? {};
+    const payload = (itemRow as { payload?: { kind?: string; priceUnit?: string; exchangeCdp?: number } } | null)?.payload ?? {};
+
+    if (payload.priceUnit === 'songpyeon') {
+      const maxQty = typeof payload.exchangeCdp === 'number' ? 10000 : 1;
+      if (quantity > maxQty) {
+        return NextResponse.json(
+          { error: `수량은 1~${maxQty}개까지 가능합니다.`, code: 'invalid_request' as const },
+          { status: 400 },
+        );
+      }
+      const { data, error } = await (sb.rpc as any)('purchase_songpyeon_item', {
+        p_member_id: member.id,
+        p_item_id: itemId,
+        p_quantity: quantity,
+      });
+      if (error) {
+        const mapped = mapRpcError((error as { message?: string }).message ?? '');
+        return NextResponse.json({ error: mapped.msg, code: mapped.code }, { status: mapped.status });
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        purchase_id?: string;
+        songpyeon_balance?: number;
+        price_paid?: number;
+        stock_after?: number | null;
+        grant_kind?: string | null;
+        pending_id?: string | null;
+        skin_id?: string | null;
+        new_cdp_balance?: number | null;
+      } | undefined;
+      if (!row) {
+        return NextResponse.json(
+          { error: '구매 응답이 비었습니다.', code: 'internal_error' as const },
+          { status: 500 },
+        );
+      }
+      void notifyShopItemChanged({
+        itemId,
+        stock: row.stock_after ?? null,
+        isActive: true,
+      });
+      const exchangeRate = Number((payload as { exchangeCdp?: number }).exchangeCdp ?? 0);
+      if (exchangeRate > 0 && typeof row.new_cdp_balance === 'number') {
+        void notifyCdpAdjusted({
+          memberId: member.id,
+          newBalance: Number(row.new_cdp_balance),
+          delta: exchangeRate * quantity,
+          reason: 'shop_purchase',
+          ref: { kind: 'shop_purchase', id: row.purchase_id ?? itemId },
+        });
+      }
+      return NextResponse.json({
+        ok: true,
+        kind: 'songpyeon',
+        purchaseId: row.purchase_id,
+        newBalance: Number(row.new_cdp_balance ?? 0),
+        pricePaid: Number(row.price_paid ?? 0),
+        priceOriginal: Number(row.price_paid ?? 0),
+        discountApplied: 0,
+        stockAfter: row.stock_after ?? null,
+        grantedTitleId: null,
+        consumableKind: null,
+        consumableAdded: 0,
+        songpyeonBalance: Number(row.songpyeon_balance ?? 0),
+        grant: row.grant_kind ?? null,
+        pendingId: row.pending_id ?? null,
+        skinId: row.skin_id ?? null,
+      });
+    }
+
+    if (quantity > 99) {
+      return NextResponse.json(
+        { error: '수량은 1~99개까지 가능합니다.', code: 'invalid_request' as const },
+        { status: 400 },
+      );
+    }
 
     // 길드 창설권: 길드 가입자는 구매 불가
     if (payload.kind === 'guild_charter') {

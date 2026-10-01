@@ -22,6 +22,8 @@ interface ModalProps {
   showClose?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  /** 룰 이미지처럼 패널 전체를 콘텐츠로 사용. 닫기는 이미지 위에 겹친다. */
+  edgeToEdge?: boolean;
 }
 
 const SIZE: Record<NonNullable<ModalProps['size']>, string> = {
@@ -61,6 +63,7 @@ export function Modal({
   showClose = false,
   size = 'md',
   className,
+  edgeToEdge = false,
 }: ModalProps) {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -102,7 +105,7 @@ export function Modal({
         className,
       )}
     >
-      {(title || closeVisible) && (
+      {!edgeToEdge && (title || closeVisible) && (
         <header className="flex items-center justify-between gap-3 border-b border-cdm-ink-border bg-cdm-ink px-5 py-4">
           <h2 className="text-base font-semibold text-cdm-ink-fg">{title}</h2>
           {closeVisible && (
@@ -123,7 +126,10 @@ export function Modal({
           )}
         </header>
       )}
-      <div className="px-5 py-4">{children}</div>
+      {edgeToEdge && onClose && (
+        <button type="button" aria-label="닫기" onClick={onClose} className="absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black/85"><CloseIcon /></button>
+      )}
+      <div className={edgeToEdge ? '' : 'px-5 py-4'}>{children}</div>
       {footer && (
         <footer className="flex justify-end gap-2 border-t border-cdm-border px-5 py-4">
           {footer}

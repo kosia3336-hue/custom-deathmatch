@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import { GAME_IDS } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
+import { playChipsSfx } from '@/lib/chipsSfx';
 import type { IndianPokerGameData } from '@/shared/types/indian-poker';
 import CardArea from './CardArea';
 import BettingPanel from './BettingPanel';
@@ -16,13 +16,16 @@ import DeckInfo from './DeckInfo';
 import { useNocturneDealReveal } from './skins/useNocturneDealReveal';
 import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import RoundHistory from './RoundHistory';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 export default function IndianPokerGame() {
   const gameState = useRoomStore((s) => s.gameState);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as IndianPokerGameData | undefined;
   const myId = useMySocketId();
-  const { remaining: timerRemaining } = useTurnTimer();
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.INDIAN_POKER);
 
   const shownWinnerRef = useRef<string | null>(null);
@@ -36,6 +39,34 @@ export default function IndianPokerGame() {
     phase: gameData?.phase ?? '',
     blockAnim: showShuffle,
   });
+
+  /* 상단 바 — 라운드·차례. 라운드 기록은 좁은 화면에서 '메모' 로 연다. */
+  const { setHud } = useRoomLayout();
+  const round = gameData?.round ?? 0;
+  const phaseLabel = gameData?.phase === 'betting'
+    ? gameData.currentTurnId === myId ? '내 베팅' : '상대 베팅'
+    : gameData?.phase === 'dealing'
+      ? '카드 배분'
+      : gameData?.phase === 'finished'
+        ? '종료'
+        : gameData?.phase ? '카드 공개' : undefined;
+
+  useEffect(() => {
+    if (!gameData) return;
+    setHud({
+      // 덱이 도는 게임이라 총 라운드가 정해져 있지 않다. 몇 번째인지만 센다.
+      round: `${round}R`,
+      order: phaseLabel,
+      memo: <IndianPokerSidePanel gameData={gameData} myId={myId} />,
+    });
+    return () => setHud(null);
+  }, [setHud, gameData, round, myId, phaseLabel]);
+
+  /* 라운드가 끝나 칩이 넘어갈 때 한 번. 라운드 번호로 묶어 결과 화면이 다시 그려져도 겹치지 않는다. */
+  const roundEnded = gameData?.phase === 'showdown' || gameData?.phase === 'dieResult';
+  useEffect(() => {
+    if (roundEnded) playChipsSfx();
+  }, [roundEnded, round]);
 
   useEffect(() => {
     if (!gameData) return;
@@ -111,33 +142,20 @@ export default function IndianPokerGame() {
     )}
 
     <GameFrame
+      /*
+        칩은 늘 보이게 둔다 — 칩을 걸어 겨루는 판이라 양쪽 칩 수가 콜·레이즈·다이를
+        정한다. 메모 안에 있으면 매 수마다 버튼을 눌러야 한다.
+        (components/game/GameScoreLine.tsx)
+      */
       info={
-        <div className="flex flex-col gap-1">
-          <div className="flex w-full gap-2">
-            {playerEntries.map(([id, p]) => (
-              <div key={id} className="min-w-0 flex-1">
-                <PlayerArea
-                  player={p}
-                  isMe={id === myId}
-                  isCurrentTurn={id === gameData.currentTurnId}
-                  timerRemaining={id === gameData.currentTurnId ? timerRemaining : null}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-            <DeckInfo
-              deckRemaining={gameData.deckRemaining}
-              deckCycle={gameData.deckCycle}
-              ante={gameData.ante}
-              round={gameData.round}
-            />
-            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
-              팟 {gameData.pot}
-            </span>
-            <span className="text-[11px] leading-4 text-gray-500">{gameState?.message}</span>
-          </div>
-        </div>
+        <GameScoreLine
+          unit="칩"
+          entries={Object.values(gameData.players).map((p) => ({
+            label: p.id === myId ? '나' : p.nickname,
+            isMe: p.id === myId,
+            value: p.chips,
+          }))}
+        />
       }
       controls={
         <div className="w-full">
@@ -158,6 +176,7 @@ export default function IndianPokerGame() {
           )}
         </div>
       }
+      aside={<IndianPokerSidePanel gameData={gameData} myId={myId} />}
     >
       <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-2 overflow-hidden">
         <CardArea
@@ -194,5 +213,37 @@ export default function IndianPokerGame() {
       </div>
     </GameFrame>
     </>
+  );
+}
+
+function IndianPokerSidePanel({ gameData, myId }: { gameData: IndianPokerGameData; myId: string }) {
+  return (
+    <GameInfoStack>
+      <GameInfoPart title="플레이어">
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([id, player]) => (
+            <PlayerArea
+              key={id}
+              player={player}
+              isMe={id === myId}
+              isCurrentTurn={id === gameData.currentTurnId}
+              timerRemaining={null}
+            />
+          ))}
+        </div>
+      </GameInfoPart>
+      <GameInfoPart title="판 정보">
+        <DeckInfo
+          deckRemaining={gameData.deckRemaining}
+          deckCycle={gameData.deckCycle}
+          ante={gameData.ante}
+          round={gameData.round}
+        />
+        <p className="mt-2 text-center text-sm font-black text-cdm-highlight">팟 {gameData.pot}</p>
+      </GameInfoPart>
+      <GameInfoPart>
+        <RoundHistory roundHistory={gameData.roundHistory} players={gameData.players} />
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

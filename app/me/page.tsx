@@ -22,6 +22,8 @@ interface Props {
   searchParams: Promise<{
     tab?: string;
     page?: string;
+    logOpponent?: string;
+    logGame?: string;
     rankSeason?: string;
     inquiriesPage?: string;
     reportsPage?: string;
@@ -72,7 +74,14 @@ export default async function MyPage({ searchParams }: Props) {
 
         <section>
           {tab === 'overview' && <OverviewTab member={member} />}
-          {tab === 'logs' && <LogsTab memberId={member.id} page={sp.page} />}
+          {tab === 'logs' && (
+            <LogsTab
+              memberId={member.id}
+              page={sp.page}
+              logOpponent={sp.logOpponent}
+              logGame={sp.logGame}
+            />
+          )}
           {tab === 'stats' && <StatsTab memberId={member.id} />}
           {tab === 'rank' && <RankTab memberId={member.id} seasonId={sp.rankSeason} />}
           {tab === 'titles' && (

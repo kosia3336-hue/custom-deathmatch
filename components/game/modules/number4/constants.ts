@@ -5,6 +5,7 @@ export const WIN_TYPE_LABELS: Record<NF4WinType, string> = {
   elimination: '상대 탈락',
   tiebreaker: '타이브레이커',
   timeout: '시간 초과',
+  draw: '무승부',
 };
 
 export interface NumberInfo {

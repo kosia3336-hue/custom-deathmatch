@@ -23,6 +23,7 @@ import TripleGomokuGame from '@/components/game/modules/triple-gomoku';
 import ChoiceHoldemGame from '@/components/game/modules/choice-holdem';
 import SeedSeotdaGame from '@/components/game/modules/seed-seotda';
 import DoubleSidedPokerGame from '@/components/game/modules/double-sided-poker';
+import MyeongchuriGame from '@/components/game/modules/myeongchuri';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
 import BNW2Game from '@/components/game/modules/bnw2';
@@ -31,8 +32,10 @@ import FiveTowersGame from '@/components/game/modules/five-towers';
 import GrapeSugar2Game from '@/components/game/modules/grape-sugar-2';
 import SunMoonStar2Game from '@/components/game/modules/sun-moon-star-2';
 import SunMoonStarEventGame from '@/components/game/modules/sun-moon-star-event';
+import RingTheBellGame from '@/components/game/modules/ring-the-bell';
 import BankGame from '@/components/game/modules/bank-game';
 import BanPickGame from '@/components/game/modules/ban-pick';
+import CounterBanGame from '@/components/game/modules/counter-ban';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
 import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
@@ -55,6 +58,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.GRAPE_SUGAR_2]: GrapeSugar2Game,
   [GAME_IDS.SUN_MOON_STAR_2]: SunMoonStar2Game,
   [GAME_IDS.SUN_MOON_STAR_EVENT]: SunMoonStarEventGame,
+  [GAME_IDS.RING_THE_BELL]: RingTheBellGame,
   [GAME_IDS.BANK_GAME]: BankGame,
   [GAME_IDS.QUATRO]: QuatroGame,
   [GAME_IDS.WORD_PUZZLE]: WordPuzzleGame,
@@ -67,6 +71,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemGame,
   [GAME_IDS.SEED_SEOTDA]: SeedSeotdaGame,
   [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerGame,
+  [GAME_IDS.MYEONGCHURI]: MyeongchuriGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
 
@@ -78,6 +83,7 @@ export default function PlayPage() {
   const { gameResult } = useRoom(roomId);
   const gameId = useRoomStore((s) => s.room?.gameId);
   const roomId_ = useRoomStore((s) => s.room?.id);
+  const hiddenMatch = useRoomStore((s) => s.room?.hiddenMatch);
 
   /** 플레이 라우트 진입마다(대기실→플레이는 roomId 동일) 이전 판 gameResult 제거 */
   useEffect(() => {
@@ -96,13 +102,17 @@ export default function PlayPage() {
     const socket = getSocket();
     const handleDisbanded = (data: { reason: string }) => {
       toast.info(data.reason);
+      if (useRoomStore.getState().gameResult) {
+        router.push(`/room/${roomId}/result`);
+        return;
+      }
       router.push('/lobby');
     };
     socket.on('room:disbanded', handleDisbanded);
     return () => {
       socket.off('room:disbanded', handleDisbanded);
     };
-  }, [router]);
+  }, [router, roomId]);
 
   useEffect(() => {
     getSocket().emit('game:sync');
@@ -111,7 +121,12 @@ export default function PlayPage() {
   return (
     <GameShell>
       {(() => {
-        const GameModule = gameId && roomId_ === roomId ? GAME_MODULES[gameId] : null;
+        const GameModule =
+          gameId && roomId_ === roomId
+            ? gameId === GAME_IDS.BAN_PICK && hiddenMatch
+              ? CounterBanGame
+              : GAME_MODULES[gameId]
+            : null;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>

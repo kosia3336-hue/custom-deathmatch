@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; sso?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
@@ -25,7 +25,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <p className="text-cdm-fg-muted text-sm">정해진 룰 안에서, 정직한 한 판.</p>
         </div>
 
-        <LoginForm next={sp.next ?? '/lobby'} initialError={sp.error ?? null} />
+        <LoginForm
+          next={sp.next ?? '/lobby'}
+          initialError={sp.error ?? null}
+          ssoReturn={sp.sso === '1'}
+        />
 
         <p className="text-cdm-fg-muted text-xs">
           처음 오셨나요? 가입은 카카오 로그인 후 자동 안내됩니다.
