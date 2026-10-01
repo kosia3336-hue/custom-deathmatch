@@ -14,7 +14,7 @@ import type { Player, PlayMode } from '@shared/types/room.js';
 import type { TypedSocket } from '../../types.js';
 import { getBiasTitleInfos } from '../../../shop/biasTitlesCache.js';
 import { getRoomShopState } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../../../db/supabase.js';
 
 const states = new Map<string, BanPickState>();
@@ -478,6 +478,7 @@ export async function initBanPick(
     (playMode === 'com' ? g.supportsCom : g.supportsMulti)
     && g.id !== GAME_IDS.INDIAN_POKER_EVENT
     && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT
+    && g.id !== GAME_IDS.RING_THE_BELL
     && (!rankingActiveOnly || g.rankingActive),
   );
   const maxBanCount = Math.floor((allGames.length - 1) / 2);
@@ -486,6 +487,23 @@ export async function initBanPick(
   const banTurnOverride =
     typeof gameOptions?.banTurnSeconds === 'number' ? gameOptions.banTurnSeconds : null;
   const timeLimit = banTurnOverride ?? timeLimitSeconds ?? 0;
+
+  /*
+    밴픽은 두 자리가 다 차야 시작한다.
+
+    다른 게임 모듈은 두 명이 아니면 곧바로 throw 하고, startGame 이 그걸 받아
+    방을 정리한다. 밴픽만 한 명이어도 그냥 굴러갔다 — playerIds 를 빈 문자열로
+    채우고 시작하니, 밴 차례가 시간 초과로 넘어가고 추첨까지 도달한다. 그리고
+    몇 분 뒤 추첨이 끝나는 순간, 그 한 명짜리 목록이 진짜 게임 모듈로 넘어가
+    거기서 throw 한다. 운영에서 양면포커가 그렇게 터졌고, 실패 지점이 원인에서
+    한참 떨어져 있어 원인을 찾기 어려웠다.
+
+    여기서 막으면 startGame 의 try/catch 가 받아 방을 정리한다 — 3분 뒤가 아니라
+    시작하는 순간에.
+  */
+  if (!players[0]?.id || !players[1]?.id) {
+    throw new Error('밴픽에는 두 명의 플레이어가 필요합니다.');
+  }
 
   const comIdx = players.findIndex((p) => p.id === AI_PLAYER_ID);
 
@@ -534,15 +552,11 @@ export async function initBanPick(
   }
 
   const buildPayloadFor = (viewerToken: string | null): BanPickStartPayload => {
-    const anon = shopState?.anonymizedTokens ?? new Set<string>();
     const playerView = (idx: number): { id: string; nickname: string } => {
       const p = players[idx];
       const id = p?.id ?? '';
       const nick = p?.nickname ?? '';
-      if (id && id !== viewerToken && anon.has(id)) {
-        return { id, nickname: ANONYMOUS_NICKNAME };
-      }
-      return { id, nickname: nick };
+      return { id, nickname: nicknameForViewer(roomId, id, nick, viewerToken) };
     };
     const opponentGameStats = viewerToken ? s.magnifierStatsMap.get(viewerToken) : undefined;
     return {
@@ -562,6 +576,7 @@ export async function initBanPick(
   };
 
   const needsPerSocket =
+    roomStore.get(roomId)?.isRanked === true ||
     (shopState?.anonymizedTokens.size ?? 0) > 0 ||
     (shopState?.magnifierTokens.size ?? 0) > 0;
 
@@ -760,14 +775,10 @@ export function emitBanPickStateToSocket(socket: TypedSocket, roomId: string): v
 
   const viewerToken = sessions.getToken(socket.id) ?? null;
   const shopState = getRoomShopState(roomId);
-  const anon = shopState?.anonymizedTokens ?? new Set<string>();
   const playerView = (idx: number): { id: string; nickname: string } => {
     const id = s.playerIds[idx] ?? '';
     const baseNick = sessions.getNicknameByToken(id) ?? '';
-    if (id && id !== viewerToken && anon.has(id)) {
-      return { id, nickname: ANONYMOUS_NICKNAME };
-    }
-    return { id, nickname: baseNick };
+    return { id, nickname: nicknameForViewer(roomId, id, baseNick, viewerToken) };
   };
 
   const baseStartPayload = (): BanPickStartPayload => ({

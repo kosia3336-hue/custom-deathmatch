@@ -94,8 +94,34 @@ export function GameFrame({
       정확히 받는다.
     */
     <div
+      /*
+        자리는 인라인으로 못 박는다. className 은 게임·스킨이 넘기는 값이라
+        거기서 position 을 바꾸면 뼈대가 흐름으로 돌아가 내용 높이만큼
+        납작해진다 — 실제로 흑과백2 서부 스킨의 .skin-showdown-stage-content
+        가 relative 를 얹어 판이 잘리고 화면 아래가 텅 비었다.
+        클래스끼리는 순서로 이기고 지므로, 이것만은 인라인으로 잠근다.
+      */
+      /*
+        아래쪽은 시스템 영역(홈 인디케이터·제스처 바)만큼 띄운다.
+
+        지금은 viewport-fit=cover 를 쓰지 않아(2026-09-10, 38ac879) 브라우저가
+        화면을 시스템 바 안쪽까지만 그리고, 이 값은 대개 0 이다. 그래도 cover 를
+        다시 켜거나 안전영역 값을 넘겨주는 웹뷰에서는 100vh 가 홈 인디케이터
+        아래까지 내려가 판의 맨 밑줄이 가린다 — 흑과백2 '맨 밑이 살짝 잘린다'
+        신고가 그것이었다. 그때를 위해 남겨 둔다.
+
+        inset:0 대신 bottom 만 올린다. 안쪽 padding 은 게임이 className 으로
+        정하므로 건드리지 않는다. (값: app/globals.css 의 --cdm-safe-bottom)
+      */
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 'var(--cdm-safe-bottom, 0px)',
+      }}
       className={cn(
-        'absolute inset-0 mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
+        'mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
         className,
       )}
     >

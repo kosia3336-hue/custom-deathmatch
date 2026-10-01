@@ -5,7 +5,8 @@ import {
   getTotalPages,
   parsePageParam,
 } from '@/lib/pagination';
-import type { ReportStatus, InquiryStatus, InquiryCategory } from '@/lib/supabase/database.types';
+import type { ReportStatus, InquiryStatus } from '@/lib/supabase/database.types';
+import { fetchInquiryCategories, inquiryCategoryLabel } from '@/lib/inquiry/categories';
 import SupportTabClient from './SupportTabClient';
 import type { InquiryDetailData } from '@/components/InquiryDetailModal';
 
@@ -19,7 +20,7 @@ interface ReportRow {
 
 interface InquiryRow {
   id: string;
-  category: InquiryCategory;
+  category: string;
   title: string;
   status: InquiryStatus;
   created_at: string;
@@ -47,7 +48,7 @@ export default async function SupportTab({
   const inquiriesRange = getRange(inquiriesPage, PAGE_SIZE);
   const reportsRange = getRange(reportsPage, PAGE_SIZE);
 
-  const [reportsRes, inquiriesRes] = await Promise.all([
+  const [reportsRes, inquiriesRes, inquiryCats] = await Promise.all([
     sb
       .from('reports')
       .select('id, category, status, created_at, resolution_reason', { count: 'exact' })
@@ -62,10 +63,14 @@ export default async function SupportTab({
       .eq('author_id', memberId)
       .order('created_at', { ascending: false })
       .range(inquiriesRange.from, inquiriesRange.to),
+    fetchInquiryCategories(sb),
   ]);
 
   const reports = (reportsRes.data ?? []) as unknown as ReportRow[];
-  const inquiries = (inquiriesRes.data ?? []) as unknown as InquiryRow[];
+  const inquiries = ((inquiriesRes.data ?? []) as unknown as InquiryRow[]).map((q) => ({
+    ...q,
+    category_label: inquiryCategoryLabel(q.category, inquiryCats),
+  }));
   const reportsTotal = reportsRes.count ?? 0;
   const inquiriesTotal = inquiriesRes.count ?? 0;
 

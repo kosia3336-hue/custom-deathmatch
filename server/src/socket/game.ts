@@ -12,16 +12,15 @@ import config from '../config.js';
 import { socketRoom, maskedClientRoomForSocket, emitRoomStateToRoom } from './utils.js';
 import {
   getRoomShopState,
-  isTokenAnonymized,
   cleanupRoomShopState,
 } from '../shop/roomShopState.js';
 import {
   maskRankingForViewer,
   maskGameResultDataForViewer,
-  ANONYMOUS_NICKNAME,
 } from '../shop/maskNicknames.js';
 import type { IO, TypedSocket } from './types.js';
 import { finalizeRankedMultiGameEnd } from '../rank/processRankedGameEnd.js';
+import { nicknameForViewer, rankedRoomTitle } from '../rank/maskRankIdentity.js';
 import { persistGameEndLog } from './gameEndPersistence.js';
 import { persistSuperAiGame } from './superAiPersist.js';
 import {
@@ -30,6 +29,8 @@ import {
   setPendingUndo,
   takePendingUndo,
 } from './gameUndoPending.js';
+import { applyGameTurnOrder } from './gameTurnOrder.js';
+import { configureTurnExpiryRuntime, clearTurnExpiry, emitTurnExpiry, isTurnExpiryBlocked, respondTurnExpiry } from './gameTurnExpiry.js';
 import {
   initFourGravity,
   handleFourGravityAction,
@@ -185,8 +186,31 @@ import {
   canBanPickUndo,
   performBanPickUndo,
 } from './games/ban-pick/index.js';
+import {
+  initCounterBan,
+  handleCounterBan,
+  cleanupCounterBan,
+  getCounterBanState,
+  emitCounterBanStateToSocket,
+} from './games/counter-ban/index.js';
 import { saveRankBanPickLog } from '../db/rankBanLog.js';
 import { setActiveSkinForRoom, clearActiveSkin } from './skins.js';
+
+/*
+  밴픽 초기화는 async 라 실패가 거절로 온다. void 로 흘려보내면 아무도 받지 못해
+  방이 '진행 중' 인 채 아무 game:state 도 없이 남는다 — 클라이언트는 불러오는 중
+  화면에 갇힌다. startGame 의 catch 와 같은 자리로 데려온다.
+*/
+function disbandOnInitFailure(io: IO, roomId: string, label: string) {
+  return (err: unknown) => {
+    console.error(`[${label}] 초기화 실패`, { roomId }, err);
+    io.to(socketRoom(roomId)).emit('room:disbanded', {
+      reason: '게임을 시작하는 중 오류가 발생했습니다.',
+    });
+    roomStore.delete(roomId);
+    broadcastRoomRemoved(io, roomId);
+  };
+}
 
 function launchPickedGame(
   io: IO,
@@ -200,25 +224,75 @@ function launchPickedGame(
   const room = roomStore.get(roomId);
   if (!room) return;
 
+  cleanupCounterBan(roomId);
+  cleanupBanPick(roomId);
+
   roomStore.setGameId(roomId, pickedGameId, pickedGameName);
   roomStore.markFromBanPick(roomId);
+  if (room.isRanked) {
+    roomStore.updateSettings(roomId, { title: rankedRoomTitle(pickedGameName) });
+    broadcastRoomUpdated(io, roomId);
+  }
+
+  /*
+    밴픽이 끝나는 시점은 밴픽이 시작된 시점과 몇 분 떨어져 있다. 그 사이에
+    상대가 나가거나 몰수패로 판이 끝날 수 있고, 재대결로 한 명만 남은 방이
+    다시 밴픽을 돌 수도 있다. 그래서 밴픽 시작 때 받아 둔 players 를 그대로
+    믿지 않고, 지금 방에 실제로 있는 사람으로 다시 잡는다.
+
+    닫지 않으면 어떻게 되는지는 운영에서 봤다 — 양면포커가 뽑혔는데 사람이
+    한 명뿐이라 init 이 throw 했고, 그 throw 가 launch 를 통째로 끊어 game:state
+    가 한 번도 안 나갔다. 남은 사람은 '게임을 불러오는 중...' 에서 영영 멈췄다.
+  */
+  const livePlayers = room.players.length >= 2 ? [...room.players] : [...players];
+  if (livePlayers.length < 2) {
+    endGame(io, roomId, {
+      rankings: livePlayers.map((p) => ({
+        playerId: p.id,
+        nickname: p.nickname,
+        rank: 1,
+        score: 0,
+      })),
+      totalTurns: 0,
+    });
+    return;
+  }
 
   // 스킨 확정 (OR 규칙) — 게임 모듈 init 이전에 세팅해야 첫 game:state 에 반영됨
-  setActiveSkinForRoom(roomId, players, pickedGameId);
+  setActiveSkinForRoom(roomId, livePlayers, pickedGameId);
 
   // Initialise the real game first so game:state arrives before room:state
   const gameModule = gameModules[pickedGameId];
   if (gameModule) {
-    gameModule.init(
-      io,
-      roomId,
-      players,
-      playMode,
-      Date.now(),
-      room.timeLimitSeconds,
-      endGameCallback,
-      {},
-    );
+    /*
+      init 이 던지면 여기서 받는다. 게임 하나가 못 뜨는 것과 방이 통째로 잠기는
+      것은 다른 일이다 — 잡지 않으면 game:state 도 room:state 도 안 나가고
+      클라이언트는 불러오는 중 화면에 갇힌다.
+    */
+    try {
+      gameModule.init(
+        io,
+        roomId,
+        livePlayers,
+        playMode,
+        Date.now(),
+        room.timeLimitSeconds,
+        endGameCallback,
+        {},
+      );
+    } catch (err) {
+      console.error(`[launchPickedGame] ${pickedGameId} init 실패:`, err);
+      endGame(io, roomId, {
+        rankings: livePlayers.map((p) => ({
+          playerId: p.id,
+          nickname: p.nickname,
+          rank: 1,
+          score: 0,
+        })),
+        totalTurns: 0,
+      });
+      return;
+    }
   }
 
   emitRoomStateToRoom(io, roomId);
@@ -361,6 +435,16 @@ import {
   getDoubleSidedPokerResultData,
 } from './games/double-sided-poker/index.js';
 import {
+  initMyeongchuri,
+  handleMyeongchuriAction,
+  cleanupMyeongchuri,
+  getMyeongchuriState,
+  emitMyeongchuriStateToSocket,
+  performMyeongchuriUndo,
+  canMyeongchuriUndo,
+  getMyeongchuriResultData,
+} from './games/myeongchuri/index.js';
+import {
   initQuatro,
   handleQuatroAction,
   cleanupQuatro,
@@ -415,6 +499,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performDoubleSidedPokerUndo,
     canUndo: canDoubleSidedPokerUndo,
     getResultData: getDoubleSidedPokerResultData,
+  },
+  [GAME_IDS.MYEONGCHURI]: {
+    init: initMyeongchuri,
+    handleAction: handleMyeongchuriAction,
+    cleanup: cleanupMyeongchuri,
+    getState: getMyeongchuriState,
+    emitStateToSocket: emitMyeongchuriStateToSocket,
+    performUndo: performMyeongchuriUndo,
+    canUndo: canMyeongchuriUndo,
+    getResultData: getMyeongchuriResultData,
   },
   [GAME_IDS.KNIGHTS_TOUR]: {
     init: initKnightTour,
@@ -682,7 +776,68 @@ export const gameModules: Record<string, GameModuleHandlers> = {
       endGameCallback,
       gameOptions,
     ) => {
-      void initBanPick(
+      /*
+        두 자리가 다 차야 시작한다. 여기서 던져야 startGame 의 try/catch 가 받아
+        방을 정리한다 — initBanPick 은 async 라 그 안에서 던지면 void 로 흘려보낸
+        거절이 되어 아무도 받지 못한다.
+
+        밴픽만 한 명이어도 굴러갔던 탓에, 한 명짜리 목록이 추첨이 끝나는 몇 분
+        뒤에야 진짜 게임 모듈로 넘어가 거기서 터졌다. 운영의 양면포커 사고가 그것이다.
+      */
+      if (!players[0]?.id || !players[1]?.id) {
+        throw new Error('밴픽에는 두 명의 플레이어가 필요합니다.');
+      }
+
+      const hidden = roomStore.get(roomId)?.hiddenMatch === true;
+      if (hidden) {
+        initCounterBan(
+          io,
+          roomId,
+          players,
+          playMode,
+          (pickedGameId, pickedGameName) => {
+            launchPickedGame(
+              io,
+              roomId,
+              pickedGameId,
+              pickedGameName,
+              players,
+              playMode,
+              endGameCallback,
+            );
+          },
+          (playerId) => handleGameForfeit(io, roomId, playerId),
+          () => {
+            cleanupCounterBan(roomId);
+            endGame(io, roomId, {
+              rankings: players.map((p) => ({
+                playerId: p.id,
+                nickname: p.nickname,
+                rank: 2,
+                score: 0,
+              })),
+              totalTurns: 0,
+            });
+          },
+          (banData) => {
+            const room = roomStore.get(roomId);
+            if (!room?.isRanked || room.rankSeasonId == null) return;
+            const firstPlayer = players[0];
+            const secondPlayer = players[1];
+            saveRankBanPickLog({
+              seasonId: room.rankSeasonId,
+              firstMemberId: firstPlayer?.memberId ?? null,
+              secondMemberId: secondPlayer?.memberId ?? null,
+              pickedGameId: banData.pickedGameId,
+              bannedGames: banData.bannedGames,
+            }).catch((err) => {
+              console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
+            });
+          },
+        ).catch(disbandOnInitFailure(io, roomId, 'counter-ban'));
+        return;
+      }
+      initBanPick(
         io,
         roomId,
         players,
@@ -717,12 +872,18 @@ export const gameModules: Record<string, GameModuleHandlers> = {
             console.warn('[rankBanLog] 저장 실패:', (err as Error).message);
           });
         },
-      );
+      ).catch(disbandOnInitFailure(io, roomId, 'ban-pick'));
     },
     handleAction: () => {},
-    cleanup: cleanupBanPick,
-    getState: getBanPickState,
-    emitStateToSocket: emitBanPickStateToSocket,
+    cleanup: (roomId) => {
+      cleanupCounterBan(roomId);
+      cleanupBanPick(roomId);
+    },
+    getState: (roomId) => getCounterBanState(roomId) ?? getBanPickState(roomId),
+    emitStateToSocket: (socket, roomId) => {
+      if (roomStore.get(roomId)?.hiddenMatch) emitCounterBanStateToSocket(socket, roomId);
+      else emitBanPickStateToSocket(socket, roomId);
+    },
     performUndo: performBanPickUndo,
     canUndo: canBanPickUndo,
   },
@@ -731,16 +892,55 @@ export const gameModules: Record<string, GameModuleHandlers> = {
 const autoEndTimers = new Map<string, NodeJS.Timeout>();
 const gameStartTimes = new Map<string, number>();
 
+configureTurnExpiryRuntime({
+  pause: clearPendingUndo,
+  finish(io, roomId, loserId) {
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    const loser = room.players.find(p => p.id === loserId);
+    const winner = room.players.find(p => p.id !== loserId);
+    if (!loser || !winner) return;
+    const module = gameModules[room.gameId];
+    const state = module?.getState(roomId);
+    if (!state || state.gameOver) return;
+    const record = module.getResultData?.(roomId);
+    clearPendingUndo(roomId);
+    clearTurnExpiry(io, roomId);
+    module.cleanup(roomId);
+    endGame(io, roomId, {
+      rankings: [
+        { playerId: winner.id, nickname: winner.nickname, rank: 1, score: 1 },
+        { playerId: loser.id, nickname: loser.nickname, rank: 2, score: 0 },
+      ],
+      totalTurns: state.totalTurns,
+      endedByForfeit: true,
+      gameResultData: { ...(record && typeof record === 'object' ? record : {}), winType: 'timeout', finishReason: '착수 시간 초과', timeoutLoserId: loserId },
+    });
+  },
+  sync(io, roomId) {
+    const room = roomStore.get(roomId);
+    if (!room) return;
+    for (const sid of io.sockets.adapter.rooms.get(socketRoom(roomId)) ?? []) {
+      const socket = io.sockets.sockets.get(sid);
+      if (socket) gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
+    }
+  },
+});
+
 /** 소켓의 Player.id (= localStorage 토큰)를 반환. 토큰 없으면 socket.id를 폴백으로 사용 */
 function getPlayerId(socket: TypedSocket): string {
   return sessions.getToken(socket.id) ?? socket.id;
 }
 
 export function startGame(io: IO, roomId: string) {
+  clearTurnExpiry(io, roomId);
   const room = roomStore.get(roomId);
   if (!room) return;
 
   clearPendingUndo(roomId);
+
+  // 확정된 선후공을 방에도 반영해야 결과·기록의 first/second가 실제 게임과 일치한다.
+  const playersForGame = applyGameTurnOrder(room);
 
   const startedAt = Date.now();
   gameStartTimes.set(roomId, startedAt);
@@ -754,19 +954,15 @@ export function startGame(io: IO, roomId: string) {
   const gameModule = gameModules[room.gameId];
   if (gameModule) {
     try {
-      // random 모드이면 50% 확률로 플레이어 순서 뒤집기
-      const playersForGame =
-        room.turnOrderMode === 'random' && room.players.length === 2 && Math.random() < 0.5
-          ? [room.players[1], room.players[0]]
-          : room.players;
-
       // 랜덤 선후공: 결과를 두 플레이어 모두에게 시스템 메시지로 알림
       if (room.turnOrderMode === 'random' && playersForGame.length === 2) {
         io.to(socketRoom(roomId)).emit('chat:message', {
           id: uuid(),
           sender: 'system',
           senderNickname: '시스템',
-          message: `선후공 랜덤 결과 — ${playersForGame[0].nickname} 님이 선공, ${playersForGame[1].nickname} 님이 후공입니다.`,
+          message: room.isRanked
+            ? '선후공이 랜덤으로 정해졌습니다.'
+            : `선후공 랜덤 결과 — ${playersForGame[0].nickname} 님이 선공, ${playersForGame[1].nickname} 님이 후공입니다.`,
           scope: 'game',
           isSystem: true,
           timestamp: Date.now(),
@@ -788,6 +984,9 @@ export function startGame(io: IO, roomId: string) {
       );
     } catch (err) {
       console.error('[startGame] 게임 초기화 예외', { roomId, gameId: room.gameId }, err);
+      for (const sid of io.sockets.adapter.rooms.get(socketRoom(roomId)) ?? []) {
+        sessions.clearRoom(sid);
+      }
       io.to(socketRoom(roomId)).emit('room:disbanded', {
         reason: '게임을 시작하는 중 오류가 발생했습니다.',
       });
@@ -816,6 +1015,7 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
 
   const isPlayer = room.players.some((p: Player) => p.id === playerId);
   if (!isPlayer) return;
+  clearTurnExpiry(io, roomId);
 
   const gameModule = gameModules[room.gameId];
   if (!gameModule) return;
@@ -875,9 +1075,16 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
 /** session:restore 시 index.ts에서 game:state를 재전송하는 데 사용 */
 export function emitGameStateToSocket(socket: TypedSocket, roomId: string, gameId: string) {
   gameModules[gameId]?.emitStateToSocket(socket, roomId);
+  emitTurnExpiry(socket, roomId);
 }
 
 export function registerGameHandlers(io: IO, socket: TypedSocket) {
+  socket.on('game:time-expiry:respond', (data) => {
+    if (!data || typeof data.requestId !== 'string' || typeof data.decision !== 'string') return;
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    respondTurnExpiry(io, roomId, getPlayerId(socket), data.requestId, data.decision);
+  });
   socket.on('game:sync', () => {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
@@ -891,7 +1098,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     // 시스템 룸의 game:state는 event:join 시점에 eventRoomHandlers 가 전송한다.
     if (roomStore.isSystemRoom(roomId)) return;
 
-    gameModules[room.gameId]?.emitStateToSocket(socket, roomId);
+    emitGameStateToSocket(socket, roomId, room.gameId);
   });
 
   socket.on('game:action', (data) => {
@@ -901,6 +1108,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room || room.status !== 'playing') return;
     // 시스템 룸은 eventRoomHandlers 의 'game:action' 핸들러가 처리
     if (roomStore.isSystemRoom(roomId)) return;
+    if (isTurnExpiryBlocked(roomId)) return;
 
     // 게임 모듈은 대부분 data 를 자기 액션 타입으로 캐스팅한 뒤 곧바로 .type 을
     // 읽는다. 클라이언트가 null 이나 문자열을 보내면 거기서 TypeError 가 나고,
@@ -923,6 +1131,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room) return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 무르기 미지원
+    if (isTurnExpiryBlocked(roomId)) return;
 
     const myId = getPlayerId(socket);
 
@@ -961,13 +1170,15 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
       });
       // opponent.id = token → 실제 소켓으로 라우팅
       const opponentSocketId = sessions.getSocketByToken(opponent.id) ?? opponent.id;
-      const isRequesterAnon = isTokenAnonymized(roomId, myId);
       io.to(opponentSocketId).emit('game:undo:proposal', {
         requestId,
         requesterId: myId,
-        requesterNickname: isRequesterAnon
-          ? ANONYMOUS_NICKNAME
-          : (sessions.getNickname(socket.id) ?? '플레이어'),
+        requesterNickname: nicknameForViewer(
+          roomId,
+          myId,
+          sessions.getNickname(socket.id) ?? '플레이어',
+          opponent.id,
+        ),
       });
       return;
     }
@@ -976,8 +1187,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (ok && isSpecialPostGame) {
       clearAutoEnd(roomId);
       roomStore.setStatus(roomId, 'playing');
-      const clientRoom = roomStore.getClientRoom(roomId);
-      if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+      emitRoomStateToRoom(io, roomId);
     }
     if (!ok) {
       socket.emit('error', { message: '지금은 무를 수 있는 수가 없습니다.' });
@@ -991,6 +1201,16 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!room || room.status !== 'playing') return;
     if (roomStore.isSystemRoom(roomId)) return;
     handleBanPickBan(io, socket, roomId, data.gameId);
+  });
+
+  socket.on('counterban:ban', (data) => {
+    const roomId = sessions.getRoom(socket.id);
+    if (!roomId) return;
+    const room = roomStore.get(roomId);
+    if (!room || room.status !== 'playing') return;
+    if (roomStore.isSystemRoom(roomId)) return;
+    if (typeof data?.gameId !== 'string') return;
+    handleCounterBan(io, socket, roomId, data.gameId);
   });
 
   socket.on('banpick:noban', () => {
@@ -1036,6 +1256,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (isTurnExpiryBlocked(roomId)) return;
     handleFourGravityToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
@@ -1044,6 +1265,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     if (!roomId) return;
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
+    if (isTurnExpiryBlocked(roomId)) return;
     handleDoubleSidedChessToggleAI(io, socket, roomId, data as Record<string, unknown>);
   });
 
@@ -1055,6 +1277,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
     if (roomStore.isSystemRoom(roomId)) return;
+    if (isTurnExpiryBlocked(roomId)) return;
 
     const myId = getPlayerId(socket);
     const pending = peekPendingUndo(roomId);
@@ -1106,6 +1329,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const myId = getPlayerId(socket);
     if (!room || room.hostId !== myId) return;
     if (roomStore.isSystemRoom(roomId)) return; // 이벤트 룸: 종료 미지원
+    if (isTurnExpiryBlocked(roomId)) return;
 
     clearPendingUndo(roomId);
     gameModules[room.gameId]?.cleanup(roomId);
@@ -1142,8 +1366,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
 
     if (room.playMode === 'multi') {
       roomStore.resetForRematch(roomId);
-      const clientRoom = roomStore.getClientRoom(roomId);
-      if (clientRoom) io.to(socketRoom(roomId)).emit('room:state', clientRoom);
+      emitRoomStateToRoom(io, roomId);
       broadcastRoomUpdated(io, roomId);
     } else {
       startGame(io, roomId);
@@ -1163,6 +1386,8 @@ export function endGame(
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
+
+  clearTurnExpiry(io, roomId);
 
   clearAutoEnd(roomId);
 

@@ -11,6 +11,7 @@ import { filterUnreleased } from '@/lib/unreleasedGames';
 import { useRouter } from 'next/navigation';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
@@ -27,15 +28,32 @@ import {
   SettingField,
   EmptyDetailNotice,
   OptionButton,
+  SwitchRow,
   GameListPicker,
   type PickerMode,
 } from '@/components/room-modal/RoomModalKit';
+import { formatTimeLimitShort } from '@/lib/utils';
+import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
+import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
+import {
+  MYEONGCHURI_DEFAULT_PICK_SECONDS,
+  MYEONGCHURI_DEFAULT_THINK_SECONDS,
+} from '@/shared/types/myeongchuri';
 
-const MODES: PickerMode[] = [
+const COUNTER_MATCH_MODE_ID = 'counter-match';
+
+const BASE_MODES: PickerMode[] = [
   { id: GAME_IDS.RANDOM, label: '랜덤', desc: '무작위 배정', art: '/games/random.webp' },
   { id: GAME_IDS.BAN_PICK, label: '밴픽', desc: '게임 선택 전 밴', art: '/games/ban-pick.webp' },
 ];
+
+const COUNTER_MATCH_MODE: PickerMode = {
+  id: COUNTER_MATCH_MODE_ID,
+  label: '카운터 매치',
+  desc: '동시 비공개 1밴',
+  art: '/games/ban-pick.webp',
+};
 
 const RANDOM_GAME: Game = {
   id: GAME_IDS.RANDOM,
@@ -86,10 +104,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
+    DEFAULT_ABSTRACT_AI_THINK_SECONDS,
+  );
   const [abstractAiDifficulty, setAbstractAiDifficulty] = useState<AbstractAiDifficulty>(
     DEFAULT_ABSTRACT_AI_DIFFICULTY,
   );
   const [banCount, setBanCount] = useState(3);
+  const [thinkEnabled, setThinkEnabled] = useState(true);
+  const [thinkSeconds, setThinkSeconds] = useState(MYEONGCHURI_DEFAULT_THINK_SECONDS);
+  const [hiddenMatch, setHiddenMatch] = useState(false);
   const [gameSearch, setGameSearch] = useState('');
   const [catFilter, setCatFilter] = useState<GameCategory | null>(null);
   /** 상세 설정도 게임 목록처럼 그 자리에서 접었다 편다 */
@@ -122,14 +146,21 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setTimeLimitSec(0);
     setInitialChips(25);
     setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
+    setAbstractAiThinkSeconds(DEFAULT_ABSTRACT_AI_THINK_SECONDS);
     setAbstractAiDifficulty(DEFAULT_ABSTRACT_AI_DIFFICULTY);
     setBanCount(3);
+    setThinkEnabled(true);
+    setThinkSeconds(MYEONGCHURI_DEFAULT_THINK_SECONDS);
+    setHiddenMatch(false);
     fetchGames()
       .then((all) =>
         setGames(
           filterUnreleased(
             all.filter(
-              (g) => g.id !== GAME_IDS.INDIAN_POKER_EVENT && g.id !== GAME_IDS.SUN_MOON_STAR_EVENT,
+              (g) =>
+                g.id !== GAME_IDS.INDIAN_POKER_EVENT &&
+                g.id !== GAME_IDS.SUN_MOON_STAR_EVENT &&
+                g.id !== GAME_IDS.RING_THE_BELL,
             ),
             isAdmin,
           ),
@@ -154,28 +185,53 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
   const isRandom = selectedGame?.id === GAME_IDS.RANDOM;
   const isBanPick = selectedGame?.id === GAME_IDS.BAN_PICK;
+  const modes = isAdmin ? [...BASE_MODES, COUNTER_MATCH_MODE] : BASE_MODES;
+  const activeModeId = isRandom
+    ? GAME_IDS.RANDOM
+    : isBanPick
+      ? hiddenMatch
+        ? COUNTER_MATCH_MODE_ID
+        : GAME_IDS.BAN_PICK
+      : null;
   const canConfigureTimeLimit =
     playMode === 'multi' && !isRandom && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
-  const showsAbstractAiDifficulty =
+  const showsAbstractAiThinkTime =
     playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiDifficulty = showsAbstractAiThinkTime;
   const computedTimeLimit =
     timeLimitEnabled && canConfigureTimeLimit ? timeLimitMin * 60 + timeLimitSec : null;
 
-  // 상세 설정에 표시할 항목이 하나라도 있는지 — 플레이 모드는 게임을 고르면 항상 뜬다
+  /*
+    상세 설정에는 게임별 추가 항목만 남는다. 플레이 모드·비밀방·시간 제한은 방의
+    성격을 정하는 선택이라 본문으로 올렸다(앱 재설계안 1b 방 만들기 시트).
+  */
   const hasDetailOptions =
-    (Boolean(selectedGame) && !isRandom) ||
-    playMode === 'multi' ||
+    (playMode === 'multi' &&
+      Boolean(selectedGame) &&
+      !isRandom &&
+      selectedGame!.maxPlayers > selectedGame!.minPlayers) ||
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
-    isBanPick;
+    selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
+    (isBanPick && !hiddenMatch) ||
+    showsAbstractAiThinkTime ||
+    // 솔로 명추리는 혼자 두므로 생각 시간 항목이 없다
+    (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
 
   const selectGame = (g: Game) => {
     setListOpen(false);
     setSelectedGame(g);
+    setHiddenMatch(false);
     if (g.supportsMulti) setPlayMode('multi');
     else if (g.supportsCom) setPlayMode('com');
     else if (g.supportsSolo) setPlayMode('solo');
     else if (g.supportsTutorial) setPlayMode('tutorial');
     setMaxPlayers(g.maxPlayers);
+    // 명추리는 알파벳 고르기 시간이 기본 3분이다(넘기면 남은 알파벳에서 무작위로 놓는다)
+    if (g.id === GAME_IDS.MYEONGCHURI) {
+      setTimeLimitEnabled(true);
+      setTimeLimitMin(Math.floor(MYEONGCHURI_DEFAULT_PICK_SECONDS / 60));
+      setTimeLimitSec(MYEONGCHURI_DEFAULT_PICK_SECONDS % 60);
+    }
     setError('');
   };
 
@@ -183,14 +239,16 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setListOpen(false);
     setError('');
     if (modeId === GAME_IDS.RANDOM) {
+      setHiddenMatch(false);
       setSelectedGame(RANDOM_GAME);
       setPlayMode('multi');
       setTimeLimitEnabled(false);
-    } else {
-      setSelectedGame(BAN_PICK_GAME);
-      setPlayMode('multi');
-      setMaxPlayers(2);
+      return;
     }
+    setSelectedGame(BAN_PICK_GAME);
+    setPlayMode('multi');
+    setMaxPlayers(2);
+    setHiddenMatch(modeId === COUNTER_MATCH_MODE_ID);
   };
 
   const handleCreate = () => {
@@ -227,27 +285,36 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       if (selectedGame.id === GAME_IDS.INDIAN_POKER) {
         gameOptions.initialChips = initialChips;
       }
-      if (selectedGame.id === GAME_IDS.BAN_PICK) {
+      if (selectedGame.id === GAME_IDS.BAN_PICK && !(isAdmin && hiddenMatch)) {
         gameOptions.banCount = banCount;
       }
       if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
         gameOptions.numberCount = formulaNumberCount;
       }
+      if (showsAbstractAiThinkTime) {
+        gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
+      }
       if (showsAbstractAiDifficulty) {
         gameOptions.aiDifficulty = abstractAiDifficulty;
       }
+      if (selectedGame.id === GAME_IDS.MYEONGCHURI) {
+        gameOptions.thinkEnabled = thinkEnabled;
+        gameOptions.thinkSeconds = thinkSeconds;
+      }
+      const useHidden = isAdmin && hiddenMatch && playMode === 'multi';
       socket.emit(
         'room:create',
         {
-          gameId: selectedGame.id,
+          gameId: useHidden ? GAME_IDS.BAN_PICK : selectedGame.id,
           title: title.trim(),
           playMode,
           roomType: isSoloLikePlayMode(playMode) ? 'public' : roomType,
           password:
             !isSoloLikePlayMode(playMode) && roomType === 'private' ? password : undefined,
-          maxPlayers,
+          maxPlayers: useHidden ? 2 : maxPlayers,
           timeLimitSeconds: computedTimeLimit,
           gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
+          ...(useHidden ? { hiddenMatch: true } : {}),
         },
         (res) => {
           setLoading(false);
@@ -294,9 +361,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     >
       <GameListPicker
         games={games}
-        modes={MODES}
+        modes={modes}
         activeGameId={!isRandom && !isBanPick ? (selectedGame?.id ?? null) : null}
-        activeModeId={isRandom ? GAME_IDS.RANDOM : isBanPick ? GAME_IDS.BAN_PICK : null}
+        activeModeId={activeModeId}
         onSelectGame={selectGame}
         onSelectMode={selectMode}
         listOpen={listOpen}
@@ -316,6 +383,115 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         maxLength={30}
       />
 
+      {/* 모드 — 게임이 지원하는 것만 */}
+      {selectedGame && !isRandom && (
+        <SettingField label="플레이 모드">
+          <div className="flex gap-2">
+            {PLAY_MODES.filter(
+              (key) => gameSupportsPlayMode(selectedGame, key) && (!hiddenMatch || key === 'multi'),
+            ).map((key) => (
+              <OptionButton
+                key={key}
+                active={playMode === key}
+                className="flex-1"
+                onClick={() => {
+                  setPlayMode(key);
+                  if (key !== 'multi') setHiddenMatch(false);
+                }}
+              >
+                {PLAY_MODE_LABEL[key]}
+              </OptionButton>
+            ))}
+          </div>
+        </SettingField>
+      )}
+
+      {/* 켜고 끄는 항목 — 켜면 그 줄 아래에 세부 입력이 열린다 */}
+      {(!isSoloLikePlayMode(playMode) || canConfigureTimeLimit) && (
+        <div className="divide-y divide-cdm-border rounded-lg border border-cdm-border px-4">
+          {!isSoloLikePlayMode(playMode) && (
+            <SwitchRow
+              label="비밀방"
+              hint="비밀번호를 아는 사람만 들어옵니다"
+              checked={roomType === 'private'}
+              onChange={(on) => setRoomType(on ? 'private' : 'public')}
+            >
+              <Input
+                label="비밀번호"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="4~8자리"
+                maxLength={8}
+              />
+            </SwitchRow>
+          )}
+
+          {canConfigureTimeLimit && (
+            <SwitchRow
+              label={
+                timeLimitEnabled && computedTimeLimit != null
+                  ? `시간 제한 ${formatTimeLimitShort(computedTimeLimit)}`
+                  : '시간 제한'
+              }
+              hint="한 턴마다 주어지는 시간"
+              checked={timeLimitEnabled}
+              onChange={setTimeLimitEnabled}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={timeLimitMin}
+                    onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                    className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-cdm-fg-muted text-sm">분</span>
+                  <select
+                    value={timeLimitSec}
+                    onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                    className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                  >
+                    {[0, 10, 15, 20, 30, 45].map((s) => (
+                      <option key={s} value={s}>
+                        {String(s).padStart(2, '0')}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-cdm-fg-muted text-sm">초</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '30초', min: 0, sec: 30 },
+                    { label: '1분', min: 1, sec: 0 },
+                    { label: '2분', min: 2, sec: 0 },
+                    { label: '3분', min: 3, sec: 0 },
+                    { label: '5분', min: 5, sec: 0 },
+                  ].map((p) => (
+                    <OptionButton
+                      key={p.label}
+                      size="sm"
+                      active={timeLimitMin === p.min && timeLimitSec === p.sec}
+                      onClick={() => {
+                        setTimeLimitMin(p.min);
+                        setTimeLimitSec(p.sec);
+                      }}
+                    >
+                      {p.label}
+                    </OptionButton>
+                  ))}
+                </div>
+              </div>
+            </SwitchRow>
+          )}
+        </div>
+      )}
+
       {/* 상세 설정 — 게임을 골라야 열린다. 아직이면 접은 채로 안내만 띄운다 */}
       <SettingsAccordion
         open={detailOpen}
@@ -327,55 +503,6 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           <EmptyDetailNotice />
         ) : (
           <>
-            {/* 플레이 모드 */}
-            {selectedGame && !isRandom && (
-              <SettingField label="플레이 모드">
-                <div className="flex flex-wrap gap-2">
-                  {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
-                    <OptionButton
-                      key={key}
-                      active={playMode === key}
-                      onClick={() => setPlayMode(key)}
-                    >
-                      {PLAY_MODE_LABEL[key]}
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 방 유형 */}
-            {!isSoloLikePlayMode(playMode) && (
-              <SettingField label="방 유형">
-                <div className="flex gap-2">
-                  {[
-                    { key: 'public' as RoomType, label: '공개' },
-                    { key: 'private' as RoomType, label: '비밀' },
-                  ].map((rt) => (
-                    <OptionButton
-                      key={rt.key}
-                      active={roomType === rt.key}
-                      onClick={() => setRoomType(rt.key)}
-                    >
-                      {rt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 비밀번호 */}
-            {!isSoloLikePlayMode(playMode) && roomType === 'private' && (
-              <Input
-                label="비밀번호"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="4~8자리"
-                maxLength={8}
-              />
-            )}
-
             {/* 최대 인원 */}
             {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
               <SettingField label="최대 인원">
@@ -448,7 +575,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
             )}
 
             {/* 밴 개수 (밴픽 모드) */}
-            {isBanPick && (
+            {isBanPick && !hiddenMatch && (
               <SettingField label="밴 개수" hint="(1인당, 기본 1)">
                 <div className="flex items-center gap-3">
                   <button
@@ -472,84 +599,30 @@ export default function CreateRoomModal({ open, onClose }: Props) {
               </SettingField>
             )}
 
+            {showsAbstractAiThinkTime && (
+              <AbstractAiThinkTimeField
+                value={abstractAiThinkSeconds}
+                onChange={setAbstractAiThinkSeconds}
+              />
+            )}
+
             {showsAbstractAiDifficulty && (
               <AbstractAiDifficultyField
+                gameId={selectedGame?.id ?? ''}
                 value={abstractAiDifficulty}
                 onChange={setAbstractAiDifficulty}
               />
             )}
 
-            {/* 시간제한 */}
-            {canConfigureTimeLimit && (
-              <SettingField label="시간제한">
-                <div className="flex gap-2">
-                  {[
-                    { enabled: false, label: '∞ 무제한' },
-                    { enabled: true, label: '시간제한' },
-                  ].map((opt) => (
-                    <OptionButton
-                      key={String(opt.enabled)}
-                      active={timeLimitEnabled === opt.enabled}
-                      onClick={() => setTimeLimitEnabled(opt.enabled)}
-                    >
-                      {opt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-
-                {timeLimitEnabled && (
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={timeLimitMin}
-                        onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {Array.from({ length: 11 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {i}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">분</span>
-                      <select
-                        value={timeLimitSec}
-                        onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {[0, 10, 15, 20, 30, 45].map((s) => (
-                          <option key={s} value={s}>
-                            {String(s).padStart(2, '0')}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">초</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: '30초', min: 0, sec: 30 },
-                        { label: '1분', min: 1, sec: 0 },
-                        { label: '2분', min: 2, sec: 0 },
-                        { label: '3분', min: 3, sec: 0 },
-                        { label: '5분', min: 5, sec: 0 },
-                      ].map((p) => (
-                        <OptionButton
-                          key={p.label}
-                          size="sm"
-                          active={timeLimitMin === p.min && timeLimitSec === p.sec}
-                          onClick={() => {
-                            setTimeLimitMin(p.min);
-                            setTimeLimitSec(p.sec);
-                          }}
-                        >
-                          {p.label}
-                        </OptionButton>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </SettingField>
+            {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
+              <MyeongchuriThinkTimeField
+                enabled={thinkEnabled}
+                seconds={thinkSeconds}
+                onEnabledChange={setThinkEnabled}
+                onSecondsChange={setThinkSeconds}
+              />
             )}
+
           </>
         )}
       </SettingsAccordion>

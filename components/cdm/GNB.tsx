@@ -12,6 +12,7 @@ import { MailboxModalButton } from '@/components/lobby/MailboxDialog';
 import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { DevSwitchModal } from '@/components/cdm/DevSwitchModal';
 import { UnreadBadge } from '@/components/cdm/UnreadBadge';
+import { useGuildChatUnread } from '@/components/guild-v4/GuildChatLive';
 import { RankQueueDesktopChip } from '@/components/rank/RankQueueFloatingIndicator';
 import InventoryInit from '@/components/providers/InventoryInit';
 import MailboxInit from '@/components/providers/MailboxInit';
@@ -36,8 +37,8 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/rules', label: '게임 룰' },
   { href: '/titles', label: '칭호' },
   { href: '/notice', label: '공지사항' },
-  // '소개'(/about)는 여기 두지 않는다 — 로비 대문 캐러셀 2번째 슬라이드와
-  // 푸터에서 들어간다. 상단 바는 매일 쓰는 메뉴만 남긴다.
+  // '소개'(/about)는 여기 두지 않는다 — 푸터에서 들어간다.
+  // 상단 바는 매일 쓰는 메뉴만 남긴다.
 ];
 
 /** 로그인한 사용자에게만 노출되는 메뉴 (비로그인은 미들웨어로 차단) */
@@ -53,6 +54,7 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
   const [devSwitchOpen, setDevSwitchOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const guildUnread = useGuildChatUnread();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -104,13 +106,14 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
                 href={it.href}
                 prefetch={pathname?.startsWith(it.href) ? false : undefined}
                 className={cn(
-                  'rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
+                  'inline-flex items-center gap-1 rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
                   pathname === it.href || pathname?.startsWith(it.href)
                     ? 'text-white bg-white/10'
                     : 'text-cdm-ink-fg-muted hover:text-white hover:bg-white/10',
                 )}
               >
                 {it.label}
+                {it.href === '/guild' ? <UnreadBadge count={guildUnread} /> : null}
               </Link>
             ))}
         </nav>

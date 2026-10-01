@@ -2,17 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { BankContextValue } from './hooks/useBankContext';
-import MobileHeader from './MobileHeader';
 import PhaseStepperMobile from './PhaseStepperMobile';
-import ScoreBar from './ScoreBar';
 import InventoryRow from './InventoryRow';
 import FirstCountRevealBanner from './FirstCountRevealBanner';
-import OpponentInventoryTracker from './OpponentInventoryTracker';
-import RoundHistoryTable from './RoundHistoryTable';
 import PhaseArea from './PhaseArea';
 import BetInput from './BetInput';
 import { GameFrame } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
+import { GameScoreLine } from '@/components/game/GameScoreLine';
 
 /* ════════════════════════════════════════════════════════════
  * MobileLayout — 모바일 1컬럼 입력 우선 레이아웃 (≤ 1023px)
@@ -29,9 +25,7 @@ export default function MobileLayout({ ctx }: Props) {
   const {
     gameData,
     isSpectator,
-    myId,
     myPlayer,
-    opponent,
     mySide,
     firstSide,
     firstPlayer,
@@ -40,7 +34,6 @@ export default function MobileLayout({ ctx }: Props) {
     isFirstReveal,
     isFirstSubmit,
     isSecondSubmit,
-    isFinished,
     myTurnInput,
     isMyInputTurn,
     stepperActiveTurn,
@@ -52,7 +45,6 @@ export default function MobileLayout({ ctx }: Props) {
     handleSubmitBet,
     handleResetBet,
     isReveal,
-    showOpponentTracker,
   } = ctx;
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -107,22 +99,22 @@ export default function MobileLayout({ ctx }: Props) {
     <>
       <GameFrame
         className="bank-layout bank-layout-mobile"
+        /*
+          승점은 늘 보이게 둔다 — 9라운드 승점제라 몇 대 몇인지가 이번 라운드에
+          얼마를 걸지를 정한다. 잔여 장수는 내 것만 공개라 함께 적는다.
+          (components/game/GameScoreLine.tsx)
+        */
         info={
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <MobileHeader
-              round={gameData.round}
-              maxRound={gameData.maxRound}
-              phase={phase ?? 'firstSubmit'}
-              firstNick={firstPlayer.nickname}
-              loserAmountTotal={gameData.loserAmountTotal}
-            />
-            <ScoreBar
-              p1={gameData.players.p1}
-              p2={gameData.players.p2}
-              firstSide={firstSide}
-              myId={myId}
-            />
-          </div>
+          <GameScoreLine
+            unit="점"
+            entries={[firstPlayer, secondPlayer].map((p) => ({
+              label: p.id === myPlayer?.id ? '나' : p.nickname,
+              isMe: p.id === myPlayer?.id,
+              tag: p.side === firstSide ? '선' : '후',
+              value: p.score,
+              hint: `${p.inventoryCount}장`,
+            }))}
+          />
         }
         controls={
           <div className="flex w-full min-w-0 flex-col gap-1.5">
@@ -213,7 +205,7 @@ export default function MobileLayout({ ctx }: Props) {
             {myPlayer?.inventory && myPlayer.inventoryAmount != null && (
               <div
                 className="overflow-y-auto px-4 py-2"
-                style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+                style={{ paddingBottom: 'max(16px, var(--cdm-safe-bottom, 0px))' }}
               >
                 <BetInput
                   turn={isFirstSubmit ? 'first' : 'second'}

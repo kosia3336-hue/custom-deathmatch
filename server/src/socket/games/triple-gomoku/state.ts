@@ -6,8 +6,7 @@ import type {
   TripleGomokuGameData,
   TripleGomokuLastAction,
 } from '@shared/types/triple-gomoku.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
 import type { IO, TypedSocket } from '../../types.js';
@@ -36,9 +35,7 @@ function nicknameFor(
   playerId: string,
   nickname: string,
 ) {
-  return isTokenAnonymized(state.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(state.roomId, playerId, nickname, viewerId);
 }
 
 export function toTripleGomokuGameData(
@@ -90,6 +87,7 @@ function toGameState(state: TripleGomokuState, data: TripleGomokuGameData): Game
 }
 
 export async function broadcastTripleGomokuState(io: IO, state: TripleGomokuState) {
+  if (state.reviewing) return;
   const sockets = await io.in(socketRoom(state.roomId)).fetchSockets();
   for (const socket of sockets) {
     const viewerId = sessions.getToken(socket.id) ?? socket.id;

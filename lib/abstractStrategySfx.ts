@@ -1,4 +1,4 @@
-import { isSfxMuted } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxVolume } from '@/lib/sfxSettings';
 
 const MOVE_SOUND_PATH = '/audio/sfx/abstract-strategy-move.mp3';
 const MOVE_SOUND_VOLUME = 0.55;
@@ -16,6 +16,7 @@ export function playAbstractStrategyMoveSfx(): void {
       moveSound.volume = MOVE_SOUND_VOLUME;
     }
 
+    moveSound.volume = MOVE_SOUND_VOLUME * getSfxVolume();
     moveSound.pause();
     moveSound.currentTime = 0;
     void moveSound.play().catch(() => {

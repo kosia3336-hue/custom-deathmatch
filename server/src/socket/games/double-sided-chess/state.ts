@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import type { DoubleSidedChessGameData, PieceType } from '@shared/types/double-sided-chess.js';
 import { nextIsPromoted } from '@shared/logic/double-sided-chess.js';
@@ -17,8 +18,7 @@ import { extname, dirname, join } from 'path';
 import { socketRoom } from '../../utils.js';
 import { sessions } from '../../../store/sessions.js';
 import { getActiveSkin } from '../../skins.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 
 const g = globalThis as typeof globalThis & { __dscGameStates?: Map<string, InternalState> };
 export const gameStates: Map<string, InternalState> =
@@ -28,7 +28,7 @@ export const gameStates: Map<string, InternalState> =
 
 export function toGameData(s: InternalState, viewerToken: string): DoubleSidedChessGameData {
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerToken ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerToken);
   return {
     board: s.board,
     currentPlayer: s.currentPlayer,
@@ -77,6 +77,7 @@ function buildGameState(s: InternalState, viewerToken: string): GameState {
 }
 
 export async function broadcastState(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
@@ -149,6 +150,10 @@ function resolveGame(
   s: InternalState,
   opts: { winnerOwner: Owner; winType: DSCWinType },
 ) {
+  if (s.reviewing) {
+    s.gameOver = true;
+    return;
+  }
   const loserOwner: Owner = opts.winnerOwner === 'first' ? 'second' : 'first';
   const winnerInfo = getPlayerInfo(s, opts.winnerOwner);
   const loserInfo = getPlayerInfo(s, loserOwner);
@@ -230,12 +235,13 @@ function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => {
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentPlayer, () => {
     handleTimeout(io, s);
   }, s.timeLimitSeconds * 1000);
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {
+  if (s.reviewing) return;
   pushUndoSnapshot(s);
   armTurnTimer(io, s);
 }
@@ -438,7 +444,12 @@ function runAIWithWorker(s: InternalState): Promise<AIMove> {
     prisoners: { first: [...s.prisoners.first], second: [...s.prisoners.second] },
     currentOwner: s.currentOwner,
     useSuper: s.superAi === true,
-    useStrong: s.aiDifficulty === 'hard' || s.ownerToken !== null,
+    useStrong: s.ownerToken !== null,
+    timeLimitMs: s.superAi
+      ? undefined
+      : s.ownerToken !== null
+        ? 30_000
+        : s.aiThinkSeconds * 1000,
     turnNumber: s.turnNumber,
     lastMove: last && last.type === 'move' && last.from
       ? { type: 'move', from: last.from, to: last.to }

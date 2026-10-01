@@ -170,8 +170,11 @@ export interface AIWorkerData {
   currentColor: 'black' | 'white';
   lastGravityBlack: Direction | null;
   lastGravityWhite: Direction | null;
+  /** 천하 솔로 토글만 강한 엔진을 켠다. COM은 항상 false. */
   useStrong?: boolean;
   useSuper?: boolean;
+  /** 있으면 워커 기본 5s 대신 이 예산(ms)을 쓴다. 슈퍼 AI는 넘기지 않는다. */
+  timeLimitMs?: number;
 }
 
 // 모듈 레벨 타임아웃 플래그 (워커 인스턴스당 하나이므로 동시성 안전)
@@ -365,7 +368,7 @@ export function findBestMoveIterative(data: AIWorkerData, timeLimitMs: number): 
   let bestMove: AIMove = { place: firstCell, gravity: firstDir, neutral: null };
 
   // Iterative Deepening: depth 1부터 시간 내에 가능한 만큼 탐색
-  for (let depth = 1; depth <= 10; depth++) {
+  for (let depth = 1; depth <= 20; depth++) {
     if (Date.now() >= _deadline) break;
     _timedOut = false;
     const result = findBestMoveAtDepth(board, aiColor, lastGravityBlack, lastGravityWhite, depth);

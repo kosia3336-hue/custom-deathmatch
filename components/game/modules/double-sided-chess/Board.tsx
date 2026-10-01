@@ -16,6 +16,8 @@ interface Props {
   isMyTurn?: boolean;
   winner?: string | null;
   skin?: SkinTheme | null;
+  /** 터치 첫 탭 — 둘 자리에 반투명으로 보여 줄 말 */
+  ghost?: { row: number; col: number; piece: PieceType; owner: Owner; isPromoted?: boolean } | null;
   onCellClick?: (row: number, col: number) => void;
 }
 
@@ -36,6 +38,7 @@ export default function Board({
   isMyTurn = false,
   winner = null,
   skin,
+  ghost = null,
   onCellClick,
 }: Props) {
   const readonly = !onCellClick;
@@ -91,6 +94,7 @@ export default function Board({
               isDimmed={!readonly && !!winner}
               isTerritory={territory}
               skin={skin}
+              ghost={ghost && ghost.row === r && ghost.col === c ? ghost : null}
               onClick={() => onCellClick?.(r, c)}
             />
           );

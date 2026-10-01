@@ -1,3 +1,4 @@
+import { getSfxOutput, getSfxVolume, isSfxMuted } from '@/lib/sfxSettings';
 let ctx: AudioContext | null = null;
 const MASTER = 2.4;
 
@@ -29,7 +30,7 @@ export function playShowdownReelTick(stepIndex: number, totalSteps: number) {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
     osc.connect(gain);
-    gain.connect(c.destination);
+    gain.connect(getSfxOutput(c));
     osc.start(now);
     osc.stop(now + 0.055);
 
@@ -48,7 +49,7 @@ export function playShowdownReelTick(stepIndex: number, totalSteps: number) {
     nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
     src.connect(bp);
     bp.connect(nGain);
-    nGain.connect(c.destination);
+    nGain.connect(getSfxOutput(c));
     src.start(now);
     src.stop(now + 0.03);
   } catch {
@@ -85,7 +86,7 @@ export function playShowdownReelWhoosh(steps: number) {
 
     src.connect(bp);
     bp.connect(g);
-    g.connect(c.destination);
+    g.connect(getSfxOutput(c));
     src.start(now);
     src.stop(now + dur);
   } catch {
@@ -119,6 +120,8 @@ export function playShowdownSubmitSfx() {
     if (pool.length === 0) return;
     const el = pool[gunshotPoolIdx];
     gunshotPoolIdx = (gunshotPoolIdx + 1) % pool.length;
+    if (isSfxMuted()) return;
+    el.volume = getSfxVolume();
     el.currentTime = 0;
     void el.play().catch(() => {
       /* 브라우저 자동재생 정책으로 막힌 경우 무시 */

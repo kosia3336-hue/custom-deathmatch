@@ -6,16 +6,9 @@ import { Modal } from '@/components/cdm/Modal';
 import { Button } from '@/components/cdm/Button';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
-import type { InquiryCategory } from '@/lib/supabase/database.types';
 import { AttachmentPicker, linkAttachments, type AttachedFile } from '@/components/support/AttachmentPicker';
-
-const CATEGORIES: { id: InquiryCategory; label: string }[] = [
-  { id: 'bug', label: '버그/오류' },
-  { id: 'account', label: '계정/정지' },
-  { id: 'rules', label: '규칙/정책' },
-  { id: 'report_followup', label: '신고 처리 문의' },
-  { id: 'etc', label: '기타' },
-];
+import { mapInquiryError, pickSubmitCategory } from '@/lib/inquiry/categories';
+import { useInquiryCategories } from '@/hooks/useInquiryCategories';
 
 interface Props {
   open: boolean;
@@ -25,9 +18,8 @@ interface Props {
 }
 
 export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag }: Props) {
-  const [category, setCategory] = useState<InquiryCategory>(
-    reasonTag === 'suspension' || reasonTag === 'ban' ? 'account' : 'etc',
-  );
+  const { cats, loading } = useInquiryCategories({ activeOnly: true, enabled: open });
+  const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<AttachedFile[]>([]);
@@ -35,16 +27,26 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
 
   useEffect(() => {
     if (open) {
-      setCategory(reasonTag === 'suspension' || reasonTag === 'ban' ? 'account' : 'etc');
       setTitle('');
       setBody('');
       setFiles([]);
     }
   }, [open, reasonTag]);
 
+  useEffect(() => {
+    if (!open || cats.length === 0) return;
+    setCategory((prev) =>
+      cats.some((c) => c.slug === prev) ? prev : pickSubmitCategory(reasonTag ?? null, cats),
+    );
+  }, [open, cats, reasonTag]);
+
   function submit() {
     const t = title.trim();
     const b = body.trim();
+    if (!category) {
+      toast.error('분류를 골라 주세요.');
+      return;
+    }
     if (t.length < 5) {
       toast.error('제목은 5자 이상 입력해 주세요');
       return;
@@ -71,7 +73,7 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
         onClose();
         onSuccess();
       } catch (e) {
-        toast.error(`접수 실패: ${(e as Error).message}`);
+        toast.error(mapInquiryError(e));
       }
     });
   }
@@ -87,7 +89,7 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             취소
           </Button>
-          <Button onClick={submit} loading={busy}>
+          <Button onClick={submit} loading={busy} disabled={!category}>
             접수하기
           </Button>
         </>
@@ -98,11 +100,13 @@ export default function InquirySubmitModal({ open, onClose, onSuccess, reasonTag
           <label className="text-sm font-medium text-cdm-fg">분류</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as InquiryCategory)}
+            onChange={(e) => setCategory(e.target.value)}
+            disabled={loading || cats.length === 0}
             className="h-10 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm text-cdm-fg outline-none focus:border-cdm-primary"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
+            {cats.length === 0 && <option value="">{loading ? '불러오는 중…' : '분류 없음'}</option>}
+            {cats.map((c) => (
+              <option key={c.slug} value={c.slug}>
                 {c.label}
               </option>
             ))}

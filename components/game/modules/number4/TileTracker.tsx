@@ -30,7 +30,7 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
             ? <DualityTile type="frost" size="xs" />
             : <div className="h-5 w-5 shrink-0 rounded border border-gray-300 bg-white" />
           }
-          <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}>백색</span>
+          <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-cdm-ink-fg-muted'}`}>백색</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -40,12 +40,12 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
             className={`flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold transition-colors ${
               isDuality
                 ? 'skin-duality-tracker-btn'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
+                : 'border border-cdm-ink-border bg-white/5 text-cdm-ink-fg hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30'
             }`}
           >
             −
           </button>
-          <span className={`w-8 text-center text-sm font-semibold tabular-nums ${isDuality ? 'skin-duality-tracker-count' : 'text-gray-700'}`}>
+          <span className={`w-8 text-center text-sm font-semibold tabular-nums ${isDuality ? 'skin-duality-tracker-count' : 'text-cdm-ink-fg'}`}>
             {white}
           </span>
           <button
@@ -55,7 +55,7 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
             className={`flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold transition-colors ${
               isDuality
                 ? 'skin-duality-tracker-btn'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
+                : 'border border-cdm-ink-border bg-white/5 text-cdm-ink-fg hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30'
             }`}
           >
             +
@@ -68,9 +68,9 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
         <div className="flex items-center gap-1.5 min-w-0">
           {isDuality
             ? <DualityTile type="obsidian" size="xs" />
-            : <div className="h-5 w-5 shrink-0 rounded border border-gray-600 bg-gray-800" />
+            : <div className="h-5 w-5 shrink-0 rounded border border-white/40 bg-black" />
           }
-          <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}>흑색</span>
+          <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-cdm-ink-fg-muted'}`}>흑색</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -80,12 +80,12 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
             className={`flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold transition-colors ${
               isDuality
                 ? 'skin-duality-tracker-btn'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
+                : 'border border-cdm-ink-border bg-white/5 text-cdm-ink-fg hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30'
             }`}
           >
             −
           </button>
-          <span className={`w-8 text-center text-sm font-semibold tabular-nums ${isDuality ? 'skin-duality-tracker-count' : 'text-gray-700'}`}>
+          <span className={`w-8 text-center text-sm font-semibold tabular-nums ${isDuality ? 'skin-duality-tracker-count' : 'text-cdm-ink-fg'}`}>
             {black}
           </span>
           <button
@@ -95,7 +95,7 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
             className={`flex h-7 w-7 items-center justify-center rounded-md text-sm font-bold transition-colors ${
               isDuality
                 ? 'skin-duality-tracker-btn'
-                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
+                : 'border border-cdm-ink-border bg-white/5 text-cdm-ink-fg hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30'
             }`}
           >
             +
@@ -117,8 +117,9 @@ export default function TileTracker({ playerNickname, white, black, onAdjust, sk
   }
 
   return (
-    <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3">
-      <div className="mb-2 text-xs font-semibold text-gray-400 tracking-wide">
+    // 판 정보 칸(GameInfoPart, 짙은 배경) 안에서만 쓰인다 — 글자·테두리는 ink 토큰
+    <div className="w-full rounded-xl border border-cdm-ink-border bg-white/5 p-3">
+      <div className="mb-2 text-xs font-semibold tracking-wide text-cdm-ink-fg-muted">
         {playerNickname ? `${playerNickname} 타일 추리` : '상대 타일 추리'}
       </div>
       {rows}

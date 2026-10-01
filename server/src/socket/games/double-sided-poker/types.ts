@@ -43,6 +43,8 @@ export interface DoubleSidedPokerState {
   firstPlayerId: string;
   currentTurnId: string | null;
   bettingOpened: boolean;
+  /** 걸 칩이 없어 면만 고르는 이월 라운드 */
+  selectOnly: boolean;
   doubleBettorId: string | null;
   roundActions: DoubleSidedPokerBettingAction[];
   roundResults: DoubleSidedPokerRoundResult[];

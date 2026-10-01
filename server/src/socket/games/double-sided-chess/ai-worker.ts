@@ -13,7 +13,8 @@ import { probeEndgameTable } from './endgame.js';
 
 /**
  * 사고 시간 예산 (반복심화 탐색의 상한).
- * 보통 5초, COM 어려움·천하 솔로 토글 90초, `/super-ai` 슈퍼 90초.
+ * COM은 ai.ts 기본 엔진 + 방 설정의 고민 시간(기본 5초, 최대 3분).
+ * 천하 솔로 토글만 강한 엔진. 슈퍼 AI는 90초, 방 고민 시간은 넘기지 않는다.
  * 더미는 `timeLimitMs`로 덮어쓴다.
  * 슈퍼 Lazy SMP는 메인+헬퍼 워커 2. 헬퍼는 smpHelper 로 재귀 spawn 안 함.
  */

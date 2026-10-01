@@ -29,6 +29,7 @@ interface Props {
     shopSubTab?: string;
     shopLogsPage?: string;
     inquiryStatus?: string;
+    inquiryCategory?: string;
     guildStatus?: string;
   }>;
 }
@@ -60,7 +61,13 @@ export default async function AdminPage({ searchParams }: Props) {
           {tab === 'game-stats' && <GameStatsTab />}
           {tab === 'game-rules' && <GameRulesTab />}
           {tab === 'reports' && <ReportsTab page={sp.page} />}
-          {tab === 'inquiries' && <InquiriesTab page={sp.page} statusFilter={sp.inquiryStatus} />}
+          {tab === 'inquiries' && (
+            <InquiriesTab
+              page={sp.page}
+              statusFilter={sp.inquiryStatus}
+              categoryFilter={sp.inquiryCategory}
+            />
+          )}
           {tab === 'notices' && <NoticesTab page={sp.page} />}
           {tab === 'mailbox-gift' && <MailboxGiftTab />}
           {tab === 'audit' && (

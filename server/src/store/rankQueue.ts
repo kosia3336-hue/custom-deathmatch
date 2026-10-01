@@ -1,6 +1,9 @@
 import { matchRp, type RankTier } from '@shared/types/rank.js';
 import type { DisplayedTitle } from '@shared/types/room.js';
+import { getLiveDummyAi } from '@shared/dummy.js';
+import { isLiveDummySocketId } from '../dummy/live/roster.js';
 import { isLiveDummyMemberId } from '../dummy/live/state.js';
+import { isLiveDummyRankEnabled } from '../dummy/live/window.js';
 
 const COOLDOWN_MS = 60_000;
 /** 더미끼리 붙으려면 양쪽 모두 이번 큐에 이 시간 이상 앉아 있어야 한다. 사람↔더미는 즉시. */
@@ -70,11 +73,29 @@ function dummyVsDummyWaitOk(a: RankQueueEntry, b: RankQueueEntry, now: number): 
   return now - a.joinedAt >= DUMMY_VS_DUMMY_WAIT_MS && now - b.joinedAt >= DUMMY_VS_DUMMY_WAIT_MS;
 }
 
+/**
+ * 랭크 더미 재개 전엔 **봇 소켓**만 큐에 안 넣는다.
+ * 데브 전환으로 붙은 사람 소켓(`live-dummy:` 아님)은 회원 ID·로스터 닉이어도 통과.
+ */
+export function isBlockedFromRankQueue(
+  memberId: string,
+  nickname?: string | null,
+  socketId?: string | null,
+): boolean {
+  if (isLiveDummyRankEnabled()) return false;
+  if (socketId && !isLiveDummySocketId(socketId)) return false;
+  if (isLiveDummyMemberId(memberId)) return true;
+  if (nickname && getLiveDummyAi(nickname)) return true;
+  return false;
+}
+
 function pickOpponent(self: RankQueueEntry, now: number): RankQueueEntry | null {
   const all = [...byMemberId.values()].filter((e) => e.memberId !== self.memberId);
   const pool = all.filter((e) => {
+    if (isBlockedFromRankQueue(self.memberId, self.nickname, self.socketId)) return false;
+    if (isBlockedFromRankQueue(e.memberId, e.nickname, e.socketId)) return false;
     if (!cooldownOk(self, e, now)) return false;
-    if (isLiveDummyMemberId(self.memberId) && isLiveDummyMemberId(e.memberId)) {
+    if (isLiveDummySocketId(self.socketId) && isLiveDummySocketId(e.socketId)) {
       return dummyVsDummyWaitOk(self, e, now);
     }
     return true;
@@ -156,6 +177,9 @@ export const rankQueueStore = {
   enqueue(entry: RankQueueEntry): RankEnqueueResult {
     // 이미 매칭이 확정된 사람은 방이 만들어지는 중이다 — 큐에 다시 넣지 않는다.
     if (pendingMatch.has(entry.memberId)) return { matched: false };
+    if (isBlockedFromRankQueue(entry.memberId, entry.nickname, entry.socketId)) {
+      return { matched: false };
+    }
 
     const hydrated = applyStoredCooldown(entry);
 

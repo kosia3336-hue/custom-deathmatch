@@ -12,6 +12,10 @@ import {
   getBanPickDummyView,
 } from '../socket/games/ban-pick/index.js';
 import {
+  handleCounterBan,
+  getCounterBanDummyView,
+} from '../socket/games/counter-ban/index.js';
+import {
   handleFourGravityAction,
   getFourGravityDummyView,
 } from '../socket/games/four-gravity/index.js';
@@ -234,7 +238,11 @@ async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<type
   ctx.busy = true;
   try {
     if (room.gameId === GAME_IDS.BAN_PICK) {
-      await actBanPick(io, roomId, ctx, sock);
+      if (room.hiddenMatch) {
+        await actCounterBan(io, roomId, ctx, sock);
+      } else {
+        await actBanPick(io, roomId, ctx, sock);
+      }
       return;
     }
     if (room.gameId === GAME_IDS.FOUR_GRAVITY) {
@@ -322,6 +330,23 @@ async function tick(io: IO, roomId: string, ctx: AgentCtx, sock: ReturnType<type
   } finally {
     ctx.busy = false;
   }
+}
+
+async function actCounterBan(
+  io: IO,
+  roomId: string,
+  ctx: AgentCtx,
+  sock: ReturnType<typeof makeDummySocket>,
+): Promise<void> {
+  const view = getCounterBanDummyView(roomId, ctx.dummyId);
+  if (!view?.canPick) return;
+  await sleep(thinkDelayMs(ctx.tier, 'ban'));
+  if (!isAgentRunning(roomId, ctx.dummyId)) return;
+  const again = getCounterBanDummyView(roomId, ctx.dummyId);
+  if (!again?.canPick) return;
+  const gameId = pickBan(again.remainingIds, getDummyRecords(ctx.dummyId));
+  if (!gameId) return;
+  handleCounterBan(io, sock, roomId, gameId);
 }
 
 async function actBanPick(

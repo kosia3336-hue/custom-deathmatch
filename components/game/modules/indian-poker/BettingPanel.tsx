@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { getSocket } from '@/lib/socket';
 import type { IPBettingAction, IPPlayerInfo } from '@/shared/types/indian-poker';
 import Button from '@/components/ui/Button';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { sfxNocturneCall, sfxNocturneDie, sfxNocturneRaise } from '@/lib/indianPokerSfx';
 import {
@@ -92,7 +93,7 @@ export default function BettingPanel({
   const [raiseAmount, setRaiseAmount] = useState<number | null>(null);
   const [showRaise, setShowRaise] = useState(false);
 
-  const opponentNick = opponentId ? players[opponentId]?.nickname ?? '상대' : '상대';
+  const opponentNick = opponentDisplayName(opponentId ? players[opponentId]?.nickname : null, isSpectator);
   const lastOpponent = opponentId ? getLastActionByPlayer(currentRoundActions, opponentId) : undefined;
   const opponentLine = `${opponentNick} · ${formatBettingVerb(lastOpponent)}`;
 
@@ -153,7 +154,7 @@ export default function BettingPanel({
             <div className="space-y-0.5">
               {currentRoundActions.map((a, i) => (
                 <p key={i} className="text-xs text-gray-500">
-                  {players[a.playerId]?.nickname}: {formatBettingVerb(a)}
+                  {a.playerId === myId ? '나' : opponentDisplayName(players[a.playerId]?.nickname)}: {formatBettingVerb(a)}
                 </p>
               ))}
             </div>

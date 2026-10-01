@@ -5,9 +5,9 @@ import type {
   DoubleSidedPokerRoundResult,
 } from '@shared/types/double-sided-poker.js';
 import { sessions } from '../../../store/sessions.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
 import type { DoubleSidedPokerState } from './types.js';
@@ -24,9 +24,7 @@ function nicknameFor(
   playerId: string,
   nickname: string,
 ) {
-  return isTokenAnonymized(state.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(state.roomId, playerId, nickname, viewerId);
 }
 
 function selectionMultiplier(
@@ -131,12 +129,45 @@ export function cloneDoubleSidedPokerRoundResult(
   };
 }
 
+/**
+ * 보는 사람 기준으로 라운드 결과의 뒷면을 가린다.
+ *
+ * 게임 중에 공개되는 뒷면은 승부까지 간 라운드에서 그 면으로 겨룬 사람 것뿐이다.
+ * 다이로 끝났거나 앞면으로 겨룬 사람의 뒷면은 가린다. 본인 카드는 늘 본인에게 보인다.
+ * 기록(toDoubleSidedPokerRecord)은 이 함수를 거치지 않으므로 실제 뒷면이 남는다.
+ */
+function maskRoundResultFor(
+  result: DoubleSidedPokerRoundResult,
+  viewerId: string | null,
+): DoubleSidedPokerRoundResult {
+  const showdown = result.foldedPlayerId == null;
+  const masked = cloneDoubleSidedPokerRoundResult(result);
+  masked.cards = Object.fromEntries(
+    Object.entries(result.cards).map(([playerId, card]) => {
+      const selection = result.selections[playerId];
+      const revealed = showdown && (selection === 'back' || selection === 'both');
+      return [
+        playerId,
+        { front: card.front, back: playerId === viewerId || revealed ? card.back : null },
+      ];
+    }),
+  );
+  return masked;
+}
+
 export function toDoubleSidedPokerGameData(
   state: DoubleSidedPokerState,
   viewerId: string | null,
 ): DoubleSidedPokerGameData {
   const bounds = doubleSidedPokerBettingBounds(state);
-  const revealResult = state.phase === 'betting' ? null : state.lastRoundResult;
+  /*
+    라운드 결과는 저장된 그대로 내보내면 안 된다 — 기록에는 실제 뒷면이 들어 있어
+    다이로 끝난 라운드의 상대 뒷면까지 게임 중에 새어 나간다. 보는 사람 기준으로 가린다.
+  */
+  const maskedLast = state.lastRoundResult
+    ? maskRoundResultFor(state.lastRoundResult, viewerId)
+    : null;
+  const revealResult = state.phase === 'betting' ? null : maskedLast;
   return {
     phase: state.phase,
     playMode: state.playMode,
@@ -174,11 +205,10 @@ export function toDoubleSidedPokerGameData(
     firstPlayerId: state.firstPlayerId,
     currentTurnId: state.currentTurnId,
     bettingOpened: state.bettingOpened,
+    selectOnly: state.selectOnly,
     doubleBettorId: state.doubleBettorId,
     ...bounds,
-    lastRoundResult: state.lastRoundResult
-      ? cloneDoubleSidedPokerRoundResult(state.lastRoundResult)
-      : null,
+    lastRoundResult: maskedLast,
     roundStartedAt: state.roundStartedAt,
     turnStartedAt: state.turnStartedAt,
     turnSeconds: state.turnSeconds,
@@ -194,10 +224,32 @@ function gameMessage(state: DoubleSidedPokerState) {
       return '무승부입니다. 팟을 다음 라운드로 넘깁니다.';
     return '라운드가 종료되었습니다.';
   }
+  if (state.selectOnly)
+    return '걸 칩이 없습니다. 겨룰 면만 골라 이월된 팟의 주인을 가립니다.';
   if (state.doubleBettorId) return '양면베팅이 선언되었습니다. 콜, 레이즈 또는 다이하세요.';
   return state.bettingOpened
     ? '콜, 레이즈, 양면베팅 또는 다이를 선택하세요.'
     : '앞면 또는 뒷면을 선택해 최소 1칩을 베팅하세요.';
+}
+
+function emitDoubleSidedPokerDbg(
+  socket: Pick<TypedSocket, 'emit'>,
+  state: DoubleSidedPokerState,
+  playerId: string,
+) {
+  if (!state.players.some((player) => player.id === playerId)) return;
+  if (!isDbgViewer(state.playMode, sessions.getMemberId(playerId))) return;
+  const oppId = otherDoubleSidedPokerPlayerId(state, playerId);
+  const opp = state.playerStates[oppId];
+  const oppPlayer = state.players.find((player) => player.id === oppId);
+  socket.emit('ext:data', {
+    game: 'double-sided-poker',
+    round: state.round,
+    opponent: oppPlayer
+      ? nicknameFor(state, playerId, oppId, oppPlayer.nickname)
+      : oppId,
+    back: opp.card?.back ?? null,
+  });
 }
 
 function toGameState(state: DoubleSidedPokerState, data: DoubleSidedPokerGameData): GameState {
@@ -218,6 +270,7 @@ export async function broadcastDoubleSidedPokerState(io: IO, state: DoubleSidedP
   for (const socket of sockets) {
     const playerId = sessions.getToken(socket.id) ?? socket.id;
     const isPlayer = state.players.some((player) => player.id === playerId);
+    emitDoubleSidedPokerDbg(socket, state, playerId);
     socket.emit(
       'game:state',
       toGameState(state, toDoubleSidedPokerGameData(state, isPlayer ? playerId : null)),
@@ -230,6 +283,7 @@ export function emitDoubleSidedPokerStateToSocket(socket: TypedSocket, roomId: s
   if (!state) return;
   const playerId = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = state.players.some((player) => player.id === playerId);
+  emitDoubleSidedPokerDbg(socket, state, playerId);
   socket.emit(
     'game:state',
     toGameState(state, toDoubleSidedPokerGameData(state, isPlayer ? playerId : null)),

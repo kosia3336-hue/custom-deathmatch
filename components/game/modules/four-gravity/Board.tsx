@@ -17,6 +17,8 @@ interface Props {
   winLine: Position[] | null;
   winner: string | null;
   highlightCells?: Position[];
+  /** 터치 첫 탭으로 자리만 보여 주는 칸 ('row,col') */
+  armedKey?: string | null;
   skin?: SkinTheme | null;
   /** 판 최대 너비. GameFrame 안에서는 fitBoardWidth() 로 남은 높이에 맞춘다. */
   maxWidth?: string;
@@ -33,6 +35,7 @@ export default function Board({
   winLine,
   winner,
   highlightCells = [],
+  armedKey = null,
   skin,
   maxWidth = 'min(60vh, 500px)',
   onCellClick,
@@ -99,6 +102,7 @@ export default function Board({
                 (hasActionHighlight && cell === 'empty' && !isTutorialTarget)
               }
               previewColor={isPlacePhase && cell === 'empty' ? previewColor : null}
+              armed={clickable && armedKey === key}
               gameOver={!!winner}
               skin={skin}
               onClick={() => onCellClick(r, c)}

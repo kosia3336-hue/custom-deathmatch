@@ -4,14 +4,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { formatRpChange } from '@/lib/rank/rpChange';
+
+const PAGE_SIZE = 20;
 
 interface MatchItem {
   id: string;
   playedAt: string;
   result: 'win' | 'loss';
   rpDelta: number;
+  rpBefore: number;
+  rpAfter: number;
+  tierAfter: string;
   tierChanged: boolean;
   gameId: string;
+  gameName: string;
   isForfeit: boolean;
   opponentName: string;
 }
@@ -32,29 +39,40 @@ function fmt(dt: string) {
 /** 관리자 — 특정 회원의 최근 랭크 전적 조회 및 삭제(자동 역산) */
 export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }: Props) {
   const [rows, setRows] = useState<MatchItem[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await fetch('/api/admin/rank/members/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, limit: 20 }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error ?? '조회에 실패했습니다.');
-      setRows(j.rows ?? []);
-    } catch (e) {
-      toast.error((e as Error).message);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [memberId]);
+  /**
+   * append 면 뒤에 잇고, 아니면 처음부터 다시 받는다.
+   * 삭제 뒤에는 지금까지 펼쳐 본 만큼을 그대로 다시 받아야 화면이 접히지 않는다.
+   */
+  const fetchPage = useCallback(
+    async (offset: number, limit: number, append: boolean) => {
+      setLoading(true);
+      try {
+        const r = await fetch('/api/admin/rank/members/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId, limit, offset }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error ?? '조회에 실패했습니다.');
+        setRows((prev) => (append ? [...prev, ...(j.rows ?? [])] : (j.rows ?? [])));
+        setHasMore(Boolean(j.hasMore));
+      } catch (e) {
+        toast.error((e as Error).message);
+        if (!append) setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [memberId],
+  );
+
+  const load = useCallback(() => fetchPage(0, PAGE_SIZE, false), [fetchPage]);
 
   useEffect(() => {
     void load();
@@ -88,7 +106,8 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
 
       setConfirmId(null);
       setReason('');
-      await load();
+      /* 펼쳐 본 만큼 그대로 다시 받는다 — 지웠다고 목록이 접히면 이어서 지우기 번거롭다. */
+      await fetchPage(0, Math.min(50, Math.max(PAGE_SIZE, rows.length - 1)), false);
       onChanged?.();
     } catch (e) {
       toast.error((e as Error).message);
@@ -112,14 +131,15 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
       {rows.length === 0 && !loading ? (
         <p className="py-6 text-center text-sm text-cdm-fg-muted">전적이 없습니다.</p>
       ) : (
-        <div className="max-h-[50vh] overflow-y-auto">
-          <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+        <div className="max-h-[60vh] overflow-auto">
+          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead className="sticky top-0 bg-cdm-bg">
               <tr className="border-b border-cdm-border text-xs text-cdm-fg-muted">
                 <th className="py-2 pr-2">일시</th>
                 <th className="py-2 pr-2">결과</th>
                 <th className="py-2 pr-2">상대</th>
-                <th className="py-2 pr-2">RP</th>
+                <th className="py-2 pr-2">게임</th>
+                <th className="py-2 pr-2">점수 변화</th>
                 <th className="py-2">조치</th>
               </tr>
             </thead>
@@ -132,13 +152,19 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
                       {m.result === 'win' ? '승' : '패'}
                     </span>
                     {m.isForfeit ? <span className="ml-1 text-[11px] text-cdm-fg-muted">몰수</span> : null}
-                    {m.tierChanged ? (
-                      <span className="ml-1 text-[11px] text-cdm-warning">티어변동</span>
-                    ) : null}
+                    {/* 티어 변동은 '점수 변화' 칸에 승급/강등으로 적히므로 배지는 두지 않는다 */}
                   </td>
                   <td className="py-2 pr-2">{m.opponentName}</td>
-                  <td className="py-2 pr-2 tabular-nums">
-                    {m.rpDelta > 0 ? `+${m.rpDelta}` : m.rpDelta}
+                  <td className="py-2 pr-2 whitespace-nowrap">{m.gameName}</td>
+                  <td className="py-2 pr-2 whitespace-nowrap tabular-nums">
+                    {formatRpChange({
+                      tierAfter: m.tierAfter,
+                      rpBefore: m.rpBefore,
+                      rpAfter: m.rpAfter,
+                      rpDelta: m.rpDelta,
+                      won: m.result === 'win',
+                      tierChanged: m.tierChanged,
+                    })}
                   </td>
                   <td className="py-2">
                     {confirmId === m.id ? (
@@ -190,6 +216,24 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
               ))}
             </tbody>
           </table>
+
+          {hasMore ? (
+            <div className="py-3 text-center">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                loading={loading}
+                onClick={() => void fetchPage(rows.length, PAGE_SIZE, true)}
+              >
+                더 보기
+              </Button>
+            </div>
+          ) : (
+            <p className="py-3 text-center text-[11px] text-cdm-fg-muted">
+              이번 시즌 전적을 모두 불러왔습니다. ({rows.length}건)
+            </p>
+          )}
         </div>
       )}
 

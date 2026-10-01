@@ -31,26 +31,31 @@ export default function SuspectPanel({
     ? estimatedRemaining.filter(t => MBNW_TILE_COLOR[t] === opponentColor)
     : [];
 
+  /*
+    같은 숫자도 배수(×1)다. 판정(server/.../multiple-bnw/judge.ts)이
+    opTile % myTile === 0 으로 같은 숫자를 성공으로 치는데, 여기서만 빼고 있어
+    내 4 에 상대 4 가 남아 있어도 '8, 12일 경우 성공' 으로 안내했다.
+  */
   const multipleTiles = myTile
-    ? colorTiles.filter(t => t % myTile === 0 && t !== myTile)
+    ? colorTiles.filter(t => t % myTile === 0)
     : [];
 
   const canSucceed = multipleTiles.length > 0;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="mbnw-panel mbnw-suspect-panel flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
       {firstSuspectFailed && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
           선플 배수의심 실패 — 보너스 +1점 획득
         </div>
       )}
 
-      <p className="text-sm font-semibold text-amber-800">배수 가능 분석</p>
+      <p className="mbnw-panel-title text-sm font-semibold text-amber-800">배수 가능 분석</p>
 
       <div className="flex items-center gap-4 text-sm">
         {myTile != null && (
           <span className="text-gray-700">
-            내 타일: <strong className={`rounded px-1.5 py-0.5 text-xs ${
+            내 타일: <strong className={`mbnw-inline-tile mbnw-inline-tile--${MBNW_TILE_COLOR[myTile as MBNWTile]} rounded px-1.5 py-0.5 text-xs ${
               MBNW_TILE_COLOR[myTile as MBNWTile] === 'black'
                 ? 'bg-slate-800 text-slate-100'
                 : 'border border-gray-300 bg-white text-slate-700'
@@ -59,7 +64,7 @@ export default function SuspectPanel({
         )}
         {opponentColor && (
           <span className="text-gray-700">
-            상대 타일: <strong className={`rounded px-1.5 py-0.5 text-xs ${
+            상대 타일: <strong className={`mbnw-inline-tile mbnw-inline-tile--${opponentColor} rounded px-1.5 py-0.5 text-xs ${
               opponentColor === 'black'
                 ? 'bg-slate-800 text-slate-100'
                 : 'border border-gray-300 bg-white text-slate-700'
@@ -79,7 +84,7 @@ export default function SuspectPanel({
               return (
                 <span
                   key={t}
-                  className={`inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs font-medium ${
+                  className={`mbnw-estimated-tile ${isMultiple ? 'mbnw-estimated-tile--multiple' : ''} inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs font-medium ${
                     isMultiple
                       ? 'border border-amber-500 bg-amber-100 text-amber-800'
                       : 'border border-gray-200 bg-white text-gray-500'
@@ -110,13 +115,13 @@ export default function SuspectPanel({
       <div className="flex gap-3">
         <button
           onClick={() => handleSuspect(true)}
-          className="flex-1 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 active:scale-95"
+        className="mbnw-suspect-action flex-1 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 active:scale-95"
         >
           배수의심!
         </button>
         <button
           onClick={() => handleSuspect(false)}
-          className="flex-1 rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 active:scale-95"
+          className="mbnw-pass-action flex-1 rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 active:scale-95"
         >
           패스
         </button>

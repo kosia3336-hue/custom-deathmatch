@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { cn } from '@/lib/utils';
 import {
@@ -15,18 +14,14 @@ import {
   tripleGomokuMoveTargets,
   tripleGomokuTopOwner,
 } from '@/shared/logic/triple-gomoku';
-import {
-  TG_MAX_HEIGHT,
-  type TripleGomokuCell,
-  type TripleGomokuGameData,
-} from '@/shared/types/triple-gomoku';
+import type { TripleGomokuCell, TripleGomokuGameData } from '@/shared/types/triple-gomoku';
 import { useRoomStore } from '@/stores/room';
 import { TripleGomokuBoardView, type TripleGomokuCellMark } from './BoardView';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
 import { TG_BOARD_ASPECT } from '@/shared/logic/triple-gomoku';
-
-type ActionMode = 'place' | 'move';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
+import { GamePiece3D, PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
 
 const WIN_HINT: Record<string, string> = {
   line: '오목 완성',
@@ -42,8 +37,6 @@ export default function TripleGomokuGame() {
   const gameData = gameState?.gameData as TripleGomokuGameData | undefined;
   useAbstractStrategyMoveSfx(gameData?.board);
   const myId = useMySocketId();
-  const { remaining } = useTurnTimer();
-  const [tilted, setTilted] = useState(true);
 
   if (!gameData) {
     return (
@@ -54,18 +47,17 @@ export default function TripleGomokuGame() {
   }
 
   const isPlayer = Boolean(gameData.players[myId]);
-  const isMyTurn = isPlayer && gameData.currentPlayerId === myId && gameData.phase !== 'finished';
+  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
+  const isMyTurn = isPlayer && (isSolo || gameData.currentPlayerId === myId) && gameData.phase !== 'finished';
 
   return (
     <PlaySurface
-      key={`${gameData.turnNumber}:${gameData.phase}:${myId}`}
+      key={`${gameData.turnNumber}:${gameData.phase}:${myId}:${isSolo ? gameData.currentPlayerId : ''}`}
       gameData={gameData}
       myId={myId}
       isPlayer={isPlayer}
       isMyTurn={isMyTurn}
-      remaining={remaining}
-      tilted={tilted}
-      onToggleTilt={() => setTilted((value) => !value)}
+      isSolo={isSolo}
     />
   );
 }
@@ -75,29 +67,40 @@ function PlaySurface({
   myId,
   isPlayer,
   isMyTurn,
-  remaining,
-  tilted,
-  onToggleTilt,
+  isSolo,
 }: {
   gameData: TripleGomokuGameData;
   myId: string;
   isPlayer: boolean;
   isMyTurn: boolean;
-  remaining: number | null;
-  tilted: boolean;
-  onToggleTilt: () => void;
+  isSolo: boolean;
 }) {
   const canPlay = isMyTurn;
-  const [showHelp, setShowHelp] = useState(false);
-  const [mode, setMode] = useState<ActionMode>('place');
+  const seatId = isSolo ? gameData.currentPlayerId : myId;
+  /* 옮기려고 고른 내 돌. 없으면 빈칸을 눌러 새 돌을 놓는다. */
   const [source, setSource] = useState<TripleGomokuCell | null>(null);
   /*
     어떤 판 상태에서 행동을 보냈는지 기억한다. 서버가 받아 주면 아래
     acceptedSignature 가 바뀌면서 잠금이 저절로 풀린다.
   */
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  const { setHud } = useRoomLayout();
   const setup = gameData.phase === 'setup';
-  const reserve = gameData.reserves[myId] ?? 0;
+  const reserve = gameData.reserves[seatId] ?? 0;
+  const sidePanel = <TripleGomokuSidePanel gameData={gameData} myId={myId} />;
+
+  useEffect(() => {
+    setHud({
+      round: `${gameData.turnNumber}턴`,
+      order: gameData.phase === 'setup'
+        ? '기본 배치'
+        : gameData.phase === 'finished'
+          ? '종료'
+          : isMyTurn ? '내 차례' : '상대 차례',
+      // 판 정보는 메모가 아니라 판 위(info)에 늘 펴 둔다 — design.md §14.9
+    });
+    return () => setHud(null);
+  }, [gameData, isMyTurn, myId, setHud]);
 
   /*
     서버가 행동을 받아 줄 때마다 바뀌는 값. 기본 배치에서 한 턴에 두 개를 놓는
@@ -109,6 +112,13 @@ function PlaySurface({
   }`;
   const pending = pendingSignature === acceptedSignature;
   const active = canPlay && !pending;
+  /*
+    터치에서는 첫 탭에 반투명 돌로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야
+    둔다·옮긴다. 옮길 돌을 고르거나 풀면 보여 주던 자리를 직접 버린다(clear) —
+    고른 돌을 resetKey 에 넣으면 '고른 돌 풀기 + 빈칸 자리 보여 주기' 를 한 번에
+    할 때 방금 보여 준 자리까지 사라진다.
+  */
+  const placement = usePlacementConfirm(acceptedSignature);
 
   /* 서버가 거부하면 판이 그대로라 잠금이 안 풀리므로 error 신호로 직접 푼다. */
   useEffect(() => {
@@ -121,8 +131,8 @@ function PlaySurface({
   }, []);
 
   const targets = useMemo(
-    () => (source ? tripleGomokuMoveTargets(gameData.board, source, myId) : []),
-    [gameData.board, myId, source],
+    () => (source ? tripleGomokuMoveTargets(gameData.board, source, seatId) : []),
+    [gameData.board, seatId, source],
   );
   const targetKeys = useMemo(() => new Set(targets.map(tripleGomokuCellKey)), [targets]);
   const winKeys = useMemo(
@@ -142,15 +152,19 @@ function PlaySurface({
   function canPlaceHere(cell: TripleGomokuCell) {
     if (reserve <= 0) return false;
     return setup
-      ? canPlaceTripleGomokuSetup(gameData.board, cell, myId)
+      ? canPlaceTripleGomokuSetup(gameData.board, cell, seatId)
       : canPlaceTripleGomokuStone(gameData.board, cell);
+  }
+
+  /** 본 게임에서 맨 위가 내 돌인 칸 — 누르면 옮길 돌로 고른다. */
+  function isMyStack(cell: TripleGomokuCell) {
+    return !setup && tripleGomokuTopOwner(gameData.board, cell) === seatId;
   }
 
   function isEnabled(cell: TripleGomokuCell) {
     if (!active) return false;
-    if (setup || mode === 'place') return canPlaceHere(cell);
     if (source && targetKeys.has(tripleGomokuCellKey(cell))) return true;
-    return tripleGomokuTopOwner(gameData.board, cell) === myId;
+    return isMyStack(cell) || canPlaceHere(cell);
   }
 
   function markOf(cell: TripleGomokuCell): TripleGomokuCellMark {
@@ -162,134 +176,90 @@ function PlaySurface({
     return 'none';
   }
 
+  /*
+    돌 놓기·옮기기를 버튼으로 나누지 않는다.
+    · 고른 돌이 갈 수 있는 칸 → 옮기기
+    · 내 돌(맨 위) → 옮길 돌로 고르기, 같은 돌을 다시 누르면 풀기
+    · 빈칸 → 새 돌 놓기 (고른 돌이 있었으면 풀고 놓기)
+  */
   function handleClick(cell: TripleGomokuCell) {
     if (!active) return;
-    if (setup || mode === 'place') {
-      if (!canPlaceHere(cell)) return;
+    const key = tripleGomokuCellKey(cell);
+    if (source && canMoveTripleGomokuStone(gameData.board, source, cell, seatId)) {
+      const from = source;
+      placement.tap(key, () => {
+        setPendingSignature(acceptedSignature);
+        getSocket().emit('game:action', { type: 'move', from, to: cell });
+      });
+      return;
+    }
+    if (isMyStack(cell)) {
+      placement.clear();
+      setSource(source && isSameTripleGomokuCell(source, cell) ? null : cell);
+      return;
+    }
+    if (!canPlaceHere(cell)) return;
+    if (source) setSource(null);
+    placement.tap(key, () => {
       setPendingSignature(acceptedSignature);
       getSocket().emit('game:action', { type: 'place', to: cell });
-      return;
-    }
-    if (source && canMoveTripleGomokuStone(gameData.board, source, cell, myId)) {
-      setPendingSignature(acceptedSignature);
-      getSocket().emit('game:action', { type: 'move', from: source, to: cell });
-      return;
-    }
-    if (tripleGomokuTopOwner(gameData.board, cell) === myId) setSource(cell);
+    });
   }
 
   const sourceHeight = source ? (gameData.board[tripleGomokuCellKey(source)]?.length ?? 0) : 0;
+  const armedIsMove = Boolean(placement.armed && targetKeys.has(placement.armed));
   const currentName = gameData.players[gameData.currentPlayerId]?.nickname ?? '플레이어';
   const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
-  const entries = Object.entries(gameData.players);
   const finished = gameData.phase === 'finished';
 
   return (
     <>
       <GameFrame
         info={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 border p-1.5 sm:gap-2 sm:p-2">
-            {entries.map(([playerId, player], index) => (
-              <div
-                key={playerId}
-                className={cn(
-                  'rounded-cdm-md min-w-0 border px-2 py-1 lg:w-60',
-                  index === 1 && 'order-3 justify-self-end text-right',
-                  gameData.currentPlayerId === playerId && !finished
-                    ? 'border-cdm-primary bg-cdm-primary-soft'
-                    : 'border-cdm-border bg-cdm-bg-elev-1',
-                )}
-              >
-                <p className="text-cdm-fg truncate text-[11px] leading-4 font-bold">
-                  {player.nickname}
-                  {playerId === myId ? ' (나)' : ''}
-                </p>
-                <p className="text-cdm-fg-muted text-[10px] leading-4 tabular-nums">
-                  남은 돌 {gameData.reserves[playerId] ?? 0}
-                </p>
-              </div>
-            ))}
-            <div className="order-2 px-1 text-center">
-              <p className="text-cdm-fg-subtle text-[10px] leading-3 font-bold tracking-[0.12em]">
-                {finished
-                  ? '종료'
-                  : setup
-                    ? `배치 ${gameData.setupRemaining}`
-                    : isMyTurn
-                      ? '내 차례'
-                      : '상대 차례'}
-              </p>
-              <p
-                className={cn(
-                  'text-cdm-fg text-lg leading-6 font-black tabular-nums',
-                  remaining != null && remaining <= 10 && 'text-cdm-accent',
-                )}
-              >
-                {remaining == null ? '∞' : Math.ceil(remaining)}
-              </p>
-            </div>
-          </div>
+          <PlayerStrip
+            entries={Object.entries(gameData.players).map(([playerId, player]) => ({
+              id: playerId,
+              name: player.nickname,
+              isMe: isSolo || playerId === myId,
+              marker: (
+                <span className="block h-3.5 w-3.5">
+                  <GamePiece3D tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'} />
+                </span>
+              ),
+              detail: `돌 ${gameData.reserves[playerId] ?? 0}`,
+              active: gameData.currentPlayerId === playerId && !finished,
+            }))}
+          />
         }
         controls={
-          <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
-            <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-1.5">
-              <ModeButton
-                active={!setup && mode === 'place'}
-                disabled={setup || !active || reserve <= 0}
-                onClick={() => {
-                  setMode('place');
-                  setSource(null);
-                }}
-                label={`돌 놓기 ${reserve}`}
-              />
-              <ModeButton
-                active={!setup && mode === 'move'}
-                disabled={setup || !active}
-                onClick={() => setMode('move')}
-                label="돌 옮기기"
-              />
-              <button
-                type="button"
-                onClick={onToggleTilt}
-                aria-pressed={tilted}
-                className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg rounded-cdm-md min-h-11 border px-2 text-[11px] font-black"
-              >
-                {tilted ? '평면' : '입체'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowHelp(true)}
-                aria-label="승리 조건 보기"
-                className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted min-h-11 w-10 border text-sm font-black lg:hidden"
-              >
-                ?
-              </button>
-            </div>
-            <p className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]">
-              {setup
+          <p className="border-cdm-border bg-cdm-bg rounded-cdm-lg text-cdm-fg-muted flex min-h-11 items-center justify-center border px-3 py-2 text-center text-[11px]">
+            {placement.armed && active
+              ? armedIsMove
+                ? '같은 자리를 한 번 더 누르면 옮깁니다. 다른 목적지를 누르면 미리보기만 바뀝니다.'
+                : '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
+              : setup
                 ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
                 : !isPlayer
                   ? '관전 중입니다.'
                   : !isMyTurn
                     ? `${currentName} 님의 차례입니다.`
-                    : mode === 'place'
-                      ? '빈칸 아무 곳에나 새 돌을 놓습니다.'
-                      : source
-                        ? `${sourceHeight}층 칸 선택됨 · 갈 수 있는 곳 ${targets.length}곳 (다시 누르면 해제)`
-                        : '옮길 내 돌을 고르세요. 맨 위 돌만 움직입니다.'}
-            </p>
-          </div>
+                    : source
+                      ? `${sourceHeight}층 내 돌을 골랐습니다 · 초록 칸 ${targets.length}곳으로 옮길 수 있습니다. 같은 돌을 다시 누르면 풀립니다.`
+                      : reserve > 0
+                        ? '빈칸을 누르면 돌을 놓고, 내 돌을 누르면 옮길 곳을 고릅니다.'
+                        : '남은 돌이 없습니다. 내 돌을 눌러 옮겨야 합니다.'}
+          </p>
         }
-        aside={<WinReference />}
+        aside={sidePanel}
       >
         <TripleGomokuBoardView
           board={gameData.board}
           firstPlayerId={gameData.firstPlayerId}
-          tilted={tilted}
           markOf={markOf}
           onCellClick={handleClick}
           isEnabled={isEnabled}
-          previewOwnerId={active ? myId : null}
+          previewOwnerId={active ? seatId : null}
+          armedKey={placement.armed}
           ariaLabel="삼층 오목 판"
           maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}
           className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"
@@ -311,53 +281,31 @@ function PlaySurface({
           </div>
         )}
       </GameFrame>
-
-      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="승리 조건">
-        <WinReference />
-      </Modal>
     </>
   );
 }
 
-function WinReference() {
+function TripleGomokuSidePanel({ gameData, myId }: { gameData: TripleGomokuGameData; myId: string }) {
   return (
-    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg text-cdm-fg-muted h-full border p-3 text-[11px] leading-5">
-      <p className="text-cdm-fg text-sm font-black">승리 조건</p>
-      <p className="mt-2">· 위에서 봐서 내 돌 5개가 일직선 (6개는 인정 안 됨)</p>
-      <p>· 3층에 올라간 내 돌 5개</p>
-      <p>· 서로 붙어 있는 3층 돌 3개</p>
-      <p className="mt-3">
-        돌은 {TG_MAX_HEIGHT}층까지 쌓이고, 원래 칸보다 높은 칸으로는 갈 수 없습니다.
-      </p>
-      <p className="mt-1">돌 옮기기는 내 돌이 맨 위인 칸에서만 됩니다.</p>
-    </div>
-  );
-}
-
-function ModeButton({
-  active,
-  disabled,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  disabled: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        'rounded-cdm-md border-cdm-border min-h-11 border px-2 text-[11px] font-black transition-colors disabled:opacity-35',
-        active
-          ? 'border-cdm-primary bg-cdm-primary-soft text-cdm-primary'
-          : 'bg-cdm-bg-elev-1 text-cdm-fg',
-      )}
-    >
-      {label}
-    </button>
+    <GameInfoStack>
+      <GameInfoPart title="플레이어">
+        <div className="space-y-1.5">
+          {Object.entries(gameData.players).map(([playerId, player]) => (
+            <div
+              key={playerId}
+              className={cn(
+                'flex items-center justify-between rounded-md px-2.5 py-2 text-sm',
+                gameData.currentPlayerId === playerId && gameData.phase !== 'finished'
+                  ? 'bg-cdm-primary/20 text-white'
+                  : 'bg-white/5 text-cdm-ink-fg',
+              )}
+            >
+              <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+              <span className="font-black tabular-nums">돌 {gameData.reserves[playerId] ?? 0}</span>
+            </div>
+          ))}
+        </div>
+      </GameInfoPart>
+    </GameInfoStack>
   );
 }

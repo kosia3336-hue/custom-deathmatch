@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IndianPokerGameData, IPBettingAction, IPPlayerInfo, IPRoundRecord } from '@shared/types/indian-poker.js';
@@ -13,9 +14,9 @@ import { deal, checkDeckReset } from './deck.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { aiTakeTurn } from './ai.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -61,7 +62,7 @@ function buildGameDataForPlayer(s: InternalState, viewerId: string): IndianPoker
   const _dbg = p1 && p2 && isDbgViewer(s.playMode, sessions.getMemberId(viewerId));
 
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== viewerId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, viewerId);
   const players: Record<string, IPPlayerInfo> = {};
   for (const [pid, p] of Object.entries(s.players)) {
     let canSeeCard: boolean;
@@ -106,7 +107,7 @@ function phaseMessage(s: InternalState, viewerToken: string): string {
   if (s.phase === 'betting') {
     const current = s.players[s.currentTurnId!];
     const nick = current
-      ? (isTokenAnonymized(s.roomId, current.id) && current.id !== viewerToken ? ANONYMOUS_NICKNAME : current.nickname)
+      ? nicknameForViewer(s.roomId, current.id, current.nickname, viewerToken)
       : '';
     return `라운드 ${s.round} — ${nick}의 베팅 차례`;
   }
@@ -122,7 +123,8 @@ function buildGameState(s: InternalState, gameData: IndianPokerGameData, viewerT
     currentTurn: s.currentTurnId,
     turnNumber: s.totalBettingActions,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['betting'], s.turnStartedAt),
     gameData,
     activeSkin: getActiveSkin(s.roomId),
   };
@@ -182,9 +184,9 @@ export function clearTurnTimer(s: InternalState) {
 function armTurnTimer(io: IO, s: InternalState) {
   clearTurnTimer(s);
   if (!s.timeLimitSeconds) return;
-  if (s.playMode === 'com') return;
+  if (s.currentTurnId === AI_PLAYER_ID) return;
   s.turnStartedAt = Date.now();
-  s.turnTimer = setTimeout(() => handleTimeout(io, s), s.timeLimitSeconds * 1000);
+  s.turnTimer = scheduleTurnExpiry(io, s, 'turnTimer', () => s.currentTurnId, () => handleTimeout(io, s), s.timeLimitSeconds * 1000);
 }
 
 export function startTurnTimer(io: IO, s: InternalState) {

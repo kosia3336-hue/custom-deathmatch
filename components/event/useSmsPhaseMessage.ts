@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { serverNow } from '@/lib/serverClock';
 import type { SmsGameData } from '@/shared/types/sun-moon-star-event';
 
 function secondsUntil(deadlineMs: number, now: number): number {
@@ -9,7 +10,8 @@ function secondsUntil(deadlineMs: number, now: number): number {
 
 /** waiting 카운트다운·pick 타이머 멘트 */
 export function useSmsPhaseMessage(gd: SmsGameData): string | null {
-  const [now, setNow] = useState(() => Date.now());
+  // 마감·시작 시각은 서버 시각이다 — 기기 시계 오차를 뺀 서버 기준으로 센다
+  const [now, setNow] = useState(() => serverNow());
 
   const needsTick =
     (gd.phase === 'waiting' && gd.nextRoundStartsAt != null) ||
@@ -17,7 +19,7 @@ export function useSmsPhaseMessage(gd: SmsGameData): string | null {
 
   useEffect(() => {
     if (!needsTick) return;
-    const id = setInterval(() => setNow(Date.now()), 200);
+    const id = setInterval(() => setNow(serverNow()), 200);
     return () => clearInterval(id);
   }, [needsTick, gd.nextRoundStartsAt, gd.pickDeadlineAt, gd.phase]);
 

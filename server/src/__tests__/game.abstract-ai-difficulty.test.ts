@@ -117,7 +117,7 @@ describe('추상전략 AI 난이도 계약', () => {
     expect(resolveAbstractAiDifficulty('hard')).toBe('hard');
   });
 
-  it('사중력 COM 상태에 선택한 난이도를 저장한다', () => {
+  it('사중력 COM 어려움 요청은 일시적으로 보통으로 제한한다', () => {
     const normalRoomId = 'four-gravity-normal-ai';
     const hardRoomId = 'four-gravity-hard-ai';
     roomIds.add(normalRoomId);
@@ -130,11 +130,11 @@ describe('추상전략 AI 난이도 계약', () => {
     });
 
     expect(fourGravityStates.get(normalRoomId)?.aiDifficulty).toBe('normal');
-    expect(fourGravityStates.get(hardRoomId)?.aiDifficulty).toBe('hard');
+    expect(fourGravityStates.get(hardRoomId)?.aiDifficulty).toBe('normal');
     expect(fourGravityStates.get(hardRoomId)?.superAi).toBe(false);
   });
 
-  it('양면장기 COM 상태에 선택한 난이도를 저장한다', () => {
+  it('양면장기 COM 어려움 요청은 일시적으로 보통으로 제한한다', () => {
     const roomId = 'double-sided-chess-hard-ai';
     roomIds.add(roomId);
     const players = [player('human-chess', '사람'), player(AI_PLAYER_ID, 'AI')];
@@ -143,7 +143,7 @@ describe('추상전략 AI 난이도 계약', () => {
       aiDifficulty: 'hard',
     });
 
-    expect(doubleSidedChessStates.get(roomId)?.aiDifficulty).toBe('hard');
+    expect(doubleSidedChessStates.get(roomId)?.aiDifficulty).toBe('normal');
   });
 
   it('슈퍼 AI 옵션은 COM 난이도와 별도로 저장한다', () => {

@@ -40,6 +40,7 @@ import type { BankBet } from './bank-game';
 import type { BankAdvisorPending, BankAdvisorRound } from './bank-game-advisor';
 import type { QuatroAction } from './quatro';
 import type { QuatroAdvisorPly } from './quatro-advisor';
+import type { CounterBanViewPayload } from './counter-ban';
 
 export interface CreateRoomData {
   gameId: string;
@@ -51,6 +52,8 @@ export interface CreateRoomData {
   timeLimitSeconds?: number | null;
   /** 게임별 커스텀 옵션 (e.g. { initialChips: 25 }) */
   gameOptions?: Record<string, unknown>;
+  /** 관리자 전용 카운터 매치 방 */
+  hiddenMatch?: boolean;
 }
 
 export interface JoinRoomData {
@@ -80,7 +83,7 @@ export interface UpdateRoomSettingsResult {
   error?: string;
 }
 
-export type ChatScope = 'lobby' | 'room' | 'game' | 'guild';
+export type ChatScope = 'lobby' | 'room' | 'game' | 'guild' | 'guild_war';
 
 export interface ChatMessage {
   id: string;
@@ -151,7 +154,7 @@ export interface RankPlayerOutcome {
   placementJustFinished?: boolean;
   /** 배치전 구간에서 치른 판이면 true (RP 변동 없음, 카운트만) */
   placementMatch?: boolean;
-  /** 정식 랭크 판 RP 표시용 (동티어 ±20 기준 분해) */
+  /** 정식 랭크 판 RP 표시용. 일반은 동티어 ±12, 카운터는 ±24에 티어·연승을 한 번씩. */
   rpBreakdown?: {
     parityReference: number;
     tierVersusParity: number;
@@ -224,7 +227,16 @@ export interface JoinRoomResult {
   isPrivate?: boolean;
 }
 
+export interface GameTimeExpiry {
+  roomId: string;
+  requestId: string;
+  loserId: string;
+  deciderId: string;
+  mode: 'multi' | 'com';
+}
+
 export interface ClientToServerEvents {
+  'game:time-expiry:respond': (data: { requestId: string; decision: 'continue' | 'finish' }) => void;
   'nickname:set': (data: { nickname: string }, callback: (res: NicknameResult) => void) => void;
 
   'lobby:join': () => void;
@@ -254,6 +266,7 @@ export interface ClientToServerEvents {
   'game:action': (data: Record<string, unknown>) => void;
   'game:undo:request': () => void;
   'banpick:ban': (data: { gameId: string }) => void;
+  'counterban:ban': (data: { gameId: string }) => void;
   'banpick:ready': () => void;
   'banpick:noban': () => void;
   'banpick:unban': (data: { gameId: string }) => void;
@@ -270,6 +283,9 @@ export interface ClientToServerEvents {
 
   'session:restore': (data: { token: string; confirmed?: boolean }) => void;
 
+  /** 서버 시각(ms) 조회 — 클라이언트가 기기 시계 오차를 재서 타이머에 보정한다 (lib/serverClock.ts) */
+  'time:sync': (callback: (serverNow: number) => void) => void;
+
   /** 스킨 착용/해제 후 서버 세션의 equippedSkins 를 즉시 갱신한다 */
   'skin:sync': (callback: (res: { ok: boolean }) => void) => void;
 
@@ -280,6 +296,16 @@ export interface ClientToServerEvents {
   'spectate:leave': () => void;
   'room:to:spectate': (callback: (res: { success: boolean; error?: string }) => void) => void;
   'spectate:to:player': (callback: (res: { success: boolean; error?: string }) => void) => void;
+  /** 방장 — 다른 플레이어를 관전석으로 (대기 중·일반 방) */
+  'room:move:to:spectate': (
+    data: { targetId: string },
+    callback: (res: { success: boolean; error?: string }) => void,
+  ) => void;
+  /** 방장 — 관전자를 빈 플레이어 자리로 (대기 중·일반 방) */
+  'room:move:to:player': (
+    data: { targetId: string },
+    callback: (res: { success: boolean; error?: string }) => void,
+  ) => void;
 
   /** 랭크 큐 진입 (회원 전용, 운영 시간·시즌 검증은 서버) */
   'rank:queue:join': (callback: (res: { success: boolean; error?: string }) => void) => void;
@@ -518,6 +544,27 @@ export interface ClientToServerEvents {
   'smsEvent:meta:get': (
     callback: (res: import('./sun-moon-star-event').SmsMetaPayload) => void,
   ) => void;
+
+  /** 길드전 (링 더 벨) — 입장. 항상 관전. 착석은 빈칸 클릭. */
+  'guildWar:join': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 길드전 — 퇴장 (세트 중이면 다이). */
+  'guildWar:leave': () => void;
+  /** 길드전 — 빈칸 클릭 착석. */
+  'guildWar:sit': (
+    callback: (res: { success: boolean; error?: string; errorCode?: string }) => void,
+  ) => void;
+  /** 길드전 — 관전으로 내리기. 세트 중이면 예약 토글. */
+  'guildWar:spectate': (
+    callback: (res: { success: boolean; error?: string; reserved?: boolean }) => void,
+  ) => void;
+  /** 길드전 — 메타 조회 (로비). */
+  'guildWar:meta:get': (
+    callback: (res: import('./ring-the-bell').RtbMetaPayload) => void,
+  ) => void;
+  /** 길드전 — 게임 행동. */
+  'guildWar:action': (payload: import('./ring-the-bell').RtbActionPayload) => void;
 }
 
 /** CDP 적립 — 랭크 게임 종료 시 본인에게만 emit */
@@ -586,6 +633,7 @@ export interface OnlineUser {
 }
 
 export interface ServerToClientEvents {
+  'game:time-expiry': (data: GameTimeExpiry | null) => void;
   'lobby:rooms': (rooms: RoomSummary[]) => void;
   'lobby:room:created': (room: RoomSummary) => void;
   'lobby:room:updated': (room: RoomSummary) => void;
@@ -617,6 +665,8 @@ export interface ServerToClientEvents {
   'banpick:lottery': (payload: BanPickLotteryPayload) => void;
   'banpick:unban_turn': (payload: BanPickUnbanTurnPayload) => void;
   'banpick:unban_update': (payload: BanPickUnbanUpdatePayload) => void;
+  'counterban:start': (payload: CounterBanViewPayload) => void;
+  'counterban:update': (payload: CounterBanViewPayload) => void;
   'game:undo:declined': () => void;
   'game:ended': (result: GameResult) => void;
   /** 랭크 멀티 종료 시 참가자에게만 (RP 분해·챌린저 여부 등 본인 전용) */
@@ -624,6 +674,8 @@ export interface ServerToClientEvents {
 
   /** CDP 적립 — 본인 전용 emit */
   'cdp:granted': (payload: CdpGrantedPayload) => void;
+  /** 한가위 송편 적립 — 본인 전용 emit */
+  'songpyeon:granted': (payload: { amount: number; balance: number; reason: string }) => void;
   /** CDP 잔액 변동 (구매/어드민 조정) — 본인 전용 emit */
   'cdp:adjusted': (payload: CdpAdjustedPayload) => void;
   /** 상점 아이템 변경 (재고/활성) — 전체 broadcast */
@@ -641,6 +693,12 @@ export interface ServerToClientEvents {
   /** token 이 실려 오면 서버가 세션 토큰을 재발급한 것 — 클라이언트는 저장된 토큰을 교체해야 한다. */
   'session:new': (data: { nickname: string; token?: string }) => void;
   'session:exists': (data: { nickname: string; roomId?: string }) => void;
+  /**
+   * 회원에게 묶인 토큰인데 이 연결은 인증이 안 붙어 있다 — 액세스 토큰 갱신이
+   * 늦었거나 실패한 경우다. 세션은 넘겨주지 않지만 토큰도 버리지 않으니,
+   * 클라이언트는 인증을 다시 받아 붙기만 하면 진행 중인 판으로 돌아온다.
+   */
+  'session:reauth': () => void;
   'session:replaced': () => void;
   'session:restored': (data: { nickname: string; roomId?: string }) => void;
   'player:reconnecting': (data: {
@@ -658,6 +716,14 @@ export interface ServerToClientEvents {
     fromNickname: string;
     targetHadGuild: boolean;
     targetGuildName: string | null;
+  }) => void;
+
+  /** 길드 가입 신청 — 길드장 본인만. 우편함 refresh */
+  'guild:join-request': (data: {
+    requestId: string;
+    guildId: string;
+    guildName: string;
+    fromNickname: string;
   }) => void;
 
   /** 관리자가 칭호 부여 시 대상 유저에게 emit. 게임 중이면 게임 종료 후, 미접속이면 다음 접속 시 */
@@ -697,4 +763,11 @@ export interface ServerToClientEvents {
   'smsEvent:round:result': (payload: {
     result: import('./sun-moon-star-event').SmsRoundResultPayload;
   }) => void;
+
+  /** 길드전 상태 — 본인 시점으로 마스킹해서 보낸다. */
+  'guildWar:state': (payload: import('./ring-the-bell').RtbStatePayload) => void;
+  /** 길드전 메타 — connected 전체. 로비 방 노출·인원 표시. */
+  'guildWar:meta:changed': (payload: import('./ring-the-bell').RtbMetaPayload) => void;
+  /** 길드전 강퇴 (칩 0 · 운영 종료 · 기간 종료). */
+  'guildWar:kicked': (payload: import('./ring-the-bell').RtbKickedPayload) => void;
 }

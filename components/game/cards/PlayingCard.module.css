@@ -1,0 +1,61 @@
+.card {
+  display: inline-block;
+  flex: none;
+  aspect-ratio: 5 / 7;
+  background-color: transparent;
+  background-image: url('/games/cards/playing/cdm-playing-cards.webp');
+  background-repeat: no-repeat;
+  background-size: 600% 400%;
+}
+
+.tiny {
+  width: 2rem;
+}
+
+.sm {
+  width: 3rem;
+}
+
+.md {
+  width: 4.25rem;
+}
+
+.lg {
+  width: 5.5rem;
+}
+
+@media (min-width: 40rem) {
+  .sm {
+    width: 3.5rem;
+  }
+
+  .md {
+    width: 5rem;
+  }
+
+  .lg {
+    width: 6.5rem;
+  }
+}
+
+.revealing {
+  animation: playing-card-reveal 320ms ease-out;
+}
+
+@keyframes playing-card-reveal {
+  from {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revealing {
+    animation: none;
+  }
+}

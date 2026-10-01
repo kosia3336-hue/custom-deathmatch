@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/shared/types';
 import { getBrowserSupabase } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/env';
+import { syncServerClock } from './serverClock';
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -40,6 +41,10 @@ function getSsrSocketStub(): TypedSocket {
 
 /** localStorage 사용 불가 환경(시크릿 모드 등)에서 세션 유지용 모듈-레벨 캐시 */
 let fallbackToken: string | null = null;
+
+/** 재인증 재연결 최소 간격 — 갱신이 계속 실패해도 재연결 폭주를 막는다. */
+const REAUTH_MIN_INTERVAL_MS = 5_000;
+let lastReauthAt = 0;
 
 export function getOrCreateSessionToken(): string {
   try {
@@ -108,12 +113,39 @@ export function getSocket(): TypedSocket {
     socket.on('connect', () => {
       const token = getOrCreateSessionToken();
       socket!.emit('session:restore', { token });
+      // 기기 시계 오차를 잰다 — 타이머가 서버 마감과 같은 시각을 가리키도록.
+      void syncServerClock(socket!);
+    });
+
+    // 앱을 내렸다 올리면 그 사이 기기 시계가 바뀌었을 수 있다(수동 변경·절전).
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && socket?.connected) void syncServerClock(socket);
     });
 
     // 서버가 토큰을 재발급한 경우(다른 회원에게 묶인 토큰 등) 즉시 교체.
     // useSocket 의 리스너보다 먼저 붙어야 첫 응답을 놓치지 않는다.
     socket.on('session:new', ({ token }) => {
       if (token) replaceSessionToken(token);
+    });
+
+    /*
+      인증이 안 붙은 채로 붙었다고 서버가 알려 온 경우. access_token 갱신이 한 번
+      실패하면 그 연결은 게스트가 되는데, 그대로 두면 진행 중이던 판이 있는 사람은
+      대기 화면에 갇힌다. 토큰을 다시 받아(여기서 Supabase 가 갱신을 마친다) 새로
+      붙는다 — auth 콜백이 매 시도마다 최신 토큰을 싣기 때문에 이 한 번으로 붙는다.
+
+      갱신이 계속 실패하면 무한 재연결이 되므로 최소 간격을 둔다. 정말 비로그인인
+      상태(토큰이 끝내 없음)면 재연결하지 않고 게스트로 남는다.
+    */
+    socket.on('session:reauth', () => {
+      const now = Date.now();
+      if (now - lastReauthAt < REAUTH_MIN_INTERVAL_MS) return;
+      lastReauthAt = now;
+      void getCurrentAccessToken().then((accessToken) => {
+        if (!accessToken || !socket) return;
+        socket.disconnect();
+        socket.connect();
+      });
     });
 
     (window as unknown as Record<string, unknown>)['__s'] = socket;

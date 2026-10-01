@@ -463,6 +463,7 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     rankCards,
     rankCard: null,
     chatSeenMessageId: null,
+    warChips: 0,
   };
 
   if (!my.guild) return empty;
@@ -502,7 +503,7 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
   const contribs: Record<string, GuildV4ContribScores> = {};
   for (const id of memberIds) contribs[id] = allContribs[id] ?? emptyContrib();
 
-  const [notices, invest, grantLogs, rankCard, seenRow] = await Promise.all([
+  const [notices, invest, grantLogs, rankCard, seenRow, chipRow] = await Promise.all([
     loadNotices(sb, guildId),
     loadInvest(sb, guildId, memberIds),
     loadGrants(sb, guildId),
@@ -512,9 +513,14 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
       .eq('member_id', memberId)
       .eq('guild_id', guildId)
       .maybeSingle(),
+    from(sb, 'guild_war_chips').select('balance').eq('guild_id', guildId).maybeSingle(),
   ]);
   const chatSeenMessageId =
     (seenRow.data as { last_message_id?: string } | null)?.last_message_id ?? null;
+  if (chipRow.error) console.warn('[guild2] guild_war_chips', chipRow.error.message);
+  const warChips = chipRow.error
+    ? 0
+    : Number((chipRow.data as { balance?: number } | null)?.balance ?? 0);
 
   return {
     ...empty,
@@ -527,6 +533,7 @@ export async function loadGuildV4Snapshot(memberId: string, nickname: string): P
     tileOrder,
     rankCard,
     chatSeenMessageId,
+    warChips,
   };
 }
 
@@ -594,6 +601,24 @@ export async function listGuildMemberIds(guildId: string): Promise<string[]> {
   const sb = getSupabaseServiceRole();
   const { data } = await sb.from('guild_members').select('member_id').eq('guild_id', guildId);
   return ((data ?? []) as { member_id: string }[]).map((r) => r.member_id);
+}
+
+/** 헤더 배지용. 길드와 마지막으로 읽은 채팅 id만. */
+export async function loadGuildChatBadge(memberId: string): Promise<{
+  guildId: string | null;
+  chatSeenMessageId: string | null;
+}> {
+  const sb = getSupabaseServiceRole();
+  const guildId = await findGuildIdForMember(memberId);
+  if (!guildId) return { guildId: null, chatSeenMessageId: null };
+  const { data } = await from(sb, 'guild_chat_seen_v4')
+    .select('last_message_id')
+    .eq('member_id', memberId)
+    .eq('guild_id', guildId)
+    .maybeSingle();
+  const chatSeenMessageId =
+    (data as { last_message_id?: string } | null)?.last_message_id ?? null;
+  return { guildId, chatSeenMessageId };
 }
 
 export async function findGuildIdForMember(memberId: string): Promise<string | null> {

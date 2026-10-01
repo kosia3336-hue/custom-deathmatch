@@ -2,9 +2,14 @@ export type { AbstractAiDifficulty, Game } from './game';
 export {
   ABSTRACT_AI_DIFFICULTIES,
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
+  DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   GAME_IDS,
+  MAX_ABSTRACT_AI_THINK_SECONDS,
+  MIN_ABSTRACT_AI_THINK_SECONDS,
+  formatAbstractAiThinkSeconds,
   isAbstractStrategyGameId,
   resolveAbstractAiDifficulty,
+  resolveAbstractAiThinkSeconds,
   SUPER_AI_GAMES,
   SUPER_AI_MATCH_GAMES,
   supportsSuperAi,
@@ -17,6 +22,11 @@ export {
   rankTierNumericForRp,
   calcRankRpChange,
   calcRankRpParts,
+  calcCounterRankRpParts,
+  COUNTER_MATCH_CHANCE,
+  COUNTER_BAN_TURN_MS,
+  RANK_VS_SEC,
+  RANK_VS_NAV_SEC,
   placementTierAndRp,
   tierOrder,
   peakTierMax,
@@ -105,6 +115,25 @@ export type {
   DoubleSidedPokerSelection,
   DoubleSidedPokerSide,
 } from './double-sided-poker';
+export {
+  MYEONGCHURI_DEFAULT_PICK_SECONDS,
+  MYEONGCHURI_DEFAULT_THINK_SECONDS,
+  MYEONGCHURI_LETTERS,
+  MYEONGCHURI_SYMBOLS,
+} from './myeongchuri';
+export type {
+  MyeongchuriAction,
+  MyeongchuriArchiveRecord,
+  MyeongchuriDeclarationResult,
+  MyeongchuriGameData,
+  MyeongchuriGameOptions,
+  MyeongchuriHiddenReason,
+  MyeongchuriLetter,
+  MyeongchuriPhase,
+  MyeongchuriRoundResult,
+  MyeongchuriSymbol,
+  MyeongchuriTile,
+} from './myeongchuri';
 export type {
   SeedSeotdaAction,
   SeedSeotdaArchiveRecord,
@@ -158,6 +187,7 @@ export type {
   BanPickUpdatePayload,
   BanPickLotteryPayload,
 } from './ban-pick';
+export type { CounterBanPhase, CounterBanViewPayload } from './counter-ban';
 export type {
   CreateRoomData,
   JoinRoomData,

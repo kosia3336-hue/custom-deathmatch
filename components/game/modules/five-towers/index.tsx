@@ -1,5 +1,6 @@
 'use client';
 
+import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
@@ -17,6 +18,7 @@ import { GAME_IDS } from '@/shared/types/game';
 import { getSkinTheme } from '@/lib/skins/registry';
 import InferenceField, { TOWER_COLORS } from './InferenceField';
 import ActionPanel from './ActionPanel';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '3선승 달성',
@@ -57,7 +59,7 @@ function BottomSheet({
         </div>
         <div
           className="overflow-y-auto px-4 pb-4"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'max(16px, var(--cdm-safe-bottom, 0px))' }}
         >
           {children}
         </div>
@@ -87,8 +89,9 @@ function ScoreCard({
       <div className="flex items-center justify-between text-xs font-medium text-gray-500">
         <span>{isMe ? '나' : '상대'}</span>
         {isCurrentTurn && (
+          /* '나' 옆에 '차례' 만 붙이면 '나 차례' 로 읽힌다. 배지가 스스로 말하게 둔다. */
           <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-            차례
+            {isMe ? '내 차례' : '상대 차례'}
           </span>
         )}
       </div>
@@ -417,9 +420,9 @@ export default function FiveTowersGame() {
 
       let msg = '';
       if (e.kind === 'stack-public') {
-        msg = `${e.actorNickname}이(가) ${e.tower}탑에 쌓았습니다.`;
+        msg = `${josa(e.actorNickname, '이/가')} ${e.tower}탑에 쌓았습니다.`;
       } else if (e.kind === 'secret-hidden') {
-        msg = `${e.actorNickname}이(가) 시크릿을 사용했습니다.`;
+        msg = `${josa(e.actorNickname, '이/가')} 시크릿을 사용했습니다.`;
       } else if (e.kind === 'secret-revealed') {
         msg = `${e.actorNickname}의 시크릿 — ${e.tower}탑이 공개됐습니다.`;
       }
@@ -517,10 +520,13 @@ export default function FiveTowersGame() {
                 {gameData.phase !== 'finished' && currentPlayer && (
                   <span className="ml-2 text-sm text-gray-600">
                     ·{' '}
-                    <b className={isMyTurn ? 'text-indigo-700' : 'text-gray-700'}>
-                      {currentPlayer.nickname}
-                    </b>{' '}
-                    차례
+                    {isMyTurn ? (
+                      <b className="text-indigo-700">내 차례</b>
+                    ) : (
+                      <>
+                        <b className="text-gray-700">{opponentDisplayName(currentPlayer.nickname, isSpectator)}</b> 차례
+                      </>
+                    )}
                   </span>
                 )}
                 {gameData.phase === 'finished' && (
@@ -636,7 +642,8 @@ export default function FiveTowersGame() {
           <BottomSheet
             open={sheetOpen && isMyTurn}
             onClose={() => setSheetOpen(false)}
-            title={`${currentPlayer?.nickname ?? ''} 차례`}
+            /* 내 차례에 '<내 닉> 차례' 라고 하면 남 얘기처럼 읽힌다 */
+            title={isMyTurn ? '내 차례' : `${opponentDisplayName(currentPlayer?.nickname, isSpectator)} 차례`}
           >
             {actionContent}
           </BottomSheet>

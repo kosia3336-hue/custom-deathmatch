@@ -3,15 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/cdm/Card';
 import { RankBadge } from '@/components/cdm/RankBadge';
-
-const TIER_KO: Record<string, string> = {
-  unranked: '언랭',
-  bronze: '브론즈',
-  silver: '실버',
-  gold: '골드',
-  diamond: '다이아',
-  challenger: '챌린저',
-};
+import { RANK_TIER_KO as TIER_KO, formatRpChange } from '@/lib/rank/rpChange';
 
 interface Props {
   memberId: string;
@@ -25,6 +17,7 @@ export default function MemberRankTab({ memberId }: Props) {
     activeSeason: { id: number; name: string } | null;
     stats: Record<string, unknown> | null;
     history: Record<string, unknown>[];
+    gameNames?: Record<string, string>;
   } | null>(null);
 
   useEffect(() => {
@@ -108,7 +101,6 @@ export default function MemberRankTab({ memberId }: Props) {
               const hid = String(h.id ?? '');
               const playedAt = h.played_at ? new Date(String(h.played_at)).toLocaleString('ko-KR') : '';
               const wid = String(h.winner_id ?? '');
-              const lid = String(h.loser_id ?? '');
               const won = wid === memberId;
               return (
                 <li key={hid} className="rounded-cdm-md border border-cdm-border px-3 py-2">
@@ -120,10 +112,15 @@ export default function MemberRankTab({ memberId }: Props) {
                     <span className="ml-2 text-xs text-cdm-fg-muted">(항복)</span>
                   ) : null}
                   <div className="mt-1 text-xs text-cdm-fg-muted">
-                    {String(h.game_id)} ·{' '}
-                    {won
-                      ? `${TIER_KO[String(h.winner_tier ?? '')] ?? h.winner_tier} RP ${h.winner_rp_before}→${h.winner_rp_after}`
-                      : `${TIER_KO[String(h.loser_tier ?? '')] ?? h.loser_tier} RP ${h.loser_rp_before}→${h.loser_rp_after}`}
+                    {data.gameNames?.[String(h.game_id)] ?? String(h.game_id)} ·{' '}
+                    {formatRpChange({
+                      tierAfter: String((won ? h.winner_tier : h.loser_tier) ?? ''),
+                      rpBefore: Number(won ? h.winner_rp_before : h.loser_rp_before),
+                      rpAfter: Number(won ? h.winner_rp_after : h.loser_rp_after),
+                      rpDelta: won ? Number(h.winner_rp_gain) : -Number(h.loser_rp_loss),
+                      won,
+                      tierChanged: Boolean(won ? h.winner_promoted : h.loser_demoted),
+                    })}
                   </div>
                 </li>
               );

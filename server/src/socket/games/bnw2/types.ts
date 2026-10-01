@@ -59,7 +59,10 @@ export interface InternalState {
   roomId: string;
   round: number;
   phase: BNW2Phase;
+  /** 이번 라운드의 선 — 이전 라운드 승자가 가져가므로 판마다 바뀐다. */
   firstPlayerId: string;
+  /** 게임 시작 시의 선공 — 끝까지 안 바뀐다. 완전 동점일 때 이 사람이 이긴다(규칙 K). */
+  openingFirstPlayerId: string;
   player1: BNW2PlayerInternal;
   player2: BNW2PlayerInternal;
   firstPoints: number | null;

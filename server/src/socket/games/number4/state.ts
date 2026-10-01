@@ -8,9 +8,9 @@ import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnap
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { inputPhaseClock } from '../../gameClock.js';
 
 export const gameStates = new Map<string, InternalState>();
 
@@ -64,7 +64,7 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
   const isSolo = s.playMode === 'solo';
   const _dbg = !isSolo && isDbgViewer(s.playMode, sessions.getMemberId(socketId));
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) && id !== socketId ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, socketId);
 
   const players: Record<string, NF4PlayerInfo> = {};
 
@@ -92,18 +92,28 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     currentSide: s.currentSide,
   };
 
-  if (_dbg && (isPlayer1 || isPlayer2) && s.phase === 'submit') {
+  if (_dbg && (isPlayer1 || isPlayer2)) {
     const opp = isPlayer1 ? s.player2 : s.player1;
-    if (opp.submitted) {
-      return {
-        ...base,
-        _x: {
-          opponentSubmitted: {
+    const submitted =
+      s.phase === 'submit' && opp.submitted
+        ? {
             number: opp.submittedNumber,
             white: opp.submittedWhite,
             black: opp.submittedBlack,
-          },
-        },
+          }
+        : null;
+    const revealed =
+      (s.phase === 'reveal' || s.phase === 'finished')
+        ? s.roundHistory[s.roundHistory.length - 1]?.players[opp.id]
+        : null;
+    const payload = submitted
+      ?? (revealed
+        ? { number: revealed.number, white: revealed.white, black: revealed.black }
+        : null);
+    if (payload) {
+      return {
+        ...base,
+        _x: { opponentSubmitted: payload },
       } as NumberFourGameData;
     }
   }
@@ -141,7 +151,8 @@ function buildGameState(s: InternalState, gameData: NumberFourGameData): GameSta
     currentTurn: null,
     turnNumber: s.round,
     startedAt: s.startedAt,
-    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    // 착수를 기다리는 단계에서만 시계를 보낸다 (socket/gameClock.ts)
+    turnStartedAt: inputPhaseClock(s.timeLimitSeconds, s.phase, ['submit'], s.turnStartedAt),
     gameData,
     activeSkin: getActiveSkin(s.roomId),
   };
@@ -321,9 +332,9 @@ function autoSubmitDefaults(p: NF4PlayerInternal) {
 function resolveGame(
   io: IO,
   s: InternalState,
-  winnerId: string,
+  winnerId: string | null,
   winnerNick: string,
-  loserId: string,
+  loserId: string | null,
   loserNick: string,
   winType: InternalState['winType'],
 ) {
@@ -333,11 +344,20 @@ function resolveGame(
   s.phase = 'finished';
   broadcastState(io, s);
 
+  /* 무승부는 둘 다 1위다 — 자리 순서로 승패를 가르지 않는다 */
+  const rankings =
+    winnerId && loserId
+      ? [
+          { playerId: winnerId, nickname: winnerNick, rank: 1, score: s.player1.id === winnerId ? s.player1.score : s.player2.score },
+          { playerId: loserId, nickname: loserNick, rank: 2, score: s.player1.id === loserId ? s.player1.score : s.player2.score },
+        ]
+      : [
+          { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
+          { playerId: s.player2.id, nickname: s.player2.nickname, rank: 1, score: s.player2.score },
+        ];
+
   const payload = {
-    rankings: [
-      { playerId: winnerId, nickname: winnerNick, rank: 1, score: s.player1.id === winnerId ? s.player1.score : s.player2.score },
-      { playerId: loserId, nickname: loserNick, rank: 2, score: s.player1.id === loserId ? s.player1.score : s.player2.score },
-    ],
+    rankings,
     totalTurns: s.round,
     gameResultData: {
       winType: s.winType,
@@ -361,20 +381,29 @@ function resolveGame(
 
 /* ────────────────────── round processing ─────────────── */
 
+/** winnerId 가 null 이면 무승부로 끝낸다(승점·넘버 합·잔여 백색이 모두 같은 경우). */
 function delayedResolve(
   io: IO,
   s: InternalState,
-  winnerId: string,
-  loserId: string,
+  winnerId: string | null,
+  loserId: string | null,
   winType: InternalState['winType'],
 ) {
-  const winnerP = winnerId === s.player1.id ? s.player1 : s.player2;
-  const loserP = loserId === s.player1.id ? s.player1 : s.player2;
+  const winnerP = winnerId ? (winnerId === s.player1.id ? s.player1 : s.player2) : null;
+  const loserP = loserId ? (loserId === s.player1.id ? s.player1 : s.player2) : null;
   const gen = s.aiGeneration;
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
     if (s.aiGeneration !== gen) return;
-    resolveGame(io, s, winnerId, winnerP.nickname, loserId, loserP.nickname, winType);
+    resolveGame(
+      io,
+      s,
+      winnerId,
+      winnerP?.nickname ?? '',
+      loserId,
+      loserP?.nickname ?? '',
+      winType,
+    );
   }, REVEAL_DELAY_MS);
 }
 
@@ -446,6 +475,10 @@ export function processRound(io: IO, s: InternalState) {
   if (p1Dead && p2Dead) {
     const tb = tiebreaker(s);
     s.tiebreakerReason = tb.reason;
+    if (!tb.winnerId) {
+      delayedResolve(io, s, null, null, 'draw');
+      return;
+    }
     const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
     delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
     return;
@@ -469,8 +502,12 @@ export function processRound(io: IO, s: InternalState) {
     } else {
       const tb = tiebreaker(s);
       s.tiebreakerReason = tb.reason;
-      const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
-      delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
+      if (!tb.winnerId) {
+        delayedResolve(io, s, null, null, 'draw');
+      } else {
+        const loserId = tb.winnerId === s.player1.id ? s.player2.id : s.player1.id;
+        delayedResolve(io, s, tb.winnerId, loserId, 'tiebreaker');
+      }
     }
     return;
   }

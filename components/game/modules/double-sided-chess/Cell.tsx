@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import type { Cell as CellType } from '@/shared/types/double-sided-chess';
+import type { Cell as CellType, Owner, PieceType } from '@/shared/types/double-sided-chess';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { useSkinFx } from '@/lib/skins/useSkinFx';
 import Piece from './Piece';
@@ -23,6 +23,8 @@ interface Props {
   isDimmed: boolean;
   isTerritory: 'first' | 'second' | null;
   skin?: SkinTheme | null;
+  /** 터치 첫 탭 — 둘 자리에 반투명으로 보여 줄 말 */
+  ghost?: { piece: PieceType; owner: Owner; isPromoted?: boolean } | null;
   onClick: () => void;
 }
 
@@ -40,6 +42,7 @@ export default function Cell({
   isDimmed,
   isTerritory,
   skin,
+  ghost = null,
   onClick,
 }: Props) {
   const isImperial = skin === 'imperial';
@@ -123,7 +126,20 @@ export default function Cell({
         />
       )}
 
-      {isValidMove && !cell && (
+      {/* 잡는 칸이면 상대 말 위에 겹쳐 그린다 — 말(z 3) 보다 위 */}
+      {ghost && (
+        <div
+          className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-amber-400"
+          style={{ zIndex: 4 }}
+          aria-hidden
+        >
+          <div className="absolute inset-0 opacity-55">
+            <Piece piece={ghost.piece} owner={ghost.owner} isPromoted={ghost.isPromoted ?? false} skin={skin} />
+          </div>
+        </div>
+      )}
+
+      {isValidMove && !cell && !ghost && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className={cn('h-[30%] w-[30%] rounded-full', isImperial ? 'bg-amber-300/70 shadow-[0_0_8px_rgba(245,210,122,0.8)]' : 'bg-green-500/50')} />
         </div>

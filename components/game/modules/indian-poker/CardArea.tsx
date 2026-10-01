@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { NumericCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import type { IPPlayerInfo } from '@/shared/types/indian-poker';
 import type { SkinTheme } from '@/lib/skins/registry';
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import MoonlitCard, { type MoonlitDealFly } from './skins/MoonlitCard';
 import MoonlitTableShell from './skins/MoonlitTableShell';
 import MoonlitDeckPile from './skins/MoonlitDeckPile';
@@ -19,6 +20,9 @@ interface CardAreaProps {
   dealStep?: number;
   showShuffle?: boolean;
 }
+
+/* 판 자리에 맞춘 너비 — 예전 카드와 같은 크기라 판 배치가 바뀌지 않는다 */
+const TABLE_CARD_WIDTH = { sm: 'w-9 lg:w-12', md: 'w-11 lg:w-14' } as const;
 
 function TableCard({
   value,
@@ -51,11 +55,11 @@ function TableCard({
   }
 
   return (
-    <NumericCard
+    <PlayingCard
       value={value}
       hidden={hidden}
-      size={size}
       animateIn={animateIn}
+      className={TABLE_CARD_WIDTH[size]}
     />
   );
 }
@@ -100,7 +104,7 @@ function CardAreaContent({
     <>
       <div className="flex flex-col items-center gap-1">
         <span className={`text-[10px] lg:text-xs ${labelClass}`}>
-          {opponentPlayer?.nickname ?? '상대'} 카드
+          {opponentDisplayName(opponentPlayer?.nickname, isSpectator)} 카드
         </span>
         {showOpp ? (
           <TableCard

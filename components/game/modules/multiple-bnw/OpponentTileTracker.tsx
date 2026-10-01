@@ -19,12 +19,12 @@ export default function OpponentTileTracker({
   const blacks = MBNW_TILE_SET.filter(t => MBNW_TILE_COLOR[t] === 'black');
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-semibold text-gray-500">상대 타일 추리</p>
+    <div className="mbnw-panel mbnw-tracker flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+      <p className="mbnw-panel-title text-xs font-semibold text-gray-500">상대 타일 추리</p>
 
       <div className="flex flex-col gap-2">
         <div>
-          <p className="mb-1 text-[10px] text-gray-400">백색</p>
+          <p className="mbnw-tile-group-label mb-1 text-[10px] text-gray-400">백색</p>
           <div className="flex flex-wrap gap-1.5">
             {whites.map(t => (
               <TrackerTile
@@ -40,7 +40,7 @@ export default function OpponentTileTracker({
         </div>
 
         <div>
-          <p className="mb-1 text-[10px] text-gray-400">흑색</p>
+          <p className="mbnw-tile-group-label mb-1 text-[10px] text-gray-400">흑색</p>
           <div className="flex flex-wrap gap-1.5">
             {blacks.map(t => (
               <TrackerTile
@@ -79,7 +79,7 @@ function TrackerTile({
       <button
         onClick={() => onToggle(tile)}
         title="클릭해서 마킹 해제"
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border-2 border-gray-300 bg-gray-200 text-sm font-bold text-gray-400 transition-all"
+        className="mbnw-tracker-tile mbnw-tracker-tile--marked relative flex h-9 w-9 items-center justify-center rounded-lg border-2 border-gray-300 bg-gray-200 text-sm font-bold text-gray-400 transition-all"
       >
         <span className="line-through">{tile}</span>
       </button>
@@ -98,7 +98,7 @@ function TrackerTile({
     <button
       onClick={() => onToggle(tile)}
       title="클릭해서 사용된 것으로 표시"
-      className={`flex h-9 w-9 items-center justify-center rounded-lg border-2 text-sm font-bold transition-all hover:opacity-75 ${base} ${highlight}`}
+      className={`mbnw-tracker-tile mbnw-tracker-tile--${color} ${highlighted ? 'mbnw-tracker-tile--highlighted' : ''} flex h-9 w-9 items-center justify-center rounded-lg border-2 text-sm font-bold transition-all hover:opacity-75 ${base} ${highlight}`}
     >
       {tile}
     </button>

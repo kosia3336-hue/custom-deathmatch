@@ -23,6 +23,8 @@ import {
   zeroBet,
   zeroPowder,
 } from '@/shared/types/sun-moon-star-2';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
 import { WIN_TYPE_LABELS } from '../constants';
 import {
   type OpponentPowderEstimate,
@@ -44,6 +46,7 @@ export function useSMS2Context() {
   const gameState = useRoomStore((s) => s.gameState);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as SMS2GameData | undefined;
+  const dalmaji = getSkinTheme(gameState?.activeSkin, GAME_IDS.SUN_MOON_STAR_2) === 'dalmaji';
   const myId = useMySocketId();
   useTurnTimer();
 
@@ -262,6 +265,7 @@ export function useSMS2Context() {
     showTracker,
 
     /* derived display */
+    dalmaji,
     litMark,
     revealedBetFirst,
     markRowPendingPowder,

@@ -7,9 +7,9 @@ import type {
   SeedSeotdaRoundResult,
 } from '@shared/types/seed-seotda.js';
 import { sessions } from '../../../store/sessions.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import type { IO, TypedSocket } from '../../types.js';
 import { socketRoom } from '../../utils.js';
 import { evaluateSeedSeotdaHand } from './judge.js';
@@ -57,9 +57,7 @@ function nicknameFor(
   playerId: string,
   nickname: string,
 ) {
-  return isTokenAnonymized(state.roomId, playerId) && playerId !== viewerId
-    ? ANONYMOUS_NICKNAME
-    : nickname;
+  return nicknameForViewer(state.roomId, playerId, nickname, viewerId);
 }
 
 export function seedSeotdaBettingBounds(state: SeedSeotdaState) {
@@ -156,10 +154,13 @@ export function toSeedSeotdaGameData(
     seedCard: state.seedCard ? cloneCard(state.seedCard) : null,
     pot: state.pot,
     deckRemaining: state.deck.length,
+    deckCycles: state.deckCycles,
     currentTurnId: state.currentTurnId,
     firstPlayerId: state.firstPlayerId,
     bettingOpened: state.bettingOpened,
     ...bounds,
+    /* 기록에는 공개된 패만 들어 있다(다이 라운드는 던진 사람 것만) — 그대로 보낸다 */
+    rounds: state.roundResults.map(cloneSeedSeotdaRoundResult),
     lastRoundResult: state.lastRoundResult
       ? cloneSeedSeotdaRoundResult(state.lastRoundResult)
       : null,
@@ -189,6 +190,29 @@ function gameMessage(state: SeedSeotdaState) {
   }
 }
 
+function emitSeedSeotdaDbg(
+  socket: Pick<TypedSocket, 'emit'>,
+  state: SeedSeotdaState,
+  playerId: string,
+) {
+  if (!state.players.some((player) => player.id === playerId)) return;
+  if (!isDbgViewer(state.playMode, sessions.getMemberId(playerId))) return;
+  const oppId = otherSeedSeotdaPlayerId(state, playerId);
+  const opp = state.playerStates[oppId];
+  const oppPlayer = state.players.find((player) => player.id === oppId);
+  socket.emit('ext:data', {
+    game: 'seed-seotda',
+    round: state.round,
+    phase: state.phase,
+    opponent: oppPlayer
+      ? nicknameFor(state, playerId, oppId, oppPlayer.nickname)
+      : oppId,
+    cards: opp.cards.map(cloneCard),
+    finalHand: opp.finalHand.map(cloneCard),
+    seedChoice: opp.seedChoice,
+  });
+}
+
 function toGameState(state: SeedSeotdaState, data: SeedSeotdaGameData): GameState {
   return {
     roomId: state.roomId,
@@ -207,6 +231,7 @@ export async function broadcastSeedSeotdaState(io: IO, state: SeedSeotdaState) {
   for (const socket of sockets) {
     const playerId = sessions.getToken(socket.id) ?? socket.id;
     const isPlayer = state.players.some((player) => player.id === playerId);
+    emitSeedSeotdaDbg(socket, state, playerId);
     socket.emit(
       'game:state',
       toGameState(state, toSeedSeotdaGameData(state, isPlayer ? playerId : null)),
@@ -219,6 +244,7 @@ export function emitSeedSeotdaStateToSocket(socket: TypedSocket, roomId: string)
   if (!state) return;
   const playerId = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = state.players.some((player) => player.id === playerId);
+  emitSeedSeotdaDbg(socket, state, playerId);
   socket.emit(
     'game:state',
     toGameState(state, toSeedSeotdaGameData(state, isPlayer ? playerId : null)),

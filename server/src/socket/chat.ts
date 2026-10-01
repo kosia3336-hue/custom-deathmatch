@@ -7,7 +7,9 @@ import { LOBBY_ROOM } from './types.js';
 import { roomStore } from '../store/rooms.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { maskChatMessageForViewer } from '../shop/maskNicknames.js';
+import { maskRankChatForViewer } from '../rank/maskRankIdentity.js';
 import { getSupabaseAdmin } from '../db/supabase.js';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell.js';
 
 const lastMessageTime = new Map<string, number>();
 const COOLDOWN_MS = 500;
@@ -117,6 +119,42 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       return;
     }
 
+    // 길드전 방 길드 채팅 — 이 방에 있는 같은 길드만. 길드 페이지(`guild`)·DB와 별개.
+    if (scope === 'guild_war') {
+      const roomId = sessions.getRoom(socket.id);
+      if (roomId !== GUILD_WAR_ROOM_ID) return;
+      const room = roomStore.get(roomId);
+      if (!room) return;
+      const guildId = sessions.getGuildIdBySocket(socket.id);
+      if (!guildId) return;
+
+      const isSpectator = room.spectators.some((s) => s.id === token);
+      const isPlayer = room.players.some((p) => p.id === token);
+      if (!isSpectator && !isPlayer) return;
+
+      const warMsg: ChatMessage = {
+        id: uuid(),
+        sender: socket.id,
+        senderNickname: nickname,
+        message: trimmed,
+        scope: 'guild_war',
+        isSystem: false,
+        timestamp: now,
+        senderTitle: senderTitle ?? null,
+        senderGuildName: senderGuildName ?? null,
+        isSpectator,
+        senderMemberId: senderMemberId ?? null,
+      };
+
+      const sockets = io.sockets.adapter.rooms.get(socketRoom(roomId));
+      if (!sockets) return;
+      for (const sid of sockets) {
+        if (sessions.getGuildIdBySocket(sid) !== guildId) continue;
+        io.sockets.sockets.get(sid)?.emit('chat:message', warMsg);
+      }
+      return;
+    }
+
     // room / game 스코프
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
@@ -142,19 +180,24 @@ export function registerChatHandlers(io: IO, socket: TypedSocket) {
       senderMemberId: senderMemberId ?? null,
     };
 
-    // 익명 효과가 있으면 viewer 별 분기 emit, 아니면 broadcast.
     const shopState = getRoomShopState(roomId);
-    if (
-      shopState
+    const potionMask =
+      !!shopState
       && shopState.anonymizedMemberIds.size > 0
-      && senderMemberId
-      && shopState.anonymizedMemberIds.has(senderMemberId)
-    ) {
+      && !!senderMemberId
+      && shopState.anonymizedMemberIds.has(senderMemberId);
+    const rankMask = !!room.isRanked && isPlayer && !isSpectator;
+    if (potionMask || rankMask) {
       const sockets = io.sockets.adapter.rooms.get(socketRoom(roomId));
       if (sockets) {
         for (const sid of sockets) {
           const viewerMid = sessions.getMemberIdBySocket(sid);
-          const masked = maskChatMessageForViewer(roomId, msg, viewerMid);
+          const viewerToken = sessions.getToken(sid) ?? null;
+          const masked = maskRankChatForViewer(
+            room,
+            maskChatMessageForViewer(roomId, msg, viewerMid),
+            viewerToken,
+          );
           io.sockets.sockets.get(sid)?.emit('chat:message', masked);
         }
         return;

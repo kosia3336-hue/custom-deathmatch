@@ -1,0 +1,139 @@
+.card {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 4.25rem;
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  user-select: none;
+}
+
+.sm {
+  width: 2.5rem;
+}
+
+.face {
+  border: 2px solid transparent;
+}
+
+/* 덱·상대 뒷면: 카드 6색(빨강~보라)과 안 겹치는 슬레이트 */
+.back {
+  border: 2px solid #0f172a;
+  background-color: #334155;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 5px,
+      color-mix(in srgb, #0f172a 45%, transparent) 5px 6px
+    );
+}
+
+.backPip {
+  position: absolute;
+  inset: 18%;
+  border: 2px solid color-mix(in srgb, white 35%, transparent);
+  border-radius: 0.35rem;
+  transform: rotate(45deg);
+}
+
+.backCount {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cdm-fg-inverse);
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sm .backCount {
+  font-size: 1rem;
+}
+
+.rank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm .rank {
+  font-size: 1.15rem;
+}
+
+/* 규칙 6색 — 토큰 팔레트로는 주황/노랑, 파랑/보라가 붙어 보여서 게임 색만 여기서 고정 */
+.red {
+  background: #e11d48;
+  border-color: #9f1239;
+  color: var(--cdm-fg-inverse);
+}
+
+.orange {
+  background: #ea580c;
+  border-color: #9a3412;
+  color: var(--cdm-fg-inverse);
+}
+
+.yellow {
+  background: #facc15;
+  border-color: #ca8a04;
+  color: var(--cdm-fg);
+}
+
+.green {
+  background: #15803d;
+  border-color: #14532d;
+  color: var(--cdm-fg-inverse);
+}
+
+.blue {
+  background: #0369a1;
+  border-color: #0c4a6e;
+  color: var(--cdm-fg-inverse);
+}
+
+.purple {
+  background: #a21caf;
+  border-color: #701a75;
+  color: var(--cdm-fg-inverse);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--cdm-fg);
+  outline-offset: 2px;
+}
+
+.selected {
+  box-shadow: 0 0 0 2px var(--cdm-bg), 0 0 0 4px var(--cdm-fg);
+}
+
+.dimmed {
+  opacity: 0.35;
+}
+
+.playable {
+  box-shadow: 0 0 0 2px var(--cdm-bg), 0 0 0 4px var(--cdm-highlight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clickable:hover {
+    transform: none;
+  }
+}

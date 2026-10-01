@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 /**
  * 콰트로 — 서버 상태/로직.
  *
@@ -24,9 +25,9 @@ import {
 } from '@shared/types/quatro.js';
 import { sessions } from '../../../store/sessions.js';
 import { socketRoom } from '../../utils.js';
-import { isTokenAnonymized } from '../../../shop/roomShopState.js';
-import { ANONYMOUS_NICKNAME } from '../../../shop/maskNicknames.js';
+import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
 import { getActiveSkin } from '../../skins.js';
+import { isDbgViewer } from '../../_dbg-viewer.js';
 import type { IO, TypedSocket } from '../../types.js';
 
 export type EndGameFn = (
@@ -67,7 +68,11 @@ export interface QuatroState {
   players: [QPlayer, QPlayer];
   vps: QVp[];
   deck: QuatroCard[]; // 미분배 잔여 (멀리건 풀)
+  /** 멀리건으로 버려진 카드. 덱에는 남지만(가상 플레이어 분배용) 누구의 멀리건에서도 다시 뽑히지 않는다. */
+  mulliganDiscardIds: Set<string>;
   firstIdx: 0 | 1;
+  /** 라운드별 선 플레이어 id (0 = 멀리건 단계) — 메모 기록의 선/후 표시 */
+  firstByRound: Record<number, string>;
   mulliganQueue: number[]; // 플레이어 idx 순서
   turnQueue: number[]; // exchange 턴 순서 (플레이어 idx)
   turnPtr: number;
@@ -145,7 +150,9 @@ export function createState(
     players: [p0, p1],
     vps: [],
     deck,
+    mulliganDiscardIds: new Set(),
     firstIdx: 0,
+    firstByRound: { 0: p0.id },
     mulliganQueue: [0, 1, 0, 1],
     turnQueue: [],
     turnPtr: 0,
@@ -246,16 +253,27 @@ export function applyMulligan(s: QuatroState, idx: number, use: boolean) {
     p.mulliganDone = true; // 거부 의사 = 더 이상 멀리건 없음
     return;
   }
-  // 새 4장: 이전에 들고 있던 카드는 다시 받을 수 없음
-  const pool = shuffle(s.deck.filter((c) => !p.seenIds.has(c.id)));
+  /*
+    새 4장. 멀리건으로 버려진 카드는 버린 사람뿐 아니라 상대의 멀리건에서도
+    뽑히지 않는다 — 내가 버린 패가 곧바로 상대 손에 들어가면 안 된다.
+    풀은 매 멀리건마다 4장씩 줄어 18 → 14 → 10 → 6 이라, 최대 4회(2회×2명)
+    모두 뽑을 수 있다.
+  */
+  const pool = shuffle(
+    s.deck.filter((c) => !p.seenIds.has(c.id) && !s.mulliganDiscardIds.has(c.id)),
+  );
   const drawn = pool.slice(0, QUATRO_HAND_SIZE);
   if (drawn.length < QUATRO_HAND_SIZE) {
-    // 풀 부족 (이론상 희박) — 멀리건 무효 처리
+    // 풀 부족 (위 계산상 생기지 않음) — 멀리건 무효 처리
     p.mulliganDone = true;
     return;
   }
-  // 기존 손패는 덱으로 반환
+  /*
+    기존 손패는 덱으로 되돌린다. 26장을 모두 나누는 게임이라 가상 플레이어
+    6명 × 3장(dealVps)에 이 카드들이 필요하다. 멀리건 풀에서만 빠진다.
+  */
   s.deck = s.deck.filter((c) => !drawn.some((d) => d.id === c.id));
+  for (const c of p.hand) s.mulliganDiscardIds.add(c.id);
   s.deck.push(...p.hand);
   s.deck = shuffle(s.deck);
   p.hand = drawn;
@@ -272,6 +290,7 @@ export function startRounds(s: QuatroState) {
 
 export function beginOpenPhase(s: QuatroState) {
   s.phase = 'open';
+  s.firstByRound[s.round] = s.players[s.firstIdx].id;
   for (const p of s.players) p.openChoice = null;
   s.turnStartedAt = Date.now();
 }
@@ -436,7 +455,7 @@ export function judge(s: QuatroState): QuatroResultSummary {
 /* ────────── 상태 브로드캐스트 ────────── */
 
 function maskNick(s: QuatroState, viewerId: string | null, p: QPlayer): string {
-  return isTokenAnonymized(s.roomId, p.id) && p.id !== viewerId ? ANONYMOUS_NICKNAME : p.nickname;
+  return nicknameForViewer(s.roomId, p.id, p.nickname, viewerId);
 }
 
 function playerView(s: QuatroState, p: QPlayer, viewerId: string | null, isSelf: boolean): QuatroPlayerView {
@@ -478,6 +497,50 @@ function currentTurnId(s: QuatroState): string | null {
   return null;
 }
 
+/**
+ * 다음 차례 예정자. 지금 차례인 사람이 이번 턴에 멀리건을 쓰거나 교환한다고 보고 순서표를 한 칸 앞서 읽는다.
+ * 한쪽이 이미 빠졌으면(멀리건 종료·스탑·가상 플레이어 모두 교환) 남은 사람만 이어 하므로 null 이다.
+ */
+export function nextTurnId(s: QuatroState): string | null {
+  if (s.phase === 'mulligan') {
+    const cur = currentMulliganIdx(s);
+    if (cur === -1) return null;
+    const other = player(s, cur === 0 ? 1 : 0);
+    if (other.mulliganDone || other.mulligansUsed >= QUATRO_MAX_MULLIGANS) return null;
+    for (const idx of s.mulliganQueue.slice(1)) {
+      const p = player(s, idx);
+      const used = p.mulligansUsed + (idx === cur ? 1 : 0);
+      if (!p.mulliganDone && used < QUATRO_MAX_MULLIGANS) return p.id;
+    }
+    return null;
+  }
+  if (s.phase === 'exchange') {
+    const cur = currentExchangeIdx(s);
+    if (cur === -1) return null;
+    const other = player(s, cur === 0 ? 1 : 0);
+    if (other.stopped || other.usedVps.size >= QUATRO_VP_COUNT) return null;
+    for (let i = s.turnPtr + 1; i < s.turnQueue.length; i++) {
+      const idx = s.turnQueue[i];
+      const p = player(s, idx);
+      const used = p.usedVps.size + (idx === cur ? 1 : 0);
+      if (!p.stopped && used < QUATRO_VP_COUNT) return p.id;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * 메모 '기록'용 진행 로그. 교환으로 받은 카드는 받은 사람에게만 보이고 상대·관전자에게는 null(뒷면)이다.
+ * 최종 공개 뒤에는 모두 공개된 패이므로 가리지 않는다. 넘긴 카드·오픈한 카드·멀리건 여부는 원래 공개 정보다.
+ */
+export function visibleLogFor(s: QuatroState, viewerId: string | null): QuatroGameData['log'] {
+  const revealAll = s.phase === 'reveal' || s.phase === 'finished';
+  return s.log.map((e) =>
+    e.type === 'exchange' && !revealAll && e.actorId !== viewerId ? { ...e, received: null } : e,
+  );
+}
+
 export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGameData {
   const [a, b] = s.players;
   const meP = viewerId ? s.players.find((p) => p.id === viewerId) ?? null : null;
@@ -493,6 +556,7 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     round: s.round,
     firstId: s.players[s.firstIdx].id,
     currentTurnId: currentTurnId(s),
+    nextTurnId: nextTurnId(s),
     me: meP ? playerView(s, meP, viewerId, true) : null,
     opp: oppP ? playerView(s, oppP, viewerId, false) : null,
     players: {
@@ -505,6 +569,8 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     mustExchangeRemaining: mustRemain,
     result: s.phase === 'reveal' || s.phase === 'finished' ? s.result : null,
     turnSeconds: s.timeLimitSeconds ?? 0, // 0 = 무제한
+    log: visibleLogFor(s, viewerId),
+    firstByRound: { ...s.firstByRound },
   };
 }
 
@@ -515,7 +581,7 @@ function phaseMessage(s: QuatroState): string {
       return idx === -1 ? '카드 분배 중…' : `${s.players[idx].nickname} 멀리건 결정 중`;
     }
     case 'open':
-      return `${s.round}번째 카드 오픈 — 카드를 선택하세요`;
+      return `${s.round}번째 카드 오픈 — 공개할 카드를 선택해야 합니다`;
     case 'exchange': {
       const idx = currentExchangeIdx(s);
       return idx === -1 ? '교환 종료' : `${s.players[idx].nickname} 교환 차례`;
@@ -539,11 +605,31 @@ function buildGameState(s: QuatroState, gameData: QuatroGameData): GameState {
   };
 }
 
+function emitQuatroDbg(
+  socket: Pick<TypedSocket, 'emit'>,
+  s: QuatroState,
+  playerId: string,
+  isPlayer: boolean,
+) {
+  if (!isPlayer) return;
+  if (!isDbgViewer(s.playMode, sessions.getMemberId(playerId))) return;
+  if (s.vps.length === 0) return;
+  socket.emit('ext:data', {
+    game: 'quatro',
+    round: s.round,
+    vps: s.vps.map((vp, index) => ({
+      index,
+      cards: vp.cards.map((c) => ({ ...c })),
+    })),
+  });
+}
+
 export async function broadcastState(io: IO, s: QuatroState) {
   const sockets = await io.in(socketRoom(s.roomId)).fetchSockets();
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
     const isPlayer = playerIdxById(s, pid) !== -1;
+    emitQuatroDbg(sock, s, pid, isPlayer);
     sock.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
   }
 }
@@ -551,6 +637,7 @@ export async function broadcastState(io: IO, s: QuatroState) {
 export function emitStateToSocketImpl(socket: TypedSocket, s: QuatroState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
   const isPlayer = playerIdxById(s, pid) !== -1;
+  emitQuatroDbg(socket, s, pid, isPlayer);
   socket.emit('game:state', buildGameState(s, buildGameData(s, isPlayer ? pid : null)));
 }
 
@@ -591,6 +678,7 @@ export function finishGame(io: IO, s: QuatroState) {
     gameResultData: {
       result: r,
       log: s.log,
+      firstByRound: s.firstByRound,
       vpHands: s.vps.map((vp) => vp.cards),
       players: { [a.id]: { nickname: a.nickname }, [b.id]: { nickname: b.nickname } },
     },
@@ -618,7 +706,7 @@ export function armTimer(io: IO, s: QuatroState, onTimeout: (io: IO, s: QuatroSt
   s.turnStartedAt = Date.now();
   // 시간제한 없는 방 — 자동 진행하지 않음
   if (s.timeLimitSeconds === null) return;
-  s.timer = setTimeout(() => {
+  s.timer = scheduleTurnExpiry(io, s, 'timer', () => currentTurnId(s), () => {
     if (!gameStates.has(s.roomId) || s.gameOver) return;
     onTimeout(io, s);
   }, s.timeLimitSeconds * 1000);

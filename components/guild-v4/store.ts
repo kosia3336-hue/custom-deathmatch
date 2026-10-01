@@ -41,6 +41,7 @@ export type GuildLiveState = {
   tileOrder: DevTileId[];
   rankCards: Record<string, RankCardShopSkinId>;
   rankCard: { skinId: RankCardShopSkinId; expiresAt: string } | null;
+  warChips: number;
   hydrate: (snap: GuildV4Snapshot) => void;
 };
 
@@ -61,6 +62,7 @@ export const useGuildDevStore = create<GuildLiveState>()((set) => ({
   tileOrder: [...DEV_DEFAULT_TILE_ORDER],
   rankCards: {},
   rankCard: null,
+  warChips: 0,
   hydrate: (snap) =>
     set({
       hydrated: true,
@@ -79,6 +81,7 @@ export const useGuildDevStore = create<GuildLiveState>()((set) => ({
       tileOrder: normalizeTileOrder(snap.tileOrder),
       rankCards: snap.rankCards ?? {},
       rankCard: snap.rankCard ?? null,
+      warChips: snap.warChips ?? 0,
     }),
 }));
 

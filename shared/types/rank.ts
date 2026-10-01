@@ -35,48 +35,51 @@ export function rankTierNumericForRp(tier: RankTier, placementDone: boolean): nu
  * @returns winnerGain / loserLoss 모두 양수 — 패배 차감은 caller 가 음수로 적용
  */
 
-/** RP 테이블·스트릭 분해 (결과 화면 세부 내역용) */
+/** 동티어 기본 RP. 카운터는 이 값을 일반 점수에 한 번 더한다. */
+export const RANK_PARITY_RP = 12;
+
+/** RP 테이블 분해. 연승·연패는 이 판 시작 시점의 연속 수. */
 export interface RankRpParts {
   winnerGain: number;
   loserLoss: number;
   winnerBaseTable: number;
-  winnerStreakBonus: number;
   loserBaseTable: number;
+  winnerStreakBonus: number;
   loserStreakPenalty: number;
+}
+
+/** 3연승·3연패부터. 이 판으로 늘어나기 전의 연속 수를 넣는다. */
+export function rankStreakBonus(streak: number): number {
+  if (streak >= 6) return 20;
+  if (streak === 5) return 15;
+  if (streak === 4) return 10;
+  if (streak === 3) return 6;
+  return 0;
 }
 
 export function calcRankRpParts(
   winnerTierVal: number,
   loserTierVal: number,
-  winnerWinStreak: number,
-  loserLossStreak: number,
+  winnerWinStreak = 0,
+  loserLossStreak = 0,
+  loserTier?: RankTier,
 ): RankRpParts {
   const tierDiff = winnerTierVal - loserTierVal;
+  // 시즌3 표. 동티어 12. index = clamp(tierDiff + 3, 0, 6)
   const gainTable = [20, 17, 14, 12, 10, 8, 6];
   const idx = Math.max(0, Math.min(6, tierDiff + 3));
-  const winnerBaseTable = gainTable[idx];
-  const loserBaseTable = gainTable[idx];
-
-  const winnerStreakBonus =
-    winnerWinStreak >= 6 ? 20
-    : winnerWinStreak === 5 ? 15
-    : winnerWinStreak === 4 ? 10
-    : winnerWinStreak === 3 ? 6
-    : 0;
-
-  const loserStreakPenalty =
-    loserLossStreak >= 6 ? 20
-    : loserLossStreak === 5 ? 15
-    : loserLossStreak === 4 ? 10
-    : loserLossStreak === 3 ? 6
-    : 0;
+  const base = gainTable[idx] ?? RANK_PARITY_RP;
+  const winnerStreakBonus = rankStreakBonus(winnerWinStreak);
+  const loserStreakPenalty = rankStreakBonus(loserLossStreak);
+  const loserBaseTable =
+    loserTier === 'diamond' || loserTier === 'challenger' ? Math.min(base, RANK_PARITY_RP) : base;
 
   return {
-    winnerGain: Math.max(3, winnerBaseTable + winnerStreakBonus),
+    winnerGain: Math.max(3, base + winnerStreakBonus),
     loserLoss: Math.max(5, loserBaseTable + loserStreakPenalty),
-    winnerBaseTable,
-    winnerStreakBonus,
+    winnerBaseTable: base,
     loserBaseTable,
+    winnerStreakBonus,
     loserStreakPenalty,
   };
 }
@@ -84,11 +87,49 @@ export function calcRankRpParts(
 export function calcRankRpChange(
   winnerTierVal: number,
   loserTierVal: number,
-  winnerWinStreak: number,
-  loserLossStreak: number,
+  winnerWinStreak = 0,
+  loserLossStreak = 0,
+  loserTier?: RankTier,
 ): { winnerGain: number; loserLoss: number } {
-  const p = calcRankRpParts(winnerTierVal, loserTierVal, winnerWinStreak, loserLossStreak);
+  const p = calcRankRpParts(winnerTierVal, loserTierVal, winnerWinStreak, loserLossStreak, loserTier);
   return { winnerGain: p.winnerGain, loserLoss: p.loserLoss };
+}
+
+/** 랭크 카운터 매치 확률 (매 판 독립). */
+export const COUNTER_MATCH_CHANCE = 1 / 15;
+/** VS 카운트 시작 초(5 → 0). */
+export const RANK_VS_SEC = 5;
+/** 0초를 1초 보여 준 뒤 플레이 진입. */
+export const RANK_VS_NAV_SEC = RANK_VS_SEC + 1;
+/** 카운터 동시 1밴 제한(ms). */
+export const COUNTER_BAN_TURN_MS = 30_000;
+
+/**
+ * 카운터 RP = 동티어 기본(12) + 그 판의 일반 RP.
+ * 티어 차이와 연승·연패는 한 번만 붙고, 기본만 한 번 더한다.
+ */
+export function calcCounterRankRpParts(
+  winnerTierVal: number,
+  loserTierVal: number,
+  winnerWinStreak = 0,
+  loserLossStreak = 0,
+  loserTier?: RankTier,
+): RankRpParts {
+  const normal = calcRankRpParts(
+    winnerTierVal,
+    loserTierVal,
+    winnerWinStreak,
+    loserLossStreak,
+    loserTier,
+  );
+  return {
+    winnerGain: RANK_PARITY_RP + normal.winnerGain,
+    loserLoss: RANK_PARITY_RP + normal.loserLoss,
+    winnerBaseTable: normal.winnerBaseTable,
+    loserBaseTable: normal.loserBaseTable,
+    winnerStreakBonus: normal.winnerStreakBonus,
+    loserStreakPenalty: normal.loserStreakPenalty,
+  };
 }
 
 /** 배치전 5판 완료 후 최종 티어·RP (기획 04) */
@@ -215,7 +256,7 @@ export interface RankMatchGuildSnap {
   markUrl: string | null;
 }
 
-/** `rank:queue:matched` — 운영 오버레이·/dev 프리뷰 공통. 익명 물약이면 상대 식별 필드는 null/`???`. */
+/** `rank:queue:matched` — 운영 오버레이·/dev 프리뷰 공통. 랭크는 상대 닉 `???`·RP null. 익명 물약이면 상대 칭호/길드/연승/티어까지 null. */
 export interface RankMatchedPayload {
   roomId: string;
   selfNickname: string;
@@ -232,4 +273,6 @@ export interface RankMatchedPayload {
   opponentTier: RankTier | null;
   opponentRp: number | null;
   opponentIsPlacement: boolean | null;
+  /** 카운터 매치. 없으면 일반 랭크 VS. */
+  hiddenMatch?: boolean;
 }

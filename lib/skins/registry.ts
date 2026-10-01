@@ -8,6 +8,7 @@
  */
 
 import { GAME_IDS } from '@/shared/types/game';
+import { CHUSEOK_LIMITED_SKIN_ID } from '@shared/event/chuseok';
 
 /** 지원하는 스킨 테마 식별자 */
 export type SkinTheme =
@@ -20,7 +21,10 @@ export type SkinTheme =
   | 'meow'
   | 'candy'
   | 'treasury'
-  | 'four-card';
+  | 'four-card'
+  | 'spring-rain'
+  | 'ink-wash'
+  | 'dalmaji';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -102,6 +106,22 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     description: '에메랄드 펠트 위의 클래식 카지노. 트럼프 카드와 달빛 조커로 완성하는 콰트로.',
     swatch: 'linear-gradient(135deg, #061b16 0%, #0d4638 52%, #8e5d2d 100%)',
   },
+  'skin-g023-01': {
+    id: 'skin-g023-01',
+    gameId: GAME_IDS.KINGMAKING,
+    name: '봄비',
+    theme: 'spring-rain',
+    description: '봄비가 멈춘 정원의 웅덩이 판. 연잎 말이 쌓이고 착수 자리에 물결이 퍼진다.',
+    swatch: 'linear-gradient(135deg, #dcebe3 0%, #6d9992 52%, #df897a 100%)',
+  },
+  'skin-g007-01': {
+    id: 'skin-g007-01',
+    gameId: GAME_IDS.MULTIPLE_BNW,
+    name: '묵연',
+    theme: 'ink-wash',
+    description: '한지 위로 번지는 먹빛 산수. 백자와 먹돌 타일로 펼치는 고요한 수 싸움.',
+    swatch: 'linear-gradient(135deg, #f2eadc 0%, #d4c8b4 52%, #242321 100%)',
+  },
   'skin-g011-01': {
     id: 'skin-g011-01',
     gameId: GAME_IDS.FIVE_TOWERS,
@@ -117,6 +137,14 @@ export const SKIN_REGISTRY: Record<string, SkinMeta> = {
     theme: 'showdown',
     description: '황혼의 결투장. 탄띠 트랙, 조준경 제시, 현상금 포스터와 총잡이 결투 연출.',
     swatch: 'linear-gradient(160deg, #f3e6d0 0%, #d8a24a 45%, #9c5a34 100%)',
+  },
+  [CHUSEOK_LIMITED_SKIN_ID]: {
+    id: CHUSEOK_LIMITED_SKIN_ID,
+    gameId: GAME_IDS.SUN_MOON_STAR_2,
+    name: '한가위 보름',
+    theme: 'dalmaji',
+    description: '해달별2 한가위 보름. 달빛 판과 해·달·별 문양.',
+    swatch: 'linear-gradient(160deg, #141e38 0%, #1a5864 48%, #e8c56a 100%)',
   },
 };
 

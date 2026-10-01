@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getSocket } from '@/lib/socket';
+import { serverNow } from '@/lib/serverClock';
 import { sfxCall, sfxRaise, sfxDie, sfxDeal } from '@/lib/eventSfx';
 import {
   IPE_MAX_SEATS,
@@ -32,7 +33,7 @@ function useTurnCountdown(turnStartedAt: number | null) {
     if (turnStartedAt == null) { setRemaining(null); return; }
 
     const tick = () => {
-      const elapsed = (Date.now() - turnStartedAt) / 1000;
+      const elapsed = (serverNow() - turnStartedAt) / 1000;
       const left = Math.max(0, IPE_TURN_TIME_LIMIT_SECONDS - elapsed);
       setRemaining(left);
       if (left > 0) rafRef.current = requestAnimationFrame(tick);

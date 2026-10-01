@@ -1,11 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState, Fragment } from 'react';
+import { toast } from 'sonner';
+import { getSocket } from '@/lib/socket';
+import { isGuildWarPeriod } from '@shared/guild-war/kst';
+import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 import { GuildIdentityCard, GuildJoinRequestsSection, GuildMembersSection, GuildOpsSection } from './GuildClient';
 import { UnreadBadge } from '@/components/cdm';
 import { GuildConfirmModal, type GuildConfirm } from './GuildConfirmModal';
-import { GuildChatModal, GuildChatSync } from './GuildChatClient';
+import { GuildChatModal } from './GuildChatClient';
 import { GuildNoticeSection } from './GuildNotices';
 import { GuildShopSection, GuildNameChangeModal } from './GuildShop';
 import { GuildContribSection } from './GuildContrib';
@@ -38,6 +43,25 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
   const lastSeen = useGuildChatStore((s) => s.lastSeenMsgCount);
   const tileOrder = useGuildDevStore((s) => s.tileOrder);
   const rankCard = useGuildDevStore((s) => s.rankCard);
+  const warChips = useGuildDevStore((s) => s.warChips);
+  const router = useRouter();
+  // 기간이 끝나면 타일이 사라진다. 자정을 넘겨도 새로고침 없이 반영되도록 분마다 본다.
+  const [warPeriod, setWarPeriod] = useState(() => isGuildWarPeriod());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setWarPeriod(isGuildWarPeriod()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const enterGuildWar = useCallback(() => {
+    getSocket().emit('guildWar:join', (res) => {
+      if (!res.success) {
+        toast.error(res.error ?? '입장에 실패했습니다.');
+        return;
+      }
+      router.push(`/room/${GUILD_WAR_ROOM_ID}/play`);
+    });
+  }, [router]);
 
   useEffect(() => {
     if (my.role !== 'owner' && my.role !== 'vice_owner') setOpsOpen(false);
@@ -55,7 +79,6 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
 
   return (
     <>
-      <GuildChatSync enabled memberId={meId} guildId={my.guild.id} />
       <GuildIdentityCard my={my} busy={busy} act={act} askConfirm={setPending} />
 
       <ul className="guild-dash-grid">
@@ -74,6 +97,8 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
             onContrib: () => setContribOpen(true),
             onInvest: () => setInvestOpen(true),
             onGrant: () => setGrantOpen(true),
+            onWar: enterGuildWar,
+            warOpen: warPeriod,
           });
           return tile ? <Fragment key={id}>{tile}</Fragment> : null;
         })}
@@ -160,6 +185,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
             onBuyNameChange={() => setNameChangeOpen(true)}
             onScoutOpenChange={setScoutOpen}
             rankCard={rankCard}
+            warChips={warChips}
           />
         </div>
       </Modal>
@@ -353,6 +379,10 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
         .guild-dash-tile[data-tone='list'] {
           background: linear-gradient(180deg, var(--cdm-bg-elev-1) 0%, var(--cdm-bg) 100%);
         }
+        .guild-dash-tile[data-tone='war'] {
+          background: linear-gradient(180deg, color-mix(in srgb, var(--cdm-accent-soft) 80%, var(--cdm-highlight-soft)) 0%, var(--cdm-bg) 100%);
+          border-color: color-mix(in srgb, var(--cdm-accent) 32%, var(--cdm-border));
+        }
         .guild-dash-tile[data-tone='members']::before { background: var(--cdm-primary); }
         .guild-dash-tile[data-tone='contrib']::before { background: var(--cdm-highlight); }
         .guild-dash-tile[data-tone='invest']::before { background: var(--cdm-success); }
@@ -363,6 +393,7 @@ export function GuildDashboard({ me }: { me: DevGuildMe }) {
         .guild-dash-tile[data-tone='ops']::before { background: var(--cdm-fg-muted); }
         .guild-dash-tile[data-tone='notice']::before { background: var(--cdm-success); }
         .guild-dash-tile[data-tone='list']::before { background: var(--cdm-fg-subtle); }
+        .guild-dash-tile[data-tone='war']::before { background: var(--cdm-accent); }
         .guild-dash-icon {
           display: flex;
           width: 2.25rem;
@@ -423,6 +454,7 @@ const ICON_OPS = 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z';
 const ICON_NOTICE =
   'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0';
 const ICON_LIST = 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01';
+const ICON_WAR = 'M18 8A6 6 0 0 0 6 8v5l-2 3h16l-2-3zM10 19a2 2 0 0 0 4 0';
 
 function dashTile(
   id: DevTileId,
@@ -440,6 +472,8 @@ function dashTile(
     onContrib: () => void;
     onInvest: () => void;
     onGrant: () => void;
+    onWar: () => void;
+    warOpen: boolean;
   },
 ) {
   switch (id) {
@@ -473,6 +507,11 @@ function dashTile(
       return <DashTile label="공지" icon={ICON_NOTICE} tone="notice" onClick={ctx.onNotice} />;
     case 'shop':
       return <DashTile label="상점" icon={ICON_SHOP} tone="shop" onClick={ctx.onShop} />;
+    // 기간 한정. 10/1 이 지나면 타일 자체가 사라진다.
+    case 'war':
+      return ctx.warOpen ? (
+        <DashTile label="길드전" icon={ICON_WAR} tone="war" onClick={ctx.onWar} />
+      ) : null;
     case 'list':
       return <DashTile label={DEV_TILE_LABEL.list} icon={ICON_LIST} tone="list" onClick={ctx.onList} />;
     default:
@@ -491,7 +530,18 @@ function DashTile({
   href?: string;
   label: string;
   icon: string;
-  tone: 'members' | 'contrib' | 'invest' | 'grant' | 'join' | 'chat' | 'shop' | 'ops' | 'list' | 'notice';
+  tone:
+    | 'members'
+    | 'contrib'
+    | 'invest'
+    | 'grant'
+    | 'join'
+    | 'chat'
+    | 'shop'
+    | 'ops'
+    | 'list'
+    | 'notice'
+    | 'war';
   badge?: number;
   onClick?: () => void;
 }) {

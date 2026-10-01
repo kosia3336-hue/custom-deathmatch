@@ -17,6 +17,8 @@ import GameLogView from '@/components/game/GameLogView';
 import { RankResultSection } from '@/components/game/RankResultSection';
 import type { GameLogPlayer, GameLogMeta } from '@/components/game/GameLogView';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
+import { useMySocketId } from '@/hooks/useMySocketId';
+import ResultShareButton from './ResultShareButton';
 import type { GameRecordFile } from '@/shared/types/archive';
 import type { TitleColor } from '@/lib/supabase/database.types';
 import { isRankQueueAcceptingNewJoins, isRankQueueOpen } from '@shared/rank/kst';
@@ -31,6 +33,7 @@ const AUTO_LEAVE_SEC = 120;
  * 페이지 이동 없이 방 레이아웃 내에서 렌더된다.
  */
 export default function ResultLog() {
+  const myId = useMySocketId();
   const router = useRouter();
   const gameResult = useRoomStore((s) => s.gameResult);
   const rankGameEnded = useRoomStore((s) => s.rankGameEnded);
@@ -192,14 +195,28 @@ export default function ResultLog() {
   }
 
   const sortedRanks = [...gameResult.rankings].sort((a, b) => a.rank - b.rank);
-  const isDraw = sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
+  const isDoubleLoss = sortedRanks.length >= 2 && sortedRanks.every((r) => r.rank !== 1);
+  const isDraw =
+    !isDoubleLoss && sortedRanks.length >= 2 && sortedRanks[0].rank === sortedRanks[1].rank;
+  const resignOf = (rank: number | undefined) =>
+    gameResult.endedByForfeit === true && rank === 2 && !isDoubleLoss;
+  const myRanking = gameResult.rankings.find((r) => r.playerId === myId);
+  const shareResult = isDoubleLoss
+    ? '양쪽 패배'
+    : sortedRanks.length < 2
+      ? '완료'
+      : isDraw
+        ? '무승부'
+        : myRanking?.rank === 1
+          ? '승리'
+          : '패배';
 
   // GameLogView용 players 변환
   const players: GameLogPlayer[] = room
     ? room.players.map((p, i) => {
         const ranking = gameResult.rankings.find((r) => r.playerId === p.id);
         return {
-          nickname: p.nickname,
+          nickname: ranking?.nickname ?? p.nickname,
           title: p.displayedTitle
             ? {
                 name: p.displayedTitle.name,
@@ -208,18 +225,20 @@ export default function ResultLog() {
               }
             : null,
           turn: i === 0 ? 'first' : 'second',
-          isWinner: !isDraw && ranking?.rank === 1,
+          isWinner: !isDraw && !isDoubleLoss && ranking?.rank === 1,
           isDraw,
-          isResign: false,
+          isDoubleLoss,
+          isResign: resignOf(ranking?.rank),
         };
       })
     : sortedRanks.map((r, i) => ({
         nickname: r.nickname,
         title: null,
         turn: i === 0 ? ('first' as const) : ('second' as const),
-        isWinner: !isDraw && r.rank === 1,
+        isWinner: !isDraw && !isDoubleLoss && r.rank === 1,
         isDraw,
-        isResign: false,
+        isDoubleLoss,
+        isResign: resignOf(r.rank),
       }));
 
   // GameLogView용 meta 변환
@@ -234,17 +253,30 @@ export default function ResultLog() {
   };
 
   // archive viewer용 GameRecordFile
-  const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
-  const myRankOutcome =
-    gameResult.isRanked === true
-    && gameResult.rankOutcome
-    && !isSpectator
-    && member
-      ? gameResult.rankOutcome.players.find((p) => p.memberId === member.id)
-      : undefined;
-
   const rankEndedMatch =
     rankGameEnded && rankGameEnded.roomId === gameResult.roomId ? rankGameEnded : null;
+
+  const myRankOutcome = (() => {
+    if (isSpectator || !member) return undefined;
+    const fromEnded = gameResult.rankOutcome?.players.find((p) => p.memberId === member.id);
+    if (fromEnded) return fromEnded;
+    if (!rankEndedMatch) return undefined;
+    return {
+      memberId: member.id,
+      nickname: nickname ?? '',
+      rpDelta: rankEndedMatch.myRpChange,
+      tierBefore: rankEndedMatch.tierBefore,
+      tierAfter: rankEndedMatch.tierAfter,
+      rpBefore: rankEndedMatch.rpBefore,
+      rpAfter: rankEndedMatch.rpAfter,
+      promoted: rankEndedMatch.promoted,
+      demoted: rankEndedMatch.demoted,
+      placementJustFinished: rankEndedMatch.placementJustFinished === true,
+      placementMatch: rankEndedMatch.placementMatch === true,
+    };
+  })();
+
+  const Viewer = room ? VIEWER_MAP[room.gameId] : undefined;
 
   const record: GameRecordFile | null = room
     ? {
@@ -254,7 +286,8 @@ export default function ResultLog() {
         playedAt: new Date().toISOString(),
         playMode: room.playMode,
         players: room.players.reduce<Record<string, { nickname: string }>>((acc, p) => {
-          acc[p.id] = { nickname: p.nickname };
+          const ranking = gameResult.rankings.find((r) => r.playerId === p.id);
+          acc[p.id] = { nickname: ranking?.nickname ?? p.nickname };
           return acc;
         }, {}),
         result: {
@@ -272,6 +305,24 @@ export default function ResultLog() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-6">
+      {!isSpectator && myRanking && (
+        <div className="mb-4 flex justify-end">
+          <ResultShareButton
+            eager
+            summary={{
+              gameName: room?.gameName ?? '게임',
+              result: shareResult,
+              playTimeMs: gameResult.playTime,
+              totalTurns: gameResult.totalTurns,
+              selfName: myRanking.nickname,
+              isRanked: room?.isRanked === true,
+              opponents: gameResult.rankings
+                .filter((r) => r.playerId !== myId)
+                .map((r) => ({ name: r.nickname, won: !isDraw && !isDoubleLoss && r.rank === 1 })),
+            }}
+          />
+        </div>
+      )}
       <GameLogView
         players={players}
         meta={meta}

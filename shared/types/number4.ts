@@ -8,7 +8,7 @@ export const INITIAL_BLACK = 20;
 export const NF4_REWARDS: readonly [5, 1, 2, 3, 4] = [5, 1, 2, 3, 4];
 
 export type NF4Phase = 'submit' | 'reveal' | 'finished';
-export type NF4WinType = 'score' | 'elimination' | 'tiebreaker' | 'timeout';
+export type NF4WinType = 'score' | 'elimination' | 'tiebreaker' | 'timeout' | 'draw';
 export type NF4Number = 0 | 1 | 2 | 3 | 4;
 
 export function isNf4Number(n: unknown): n is NF4Number {

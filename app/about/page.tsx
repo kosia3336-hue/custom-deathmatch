@@ -25,7 +25,6 @@ export const viewport: Viewport = {
   themeColor: '#FFFFFF',
   width: 'device-width',
   initialScale: 1,
-  viewportFit: 'cover',
   interactiveWidget: 'resizes-content',
 };
 

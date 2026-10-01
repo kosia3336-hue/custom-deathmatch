@@ -2,6 +2,7 @@ import { Card } from '@/components/cdm/Card';
 import { Tag } from '@/components/cdm/Tag';
 import { EmptyState } from '@/components/cdm/EmptyState';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { rankOpponentName, type MatchParticipantRow } from '@/lib/anonymousOpponents';
 import RankSeasonSelect from './RankSeasonSelect';
 
 const TIER_KO: Record<string, string> = {
@@ -34,6 +35,7 @@ interface StatsRow {
 
 interface MatchRow {
   id: string;
+  game_log_id: string | null;
   winner_id: string;
   winner_tier: string;
   winner_rp_gain: number;
@@ -91,7 +93,7 @@ export default async function RankTab({
     db
       .from('rank_match_history')
       .select(
-        'id, winner_id, winner_tier, winner_rp_gain, winner_rp_after, winner_promoted, loser_id, loser_tier, loser_rp_loss, loser_rp_after, loser_demoted, game_id, is_forfeit, played_at',
+        'id, game_log_id, winner_id, winner_tier, winner_rp_gain, winner_rp_after, winner_promoted, loser_id, loser_tier, loser_rp_loss, loser_rp_after, loser_demoted, game_id, is_forfeit, played_at',
       )
       .eq('winner_id', memberId)
       .order('played_at', { ascending: false })
@@ -99,7 +101,7 @@ export default async function RankTab({
     db
       .from('rank_match_history')
       .select(
-        'id, winner_id, winner_tier, winner_rp_gain, winner_rp_after, winner_promoted, loser_id, loser_tier, loser_rp_loss, loser_rp_after, loser_demoted, game_id, is_forfeit, played_at',
+        'id, game_log_id, winner_id, winner_tier, winner_rp_gain, winner_rp_after, winner_promoted, loser_id, loser_tier, loser_rp_loss, loser_rp_after, loser_demoted, game_id, is_forfeit, played_at',
       )
       .eq('loser_id', memberId)
       .order('played_at', { ascending: false })
@@ -133,17 +135,26 @@ export default async function RankTab({
     .sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime())
     .slice(0, 10);
 
-  // 상대 닉네임 조회
-  const opponentIds = Array.from(
-    new Set(recentMatches.map((m) => (m.winner_id === memberId ? m.loser_id : m.winner_id))),
+  // 상대 표시명 — 그 판의 참가자 스냅샷(game_log_participants) 기준.
+  // 상대가 익명 물약을 쓴 판(또는 기록이 없어 알 수 없는 판)은 '???'.
+  // 예전처럼 members 의 현재 닉네임을 붙이면 물약을 쓴 판에서도 실명이 보였다.
+  const logIds = Array.from(
+    new Set(recentMatches.map((m) => m.game_log_id).filter((id): id is string => Boolean(id))),
   );
-  const { data: opponentData } =
-    opponentIds.length > 0
-      ? await db.from('members').select('id, nickname').in('id', opponentIds)
+  const { data: participantData } =
+    logIds.length > 0
+      ? await db
+          .from('game_log_participants')
+          .select('game_log_id, member_id, nickname_snapshot, anonymized')
+          .in('game_log_id', logIds)
       : { data: [] };
-  const nicknameOf = (id: string) =>
-    ((opponentData ?? []) as { id: string; nickname: string }[]).find((m) => m.id === id)
-      ?.nickname ?? '???';
+  const participants = (participantData ?? []) as MatchParticipantRow[];
+  const opponentNameOf = (m: MatchRow) =>
+    rankOpponentName(
+      m.game_log_id,
+      m.winner_id === memberId ? m.loser_id : m.winner_id,
+      participants,
+    );
 
   const gameNameOf = (id: string) =>
     ((gamesRes.data ?? []) as { id: string; name: string }[]).find((g) => g.id === id)?.name ?? id;
@@ -234,7 +245,6 @@ export default async function RankTab({
               const rpAfter = isWin ? m.winner_rp_after : m.loser_rp_after;
               const promoted = isWin && m.winner_promoted;
               const demoted = !isWin && m.loser_demoted;
-              const opponentId = isWin ? m.loser_id : m.winner_id;
 
               return (
                 <Card key={m.id}>
@@ -246,7 +256,7 @@ export default async function RankTab({
                         {isWin ? '승' : '패'}
                       </span>
                       <span className="text-sm font-semibold text-cdm-fg">
-                        {nicknameOf(opponentId)}
+                        {opponentNameOf(m)}
                       </span>
                       <Tag>{gameNameOf(m.game_id)}</Tag>
                       {m.is_forfeit && (

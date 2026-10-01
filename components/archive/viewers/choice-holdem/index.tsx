@@ -61,6 +61,10 @@ export default function ChoiceHoldemViewer({ record }: { record: GameRecordFile 
       <div className="grid gap-3 lg:grid-cols-2">
         {data.rounds.map((round) => {
           const winner = round.winnerId ? data.players[round.winnerId]?.nickname : null;
+          /* 다이는 던진 사람을 부른다 — 인게임 문구와 같게 맞춘다 */
+          const folded = round.foldedPlayerId
+            ? data.players[round.foldedPlayerId]?.nickname
+            : null;
           return (
             <Card key={round.round} className="p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
@@ -72,7 +76,7 @@ export default function ChoiceHoldemViewer({ record }: { record: GameRecordFile 
                     {round.reason === 'tie'
                       ? '완전 동률 · 팟 이월'
                       : round.reason === 'fold'
-                        ? `${winner} 폴드 승리`
+                        ? `${folded ?? '상대'}님 다이`
                         : `${winner} 승리`}
                   </p>
                 </div>
@@ -108,7 +112,7 @@ export default function ChoiceHoldemViewer({ record }: { record: GameRecordFile 
                 </div>
               ) : (
                 <p className="text-cdm-fg-muted mt-3 text-center text-xs">
-                  폴드로 종료되어 개인 카드는 공개되지 않았습니다.
+                  다이로 종료되어 개인 카드는 공개되지 않았습니다.
                 </p>
               )}
 
@@ -122,7 +126,7 @@ export default function ChoiceHoldemViewer({ record }: { record: GameRecordFile 
                       <b>{data.players[action.playerId]?.nickname}</b> ·{' '}
                       {action.phase === 'first' ? '1차' : '2차'} ·{' '}
                       {action.action === 'fold'
-                        ? '폴드'
+                        ? '다이'
                         : action.action === 'raise'
                           ? `레이즈 +${action.amount}`
                           : action.amount === 0

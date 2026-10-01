@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { NumericCard } from '@/components/game/cards';
+import { PlayingCard } from '@/components/game/cards';
 import type { GameRecordFile, IndianPokerRecord, IndianPokerRoundRecord } from '@/shared/types/archive';
 import { formatTime } from '@/lib/utils';
 
@@ -58,8 +58,8 @@ function RoundRow({
           <span className="font-semibold text-gray-500">R{roundRecord.round}</span>
           {/* 공유카드 */}
           <div className="flex items-center gap-1">
-            <NumericCard value={roundRecord.communityCards[0]} size="tiny" />
-            <NumericCard value={roundRecord.communityCards[1]} size="tiny" />
+            <PlayingCard value={roundRecord.communityCards[0]} className="w-5" />
+            <PlayingCard value={roundRecord.communityCards[1]} className="w-5" />
           </div>
           {/* 결과 레이블 */}
           {isDraw && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">무승부</span>}
@@ -91,7 +91,7 @@ function RoundRow({
                 >
                   <span className="truncate font-medium text-gray-800">{nicknames[pid] ?? pid}</span>
                   <div className="flex items-center gap-2">
-                    <NumericCard value={card ?? null} size="tiny" />
+                    <PlayingCard value={card ?? null} className="w-5" />
                     {handLabel && (
                       <span className="text-xs text-gray-600">{HAND_LABEL[handLabel] ?? handLabel}</span>
                     )}

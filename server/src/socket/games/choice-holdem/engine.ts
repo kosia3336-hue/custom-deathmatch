@@ -1,3 +1,4 @@
+import { scheduleTurnExpiry } from "../../gameTurnExpiry.js";
 import {
   CHOICE_HOLDEM_ANTE_INTERVAL,
   type ChoiceHoldemAction,
@@ -101,7 +102,7 @@ function scheduleDecision(io: IO, state: ChoiceHoldemState) {
   state.turnStartedAt = Date.now();
   const actorId = state.currentTurnId;
   if (state.turnSeconds != null) {
-    state.turnTimer = setTimeout(() => {
+    state.turnTimer = scheduleTurnExpiry(io, state, 'turnTimer', () => state.currentTurnId, () => {
       if (
         choiceHoldemStates.get(state.roomId) !== state ||
         state.gameOver ||
