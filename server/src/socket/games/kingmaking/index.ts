@@ -210,6 +210,20 @@ function applyAction(
     socket?.emit('error', { message: '이전에 나온 판 배치를 반복할 수 없습니다.' });
     return false;
   }
+  /*
+    되돌릴 상태는 '아무것도 바꾸기 전' 이어야 한다. takePiece 가 보유 말을 먼저
+    꺼내므로 그 아래에서 찍으면 물려도 말이 돌아오지 않는다.
+  */
+  state.undoStack.push({
+    board: cloneKingmakingBoard(state.board),
+    positionHistory: [...state.positionHistory],
+    reserves: cloneReserves(state.reserves),
+    currentPlayerId: state.currentPlayerId,
+    turnNumber: state.turnNumber,
+    lastAction: state.lastAction,
+    actionLogLength: state.actionLog.length,
+  });
+
   if (action.type === 'place') takePiece(state.reserves[actorId], action.kind);
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
@@ -262,6 +276,7 @@ export function initKingmaking(
     board,
     initialBoard: cloneKingmakingBoard(board),
     positionHistory: new Set([kingmakingBoardPositionKey(board)]),
+    undoStack: [],
     reserves: { [first.id]: createReserve(first.id), [second.id]: createReserve(second.id) },
     currentPlayerId: first.id,
     firstPlayerId: first.id,
@@ -290,6 +305,8 @@ export function initKingmaking(
   if (review.actions) {
     try {
       replayKingmakingReview(io, state, review.actions);
+      /* 불러온 수순은 '시작 판' 이다 — 그보다 앞으로는 무르지 못하게 더미를 비운다(삼층 오목과 동일). */
+      state.undoStack = [];
     } catch (error) {
       clearKingmakingTimers(state);
       kingmakingStates.delete(roomId);
@@ -359,10 +376,59 @@ export function getKingmakingResultData(roomId: string) {
   return state ? toKingmakingRecord(state) : undefined;
 }
 
-export function performKingmakingUndo() {
-  return false;
+/** 보유 말은 배열·객체라 얕게 복사하면 되돌린 뒤에도 같은 배열을 물고 있다. */
+function cloneReserves(
+  reserves: KingmakingState['reserves'],
+): KingmakingState['reserves'] {
+  const next: KingmakingState['reserves'] = {};
+  for (const [id, r] of Object.entries(reserves)) {
+    next[id] = { normal: [...r.normal], special: r.special };
+  }
+  return next;
 }
-export function canKingmakingUndo() {
-  return false;
+
+/**
+ * 되돌릴 지점.
+ *
+ * COM 과 두는 판에서 한 수만 물리면 바로 COM 차례가 되어 같은 수를 다시 둔다 —
+ * 사람 차례가 될 때까지 거슬러 올라간다. 삼층 오목도 같은 방식이다.
+ */
+function undoTargetIndex(state: KingmakingState) {
+  const stack = state.undoStack;
+  if (state.playMode !== 'com') return stack.length - 1;
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    if (stack[index].currentPlayerId !== AI_PLAYER_ID) return index;
+  }
+  return -1;
+}
+
+export function performKingmakingUndo(io: IO, roomId: string) {
+  const state = kingmakingStates.get(roomId);
+  if (!state || state.gameOver) return false;
+  const target = undoTargetIndex(state);
+  if (target < 0) return false;
+  const snapshot = state.undoStack[target];
+  state.undoStack.length = target;
+
+  clearKingmakingTimers(state);
+  state.board = cloneKingmakingBoard(snapshot.board);
+  state.positionHistory = new Set(snapshot.positionHistory);
+  state.reserves = cloneReserves(snapshot.reserves);
+  state.currentPlayerId = snapshot.currentPlayerId;
+  state.turnNumber = snapshot.turnNumber;
+  state.lastAction = snapshot.lastAction;
+  state.actionLog.length = snapshot.actionLogLength;
+  state.turnStartedAt = Date.now();
+
+  armTurnTimer(io, state);
+  void broadcastKingmakingState(io, state);
+  scheduleAi(io, state);
+  return true;
+}
+
+export function canKingmakingUndo(roomId: string) {
+  const state = kingmakingStates.get(roomId);
+  if (!state || state.gameOver) return false;
+  return undoTargetIndex(state) >= 0;
 }
 export { emitKingmakingStateToSocket };

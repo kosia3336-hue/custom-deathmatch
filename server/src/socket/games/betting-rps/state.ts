@@ -122,8 +122,13 @@ function playerToSpectatorInfo(p: BRPSPlayerInternal, reveal: boolean): BRPSPlay
 
 function buildSpectatorGameData(s: InternalState): BettingRpsGameData {
   const reveal = isRevealPhase(s);
+  /*
+    관전자에게도 랭크 신원을 가린다. isTokenAnonymized 는 익명 물약만 보므로
+    그것만 쓰면 랭크 판에서 두 사람의 실명이 관전석에 그대로 떴다.
+    nicknameForViewer 가 물약과 랭크를 함께 보며, viewerId=null 이 '어느 쪽도 아닌 사람' 이다.
+  */
   const maskNick = (id: string, nick: string) =>
-    isTokenAnonymized(s.roomId, id) ? ANONYMOUS_NICKNAME : nick;
+    nicknameForViewer(s.roomId, id, nick, null);
   const players: Record<string, BRPSPlayerInfo> = {
     [s.player1.id]: { ...playerToSpectatorInfo(s.player1, reveal), nickname: maskNick(s.player1.id, s.player1.nickname) },
     [s.player2.id]: { ...playerToSpectatorInfo(s.player2, reveal), nickname: maskNick(s.player2.id, s.player2.nickname) },

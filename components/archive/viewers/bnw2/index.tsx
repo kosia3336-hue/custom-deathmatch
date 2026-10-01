@@ -7,6 +7,7 @@ import { formatTime } from '@/lib/utils';
 const WIN_TYPE_LABELS: Record<string, string> = {
   score: '10점 달성',
   exhaustion: '포인트 소진',
+  tiebreak: '완전 동점 · 1R 선공 승',
   draw: '무승부',
   timeout: '시간 초과',
   leave: '기권',
@@ -190,9 +191,8 @@ export default function BNW2Viewer({ record }: Props) {
           <span>
             <span className="text-gray-400">결과</span>{' '}
             <span className="font-medium text-gray-800">
-              {gameRecord.winType === 'draw'
-                ? '무승부'
-                : winnerNick ? `${winnerNick} 승` : '-'}
+              {/* 승자가 있으면 승자를 적는다 — 완전 동점도 1R 선공이 가져간다 */}
+              {winnerNick ? `${winnerNick} 승` : '무승부'}
               {winTypeLabel ? ` (${winTypeLabel})` : ''}
             </span>
           </span>

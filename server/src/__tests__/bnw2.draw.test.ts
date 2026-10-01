@@ -45,7 +45,7 @@ describe('흑과백2 규칙 K — 완전 동점', () => {
     processSecondSubmit(io, s, 10);
 
     expect(s.gameOver).toBe(true);
-    expect(s.winType).toBe('draw');
+    expect(s.winType).toBe('tiebreak');
     expect(s.winner).toBe('A');
 
     vi.runAllTimers();
@@ -78,7 +78,7 @@ describe('흑과백2 규칙 K — 완전 동점', () => {
     expect(s.player1.remainingPoints).toBe(0);
     expect(s.player2.remainingPoints).toBe(0);
     expect(s.player1.score).toBe(s.player2.score);
-    expect(s.winType).toBe('draw');
+    expect(s.winType).toBe('tiebreak');
     /*
       마지막 라운드의 선은 B 였지만, 규칙 K 가 가리키는 선플레이어는 게임 시작 시의
       선공 A 다. 마지막 판을 이겨 동점을 만든 A 가 지는 일은 없어야 한다.
