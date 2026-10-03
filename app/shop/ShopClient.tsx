@@ -11,14 +11,18 @@ import { getSocket } from '@/lib/socket';
 import type { ShopItem, PurchaseSuccess, PurchaseError } from '@/lib/cdp/types';
 import { formatCdp } from '@/lib/cdp/format';
 import ShopItemCard from './ShopItemCard';
+import { PackBuy, PackShelf } from './PackArtwork';
 import ShopPurchaseModal from './ShopPurchaseModal';
 import ShopGachaTab from './ShopGachaTab';
 import ShopGachaModal from './ShopGachaModal';
+import ShopPackOpenModal from './ShopPackOpenModal';
+import { devPackIdFromItem, type DevPackId } from '@/lib/shop/dev-pack';
 import ShopEventChipExchange from './ShopEventChipExchange';
 import { ChuseokSkinPickModal, ChuseokSkinRevealModal } from './ChuseokSkinGrant';
 import { SKIN_REGISTRY, type SkinMeta } from '@/lib/skins/registry';
 import { CHUSEOK_SKIN_TICKET_POOL } from '@shared/event/chuseok';
 import { playSkinReelSfx } from '@/lib/sfx';
+import type { RankTier } from '@/shared/types/rank';
 
 interface Props {
   items: ShopItem[];
@@ -29,12 +33,18 @@ interface Props {
   merchantDiscount: boolean;
   /** 넘기면 추석 탭을 이 목록으로 대체한다. */
   chuseokItems?: ShopItem[];
+  /** 넘기면 칭호와 뽑기 사이에 팩 탭을 연다. 운영 상점은 넘기지 않는다. */
+  packItems?: ShopItem[];
   /** 송편 잔액. 운영 상점은 구매 API 결과로 갱신한다. */
   songpyeonBalance?: number;
   ownedSkinIds?: string[];
   pendingSkinPick?: { pendingId: string; itemId: string } | null;
   onSongpyeonBalanceChange?: (next: number) => void;
   onLocalCdpBalance?: (next: number) => void;
+  /** 데브 프리뷰. 전역 CDP 잔액을 읽거나 쓰지 않는다. */
+  previewBalance?: boolean;
+  /** 팩 구매 제한. null이면 검사하지 않는다. */
+  viewerTier?: RankTier | null;
 }
 
 interface ItemChangedPayload {
@@ -44,7 +54,7 @@ interface ItemChangedPayload {
 }
 
 // 이벤트 기간 종료 — 재개 시 | 'event_chip_pack' 추가
-type TabId = 'all' | 'consumable' | 'title' | 'gacha' | 'chuseok';
+type TabId = 'all' | 'consumable' | 'title' | 'pack' | 'gacha' | 'chuseok';
 
 const TAB_FOR_TYPE: Record<string, TabId> = {
   consumable: 'consumable',
@@ -80,12 +90,16 @@ export default function ShopClient({
   pendingSkinPick = null,
   onSongpyeonBalanceChange,
   onLocalCdpBalance,
+  previewBalance = false,
+  viewerTier = null,
+  packItems = [],
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const setBalance = useCdpStore((s) => s.setBalance);
-  const balance = useCdpStore((s) => s.balance) ?? initialBalance;
+  const storeBalance = useCdpStore((s) => s.balance);
+  const balance = previewBalance ? initialBalance : (storeBalance ?? initialBalance);
   const setEventChipBalance = useEventChipsStore((s) => s.setBalance);
 
   const previewShop = chuseokItems.some((item) => (item.payload ?? {}).preview === true);
@@ -110,6 +124,7 @@ export default function ShopClient({
       initialType === 'consumable' ||
       initialType === 'title' ||
       initialType === 'gacha' ||
+      (initialType === 'pack' && packItems.length > 0) ||
       (initialType === 'chuseok' && (chuseokItems.length > 0 || initialItems.some(isSongpyeonItem)))
       // || initialType === 'event_chip_pack' // 이벤트 기간 종료
     ) {
@@ -118,12 +133,14 @@ export default function ShopClient({
     return 'all';
   });
   const [openItem, setOpenItem] = useState<ShopItem | null>(null);
+  const [packOpen, setPackOpen] = useState<{ id: DevPackId; name: string; session: number } | null>(null);
   const [gachaOpen, setGachaOpen] = useState(false);
   const [hasMerchantDiscount, setHasMerchantDiscount] = useState(merchantDiscount);
 
   useEffect(() => {
+    if (previewBalance) return;
     setBalance(initialBalance);
-  }, [initialBalance, setBalance]);
+  }, [initialBalance, previewBalance, setBalance]);
 
   useEffect(() => {
     setSongpyeon(songpyeonBalance);
@@ -189,22 +206,24 @@ export default function ShopClient({
     const cTitle = items.filter((i) => TAB_FOR_TYPE[i.type] === 'title').length;
     // const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length; // 이벤트 기간 종료
     return [
-      { id: 'all', label: '전체', count: items.length },
+      { id: 'all', label: '전체', count: items.length + packItems.length },
       { id: 'consumable', label: '소모성', count: cConsumable },
       { id: 'title', label: '칭호', count: cTitle },
+      ...(packItems.length > 0 ? [{ id: 'pack', label: '팩', count: packItems.length }] : []),
       { id: 'gacha', label: '뽑기' },
       // { id: 'event_chip_pack', label: '이벤트', count: cChip }, // 이벤트 기간 종료
       ...(festival.length > 0
         ? [{ id: 'chuseok', label: '추석', count: festival.length }]
         : []),
     ];
-  }, [items, festival.length]);
+  }, [items, festival.length, packItems]);
 
   const visibleItems = useMemo(() => {
     if (activeTab === 'chuseok') return festival;
-    if (activeTab === 'all') return items;
+    if (activeTab === 'pack') return packItems;
+    if (activeTab === 'all') return packItems.length > 0 ? [...items, ...packItems] : items;
     return items.filter((it) => TAB_FOR_TYPE[it.type] === activeTab);
-  }, [items, activeTab, festival]);
+  }, [items, activeTab, festival, packItems]);
 
   function handleTabChange(id: string) {
     const next = id as TabId;
@@ -224,6 +243,20 @@ export default function ShopClient({
       grant?: string;
       preview?: boolean;
     };
+    if (item.type === 'pack' && songpyeonPay.preview === true) {
+      const paid = effectivePrice(item.price, hasMerchantDiscount) * quantity;
+      if (balance < paid) {
+        toast.error(`CDP가 부족합니다. 필요 ${formatCdp(paid)} / 보유 ${formatCdp(balance)}`);
+        return false;
+      }
+      const next = balance - paid;
+      if (!previewBalance) setBalance(next);
+      onLocalCdpBalance?.(next);
+      const packId = devPackIdFromItem(item);
+      if (packId) setPackOpen({ id: packId, name: item.name, session: Date.now() });
+      else toast.success(`${item.name} 구매 완료 (데브 프리뷰). 잔액 ${formatCdp(next)} CDP`);
+      return true;
+    }
     if (songpyeonPay.priceUnit === 'songpyeon' && songpyeonPay.preview === true) {
       const cost = item.price * quantity;
       if (songpyeon < cost) {
@@ -475,6 +508,14 @@ export default function ShopClient({
           onBuy={setOpenItem}
         />
         </>
+      ) : activeTab === 'pack' ? (
+        <PackShelf
+          items={visibleItems}
+          balance={balance}
+          merchantDiscount={hasMerchantDiscount}
+          onBuy={setOpenItem}
+          viewerTier={viewerTier}
+        />
       ) : visibleItems.length === 0 ? (
         <EmptyState
           title={activeTab === 'all' ? '아직 판매 중인 아이템이 없습니다' : '이 카테고리에는 아이템이 없습니다'}
@@ -487,6 +528,7 @@ export default function ShopClient({
           balance={balance}
           merchantDiscount={hasMerchantDiscount}
           onBuy={setOpenItem}
+          viewerTier={viewerTier}
         />
       )}
 
@@ -498,6 +540,15 @@ export default function ShopClient({
         onClose={() => setOpenItem(null)}
         onConfirm={handleConfirmPurchase}
       />
+
+      {packOpen && (
+        <ShopPackOpenModal
+          key={packOpen.session}
+          packId={packOpen.id}
+          packName={packOpen.name}
+          onClose={() => setPackOpen(null)}
+        />
+      )}
 
       <ShopGachaModal
         open={gachaOpen}
@@ -621,6 +672,7 @@ function ShopItemGrid({
   songpyeonBalance = 0,
   merchantDiscount,
   onBuy,
+  viewerTier = null,
 }: {
   items: ShopItem[];
   owned: Set<string>;
@@ -628,19 +680,31 @@ function ShopItemGrid({
   songpyeonBalance?: number;
   merchantDiscount: boolean;
   onBuy: (item: ShopItem) => void;
+  viewerTier?: RankTier | null;
 }) {
   return (
     <ul role="list" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {items.map((it) => (
         <li key={it.id}>
-          <ShopItemCard
-            item={it}
-            owned={owned.has(it.id)}
-            balance={balance}
-            songpyeonBalance={songpyeonBalance}
-            merchantDiscount={merchantDiscount}
-            onBuy={() => onBuy(it)}
-          />
+          {it.type === 'pack' ? (
+            <PackBuy
+              item={it}
+              balance={balance}
+              merchantDiscount={merchantDiscount}
+              onBuy={onBuy}
+              viewerTier={viewerTier}
+              compact
+            />
+          ) : (
+            <ShopItemCard
+              item={it}
+              owned={owned.has(it.id)}
+              balance={balance}
+              songpyeonBalance={songpyeonBalance}
+              merchantDiscount={merchantDiscount}
+              onBuy={() => onBuy(it)}
+            />
+          )}
         </li>
       ))}
     </ul>

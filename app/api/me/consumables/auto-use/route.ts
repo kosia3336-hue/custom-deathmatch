@@ -10,7 +10,7 @@ import { getActiveMember } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { ConsumableKind } from '@/lib/cdp/types';
 
-const AUTO_USE_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity', 'magnifier', 'word_search'];
+const AUTO_USE_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity', 'magnifier', 'word_search', 'counter_charm', 'calm_charm', 'demotion_shield'];
 
 export async function PATCH(req: Request) {
   const member = await getActiveMember();

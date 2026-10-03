@@ -21,6 +21,9 @@ const ALL_KINDS: ConsumableKind[] = [
   'gacha_box',
   'gacha_ticket',
   'guild_charter',
+  'counter_charm',
+  'calm_charm',
+  'demotion_shield',
 ];
 
 export async function GET() {

@@ -20,6 +20,8 @@ interface ModalProps {
   inline?: boolean;
   /** 닫기 버튼. onClose 가 있으면 항상 표시, 없으면 장식용 */
   showClose?: boolean;
+  /** 진행 중 닫기를 막을 때. onClose 가 있어도 X를 숨긴다. */
+  hideClose?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   /** 룰 이미지처럼 패널 전체를 콘텐츠로 사용. 닫기는 이미지 위에 겹친다. */
@@ -61,6 +63,7 @@ export function Modal({
   mobileBottomSheet = true,
   inline = false,
   showClose = false,
+  hideClose = false,
   size = 'md',
   className,
   edgeToEdge = false,
@@ -68,7 +71,7 @@ export function Modal({
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const closeVisible = Boolean(onClose) || showClose;
+  const closeVisible = !hideClose && (Boolean(onClose) || showClose);
 
   React.useEffect(() => {
     if (inline || !open || !closeOnEscape) return;

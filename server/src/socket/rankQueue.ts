@@ -8,11 +8,11 @@ import { startGame } from './game.js';
 import { socketRoom, emitRoomStateToRoom } from './utils.js';
 import { AI_PLAYER_ID, type Player, type DisplayedTitle } from '@shared/types/room.js';
 import type { RankMatchGuildSnap, RankMatchedPayload } from '@shared/types/rank.js';
-import { COUNTER_MATCH_CHANCE, RANK_VS_NAV_SEC } from '@shared/types/rank.js';
+import { counterMatchChance, RANK_VS_NAV_SEC } from '@shared/types/rank.js';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
 import type { IO, TypedSocket } from './types.js';
-import { applyAutoConsumablesForRankRoom } from '../shop/applyAutoConsumables.js';
+import { applyAutoConsumablesForRankRoom, countRankCharms } from '../shop/applyAutoConsumables.js';
 import { getRoomShopState } from '../shop/roomShopState.js';
 import { ANONYMOUS_NICKNAME } from '../shop/maskNicknames.js';
 import { rankedRoomTitle } from '../rank/maskRankIdentity.js';
@@ -254,7 +254,16 @@ async function buildRankMatchedRoom(
   sessions.setMemberInfo(hostPlayer.id, hostPlayer.memberId, hostTitle, sessions.getEquippedSkins(hostPlayer.id), sessions.getGuildId(hostPlayer.id), sessions.getGuildName(hostPlayer.id));
   sessions.setMemberInfo(guestPlayer.id, guestPlayer.memberId, guestTitle, sessions.getEquippedSkins(guestPlayer.id), sessions.getGuildId(guestPlayer.id), sessions.getGuildName(guestPlayer.id));
 
-  const hiddenMatch = Math.random() < COUNTER_MATCH_CHANCE;
+  let counterUsers = 0;
+  let calmUsers = 0;
+  try {
+    const charms = await countRankCharms([hostPlayer.memberId, guestPlayer.memberId]);
+    counterUsers = charms.counter;
+    calmUsers = charms.calm;
+  } catch (err) {
+    console.warn('[rankQueue] 부적 조회 실패:', (err as Error).message);
+  }
+  const hiddenMatch = Math.random() < counterMatchChance(counterUsers, calmUsers);
   const room = roomStore.create({
     title: rankedRoomTitle('밴픽'),
     gameId: 'ban-pick',

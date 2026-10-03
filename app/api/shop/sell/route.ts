@@ -17,6 +17,9 @@ const SELLABLE_KINDS: readonly ConsumableKind[] = [
   'anonymity',
   'magnifier',
   'ban_eraser',
+  'counter_charm',
+  'calm_charm',
+  'demotion_shield',
 ];
 
 interface SellBody {

@@ -315,15 +315,15 @@ async function loadMemberRankScores(
     if (t >= dailyStartMs && t < dailyEndMs) slot.daily += score;
   };
 
-  for (const row of wins) {
+  for (const row of wins as Array<{ winner_id: string; winner_rp_gain: number | null; played_at: string }>) {
     add(row.winner_id, Math.max(0, Math.round(Number(row.winner_rp_gain))), row.played_at);
   }
-  for (const row of losses) {
+  for (const row of losses as Array<{ loser_id: string; loser_rp_loss: number | null; played_at: string }>) {
     const loss = Number(row.loser_rp_loss);
     if (loss <= 0) continue;
     add(row.loser_id, Math.max(1, Math.round(loss * 0.2)), row.played_at);
   }
-  for (const row of draws) {
+  for (const row of draws as Array<{ member_id: string | null; created_at: string }>) {
     if (!row.member_id) continue;
     add(row.member_id, 5, row.created_at);
   }

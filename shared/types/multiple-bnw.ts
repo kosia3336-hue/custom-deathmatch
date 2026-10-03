@@ -402,10 +402,11 @@ export function buildMbnwAdvisorKifu(opts: {
     });
   }
 
+  const finishedReason = opts.result.kind === 'win' || opts.result.kind === 'loss' ? opts.result.reason : '';
   const winType: MBNWWinType =
     opts.result.kind === 'draw'
       ? 'draw'
-      : opts.result.reason.includes('의심')
+      : finishedReason.includes('의심')
         ? 'suspectCount'
         : 'score';
 

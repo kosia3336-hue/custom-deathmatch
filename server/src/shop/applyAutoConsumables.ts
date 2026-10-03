@@ -20,7 +20,7 @@ import type { ConsumableKind } from '../../../lib/supabase/database.types.js';
 import { ensureRoomShopState } from './roomShopState.js';
 import { getBiasTitleInfo } from './biasTitlesCache.js';
 
-const AUTO_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity', 'magnifier'];
+const AUTO_KINDS: ConsumableKind[] = ['spectator_lock', 'anonymity', 'magnifier', 'counter_charm', 'calm_charm'];
 
 interface UseRpcRow {
   used: boolean;
@@ -80,6 +80,32 @@ function emitInventoryUpdated(
   });
 }
 
+/** 자동사용이 켜져 있고 잔량이 있을 때만 1개 소모. 없으면 false. */
+export async function consumeAutoConsumable(
+  io: IO,
+  memberId: string,
+  kind: ConsumableKind,
+  roomId: string,
+): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await (sb as any)
+    .from('shop_consumable_inventory')
+    .select('count, auto_use')
+    .eq('member_id', memberId)
+    .eq('kind', kind)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[applyAutoConsumables] ${kind} 조회 실패: ${error.message}`);
+    return false;
+  }
+  const row = data as { count?: number; auto_use?: boolean | null } | null;
+  if (!row || Number(row.count) <= 0 || row.auto_use === false) return false;
+  const used = await tryUseConsumable(memberId, kind, roomId, {});
+  if (!used.used) return false;
+  emitInventoryUpdated(io, memberId, kind, used.countAfter, { roomId });
+  return true;
+}
+
 /**
  * 랭크 매치 시작 시 호출.
  *  - roomId / players(memberId 기준) / io 필요.
@@ -110,7 +136,7 @@ export async function applyAutoConsumablesForRankRoom(
     }
   }
 
-  // (2) 자동 사용 (관전 잠금 / 익명 / 돋보기) — auto_use=false 이면 skip
+  // (2) 자동 사용 (관전 잠금 / 익명 / 돋보기 / 카운터 부적 / 평온의 부적) — auto_use=false 이면 skip
   // 플레이어별 auto_use 설정 일괄 조회
   const memberIds = humans.map((p) => p.memberId!);
   const sb = getSupabaseAdmin();
@@ -148,6 +174,35 @@ export async function applyAutoConsumablesForRankRoom(
       emitInventoryUpdated(io, p.memberId!, kind, r.countAfter, { roomId });
     }
   }
+}
+
+/**
+ * 이번 판에 카운터 부적·평온의 부적을 쓸 사람 수.
+ * count > 0 이고 auto_use 가 꺼져 있지 않으면 센다. 한 사람이 둘 다 쓰면 둘 다 센다.
+ */
+export async function countRankCharms(
+  memberIds: readonly string[],
+): Promise<{ counter: number; calm: number }> {
+  const ids = memberIds.filter((id) => id.length > 0);
+  if (ids.length === 0) return { counter: 0, calm: 0 };
+  const sb = getSupabaseAdmin();
+  const { data, error } = await (sb as any)
+    .from('shop_consumable_inventory')
+    .select('kind, count, auto_use')
+    .in('member_id', ids)
+    .in('kind', ['counter_charm', 'calm_charm']);
+  if (error) {
+    console.warn(`[applyAutoConsumables] 부적 조회 실패: ${error.message}`);
+    return { counter: 0, calm: 0 };
+  }
+  let counter = 0;
+  let calm = 0;
+  for (const row of (data ?? []) as Array<{ kind: string; count: number; auto_use: boolean | null }>) {
+    if (Number(row.count) <= 0 || row.auto_use === false) continue;
+    if (row.kind === 'counter_charm') counter += 1;
+    else if (row.kind === 'calm_charm') calm += 1;
+  }
+  return { counter, calm };
 }
 
 /**

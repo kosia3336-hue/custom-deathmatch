@@ -15,6 +15,7 @@ import { AI_PLAYER_ID } from '@shared/types/room.js';
 import {
   applyRankLoss,
   applyRankWin,
+  demotionShieldApplies,
   calcRankRpParts,
   calcCounterRankRpParts,
   RANK_PARITY_RP,
@@ -25,10 +26,11 @@ import {
   type RankTier,
 } from '@shared/types/rank.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../db/supabase.js';
+import { consumeAutoConsumable } from '../shop/applyAutoConsumables.js';
+import type { IO } from '../socket/types.js';
 import { recordRankPairCooldown } from '../store/rankQueue.js';
 import { onRankedGameEnd as hiddenOnRankedGameEnd } from '../hidden-titles/hooks.js';
 import { persistGameEndLog } from '../socket/gameEndPersistence.js';
-import type { IO } from '../socket/types.js';
 import { sessions } from '../store/sessions.js';
 import { grantCdpForRankMatch } from '../cdp/grantCdpForRankMatch.js';
 import { grantGuildPoints, GUILD_POINTS } from '../guild/grantGuildPoints.js';
@@ -127,20 +129,35 @@ function maybeFinalizePlacement(s: MutableStats): void {
   if (s.placement_games >= 5) finalizePlacementMut(s);
 }
 
-function applyRankedLoss(s: MutableStats, loss: number): void {
+/** 배치 중이면 0. 강등 보호가 발동하면 티어를 유지하고 0 RP에서 멈추며, 표시 차감은 남은 RP만큼이다. */
+async function applyRankedLoss(
+  io: IO,
+  roomId: string,
+  memberId: string,
+  s: MutableStats,
+  loss: number,
+): Promise<number> {
   if (!s.placement_done) {
     s.placement_games += 1;
     s.season_losses += 1;
     maybeFinalizePlacement(s);
-    return;
+    return 0;
   }
-  const lr = applyRankLoss(s.tier, s.rp, loss);
-  s.tier = lr.tier;
-  s.rp = lr.rp;
+  const beforeRp = s.rp;
+  const shield = demotionShieldApplies(s.tier, beforeRp, loss)
+    && await consumeAutoConsumable(io, memberId, 'demotion_shield', roomId);
+  if (shield) {
+    s.rp = 0;
+  } else {
+    const lr = applyRankLoss(s.tier, beforeRp, loss);
+    s.tier = lr.tier;
+    s.rp = lr.rp;
+  }
   s.loss_streak += 1;
   s.win_streak = 0;
   s.season_losses += 1;
   s.season_peak_tier = peakTierMax(s.season_peak_tier, s.tier);
+  return shield ? beforeRp : loss;
 }
 
 function tierValForRp(s: MutableStats): number {
@@ -668,12 +685,14 @@ export async function finalizeRankedMultiGameEnd(
       rpBreakdownB = loseBrB;
     }
 
-    applyRankedLoss(statsA, partsA.loserLoss);
-    applyRankedLoss(statsB, partsB.loserLoss);
+    const shownA = await applyRankedLoss(io, room.id, idA, statsA, partsA.loserLoss);
+    const shownB = await applyRankedLoss(io, room.id, idB, statsB, partsB.loserLoss);
+    doubleLossA = shownA;
+    doubleLossB = shownB;
     await recalcChallengerZone(seasonId, idA, statsA, idB, statsB);
 
-    if (beforeAPlacementDone) rpDeltaA = -partsA.loserLoss;
-    if (beforeBPlacementDone) rpDeltaB = -partsB.loserLoss;
+    if (beforeAPlacementDone) rpDeltaA = -shownA;
+    if (beforeBPlacementDone) rpDeltaB = -shownB;
     recordRankPairCooldown(idA, idB, Date.now());
     console.log(`[rank:finalize] doubleLoss lossA=${partsA.loserLoss} lossB=${partsB.loserLoss}`);
   } else {
@@ -732,19 +751,7 @@ export async function finalizeRankedMultiGameEnd(
       winnerStats.season_peak_tier = peakTierMax(winnerStats.season_peak_tier, winnerStats.tier);
     }
 
-    if (!loserStats.placement_done) {
-      loserStats.placement_games += 1;
-      loserStats.season_losses += 1;
-      maybeFinalizePlacement(loserStats);
-    } else {
-      const lr = applyRankLoss(loserStats.tier, loserStats.rp, loserLoss);
-      loserStats.tier = lr.tier;
-      loserStats.rp = lr.rp;
-      loserStats.loss_streak += 1;
-      loserStats.win_streak = 0;
-      loserStats.season_losses += 1;
-      loserStats.season_peak_tier = peakTierMax(loserStats.season_peak_tier, loserStats.tier);
-    }
+    loserLoss = await applyRankedLoss(io, room.id, loserPl.memberId, loserStats, loserLoss);
 
     // 챌린저 구역 재계산 (티어 결정에 필요하므로 Phase 1에서 처리)
     await recalcChallengerZone(seasonId, idA, statsA, idB, statsB);

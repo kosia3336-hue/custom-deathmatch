@@ -114,7 +114,7 @@ export interface Room {
   rankSeasonId?: number;
   /** 랭크 방은 항상 관전 허용 */
   spectatorAllowed?: boolean;
-  /** 카운터 매치 (동시 비공개 1밴). 랭크는 1/15, 커스텀은 관리자 방. */
+  /** 카운터 매치 (동시 비공개 1밴). 랭크 기본 1/15. 카운터 부적 1/13·1/11, 평온의 부적 1/17·1/19. 서로 상쇄. 커스텀은 관리자 방. */
   hiddenMatch?: boolean;
 }
 

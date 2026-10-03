@@ -138,6 +138,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
+#variable_conflict use_column
 DECLARE
   v_item record;
   v_qty integer := GREATEST(1, COALESCE(p_quantity, 1));
@@ -157,6 +158,8 @@ DECLARE
     'skin-g012-01','skin-g014-01','skin-g017-01','skin-g011-01','skin-g009-01','skin-g023-01','skin-g007-01'
   ];
 BEGIN
+  -- 반환 컬럼 skin_id, price_paid 가 테이블 컬럼과 이름이 같다.
+  -- 함수 맨 위의 #variable_conflict use_column 이 없으면 구매가 바로 죽는다.
   IF NOT public.chuseok_2026_open() THEN
     PERFORM public.burn_songpyeon_if_ended(p_member_id);
     RAISE EXCEPTION 'item_expired';
@@ -200,8 +203,8 @@ BEGIN
   END IF;
   v_skin := NULLIF(v_item.payload->>'skin_id', '');
   IF v_skin IS NOT NULL AND EXISTS (
-    SELECT 1 FROM member_skins
-     WHERE member_id = p_member_id AND skin_id = v_skin AND revoked_at IS NULL
+    SELECT 1 FROM member_skins ms
+     WHERE ms.member_id = p_member_id AND ms.skin_id = v_skin AND ms.revoked_at IS NULL
   ) THEN
     RAISE EXCEPTION 'already_owned';
   END IF;
@@ -453,7 +456,7 @@ VALUES
   ('c1000001-2026-4000-8000-000000000023', 'skin', '스킨 영구 랜덤권', '가지고 있지 않은 스킨 중 하나 랜덤으로 획득할 수 있다. (한정판 제외)', 350, 10, true, true,
     '{"priceUnit":"songpyeon","no_discount":true,"grant":"skin-random"}'::jsonb,
     timestamptz '2026-09-27 21:00:00+09', timestamptz '2026-10-12 01:00:00+09', 148),
-  ('c1000001-2026-4000-8000-000000000031', 'exchange', '송편 환전', '1송편을 3CDP로 교환한다.', 1, NULL, true, true,
+  ('c1000001-2026-4000-8000-000000000031', 'exchange', '송편 환전', '1송편을 3CDP로 교환한다.', 1, 10000, true, true,
     '{"priceUnit":"songpyeon","no_discount":true,"exchangeCdp":3}'::jsonb,
     timestamptz '2026-09-27 21:00:00+09', timestamptz '2026-10-12 01:00:00+09', 110)
 ON CONFLICT (id) DO UPDATE SET

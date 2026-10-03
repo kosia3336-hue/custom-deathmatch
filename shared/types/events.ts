@@ -607,7 +607,10 @@ export interface InventoryUpdatedPayload {
     | 'gacha_box'
     | 'gacha_ticket'
     | 'guild_charter'
-    | 'word_search';
+    | 'word_search'
+    | 'counter_charm'
+    | 'calm_charm'
+    | 'demotion_shield';
   countAfter: number;
   reason?:
     | 'purchase'

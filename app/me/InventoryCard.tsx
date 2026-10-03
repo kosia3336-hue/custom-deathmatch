@@ -78,16 +78,34 @@ const META: Record<ConsumableKind, ConsumableMeta> = {
     manual: false,
     trigger: "'단어조합' 게임 시작 시 자동으로 1개 사용",
   },
+  counter_charm: {
+    emoji: '',
+    description: '카운터 매치 확률이 올라간다. 자동사용되며, 랭크 게임 1판당 1개씩 사용된다.',
+    manual: false,
+    trigger: '랭크 게임 매칭 시 자동으로 1개 사용',
+  },
+  calm_charm: {
+    emoji: '',
+    description: '카운터 매치 확률이 내려간다. 자동사용되며, 랭크 게임 1판당 1개씩 사용된다.',
+    manual: false,
+    trigger: '랭크 게임 매칭 시 자동으로 1개 사용',
+  },
+  demotion_shield: {
+    emoji: '',
+    description: '강등될 상황에서 자동으로 사용된다. 강등되지 않고 0 RP에서 멈춘다. 이미 0 RP이면 사용되지 않고 강등된다.',
+    manual: false,
+    trigger: '랭크 패배로 강등될 때만 자동으로 1개 사용',
+  },
 };
 
-const ORDER: ConsumableKind[] = ['gacha_box', 'gacha_ticket', 'guild_charter', 'rank_reset', 'nickname_change', 'spectator_lock', 'anonymity', 'magnifier', 'word_search', 'ban_eraser'];
+const ORDER: ConsumableKind[] = ['gacha_box', 'gacha_ticket', 'guild_charter', 'rank_reset', 'nickname_change', 'spectator_lock', 'anonymity', 'magnifier', 'counter_charm', 'calm_charm', 'demotion_shield', 'word_search', 'ban_eraser'];
 
 interface RankResetState {
   open: boolean;
   busy: boolean;
 }
 
-const AUTO_USE_KINDS = new Set<ConsumableKind>(['spectator_lock', 'anonymity', 'magnifier', 'word_search']);
+const AUTO_USE_KINDS = new Set<ConsumableKind>(['spectator_lock', 'anonymity', 'magnifier', 'word_search', 'counter_charm', 'calm_charm', 'demotion_shield']);
 
 /** 판매 가능한 소모품 (뽑기 박스·뽑기권 제외) */
 const SELLABLE_KINDS = new Set<ConsumableKind>([
@@ -97,6 +115,9 @@ const SELLABLE_KINDS = new Set<ConsumableKind>([
   'anonymity',
   'magnifier',
   'word_search',
+  'counter_charm',
+  'calm_charm',
+  'demotion_shield',
   'ban_eraser',
 ]);
 

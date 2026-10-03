@@ -21,6 +21,9 @@ const KINDS: ConsumableKind[] = [
   'anonymity',
   'magnifier',
   'ban_eraser',
+  'counter_charm',
+  'calm_charm',
+  'demotion_shield',
 ];
 
 export default function AdminShopConsumablesTools() {

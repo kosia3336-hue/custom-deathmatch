@@ -144,7 +144,13 @@ export async function POST(req: NextRequest) {
       .select('id, type, payload')
       .eq('id', itemId)
       .maybeSingle();
-    const payload = (itemRow as { payload?: { kind?: string; priceUnit?: string; exchangeCdp?: number } } | null)?.payload ?? {};
+    const payload = (itemRow as { payload?: { kind?: string; priceUnit?: string; exchangeCdp?: number; devOnly?: boolean } } | null)?.payload ?? {};
+    if (payload.devOnly === true && !member.canDevSwitch) {
+      return NextResponse.json(
+        { error: '판매 종료된 아이템입니다.', code: 'item_inactive' as const },
+        { status: 409 },
+      );
+    }
 
     if (payload.priceUnit === 'songpyeon') {
       const maxQty = typeof payload.exchangeCdp === 'number' ? 10000 : 1;

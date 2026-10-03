@@ -48,6 +48,10 @@ const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/attendance', label: '출석판' },
 ];
 
+/** 로컬 개발 서버 전용. 프로덕션 빌드는 이 분기를 넣지 않는다. */
+const SUPER_AI_NAV =
+  process.env.NODE_ENV === 'development' ? { href: '/super-ai', label: '슈퍼 AI' } : null;
+
 export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }: GNBProps) {
   const [open, setOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -116,6 +120,19 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
                 {it.href === '/guild' ? <UnreadBadge count={guildUnread} /> : null}
               </Link>
             ))}
+          {member && SUPER_AI_NAV && (
+            <Link
+              href={SUPER_AI_NAV.href}
+              className={cn(
+                'rounded-cdm-md px-3 py-2 text-sm font-medium transition-colors',
+                pathname === SUPER_AI_NAV.href || pathname?.startsWith(SUPER_AI_NAV.href)
+                  ? 'text-white bg-white/10'
+                  : 'text-cdm-ink-fg-muted hover:text-white hover:bg-white/10',
+              )}
+            >
+              {SUPER_AI_NAV.label}
+            </Link>
+          )}
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
@@ -154,7 +171,7 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
             {open && (
               <div
                 role="menu"
-                className="absolute right-0 mt-1 min-w-[180px] overflow-hidden rounded-cdm-md border border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)"
+                className="absolute right-0 mt-1 min-w-45 overflow-hidden rounded-cdm-md border border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)"
               >
                 <MenuLink href="/me" label="마이페이지" />
                 <MenuLink href="/me?tab=titles" label="보유 칭호" />
@@ -168,6 +185,7 @@ export function GNB({ member, loadingRight = false, hideHeaderOnMobile = false }
                   문의
                 </button>
                 <MenuLink href="/me?tab=settings" label="환경 설정" />
+                {SUPER_AI_NAV && <MenuLink href={SUPER_AI_NAV.href} label={SUPER_AI_NAV.label} />}
                 {(member.role === 'admin' || member.canDevSwitch) && (
                   <>
                     <hr className="border-cdm-border" />

@@ -346,7 +346,7 @@ export default function AdminRankTools({
 
         {rows.length > 0 ? (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <table className="w-full min-w-160 border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-cdm-border text-xs text-cdm-fg-muted">
                   <th className="py-2 pr-2">닉네임</th>

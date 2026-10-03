@@ -20,6 +20,11 @@ export function hidePermanentlyOwnedEffectItems<T extends { payload: Record<stri
   });
 }
 
+/** `/dev/shop` 에만 보인다. 운영 상점 목록에서는 뺀다. */
+export function isDevOnlyShopItem(item: { payload?: Record<string, unknown> | null }): boolean {
+  return item.payload?.devOnly === true;
+}
+
 export function isEffectShopItem(item: Pick<ShopItem, 'type' | 'payload'>): boolean {
   return item.type === 'effect' || effectIdFromShopPayload(item.payload) !== null;
 }

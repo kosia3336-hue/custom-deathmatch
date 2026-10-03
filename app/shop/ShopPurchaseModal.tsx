@@ -26,6 +26,7 @@ interface PayloadShape {
   no_discount?: boolean;
   priceUnit?: 'songpyeon';
   exchangeCdp?: number;
+  preview?: boolean;
 }
 
 const QTY_MAX = 99;
@@ -49,6 +50,7 @@ export default function ShopPurchaseModal({
 
   const payload = (item.payload ?? {}) as PayloadShape;
   const isSongpyeon = payload.priceUnit === 'songpyeon';
+  const isPreviewPack = item.type === 'pack' && payload.preview === true;
   const exchangeRate = payload.exchangeCdp;
   const isExchange = typeof exchangeRate === 'number';
   const isConsumable = !isSongpyeon && item.type === 'consumable' && payload.kind !== 'event_chip_pack';
@@ -270,7 +272,9 @@ export default function ShopPurchaseModal({
           </dd>
         </dl>
         <p className="text-xs text-cdm-fg-muted">
-          ※ 구매한 아이템은 환불되지 않습니다. (판매 시 구매가의 10% 환급)
+          {isPreviewPack
+            ? '데브 프리뷰입니다. 화면의 잔액만 줄고, 아이템은 지급되지 않습니다.'
+            : '※ 구매한 아이템은 환불되지 않습니다. (판매 시 구매가의 10% 환급)'}
         </p>
       </div>
     </Modal>

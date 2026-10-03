@@ -114,6 +114,7 @@ export const TYPE_LABELS: Record<string, string> = {
   frame: '프레임',
   effect: '이펙트',
   consumable: '소모성',
+  pack: '팩',
   event_chip_pack: '이벤트 칩',
   event_chip_exchange: '칩 환전',
   gacha: '뽑기',
@@ -135,6 +136,9 @@ export const CONSUMABLE_LABELS: Record<ConsumableKind, string> = {
   gacha_ticket: '뽑기권',
   guild_charter: '길드 창설권',
   word_search: '검색 찬스',
+  counter_charm: '카운터 부적',
+  calm_charm: '평온의 부적',
+  demotion_shield: '강등 보호권',
 };
 
 export function labelForConsumable(kind: ConsumableKind | string): string {

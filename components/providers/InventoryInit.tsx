@@ -31,11 +31,11 @@ export default function InventoryInit({ hasMember }: { hasMember: boolean }) {
         if (aborted) return;
         const map = json.items.reduce<InventoryMap>(
           (acc, it) => { acc[it.kind] = Number(it.count); return acc; },
-          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0, gacha_box: 0, gacha_ticket: 0, guild_charter: 0, word_search: 0 },
+          { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0, gacha_box: 0, gacha_ticket: 0, guild_charter: 0, word_search: 0, counter_charm: 0, calm_charm: 0, demotion_shield: 0 },
         );
         const autoUseMap = json.items.reduce<AutoUseMap>(
           (acc, it) => { acc[it.kind] = it.autoUse ?? true; return acc; },
-          { nickname_change: true, rank_reset: true, spectator_lock: true, anonymity: true, magnifier: true, ban_eraser: true, gacha_box: false, gacha_ticket: false, guild_charter: false, word_search: true },
+          { nickname_change: true, rank_reset: true, spectator_lock: true, anonymity: true, magnifier: true, ban_eraser: true, gacha_box: false, gacha_ticket: false, guild_charter: false, word_search: true, counter_charm: true, calm_charm: true, demotion_shield: true },
         );
         setAll(map, autoUseMap);
       })

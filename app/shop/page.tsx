@@ -5,6 +5,7 @@ import { getActiveMember } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { Card } from '@/components/cdm/Card';
 import type { ShopItem, CdpSummary } from '@/lib/cdp/types';
+import { isDevOnlyShopItem } from '@/lib/cdp/shop-filter';
 import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { getSupabaseServiceRole, isSupabaseServiceRoleConfigured } from '@/lib/supabase/service-role';
@@ -97,7 +98,9 @@ export default async function ShopPage({ searchParams }: Props) {
     }
   }
 
-  const itemRows = (itemsRes.data as unknown as ShopItemRowSel[] | null) ?? [];
+  const itemRows = ((itemsRes.data as unknown as ShopItemRowSel[] | null) ?? []).filter(
+    (r) => !isDevOnlyShopItem({ payload: r.payload ?? {} }),
+  );
   const items: ShopItem[] = itemRows.map((r) => ({
     id: r.id,
     type: r.type,

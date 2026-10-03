@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import type { ShopItem } from '@/lib/cdp/types';
+import { isDevOnlyShopItem } from '@/lib/cdp/shop-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] });
     }
 
-    const rows = (data as unknown as ShopItemRowSel[] | null) ?? [];
+    const rows = ((data as unknown as ShopItemRowSel[] | null) ?? []).filter(
+      (r) => !isDevOnlyShopItem({ payload: r.payload ?? {} }),
+    );
     const items: ShopItem[] = rows.map((r) => ({
       id: r.id,
       type: r.type,

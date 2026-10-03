@@ -69,7 +69,6 @@ docs/choen/*
 /public/dev/
 # 슈퍼 AI 페이지는 배포하지 않는다. 로컬에만 둔다.
 /app/super-ai/
-# pnpm build 가 app/dev·public/dev 를 잠깐 옮겨 두는 자리
 /tmp-app-dev/
 /tmp-public-dev/
 

@@ -54,7 +54,7 @@ BEGIN
   FROM shop_items
   WHERE type = 'consumable'
     AND payload->>'kind' = p_kind
-    AND is_active = true
+    AND (is_active = true OR COALESCE((payload->>'devOnly')::boolean, false))
   ORDER BY price::numeric / GREATEST(1, COALESCE((payload->>'stockPerUnit')::integer, 1)) DESC
   LIMIT 1;
 

@@ -24,6 +24,7 @@ export {
   calcRankRpParts,
   calcCounterRankRpParts,
   COUNTER_MATCH_CHANCE,
+  counterMatchChance,
   COUNTER_BAN_TURN_MS,
   RANK_VS_SEC,
   RANK_VS_NAV_SEC,
@@ -32,6 +33,7 @@ export {
   peakTierMax,
   applyRankWin,
   applyRankLoss,
+  demotionShieldApplies,
 } from './rank';
 export {
   AI_PLAYER_ID,

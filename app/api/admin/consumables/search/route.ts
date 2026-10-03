@@ -42,6 +42,9 @@ const ALL_KINDS: ConsumableKind[] = [
   'gacha_ticket',
   'guild_charter',
   'word_search',
+  'counter_charm',
+  'calm_charm',
+  'demotion_shield',
 ];
 
 function err(msg: string, status = 400) {
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
       const inventory = ALL_KINDS.reduce<Record<ConsumableKind, number>>((acc, k) => {
         acc[k] = counts?.get(k) ?? 0;
         return acc;
-      }, { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0, gacha_box: 0, gacha_ticket: 0, guild_charter: 0, word_search: 0 });
+      }, { nickname_change: 0, rank_reset: 0, spectator_lock: 0, anonymity: 0, magnifier: 0, ban_eraser: 0, gacha_box: 0, gacha_ticket: 0, guild_charter: 0, word_search: 0, counter_charm: 0, calm_charm: 0, demotion_shield: 0 });
       return { memberId: m.id, nickname: m.nickname, inventory };
     });
 

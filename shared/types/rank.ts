@@ -95,8 +95,22 @@ export function calcRankRpChange(
   return { winnerGain: p.winnerGain, loserLoss: p.loserLoss };
 }
 
-/** 랭크 카운터 매치 확률 (매 판 독립). */
+/** 랭크 카운터 매치 기본 확률 (매 판 독립). */
 export const COUNTER_MATCH_CHANCE = 1 / 15;
+
+/**
+ * 이번 판 카운터 확률.
+ * 카운터 부적과 평온의 부적은 1명씩 상쇄된다.
+ * 순 카운터 2명 이상 1/11, 1명 1/13, 0명 1/15, 순 평온 1명 1/17, 2명 이상 1/19.
+ */
+export function counterMatchChance(counterUsers: number, calmUsers = 0): number {
+  const net = counterUsers - calmUsers;
+  if (net >= 2) return 1 / 11;
+  if (net === 1) return 1 / 13;
+  if (net === 0) return COUNTER_MATCH_CHANCE;
+  if (net === -1) return 1 / 17;
+  return 1 / 19;
+}
 /** VS 카운트 시작 초(5 → 0). */
 export const RANK_VS_SEC = 5;
 /** 0초를 1초 보여 준 뒤 플레이 진입. */
@@ -248,6 +262,16 @@ export function applyRankLoss(
   const prev = demoteMap[currentTier];
   if (!prev) return { tier: currentTier, rp: 0, demoted: false };
   return { tier: prev, rp: 100 + next, demoted: true };
+}
+
+/**
+ * 강등 보호권이 발동하는 패배.
+ * 티어가 내려가고, 패배 전 RP가 1 이상일 때만. 이미 0이면 강등된다.
+ * 브론즈는 강등이 없고, 챌린저 구역 탈락은 여기 포함되지 않는다.
+ */
+export function demotionShieldApplies(tier: RankTier, rp: number, loss: number): boolean {
+  if (rp <= 0) return false;
+  return applyRankLoss(tier, rp, loss).demoted;
 }
 
 /** 매칭 VS 에 실을 길드 스냅샷. 로고 없으면 markUrl null, 이름은 그대로. */

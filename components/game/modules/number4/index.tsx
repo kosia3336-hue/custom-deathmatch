@@ -9,6 +9,7 @@ import type { NumberFourGameData } from '@/shared/types/number4';
 import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
 import { getSkinTheme } from '@/lib/skins/registry';
 import { GAME_IDS } from '@/shared/types/game';
+import PlayerBadge from './PlayerBadge';
 import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import InfoPanel from './InfoPanel';
@@ -25,7 +26,7 @@ export default function NumberFourGame() {
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as NumberFourGameData | undefined;
   const myId = useMySocketId();
-  useTurnTimer();
+  const { remaining: timerRemaining } = useTurnTimer();
   const { setHud } = useRoomLayout();
   const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.NUMBER_FOUR);
   const isDuality = skin === 'duality';
@@ -37,6 +38,7 @@ export default function NumberFourGame() {
   const [trackerBlack, setTrackerBlack] = useState(INITIAL_BLACK);
   // 관전자용: 플레이어별 상태
   const [spectatorTrackers, setSpectatorTrackers] = useState<Record<string, { white: number; black: number }>>({});
+  const [showTracker, setShowTracker] = useState(false);
 
   /* 동시 제출 판 — '내 차례' 대신 냈는지를 알린다 (lib/gameSeat.ts) */
   const phaseLabel = gameData?.phase === 'submit'
@@ -285,6 +287,21 @@ export default function NumberFourGame() {
           )}
         </div>
       </GameFrame>
+
+      {showTracker && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 lg:hidden">
+          <div className="w-full max-w-lg rounded-t-xl bg-white p-4">
+            {trackerPanel}
+            <button
+              type="button"
+              onClick={() => setShowTracker(false)}
+              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-bold text-gray-600"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
     </>
   );

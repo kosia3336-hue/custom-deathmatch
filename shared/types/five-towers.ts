@@ -145,7 +145,6 @@ export function ftCopyStacked(p: Record<FTTower, number>): Record<FTTower, numbe
 
 export function ftPublicTower(id: FTTower, over: Partial<FTTowerPublicInfo> = {}): FTTowerPublicInfo {
   return {
-    id,
     completed: false,
     completedBy: null,
     milestonesReached: { half: false, complete: false },

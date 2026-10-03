@@ -55,7 +55,10 @@ export type ConsumableKind =
   | 'gacha_box'
   | 'gacha_ticket'
   | 'guild_charter'
-  | 'word_search';
+  | 'word_search'
+  | 'counter_charm'
+  | 'calm_charm'
+  | 'demotion_shield';
 
 // ──────────────────────────────────────────────
 // 테이블 행 타입

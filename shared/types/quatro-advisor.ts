@@ -627,6 +627,7 @@ export interface QuatroAdvisorKifu {
 
 function winTypeOf(result: QuatroAdvisorResult): QuatroAdvisorKifu['winType'] {
   if (result.kind === 'draw') return 'draw';
+  if (result.kind === 'playing') return 'sum';
   if (result.reason.includes('콰트로') && !result.reason.includes('합계')) return 'quatro';
   if (result.reason.includes('높은 카드')) return 'high';
   return 'sum';

@@ -59,7 +59,10 @@ BEGIN
   SELECT * INTO v_item FROM shop_items WHERE id = p_item_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'item_not_found'; END IF;
   IF v_item.type <> 'consumable' THEN RAISE EXCEPTION 'item_not_found'; END IF;
-  IF NOT v_item.is_active THEN RAISE EXCEPTION 'item_inactive'; END IF;
+  -- 데브 전용(payload.devOnly)은 운영 목록에서 꺼 두되, 데브 세션 구매는 허용한다.
+  IF NOT v_item.is_active AND COALESCE((v_item.payload->>'devOnly')::boolean, false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'item_inactive';
+  END IF;
   IF v_item.available_from IS NOT NULL AND now() < v_item.available_from THEN
     RAISE EXCEPTION 'item_not_available_yet';
   END IF;
