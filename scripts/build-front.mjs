@@ -1,7 +1,7 @@
 /**
  * 프로덕션 프론트 빌드.
  *
- * 로컬 전용 `app/dev` · `public/dev` 는 gitignore 이고 운영 번들에도 넣지 않는다.
+ * 로컬 전용 `app/dev` · `public/dev` · `app/super-ai` 는 gitignore 이고 운영 번들에도 넣지 않는다.
  * Next 는 app/ 아래를 전부 묶으므로, 빌드 동안 폴더를 저장소 밖 임시 디렉터리로
  * 빼 두었다가 끝나면 되돌린다. 저장소 안에 두면 tsc 가 그 파일을 다시 검사한다.
  * 클린 체크아웃에는 이 폴더가 없어서 그냥 next build 만 한다.
@@ -20,6 +20,7 @@ const stashRoot = mkdtempSync(join(tmpdir(), 'cdm-dev-'));
 const HIDES = [
   { src: join(ROOT, 'app/dev'), stash: join(stashRoot, 'app-dev') },
   { src: join(ROOT, 'public/dev'), stash: join(stashRoot, 'public-dev') },
+  { src: join(ROOT, 'app/super-ai'), stash: join(stashRoot, 'app-super-ai') },
 ];
 
 const hidden = [];

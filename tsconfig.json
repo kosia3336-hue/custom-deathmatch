@@ -45,6 +45,7 @@
     "node_modules",
     "server",
     "app/dev",
+    "app/super-ai",
     "tmp-app-dev",
     "tmp-public-dev"
   ]
