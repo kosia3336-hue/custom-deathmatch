@@ -192,11 +192,48 @@ function emptyContrib(): GuildV4ContribScores {
 /** 길드 랭킹 점수 적립이 시작된 주(w:2026-08-24) 01:00 KST. 그 전 경기는 점수에 안 들어갔다. */
 const GUILD_RANK_SCORE_SINCE = '2026-08-24T01:00:00+09:00';
 
+/**
+ * PostgREST 기본 최대 행. `.limit(5000)` 은 이 상한에 잘려 앞 1000건만 돌아온다.
+ * 페이지는 이 크기 이하로 끊고, `id` 정렬로 이어서 읽는다.
+ */
+const CONTRIB_PAGE_SIZE = 1000;
+
 type RankRosterRow = {
   memberId: string;
   guildId: string;
   joinedAt: string;
 };
+
+type PageResult<T> = {
+  data: T[] | null;
+  error: { message: string } | null;
+};
+
+/** 한 조회가 상한에 잘리지 않게 id 순으로 전부 읽는다. 실패하면 빈 점수로 넘기지 않는다. */
+async function fetchAllPages<T extends { id: string | number }>(
+  label: string,
+  loadPage: (from: number, to: number) => PromiseLike<PageResult<T>>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  const seen = new Set<string>();
+  for (let from = 0; ; from += CONTRIB_PAGE_SIZE) {
+    const { data, error } = await loadPage(from, from + CONTRIB_PAGE_SIZE - 1);
+    if (error) throw new Error(`[guild2:contrib] ${label} 조회 실패: ${error.message}`);
+    const batch = data ?? [];
+    const first = batch[0];
+    if (first && seen.has(String(first.id))) {
+      throw new Error(`[guild2:contrib] ${label} 페이지가 진행되지 않습니다.`);
+    }
+    for (const row of batch) {
+      const key = String(row.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+    if (batch.length < CONTRIB_PAGE_SIZE) break;
+  }
+  return rows;
+}
 
 async function loadMemberRankScores(
   sb: Sb,
@@ -218,26 +255,35 @@ async function loadMemberRankScores(
 
   const memberIds = roster.map((m) => m.memberId);
   const guildIds = [...byGuild.keys()];
-  const [winRes, lossRes, drawRes] = await Promise.all([
-    sb
-      .from('rank_match_history')
-      .select('winner_id, winner_rp_gain, played_at')
-      .in('winner_id', memberIds)
-      .gte('played_at', GUILD_RANK_SCORE_SINCE)
-      .limit(5000),
-    sb
-      .from('rank_match_history')
-      .select('loser_id, loser_rp_loss, played_at')
-      .in('loser_id', memberIds)
-      .gte('played_at', GUILD_RANK_SCORE_SINCE)
-      .limit(5000),
-    sb
-      .from('guild_point_ledger')
-      .select('member_id, created_at')
-      .in('guild_id', guildIds)
-      .eq('reason', 'rank_draw')
-      .gte('created_at', GUILD_RANK_SCORE_SINCE)
-      .limit(5000),
+  const [wins, losses, draws] = await Promise.all([
+    fetchAllPages('승', (from, to) =>
+      sb
+        .from('rank_match_history')
+        .select('id, winner_id, winner_rp_gain, played_at')
+        .in('winner_id', memberIds)
+        .gte('played_at', GUILD_RANK_SCORE_SINCE)
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages('패', (from, to) =>
+      sb
+        .from('rank_match_history')
+        .select('id, loser_id, loser_rp_loss, played_at')
+        .in('loser_id', memberIds)
+        .gte('played_at', GUILD_RANK_SCORE_SINCE)
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages('무승부', (from, to) =>
+      sb
+        .from('guild_point_ledger')
+        .select('id, member_id, created_at')
+        .in('guild_id', guildIds)
+        .eq('reason', 'rank_draw')
+        .gte('created_at', GUILD_RANK_SCORE_SINCE)
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
   const today = seoulYmd();
@@ -269,26 +315,15 @@ async function loadMemberRankScores(
     if (t >= dailyStartMs && t < dailyEndMs) slot.daily += score;
   };
 
-  for (const row of (winRes.data ?? []) as {
-    winner_id: string;
-    winner_rp_gain: number;
-    played_at: string;
-  }[]) {
+  for (const row of wins) {
     add(row.winner_id, Math.max(0, Math.round(Number(row.winner_rp_gain))), row.played_at);
   }
-  for (const row of (lossRes.data ?? []) as {
-    loser_id: string;
-    loser_rp_loss: number;
-    played_at: string;
-  }[]) {
+  for (const row of losses) {
     const loss = Number(row.loser_rp_loss);
     if (loss <= 0) continue;
     add(row.loser_id, Math.max(1, Math.round(loss * 0.2)), row.played_at);
   }
-  for (const row of (drawRes.data ?? []) as {
-    member_id: string | null;
-    created_at: string;
-  }[]) {
+  for (const row of draws) {
     if (!row.member_id) continue;
     add(row.member_id, 5, row.created_at);
   }

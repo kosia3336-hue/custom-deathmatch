@@ -83,3 +83,8 @@ docs/choen/*
 # 게임 화면 확인용 fixture (DUMP_FIXTURES=1 로 생성)
 tmp-game-fixtures/
 public/tmp-fixtures/
+
+# 더 지니어스 1 플레이어 학습. 배포 전이라 추적하지 않는다.
+# 기획 문서는 docs/* 무시로 이미 빠진다.
+shared/genius-s1/
+server/src/__tests__/genius-s1.learning.test.ts

@@ -6,7 +6,47 @@ import { Card } from '@/components/cdm/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import { RANK_TIER_LABEL } from '@/lib/rankedRoomTitle';
+import { calcRankRpParts, rankTierNumericForRp } from '@shared/types/rank';
 import RankMatchHistoryPanel from './RankMatchHistoryPanel';
+
+const GRANT_TIERS = ['bronze', 'silver', 'gold', 'diamond', 'challenger'] as const;
+type GrantTier = (typeof GRANT_TIERS)[number];
+
+const SELECT_CLASS =
+  'mt-1 h-10 w-full rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 text-sm text-cdm-fg focus:outline-none focus:ring-2 focus:ring-cdm-primary/50';
+
+function isGrantTier(tier: string | null): tier is GrantTier {
+  return GRANT_TIERS.some((t) => t === tier);
+}
+
+function clampStreak(n: number | null): number {
+  if (n == null || !Number.isFinite(n) || n < 0) return 0;
+  return Math.min(6, Math.trunc(n));
+}
+
+function subjectMarker(label: string): '이' | '가' {
+  const last = [...label].at(-1) ?? '';
+  const code = last.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return '가';
+  return (code - 0xac00) % 28 === 0 ? '가' : '이';
+}
+
+function rowTierLabel(row: SearchRow): string {
+  if (isGrantTier(row.tier)) return RANK_TIER_LABEL[row.tier];
+  if (!row.placementDone) return '배치';
+  if (row.tier === 'unranked') return RANK_TIER_LABEL.unranked;
+  return row.tier ?? '?';
+}
+
+function streakOptionLabel(streak: number): string {
+  if (streak <= 0) return '연승 없음';
+  if (streak >= 6) return '6연승 이상 (+20)';
+  if (streak === 5) return '5연승 중 (+15)';
+  if (streak === 4) return '4연승 중 (+10)';
+  if (streak === 3) return '3연승 중 (+6)';
+  return `${streak}연승 중`;
+}
 
 export interface AdminSeasonRow {
   id: number;
@@ -56,6 +96,9 @@ export default function AdminRankTools({
   const [matchTarget, setMatchTarget] = useState<SearchRow | null>(null);
   const [deltaStr, setDeltaStr] = useState('');
   const [reason, setReason] = useState('');
+  const [ownTier, setOwnTier] = useState<GrantTier>('gold');
+  const [baseTier, setBaseTier] = useState<GrantTier>('gold');
+  const [streak, setStreak] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const [newSeasonOpen, setNewSeasonOpen] = useState(false);
@@ -133,10 +176,45 @@ export default function AdminRankTools({
     }
   }
 
-  async function submitAdjust() {
+  const grant = useMemo(() => {
+    if (!adjustTarget) return null;
+    const parts = calcRankRpParts(
+      rankTierNumericForRp(ownTier, true),
+      rankTierNumericForRp(baseTier, true),
+      streak,
+      0,
+    );
+    const playerShown = RANK_TIER_LABEL[ownTier];
+    const opponent = RANK_TIER_LABEL[baseTier];
+    const diff = rankTierNumericForRp(ownTier, true) - rankTierNumericForRp(baseTier, true);
+    const rel =
+      diff === 0 ? '동티어' : diff > 0 ? `${diff}단계 아래 상대` : `${-diff}단계 위 상대`;
+    const streakLabel = streak >= 6 ? '6연승 이상' : `${streak}연승`;
+    const breakdown =
+      parts.winnerStreakBonus > 0
+        ? `기본 ${parts.winnerBaseTable} + ${streakLabel} ${parts.winnerStreakBonus}`
+        : `기본 ${parts.winnerBaseTable} · 연승 가산 없음`;
+    return {
+      gain: parts.winnerGain,
+      matchup: `${playerShown} · ${opponent} 기준 · ${rel}`,
+      breakdown,
+      reason: `${playerShown}${subjectMarker(playerShown)} ${opponent} 기준 ${streakLabel} 승리 ${parts.winnerGain} RP`,
+    };
+  }, [adjustTarget, ownTier, baseTier, streak]);
+
+  function openAdjust(row: SearchRow) {
+    const tier = isGrantTier(row.tier) ? row.tier : 'bronze';
+    setAdjustTarget(row);
+    setOwnTier(tier);
+    setBaseTier(tier);
+    setStreak(clampStreak(row.winStreak));
+    setDeltaStr('');
+    setReason('');
+    setAdjustOpen(true);
+  }
+
+  async function postDelta(delta: number, rs: string) {
     if (!adjustTarget || activeSeasonId == null) return;
-    const delta = Number(deltaStr);
-    const rs = reason.trim();
     if (!Number.isFinite(delta) || delta === 0) {
       toast.error('변경량(RP)을 입력하세요.');
       return;
@@ -170,6 +248,16 @@ export default function AdminRankTools({
     } finally {
       setBusy(false);
     }
+  }
+
+  function submitGrant() {
+    if (!grant) return;
+    const typed = reason.trim();
+    void postDelta(grant.gain, typed.length >= 3 ? typed : grant.reason);
+  }
+
+  function submitManual() {
+    void postDelta(Number(deltaStr), reason.trim());
   }
 
   const maxTier = Math.max(1, ...tierBins.map((b) => b.count));
@@ -288,10 +376,7 @@ export default function AdminRankTools({
                           size="sm"
                           variant="secondary"
                           disabled={!activeSeasonId || row.missingStats}
-                          onClick={() => {
-                            setAdjustTarget(row);
-                            setAdjustOpen(true);
-                          }}
+                          onClick={() => openAdjust(row)}
                         >
                           수동 조정
                         </Button>
@@ -370,11 +455,88 @@ export default function AdminRankTools({
             <p className="text-sm text-cdm-fg">
               <span className="font-semibold">{adjustTarget.nickname}</span>{' '}
               <span className="text-cdm-fg-muted">
-                ({adjustTarget.tier ?? '?'} / {adjustTarget.rp ?? '?'} RP)
+                ({rowTierLabel(adjustTarget)} / {adjustTarget.rp ?? '?'} RP)
               </span>
             </p>
+            {grant ? (
+              <div className="space-y-2 rounded-cdm-md border border-cdm-border bg-cdm-bg-elev-2 p-3">
+                <p className="text-xs font-medium text-cdm-fg">승리 RP 지급</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-medium text-cdm-fg-muted">
+                    자기 당시 티어
+                    <select
+                      value={ownTier}
+                      onChange={(e) => setOwnTier(e.target.value as GrantTier)}
+                      className={SELECT_CLASS}
+                    >
+                      {GRANT_TIERS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {RANK_TIER_LABEL[tier]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-xs font-medium text-cdm-fg-muted">
+                    기준 티어 (상대)
+                    <select
+                      value={baseTier}
+                      onChange={(e) => setBaseTier(e.target.value as GrantTier)}
+                      className={SELECT_CLASS}
+                    >
+                      {GRANT_TIERS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {RANK_TIER_LABEL[tier]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="col-span-2 block text-xs font-medium text-cdm-fg-muted">
+                    연승
+                    <select
+                      value={streak}
+                      onChange={(e) => setStreak(Number(e.target.value))}
+                      className={SELECT_CLASS}
+                    >
+                      {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>
+                          {streakOptionLabel(n)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <p className="text-xs text-cdm-fg-muted">
+                  현재 {rowTierLabel(adjustTarget)} · {adjustTarget.winStreak ?? 0}연승
+                </p>
+                <p className="text-sm text-cdm-fg">{grant.matchup}</p>
+                <p className="text-lg font-semibold tabular-nums text-cdm-fg">{grant.gain} RP</p>
+                <p className="text-xs text-cdm-fg-muted">{grant.breakdown}</p>
+                <p className="text-xs text-cdm-fg-muted">전적과 연승은 바꾸지 않고 RP만 더합니다.</p>
+              </div>
+            ) : null}
             <label className="block text-xs font-medium text-cdm-fg-muted">
-              RP 변경량 (+/- 정수)
+              사유 (감사 로그)
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder={grant?.reason}
+                className="mt-1 w-full rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg"
+              />
+              <span className="mt-1 block font-normal">
+                지급은 비워도 됩니다. 직접 가감은 3자 이상 적어야 합니다.
+              </span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" disabled={busy} onClick={() => setAdjustOpen(false)}>
+                취소
+              </Button>
+              <Button type="button" disabled={busy || !grant} onClick={submitGrant}>
+                {grant ? `${grant.gain} RP 지급` : '지급'}
+              </Button>
+            </div>
+            <label className="block border-t border-cdm-border pt-3 text-xs font-medium text-cdm-fg-muted">
+              직접 가감 (+/- 정수)
               <Input
                 value={deltaStr}
                 onChange={(e) => setDeltaStr(e.target.value)}
@@ -382,21 +544,9 @@ export default function AdminRankTools({
                 className="mt-1"
               />
             </label>
-            <label className="block text-xs font-medium text-cdm-fg-muted">
-              사유 (감사 로그)
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm text-cdm-fg"
-              />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" disabled={busy} onClick={() => setAdjustOpen(false)}>
-                취소
-              </Button>
-              <Button type="button" disabled={busy} onClick={submitAdjust}>
-                적용
+            <div className="flex justify-end">
+              <Button type="button" variant="secondary" disabled={busy} onClick={submitManual}>
+                입력값 적용
               </Button>
             </div>
           </div>
