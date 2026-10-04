@@ -12,8 +12,8 @@ SELECT 'cdb50000-c000-0000-0000-000000070001',
        '카운터 부적',
        '카운터 매치 확률이 올라간다. 자동사용되며, 랭크 게임 1판당 1개씩 사용된다.',
        200,
-       '{"kind":"counter_charm","scope":"rank_match","auto_consume":true,"stockPerUnit":1,"devOnly":true}'::jsonb,
-       false,
+       '{"kind":"counter_charm","scope":"rank_match","auto_consume":true,"stockPerUnit":1}'::jsonb,
+       true,
        84
 WHERE NOT EXISTS (
   SELECT 1 FROM shop_items WHERE payload->>'kind' = 'counter_charm'

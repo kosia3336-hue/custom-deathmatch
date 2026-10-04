@@ -223,7 +223,7 @@ export function packPurchaseBlock(packId: DevPackId, tier: RankTier | null): str
   const need = PACK_MIN_TIER[packId];
   const have: RankTier = tier ?? 'unranked';
   if (tierOrder(have) >= tierOrder(need)) return null;
-  return `${PACK_MIN_LABEL[packId]} 이상만 구매할 수 있습니다.`;
+  return `랭크 티어가 ${PACK_MIN_LABEL[packId]} 이상만 구매할 수 있습니다.`;
 }
 
 export function devPackIdFromItem(item: ShopItem): DevPackId | null {
@@ -264,7 +264,12 @@ export function devPackOdds(packId: DevPackId): DevPackOddsGrade[] {
 
 export const DEV_PACK_ORDER: DevPackId[] = ['bronze', 'gold', 'diamond'];
 
-function shopItem(pack: PackDef): ShopItem {
+export function packPaidPrice(packId: DevPackId, merchantDiscount: boolean): number {
+  const price = PACKS[packId].price;
+  return merchantDiscount ? Math.floor(price * 0.9) : price;
+}
+
+function shopItem(pack: PackDef, preview: boolean): ShopItem {
   return {
     id: `dev-pack-${pack.id}`,
     type: 'pack',
@@ -274,11 +279,17 @@ function shopItem(pack: PackDef): ShopItem {
     stock: null,
     isLimited: false,
     isActive: true,
-    payload: { preview: true, packId: pack.id, slots: pack.slots, minTier: pack.minTier },
+    payload: { preview, packId: pack.id, slots: pack.slots, minTier: pack.minTier },
     availableFrom: null,
     availableUntil: null,
     sortOrder: pack.id === 'diamond' ? 3 : pack.id === 'gold' ? 2 : 1,
   };
 }
 
-export const DEV_SHOP_PACKS: ShopItem[] = [PACKS.bronze, PACKS.gold, PACKS.diamond].map(shopItem);
+const PACK_DEFS = [PACKS.bronze, PACKS.gold, PACKS.diamond];
+
+/** 데브 상점. 잔액만 줄고 지급하지 않는다. */
+export const DEV_SHOP_PACKS: ShopItem[] = PACK_DEFS.map((pack) => shopItem(pack, true));
+
+/** 운영 상점. 서버가 CDP를 깎고 고른 상품을 지급한다. */
+export const LIVE_SHOP_PACKS: ShopItem[] = PACK_DEFS.map((pack) => shopItem(pack, false));

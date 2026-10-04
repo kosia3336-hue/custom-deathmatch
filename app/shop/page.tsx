@@ -5,6 +5,8 @@ import { getActiveMember } from '@/lib/auth/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { Card } from '@/components/cdm/Card';
 import type { ShopItem, CdpSummary } from '@/lib/cdp/types';
+import { LIVE_SHOP_PACKS } from '@/lib/shop/dev-pack';
+import type { RankTier } from '@/shared/types/rank';
 import { isDevOnlyShopItem } from '@/lib/cdp/shop-filter';
 import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
@@ -18,6 +20,10 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+
+function isRankTier(value: string | undefined): value is RankTier {
+  return value === 'unranked' || value === 'bronze' || value === 'silver' || value === 'gold' || value === 'diamond' || value === 'challenger';
+}
 
 interface Props {
   searchParams: Promise<{ type?: string }>;
@@ -54,7 +60,7 @@ export default async function ShopPage({ searchParams }: Props) {
   if (!member) redirect('/login?next=/shop');
 
   const sp = await searchParams;
-  const initialType = sp.type ?? 'all';
+  const initialType = sp.type === 'all' || !sp.type ? 'consumable' : sp.type;
 
   const sb = await getServerSupabase();
   const nowIso = new Date().toISOString();
@@ -138,6 +144,18 @@ export default async function ShopPage({ searchParams }: Props) {
   );
   const activeSeasonId = (activeSeasonRes.data as { id?: number } | null)?.id ?? null;
 
+  let viewerTier: RankTier = 'unranked';
+  if (activeSeasonId !== null) {
+    const statsRes = await sb
+      .from('rank_stats')
+      .select('tier')
+      .eq('season_id', activeSeasonId)
+      .eq('member_id', member.id)
+      .maybeSingle();
+    const tier = (statsRes.data as { tier?: string } | null)?.tier;
+    viewerTier = isRankTier(tier) ? tier : 'unranked';
+  }
+
   let merchantDiscount = false;
   if (activeSeasonId !== null) {
     for (const r of itemRows) {
@@ -188,6 +206,8 @@ export default async function ShopPage({ searchParams }: Props) {
           songpyeonBalance={songpyeonBalance}
           ownedSkinIds={ownedSkinIds}
           pendingSkinPick={pendingSkinPick}
+          packItems={LIVE_SHOP_PACKS}
+          viewerTier={viewerTier}
         />
       </main>
     </>

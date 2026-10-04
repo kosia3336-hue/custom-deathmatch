@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Modal } from '@/components/cdm/Modal';
 import { Button } from '@/components/cdm/Button';
 import { PackArtwork } from './PackArtwork';
@@ -33,18 +34,21 @@ interface Props {
   packId: DevPackId | null;
   packName: string;
   onClose: () => void;
+  /** 운영 상점. 두 장은 서버가 정하고, 고른 쪽만 지급한다. */
+  server?: { sessionId: string; pair: [DevPackReward, DevPackReward] } | null;
 }
 
-export default function ShopPackOpenModal({ packId, packName, onClose }: Props) {
+export default function ShopPackOpenModal({ packId, packName, onClose, server = null }: Props) {
   const [used, setUsed] = useState<Set<string>>(() => new Set());
   const [pair, setPair] = useState<[DevPackReward, DevPackReward] | null>(() =>
-    packId ? rollDevPackPair(packId, new Set()) : null,
+    server?.pair ?? (packId ? rollDevPackPair(packId, new Set()) : null),
   );
   const [step, setStep] = useState(0);
   const [taken, setTaken] = useState<DevPackReward[]>([]);
   const [phase, setPhase] = useState<Phase>('open');
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
+  const picking = useRef(false);
   const firstGrade = useRef(pair?.[0]?.grade);
 
   function later(ms: number, fn: () => void) {
@@ -80,31 +84,78 @@ export default function ShopPackOpenModal({ packId, packName, onClose }: Props) 
   const grade = pair[0].grade;
 
   function choose(reward: DevPackReward) {
-    if (!packId || phase !== 'choose') return;
+    if (!packId || !pair || phase !== 'choose' || picking.current) return;
+    picking.current = true;
     setPickedKey(reward.key);
     setPhase('resolve');
+    const choice = pair[0] === reward ? 0 : 1;
+    void finishChoice(reward, choice);
+  }
+
+  async function finishChoice(reward: DevPackReward, choice: number) {
+    let granted = reward;
+    let nextPair: [DevPackReward, DevPackReward] | null = null;
+    let finished = false;
+    if (server) {
+      try {
+        const res = await fetch('/api/shop/pack/pick', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: server.sessionId, choice }),
+        });
+        const json = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          granted?: DevPackReward;
+          replaced?: boolean;
+          nextPair?: [DevPackReward, DevPackReward] | null;
+        };
+        if (!res.ok || !json.ok || !json.granted) {
+          toast.error(json.error ?? '상품을 받지 못했습니다.');
+          setPhase('choose');
+          setPickedKey(null);
+          picking.current = false;
+          return;
+        }
+        granted = json.granted;
+        nextPair = json.nextPair ?? null;
+        finished = !json.nextPair;
+        if (json.replaced) toast.message('받을 수 없어서 돋보기로 바뀌었습니다.');
+      } catch {
+        toast.error('상품을 받지 못했습니다.');
+        setPhase('choose');
+        setPickedKey(null);
+        picking.current = false;
+        return;
+      }
+    }
     const nextUsed = new Set(used);
     nextUsed.add(reward.key);
-    const nextTaken = [...taken, reward];
+    const nextTaken = [...taken, granted];
     const nextStep = step + 1;
     later(320, () => {
       setUsed(nextUsed);
       setTaken(nextTaken);
       setStep(nextStep);
       setPickedKey(null);
-      if (nextStep >= total) {
+      picking.current = false;
+      if (server ? finished : nextStep >= total) {
         setPhase('done');
         return;
       }
-      const nextPair = rollDevPackPair(packId, nextUsed);
-      setPair(nextPair);
+      const rolled = server ? nextPair : packId ? rollDevPackPair(packId, nextUsed) : null;
+      if (!rolled) {
+        setPhase('done');
+        return;
+      }
+      setPair(rolled);
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduce) {
         setPhase('choose');
         return;
       }
       setPhase('glow');
-      later(nextPair[0].grade === 'S' ? 1700 : 900, () => setPhase('choose'));
+      later(rolled[0].grade === 'S' ? 1700 : 900, () => setPhase('choose'));
     });
   }
 

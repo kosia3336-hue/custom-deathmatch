@@ -274,7 +274,9 @@ export default function ShopPurchaseModal({
         <p className="text-xs text-cdm-fg-muted">
           {isPreviewPack
             ? '데브 프리뷰입니다. 화면의 잔액만 줄고, 아이템은 지급되지 않습니다.'
-            : '※ 구매한 아이템은 환불되지 않습니다. (판매 시 구매가의 10% 환급)'}
+            : item.type === 'pack'
+              ? '구매한 팩은 환불되지 않습니다. 고르다 닫으면 남은 칸은 사라집니다.'
+              : '※ 구매한 아이템은 환불되지 않습니다. (판매 시 구매가의 10% 환급)'}
         </p>
       </div>
     </Modal>

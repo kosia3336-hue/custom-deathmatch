@@ -16,7 +16,7 @@ import ShopPurchaseModal from './ShopPurchaseModal';
 import ShopGachaTab from './ShopGachaTab';
 import ShopGachaModal from './ShopGachaModal';
 import ShopPackOpenModal from './ShopPackOpenModal';
-import { devPackIdFromItem, type DevPackId } from '@/lib/shop/dev-pack';
+import { devPackIdFromItem, type DevPackId, type DevPackReward } from '@/lib/shop/dev-pack';
 import ShopEventChipExchange from './ShopEventChipExchange';
 import { ChuseokSkinPickModal, ChuseokSkinRevealModal } from './ChuseokSkinGrant';
 import { SKIN_REGISTRY, type SkinMeta } from '@/lib/skins/registry';
@@ -33,7 +33,7 @@ interface Props {
   merchantDiscount: boolean;
   /** 넘기면 추석 탭을 이 목록으로 대체한다. */
   chuseokItems?: ShopItem[];
-  /** 넘기면 칭호와 뽑기 사이에 팩 탭을 연다. 운영 상점은 넘기지 않는다. */
+  /** 넘기면 칭호와 뽑기 사이에 팩 탭을 연다. */
   packItems?: ShopItem[];
   /** 송편 잔액. 운영 상점은 구매 API 결과로 갱신한다. */
   songpyeonBalance?: number;
@@ -54,7 +54,7 @@ interface ItemChangedPayload {
 }
 
 // 이벤트 기간 종료 — 재개 시 | 'event_chip_pack' 추가
-type TabId = 'all' | 'consumable' | 'title' | 'pack' | 'gacha' | 'chuseok';
+type TabId = 'consumable' | 'title' | 'pack' | 'gacha' | 'chuseok';
 
 const TAB_FOR_TYPE: Record<string, TabId> = {
   consumable: 'consumable',
@@ -130,10 +130,15 @@ export default function ShopClient({
     ) {
       return initialType as TabId;
     }
-    return 'all';
+    return 'consumable';
   });
   const [openItem, setOpenItem] = useState<ShopItem | null>(null);
-  const [packOpen, setPackOpen] = useState<{ id: DevPackId; name: string; session: number } | null>(null);
+  const [packOpen, setPackOpen] = useState<{
+    id: DevPackId;
+    name: string;
+    session: number;
+    server?: { sessionId: string; pair: [DevPackReward, DevPackReward] };
+  } | null>(null);
   const [gachaOpen, setGachaOpen] = useState(false);
   const [hasMerchantDiscount, setHasMerchantDiscount] = useState(merchantDiscount);
 
@@ -206,7 +211,6 @@ export default function ShopClient({
     const cTitle = items.filter((i) => TAB_FOR_TYPE[i.type] === 'title').length;
     // const cChip = items.filter((i) => TAB_FOR_TYPE[i.type] === 'event_chip_pack').length; // 이벤트 기간 종료
     return [
-      { id: 'all', label: '전체', count: items.length + packItems.length },
       { id: 'consumable', label: '소모성', count: cConsumable },
       { id: 'title', label: '칭호', count: cTitle },
       ...(packItems.length > 0 ? [{ id: 'pack', label: '팩', count: packItems.length }] : []),
@@ -221,7 +225,6 @@ export default function ShopClient({
   const visibleItems = useMemo(() => {
     if (activeTab === 'chuseok') return festival;
     if (activeTab === 'pack') return packItems;
-    if (activeTab === 'all') return packItems.length > 0 ? [...items, ...packItems] : items;
     return items.filter((it) => TAB_FOR_TYPE[it.type] === activeTab);
   }, [items, activeTab, festival, packItems]);
 
@@ -230,8 +233,7 @@ export default function ShopClient({
     if (next !== 'gacha') setGachaOpen(false);
     setActiveTab(next);
     const qs = new URLSearchParams(sp?.toString() ?? '');
-    if (next === 'all') qs.delete('type');
-    else qs.set('type', next);
+    qs.set('type', next);
     const s = qs.toString();
     router.replace(s ? `${pathname}?${s}` : pathname);
   }
@@ -243,6 +245,45 @@ export default function ShopClient({
       grant?: string;
       preview?: boolean;
     };
+    if (item.type === 'pack' && songpyeonPay.preview !== true) {
+      const packId = devPackIdFromItem(item);
+      if (!packId) {
+        toast.error('팩을 열 수 없습니다.');
+        return false;
+      }
+      try {
+        const res = await fetch('/api/shop/pack/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ packId }),
+        });
+        const json = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          sessionId?: string;
+          newBalance?: number;
+          pair?: [DevPackReward, DevPackReward];
+        };
+        if (!res.ok || !json.ok || !json.sessionId || !json.pair) {
+          toast.error(json.error ?? '팩을 열지 못했습니다.');
+          return false;
+        }
+        if (typeof json.newBalance === 'number') {
+          setBalance(json.newBalance);
+          onLocalCdpBalance?.(json.newBalance);
+        }
+        setPackOpen({
+          id: packId,
+          name: item.name,
+          session: Date.now(),
+          server: { sessionId: json.sessionId, pair: json.pair },
+        });
+        return true;
+      } catch {
+        toast.error('팩을 열지 못했습니다.');
+        return false;
+      }
+    }
     if (item.type === 'pack' && songpyeonPay.preview === true) {
       const paid = effectivePrice(item.price, hasMerchantDiscount) * quantity;
       if (balance < paid) {
@@ -518,8 +559,7 @@ export default function ShopClient({
         />
       ) : visibleItems.length === 0 ? (
         <EmptyState
-          title={activeTab === 'all' ? '아직 판매 중인 아이템이 없습니다' : '이 카테고리에는 아이템이 없습니다'}
-          description={activeTab === 'all' ? '곧 첫 아이템이 등록될 예정입니다!' : undefined}
+          title="이 카테고리에는 아이템이 없습니다"
         />
       ) : (
         <ShopItemGrid
@@ -546,6 +586,7 @@ export default function ShopClient({
           key={packOpen.session}
           packId={packOpen.id}
           packName={packOpen.name}
+          server={packOpen.server ?? null}
           onClose={() => setPackOpen(null)}
         />
       )}
