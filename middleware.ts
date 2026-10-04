@@ -72,8 +72,9 @@ export async function middleware(request: NextRequest) {
         request.url 이 https://localhost:3001 로 잡히고, Next 가 이를 외부
         주소로 보아 자기 자신에게 HTTPS 로 붙다가 EPROTO 로 죽는다.
 
-        소개 본문의 canonical 이 /about 이라 '/' 와 '/about' 은 한 페이지로
-        합쳐진다. 중복 색인 걱정 없이 '/' 만 살릴 수 있다.
+        소개 본문의 canonical·og:url 이 /about 이라 '/' 와 '/about' 은 검색엔진에서
+        '/about' 한 페이지로 합쳐진다. 검색 결과는 언제나 소개가 열리는 /about 으로
+        잡혀야 한다 — '/' 로 잡히면 로그인·재방문자는 로비로 넘어가 룰을 못 본다.
       */
       markIntroSeen(response);
       return response;

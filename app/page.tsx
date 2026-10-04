@@ -9,7 +9,7 @@
   매칭될 대표 주소인 '/' 가 색인 대상에서 빠진다. 실제로 Search Console 에
   색인 0건이 찍혔다.
 
-  /about 과 같은 화면·같은 메타데이터를 쓴다. canonical 이 '/' 라
-  두 주소는 검색엔진에서 '/' 한 페이지로 합쳐진다.
+  /about 과 같은 화면·같은 메타데이터를 쓴다. canonical·og:url 이 '/about' 이라
+  두 주소는 검색엔진에서 '/about' 한 페이지로 합쳐진다.
 */
 export { metadata, viewport, default } from './about/page';
