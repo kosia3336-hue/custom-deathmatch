@@ -124,32 +124,32 @@ function fromPool(
 
 const LINES: Record<Exclude<DevPackGrade, 'C'>, Line[]> = {
   S: [
-    { weight: 90, label: '스킨 영구', resolve: (used) => fromPool('S', 'skin-perm', SKINS, '영구', used) },
-    { weight: 10, label: '이펙트 영구', resolve: (used) => fromPool('S', 'effect-perm', EFFECTS, '영구', used) },
+    { weight: 1, label: '스킨 영구', resolve: (used) => fromPool('S', 'skin-perm', SKINS, '영구', used) },
+    { weight: 1, label: '이펙트 영구', resolve: (used) => fromPool('S', 'effect-perm', EFFECTS, '영구', used) },
   ],
   A: [
-    { weight: 40, label: '스킨 7일', resolve: (used) => fromPool('A', 'skin-7', SKINS, '7일', used) },
-    { weight: 30, label: '상점 칭호 영구', resolve: (used) => fromPool('A', 'title', SHOP_TITLES.map((name) => ({ id: name, label: name })), '상점 칭호 · 영구', used) },
-    { weight: 20, label: '이펙트 7일', resolve: (used) => fromPool('A', 'effect-7', EFFECTS, '7일', used) },
+    { weight: 1, label: '스킨 7일', resolve: (used) => fromPool('A', 'skin-7', SKINS, '7일', used) },
+    { weight: 1, label: '상점 칭호 영구', resolve: (used) => fromPool('A', 'title', SHOP_TITLES.map((name) => ({ id: name, label: name })), '상점 칭호 · 영구', used) },
+    { weight: 1, label: '이펙트 7일', resolve: (used) => fromPool('A', 'effect-7', EFFECTS, '7일', used) },
     {
-      weight: 10,
+      weight: 1,
       label: '랭크 초기화권',
       resolve: (used) =>
         used.has('rank-reset') ? null : reward('A', 'rank-reset', '랭크 초기화권', '소모품'),
     },
   ],
   B: [
-    { weight: 45, label: '소모품 5개', resolve: (used) => fromPool('B', 'five', FIVE_PACKS.map((name) => ({ id: name, label: name })), '소모품 · 5개', used) },
-    { weight: 20, label: '스킨 1일', resolve: (used) => fromPool('B', 'skin-1', SKINS, '1일', used) },
+    { weight: 1, label: '소모품 5개', resolve: (used) => fromPool('B', 'five', FIVE_PACKS.map((name) => ({ id: name, label: name })), '소모품 · 5개', used) },
+    { weight: 1, label: '스킨 1일', resolve: (used) => fromPool('B', 'skin-1', SKINS, '1일', used) },
     {
-      weight: 15,
+      weight: 1,
       label: '강등 보호권',
       resolve: (used) =>
         used.has('demotion') ? null : reward('B', 'demotion', '강등 보호권', '소모품'),
     },
-    { weight: 12, label: '이펙트 1일', resolve: (used) => fromPool('B', 'effect-1', EFFECTS, '1일', used) },
+    { weight: 1, label: '이펙트 1일', resolve: (used) => fromPool('B', 'effect-1', EFFECTS, '1일', used) },
     {
-      weight: 8,
+      weight: 1,
       label: '닉네임 변경권',
       resolve: (used) => (used.has('nick') ? null : reward('B', 'nick', '닉네임 변경권', '소모품')),
     },
