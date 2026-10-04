@@ -10,7 +10,6 @@ import {
   useState,
 } from 'react';
 import { getBrowserSupabase } from '@/lib/supabase/client';
-import { usePathname } from 'next/navigation';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -86,7 +85,6 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
-  const previewPage = usePathname() === '/sounds';
   const [tracks, setTracks] = useState<string[]>([]);
   const [muted, setMutedState] = useState<boolean>(() =>
     initial?.bgmMuted ?? readLocalBoolean(LS_MUTED, false),
@@ -180,8 +178,8 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
     lastTrackRef.current = next;
     audio.src = next;
     audio.load();
-    if (!previewPage) audio.play().catch(() => {});
-  }, [tracks, buildQueue, previewPage]);
+    audio.play().catch(() => {});
+  }, [tracks, buildQueue]);
 
   // advanceRef 항상 최신 유지
   useEffect(() => { advanceRef.current = advance; }, [advance]);
@@ -211,7 +209,6 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (ready) return;
-    if (previewPage) return;
     if (tracks.length === 0) return;
 
     const tryStart = () => {
@@ -240,19 +237,19 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
       window.removeEventListener('keydown', onInteract);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks.length, ready, previewPage]);
+  }, [tracks.length, ready]);
 
   // ── 뮤트 토글 시 재생/일시정지 ──────────────────────────────────────
   useEffect(() => {
     if (!ready) return;
     const audio = audioRef.current;
     if (!audio) return;
-    if (muted || previewPage) {
+    if (muted) {
       audio.pause();
     } else {
       audio.play().catch(() => {});
     }
-  }, [muted, ready, previewPage]);
+  }, [muted, ready]);
 
   // ── 설정 저장 (localStorage + DB debounce) ────────────────────────
   const persist = useCallback(

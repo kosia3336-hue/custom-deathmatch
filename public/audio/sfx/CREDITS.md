@@ -19,4 +19,4 @@ ui(차례), board(말 이동). 스킨별 파일은 ../skins/, BGM은 ../bgm/에 
 - `../skins/candy/*.mp3`, `../skins/meow/*.mp3`, `../skins/showdown/gunshot.mp3`:
   기존 스킨 음원을 유지·정리했다. 기존 출처 기록 없음.
 
-미리 듣기: `/sounds`. 재생 설정: `lib/audio/catalog.ts`와 `lib/audio/settings.ts`.
+파일 목록: `README.md`. 재생 설정: `lib/audio/catalog.ts`와 `lib/audio/settings.ts`.

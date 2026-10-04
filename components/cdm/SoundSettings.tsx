@@ -53,7 +53,6 @@ export function SoundSettings({ hints = false, className }: Props) {
           onVolumeChange={bgm.setVolume}
         />
       )}
-      <a href="/sounds" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm font-semibold text-cdm-primary underline underline-offset-4">효과음 목록 · 미리 듣기 ↗</a>
     </div>
   );
 }
