@@ -456,7 +456,7 @@ VALUES
   ('c1000001-2026-4000-8000-000000000023', 'skin', '스킨 영구 랜덤권', '가지고 있지 않은 스킨 중 하나 랜덤으로 획득할 수 있다. (한정판 제외)', 350, 10, true, true,
     '{"priceUnit":"songpyeon","no_discount":true,"grant":"skin-random"}'::jsonb,
     timestamptz '2026-09-27 21:00:00+09', timestamptz '2026-10-12 01:00:00+09', 148),
-  ('c1000001-2026-4000-8000-000000000031', 'exchange', '송편 환전', '1송편을 3CDP로 교환한다.', 1, 10000, true, true,
+  ('c1000001-2026-4000-8000-000000000031', 'exchange', '송편 환전', '1송편을 3CDP로 교환한다.', 1, NULL, true, true,
     '{"priceUnit":"songpyeon","no_discount":true,"exchangeCdp":3}'::jsonb,
     timestamptz '2026-09-27 21:00:00+09', timestamptz '2026-10-12 01:00:00+09', 110)
 ON CONFLICT (id) DO UPDATE SET
