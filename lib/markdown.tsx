@@ -72,7 +72,20 @@ export function extractPlainText(source: string, limit = 100): string {
     .replace(/`([^`]+)`/g, '$1')
     .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
-    .replace(/[*_~>#-]+/g, '')
+    // 줄머리의 제목·인용·목록 기호와 굵게·취소선 표시만 걷어낸다.
+    // 예전에는 '*_~>#-' 를 글자째 지워서 '1\~6' 이 '1\6', '-' 가 든 낱말이 붙어 버렸다.
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+])\s+/gm, '')
+    .replace(/\*\*|__|~~/g, '')
+    // 마크다운 이스케이프('\~', '\(' …)와 강제 줄바꿈(줄 끝 '\')을 푼다
+    .replace(/\\([\\`*_{}[\]()#+\-.!>~|])/g, '$1')
+    .replace(/\\/g, ' ')
+    // 룰 원문에 '&lt;넘버4&gt;' 처럼 엔티티로 적힌 꺾쇠가 있다. 화면(React)이 다시
+    // 이스케이프하므로 여기서 글자로 풀어 둬야 '<넘버4>' 로 보인다.
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
     .replace(/\s+/g, ' ')
     .trim();
   if (text.length <= limit) return text;

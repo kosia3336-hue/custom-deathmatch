@@ -7,12 +7,25 @@ import IntroContent from '@/components/intro/IntroContent';
   '/' 는 로비로 보내는 입구다. 비로그인 첫 방문만 여기로 오고,
   소개를 본 뒤(쿠키)나 로그인한 뒤에는 '/' → /lobby.
   옛 주소 /guide 는 여기로 308 이동한다.
+
+  대표 URL(canonical)은 '/' 다. '/' 와 '/about' 은 같은 화면인데, 예전에는
+  canonical 을 '/about' 으로 두고 og:url·홈 주소는 '/' 를 가리켜 신호가 엇갈렸다.
+  Search Console 에서 '/about' 이 '크롤링됨 - 현재 색인이 생성되지 않음' 으로
+  유효성 검사에 실패했다(2026-10). 브랜드 검색이 먼저 닿는 '/' 로 모은다.
 */
 export const metadata: Metadata = {
   title: { absolute: '커스텀 데스매치 — 브라우저에서 즐기는 1:1 두뇌 대결' },
   description:
     '설치 없이 브라우저에서 바로 하는 1:1 심리·전략 게임. 흑과백, 인디언 홀덤, 베팅 가위바위보, 사칙연산 등을 카카오 로그인 한 번으로 즐기고 전적·랭킹·칭호를 남깁니다.',
-  alternates: { canonical: '/about' },
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: '커스텀 데스매치 — 브라우저에서 즐기는 1:1 두뇌 대결',
+    description: '설치 없이 브라우저에서 바로 하는 1:1 심리·전략 게임 플랫폼.',
+    url: '/',
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: 'Custom Deathmatch',
+  },
 };
 
 /*

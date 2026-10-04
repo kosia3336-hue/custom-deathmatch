@@ -15,11 +15,11 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
-  // '/about' 이 소개이자 대표 URL. '/' 는 소개를 rewrite 로 그대로 보여주지만
-  // canonical 이 '/about' 이므로 사이트맵에는 canonical 쪽만 싣는다.
+  // '/' 가 소개이자 대표 URL. '/about' 은 같은 화면을 보여주지만
+  // canonical 이 '/' 이므로 사이트맵에는 canonical 쪽만 싣는다.
   // 로비(/lobby)는 방 목록이 계속 바뀌는 앱 화면이라 noindex.
   // 옛 주소 /guide 는 '/about' 으로 308 이동하므로 싣지 않는다.
-  { path: '/about', changeFrequency: 'daily', priority: 1.0 },
+  { path: '/', changeFrequency: 'daily', priority: 1.0 },
   { path: '/rules', changeFrequency: 'weekly', priority: 0.8 },
   // 랭킹은 순위 숫자만 바뀌는 얇은 문서다. 'hourly' 로 자주 부르면 크롤 예산만
   // 먹고, 정작 룰 페이지가 뒤로 밀린다.
