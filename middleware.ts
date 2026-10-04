@@ -84,6 +84,7 @@ export async function middleware(request: NextRequest) {
       pathname === '/about' ||
       pathname === '/guide' ||
       pathname === '/lobby' ||
+      pathname === '/sounds' ||
       pathname === '/login' ||
       pathname.startsWith('/auth/') ||
       pathname === '/banned' ||
@@ -156,6 +157,7 @@ export async function middleware(request: NextRequest) {
       pathname === '/about' ||
       pathname === '/guide' ||
       pathname === '/lobby' ||
+      pathname === '/sounds' ||
       pathname.startsWith('/ranking') ||
       pathname.startsWith('/rules') ||
       pathname.startsWith('/titles') ||

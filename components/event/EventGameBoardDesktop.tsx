@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getSocket } from '@/lib/socket';
 import { serverNow } from '@/lib/serverClock';
-import { sfxCall, sfxRaise, sfxDie, sfxDeal } from '@/lib/eventSfx';
+import { sfxCall, sfxRaise, sfxDie, sfxDeal } from '@/lib/audio/synth/indian-holdem-event';
 import {
   IPE_MAX_SEATS,
   IPE_TURN_TIME_LIMIT_SECONDS,

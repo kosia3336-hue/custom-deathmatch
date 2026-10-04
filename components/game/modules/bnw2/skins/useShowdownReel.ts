@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { playShowdownReelTick, playShowdownReelWhoosh } from './showdownSfx';
+import { playShowdownReelTick, playShowdownReelWhoosh } from '@/lib/audio/skins/showdown';
 
 const TICK_MS_MIN = 26;
 const TICK_MS_MAX = 72;

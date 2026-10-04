@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSkinFx } from '@/lib/skins/useSkinFx';
-import { sfxDealSequence } from '@/lib/indianPokerSfx';
+import { sfxDealSequence } from '@/lib/audio/skins/nocturne';
 
 export const NOCTURNE_DEAL_PREP_MS = 220;
 export const NOCTURNE_DEAL_STEP_MS = 170;

@@ -1,3 +1,6 @@
+'use client';
+
+import { useCardRevealSound } from '@/hooks/useGameAudio';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import styles from './PlayingCard.module.css';
@@ -55,6 +58,7 @@ export default function PlayingCard({
   const column = index % COLUMNS;
   const row = Math.floor(index / COLUMNS);
   const isPlainBack = index === PLAIN_BACK;
+  useCardRevealSound(!isPlainBack, face);
   const style: CSSProperties = {
     backgroundPosition: `${(column / (COLUMNS - 1)) * 100}% ${(row / (ROWS - 1)) * 100}%`,
   };

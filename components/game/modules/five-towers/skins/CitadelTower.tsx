@@ -6,7 +6,7 @@ import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
 import { FT_HALF_MILESTONE } from '@/shared/types';
 import { CITADEL_TOWER_CLASS } from './citadelTowerClasses';
 import { useCitadelCountPulse } from './useCitadelCountPulse';
-import { sfxCitadelCollapse, sfxCitadelComplete } from '@/lib/sfx';
+import { sfxCitadelCollapse, sfxCitadelComplete } from '@/lib/audio/synth/general';
 
 interface CitadelTowerProps {
   id: FTTower;

@@ -1,0 +1,125 @@
+{
+  "assetRoot": "audio/sfx",
+  "samples": [
+    {
+      "id": "cardDeal",
+      "name": "카드 배분",
+      "detail": "포커 새 라운드 카드 배분",
+      "category": "cards",
+      "src": "/audio/sfx/cards/deal.wav",
+      "volume": 0.5,
+      "pack": "casino",
+      "original": "card-shove-2.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    },
+    {
+      "id": "cardFlip",
+      "name": "카드 공개",
+      "detail": "가려진 카드가 앞면으로 바뀔 때",
+      "category": "cards",
+      "src": "/audio/sfx/cards/flip.wav",
+      "volume": 0.5,
+      "pack": "casino",
+      "original": "card-slide-1.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    },
+    {
+      "id": "chipPlace",
+      "name": "칩 투입",
+      "detail": "서버가 베팅을 확정했을 때",
+      "category": "chips",
+      "src": "/audio/sfx/chips/place.wav",
+      "volume": 0.65,
+      "pack": "casino",
+      "original": "chip-lay-1.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    },
+    {
+      "id": "chipRaise",
+      "name": "칩 쌓기",
+      "detail": "큰 베팅·레이즈가 확정됐을 때",
+      "category": "chips",
+      "src": "/audio/sfx/chips/raise.wav",
+      "volume": 0.55,
+      "pack": "casino",
+      "original": "chips-stack-2.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    },
+    {
+      "id": "matchPick",
+      "name": "카운터 픽 잠금",
+      "detail": "서버가 내 선택을 확인했을 때",
+      "category": "match",
+      "src": "/audio/sfx/match/pick-lock.wav",
+      "volume": 0.55,
+      "pack": "interface",
+      "original": "click_003.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/interface-sounds"
+    },
+    {
+      "id": "matchReveal",
+      "name": "카운터 픽 공개",
+      "detail": "양쪽 선택이 공개될 때",
+      "category": "match",
+      "src": "/audio/sfx/match/reveal.wav",
+      "volume": 0.5,
+      "pack": "casino",
+      "original": "card-slide-4.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    },
+    {
+      "id": "matchEliminate",
+      "name": "카운터 게임 제외",
+      "detail": "고른 게임이 제외될 때",
+      "category": "match",
+      "src": "/audio/sfx/match/eliminate.wav",
+      "volume": 0.42,
+      "pack": "rpg",
+      "original": "bookClose.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/rpg-audio"
+    },
+    {
+      "id": "matchConfirm",
+      "name": "카운터 게임 확정",
+      "detail": "최종 게임이 결정됐을 때",
+      "category": "match",
+      "src": "/audio/sfx/match/confirm.wav",
+      "volume": 0.5,
+      "pack": "interface",
+      "original": "confirmation_002.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/interface-sounds"
+    },
+    {
+      "id": "turn",
+      "name": "내 차례",
+      "detail": "기본 포커에서 내 차례가 시작될 때",
+      "category": "ui",
+      "src": "/audio/sfx/ui/turn.wav",
+      "volume": 0.35,
+      "pack": "interface",
+      "original": "glass_004.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/interface-sounds"
+    },
+    {
+      "id": "chipCollect",
+      "name": "칩 수거",
+      "detail": "라운드 종료 후 팟이 넘어갈 때",
+      "category": "chips",
+      "src": "/audio/sfx/chips/collect.wav",
+      "volume": 0.55,
+      "pack": "casino",
+      "original": "chips-handle-5.ogg",
+      "license": "CC0 1.0",
+      "sourceUrl": "https://kenney.nl/assets/casino-audio"
+    }
+  ]
+}

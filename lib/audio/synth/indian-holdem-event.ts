@@ -4,7 +4,7 @@
  * 모든 함수는 브라우저 AudioContext 가 생성 가능한 환경에서만 동작한다.
  */
 
-import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/audio/settings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 

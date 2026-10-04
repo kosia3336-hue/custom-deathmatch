@@ -1,20 +1,22 @@
-# 효과음 출처
+# 효과음 출처와 파일 관리
 
-이 폴더의 음원은 직접 합성한 것이 아니라 받아 온 파일이다. 어디서 왔는지와
-무엇을 해도 되는지를 여기 남긴다. 파일을 더 넣을 때도 한 줄씩 적어 둔다.
+새 효과음과 칩 수거음은 Kenney의 CC0 1.0 에셋을 사용한다.
 
-## chips-collect.ogg
+- Casino Audio: https://kenney.nl/assets/casino-audio
+- RPG Audio: https://kenney.nl/assets/rpg-audio
+- Interface Sounds: https://kenney.nl/assets/interface-sounds
 
-- 원본: Kenney Casino Audio (1.1) — `chips-handle-*.ogg` 중 하나
-- 만든 이: Kenney Vleugels ([kenney.nl](https://kenney.nl))
-- 받은 곳: <https://opengameart.org/content/54-casino-sound-effects-cards-dice-chips>
-- 라이선스: **CC0 1.0** (퍼블릭 도메인). 개인·상업 프로젝트 모두 쓸 수 있고,
-  저작자 표기는 권장이지만 의무는 아니다.
-- 쓰는 곳: 초이스 홀덤·양면포커·인디언홀덤Q 의 라운드 종료 (`lib/chipsSfx.ts`)
+`manifest.json`에 각 파일의 원본 팩·원본 파일명·출처·가공 후 길이·기본 음량을 기록했다.
+원문 라이선스는 `licenses/`에 있다. 모노 PCM WAV로 변환하고 앞뒤 무음·피크를 조절했다.
+`chips/collect.wav`는 기존 칩 수거음과 동일한 `chips-handle-5.ogg`를 변환했다.
 
-바꾸고 싶으면 이 이름으로 다른 파일을 덮어쓰면 된다. 재생 코드는 파일 이름만
-알고 있으므로 코드를 고칠 필요가 없다.
+폴더: cards(배분·공개), chips(투입·쌓기·수거), match(픽·공개·제외·확정),
+ui(차례), board(말 이동). 스킨별 파일은 ../skins/, BGM은 ../bgm/에 있다.
 
-## abstract-strategy-move.mp3
+## 기존 음원
 
-- 추상전략 게임의 돌 놓는 소리. 출처 기록이 남아 있지 않다.
+- `board/move.mp3`: 기존 추상전략 돌 놓기 음원. 기존 출처 기록 없음.
+- `../skins/candy/*.mp3`, `../skins/meow/*.mp3`, `../skins/showdown/gunshot.mp3`:
+  기존 스킨 음원을 유지·정리했다. 기존 출처 기록 없음.
+
+미리 듣기: `/sounds`. 재생 설정: `lib/audio/catalog.ts`와 `lib/audio/settings.ts`.

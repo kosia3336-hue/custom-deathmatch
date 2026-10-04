@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { connectSocket, getSocket } from '@/lib/socket';
-import { notifyRankMatched } from '@/lib/rankMatchNotify';
+import { notifyRankMatched } from '@/lib/audio/synth/rank-notification';
 import { useNicknameStore } from '@/stores/nickname';
 import { useRankMatchStore, type RankMatchedPayload } from '@/stores/rankMatch';
 import { useSessionTakeoverStore } from '@/stores/sessionTakeover';

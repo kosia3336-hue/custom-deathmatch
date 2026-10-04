@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { IPEPlayerInfo, IPEBettingActionRecord } from '@/shared/types';
-import { sfxDeal, sfxMyTurn, sfxCall, sfxRaise } from '@/lib/eventSfx';
+import { sfxDeal, sfxMyTurn, sfxCall, sfxRaise } from '@/lib/audio/synth/indian-holdem-event';
 
 interface Props {
   seatIdx: number;

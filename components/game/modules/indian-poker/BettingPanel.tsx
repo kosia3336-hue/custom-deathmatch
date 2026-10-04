@@ -6,7 +6,7 @@ import type { IPBettingAction, IPPlayerInfo } from '@/shared/types/indian-poker'
 import Button from '@/components/ui/Button';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import type { SkinTheme } from '@/lib/skins/registry';
-import { sfxNocturneCall, sfxNocturneDie, sfxNocturneRaise } from '@/lib/indianPokerSfx';
+import { sfxNocturneCall, sfxNocturneDie, sfxNocturneRaise } from '@/lib/audio/skins/nocturne';
 import {
   formatBettingVerb,
   getLastActionByPlayer,

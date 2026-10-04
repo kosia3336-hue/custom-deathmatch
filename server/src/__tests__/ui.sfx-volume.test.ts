@@ -6,7 +6,7 @@ import {
   setSfxMuted,
   setSfxVolume,
   subscribeSfxSettings,
-} from '../../../lib/sfxSettings';
+} from '../../../lib/audio/settings';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -81,7 +81,7 @@ describe('효과음 독립 음량', () => {
     const { values, handlers } = storage();
     // 모듈이 한 번만 리스너를 달기 때문에, 이미 달린 경우를 대비해 새로 import 한다.
     vi.resetModules();
-    const fresh = await import('../../../lib/sfxSettings');
+    const fresh = await import('../../../lib/audio/settings');
     const cb = vi.fn();
     const off = fresh.subscribeSfxSettings(cb);
     expect(fresh.getSfxVolume()).toBe(1);

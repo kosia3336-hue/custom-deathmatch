@@ -7,7 +7,7 @@ import { useRoomStore } from '@/stores/room';
 import { useRankMatchStore } from '@/stores/rankMatch';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { cn } from '@/lib/utils';
-import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx, playUnbanSfx, playUnbanTurnStartSfx } from '@/lib/sfx';
+import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx, playUnbanSfx, playUnbanTurnStartSfx } from '@/lib/audio/synth/general';
 import { serverNow } from '@/lib/serverClock';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import type { Game } from '@/shared/types/game';

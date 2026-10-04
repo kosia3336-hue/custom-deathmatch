@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import { getBrowserSupabase } from '@/lib/supabase/client';
+import { usePathname } from 'next/navigation';
 import { callRpc } from '@/lib/supabase/rpc';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -85,6 +86,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
+  const previewPage = usePathname() === '/sounds';
   const [tracks, setTracks] = useState<string[]>([]);
   const [muted, setMutedState] = useState<boolean>(() =>
     initial?.bgmMuted ?? readLocalBoolean(LS_MUTED, false),
@@ -178,8 +180,8 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
     lastTrackRef.current = next;
     audio.src = next;
     audio.load();
-    audio.play().catch(() => {});
-  }, [tracks, buildQueue]);
+    if (!previewPage) audio.play().catch(() => {});
+  }, [tracks, buildQueue, previewPage]);
 
   // advanceRef 항상 최신 유지
   useEffect(() => { advanceRef.current = advance; }, [advance]);
@@ -209,6 +211,7 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (ready) return;
+    if (previewPage) return;
     if (tracks.length === 0) return;
 
     const tryStart = () => {
@@ -237,19 +240,19 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
       window.removeEventListener('keydown', onInteract);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks.length, ready]);
+  }, [tracks.length, ready, previewPage]);
 
   // ── 뮤트 토글 시 재생/일시정지 ──────────────────────────────────────
   useEffect(() => {
     if (!ready) return;
     const audio = audioRef.current;
     if (!audio) return;
-    if (muted) {
+    if (muted || previewPage) {
       audio.pause();
     } else {
       audio.play().catch(() => {});
     }
-  }, [muted, ready]);
+  }, [muted, ready, previewPage]);
 
   // ── 설정 저장 (localStorage + DB debounce) ────────────────────────
   const persist = useCallback(
@@ -282,7 +285,7 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   /*
     음소거를 풀 때 음량이 사실상 0 이면 기본 음량으로 되돌린다. 슬라이더를 0 까지
     내렸다가 상단 소리 버튼으로 켜면 '켜졌는데 안 들리는' 상태가 되기 때문이다.
-    효과음 쪽(lib/sfxSettings.ts)도 같은 규칙을 따른다.
+    효과음 쪽(lib/audio/settings.ts)도 같은 규칙을 따른다.
   */
   const setMuted = useCallback(
     (next: boolean) => {

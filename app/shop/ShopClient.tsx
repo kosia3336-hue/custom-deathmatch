@@ -21,7 +21,7 @@ import ShopEventChipExchange from './ShopEventChipExchange';
 import { ChuseokSkinPickModal, ChuseokSkinRevealModal } from './ChuseokSkinGrant';
 import { SKIN_REGISTRY, type SkinMeta } from '@/lib/skins/registry';
 import { CHUSEOK_SKIN_TICKET_POOL } from '@shared/event/chuseok';
-import { playSkinReelSfx } from '@/lib/sfx';
+import { playSkinReelSfx } from '@/lib/audio/synth/general';
 import type { RankTier } from '@/shared/types/rank';
 
 interface Props {

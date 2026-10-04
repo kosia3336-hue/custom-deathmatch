@@ -2,8 +2,8 @@
  * 효과음(SFX) 전역 음소거·음량 설정.
  *
  * BGM(`bgm-muted`/`bgm-volume`, BgmProvider)과 별개의 localStorage 키를 사용한다.
- * 모든 효과음 유틸(lib/sfx.ts, lib/eventSfx.ts, lib/indianPokerSfx.ts,
- * lib/smsEventSfx.ts, CaptureEffect)이 재생 직전에 isSfxMuted()/getSfxOutput()을 거친다.
+ * 모든 효과음 유틸(lib/audio/player.ts, lib/audio/synth/*, lib/audio/skins/*,
+ * lib/audio/synth/capture.ts)이 재생 직전에 isSfxMuted()/getSfxOutput()을 거친다.
  *
  * 값은 처음 읽을 때 한 번만 localStorage 에서 불러와 메모리에 둔다. 효과음은 한 판에
  * 수백 번 울리고 설정 화면은 렌더마다 스냅샷을 읽으므로, 매번 스토리지를 뒤지지 않는다.

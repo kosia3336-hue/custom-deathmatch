@@ -15,7 +15,7 @@ import ShowdownPointTrack from './skins/ShowdownPointTrack';
 import ShowdownPointInput from './skins/ShowdownPointInput';
 import ShowdownColorBanner from './skins/ShowdownColorBanner';
 import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
-import { playShowdownSubmitSfx } from './skins/showdownSfx';
+import { playShowdownSubmitSfx } from '@/lib/audio/skins/showdown';
 import { GameFrame } from '@/components/game/GameFrame';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useGameAudio } from '@/hooks/useGameAudio';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export default function GameShell({ children }: Props) {
+  useGameAudio();
   const router = useRouter();
   const room = useRoomStore((s) => s.room);
   const timeExpiry = useRoomStore((s) => s.timeExpiry);
