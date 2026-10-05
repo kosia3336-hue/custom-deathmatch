@@ -50,6 +50,7 @@ import { resolveRound } from './resolve.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
 import { nicknameForViewer } from '../../../rank/maskRankIdentity.js';
+import { getActiveSkin } from '../../skins.js';
 
 export const gameStates = new Map<string, SMS2InternalState>();
 
@@ -262,6 +263,7 @@ function buildGameState(s: SMS2InternalState, gameData: SMS2GameData, viewerToke
     turnNumber: s.round,
     startedAt: s.startedAt,
     turnStartedAt: s.timeLimitSeconds && isInputPhase ? s.turnStartedAt : null,
+    activeSkin: getActiveSkin(s.roomId),
     gameData,
   };
 }

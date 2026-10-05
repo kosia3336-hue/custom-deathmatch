@@ -8943,6 +8943,17 @@ html[data-native-app] .site-footer--home {
   --dj-rock: #121c24;
 }
 
+/* 마이페이지 카드. 판용 flex/height:100% 가 미리보기를 0으로 접는다. */
+.skin-dalmaji-field.skin-dalmaji-preview {
+  flex: none;
+  height: 6rem;
+  min-height: 6rem;
+}
+.skin-dalmaji-preview-glyph {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
 .skin-dalmaji-fx {
   position: absolute;
   inset: 0;

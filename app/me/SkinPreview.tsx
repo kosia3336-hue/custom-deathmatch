@@ -1,6 +1,8 @@
 import type { SkinTheme } from '@/lib/skins/registry';
 import FourCardCard from '@/components/game/modules/quatro/skins/FourCardCard';
 import { StackVisual } from '@/components/game/modules/kingmaking/StackVisual';
+import DalmajiFieldFx from '@/components/game/modules/sun-moon-star-2/skins/DalmajiFieldFx';
+import { CelestialGlyph } from '@/components/game/modules/sun-moon-star-2/skins/CelestialGlyph';
 import type { KingmakingStack } from '@/shared/types/kingmaking';
 
 const CLIP_FIRST = 'polygon(15% 100%, 0% 30%, 50% 0%, 100% 30%, 85% 100%)';
@@ -325,8 +327,13 @@ export default function SkinPreview({ theme }: { theme: SkinTheme }) {
 
   if (theme === 'dalmaji') {
     return (
-      <div className="skin-dalmaji-field skin-dalmaji-field--night relative h-24 w-full overflow-hidden rounded-lg">
-        <span className="absolute top-4 left-1/2 h-8 w-8 -translate-x-1/2 rounded-full bg-[#f0d078]" />
+      <div className="skin-dalmaji-field skin-dalmaji-field--night skin-dalmaji-preview w-full overflow-hidden rounded-lg">
+        <DalmajiFieldFx sky="night" />
+        <div className="relative z-10 flex h-full items-center justify-center gap-4">
+          <CelestialGlyph mark="sun" className="skin-dalmaji-preview-glyph" />
+          <CelestialGlyph mark="moon" className="skin-dalmaji-preview-glyph" />
+          <CelestialGlyph mark="star" className="skin-dalmaji-preview-glyph" />
+        </div>
       </div>
     );
   }
