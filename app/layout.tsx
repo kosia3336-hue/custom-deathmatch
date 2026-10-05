@@ -72,7 +72,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: '커스텀 데스매치 — Custom Deathmatch',
     description: '브라우저에서 바로 즐기는 1:1 보드·카드 게임 플랫폼.',
-    url: SITE_URL,
+    // url 은 두지 않는다. openGraph 를 따로 쓰지 않는 페이지(/rules 등)까지
+    // 홈 주소를 og:url 로 물려받아 canonical 과 어긋났다. 페이지별로 정한다.
     type: 'website',
     locale: 'ko_KR',
     siteName: 'Custom Deathmatch',

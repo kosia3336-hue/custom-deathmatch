@@ -9,7 +9,7 @@ import {
   sfxSmsReveal,
   sfxSmsScore,
   sfxSmsVoid,
-} from '@/lib/smsEventSfx';
+} from '@/lib/audio/synth/sun-moon-star';
 import type {
   SmsMarkId,
   SmsRoundResultPayload,

@@ -18,7 +18,7 @@ import {
   CARD_STYLES, CARD_NAMES, CARD_HINTS, WIN_TYPE_LABELS,
 } from './constants';
 import { getSkinTheme } from '@/lib/skins/registry';
-import { playCandyButtonSfx, playCandyCardSfx, playCandyMinusSfx } from '@/lib/candySfx';
+import { playCandyButtonSfx, playCandyCardSfx, playCandyMinusSfx } from '@/lib/audio/skins/candy';
 import { GAME_IDS } from '@/shared/types/game';
 
 /** 유리설탕 스킨 — 반짝임 위치 */

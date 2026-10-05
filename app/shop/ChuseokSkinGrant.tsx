@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/cdm/Modal';
 import { Button } from '@/components/cdm/Button';
-import { SKIN_REEL_GAPS_MS } from '@/lib/sfx';
+import { SKIN_REEL_GAPS_MS } from '@/lib/audio/synth/general';
 import type { SkinMeta } from '@/lib/skins/registry';
 import { GAME_RULES } from '@/lib/gameRules';
 

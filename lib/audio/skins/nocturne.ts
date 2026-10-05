@@ -3,7 +3,7 @@
  * eventSfx 패턴 재사용. 스킨 OFF 시 호출하지 않는다.
  */
 
-import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/audio/settings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 

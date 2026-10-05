@@ -2,7 +2,7 @@
  * 해달별 (이벤트) — Web Audio API SFX
  */
 
-import { isSfxMuted, getSfxOutput } from '@/lib/sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/audio/settings';
 
 type OscType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 

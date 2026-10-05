@@ -1,4 +1,5 @@
-import { getSfxOutput, getSfxVolume, isSfxMuted } from '@/lib/sfxSettings';
+import { playFileSound, unlockFileAudio } from '../player';
+import { getSfxOutput } from '@/lib/audio/settings';
 let ctx: AudioContext | null = null;
 const MASTER = 2.4;
 
@@ -94,45 +95,10 @@ export function playShowdownReelWhoosh(steps: number) {
   }
 }
 
-// 합성 사운드로는 총성의 "탕" 느낌을 살리기 어려워 실제 총성 녹음 파일을 사용한다.
-const GUNSHOT_SRC = '/skins/showdown/gunshot.mp3';
-const GUNSHOT_POOL_SIZE = 4;
-let gunshotPool: HTMLAudioElement[] = [];
-let gunshotPoolIdx = 0;
+/** File gunshot and synthesized reel motion share the global output settings. */
+export function playShowdownSubmitSfx() { playFileSound('showdownGunshot'); }
 
-function getGunshotPool(): HTMLAudioElement[] {
-  if (typeof window === 'undefined') return [];
-  if (gunshotPool.length === 0) {
-    gunshotPool = Array.from({ length: GUNSHOT_POOL_SIZE }, () => {
-      const el = new Audio(GUNSHOT_SRC);
-      el.preload = 'auto';
-      el.volume = 1;
-      return el;
-    });
-  }
-  return gunshotPool;
-}
-
-/** 제출 확정(발사) — 실제 총성 녹음 재생 (연속 발사 대비 오디오 엘리먼트 풀링) */
-export function playShowdownSubmitSfx() {
-  try {
-    const pool = getGunshotPool();
-    if (pool.length === 0) return;
-    const el = pool[gunshotPoolIdx];
-    gunshotPoolIdx = (gunshotPoolIdx + 1) % pool.length;
-    if (isSfxMuted()) return;
-    el.volume = getSfxVolume();
-    el.currentTime = 0;
-    void el.play().catch(() => {
-      /* 브라우저 자동재생 정책으로 막힌 경우 무시 */
-    });
-  } catch {
-    /* ignore */
-  }
-}
-
-/** 첫 인터랙션 시 오디오 언락 — AudioContext(릴 효과음)와 총성 mp3 풀을 함께 예열한다 */
 export function unlockShowdownAudio() {
   getCtx();
-  getGunshotPool();
+  void unlockFileAudio(['showdownGunshot']);
 }

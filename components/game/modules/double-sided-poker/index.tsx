@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { PlayingCard } from '@/components/game/cards';
 import Button from '@/components/ui/Button';
 import { useMySocketId } from '@/hooks/useMySocketId';
-import { playChipsSfx } from '@/lib/chipsSfx';
+import { playChipsSfx } from '@/lib/audio/chips';
+import { usePokerAudio } from '@/hooks/useGameAudio';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -561,6 +562,11 @@ export default function DoubleSidedPokerGame() {
   const gameData = gameState?.gameData as DoubleSidedPokerGameData | undefined;
   const myId = useMySocketId();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
+
+  usePokerAudio(gameData ? {
+    round: gameData.round, phase: gameData.phase, pot: gameData.phase === 'round-result' ? (gameData.lastRoundResult?.potAmount ?? gameData.pot) : gameData.pot,
+    turnId: gameData.currentTurnId, myId, isPlayer: Boolean(gameData.players[myId]),
+  } : null);
 
   /* 라운드가 끝나 칩이 넘어갈 때 한 번. 라운드 번호로 묶어 결과 화면이 다시 그려져도 겹치지 않는다. */
   const roundEnded = gameData?.phase === 'round-result';

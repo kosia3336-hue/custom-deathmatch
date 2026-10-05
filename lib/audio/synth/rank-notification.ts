@@ -5,10 +5,10 @@
  * 화면 안의 오버레이만으로는 놓치기 쉬워서 소리로도 알린다.
  *
  * 브라우저 알림 권한은 요청하지 않는다 — 효과음 설정이 켜져 있으면 울리고,
- * 꺼져 있으면 울리지 않는다. 다른 효과음들과 같은 규칙을 따른다(lib/sfxSettings).
+ * 꺼져 있으면 울리지 않는다. 다른 효과음들과 같은 규칙을 따른다(lib/audio/settings).
  */
 
-import { isSfxMuted, getSfxOutput } from './sfxSettings';
+import { isSfxMuted, getSfxOutput } from '@/lib/audio/settings';
 
 /** 매칭 성사 알림음. 효과음이 꺼져 있으면 아무것도 하지 않는다. */
 export function notifyRankMatched(): void {

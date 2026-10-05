@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createCountdownTickGate, formatCountdown } from '@/lib/countdownTick';
-import { playCountdownTickSfx } from '@/lib/sfx';
+import { playCountdownTickSfx } from '@/lib/audio/synth/general';
 import { serverNow } from '@/lib/serverClock';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { Icon } from '@/components/cdm/Icon';

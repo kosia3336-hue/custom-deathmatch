@@ -1,3 +1,6 @@
+'use client';
+
+import { useCardRevealSound } from '@/hooks/useGameAudio';
 import type { CSSProperties } from 'react';
 import type { SeedSeotdaCard as SeedSeotdaCardData } from '@/shared/types/seed-seotda';
 import { cn } from '@/lib/utils';
@@ -31,6 +34,7 @@ export default function SeedSeotdaCard({
   const column = index % COLUMNS;
   const row = Math.floor(index / COLUMNS);
   const isFace = index !== BACK_INDEX;
+  useCardRevealSound(isFace, card?.id ?? 'back');
   const style: CSSProperties = {
     backgroundPosition: `${(column / (COLUMNS - 1)) * 100}% ${(row / (ROWS - 1)) * 100}%`,
   };

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { IPEHandResult, IPEHandResultEntry, IPHand } from '@/shared/types';
-import { sfxHandResult } from '@/lib/eventSfx';
+import { sfxHandResult } from '@/lib/audio/synth/indian-holdem-event';
 
 interface Props {
   result: IPEHandResult;

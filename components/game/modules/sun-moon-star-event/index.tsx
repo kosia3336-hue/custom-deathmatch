@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
-import { sfxSmsTimeout } from '@/lib/smsEventSfx';
+import { sfxSmsTimeout } from '@/lib/audio/synth/sun-moon-star';
 import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import Button from '@/components/ui/Button';
 import { isEventRoomOpen } from '@shared/event/kst';

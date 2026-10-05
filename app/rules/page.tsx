@@ -4,7 +4,11 @@ import { getActiveMember } from '@/lib/auth/server';
 import RulesClient from './RulesClient';
 import { CONTAINER_READ } from '@/lib/layout';
 
-export const metadata: Metadata = { title: '게임 룰' };
+export const metadata: Metadata = {
+  title: '게임 룰',
+  description: '커스텀 데스매치의 게임 룰 목록. 심리·추상전략·수리·언어·관찰 갈래별로 게임을 골라 룰을 확인하세요.',
+  alternates: { canonical: '/rules' },
+};
 
 export default async function RulesPage() {
   /* 출시 전 게임은 관리자에게만 보인다 (lib/unreleasedGames.ts) */

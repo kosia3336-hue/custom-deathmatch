@@ -15,7 +15,7 @@ const STATIC_PATHS: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   priority: number;
 }> = [
-  // '/about' 이 소개이자 대표 URL. '/' 는 소개를 rewrite 로 그대로 보여주지만
+  // '/about' 이 소개이자 대표 URL. '/' 는 첫 방문자에게 같은 화면을 보여주지만
   // canonical 이 '/about' 이므로 사이트맵에는 canonical 쪽만 싣는다.
   // 로비(/lobby)는 방 목록이 계속 바뀌는 앱 화면이라 noindex.
   // 옛 주소 /guide 는 '/about' 으로 308 이동하므로 싣지 않는다.

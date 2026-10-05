@@ -5,7 +5,7 @@ import { getSocket } from '@/lib/socket';
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { IPEGameData, IPEPlayerInfo } from '@/shared/types';
-import { sfxCall, sfxRaise, sfxDie } from '@/lib/eventSfx';
+import { sfxCall, sfxRaise, sfxDie } from '@/lib/audio/synth/indian-holdem-event';
 
 interface Props {
   mySeat: IPEPlayerInfo;

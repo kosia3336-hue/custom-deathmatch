@@ -282,7 +282,7 @@ export default function BgmProvider({ children, isLoggedIn, initial }: Props) {
   /*
     음소거를 풀 때 음량이 사실상 0 이면 기본 음량으로 되돌린다. 슬라이더를 0 까지
     내렸다가 상단 소리 버튼으로 켜면 '켜졌는데 안 들리는' 상태가 되기 때문이다.
-    효과음 쪽(lib/sfxSettings.ts)도 같은 규칙을 따른다.
+    효과음 쪽(lib/audio/settings.ts)도 같은 규칙을 따른다.
   */
   const setMuted = useCallback(
     (next: boolean) => {

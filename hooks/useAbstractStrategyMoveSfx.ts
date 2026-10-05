@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { playAbstractStrategyMoveSfx } from '@/lib/abstractStrategySfx';
-import { playSpringRainPlopSfx } from '@/lib/sfx';
+import { playAbstractStrategyMoveSfx } from '@/lib/audio/board';
+import { playSpringRainPlopSfx } from '@/lib/audio/synth/general';
 
 type AbstractStrategyMoveSfxVariant = 'default' | 'spring-rain';
 

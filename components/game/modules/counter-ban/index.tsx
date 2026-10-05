@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { getSocket } from '@/lib/socket';
-import { playBanSfx } from '@/lib/sfx';
+import { playFileSound } from '@/lib/audio/player';
+import { counterAudioEvents, type CounterAudioSnapshot } from '@/lib/audio/feedback';
 import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
@@ -19,23 +20,33 @@ export default function CounterBanGame() {
   const [view, setView] = useState<CounterBanViewPayload | null>(null);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const myId = useMySocketId();
+  const previousAudio = useRef<CounterAudioSnapshot | null>(null);
   const rankMatchTiers = useRankMatchStore((s) => s.rankMatchTiers);
 
   useEffect(() => {
     const socket = getSocket();
     socket.emit('game:sync');
-    const apply = (payload: CounterBanViewPayload) => setView(payload);
+    const apply = (payload: CounterBanViewPayload) => {
+      const next = { round: payload.round, phase: payload.phase, myPick: payload.myPick, keepId: payload.keepId, isSpectator };
+      if (!document.hidden) counterAudioEvents(previousAudio.current, next).forEach(cue => playFileSound(cue));
+      previousAudio.current = next;
+      setView(payload);
+    };
+    const resetAudio = () => { previousAudio.current = null; };
+    socket.on('disconnect', resetAudio);
+    document.addEventListener('visibilitychange', resetAudio);
     socket.on('counterban:start', apply);
     socket.on('counterban:update', apply);
     return () => {
+      socket.off('disconnect', resetAudio);
+      document.removeEventListener('visibilitychange', resetAudio);
       socket.off('counterban:start', apply);
       socket.off('counterban:update', apply);
     };
-  }, []);
+  }, [isSpectator]);
 
   const handleBan = (gameId: string) => {
     if (!view || view.phase !== 'picking' || view.myPick || isSpectator) return;
-    playBanSfx();
     getSocket().emit('counterban:ban', { gameId });
   };
 

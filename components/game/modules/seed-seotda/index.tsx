@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { SeedSeotdaCard } from '@/components/game/cards';
 import { useMySocketId } from '@/hooks/useMySocketId';
+import { usePokerAudio } from '@/hooks/useGameAudio';
+import { playChipsSfx } from '@/lib/audio/chips';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { useRoomStore } from '@/stores/room';
@@ -25,7 +27,7 @@ function HandCards({ player }: { player: SeedSeotdaPlayerView }) {
   return (
     <div className="mt-2 flex justify-center gap-1 sm:gap-2">
       {visibleCards.map((card, index) => (
-        <SeedSeotdaCard key={`${card?.id ?? 'hidden'}-${index}`} card={card} size="sm" />
+        <SeedSeotdaCard key={index} card={card} size="sm" />
       ))}
     </div>
   );
@@ -324,6 +326,17 @@ export default function SeedSeotdaGame() {
   const gameData = gameState?.gameData as SeedSeotdaGameData | undefined;
   const myId = useMySocketId();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
+  usePokerAudio(gameData ? {
+    round: gameData.round, phase: gameData.phase,
+    pot: gameData.phase === 'round-result' ? (gameData.lastRoundResult?.potAmount ?? gameData.pot) : gameData.pot,
+    turnId: gameData.currentTurnId, myId, isPlayer: Boolean(gameData.players[myId]),
+  } : null);
+  const lastResult = useRef<number | null>(null);
+  useEffect(() => {
+    const round = gameData?.lastRoundResult?.round ?? 0;
+    if (lastResult.current !== null && round > lastResult.current && gameData?.lastRoundResult?.winnerId) playChipsSfx();
+    lastResult.current = round;
+  }, [gameData?.lastRoundResult]);
 
   /* 상단 바 — 라운드와 '메모'(라운드 기록·카운팅). 넓은 화면은 옆 칸에 그대로 펴 둔다. */
   const { setHud } = useRoomLayout();

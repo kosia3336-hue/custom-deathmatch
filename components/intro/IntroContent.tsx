@@ -530,6 +530,13 @@ export default async function IntroContent() {
             <div className="mt-6">
               <IntroRulesPanel items={ruleItems} />
             </div>
+            {/* 패널은 클릭으로 펼치는 화면이라 검색엔진이 따라갈 링크가 없다.
+                룰 허브(/rules)로 가는 일반 링크를 하나 둔다. */}
+            <p className="mt-4 text-right">
+              <Link href="/rules" className="text-sm font-bold text-cdm-ink-fg underline underline-offset-4">
+                전체 게임 룰 보기 →
+              </Link>
+            </p>
           </div>
         </section>
 

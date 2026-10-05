@@ -8,7 +8,7 @@ import { useRankMatchStore } from '@/stores/rankMatch';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
-import { playRankMatchBellSfx } from '@/lib/sfx';
+import { playRankMatchBellSfx } from '@/lib/audio/synth/general';
 import { RANK_VS_NAV_SEC, RANK_VS_SEC, RankVsView } from '@/components/rank/RankVsView';
 import type { GameResult, RankGameEndedPayload } from '@/shared/types';
 

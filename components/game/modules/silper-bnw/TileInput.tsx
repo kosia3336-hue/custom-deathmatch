@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/lib/socket';
-import { sfxMeow, playMeowTileSfx } from '@/lib/sfx';
+import { sfxMeow, playMeowTileSfx } from '@/lib/audio/synth/general';
 import type { SBNWTile } from '@/shared/types/silper-bnw';
 
 import type { SkinTheme } from '@/lib/skins/registry';

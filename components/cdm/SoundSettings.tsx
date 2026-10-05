@@ -8,7 +8,7 @@ import {
   setSfxMuted,
   setSfxVolume,
   subscribeSfxSettings,
-} from '@/lib/sfxSettings';
+} from '@/lib/audio/settings';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 import { Slider } from './Slider';

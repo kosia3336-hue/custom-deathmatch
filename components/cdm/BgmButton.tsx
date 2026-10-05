@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { useBgm } from '@/components/providers/BgmProvider';
-import { isSfxMuted, setSfxMuted, subscribeSfxSettings } from '@/lib/sfxSettings';
+import { isSfxMuted, setSfxMuted, subscribeSfxSettings } from '@/lib/audio/settings';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 

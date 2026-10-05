@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getSocket } from '@/lib/socket';
-import { playShowdownSubmitSfx, unlockShowdownAudio } from './showdownSfx';
+import { playShowdownSubmitSfx, unlockShowdownAudio } from '@/lib/audio/skins/showdown';
 import { useShowdownReel } from './useShowdownReel';
 
 interface Props {
