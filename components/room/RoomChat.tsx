@@ -33,10 +33,7 @@ export default function RoomChat({ scope, scrollClassName }: Props) {
   );
 }
 
-/**
- * 테두리 없는 본문(메시지 목록 + 입력창)만 — 바깥에서 자체 탭 컨테이너로 감쌀 때(예: 방 채팅
- * 탭바가 있는 ChatButton) 이중 테두리를 피하려고 분리했다.
- */
+/** 공용 메시지·입력 본문. 대기실 채널창과 인게임 방 채팅에서 공유한다. */
 export function RoomChatBody({ scope, scrollClassName }: Props) {
   const allMessages = useRoomStore((s) => s.messages);
   const messages = useMemo(() => {

@@ -8,7 +8,6 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { toast } from 'sonner';
 import type { BettingRpsGameData } from '@/shared/types/betting-rps';
-import { brpsMatchWinBonus } from '@/shared/types/betting-rps';
 import PlayerStatusCard from './PlayerStatusCard';
 import RoleSelector from './RoleSelector';
 import ResultSelector from './ResultSelector';
@@ -18,7 +17,6 @@ import InfoPanel from './InfoPanel';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function BettingRpsGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -100,7 +98,6 @@ export default function BettingRpsGame() {
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* ── Main area ── */}
         <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-
           <div className="w-full max-w-lg space-y-2">
             {/* Player status card */}
             <PlayerStatusCard
@@ -136,17 +133,15 @@ export default function BettingRpsGame() {
             {/* Submit phase (players only) */}
             {!isSpectator && isSubmitPhase && (
               <>
-                {iAmMatch && !myPlayer?.submitted && (
-                  <ResultSelector />
-                )}
-                {iAmBet && !myPlayer?.submitted && (
-                  <BetSelector myChips={myPlayer?.chips ?? 0} />
-                )}
+                {iAmMatch && !myPlayer?.submitted && <ResultSelector />}
+                {iAmBet && !myPlayer?.submitted && <BetSelector myChips={myPlayer?.chips ?? 0} />}
                 {waitingForOpponent && (
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
                     <span>제출 완료</span>
                     <span className="text-gray-400">—</span>
-                    <span className="animate-pulse text-gray-400">{opponentDisplayName(opponent?.nickname)} 선택 중...</span>
+                    <span className="animate-pulse text-gray-400">
+                      {opponentDisplayName(opponent?.nickname)} 선택 중...
+                    </span>
                   </div>
                 )}
               </>
@@ -162,14 +157,7 @@ export default function BettingRpsGame() {
                 winType={gameData.winType}
               />
             )}
-
           </div>
-
-        </div>
-
-        {/* ── Desktop: info panel ── */}
-        <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
-          <BettingRpsSidePanel gameData={gameData} myId={myId ?? ''} />
         </div>
       </div>
     </div>
@@ -178,8 +166,11 @@ export default function BettingRpsGame() {
 
 function BettingRpsSidePanel({ gameData, myId }: { gameData: BettingRpsGameData; myId: string }) {
   return (
-    <GameInfoPart title={`판 정보 · 이번 승리 +${brpsMatchWinBonus(gameData.round)}칩`}>
-      <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />
-    </GameInfoPart>
+    <InfoPanel
+      players={gameData.players}
+      roundHistory={gameData.roundHistory}
+      round={gameData.round}
+      myId={myId}
+    />
   );
 }

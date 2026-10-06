@@ -222,20 +222,24 @@ function PlaySurface({
     <>
       <GameFrame
         info={
-          <PlayerStrip
-            entries={Object.entries(gameData.players).map(([playerId, player]) => ({
-              id: playerId,
-              name: player.nickname,
-              isMe: isSolo || playerId === myId,
-              marker: (
-                <span className="block h-3.5 w-3.5">
-                  <GamePiece3D tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'} />
-                </span>
-              ),
-              detail: `돌 ${gameData.reserves[playerId] ?? 0}`,
-              active: gameData.currentPlayerId === playerId && !finished,
-            }))}
-          />
+          <div className="lg:hidden">
+            <PlayerStrip
+              entries={Object.entries(gameData.players).map(([playerId, player]) => ({
+                id: playerId,
+                name: player.nickname,
+                isMe: isSolo || playerId === myId,
+                marker: (
+                  <span className="block h-3.5 w-3.5">
+                    <GamePiece3D
+                      tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'}
+                    />
+                  </span>
+                ),
+                detail: `돌 ${gameData.reserves[playerId] ?? 0}`,
+                active: gameData.currentPlayerId === playerId && !finished,
+              }))}
+            />
+          </div>
         }
         controls={
           <p className="border-cdm-border bg-cdm-bg rounded-cdm-lg text-cdm-fg-muted flex min-h-11 items-center justify-center border px-3 py-2 text-center text-[11px]">
@@ -291,10 +295,16 @@ function PlaySurface({
   );
 }
 
-function TripleGomokuSidePanel({ gameData, myId }: { gameData: TripleGomokuGameData; myId: string }) {
+function TripleGomokuSidePanel({
+  gameData,
+  myId,
+}: {
+  gameData: TripleGomokuGameData;
+  myId: string;
+}) {
   return (
     <GameInfoStack>
-      <GameInfoPart title="플레이어">
+      <GameInfoPart title="플레이어" sizeToContent>
         <div className="space-y-1.5">
           {Object.entries(gameData.players).map(([playerId, player]) => (
             <div
@@ -303,10 +313,14 @@ function TripleGomokuSidePanel({ gameData, myId }: { gameData: TripleGomokuGameD
                 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm',
                 gameData.currentPlayerId === playerId && gameData.phase !== 'finished'
                   ? 'bg-cdm-primary/20 text-white'
-                  : 'bg-white/5 text-cdm-ink-fg',
+                  : 'text-cdm-ink-fg bg-white/5',
               )}
             >
-              <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+              <span className="flex min-w-0 items-center gap-2 font-semibold">
+                <span className="block h-3.5 w-3.5 shrink-0"><GamePiece3D tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'} /></span>
+                {player.nickname}
+                {playerId === myId ? ' (나)' : ''}
+              </span>
               <span className="font-black tabular-nums">돌 {gameData.reserves[playerId] ?? 0}</span>
             </div>
           ))}

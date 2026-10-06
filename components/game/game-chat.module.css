@@ -1,0 +1,43 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--cdm-z-modal) + 1);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 15%);
+}
+
+.participants {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--cdm-fg);
+  background: var(--cdm-bg);
+  border: 1px solid var(--cdm-border);
+  border-radius: 0 0 12px 12px;
+  box-shadow: var(--cdm-shadow-md);
+  animation: unfold 160ms ease-out;
+}
+
+@keyframes unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .participants {
+    animation: none;
+  }
+}

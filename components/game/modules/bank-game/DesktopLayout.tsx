@@ -3,12 +3,8 @@
 import type { BankContextValue } from './hooks/useBankContext';
 import InventoryRow from './InventoryRow';
 import FirstCountRevealBanner from './FirstCountRevealBanner';
-import RoundHistoryTable from './RoundHistoryTable';
-import ScorePanel from './ScorePanel';
-import OpponentInventoryTracker from './OpponentInventoryTracker';
 import PhaseStepperDesktop from './PhaseStepperDesktop';
 import PhaseArea from './PhaseArea';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 /* ════════════════════════════════════════════════════════════
  * DesktopLayout — ≥ 1024px
@@ -27,7 +23,6 @@ export default function DesktopLayout({ ctx }: Props) {
   const {
     gameData,
     isSpectator,
-    myId,
     myPlayer,
     mySide,
     firstSide,
@@ -39,7 +34,6 @@ export default function DesktopLayout({ ctx }: Props) {
     myTurnInput,
     stepperActiveTurn,
     pendingBet,
-    showOpponentTracker,
   } = ctx;
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
@@ -93,29 +87,6 @@ export default function DesktopLayout({ ctx }: Props) {
             <PhaseArea ctx={ctx} size="md" />
           </div>
 
-        </div>
-
-        {/* ── 우측 사이드바 ── */}
-        <div className="bank-sidebar hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col lg:gap-3 lg:p-3">
-          <GameInfoPart><ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
-          {showOpponentTracker && <GameInfoPart title="상대 잔여 추리"><OpponentInventoryTracker /></GameInfoPart>}
-
-          {/* 라운드 기록 */}
-          {gameData.history.length > 0 && (
-            <GameInfoPart className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <p className="bank-sidebar-heading mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">
-                라운드 기록
-              </p>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <RoundHistoryTable
-                  history={gameData.history}
-                  mySide={mySide}
-                  players={gameData.players}
-                  variant="desktop"
-                />
-              </div>
-            </GameInfoPart>
-          )}
         </div>
       </div>
     </div>

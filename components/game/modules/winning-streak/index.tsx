@@ -245,30 +245,40 @@ export default function WinningStreakGame() {
           </div>
         )}
       </GameFrame>
-
     </>
   );
 }
 
-function WinningStreakSidePanel({ gameData, myId }: { gameData: WinningStreakGameData; myId: string }) {
+function WinningStreakSidePanel({
+  gameData,
+  myId,
+}: {
+  gameData: WinningStreakGameData;
+  myId: string;
+}) {
   const ids = Object.keys(gameData.players);
   const opponentId = ids.find((id) => id !== myId);
   const opponent = opponentId ? gameData.players[opponentId] : undefined;
   return (
     <GameInfoStack>
-      <GameInfoPart title="전적">
+      <GameInfoPart title="전적" sizeToContent>
         <div className="space-y-1.5">
           {ids.map((id) => (
-            <StatLine key={id} player={gameData.players[id]} label={id === myId ? '나' : '상대'} isMe={id === myId} />
+            <StatLine
+              key={id}
+              player={gameData.players[id]}
+              label={id === myId ? '나' : '상대'}
+              isMe={id === myId}
+            />
           ))}
         </div>
       </GameInfoPart>
       {opponent && (
-        <GameInfoPart title="상대 잔여 카드">
+        <GameInfoPart title="상대 잔여 카드" sizeToContent>
           <CardRow cards={opponent.remainingCards} lastPlayed={opponent.lastPlayedCard} label="" />
         </GameInfoPart>
       )}
-      <GameInfoPart>
+      <GameInfoPart title="라운드 기록">
         <RoundHistory history={gameData.roundHistory} players={gameData.players} />
       </GameInfoPart>
     </GameInfoStack>

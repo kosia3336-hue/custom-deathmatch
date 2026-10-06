@@ -16,7 +16,6 @@ import OpponentInferPanel from './OpponentInferPanel';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
 import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
 
 export default function InvestDonateGame() {
@@ -91,7 +90,6 @@ export default function InvestDonateGame() {
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* ── Main area ── */}
         <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-
           {/* Status message */}
           {gameState?.message && (
             <div className="text-center text-xs text-gray-400">{gameState.message}</div>
@@ -130,7 +128,9 @@ export default function InvestDonateGame() {
                     {opponent && !opponent.submitted && (
                       <>
                         <span className="text-gray-400">—</span>
-                        <span className="animate-pulse text-gray-400">{opponentDisplayName(opponent.nickname)} 배분 중...</span>
+                        <span className="animate-pulse text-gray-400">
+                          {opponentDisplayName(opponent.nickname)} 배분 중...
+                        </span>
                       </>
                     )}
                   </div>
@@ -180,22 +180,18 @@ export default function InvestDonateGame() {
               />
             )}
           </div>
-
-        </div>
-
-        {/* ── Desktop: info panel ── */}
-        <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
-          <InvestDonateSidePanel gameData={gameData} myId={myId ?? ''} />
         </div>
       </div>
     </div>
   );
 }
 
-function InvestDonateSidePanel({ gameData, myId }: { gameData: InvestDonateGameData; myId: string }) {
-  return (
-    <GameInfoPart title="판 정보">
-      <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />
-    </GameInfoPart>
-  );
+function InvestDonateSidePanel({
+  gameData,
+  myId,
+}: {
+  gameData: InvestDonateGameData;
+  myId: string;
+}) {
+  return <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />;
 }

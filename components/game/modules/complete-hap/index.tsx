@@ -135,14 +135,24 @@ function RoundWorkspace({
   useEffect(() => {
     setHud({
       round: `${gameData.round} / ${gameData.totalRounds}R`,
-      order: gameData.phase === 'playing' ? '합 찾기' : gameData.phase === 'finished' ? '종료' : '라운드 판정',
+      order:
+        gameData.phase === 'playing'
+          ? '합 찾기'
+          : gameData.phase === 'finished'
+            ? '종료'
+            : '라운드 판정',
       memo: (
-        <CompleteHapInfo gameData={gameData} myId={myId} savedPanel={savedPanel} playerEntries={playerEntries} />
+        <CompleteHapInfo
+          gameData={gameData}
+          myId={myId}
+          savedPanel={savedPanel}
+          playerEntries={playerEntries}
+        />
       ),
     });
     return () => setHud(null);
-  // setHud가 부모를 다시 그리므로 매 렌더마다 새로 만들어지는 JSX 조각은 의존성에서 제외한다.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // setHud가 부모를 다시 그리므로 매 렌더마다 새로 만들어지는 JSX 조각은 의존성에서 제외한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData, savedSets, setHud]);
 
   return (
@@ -154,15 +164,17 @@ function RoundWorkspace({
           몇 개 저장했는지조차 안 보였다. (components/game/GameScoreLine.tsx)
         */
         info={
-          <GameScoreLine
-            unit="점"
-            entries={playerEntries.map(([playerId, player]) => ({
-              label: playerId === myId ? '나' : player.nickname,
-              isMe: playerId === myId,
-              value: gameData.scores[playerId] ?? 0,
-              hint: playerId === myId ? `합 ${savedSets.length}개` : undefined,
-            }))}
-          />
+          <div className="lg:hidden">
+            <GameScoreLine
+              unit="점"
+              entries={playerEntries.map(([playerId, player]) => ({
+                label: playerId === myId ? '나' : player.nickname,
+                isMe: playerId === myId,
+                value: gameData.scores[playerId] ?? 0,
+                hint: playerId === myId ? `합 ${savedSets.length}개` : undefined,
+              }))}
+            />
+          </div>
         }
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
@@ -252,12 +264,16 @@ function RoundWorkspace({
           </div>
         )}
       </GameFrame>
-
     </>
   );
 }
 
-function CompleteHapInfo({ gameData, myId, savedPanel, playerEntries }: {
+function CompleteHapInfo({
+  gameData,
+  myId,
+  savedPanel,
+  playerEntries,
+}: {
   gameData: CompleteHapGameData;
   myId: string;
   savedPanel: React.ReactNode;
@@ -265,17 +281,23 @@ function CompleteHapInfo({ gameData, myId, savedPanel, playerEntries }: {
 }) {
   return (
     <GameInfoStack>
-      <GameInfoPart title="점수">
+      <GameInfoPart title="점수" sizeToContent>
         <div className="space-y-1.5">
           {playerEntries.map(([playerId, player]) => (
-            <div key={playerId} className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm">
-              <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
+            <div
+              key={playerId}
+              className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm"
+            >
+              <span className="truncate font-semibold">
+                {player.nickname}
+                {playerId === myId ? ' (나)' : ''}
+              </span>
               <span className="font-black tabular-nums">{gameData.scores[playerId] ?? 0}점</span>
             </div>
           ))}
         </div>
       </GameInfoPart>
-      <GameInfoPart>{savedPanel}</GameInfoPart>
+      <GameInfoPart title="저장한 합">{savedPanel}</GameInfoPart>
     </GameInfoStack>
   );
 }

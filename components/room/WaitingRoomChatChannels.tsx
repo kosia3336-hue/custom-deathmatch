@@ -9,27 +9,21 @@ import { LobbyChatInput } from '@/components/lobby/LobbyChatInput';
 import { OnlineUsersList } from '@/components/lobby/OnlineUsersList';
 import { useRoomStore } from '@/stores/room';
 import { useGuildWarStore } from '@/stores/guildWar';
-import { useOnlineUsersStore } from '@/stores/onlineUsers';
 import { useNicknameStore } from '@/stores/nickname';
 import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 import type { ChatScope } from '@/shared/types';
 import { cn } from '@/lib/utils';
 
-export type RoomChatChannel = 'users' | 'room' | 'guild_war' | 'lobby';
-export interface ChatChannelChoice {
-  id: RoomChatChannel;
+type WaitingRoomChatChannel = 'users' | 'room' | 'guild_war' | 'lobby';
+interface ChatChannelChoice {
+  id: WaitingRoomChatChannel;
   label: string;
   icon: IconName;
-  count?: number;
 }
 
 /** 창 제목과 본문이 같은 채널 상태를 공유한다. 권한이 사라진 채널은 방으로 복귀한다. */
-export function useRoomChatChannels() {
-  const [selected, setChannel] = useState<RoomChatChannel>('room');
-  const count = useOnlineUsersStore((s) => s.count);
-  const roomCount = useRoomStore(
-    (s) => (s.room?.players.length ?? 0) + (s.room?.spectators.length ?? 0),
-  );
+export function useWaitingRoomChatChannels() {
+  const [selected, setChannel] = useState<WaitingRoomChatChannel>('room');
   const canSeeUsers = useNicknameStore((s) => s.nickname) === '천하';
   const isGuildWar = useRoomStore((s) => s.room?.id === GUILD_WAR_ROOM_ID);
   const war = useGuildWarStore((s) => s.state);
@@ -37,57 +31,43 @@ export function useRoomChatChannels() {
   const choices = useMemo<ChatChannelChoice[]>(
     () => [
       ...(canSeeUsers ? [{ id: 'users' as const, label: '접속자', icon: 'me' as const }] : []),
-      { id: 'room', label: '방 채팅', icon: 'chat', count: roomCount },
+      { id: 'room', label: '방 채팅', icon: 'chat' },
       ...(showGuild
         ? [{ id: 'guild_war' as const, label: '길드 채팅', icon: 'guild' as const }]
         : []),
-      { id: 'lobby', label: '로비', icon: 'home', count },
+      { id: 'lobby', label: '로비', icon: 'home' },
     ],
-    [canSeeUsers, showGuild, count, roomCount],
+    [canSeeUsers, showGuild],
   );
   const channel = choices.some((choice) => choice.id === selected) ? selected : 'room';
   if (channel !== selected) setChannel(channel);
   return useMemo(() => ({ channel, setChannel, choices }), [channel, choices]);
 }
-type RoomChatChannels = ReturnType<typeof useRoomChatChannels>;
+type WaitingRoomChatChannels = ReturnType<typeof useWaitingRoomChatChannels>;
 
-/** 현재 채널 인원은 채팅 아이콘/제목 바로 왼쪽에 표시한다. */
-export function ChatChannelTitle({
+/** 대기실 채팅 제목. 아이콘과 인원수는 제목에 붙이지 않는다. */
+function ChatChannelTitle({
   channel,
   choices,
 }: {
-  channel: RoomChatChannel;
+  channel: WaitingRoomChatChannel;
   choices: ChatChannelChoice[];
 }) {
-  const current = choices.find((choice) => choice.id === channel);
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      {current?.count !== undefined && (
-        <span
-          aria-label={`참여자 ${current.count}명`}
-          className="shrink-0 text-xs font-normal tabular-nums"
-        >
-          ({current.count})
-        </span>
-      )}
-      <Icon name="chat" size="sm" className="shrink-0" />
-      <span className="truncate">{channel === 'room' ? '채팅' : current?.label}</span>
-    </span>
-  );
+  return <span>{choices.find((choice) => choice.id === channel)?.label}</span>;
 }
-export function RoomChatChannelTitle({ channels }: { channels: RoomChatChannels }) {
+export function WaitingRoomChatTitle({ channels }: { channels: WaitingRoomChatChannels }) {
   return <ChatChannelTitle channel={channels.channel} choices={channels.choices} />;
 }
 
 /** 방에서는 로비로, 로비에서는 방으로 전환한다. 길드/접속자 선택은 별도 유지한다. */
-export function ChatChannelToggle({
+function ChatChannelToggle({
   channel,
   choices,
   onChange,
 }: {
-  channel: RoomChatChannel;
+  channel: WaitingRoomChatChannel;
   choices: ChatChannelChoice[];
-  onChange: (channel: RoomChatChannel) => void;
+  onChange: (channel: WaitingRoomChatChannel) => void;
 }) {
   const target = choices.find((choice) => choice.id === (channel === 'room' ? 'lobby' : 'room'));
   const extras = choices.filter((choice) => choice.id !== 'room' && choice.id !== 'lobby');
@@ -126,7 +106,7 @@ export function ChatChannelToggle({
     </div>
   );
 }
-export function RoomChatHeaderActions({ channels }: { channels: RoomChatChannels }) {
+export function WaitingRoomChatActions({ channels }: { channels: WaitingRoomChatChannels }) {
   return (
     <ChatChannelToggle
       channel={channels.channel}
@@ -137,12 +117,12 @@ export function RoomChatHeaderActions({ channels }: { channels: RoomChatChannels
 }
 
 /** 채널 전환·도킹 중에도 각각의 입력 초안과 스크롤 위치를 유지한다. */
-export function RoomChatContent({
+export function WaitingRoomChatContent({
   channels,
   scope,
   active,
 }: {
-  channels: RoomChatChannels;
+  channels: WaitingRoomChatChannels;
   scope: ChatScope;
   active: boolean;
 }) {

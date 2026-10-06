@@ -4,7 +4,7 @@ import { getToolInsertion } from '@/lib/gameToolDrop';
 
 export type ToolEdge = DockEdge | 'floating';
 export type DockRegions = Partial<Record<ToolEdge, HTMLElement>>;
-const edges: DockEdge[] = ['top', 'bottom', 'left', 'right'];
+const edges: DockEdge[] = ['left', 'right', 'top', 'bottom'];
 function peers(regions: DockRegions, edge: DockEdge) {
   return Array.from(regions[edge]?.children ?? []).filter(
     (item): item is HTMLElement => item instanceof HTMLElement,

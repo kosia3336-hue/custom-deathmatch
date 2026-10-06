@@ -24,7 +24,10 @@ export function CountdownTimer() {
   const tickGate = useRef(createCountdownTickGate());
   useEffect(() => {
     // 새 턴의 첫 렌더에서 이전 턴 remaining 값으로 소리가 나지 않도록 현재 마감을 사용한다.
-    const second = tickGate.current(clockKey, deadline === null ? null : (deadline - serverNow()) / 1000);
+    const second = tickGate.current(
+      clockKey,
+      deadline === null ? null : (deadline - serverNow()) / 1000,
+    );
     if (second !== null && document.visibilityState === 'visible') playCountdownTickSfx(second);
   }, [clockKey, deadline, remaining]);
   if (remaining === null || timeLimitSeconds === null) return null;
@@ -87,13 +90,11 @@ export function GameHudLeft({
   round,
   order,
   ranked,
-  spectators = 0,
   onOpenInfo,
 }: {
   round?: React.ReactNode;
   order?: React.ReactNode;
   ranked?: boolean;
-  spectators?: number;
   onOpenInfo?: () => void;
 }) {
   return (
@@ -104,10 +105,9 @@ export function GameHudLeft({
           onClick={onOpenInfo}
           aria-label="방 정보"
           title="방 정보"
-          className="rounded-cdm-md text-cdm-ink-fg-muted -ml-1 flex shrink-0 flex-col items-center gap-0.5 px-1 py-1 transition-colors hover:bg-white/10 hover:text-white"
+          className="rounded-cdm-md text-cdm-ink-fg-muted -ml-1 flex h-8 w-8 shrink-0 items-center justify-center transition-colors hover:bg-white/10 hover:text-white"
         >
           <Icon name="info" />
-          <span className="text-[11px] whitespace-nowrap tabular-nums">관전 {spectators}명</span>
         </button>
       )}
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">

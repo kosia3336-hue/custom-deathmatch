@@ -423,7 +423,8 @@ function ColorBadge({ color, pulse }: { color: 'white' | 'black'; pulse?: boolea
       color === 'black'
         ? 'bg-slate-800 text-slate-100 ring-slate-500'
         : 'border border-gray-300 bg-white text-slate-700 ring-gray-400'
-    }`}>
+    }`}
+    >
       {color === 'black' ? '흑색' : '백색'}
     </span>
   );
@@ -444,9 +445,7 @@ function WaitingCard({ text, extra }: { text: string; extra?: string }) {
     <div className="mbnw-panel mbnw-waiting-card flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-8">
       <WaitingDots />
       <p className="text-sm text-gray-500">{text}</p>
-      {extra && (
-        <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-600">{extra}</p>
-      )}
+      {extra && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-600">{extra}</p>}
     </div>
   );
 }
@@ -471,7 +470,7 @@ function MultipleBnwSidePanel({
   return (
     <GameInfoStack className={inkWash ? 'skin-ink-wash-memo' : undefined}>
       {showTracker && (
-        <GameInfoPart>
+        <GameInfoPart title="메모 - 상대 타일 추리" sizeToContent>
           <OpponentTileTracker
             markedTiles={trackedOpponentUsed}
             onToggle={onTrackerToggle}
@@ -479,13 +478,7 @@ function MultipleBnwSidePanel({
           />
         </GameInfoPart>
       )}
-      <GameInfoPart>
-        <InfoPanel
-          players={gameData.players}
-          roundHistory={gameData.roundHistory}
-          myId={myId}
-        />
-      </GameInfoPart>
+      <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />
     </GameInfoStack>
   );
 }

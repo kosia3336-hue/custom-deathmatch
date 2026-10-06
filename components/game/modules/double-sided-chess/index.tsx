@@ -72,7 +72,7 @@ export default function DoubleSidedChessGame() {
     setHud({
       round: `${turnNumber}턴`,
       order: gameData.winner ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
-      // 판 정보는 메모가 아니라 판 위에 늘 펴 둔다 — design.md §14.9
+      memo: <DoubleSidedChessSidePanel gameData={gameData} />,
     });
     return () => setHud(null);
   }, [gameData, isMyTurn, setHud, turnNumber]);
@@ -95,7 +95,8 @@ export default function DoubleSidedChessGame() {
     shownWinnerRef.current = winner;
 
     const { players } = gameData;
-    const winnerNick = players.first.id === winner ? players.first.nickname : players.second.nickname;
+    const winnerNick =
+      players.first.id === winner ? players.first.nickname : players.second.nickname;
     const reason = WIN_TYPE_TOAST_LABEL[winType] ?? '';
     const isMe = winner === myId;
     const message = `${winnerNick} 승리! ${reason}`;
@@ -204,7 +205,13 @@ export default function DoubleSidedChessGame() {
   const ghost =
     armedAt && myOwner
       ? selectedPrisoner
-        ? { row: armedAt[0], col: armedAt[1], piece: selectedPrisoner, owner: myOwner, isPromoted: false }
+        ? {
+            row: armedAt[0],
+            col: armedAt[1],
+            piece: selectedPrisoner,
+            owner: myOwner,
+            isPromoted: false,
+          }
         : movingCell
           ? {
               row: armedAt[0],
@@ -225,15 +232,17 @@ export default function DoubleSidedChessGame() {
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="flex flex-1 flex-col items-center gap-1 p-2 lg:p-4">
           <div className="w-full max-w-2xl shrink-0">
-            <PlayerStrip
-              entries={(['second', 'first'] as const).map((owner) => ({
-                id: owner,
-                name: gameData.players[owner].nickname,
-                isMe: myOwner === owner,
-                marker: <span className={`h-3.5 w-3.5 rounded-full ${OWNER_COLOR[owner].bg}`} />,
-                active: !gameData.winner && gameData.currentOwner === owner,
-              }))}
-            />
+            <div className="lg:hidden">
+              <PlayerStrip
+                entries={(['second', 'first'] as const).map((owner) => ({
+                  id: owner,
+                  name: gameData.players[owner].nickname,
+                  isMe: myOwner === owner,
+                  marker: <span className={`h-3.5 w-3.5 rounded-full ${OWNER_COLOR[owner].bg}`} />,
+                  active: !gameData.winner && gameData.currentOwner === owner,
+                }))}
+              />
+            </div>
           </div>
           {/* second(파랑) 포로 — 보드 위, 항상 고정 */}
           <div className="w-full max-w-2xl shrink-0">
@@ -280,9 +289,7 @@ export default function DoubleSidedChessGame() {
           </div>
 
           {/* 상태 메시지 */}
-          {!gameData.winner && (
-            <p className="shrink-0 text-sm text-gray-500">{message}</p>
-          )}
+          {!gameData.winner && <p className="shrink-0 text-sm text-gray-500">{message}</p>}
 
           {/* 솔로: AI 토글 (슈퍼 AI 페이지 · 천하) */}
           {isSpecialSolo && !gameData.winner && (
@@ -297,11 +304,6 @@ export default function DoubleSidedChessGame() {
             </Button>
           )}
         </div>
-
-        {/* 데스크탑: 사이드 패널 */}
-        <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
-          <DoubleSidedChessSidePanel gameData={gameData} />
-        </div>
       </div>
     </div>
   );
@@ -309,7 +311,7 @@ export default function DoubleSidedChessGame() {
 
 function DoubleSidedChessSidePanel({ gameData }: { gameData: DoubleSidedChessGameData }) {
   return (
-    <GameInfoPart title="플레이어">
+    <GameInfoPart title="플레이어" sizeToContent>
       <InfoPanel players={gameData.players} currentOwner={gameData.currentOwner} />
     </GameInfoPart>
   );

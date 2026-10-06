@@ -3,12 +3,31 @@ import {
   createGameToolsLayoutStore,
   gameToolDockId,
   horizontalDockLimit,
+  selectGameToolSources,
 } from '../../../lib/gameToolsLayout';
 import { setDockState } from '../../../lib/dockPanel';
 import { setToolOrder } from '../../../lib/gameToolOrder';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('공용 창 배치 저장 계약', () => {
+  it('동일한 hud/aside 원본은 하나만 사용하고 각 파츠와 채팅은 독립 창으로 유지한다', () => {
+    const memo = { id: 'reference', content: 'mobile-memo' };
+    const aside = { id: 'reference', content: 'shared-aside' };
+    const score = { id: 'reference:점수', content: 'score' };
+    const history = { id: 'reference:라운드 기록', content: 'history' };
+    const chat = { id: 'chat', content: 'chat', defaultOrder: 100 };
+    const result = selectGameToolSources([memo, chat], { reference: aside, score, history });
+    expect(result.reference).toBe(aside);
+    expect(result.tools).toEqual([score, history, chat]);
+    expect(selectGameToolSources([memo, chat], {}).tools).toEqual([chat]);
+  });
+  it('제거된 조건부 파츠는 사라지고 갱신된 창은 같은 id로 한 번만 표시한다', () => {
+    const oldScore = { id: 'score', value: 1 };
+    const score = { id: 'score', value: 2 };
+    const tracker = { id: 'tracker', value: 0 };
+    expect(selectGameToolSources([oldScore], { score, tracker }).tools).toEqual([score, tracker]);
+    expect(selectGameToolSources([oldScore], { score }).tools).toEqual([score]);
+  });
   it('기존 v2 위치/순서를 읽으며 실제 변경이 없으면 동일한 snapshot을 반환한다', () => {
     const storage = new Map<string, string>();
     vi.stubGlobal('window', {

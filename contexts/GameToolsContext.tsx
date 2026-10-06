@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useGameToolsLayout } from '@/hooks/useGameToolsLayout';
+import { selectGameToolSources } from '@/lib/gameToolsLayout';
 
 export interface GameTool {
   id: string;
@@ -67,14 +68,14 @@ export function useGameToolsController(scope: string, extraTools: GameTool[] = [
     () => ({ desktop, register, unregister }),
     [desktop, register, unregister],
   );
-  const defaultTools = useMemo(
-    () =>
-      Object.values({
-        ...Object.fromEntries(extraTools.map((t) => [t.id, t])),
-        ...registered,
-      }).sort((a, b) => (a.defaultOrder ?? 50) - (b.defaultOrder ?? 50)),
+  const sources = useMemo(
+    () => selectGameToolSources(extraTools, registered),
     [extraTools, registered],
   );
+  // reference는 창이 아닌 공통 정보 파츠의 등록 원본이다. aside가 있으면
+  // hud.memo 대신 그 한 벌만 사용하고, 각 파츠가 자기 창을 등록한다.
+  const reference = sources.reference?.content;
+  const defaultTools = sources.tools;
   const layout = useGameToolsLayout(
     scope,
     defaultTools.map((tool) => tool.id),
@@ -86,6 +87,7 @@ export function useGameToolsController(scope: string, extraTools: GameTool[] = [
   return useMemo(
     () => ({
       scope,
+      reference,
       desktop,
       registration,
       tools,
@@ -93,7 +95,16 @@ export function useGameToolsController(scope: string, extraTools: GameTool[] = [
       orderedIds: layout.orderedIds,
       moveBefore: layout.moveBefore,
     }),
-    [scope, desktop, registration, tools, layout.docks, layout.orderedIds, layout.moveBefore],
+    [
+      scope,
+      reference,
+      desktop,
+      registration,
+      tools,
+      layout.docks,
+      layout.orderedIds,
+      layout.moveBefore,
+    ],
   );
 }
 export type GameToolsController = ReturnType<typeof useGameToolsController>;

@@ -19,7 +19,7 @@ import styles from './game-frame.module.css';
  *   info     위   — 지금 상황. 차례·시간·점수·남은 말. 눈으로 읽기만 한다.
  *   children 가운데 — 무대. 판이나 카드 같은 게임의 본체. 남은 높이를 다 쓴다.
  *   controls 아래 — 조작. 누르는 것은 전부 여기. 엄지가 닿는 자리다.
- *   aside    옆   — 넓은 화면에서만 나오는 참고 정보(이동표 따위).
+ *   aside    옆   — PC에서 GameInfoPart별 독립 창으로 펼치는 참고 정보(이동표 따위).
  *
  * 위가 정보, 아래가 조작인 건 손이 아래에 있기 때문이다. 조작을 위에 두면
  * 누르는 손이 판을 가린다. 참고 정보는 조작이 아니므로 좁은 화면에서는
@@ -80,7 +80,7 @@ export function GameFrame({
   info?: ReactNode;
   /** 아래 — 누르는 것 전부 */
   controls?: ReactNode;
-  /** 옆 — 넓은 화면에서만 나오는 참고 정보 */
+  /** PC 참고 정보 원본 — GameInfoPart마다 별도 도킹 창으로 표시한다. */
   aside?: ReactNode;
   /** 가운데 — 판·카드 같은 게임의 본체 */
   children: ReactNode;

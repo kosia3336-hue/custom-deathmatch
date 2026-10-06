@@ -6,7 +6,7 @@
   min-height: 0;
   min-width: 0;
   flex: 1;
-  grid-template-areas: 'top top top' 'left game right' 'bottom bottom bottom';
+  grid-template-areas: 'left top right' 'left game right' 'left bottom right';
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;

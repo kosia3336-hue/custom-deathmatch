@@ -1,6 +1,7 @@
 'use client';
 
 import GameLoading from '@/components/game/GameLoading';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -154,13 +155,15 @@ export default function QuatroGame() {
     }
     setHud({
       memo: (
-        <QuatroRecord
-          log={recordLog}
-          firstByRound={recordFirst ?? {}}
-          players={recordPlayers}
-          myId={myId}
-          round={recordRound}
-        />
+        <GameInfoPart title="진행 기록">
+          <QuatroRecord
+            log={recordLog}
+            firstByRound={recordFirst ?? {}}
+            players={recordPlayers}
+            myId={myId}
+            round={recordRound}
+          />
+        </GameInfoPart>
       ),
     });
   }, [recordLog, recordFirst, recordPlayers, recordRound, myId, setHud]);
@@ -182,7 +185,7 @@ export default function QuatroGame() {
 
   // 차례 표시: 플레이어에게는 나/상대(익명 ??? 가 누구인지 헷갈리지 않게), 관전자에게는 두 사람의 닉네임
   const turnName = (id: string | null) =>
-    id ? (id === myId ? '나' : me ? '상대' : gameData.players[id]?.nickname ?? '???') : null;
+    id ? (id === myId ? '나' : me ? '상대' : (gameData.players[id]?.nickname ?? '???')) : null;
   const currentName = turnName(gameData.currentTurnId);
   const nextName = turnName(gameData.nextTurnId ?? null);
   const actorSubject = me
@@ -401,40 +404,28 @@ export default function QuatroGame() {
             {gameData.result.winnerId
               ? `${gameData.players[gameData.result.winnerId]?.nickname} 승리 — ${gameData.result.reason}`
               : `무승부 — ${gameData.result.reason}`}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-8">
-            {Object.entries(gameData.result.hands).map(([pid, cards]) => (
-              <div key={pid} className="flex flex-col items-center gap-1.5">
-                <span className="text-sm font-semibold text-cdm-fg">
-                  {gameData.players[pid]?.nickname}
-                  <span className="ml-1.5 text-xs text-cdm-fg-muted">
-                    합 {gameData.result!.sums[pid]}
-                    {gameData.result!.quatro[pid] ? ' · 콰트로!' : ''}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-8">
+              {Object.entries(gameData.result.hands).map(([pid, cards]) => (
+                <div key={pid} className="flex flex-col items-center gap-1.5">
+                  <span className="text-cdm-fg text-sm font-semibold">
+                    {gameData.players[pid]?.nickname}
+                    <span className="text-cdm-fg-muted ml-1.5 text-xs">
+                      합 {gameData.result!.sums[pid]}
+                      {gameData.result!.quatro[pid] ? ' · 콰트로!' : ''}
+                    </span>
                   </span>
-                </span>
-                <div className="flex gap-1.5">
-                  {cards.map((c) => (
-                    <CardFace key={c.id} card={c} size="sm" fourCard={isFourCard} />
-                  ))}
+                  <div className="flex gap-1.5">
+                    {cards.map((c) => (
+                      <CardFace key={c.id} card={c} size="sm" fourCard={isFourCard} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-
-      {/* 넓은 화면 — 진행 기록을 판 옆에 펴 둔다(좁은 화면은 메모 시트) */}
-      <aside className="hidden w-72 shrink-0 overflow-y-auto overscroll-contain py-4 pr-4 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100dvh-6rem)]">
-        <h3 className="mb-2 text-xs font-bold text-cdm-fg-muted">기록</h3>
-        <QuatroRecord
-          log={gameData.log ?? []}
-          firstByRound={gameData.firstByRound ?? {}}
-          players={gameData.players}
-          myId={myId}
-          round={gameData.round}
-        />
-      </aside>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
@@ -458,8 +449,8 @@ function ActionBtn({
       className={cn(
         'quatro-action-btn rounded-cdm-md px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-40',
         variant === 'primary'
-          ? 'border border-cdm-primary bg-cdm-primary text-white hover:bg-cdm-primary-strong'
-          : 'border border-cdm-primary bg-cdm-bg text-cdm-primary hover:bg-cdm-primary-soft',
+          ? 'border-cdm-primary bg-cdm-primary hover:bg-cdm-primary-strong border text-white'
+          : 'border-cdm-primary bg-cdm-bg text-cdm-primary hover:bg-cdm-primary-soft border',
       )}
     >
       {children}

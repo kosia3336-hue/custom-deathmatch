@@ -2,19 +2,10 @@
 
 import MarkRow from './MarkRow';
 import DalmajiMarkRow from './skins/DalmajiMarkRow';
-import PowderTrack from './PowderTrack';
-import DalmajiPowderTrack from './skins/DalmajiPowderTrack';
-import OpponentPowderTracker from './OpponentPowderTracker';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
-import RoundHistoryTable from './RoundHistoryTable';
-import ScorePanel from './ScorePanel';
-import DalmajiScorePanel from './skins/DalmajiScorePanel';
 import PhaseStepperDesktop from './PhaseStepperDesktop';
 import PhaseArea from './PhaseArea';
-import { zeroOpponentEstimate } from './types';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
-import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * DesktopLayout — ≥ 1024px
@@ -33,9 +24,6 @@ export default function DesktopLayout({ ctx }: Props) {
   const {
     gameData,
     isSpectator,
-    myId,
-    myPlayer,
-    opponent,
     mySide,
     firstSide,
     firstPlayer,
@@ -50,16 +38,11 @@ export default function DesktopLayout({ ctx }: Props) {
     markRowPendingPowder,
     litMark,
     dalmaji,
-    showTracker,
-    opponentEstimate,
-    setOpponentEstimate,
   } = ctx;
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
 
-  const Track = dalmaji ? DalmajiPowderTrack : PowderTrack;
   const Marks = dalmaji ? DalmajiMarkRow : MarkRow;
-  const Scores = dalmaji ? DalmajiScorePanel : ScorePanel;
 
   return (
     <div className="flex h-full">
@@ -109,68 +92,6 @@ export default function DesktopLayout({ ctx }: Props) {
           </div>
 
         </div>
-
-        {/* ── 우측 사이드바 ── */}
-        <div className="hidden lg:flex lg:w-72 lg:shrink-0 lg:flex-col lg:gap-3 lg:p-3">
-          <GameInfoPart><Scores p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
-
-          {showTracker && opponentEstimate && opponent && (
-            <GameInfoPart title="상대 빛가루 추리">
-              <OpponentPowderTracker
-                key={`tracker-desktop-${opponent.powderStage}`}
-                stageNow={opponent.powderStage}
-                stagePrev={opponentEstimate.basedOnStagePrev}
-                estimate={opponentEstimate}
-                onChange={setOpponentEstimate}
-                onReset={() => setOpponentEstimate(zeroOpponentEstimate(opponentEstimate.basedOnStagePrev, opponent.powderStage))}
-              />
-            </GameInfoPart>
-          )}
-
-          <GameInfoPart title="빛가루 트랙"><Track
-            compact
-            leftLabel={!isSpectator && myPlayer ? '나' : gameData.players.p1.nickname}
-            leftStage={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).powderStage}
-            leftRemain={
-              !isSpectator && myPlayer
-                ? gameData.selfPrivate?.powderRemain ?? null
-                : null
-            }
-            leftIsFirst={
-              (!isSpectator && myPlayer ? myPlayer : gameData.players.p1).side ===
-              gameData.firstPlayerSide
-            }
-            leftChips={(!isSpectator && myPlayer ? myPlayer : gameData.players.p1).chips}
-            rightLabel={
-              !isSpectator && opponent ? opponentDisplayName(opponent.nickname) : gameData.players.p2.nickname
-            }
-            rightStage={
-              (!isSpectator && opponent ? opponent : gameData.players.p2).powderStage
-            }
-            rightRemain={null}
-            rightIsFirst={
-              (!isSpectator && opponent ? opponent : gameData.players.p2).side ===
-              gameData.firstPlayerSide
-            }
-            rightChips={(!isSpectator && opponent ? opponent : gameData.players.p2).chips}
-          /></GameInfoPart>
-
-          {gameData.history.length > 0 && (
-            <GameInfoPart className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                라운드 기록
-              </p>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <RoundHistoryTable
-                  history={gameData.history}
-                  mySide={mySide}
-                  players={gameData.players}
-                />
-              </div>
-            </GameInfoPart>
-          )}
-        </div>
-      </div>
-    </div>
+      </div></div>
   );
 }

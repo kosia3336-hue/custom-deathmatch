@@ -14,6 +14,7 @@ import { useStableToolHost } from '@/hooks/useStableToolHost';
 import { useDockTargets, type DockRegions, type ToolEdge } from '@/hooks/useDockTargets';
 import DockablePanel from '@/components/cdm/DockablePanel';
 import styles from './game-tools.module.css';
+import { GameReferenceParts } from './GameInfoPart';
 
 const LABELS = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽' };
 
@@ -29,6 +30,9 @@ export default function GameToolsWorkspace({
   useDockWheel(regions, controller.desktop);
   return (
     <GameToolsContext.Provider value={controller.registration}>
+      {controller.desktop && controller.reference && (
+        <GameReferenceParts key={controller.scope}>{controller.reference}</GameReferenceParts>
+      )}
       <div className={controller.desktop ? styles.workspace : styles.mobile}>
         {controller.desktop &&
           (['top', 'left', 'right', 'bottom'] as const).map((edge) => {

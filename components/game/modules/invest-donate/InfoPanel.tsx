@@ -1,5 +1,7 @@
 'use client';
 
+import { GameInfoPart } from '@/components/game/GameInfoPart';
+
 import type { IDPlayerInfo, IDRoundRecord, IDCoinStock } from '@/shared/types/invest-donate';
 import { ID_INITIAL_SCORE, ID_TOTAL_ROUNDS } from '@/shared/types/invest-donate';
 import RoundHistoryTable from './RoundHistoryTable';
@@ -32,10 +34,9 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
   const pIds = Object.keys(players);
 
   return (
-    <div className="space-y-0 text-sm divide-y divide-cdm-ink-border">
+    <div className="flex flex-col gap-3 text-sm">
       {/* Score */}
-      <div className="py-3 space-y-1.5">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">승점</div>
+      <GameInfoPart title="승점" sizeToContent>
         {pIds.map((pid) => {
           const p = players[pid];
           const isMe = pid === myId;
@@ -68,26 +69,20 @@ export default function InfoPanel({ players, roundHistory, myId }: Props) {
             </div>
           );
         })}
-      </div>
+      </GameInfoPart>
 
       {/* My coins */}
       {players[myId] && (
-        <div className="py-3 space-y-1">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">
-            보유 코인
-          </div>
+        <GameInfoPart title="보유 코인">
           <CoinDisplay stock={players[myId].coinStock} />
-        </div>
+        </GameInfoPart>
       )}
 
       {/* Round history */}
       {roundHistory.length > 0 && (
-        <div className="py-3 space-y-1.5">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-cdm-ink-fg-muted">
-            라운드 기록
-          </div>
+        <GameInfoPart title="라운드 기록">
           <RoundHistoryTable history={roundHistory} players={players} />
-        </div>
+        </GameInfoPart>
       )}
     </div>
   );

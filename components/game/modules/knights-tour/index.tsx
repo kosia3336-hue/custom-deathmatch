@@ -23,22 +23,17 @@ function isKnightMove(from: KnightTourCell, to: KnightTourCell) {
   return (rowDistance === 1 && colDistance === 2) || (rowDistance === 2 && colDistance === 1);
 }
 
-
 export default function KnightsTourGame() {
   const gameState = useRoomStore((state) => state.gameState);
   const gameData = gameState?.gameData as KnightTourGameData | undefined;
   const myId = useMySocketId();
 
   if (!gameData) {
-    return (
-      <GameLoading label="게임을 불러오는 중" />
-    );
+    return <GameLoading label="게임을 불러오는 중" />;
   }
 
   /* 라운드가 바뀌면 그리던 경로를 비운다. */
-  return (
-    <TourRound key={`${gameData.roundStartedAt}:${myId}`} gameData={gameData} myId={myId} />
-  );
+  return <TourRound key={`${gameData.roundStartedAt}:${myId}`} gameData={gameData} myId={myId} />;
 }
 
 function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
@@ -60,13 +55,18 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
   const winningCount = result?.winnerId
     ? (result.visitedCounts[result.winnerId] ?? result.winningPath.length)
     : null;
-  const sidePanel = <GameInfoPart><TourReference gameData={gameData} /></GameInfoPart>;
+  const sidePanel = <TourReference gameData={gameData} />;
 
   useEffect(() => {
     setHud({
       round: `${gameData.round} / ${gameData.totalRounds}R`,
-      order: gameData.phase === 'playing' ? '경로 탐색' : gameData.phase === 'finished' ? '종료' : '라운드 결과',
-      memo: <GameInfoPart><TourReference gameData={gameData} /></GameInfoPart>,
+      order:
+        gameData.phase === 'playing'
+          ? '경로 탐색'
+          : gameData.phase === 'finished'
+            ? '종료'
+            : '라운드 결과',
+      memo: <TourReference gameData={gameData} />,
     });
     return () => setHud(null);
   }, [gameData, setHud]);
@@ -282,43 +282,46 @@ function TourReference({ gameData }: { gameData: KnightTourGameData }) {
   const entries = Object.entries(gameData.players);
   const total = gameData.board.activeCells.length;
   return (
-    <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg h-full border p-3">
-      <p className="text-cdm-fg text-sm font-black">진행 상황</p>
-      <div className="mt-3 space-y-3">
-        {entries.map(([playerId, player]) => {
-          const count = gameData.progress[playerId]?.visitedCount ?? 0;
-          return (
-            <div key={playerId}>
-              <div className="text-cdm-fg-muted mb-1 flex justify-between text-xs font-semibold">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate">{player.nickname}</span>
-                  {gameData.progress[playerId]?.submitted && (
-                    <span className="bg-cdm-success-soft text-cdm-success rounded-full px-1.5 text-[9px] font-black">
-                      제출
-                    </span>
-                  )}
-                </span>
-                <span className="tabular-nums">{count}칸</span>
+    <div className="flex flex-col gap-3">
+      <GameInfoPart title="진행 상황" sizeToContent>
+        <div className="mt-3 space-y-3">
+          {entries.map(([playerId, player]) => {
+            const count = gameData.progress[playerId]?.visitedCount ?? 0;
+            return (
+              <div key={playerId}>
+                <div className="text-cdm-fg-muted mb-1 flex justify-between text-xs font-semibold">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate">{player.nickname}</span>
+                    {gameData.progress[playerId]?.submitted && (
+                      <span className="bg-cdm-success-soft text-cdm-success rounded-full px-1.5 text-[9px] font-black">
+                        제출
+                      </span>
+                    )}
+                  </span>
+                  <span className="tabular-nums">{count}칸</span>
+                </div>
+                <div className="bg-cdm-bg-elev-2 h-2 overflow-hidden rounded-full">
+                  <div
+                    className="bg-cdm-primary h-full rounded-full transition-[width] duration-200"
+                    style={{ width: `${total ? (count / total) * 100 : 0}%` }}
+                  />
+                </div>
               </div>
-              <div className="bg-cdm-bg-elev-2 h-2 overflow-hidden rounded-full">
-                <div
-                  className="bg-cdm-primary h-full rounded-full transition-[width] duration-200"
-                  style={{ width: `${total ? (count / total) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="border-cdm-border text-cdm-fg-muted mt-4 border-t pt-3 text-xs leading-5">
-        <p>
-          <span className="font-black">나이트 이동</span> · 가로 2칸 + 세로 1칸, 또는 가로 1칸 +
-          세로 2칸
-        </p>
-        <p className="mt-1">방문한 칸은 다시 밟을 수 없습니다.</p>
-        <p className="mt-1">검은 칸은 이동할 수 없는 구멍입니다.</p>
-        <p className="mt-1">원하는 때 제출할 수 있고, 동률이면 먼저 제출한 쪽이 이깁니다.</p>
-      </div>
+            );
+          })}
+        </div>
+      </GameInfoPart>
+      <GameInfoPart title="나이트 이동" sizeToContent>
+        <div className="text-cdm-ink-fg-muted text-xs leading-5">
+          <p>
+            <span className="font-black">나이트 이동</span> · 가로 2칸 + 세로 1칸, 또는 가로 1칸 +
+            세로 2칸
+          </p>
+          <p className="mt-1">방문한 칸은 다시 밟을 수 없습니다.</p>
+          <p className="mt-1">검은 칸은 이동할 수 없는 구멍입니다.</p>
+          <p className="mt-1">원하는 때 제출할 수 있고, 동률이면 먼저 제출한 쪽이 이깁니다.</p>
+        </div>
+      </GameInfoPart>
     </div>
   );
 }

@@ -152,7 +152,19 @@ export default function SunMoonStar2Game() {
 }
 
 function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
-  const { gameData, isSpectator, myId, myPlayer, opponent, mySide, firstSide, showTracker, opponentEstimate, setOpponentEstimate, dalmaji } = ctx;
+  const {
+    gameData,
+    isSpectator,
+    myId,
+    myPlayer,
+    opponent,
+    mySide,
+    firstSide,
+    showTracker,
+    opponentEstimate,
+    setOpponentEstimate,
+    dalmaji,
+  } = ctx;
   const Scores = dalmaji ? DalmajiScorePanel : ScorePanel;
   const Track = dalmaji ? DalmajiPowderTrack : PowderTrack;
   if (!gameData || !firstSide) return null;
@@ -160,7 +172,14 @@ function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
   const right = !isSpectator && opponent ? opponent : gameData.players.p2;
   return (
     <GameInfoStack>
-      <GameInfoPart><Scores p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={myId} /></GameInfoPart>
+      <GameInfoPart title="점수" sizeToContent>
+        <Scores
+          p1={gameData.players.p1}
+          p2={gameData.players.p2}
+          firstSide={firstSide}
+          myId={myId}
+        />
+      </GameInfoPart>
       {showTracker && opponentEstimate && opponent && (
         <GameInfoPart title="상대 빛가루 추리">
           <OpponentPowderTracker
@@ -168,18 +187,26 @@ function SunMoonStarMemo({ ctx }: { ctx: SMS2ContextValue }) {
             stagePrev={opponentEstimate.basedOnStagePrev}
             estimate={opponentEstimate}
             onChange={setOpponentEstimate}
-            onReset={() => setOpponentEstimate(zeroOpponentEstimate(opponentEstimate.basedOnStagePrev, opponent.powderStage))}
+            onReset={() =>
+              setOpponentEstimate(
+                zeroOpponentEstimate(opponentEstimate.basedOnStagePrev, opponent.powderStage),
+              )
+            }
           />
         </GameInfoPart>
       )}
-      <GameInfoPart title="빛가루 트랙">
+      <GameInfoPart title="빛가루 트랙" sizeToContent>
         <Track
           leftLabel={!isSpectator && myPlayer ? '나' : left.nickname}
           leftStage={left.powderStage}
-          leftRemain={!isSpectator && myPlayer ? gameData.selfPrivate?.powderRemain ?? null : null}
+          leftRemain={
+            !isSpectator && myPlayer ? (gameData.selfPrivate?.powderRemain ?? null) : null
+          }
           leftIsFirst={left.side === gameData.firstPlayerSide}
           leftChips={left.chips}
-          rightLabel={!isSpectator && opponent ? opponentDisplayName(opponent.nickname) : right.nickname}
+          rightLabel={
+            !isSpectator && opponent ? opponentDisplayName(opponent.nickname) : right.nickname
+          }
           rightStage={right.powderStage}
           rightRemain={null}
           rightIsFirst={right.side === gameData.firstPlayerSide}

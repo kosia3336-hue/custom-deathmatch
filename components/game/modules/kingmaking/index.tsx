@@ -180,24 +180,26 @@ function KingmakingBoard({
       <GameFrame
         className={springRain ? 'skin-spring-rain-field' : undefined}
         info={
-          <PlayerStrip
-            className={springRain ? 'skin-spring-rain-controls' : undefined}
-            entries={playerIds.map((playerId, index) => {
-              const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
-              return {
-                id: playerId,
-                name: gameData.players[playerId]?.nickname ?? '',
-                isMe: isSolo || playerId === myId,
-                marker: (
-                  <span className="block h-3.5 w-3.5">
-                    <GamePiece3D tone={index === 0 ? 'primary' : 'highlight'} />
-                  </span>
-                ),
-                detail: `일반 ${reserve.normal} · 특수 ${reserve.special}`,
-                active: gameData.currentPlayerId === playerId && gameData.phase === 'playing',
-              };
-            })}
-          />
+          <div className="lg:hidden">
+            <PlayerStrip
+              className={springRain ? 'skin-spring-rain-controls' : undefined}
+              entries={playerIds.map((playerId, index) => {
+                const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
+                return {
+                  id: playerId,
+                  name: gameData.players[playerId]?.nickname ?? '',
+                  isMe: isSolo || playerId === myId,
+                  marker: (
+                    <span className="block h-3.5 w-3.5">
+                      <GamePiece3D tone={index === 0 ? 'primary' : 'highlight'} />
+                    </span>
+                  ),
+                  detail: `일반 ${reserve.normal} · 특수 ${reserve.special}`,
+                  active: gameData.currentPlayerId === playerId && gameData.phase === 'playing',
+                };
+              })}
+            />
+          </div>
         }
         controls={
           <ActionBar
@@ -329,22 +331,38 @@ function KingmakingSidePanel({
 }) {
   return (
     <GameInfoStack className={springRain ? 'skin-spring-rain-side' : undefined}>
-      <GameInfoPart title="남은 말">
+      <GameInfoPart title="남은 말" sizeToContent>
         <div className="space-y-1.5">
-          {Object.entries(gameData.players).map(([playerId, player]) => {
+          {Object.entries(gameData.players).map(([playerId, player], index) => {
             const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
             return (
-              <div key={playerId} className={cn('rounded-md px-2.5 py-2', gameData.currentPlayerId === playerId && gameData.phase === 'playing' ? 'bg-cdm-primary/20' : 'bg-white/5')}>
+              <div
+                key={playerId}
+                className={cn(
+                  'rounded-md px-2.5 py-2',
+                  gameData.currentPlayerId === playerId && gameData.phase === 'playing'
+                    ? 'bg-cdm-primary/20'
+                    : 'bg-white/5',
+                )}
+              >
                 <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate font-semibold">{player.nickname}{playerId === myId ? ' (나)' : ''}</span>
-                  <span className="shrink-0 text-xs font-bold tabular-nums">일반 {reserve.normal} · 특수 {reserve.special}</span>
+                  <span className="flex min-w-0 items-center gap-2 font-semibold">
+                    <span className="block h-3.5 w-3.5 shrink-0"><GamePiece3D tone={index === 0 ? 'primary' : 'highlight'} /></span>
+                    {player.nickname}
+                    {playerId === myId ? ' (나)' : ''}
+                  </span>
+                  <span className="shrink-0 text-xs font-bold tabular-nums">
+                    일반 {reserve.normal} · 특수 {reserve.special}
+                  </span>
                 </div>
               </div>
             );
           })}
         </div>
       </GameInfoPart>
-      <GameInfoPart><MoveReference springRain={springRain} /></GameInfoPart>
+      <GameInfoPart title="말 이동표">
+        <MoveReference springRain={springRain} />
+      </GameInfoPart>
     </GameInfoStack>
   );
 }
@@ -386,10 +404,12 @@ function ActionBar({
   const counts = Array.from({ length: Math.min(5, sourceHeight) }, (_, i) => i + 1).reverse();
 
   return (
-    <div className={cn(
-      'border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2',
-      springRain && 'skin-spring-rain-controls',
-    )}>
+    <div
+      className={cn(
+        'border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2',
+        springRain && 'skin-spring-rain-controls',
+      )}
+    >
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5">
         <ModeButton
           active={mode === 'normal'}

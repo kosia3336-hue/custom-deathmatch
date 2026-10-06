@@ -25,7 +25,6 @@ import { applyGravity, findMovedPosition, calcNeutralCandidates } from './boardU
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
 import { seatStage, turnStage } from '@/lib/gameSeat';
 
 export default function FourGravityGame() {
@@ -46,19 +45,16 @@ export default function FourGravityGame() {
 
   const isSuperAiSolo = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    isSuperAiSolo
-    || (
-      nickname === '천하'
-      && room?.gameId === GAME_IDS.FOUR_GRAVITY
-      && room?.playMode === 'solo'
-    );
+    isSuperAiSolo ||
+    (nickname === '천하' && room?.gameId === GAME_IDS.FOUR_GRAVITY && room?.playMode === 'solo');
 
-  const isAIMode = isSpecialSolo && !!gameData && (
-    gameData.players.black.id === 'AI' || gameData.players.white.id === 'AI'
-  );
+  const isAIMode =
+    isSpecialSolo &&
+    !!gameData &&
+    (gameData.players.black.id === 'AI' || gameData.players.white.id === 'AI');
   const tutorial = gameData?.tutorial ?? null;
 
-  const previewColor = isMyTurn ? gameData?.currentColor ?? null : null;
+  const previewColor = isMyTurn ? (gameData?.currentColor ?? null) : null;
   useTurnTimer();
 
   const [pendingGravity, setPendingGravity] = useState<Direction | null>(null);
@@ -71,13 +67,14 @@ export default function FourGravityGame() {
     차례가 오가는 판이다. 단계 이름만 적으면 '중력 선택' 이 내 차례인지 상대
     차례인지 알 수 없어, 내 차례 여부를 앞에 둔다. (lib/gameSeat.ts)
   */
-  const fgStep = gameData?.phase === 'place'
-    ? '돌 놓기'
-    : gameData?.phase === 'gravity'
-      ? '중력 선택'
-      : gameData?.phase === 'neutral'
-        ? '중립 돌 놓기'
-        : undefined;
+  const fgStep =
+    gameData?.phase === 'place'
+      ? '돌 놓기'
+      : gameData?.phase === 'gravity'
+        ? '중력 선택'
+        : gameData?.phase === 'neutral'
+          ? '중립 돌 놓기'
+          : undefined;
   const phaseLabel = tutorial
     ? '조작 연습'
     : gameData?.winner
@@ -144,7 +141,12 @@ export default function FourGravityGame() {
 
     if (!tutorial && direction !== 'none' && gameData.placedPosition) {
       const newBoard = applyGravity(gameData.board, direction);
-      const movedPos = findMovedPosition(gameData.placedPosition, direction, gameData.board, newBoard);
+      const movedPos = findMovedPosition(
+        gameData.placedPosition,
+        direction,
+        gameData.board,
+        newBoard,
+      );
       const candidates = calcNeutralCandidates(gameData.placedPosition, movedPos, newBoard);
 
       if (candidates.length === 0) {
@@ -176,9 +178,9 @@ export default function FourGravityGame() {
         closable={false}
       >
         <p className="mb-2 text-sm text-gray-700">
-          <strong>{pendingGravity ? DIR_LABEL[pendingGravity] : ''}</strong> 방향으로 중력을 적용하면
-          중립 돌을 놓을 수 없어{' '}
-          <span className="font-semibold text-red-600">패배</span>합니다.
+          <strong>{pendingGravity ? DIR_LABEL[pendingGravity] : ''}</strong> 방향으로 중력을
+          적용하면 중립 돌을 놓을 수 없어 <span className="font-semibold text-red-600">패배</span>
+          합니다.
         </p>
         <p className="mb-6 text-sm text-gray-500">정말 이 방향을 선택하시겠습니까?</p>
         <div className="flex justify-end gap-3">
@@ -192,32 +194,40 @@ export default function FourGravityGame() {
       </Modal>
       <GameFrame
         info={
-          <PlayerStrip
-            entries={(['black', 'white'] as const).map((color) => {
-              const player = gameData.players[color];
-              return {
-                id: color,
-                name: player.nickname,
-                isMe: player.id === myId,
-                marker: (
-                  <span className={`h-3.5 w-3.5 rounded-full ring-1 ring-cdm-border-strong ${STONE_COLOR_CLASS[color]}`} />
-                ),
-                detail: `돌 ${player.stoneCount}`,
-                active: !gameData.winner && gameData.currentColor === color,
-              };
-            })}
-            extra={
-              <>
-                중립 {gameData.neutralCount}
-                {gameData.lastGravity ? ` · 금지 ${DIR_LABEL[gameData.lastGravity]}` : ''}
-              </>
-            }
-          />
+          <div className="lg:hidden">
+            <PlayerStrip
+              entries={(['black', 'white'] as const).map((color) => {
+                const player = gameData.players[color];
+                return {
+                  id: color,
+                  name: player.nickname,
+                  isMe: player.id === myId,
+                  marker: (
+                    <span
+                      className={`ring-cdm-border-strong h-3.5 w-3.5 rounded-full ring-1 ${STONE_COLOR_CLASS[color]}`}
+                    />
+                  ),
+                  detail: `돌 ${player.stoneCount}`,
+                  active: !gameData.winner && gameData.currentColor === color,
+                };
+              })}
+              extra={
+                <>
+                  중립 {gameData.neutralCount}
+                  {gameData.lastGravity ? ` · 금지 ${DIR_LABEL[gameData.lastGravity]}` : ''}
+                </>
+              }
+            />
+          </div>
         }
         controls={
           <div className="flex flex-col items-center gap-1.5">
             {tutorial ? (
-              <TutorialCoach hint={tutorial} onAck={ackTutorial} className="max-w-[min(100%,500px)]" />
+              <TutorialCoach
+                hint={tutorial}
+                onAck={ackTutorial}
+                className="max-w-[min(100%,500px)]"
+              />
             ) : (
               <PhaseIndicator
                 phase={gameData.phase}
@@ -272,13 +282,11 @@ export default function FourGravityGame() {
 
 function FourGravitySidePanel({ gameData }: { gameData: FourGravityGameData }) {
   return (
-    <GameInfoPart title="판 정보">
-      <InfoPanel
-        players={gameData.players}
-        currentColor={gameData.currentColor}
-        neutralCount={gameData.neutralCount}
-        lastGravity={gameData.lastGravity}
-      />
-    </GameInfoPart>
+    <InfoPanel
+      players={gameData.players}
+      currentColor={gameData.currentColor}
+      neutralCount={gameData.neutralCount}
+      lastGravity={gameData.lastGravity}
+    />
   );
 }

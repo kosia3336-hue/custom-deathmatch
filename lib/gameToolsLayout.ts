@@ -2,6 +2,19 @@ import { DEFAULT_DOCK_STATE, getDockState, subscribeDockState, type DockState } 
 import { getToolOrder, getServerToolOrder, subscribeToolOrder } from './gameToolOrder';
 
 export const gameToolDockId = (scope: string, id: string) => `game-tools:v2:${scope}:${id}`;
+/** aside와 hud.memo가 같은 정보를 제공해도 원본은 한 벌만 선택한다. */
+export function selectGameToolSources<T extends { id: string; defaultOrder?: number }>(
+  extra: T[],
+  registered: Record<string, T>,
+) {
+  const byId = { ...Object.fromEntries(extra.map((tool) => [tool.id, tool])), ...registered };
+  return {
+    reference: byId.reference,
+    tools: Object.values(byId)
+      .filter((tool) => tool.id !== 'reference')
+      .sort((a, b) => (a.defaultOrder ?? 50) - (b.defaultOrder ?? 50)),
+  };
+}
 export interface GameToolsSnapshot {
   order: readonly string[];
   docks: Record<string, DockState>;

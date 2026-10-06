@@ -1,6 +1,7 @@
 'use client';
 
 import GameLoading from '@/components/game/GameLoading';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 import { josa } from '@/shared/lib/josa';
 import { useEffect, useRef, useState } from 'react';
@@ -249,7 +250,9 @@ function RoundHistoryTable({
                   >
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
-                  <span className="text-cdm-ink-fg-muted">{pid === myId ? '나' : (players[pid]?.nickname ?? '')}</span>
+                  <span className="text-cdm-ink-fg-muted">
+                    {pid === myId ? '나' : (players[pid]?.nickname ?? '')}
+                  </span>
                   {/*
                     내가 낸 포인트만 적는다. 이 게임은 공개 시점에도 색과 꺼진 불 칸수만
                     알려 주지 정확한 숫자는 밝히지 않는다 — 상대 것까지 적으면 추리의
@@ -287,30 +290,43 @@ function BNW2SidePanel({
   return (
     <div className="flex flex-col gap-3">
       {showTracker && opponentStage != null && (
-        <OpponentPointTracker opponentStage={opponentStage} estimate={estimate} setEstimate={setEstimate} />
+        <GameInfoPart title="메모 - 상대 잔여 추리" sizeToContent>
+          <OpponentPointTracker
+            opponentStage={opponentStage}
+            estimate={estimate}
+            setEstimate={setEstimate}
+          />
+        </GameInfoPart>
       )}
-      <section className="rounded-cdm-lg border border-cdm-ink-border bg-cdm-ink p-3 text-cdm-ink-fg">
-        <p className="mb-2 text-xs font-semibold text-cdm-ink-fg-muted">점수</p>
+      <GameInfoPart title="점수" sizeToContent>
         <div className="space-y-1.5">
           {Object.entries(gameData.players).map(([id, player]) => (
-            <div key={id} className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm">
+            <div
+              key={id}
+              className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm"
+            >
               <span className="min-w-0 truncate font-medium">
                 {id === myId ? '나' : player.nickname}
-                {id === gameData.firstPlayerId && <span className="ml-1 text-[10px] text-cdm-highlight">선</span>}
+                {id === gameData.firstPlayerId && (
+                  <span className="text-cdm-highlight ml-1 text-[10px]">선</span>
+                )}
               </span>
               <span className="ml-2 shrink-0 font-bold tabular-nums">{player.score}점</span>
             </div>
           ))}
         </div>
-      </section>
-      <section className="rounded-cdm-lg border border-cdm-ink-border bg-cdm-ink p-3 text-cdm-ink-fg">
-        <p className="mb-2 text-xs font-semibold text-cdm-ink-fg-muted">라운드 기록</p>
+      </GameInfoPart>
+      <GameInfoPart title="라운드 기록">
         {gameData.roundHistory.length ? (
-          <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+          <RoundHistoryTable
+            history={gameData.roundHistory}
+            players={gameData.players}
+            myId={myId}
+          />
         ) : (
-          <p className="text-xs text-cdm-ink-fg-muted">아직 기록이 없습니다.</p>
+          <p className="text-cdm-ink-fg-muted text-xs">아직 기록이 없습니다.</p>
         )}
-      </section>
+      </GameInfoPart>
     </div>
   );
 }

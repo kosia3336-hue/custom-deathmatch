@@ -103,7 +103,7 @@ export function BottomSheet({
         aria-hidden={!open}
         className={cn(
           'fixed inset-x-0 bottom-0 z-(--cdm-z-modal) mx-auto flex max-h-[80dvh] w-full max-w-2xl',
-          'flex-col rounded-t-2xl border-t border-cdm-border bg-cdm-bg shadow-(--cdm-shadow-md)',
+          'border-cdm-border bg-cdm-bg flex-col rounded-t-2xl border-t shadow-(--cdm-shadow-md)',
           'transition-transform duration-300',
           open ? 'translate-y-0' : 'pointer-events-none translate-y-full',
           className,
@@ -111,17 +111,19 @@ export function BottomSheet({
       >
         {/* 손잡이 — 이 판이 아래로 내려가는 물건이라는 표시 */}
         <div className="flex justify-center pt-2" aria-hidden>
-          <span className="h-1 w-9 rounded-full bg-cdm-border-strong" />
+          <span className="bg-cdm-border-strong h-1 w-9 rounded-full" />
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 px-4 py-2.5">
-          <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-cdm-fg">{headerTitle ?? title}</h2>
+        <div data-panel-header className="flex shrink-0 items-center gap-2 px-4 py-2.5">
+          <h2 className="text-cdm-fg min-w-0 flex-1 truncate text-sm font-bold">
+            {headerTitle ?? title}
+          </h2>
           {headerRight}
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="rounded-cdm-md p-1.5 text-cdm-fg-subtle transition-colors hover:bg-cdm-bg-elev-2 hover:text-cdm-fg"
+            className="rounded-cdm-md text-cdm-fg-subtle hover:bg-cdm-bg-elev-2 hover:text-cdm-fg p-1.5 transition-colors"
           >
             <Icon name="close" size="sm" />
           </button>

@@ -123,6 +123,7 @@ export default function DockablePanel({
       >
         <div
           ref={handleRef}
+          data-panel-header
           role="button"
           tabIndex={0}
           aria-label={`${title} 창 — 끌어서 옮기거나 방향키로 가장자리에 붙입니다${onReorder ? '. Alt+위/아래로 순서를 바꿉니다' : ''}`}

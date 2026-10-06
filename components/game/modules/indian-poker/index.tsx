@@ -140,86 +140,88 @@ export default function IndianPokerGame() {
           className={`flex flex-col items-center gap-4 rounded-3xl border border-indigo-400/30 bg-indigo-900/95 px-12 py-8 text-center text-white shadow-2xl backdrop-blur-sm transition-transform duration-500 ${
             showShuffle ? 'scale-100' : 'scale-90'
           }`}
-        >
-          <div>
-            <p className="text-2xl font-bold tracking-wide">카드를 셔플합니다</p>
-            <p className="mt-1 text-sm text-indigo-300">앤티 {shuffleAnte}개로 인상됩니다</p>
+          >
+            <div>
+              <p className="text-2xl font-bold tracking-wide">카드를 셔플합니다</p>
+              <p className="mt-1 text-sm text-indigo-300">앤티 {shuffleAnte}개로 인상됩니다</p>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <GameFrame
-      /*
+      <GameFrame
+        /*
         칩은 늘 보이게 둔다 — 칩을 걸어 겨루는 판이라 양쪽 칩 수가 콜·레이즈·다이를
         정한다. 메모 안에 있으면 매 수마다 버튼을 눌러야 한다.
         (components/game/GameScoreLine.tsx)
       */
-      info={
-        <GameScoreLine
-          unit="칩"
-          entries={Object.values(gameData.players).map((p) => ({
-            label: p.id === myId ? '나' : p.nickname,
-            isMe: p.id === myId,
-            value: p.chips,
-          }))}
-        />
-      }
-      controls={
-        <div className="w-full">
-          {isBettingPhase && (
-            <BettingPanel
-              isMyTurn={isMyTurn}
-              canCheck={canCheck}
-              myPlayer={bettingMyPlayer}
-              opponentPlayer={bettingOpponent}
-              pot={gameData.pot}
-              isSpectator={isSpectator}
-              currentRoundActions={gameData.currentRoundActions ?? []}
-              players={gameData.players}
-              opponentId={bettingOpponentId}
-              myId={bettingMyId}
-              skin={skin}
+        info={
+          <div className="lg:hidden">
+            <GameScoreLine
+              unit="칩"
+              entries={Object.values(gameData.players).map((p) => ({
+                label: p.id === myId ? '나' : p.nickname,
+                isMe: p.id === myId,
+                value: p.chips,
+              }))}
             />
+          </div>
+        }
+        controls={
+          <div className="w-full">
+            {isBettingPhase && (
+              <BettingPanel
+                isMyTurn={isMyTurn}
+                canCheck={canCheck}
+                myPlayer={bettingMyPlayer}
+                opponentPlayer={bettingOpponent}
+                pot={gameData.pot}
+                isSpectator={isSpectator}
+                currentRoundActions={gameData.currentRoundActions ?? []}
+                players={gameData.players}
+                opponentId={bettingOpponentId}
+                myId={bettingMyId}
+                skin={skin}
+              />
+            )}
+          </div>
+        }
+        aside={<IndianPokerSidePanel gameData={gameData} myId={myId} />}
+      >
+        <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-2 overflow-hidden">
+          <CardArea
+            communityCards={gameData.communityCards}
+            myPlayer={isSpectator ? playerEntries[1]?.[1] : myPlayer}
+            opponentPlayer={isSpectator ? playerEntries[0]?.[1] : opponentPlayer}
+            revealMyCard={isResultPhase}
+            isSpectator={isSpectator}
+            skin={skin}
+            dealStep={dealStep}
+            showShuffle={showShuffle}
+          />
+
+          {isResultPhase && (
+            <div className="w-full">
+              <HandResult
+                showdownData={gameData.showdownData}
+                dieData={gameData.dieData}
+                players={gameData.players}
+                winner={gameData.winner}
+                winType={gameData.winType}
+                communityCards={gameData.communityCards}
+                skin={skin}
+              />
+            </div>
+          )}
+
+          {gameData.phase === 'dealing' && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
+              <div className="animate-pulse text-gray-400">● ● ●</div>
+              <p className="text-sm text-gray-500">카드를 배분하는 중...</p>
+            </div>
           )}
         </div>
-      }
-      aside={<IndianPokerSidePanel gameData={gameData} myId={myId} />}
-    >
-      <div className="flex h-full w-full max-w-lg flex-col items-center justify-center gap-2 overflow-hidden">
-        <CardArea
-          communityCards={gameData.communityCards}
-          myPlayer={isSpectator ? playerEntries[1]?.[1] : myPlayer}
-          opponentPlayer={isSpectator ? playerEntries[0]?.[1] : opponentPlayer}
-          revealMyCard={isResultPhase}
-          isSpectator={isSpectator}
-          skin={skin}
-          dealStep={dealStep}
-          showShuffle={showShuffle}
-        />
-
-        {isResultPhase && (
-          <div className="w-full">
-            <HandResult
-              showdownData={gameData.showdownData}
-              dieData={gameData.dieData}
-              players={gameData.players}
-              winner={gameData.winner}
-              winType={gameData.winType}
-              communityCards={gameData.communityCards}
-              skin={skin}
-            />
-          </div>
-        )}
-
-        {gameData.phase === 'dealing' && (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-6">
-            <div className="animate-pulse text-gray-400">● ● ●</div>
-            <p className="text-sm text-gray-500">카드를 배분하는 중...</p>
-          </div>
-        )}
-      </div>
-    </GameFrame>
+      </GameFrame>
     </>
   );
 }
@@ -227,7 +229,7 @@ export default function IndianPokerGame() {
 function IndianPokerSidePanel({ gameData, myId }: { gameData: IndianPokerGameData; myId: string }) {
   return (
     <GameInfoStack>
-      <GameInfoPart title="플레이어">
+      <GameInfoPart title="플레이어" sizeToContent>
         <div className="space-y-1.5">
           {Object.entries(gameData.players).map(([id, player]) => (
             <PlayerArea
@@ -240,16 +242,16 @@ function IndianPokerSidePanel({ gameData, myId }: { gameData: IndianPokerGameDat
           ))}
         </div>
       </GameInfoPart>
-      <GameInfoPart title="판 정보">
+      <GameInfoPart title="판 정보" sizeToContent>
         <DeckInfo
           deckRemaining={gameData.deckRemaining}
           deckCycle={gameData.deckCycle}
           ante={gameData.ante}
           round={gameData.round}
         />
-        <p className="mt-2 text-center text-sm font-black text-cdm-highlight">팟 {gameData.pot}</p>
+        <p className="text-cdm-highlight mt-2 text-center text-sm font-black">팟 {gameData.pot}</p>
       </GameInfoPart>
-      <GameInfoPart>
+      <GameInfoPart title="라운드 기록">
         <RoundHistory roundHistory={gameData.roundHistory} players={gameData.players} />
       </GameInfoPart>
     </GameInfoStack>

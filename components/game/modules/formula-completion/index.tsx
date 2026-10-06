@@ -48,14 +48,16 @@ export default function FormulaCompletionGame() {
     <GameFrame
       /* 점수는 늘 보이게 (components/game/GameScoreLine.tsx) */
       info={
-        <GameScoreLine
-          unit="점"
-          entries={Object.entries(gameData.players).map(([playerId, player]) => ({
-            label: playerId === myId ? '나' : player.nickname,
-            isMe: playerId === myId,
-            value: gameData.scores[playerId] ?? 0,
-          }))}
-        />
+        <div className="lg:hidden">
+          <GameScoreLine
+            unit="점"
+            entries={Object.entries(gameData.players).map(([playerId, player]) => ({
+              label: playerId === myId ? '나' : player.nickname,
+              isMe: playerId === myId,
+              value: gameData.scores[playerId] ?? 0,
+            }))}
+          />
+        </div>
       }
       controls={
         gameData.phase === 'playing' ? (
@@ -113,7 +115,7 @@ export default function FormulaCompletionGame() {
 function FormulaInfo({ gameData, myId }: { gameData: FormulaCompletionGameData; myId: string }) {
   return (
     <GameInfoStack>
-      <GameInfoPart title="점수">
+      <GameInfoPart title="점수" sizeToContent>
         <ScoreBoard gameData={gameData} myId={myId} className="border-0 bg-transparent p-0" />
       </GameInfoPart>
       <GameInfoPart title="라운드 기록">

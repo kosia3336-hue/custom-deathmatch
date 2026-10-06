@@ -81,8 +81,13 @@ export default function BankGame() {
       memo: (
         <GameInfoStack>
           {firstSide && (
-            <GameInfoPart>
-              <ScorePanel p1={gameData.players.p1} p2={gameData.players.p2} firstSide={firstSide} myId={ctx.myId} />
+            <GameInfoPart title="점수" sizeToContent>
+              <ScorePanel
+                p1={gameData.players.p1}
+                p2={gameData.players.p2}
+                firstSide={firstSide}
+                myId={ctx.myId}
+              />
             </GameInfoPart>
           )}
           <GameInfoPart title="라운드 기록">
@@ -93,14 +98,27 @@ export default function BankGame() {
               variant="mobile"
             />
           </GameInfoPart>
-          <GameInfoPart title="상대 잔여 추리">
-            <OpponentInventoryTracker />
-          </GameInfoPart>
+          {ctx.showOpponentTracker && (
+            <GameInfoPart title="상대 잔여 추리" sizeToContent>
+              <OpponentInventoryTracker />
+            </GameInfoPart>
+          )}
         </GameInfoStack>
       ),
     });
     return () => setHud(null);
-  }, [setHud, gameData, round, historyLen, myIsFirst, mySide, phaseLabel, ctx.myId, firstSide]);
+  }, [
+    setHud,
+    gameData,
+    round,
+    historyLen,
+    myIsFirst,
+    mySide,
+    phaseLabel,
+    ctx.myId,
+    ctx.showOpponentTracker,
+    firstSide,
+  ]);
 
   if (!gameData) {
     return (

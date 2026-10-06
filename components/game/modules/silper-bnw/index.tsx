@@ -361,7 +361,7 @@ function ScoreCard({
           {isMe ? '나' : info.nickname}
           {isFirst && <span className="ml-1 text-xs text-amber-500">(선)</span>}
         </span>
-        <span className="ml-2 shrink-0 text-sm font-bold tabular-nums">{info.score}/6</span>
+        <span className="ml-2 shrink-0 text-sm font-bold tabular-nums text-gray-800">{info.score}/6</span>
       </div>
       <div className="flex items-center gap-0.5">
         {dots.map((filled, i) => (
@@ -373,12 +373,12 @@ function ScoreCard({
           />
         ))}
       </div>
-      <p className="text-[10px] text-gray-500 tabular-nums">타일 {info.tileCount}개</p>
+      <p className="text-[11px] text-gray-500 tabular-nums">타일 {info.tileCount}개</p>
     </div>
   );
 }
 
-function SilperSidePanel({
+export function SilperSidePanel({
   gameData,
   myId,
   opponentId,
@@ -395,32 +395,45 @@ function SilperSidePanel({
   return (
     <GameInfoStack>
       {showTracker && opponentUsed && (
-        <GameInfoPart>
-          <OpponentTileTracker opponentUsed={opponentUsed} rematchIndex={gameData.rematchIndex} skin={skin} />
+        <GameInfoPart title="메모 - 상대 타일 추리" sizeToContent>
+          <OpponentTileTracker
+            opponentUsed={opponentUsed}
+            rematchIndex={gameData.rematchIndex}
+            skin={skin}
+          />
         </GameInfoPart>
       )}
-      <GameInfoPart title="점수">
+      <GameInfoPart title="점수" sizeToContent>
         <div className="space-y-1.5">
           {Object.entries(gameData.players).map(([id, player]) => (
-            <ScoreCard key={id} info={player} isMe={id === myId} isFirst={id === gameData.firstPlayerId} />
+            <ScoreCard
+              key={id}
+              info={player}
+              isMe={id === myId}
+              isFirst={id === gameData.firstPlayerId}
+            />
           ))}
         </div>
         {gameData.rematchIndex > 0 && (
-          <p className="mt-2 rounded-md bg-cdm-accent/15 px-2 py-1.5 text-center text-xs font-bold text-cdm-accent">
+          <p className="bg-cdm-accent/15 text-cdm-accent mt-2 rounded-md px-2 py-1.5 text-center text-xs font-bold">
             재대결 {gameData.rematchIndex}회차
           </p>
         )}
       </GameInfoPart>
       <GameInfoPart title="라운드 기록">
         {gameData.roundHistory.length ? (
-          <RoundHistoryTable history={gameData.roundHistory} players={gameData.players} myId={myId} />
+          <RoundHistoryTable
+            history={gameData.roundHistory}
+            players={gameData.players}
+            myId={myId}
+          />
         ) : (
-          <p className="text-xs text-cdm-ink-fg-muted">아직 기록이 없습니다.</p>
+          <p className="text-cdm-ink-fg-muted text-xs">아직 기록이 없습니다.</p>
         )}
       </GameInfoPart>
       {gameData.segmentsHistory.length > 0 && (
         <GameInfoPart title="지난 세그먼트">
-          <div className="space-y-1 text-xs text-cdm-ink-fg-muted">
+          <div className="text-cdm-ink-fg-muted space-y-1 text-xs">
             {gameData.segmentsHistory.map((segment) => (
               <div key={segment.rematchIndex} className="tabular-nums">
                 #{segment.rematchIndex} · {segment.rounds.length}R ·{' '}
@@ -874,11 +887,6 @@ export default function SilperBnwGame() {
                 {gameData.finishReason}
               </div>
             )}
-          </div>
-
-          {/* ══ 데스크톱 사이드 패널 ══ */}
-          <div className="hidden lg:flex lg:w-72 lg:flex-col lg:p-3">
-            <SilperSidePanel gameData={gameData} myId={myId} opponentId={sbOppId} skin={skin} showTracker={!isSpectator} />
           </div>
         </div>
       </div>

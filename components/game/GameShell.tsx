@@ -15,15 +15,15 @@ import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import { useGuildWarStore } from '@/stores/guildWar';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
+import { useRoomChatUnread } from '@/hooks/useRoomChatUnread';
 import RoomInfoSheet, { InfoRow } from '@/components/room/RoomInfoSheet';
 import { SoundSettings } from '@/components/cdm/SoundSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { Icon, UnreadBadge } from '@/components/cdm';
 import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
-import { ReportModal } from '@/components/cdm/ReportModal';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
+import GameRulesButton from './GameRulesButton';
 import { cn } from '@/lib/utils';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
@@ -31,11 +31,11 @@ import { useGameToolsController, type GameTool } from '@/contexts/GameToolsConte
 import { ProgressRing } from '@/components/cdm/ProgressRing';
 import GameToolsWorkspace from './GameToolsWorkspace';
 import {
-  useRoomChatChannels,
-  RoomChatContent,
-  RoomChatHeaderActions,
-  RoomChatChannelTitle,
-} from '@/components/room/RoomChatChannels';
+  useGameChatChannel,
+  GameRoomChatBody,
+  GameRoomChatActions,
+  GameChatSheet,
+} from './GameRoomChat';
 
 /*
   상단 바 단추 — 그림 아래에 이름을 적는다.
@@ -65,17 +65,17 @@ export default function GameShell({ children }: Props) {
   const [showInfo, setShowInfo] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showMemo, setShowMemo] = useState(false);
-  const channels = useRoomChatChannels();
+  const channels = useGameChatChannel();
   const messagesLen = useRoomStore((s) => s.messages.length);
   const extraTools = useMemo<GameTool[]>(
     () => [
       {
         id: 'chat',
-        title: '채팅',
+        title: '방 채팅',
         defaultOrder: 100,
-        content: <RoomChatContent scope="room" active channels={channels} />,
-        headerTitle: <RoomChatChannelTitle channels={channels} />,
-        headerActions: <RoomChatHeaderActions channels={channels} />,
+        content: <GameRoomChatBody channels={channels} />,
+        headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
+        headerActions: <GameRoomChatActions channels={channels} />,
         minBodyHeight: 220,
         preferredBodyHeight: 330,
       },
@@ -93,9 +93,6 @@ export default function GameShell({ children }: Props) {
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const myId = useMySocketId();
-  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(
-    null,
-  );
   const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
@@ -104,6 +101,7 @@ export default function GameShell({ children }: Props) {
     room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
     room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
     room?.gameId === GAME_IDS.RING_THE_BELL;
+  const showRulesShortcut = !!room && !isEventRoom;
   const showUndo =
     !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
   const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
@@ -169,30 +167,20 @@ export default function GameShell({ children }: Props) {
     hud?.round ??
     (eventRound != null ? (isGuildWar ? `세트 ${eventRound}` : `${eventRound}R`) : progress);
   const order = isGuildWar ? hud?.order : (hud?.order ?? getGameStatus(gameState, myId));
-  const spectatorCount =
-    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT
-      ? (eventState?.spectatorCount ?? 0)
-      : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT
-        ? (smsState?.spectatorCount ?? 0)
-        : room?.gameId === GAME_IDS.RING_THE_BELL
-          ? (warState?.spectatorCount ?? 0)
-          : (room?.spectators.length ?? 0);
-
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
     setHeaderLeft(
       <GameHudLeft
         round={round}
-        spectators={spectatorCount}
         order={order}
         ranked={isRankedRoom}
         onOpenInfo={() => setShowInfo(true)}
       />,
     );
     return () => setHeaderLeft(null);
-  }, [setHeaderLeft, round, order, isRankedRoom, spectatorCount]);
+  }, [setHeaderLeft, round, order, isRankedRoom]);
 
-  // 상단 우측: 메모 · 채팅(미읽음) · 설정
+  // 상단 우측: 메모 · 방 채팅 · 게임 룰 · 무르기 · 설정
   const hasMemo = hud?.memo != null;
   useEffect(() => {
     setHeaderRight(
@@ -213,18 +201,18 @@ export default function GameShell({ children }: Props) {
         <button
           type="button"
           onClick={() => setShowChat(true)}
-          aria-label="채팅"
-          title="채팅"
+          aria-label="방 채팅"
+          title="방 채팅"
           className={cn(HEADER_BTN, 'relative lg:hidden')}
         >
-          <Icon name="chat" />
-          <span className={HEADER_BTN_LABEL}>채팅</span>
+          <span className="text-xs font-medium">방 채팅</span>
           <UnreadBadge
             count={chatUnread}
             label={`안 읽은 채팅 ${chatUnread}건`}
             className="absolute -top-0.5 -right-0.5"
           />
         </button>
+        {showRulesShortcut && <GameRulesButton onClick={() => setShowRules(true)} />}
         {showUndo && (
           <button
             type="button"
@@ -251,7 +239,16 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo]);
+  }, [
+    setHeaderRight,
+    hasMemo,
+    chatUnread,
+    hud?.headerAction,
+    showRulesShortcut,
+    showUndo,
+    undoWaiting,
+    requestUndo,
+  ]);
 
   useEffect(() => {
     setFooter(null);
@@ -361,13 +358,15 @@ export default function GameShell({ children }: Props) {
       <BottomSheet open={showSettings} onClose={() => setShowSettings(false)} title="설정">
         <SoundSettings className="py-3" />
         <ul className="divide-cdm-border divide-y">
-          <SettingRow
-            label="게임 규칙"
-            onClick={() => {
-              setShowSettings(false);
-              setShowRules(true);
-            }}
-          />
+          {!showRulesShortcut && (
+            <SettingRow
+              label="게임 규칙"
+              onClick={() => {
+                setShowSettings(false);
+                setShowRules(true);
+              }}
+            />
+          )}
           {/* 무르기는 상단 바로 꺼냈다 — 판 도중에 자주 쓰는데 시트를 열어야 해서 묻혀 있었다 */}
           {showResign && (
             <SettingRow
@@ -401,10 +400,7 @@ export default function GameShell({ children }: Props) {
         extraRows={
           <InfoRow label="진행된 시간" value={<ElapsedTime startedAt={gameState?.startedAt} />} />
         }
-        onReport={(target) => {
-          setReportTarget(target);
-          setShowInfo(false);
-        }}
+        showParticipants={false}
       />
 
       {/* ── 메모 — 좁은 화면에서 라운드 기록·상대 추리. 넓은 화면은 GameFrame aside ── */}
@@ -414,15 +410,10 @@ export default function GameShell({ children }: Props) {
         </BottomSheet>
       )}
 
-      <RoomChatSheet open={showChat} onClose={() => setShowChat(false)} scope="room" />
-
-      <ReportModal
-        open={!!reportTarget}
-        onClose={() => setReportTarget(null)}
-        targetId={reportTarget?.memberId ?? null}
-        targetNickname={reportTarget?.nickname}
-        context="ingame"
-        contextData={{ roomId: room?.id }}
+      <GameChatSheet
+        open={showChat && !tools.desktop}
+        onClose={() => setShowChat(false)}
+        channels={channels}
       />
 
       <Modal

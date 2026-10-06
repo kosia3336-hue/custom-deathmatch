@@ -16,7 +16,7 @@ export interface GameHud {
   order?: ReactNode;
   /**
    * 좁은 화면에서 '메모' 아이콘으로 여는 것 — 라운드 기록, 상대 잔여 추리 따위.
-   * 넓은 화면에서는 GameFrame 의 aside 로 옆에 펴 두므로 여기 넣지 않아도 된다.
+   * PC는 aside를 우선하고 이 값을 대체 원본으로 사용해 GameInfoPart별 독립 창으로 펼친다.
    * null 이면 메모 아이콘 자체가 안 나온다.
    */
   memo?: ReactNode;
