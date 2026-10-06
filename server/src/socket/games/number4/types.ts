@@ -30,30 +30,36 @@ export interface NF4PlayerInternal {
 /** 서버 내부 전용 — 타일 정보 포함 (클라이언트에 직접 전송 금지) */
 export interface InternalRoundRecord {
   round: number;
-  players: Record<string, {
-    white: number;
-    black: number;
-    number: NF4Number;
-    success: boolean;
-    scoreChange: number;
-    scoreAfter: number;
-  }>;
+  players: Record<
+    string,
+    {
+      white: number;
+      black: number;
+      number: NF4Number;
+      success: boolean;
+      scoreChange: number;
+      scoreAfter: number;
+    }
+  >;
 }
 
 export interface RoundActionLog {
   round: number;
-  players: Record<string, {
-    nickname: string;
-    white: number;
-    black: number;
-    number: NF4Number;
-    success: boolean;
-    scoreChange: number;
-    scoreBefore: number;
-    scoreAfter: number;
-    conditionDetail: string;
-    byAi?: boolean;
-  }>;
+  players: Record<
+    string,
+    {
+      nickname: string;
+      white: number;
+      black: number;
+      number: NF4Number;
+      success: boolean;
+      scoreChange: number;
+      scoreBefore: number;
+      scoreAfter: number;
+      conditionDetail: string;
+      byAi?: boolean;
+    }
+  >;
 }
 
 export interface NF4PlayerSnapshot {
@@ -78,6 +84,7 @@ export interface NF4UndoSnapshot {
 }
 
 export interface InternalState {
+  tutorialData?: import('@shared/types/number4.js').NumberFourGameData;
   endGameCallback: EndGameFn;
   roomId: string;
   round: number;
@@ -90,6 +97,7 @@ export interface InternalState {
   tiebreakerReason: string | null;
   startedAt: number;
   turnStartedAt: number;
+  revealEndsAt: number | null;
   timeLimitSeconds: number | null;
   roundTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;

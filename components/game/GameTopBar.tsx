@@ -6,6 +6,7 @@ import { playCountdownTickSfx } from '@/lib/audio/synth/general';
 import { serverNow } from '@/lib/serverClock';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
 import { Icon } from '@/components/cdm/Icon';
+import { formatTurnLabel } from '@/lib/gameSeat';
 import { cn } from '@/lib/utils';
 
 /* ════════════════════════════════════════════════════════════
@@ -106,7 +107,7 @@ export function GameHudLeft({
           className="rounded-cdm-md text-cdm-ink-fg-muted -ml-1 flex shrink-0 flex-col items-center gap-0.5 px-1 py-1 transition-colors hover:bg-white/10 hover:text-white"
         >
           <Icon name="info" />
-          <span className="text-[9px] whitespace-nowrap tabular-nums">관전 {spectators}명</span>
+          <span className="text-[11px] whitespace-nowrap tabular-nums">관전 {spectators}명</span>
         </button>
       )}
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -114,16 +115,16 @@ export function GameHudLeft({
           <span className="text-cdm-fg text-xs font-bold tabular-nums sm:text-sm">{round}</span>
         )}
         {ranked && (
-          <span className="rounded-cdm-md bg-cdm-rank text-cdm-fg shrink-0 px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+          <span className="rounded-cdm-md bg-cdm-rank text-cdm-fg shrink-0 px-1.5 py-0.5 text-[11px] font-bold tracking-wide uppercase">
             랭크
           </span>
         )}
         {typeof order === 'string' && (
           <span
             className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg max-w-[min(42vw,12rem)] truncate px-1.5 py-0.5 text-[11px] font-bold"
-            title={order}
+            title={formatTurnLabel(order)}
           >
-            {order}
+            {formatTurnLabel(order)}
           </span>
         )}
         {order != null && typeof order !== 'string' && order}

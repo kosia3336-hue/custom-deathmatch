@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameAudio } from '@/hooks/useGameAudio';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import { useGuildWarStore } from '@/stores/guildWar';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
+import { RoomChatSheet, RoomChatTabs, useRoomChatUnread } from '@/components/room/ChatButton';
 import RoomInfoSheet, { InfoRow } from '@/components/room/RoomInfoSheet';
 import { SoundSettings } from '@/components/cdm/SoundSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
@@ -27,16 +27,19 @@ import { GameRulesModal } from '@/components/game/GameRulesModal';
 import { cn } from '@/lib/utils';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
+import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
+import { ProgressRing } from '@/components/cdm/ProgressRing';
+import GameToolsWorkspace, { GameToolsMenu } from './GameToolsWorkspace';
 
 /*
   상단 바 단추 — 그림 아래에 이름을 적는다.
 
-  그림만 두었더니 무엇인지 눌러 봐야 알 수 있었다. 글자는 10px 로 작게 두고 줄간격을
+  그림만 두었더니 무엇인지 눌러 봐야 알 수 있었다. 글자는 최소 11px 로 두고 줄간격을
   죽여, 단추가 커져 상단 바가 밀리지 않게 한다.
 */
 const HEADER_BTN =
   'flex flex-col items-center gap-0.5 rounded-cdm-md px-1.5 py-1 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white';
-const HEADER_BTN_LABEL = 'text-[10px] leading-none font-medium';
+const HEADER_BTN_LABEL = 'text-[11px] leading-none font-medium';
 import type { GameUndoProposal, GameTimeExpiry } from '@/shared/types/events';
 
 interface Props {
@@ -55,7 +58,12 @@ export default function GameShell({ children }: Props) {
   const [showInfo, setShowInfo] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showMemo, setShowMemo] = useState(false);
-  const chatUnread = useRoomChatUnread(showChat);
+  const extraTools = useMemo<GameTool[]>(() => [
+    { id: 'chat', title: '채팅', content: <GameChatTool />, defaultEdge: 'right', defaultOrder: 100, height: 330 },
+    ...(hud?.memo ? [{ id: 'reference', title: '편의기능', content: hud.memo, defaultEdge: 'right' as const, height: 300 }] : []),
+  ], [hud?.memo]);
+  const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
+  const chatUnread = useRoomChatUnread(showChat || (tools.desktop && !tools.hidden.chat));
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const myId = useMySocketId();
@@ -149,6 +157,7 @@ export default function GameShell({ children }: Props) {
     setHeaderRight(
       <>
         {hud?.headerAction}
+        <GameToolsMenu controller={tools} />
         {hasMemo && (
           <button
             type="button"
@@ -163,7 +172,7 @@ export default function GameShell({ children }: Props) {
         )}
         <button
           type="button"
-          onClick={() => setShowChat(true)}
+          onClick={() => { if (tools.desktop) tools.setVisible('chat', true); else setShowChat(true); }}
           aria-label="채팅"
           title="채팅"
           className={cn(HEADER_BTN, 'relative')}
@@ -196,7 +205,7 @@ export default function GameShell({ children }: Props) {
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo]);
+  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo, tools]);
 
   useEffect(() => {
     const s = getSocket();
@@ -297,7 +306,7 @@ export default function GameShell({ children }: Props) {
           skinTheme ? `skin-bg-${skinTheme}` : ''
         }`}
       >
-        {children}
+        <GameToolsWorkspace controller={tools}>{children}</GameToolsWorkspace>
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
           <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -312,8 +321,10 @@ export default function GameShell({ children }: Props) {
                     연결이 끊어졌습니다
                   </h3>
                   <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
-                  <div className="mb-4 text-3xl font-bold tabular-nums text-cdm-primary">
-                    {reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft}초
+                  <div className="mb-4 flex justify-center">
+                    <ProgressRing size={80} label="재접속 남은 시간" value={((reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft) / 30) * 100}>
+                      <span className="text-lg font-bold">{reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft}초</span>
+                    </ProgressRing>
                   </div>
                   <p className="text-xs text-cdm-fg-subtle">
                     시간이 초과되면 상대방이 기권 처리됩니다.
@@ -329,9 +340,9 @@ export default function GameShell({ children }: Props) {
                     {reconnectingPlayers.map((p) => (
                       <div key={p.playerId} className="flex items-center justify-between rounded-cdm-md bg-cdm-bg-elev-1 px-4 py-2">
                         <span className="text-sm font-medium text-cdm-fg">{p.nickname}</span>
-                        <span className="text-lg font-bold tabular-nums text-cdm-primary">
-                          {reconnectTimers[p.playerId] ?? p.secondsLeft}초
-                        </span>
+                        <ProgressRing size={48} label={`${p.nickname} 재접속 남은 시간`} value={((reconnectTimers[p.playerId] ?? p.secondsLeft) / 30) * 100}>
+                          <span className="text-[11px] font-bold">{reconnectTimers[p.playerId] ?? p.secondsLeft}초</span>
+                        </ProgressRing>
                       </div>
                     ))}
                   </div>
@@ -491,4 +502,11 @@ function SettingRow({
       </button>
     </li>
   );
+}
+
+/** 열린 PC 채팅만 읽음으로 처리한다. 닫힌 패널·모바일에서는 미읽음을 유지한다. */
+function GameChatTool() {
+  const messages = useRoomStore(s => s.messages.length);
+  useEffect(() => { useRoomStore.getState().clearChatUnread(); }, [messages]);
+  return <RoomChatTabs scope="room" active />;
 }

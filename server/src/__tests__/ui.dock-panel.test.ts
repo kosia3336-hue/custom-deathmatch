@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { clampFloating, parseDockState, resolveDrop } from '../../../lib/dockPanel';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  clampFloating,
+  getDockState,
+  parseDockState,
+  resolveDrop,
+  setDockState,
+  subscribeDockState,
+} from '../../../lib/dockPanel';
 
 describe('끌어서 옮기는 창 — 놓은 자리', () => {
   const W = 1280;
@@ -35,9 +42,49 @@ describe('떠 있는 창 위치', () => {
 });
 
 describe('기억한 자리 읽기', () => {
+  it('점수·추리의 기본 위치를 독립적으로 기억하고 위치 변경을 알린다', () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+    });
+    try {
+      const scoreId = 'test-number4-score',
+        trackerId = 'test-number4-tracker';
+      expect(getDockState(scoreId, { mode: 'docked', edge: 'top' })).toEqual({
+        mode: 'docked',
+        edge: 'top',
+      });
+      expect(getDockState(trackerId, { mode: 'docked', edge: 'bottom' })).toEqual({
+        mode: 'docked',
+        edge: 'bottom',
+      });
+      const notify = vi.fn();
+      const unsubscribe = subscribeDockState(scoreId, notify);
+      setDockState(scoreId, { mode: 'floating', x: 180, y: 120 });
+      expect(notify).toHaveBeenCalledOnce();
+      expect(getDockState(scoreId)).toEqual({ mode: 'floating', x: 180, y: 120 });
+      expect(getDockState(trackerId)).toEqual({ mode: 'docked', edge: 'bottom' });
+      expect(storage.get(`cdm-dock:${scoreId}`)).toBe('{"mode":"floating","x":180,"y":120}');
+      unsubscribe();
+      setDockState(scoreId, { mode: 'docked', edge: 'left' });
+      expect(notify).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it('붙은 자리·떠 있는 자리를 읽고, 깨진 값은 버린다', () => {
-    expect(parseDockState('{"mode":"docked","edge":"left"}')).toEqual({ mode: 'docked', edge: 'left' });
-    expect(parseDockState('{"mode":"floating","x":120,"y":80}')).toEqual({ mode: 'floating', x: 120, y: 80 });
+    expect(parseDockState('{"mode":"docked","edge":"left"}')).toEqual({
+      mode: 'docked',
+      edge: 'left',
+    });
+    expect(parseDockState('{"mode":"floating","x":120,"y":80}')).toEqual({
+      mode: 'floating',
+      x: 120,
+      y: 80,
+    });
     expect(parseDockState('{"mode":"docked","edge":"middle"}')).toBeNull();
     expect(parseDockState('{"mode":"floating","x":"a","y":1}')).toBeNull();
     expect(parseDockState('right')).toBeNull();

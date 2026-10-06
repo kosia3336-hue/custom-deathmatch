@@ -13,7 +13,10 @@
  *   seatStage('후', '내 차례')   →  '후 · 내 차례'
  *   seatStage(null, '라운드 정산') →  '라운드 정산'   (관전자·자리 없는 판)
  */
-export function seatStage(seat: string | null | undefined, stage: string | undefined): string | undefined {
+export function seatStage(
+  seat: string | null | undefined,
+  stage: string | undefined,
+): string | undefined {
   if (!stage) return seat ?? undefined;
   return seat ? `${seat} · ${stage}` : stage;
 }
@@ -50,4 +53,11 @@ export function submitStage(opts: {
   if (opts.finished) return '종료';
   if (opts.isSpectator) return opts.pending;
   return opts.submitted ? '상대 대기' : opts.pending;
+}
+
+/** 표시 직전에 차례를 괄호로 묶는다. 이미 괄호가 있으면 중복하지 않는다. */
+export function formatTurnLabel(label: string): string {
+  return label
+    .replace(/(?<!\()(공동 차례|내 차례|상대 차례)(?!\))/g, '($1)')
+    .replace(/\) · /g, ') ');
 }

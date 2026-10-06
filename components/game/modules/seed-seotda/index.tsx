@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { SeedSeotdaCard } from '@/components/game/cards';
@@ -367,9 +369,7 @@ export default function SeedSeotdaGame() {
 
   if (!gameData) {
     return (
-      <div className="text-cdm-fg-muted flex h-full items-center justify-center">
-        게임을 불러오는 중...
-      </div>
+      <GameLoading label="게임을 불러오는 중" />
     );
   }
 

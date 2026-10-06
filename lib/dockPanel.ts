@@ -12,7 +12,10 @@ export type DockState =
   | { mode: 'floating'; x: number; y: number };
 
 /** 기본은 오른쪽에 붙어 있다. 서버 렌더도 이 값으로 그린다(같은 참조를 유지해야 한다). */
-export const DEFAULT_DOCK_STATE: DockState = Object.freeze({ mode: 'docked', edge: 'right' }) as DockState;
+export const DEFAULT_DOCK_STATE: DockState = Object.freeze({
+  mode: 'docked',
+  edge: 'right',
+}) as DockState;
 
 /** 가장자리에서 이만큼(px) 안에 놓으면 붙는다. 그 밖이면 놓은 자리에 띄운다. */
 export const SNAP_DISTANCE = 80;
@@ -38,12 +41,12 @@ export function parseDockState(raw: string | null): DockState | null {
   return null;
 }
 
-export function getDockState(id: string): DockState {
+export function getDockState(id: string, fallback: DockState = DEFAULT_DOCK_STATE): DockState {
   const hit = cache.get(id);
   if (hit) return hit;
-  let state = DEFAULT_DOCK_STATE;
+  let state = fallback;
   try {
-    state = parseDockState(window.localStorage.getItem(storageKey(id))) ?? DEFAULT_DOCK_STATE;
+    state = parseDockState(window.localStorage.getItem(storageKey(id))) ?? fallback;
   } catch {
     // 저장소를 못 읽는 환경
   }

@@ -1,45 +1,98 @@
 'use client';
 
-import type { NF4RoundRecord, NF4PlayerInfo } from '@/shared/types/number4';
+import type { NumberFourGameData } from '@/shared/types/number4';
+import type { NumberFourRoundNotes } from '@/lib/numberFourNotes';
+import { useRef, useLayoutEffect } from 'react';
+import styles from './number-four.module.css';
 
-interface RoundHistoryProps {
-  roundHistory: NF4RoundRecord[];
-  players: Record<string, NF4PlayerInfo>;
-}
-
-/** InfoPanel 안(짙은 판 정보 칸)에서만 쓰인다 — 글자색은 ink 토큰. */
-export default function RoundHistory({ roundHistory, players }: RoundHistoryProps) {
-  if (roundHistory.length === 0) {
-    return <div className="text-xs text-cdm-ink-fg-muted">아직 기록이 없습니다</div>;
-  }
-
-  const playerIds = Object.keys(players);
-
+/** 기록은 최신순 세로 목록. 기록 열람·스크롤은 메모 편집 라운드와 독립적이다. */
+export default function RoundHistory({
+  gameData,
+  compact,
+  notes,
+}: {
+  gameData: NumberFourGameData;
+  compact: boolean;
+  notes: NumberFourRoundNotes;
+}) {
+  const list = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (list.current) list.current.scrollTop = 0;
+  }, [gameData.round, gameData.roundHistory.length]);
+  const rounds = [...gameData.roundHistory].sort((a, b) => b.round - a.round).map((r) => r.round);
   return (
-    <div className="space-y-2">
-      <div className="text-xs font-semibold text-cdm-ink-fg-muted">라운드 기록</div>
-      {roundHistory.map((r) => (
-        <div key={r.round} className="rounded-md border border-cdm-ink-border bg-white/5 p-2">
-          <div className="mb-1 text-xs font-medium text-cdm-ink-fg-muted">R{r.round}</div>
-          <div className="space-y-0.5">
-            {playerIds.map((pid) => {
-              const pr = r.players[pid];
-              if (!pr) return null;
-              const p = players[pid];
-              return (
-                <div key={pid} className="flex items-center gap-1.5 text-[11px] text-cdm-ink-fg">
-                  <span className="truncate max-w-[60px]">{p?.nickname}</span>
-                  <span className="font-medium">N{pr.number}</span>
-                  <span className={pr.scoreChange > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {pr.scoreChange > 0 ? `+${pr.scoreChange}` : pr.scoreChange}
+    <section
+      aria-label="라운드 기록"
+      className={
+        compact
+          ? 'border-cdm-border min-w-0 rounded-lg border px-2 py-1.5'
+          : 'flex min-h-0 min-w-0 flex-1 flex-col'
+      }
+    >
+      <div className="text-cdm-fg-muted flex shrink-0 flex-wrap items-center justify-between gap-1 text-[11px] font-semibold">
+        <span>라운드 기록</span>
+      </div>
+      <div
+        ref={list}
+        tabIndex={0}
+        aria-label="라운드 기록 스크롤"
+        className={`${styles.historyList} ${compact ? '' : styles.desktopHistory} mt-1`}
+      >
+        {!rounds.length && (
+          <p className="text-cdm-fg-muted py-1 text-[11px]">아직 기록이 없습니다.</p>
+        )}
+        {rounds.map((round) => {
+          const record = gameData.roundHistory.find((r) => r.round === round);
+          const own = Object.values(record?.players ?? {}).find((p) => p.white !== undefined);
+          const content = (
+            <>
+              <div className="text-cdm-fg-muted flex shrink-0 flex-wrap items-center justify-between gap-x-2 text-[11px]">
+                <span>
+                  R{round}
+                  {round < gameData.round ? ' · 이전 기록' : ''}
+                  {notes[round] ? ' · 메모' : ''}
+                </span>
+                {own && (
+                  <span>
+                    내 제출 □{own.white} ■{own.black}
                   </span>
-                  <span className="text-cdm-ink-fg-muted">({pr.scoreAfter}점)</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
+                )}
+              </div>
+              {record ? (
+                Object.entries(record.players).map(([id, p]) => (
+                  <div key={id} className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="max-w-24 min-w-0 truncate"
+                      title={gameData.players[id]?.nickname}
+                    >
+                      {gameData.players[id]?.nickname}
+                    </span>
+                    <span className="shrink-0 font-semibold">N{p.number}</span>
+                    <span
+                      className={`shrink-0 tabular-nums ${p.success ? 'text-emerald-600' : 'text-red-500'}`}
+                    >
+                      {p.scoreChange > 0 ? '+' : ''}
+                      {p.scoreChange}
+                    </span>
+                    <span className="text-cdm-fg-muted shrink-0">({p.scoreAfter}점)</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-cdm-fg-muted py-1 text-[11px]">제출 진행 중</p>
+              )}
+            </>
+          );
+          return (
+            <div
+              key={round}
+              aria-label={`${round}라운드 기록`}
+              className="border-cdm-border bg-cdm-bg-elev-1 min-w-0 rounded-md border px-2 py-1 text-left text-xs leading-5"
+            >
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

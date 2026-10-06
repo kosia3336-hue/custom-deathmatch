@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useMemo, useState } from 'react';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
@@ -47,9 +49,7 @@ export default function TripleGomokuGame() {
 
   if (!gameData) {
     return (
-      <div className="text-cdm-fg-muted flex h-full items-center justify-center">
-        게임을 불러오는 중...
-      </div>
+      <GameLoading label="게임을 불러오는 중" />
     );
   }
 

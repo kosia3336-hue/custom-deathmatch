@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -189,7 +191,7 @@ export default function ResultLog() {
   if (!gameResult) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-cdm-fg-muted">결과를 불러오는 중...</p>
+        <GameLoading label="결과를 불러오는 중" />
       </div>
     );
   }

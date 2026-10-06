@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
@@ -143,7 +145,7 @@ export default function GrapeSugar2Game() {
   if (!gameData) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-gray-400">로딩 중...</p>
+        <GameLoading label="로딩 중" />
       </div>
     );
   }

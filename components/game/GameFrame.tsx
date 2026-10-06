@@ -1,6 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useGameToolsRegistration, type GameTool } from '@/contexts/GameToolsContext';
 import { cn } from '@/lib/utils';
 import styles from './game-frame.module.css';
 
@@ -72,6 +73,7 @@ export function GameFrame({
   aside,
   children,
   className,
+  tools,
 }: {
   /** 위 — 차례·시간·점수처럼 읽기만 하는 것 */
   info?: ReactNode;
@@ -82,7 +84,29 @@ export function GameFrame({
   /** 가운데 — 판·카드 같은 게임의 본체 */
   children: ReactNode;
   className?: string;
+  /** PC에서 독립적으로 옮길 편의기능. mobileSlot은 좁은 화면의 기존 위치를 가리킨다. */
+  tools?: GameTool[];
 }) {
+  const registration = useGameToolsRegistration();
+  const register = registration?.register;
+  const unregister = registration?.unregister;
+  useEffect(() => {
+    if (!register || !unregister) return;
+    const panels: GameTool[] = [...(tools ?? [])];
+    if (aside)
+      panels.push({
+        id: 'reference',
+        title: '편의기능',
+        content: aside,
+        defaultEdge: 'right',
+        height: 320,
+      });
+    panels.forEach(register);
+    return () => panels.forEach((panel) => unregister(panel.id));
+  }, [register, unregister, tools, aside]);
+  const desktop = registration?.desktop ?? false;
+  const showInfo = !desktop || !tools?.some((tool) => tool.mobileSlot === 'info');
+  const showControls = !desktop || !tools?.some((tool) => tool.mobileSlot === 'controls');
   return (
     /*
       GameShell 의 relative 박스에 absolute inset-0 으로 붙는다.
@@ -120,23 +144,20 @@ export function GameFrame({
         right: 0,
         bottom: 'var(--cdm-safe-bottom, 0px)',
       }}
-      className={cn(
-        'mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3',
-        className,
-      )}
+      className={cn('mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 sm:gap-3 sm:p-3', className)}
     >
-      {info && <div className="shrink-0">{info}</div>}
+      {info && showInfo && <div className="shrink-0">{info}</div>}
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:items-stretch">
         <div className={styles.stage}>{children}</div>
-        {aside && (
+        {aside && !desktop && (
           <aside className="hidden w-72 shrink-0 overflow-y-auto overscroll-contain lg:block">
             {aside}
           </aside>
         )}
       </div>
 
-      {controls && <div className="shrink-0">{controls}</div>}
+      {controls && showControls && <div className="shrink-0">{controls}</div>}
     </div>
   );
 }

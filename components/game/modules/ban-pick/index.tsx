@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useRef, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { getSocket } from '@/lib/socket';
@@ -582,7 +584,7 @@ export default function BanPickGame() {
   if (!data) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-400 text-sm">밴픽 데이터 로딩 중...</p>
+        <GameLoading label="밴픽 데이터 로딩 중" />
       </div>
     );
   }

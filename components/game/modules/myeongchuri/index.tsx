@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -72,7 +74,7 @@ export default function MyeongchuriGame() {
 
   if (!data || !gameState) {
     return (
-      <div className="text-cdm-fg-muted flex h-full items-center justify-center">게임을 불러오는 중...</div>
+      <GameLoading label="게임을 불러오는 중" />
     );
   }
 

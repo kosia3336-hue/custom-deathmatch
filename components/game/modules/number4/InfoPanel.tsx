@@ -1,51 +1,74 @@
 'use client';
 
-import type { NF4PlayerInfo, NF4RoundRecord } from '@/shared/types/number4';
+import type { NumberFourGameData } from '@/shared/types/number4';
 import RoundHistory from './RoundHistory';
+import type { NumberFourRoundNotes } from '@/lib/numberFourNotes';
 
-interface InfoPanelProps {
-  players: Record<string, NF4PlayerInfo>;
-  roundHistory: NF4RoundRecord[];
-  myId: string | undefined;
+export default function InfoPanel({
+  gameData,
+  myId,
+  predictions,
+  compact,
+  notes,
+}: {
+  gameData: NumberFourGameData;
+  myId: string;
+  predictions: Record<string, { white: number; black: number }>;
+  compact: boolean;
+  notes: NumberFourRoundNotes;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <section aria-label="점수와 잔여 타일" className="grid shrink-0 grid-cols-2 gap-2">
+        {Object.entries(gameData.players).map(([id, p]) => {
+          const predicted = predictions[id];
+          return (
+            <div
+              key={id}
+              className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg min-w-0 rounded-lg border px-2 py-1.5 sm:px-3"
+            >
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="truncate font-semibold">
+                  {p.nickname}
+                  {id === myId ? ' (나)' : ''}
+                </span>
+                <strong className={`shrink-0 tabular-nums ${p.score <= 1 ? 'text-red-500' : ''}`}>
+                  {p.score}점
+                </strong>
+              </div>
+              <div className="text-cdm-fg-muted mt-0.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
+                <span aria-label={`${p.nickname} 잔여 타일`}>
+                  백 □<TileCount actual={p.remainingWhite} predicted={predicted?.white} />
+                  {' · 흑 ■'}
+                  <TileCount actual={p.remainingBlack} predicted={predicted?.black} />
+                </span>
+                {predicted && p.remainingWhite < 0 ? (
+                  <span className="ml-auto">(나의 메모)</span>
+                ) : gameData.phase === 'submit' && p.submitted ? (
+                  <span>제출 완료</span>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+      <RoundHistory gameData={gameData} compact={compact} notes={notes} />
+    </div>
+  );
 }
 
-/**
- * 판 정보 — 데스크톱 우측·모바일 메모 모두 짙은 GameInfoPart 안에 놓인다.
- * ink-scope 는 --cdm-* 토큰만 바꾸고 Tailwind 회색은 그대로라, 글자는 ink 토큰으로 쓴다.
- */
-export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProps) {
-  const playerEntries = Object.entries(players);
-
+/** 물음표는 수량이 아닌 비공개/추정 표시이므로 숫자와 시각적으로 분리한다. */
+function TileCount({ actual, predicted }: { actual: number; predicted?: number }) {
+  const hidden = actual < 0;
+  const value = hidden ? predicted : actual;
   return (
-    <div className="flex flex-col gap-4">
-      {playerEntries.map(([id, p]) => {
-        const isMe = id === myId || id.replace('_p2', '') === myId;
-        const scoreColor = p.score <= 1 ? 'text-red-400' : 'text-cdm-ink-fg';
-        return (
-          <div
-            key={id}
-            className={`rounded-lg border p-3 ${isMe ? 'border-cdm-primary/60 bg-cdm-primary/15' : 'border-cdm-ink-border bg-white/5'}`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="truncate text-sm font-medium text-cdm-ink-fg">{p.nickname}</span>
-              <span className={`text-lg font-bold ${scoreColor}`}>{p.score}점</span>
-            </div>
-            <div className="mt-1 text-xs text-cdm-ink-fg-muted">
-              {p.remainingWhite >= 0
-                ? `□${p.remainingWhite} ■${p.remainingBlack}`
-                : `남은 타일 ${p.remainingWhite + p.remainingBlack < 0 ? '?' : (p.remainingWhite + p.remainingBlack)}`
-              }
-            </div>
-            {p.submitted && (
-              <div className="mt-1 text-xs text-emerald-400">제출 완료</div>
-            )}
-          </div>
-        );
-      })}
-
-      <div className="border-t border-cdm-ink-border pt-3">
-        <RoundHistory roundHistory={roundHistory} players={players} />
-      </div>
-    </div>
+    <span className="inline-flex items-baseline gap-px tabular-nums">
+      {value !== undefined && <span className="text-cdm-fg text-xs font-medium">{value}</span>}
+      {hidden && value === undefined && (
+        <span className="relative -top-px text-[11px] font-normal opacity-40" title="비공개">
+          ?
+        </span>
+      )}
+    </span>
   );
 }

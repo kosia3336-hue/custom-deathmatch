@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -81,6 +83,7 @@ export default function PlayPage() {
   const roomId = params.roomId as string;
 
   const { gameResult } = useRoom(roomId);
+  const gameState = useRoomStore((s) => s.gameState);
   const gameId = useRoomStore((s) => s.room?.gameId);
   const roomId_ = useRoomStore((s) => s.room?.id);
   const hiddenMatch = useRoomStore((s) => s.room?.hiddenMatch);
@@ -127,6 +130,7 @@ export default function PlayPage() {
               ? CounterBanGame
               : GAME_MODULES[gameId]
             : null;
+        if (!gameId || roomId_ !== roomId || !gameState || gameState.roomId !== roomId) return <GameLoading />;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>

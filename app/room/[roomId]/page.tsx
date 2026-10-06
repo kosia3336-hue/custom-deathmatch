@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -255,7 +257,7 @@ export default function WaitingRoomPage() {
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-cdm-bg-elev-2 border-t-cdm-primary" />
+        <GameLoading label="대기실을 불러오는 중" />
       </div>
     );
   }

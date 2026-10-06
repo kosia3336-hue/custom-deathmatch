@@ -10,6 +10,8 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
+import type { InsertionGuide } from '@/lib/gameToolDrop';
 import {
   clampFloating,
   resolveDrop,
@@ -45,6 +47,8 @@ interface DragData {
   y: number;
   offsetX: number;
   offsetY: number;
+  width: number;
+  height: number;
   lifted: boolean;
   frame: number | null;
 }
@@ -59,6 +63,14 @@ export interface DockablePanelProps {
   floatingSize: { width: number; height: number };
   /** 붙어 있을 때의 크기·표시 클래스(부모 배치에 맞춘다) */
   className?: string;
+  /** 대기실 등에서 사용하는 선택적 헤더 요소. */
+  headerActions?: ReactNode;
+  /** 게임 편의기능은 화면 가장자리뿐 아니라 기존 창 영역에도 붙일 수 있다. */
+  resolveDockTarget?: (x: number, y: number) => DockEdge | null;
+  getInsertionGuide?: (edge: DockEdge, x: number, y: number) => InsertionGuide | null;
+  onDockDrop?: (edge: DockEdge, x: number, y: number) => void;
+  /** Alt+위/아래로 같은 영역 내 순서를 변경한다. */
+  onReorder?: (direction: -1 | 1) => void;
   children: ReactNode;
 }
 
@@ -78,6 +90,11 @@ export default function DockablePanel({
   dock,
   floatingSize,
   className,
+  headerActions,
+  resolveDockTarget,
+  getInsertionGuide,
+  onDockDrop,
+  onReorder,
   children,
 }: DockablePanelProps) {
   const panelRef = useRef<HTMLElement>(null);
@@ -85,6 +102,26 @@ export default function DockablePanel({
   const dragRef = useRef<DragData | null>(null);
   const [lifted, setLifted] = useState(false);
   const [target, setTarget] = useState<DockEdge | null>(null);
+  const [guide, setGuide] = useState<InsertionGuide | null>(null);
+
+  const updateGuide = useCallback(
+    (x: number, y: number) => {
+      const next = resolveDockTarget
+        ? resolveDockTarget(x, y)
+        : resolveDrop(x, y, window.innerWidth, window.innerHeight);
+      const nextGuide = next ? (getInsertionGuide?.(next, x, y) ?? null) : null;
+      setTarget((prev) => (prev === next ? prev : next));
+      setGuide((prev) =>
+        prev?.left === nextGuide?.left &&
+        prev?.top === nextGuide?.top &&
+        prev?.width === nextGuide?.width &&
+        prev?.height === nextGuide?.height
+          ? prev
+          : nextGuide,
+      );
+    },
+    [resolveDockTarget, getInsertionGuide],
+  );
 
   const applyPosition = useCallback(() => {
     const d = dragRef.current;
@@ -92,7 +129,8 @@ export default function DockablePanel({
     if (!d || !el) return;
     d.frame = null;
     el.style.transform = `translate3d(${d.x - d.offsetX}px, ${d.y - d.offsetY}px, 0)`;
-  }, []);
+    updateGuide(d.x, d.y);
+  }, [updateGuide]);
 
   const endDrag = useCallback(
     (commit: boolean) => {
@@ -108,10 +146,14 @@ export default function DockablePanel({
       }
       setLifted(false);
       setTarget(null);
+      setGuide(null);
       if (!commit || !d.lifted) return;
 
-      const edge = resolveDrop(d.x, d.y, window.innerWidth, window.innerHeight);
+      const edge = resolveDockTarget
+        ? resolveDockTarget(d.x, d.y)
+        : resolveDrop(d.x, d.y, window.innerWidth, window.innerHeight);
       if (edge) {
+        onDockDrop?.(edge, d.x, d.y);
         setDockState(id, { mode: 'docked', edge });
       } else {
         setDockState(id, {
@@ -127,7 +169,7 @@ export default function DockablePanel({
         });
       }
     },
-    [id, floatingSize.width, floatingSize.height],
+    [id, floatingSize.width, floatingSize.height, resolveDockTarget, onDockDrop],
   );
 
   // 끄는 중 창 밖으로 나가거나 Esc 를 누르면 제자리로
@@ -137,15 +179,24 @@ export default function DockablePanel({
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') cancel();
     };
+    const refresh = () => {
+      const d = dragRef.current;
+      if (d) updateGuide(d.x, d.y);
+    };
     window.addEventListener('blur', cancel);
     window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', refresh, true);
+    window.addEventListener('resize', refresh);
     return () => {
       window.removeEventListener('blur', cancel);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', refresh, true);
+      window.removeEventListener('resize', refresh);
     };
-  }, [lifted, endDrag]);
+  }, [lifted, endDrag, updateGuide]);
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button, select, input, summary')) return;
     if (e.button !== 0 || !panelRef.current) return;
     if (e.pointerType === 'mouse') e.preventDefault(); // 끄는 동안 글자 선택이 번지지 않게
     const rect = panelRef.current.getBoundingClientRect();
@@ -164,6 +215,8 @@ export default function DockablePanel({
       // 창이 떠 있는 크기로 바뀌어도 포인터가 머리 위에 남도록
       offsetX: Math.min(Math.max(0, e.clientX - rect.left), floatingSize.width - 24),
       offsetY: Math.min(Math.max(0, e.clientY - rect.top), 28),
+      width: rect.width,
+      height: rect.height,
       lifted: false,
       frame: null,
     };
@@ -180,12 +233,16 @@ export default function DockablePanel({
       applyPosition();
       setLifted(true);
     }
-    const next = resolveDrop(d.x, d.y, window.innerWidth, window.innerHeight);
-    setTarget((prev) => (prev === next ? prev : next));
     if (d.frame == null) d.frame = requestAnimationFrame(applyPosition);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (onReorder && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      onReorder(e.key === 'ArrowUp' ? -1 : 1);
+      return;
+    }
     const edge = ARROW_TO_EDGE[e.key];
     if (!edge) return;
     e.preventDefault();
@@ -205,7 +262,14 @@ export default function DockablePanel({
     };
   } else if (floating) {
     const height = Math.min(floatingSize.height, window.innerHeight - 16);
-    const pos = clampFloating(dock.x, dock.y, floatingSize.width, height, window.innerWidth, window.innerHeight);
+    const pos = clampFloating(
+      dock.x,
+      dock.y,
+      floatingSize.width,
+      height,
+      window.innerWidth,
+      window.innerHeight,
+    );
     style = {
       position: 'fixed',
       left: pos.x,
@@ -219,14 +283,24 @@ export default function DockablePanel({
   return (
     <>
       {/* 붙어 있던 창을 들면 본문이 튀지 않게 자리를 잠시 비워 둔다 */}
-      {lifted && !floating && <div aria-hidden className={cn(className, 'invisible')} />}
+      {lifted && !floating && (
+        <div
+          aria-hidden
+          className={cn(className, 'invisible')}
+          style={{
+            width: dragRef.current?.width,
+            height: dragRef.current?.height,
+            flex: '0 0 auto',
+          }}
+        />
+      )}
 
       <section
         ref={panelRef}
         aria-label={title}
         style={style}
         className={cn(
-          'flex-col overflow-hidden rounded-cdm-lg border border-cdm-border bg-cdm-bg',
+          'rounded-cdm-lg border-cdm-border bg-cdm-bg flex-col overflow-hidden border',
           (lifted || floating) && 'shadow-(--cdm-shadow-md)',
           lifted && 'border-cdm-primary/50',
           className,
@@ -236,7 +310,7 @@ export default function DockablePanel({
           ref={handleRef}
           role="button"
           tabIndex={0}
-          aria-label={`${title} 창 — 끌어서 옮기거나 방향키로 가장자리에 붙입니다`}
+          aria-label={`${title} 창 — 끌어서 옮기거나 방향키로 가장자리에 붙입니다${onReorder ? '. Alt+위/아래로 순서를 바꿉니다' : ''}`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={() => endDrag(true)}
@@ -244,22 +318,33 @@ export default function DockablePanel({
           onLostPointerCapture={() => endDrag(true)}
           onKeyDown={onKeyDown}
           className={cn(
-            'flex shrink-0 touch-none items-center border-b border-cdm-border px-3 py-2 select-none focus-visible:outline-2 focus-visible:outline-cdm-primary',
+            'border-cdm-border focus-visible:outline-cdm-primary flex shrink-0 touch-none items-center border-b px-3 py-2 select-none focus-visible:outline-2',
             lifted ? 'cursor-grabbing' : 'cursor-grab',
           )}
         >
-          <span className="text-sm font-semibold text-cdm-fg">{title}</span>
+          <span className="text-cdm-fg min-w-0 flex-1 truncate text-sm font-semibold">{title}</span>
+          {headerActions}
         </div>
         {children}
       </section>
 
-      {lifted && target && (
-        <div
-          aria-hidden
-          className={cn('pointer-events-none fixed z-(--cdm-z-overlay) rounded-full bg-cdm-primary', EDGE_LINE[target])}
-          style={{ boxShadow: '0 0 16px 3px color-mix(in srgb, var(--cdm-primary) 55%, transparent)' }}
-        />
-      )}
+      {lifted &&
+        target &&
+        createPortal(
+          <div
+            aria-hidden
+            data-dock-guide={guide ? 'insertion' : 'edge'}
+            className={cn(
+              'bg-cdm-primary pointer-events-none fixed z-(--cdm-z-overlay) rounded-full',
+              !guide && EDGE_LINE[target],
+            )}
+            style={{
+              ...guide,
+              boxShadow: '0 0 16px 3px color-mix(in srgb, var(--cdm-primary) 55%, transparent)',
+            }}
+          />,
+          document.body,
+        )}
     </>
   );
 }

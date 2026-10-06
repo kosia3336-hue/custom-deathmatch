@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useRoomStore } from '@/stores/room';
@@ -167,7 +169,7 @@ export default function QuatroGame() {
   if (!gameData) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-cdm-fg-muted">게임을 불러오는 중...</p>
+        <GameLoading label="게임을 불러오는 중" />
       </div>
     );
   }

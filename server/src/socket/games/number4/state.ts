@@ -1,10 +1,20 @@
 import type { GameState } from '@shared/types/events.js';
 import { sessions } from '../../../store/sessions.js';
-import type { NumberFourGameData, NF4PlayerInfo, NF4Number, NF4RoundRecord } from '@shared/types/number4.js';
+import type {
+  NumberFourGameData,
+  NF4PlayerInfo,
+  NF4Number,
+  NF4RoundRecord,
+} from '@shared/types/number4.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { TOTAL_ROUNDS, TILES_PER_ROUND, REVEAL_DELAY_MS, WIN_DISPLAY_MS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
-import type { InternalState, InternalRoundRecord, NF4PlayerInternal, NF4UndoSnapshot } from './types.js';
+import type {
+  InternalState,
+  InternalRoundRecord,
+  NF4PlayerInternal,
+  NF4UndoSnapshot,
+} from './types.js';
 import { judgeNumber, tiebreaker } from './judge.js';
 import { socketRoom } from '../../utils.js';
 import { isDbgViewer } from '../../_dbg-viewer.js';
@@ -24,17 +34,39 @@ function playerToInfo(p: NF4PlayerInternal, isMe: boolean): NF4PlayerInfo {
     remainingWhite: isMe ? p.remainingWhite : -1,
     remainingBlack: isMe ? p.remainingBlack : -1,
     submitted: p.submitted,
+    ...(isMe &&
+    p.submitted &&
+    p.submittedWhite !== null &&
+    p.submittedBlack !== null &&
+    p.submittedNumber !== null
+      ? {
+          submission: {
+            white: p.submittedWhite,
+            black: p.submittedBlack,
+            number: p.submittedNumber,
+          },
+        }
+      : {}),
   };
 }
 
-/** InternalRoundRecord → NF4RoundRecord (타일 수치 제거) */
-function toClientRoundHistory(history: InternalRoundRecord[]): NF4RoundRecord[] {
+/** 타일 수치는 본인에게만 보낸다. 솔로 모드의 두 자리도 같은 플레이어 소유다. */
+function toClientRoundHistory(
+  history: InternalRoundRecord[],
+  ownIds: Set<string>,
+): NF4RoundRecord[] {
   return history.map((r) => ({
     round: r.round,
     players: Object.fromEntries(
       Object.entries(r.players).map(([pid, pr]) => [
         pid,
-        { number: pr.number, success: pr.success, scoreChange: pr.scoreChange, scoreAfter: pr.scoreAfter },
+        {
+          number: pr.number,
+          success: pr.success,
+          scoreChange: pr.scoreChange,
+          scoreAfter: pr.scoreAfter,
+          ...(ownIds.has(pid) ? { white: pr.white, black: pr.black } : {}),
+        },
       ]),
     ),
   }));
@@ -59,21 +91,46 @@ function phaseMessage(s: InternalState): string {
 }
 
 function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourGameData {
+  if (s.tutorialData) {
+    const data = structuredClone(s.tutorialData);
+    for (const player of Object.values(data.players)) {
+      if (player.id !== socketId) {
+        player.remainingWhite = -1;
+        player.remainingBlack = -1;
+        delete player.submission;
+      }
+    }
+    for (const round of data.roundHistory) {
+      for (const [id, record] of Object.entries(round.players)) {
+        if (id !== socketId) {
+          delete record.white;
+          delete record.black;
+        }
+      }
+    }
+    return data;
+  }
   const isPlayer1 = socketId === s.player1.id;
   const isPlayer2 = socketId === s.player2.id;
   const isSolo = s.playMode === 'solo';
+  const ownsSolo = isSolo && isPlayer1;
   const _dbg = !isSolo && isDbgViewer(s.playMode, sessions.getMemberId(socketId));
-  const maskNick = (id: string, nick: string) =>
-    nicknameForViewer(s.roomId, id, nick, socketId);
+  const maskNick = (id: string, nick: string) => nicknameForViewer(s.roomId, id, nick, socketId);
 
   const players: Record<string, NF4PlayerInfo> = {};
 
   if (isSolo) {
-    players[s.player1.id] = playerToInfo(s.player1, true);
-    players[s.player2.id] = playerToInfo(s.player2, true);
+    players[s.player1.id] = playerToInfo(s.player1, ownsSolo);
+    players[s.player2.id] = playerToInfo(s.player2, ownsSolo);
   } else {
-    players[s.player1.id] = { ...playerToInfo(s.player1, isPlayer1), nickname: maskNick(s.player1.id, s.player1.nickname) };
-    players[s.player2.id] = { ...playerToInfo(s.player2, isPlayer2), nickname: maskNick(s.player2.id, s.player2.nickname) };
+    players[s.player1.id] = {
+      ...playerToInfo(s.player1, isPlayer1),
+      nickname: maskNick(s.player1.id, s.player1.nickname),
+    };
+    players[s.player2.id] = {
+      ...playerToInfo(s.player2, isPlayer2),
+      nickname: maskNick(s.player2.id, s.player2.nickname),
+    };
     if (_dbg && (isPlayer1 || isPlayer2)) {
       const opp = isPlayer1 ? s.player2 : s.player1;
       players[opp.id] = { ...playerToInfo(opp, true), nickname: maskNick(opp.id, opp.nickname) };
@@ -85,7 +142,11 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
     phase: s.phase,
     players,
     revealData: null,
-    roundHistory: toClientRoundHistory(s.roundHistory),
+    ...(s.revealEndsAt !== null ? { revealEndsAt: s.revealEndsAt } : {}),
+    roundHistory: toClientRoundHistory(
+      s.roundHistory,
+      new Set(ownsSolo ? [s.player1.id, s.player2.id] : [socketId]),
+    ),
     winner: s.winner,
     winType: s.winType,
     tiebreakerReason: s.tiebreakerReason,
@@ -103,13 +164,12 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
           }
         : null;
     const revealed =
-      (s.phase === 'reveal' || s.phase === 'finished')
+      s.phase === 'reveal' || s.phase === 'finished'
         ? s.roundHistory[s.roundHistory.length - 1]?.players[opp.id]
         : null;
-    const payload = submitted
-      ?? (revealed
-        ? { number: revealed.number, white: revealed.white, black: revealed.black }
-        : null);
+    const payload =
+      submitted ??
+      (revealed ? { number: revealed.number, white: revealed.white, black: revealed.black } : null);
     if (payload) {
       return {
         ...base,
@@ -123,10 +183,12 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): NumberFourG
 
 function buildRevealGameData(s: InternalState, socketId: string): NumberFourGameData {
   const data = buildGameDataForPlayer(s, socketId);
+  if (s.tutorialData) return data;
   const lastHistory = s.roundHistory[s.roundHistory.length - 1];
 
   if (lastHistory) {
-    const revealPlayers: Record<string, import('@shared/types/number4.js').NF4RevealPlayerData> = {};
+    const revealPlayers: Record<string, import('@shared/types/number4.js').NF4RevealPlayerData> =
+      {};
     const lastLog = s.actionLog[s.actionLog.length - 1];
 
     for (const [pid, rec] of Object.entries(lastHistory.players)) {
@@ -164,24 +226,32 @@ export async function broadcastState(io: IO, s: InternalState) {
 
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
-    const gameData = s.phase === 'reveal' || s.phase === 'finished'
-      ? buildRevealGameData(s, pid)
-      : buildGameDataForPlayer(s, pid);
+    const gameData =
+      s.phase === 'reveal' || s.phase === 'finished'
+        ? buildRevealGameData(s, pid)
+        : buildGameDataForPlayer(s, pid);
     const raw = gameData as Record<string, unknown>;
     const ext = raw['_x'];
-    if (ext !== undefined) { delete raw['_x']; sock.emit('ext:data', ext); }
+    if (ext !== undefined) {
+      delete raw['_x'];
+      sock.emit('ext:data', ext);
+    }
     sock.emit('game:state', buildGameState(s, gameData));
   }
 }
 
 export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
   const pid = sessions.getToken(socket.id) ?? socket.id;
-  const gameData = s.phase === 'reveal' || s.phase === 'finished'
-    ? buildRevealGameData(s, pid)
-    : buildGameDataForPlayer(s, pid);
+  const gameData =
+    s.phase === 'reveal' || s.phase === 'finished'
+      ? buildRevealGameData(s, pid)
+      : buildGameDataForPlayer(s, pid);
   const raw = gameData as Record<string, unknown>;
   const ext = raw['_x'];
-  if (ext !== undefined) { delete raw['_x']; socket.emit('ext:data', ext); }
+  if (ext !== undefined) {
+    delete raw['_x'];
+    socket.emit('ext:data', ext);
+  }
   socket.emit('game:state', buildGameState(s, gameData));
 }
 
@@ -247,6 +317,7 @@ function pushUndoSnapshot(s: InternalState) {
 
 function applyNF4UndoSnapshot(s: InternalState, snap: NF4UndoSnapshot) {
   s.round = snap.round;
+  s.revealEndsAt = null;
   s.phase = snap.phase;
   restorePlayer(s.player1, snap.player1);
   restorePlayer(s.player2, snap.player2);
@@ -259,14 +330,16 @@ function applyNF4UndoSnapshot(s: InternalState, snap: NF4UndoSnapshot) {
 function hasPartialRoundNF4(s: InternalState): boolean {
   if (s.phase !== 'submit') return true;
   return (
-    s.player1.submitted || s.player2.submitted ||
-    s.player1.submittedWhite !== null || s.player2.submittedWhite !== null
+    s.player1.submitted ||
+    s.player2.submitted ||
+    s.player1.submittedWhite !== null ||
+    s.player2.submittedWhite !== null
   );
 }
 
 export function performNumberFourUndo(io: IO, roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s || s.gameOver || s.playMode === 'tutorial') return false;
 
   s.aiGeneration++;
   clearRoundTimer(s);
@@ -348,8 +421,18 @@ function resolveGame(
   const rankings =
     winnerId && loserId
       ? [
-          { playerId: winnerId, nickname: winnerNick, rank: 1, score: s.player1.id === winnerId ? s.player1.score : s.player2.score },
-          { playerId: loserId, nickname: loserNick, rank: 2, score: s.player1.id === loserId ? s.player1.score : s.player2.score },
+          {
+            playerId: winnerId,
+            nickname: winnerNick,
+            rank: 1,
+            score: s.player1.id === winnerId ? s.player1.score : s.player2.score,
+          },
+          {
+            playerId: loserId,
+            nickname: loserNick,
+            rank: 2,
+            score: s.player1.id === loserId ? s.player1.score : s.player2.score,
+          },
         ]
       : [
           { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
@@ -395,15 +478,7 @@ function delayedResolve(
   setTimeout(() => {
     if (!gameStates.has(s.roomId)) return;
     if (s.aiGeneration !== gen) return;
-    resolveGame(
-      io,
-      s,
-      winnerId,
-      winnerP?.nickname ?? '',
-      loserId,
-      loserP?.nickname ?? '',
-      winType,
-    );
+    resolveGame(io, s, winnerId, winnerP?.nickname ?? '', loserId, loserP?.nickname ?? '', winType);
   }, REVEAL_DELAY_MS);
 }
 
@@ -435,12 +510,20 @@ export function processRound(io: IO, s: InternalState) {
     round: s.round,
     players: {
       [s.player1.id]: {
-        white: p1w, black: p1b, number: p1n,
-        success: j1.success, scoreChange: j1.scoreChange, scoreAfter: s.player1.score,
+        white: p1w,
+        black: p1b,
+        number: p1n,
+        success: j1.success,
+        scoreChange: j1.scoreChange,
+        scoreAfter: s.player1.score,
       },
       [s.player2.id]: {
-        white: p2w, black: p2b, number: p2n,
-        success: j2.success, scoreChange: j2.scoreChange, scoreAfter: s.player2.score,
+        white: p2w,
+        black: p2b,
+        number: p2n,
+        success: j2.success,
+        scoreChange: j2.scoreChange,
+        scoreAfter: s.player2.score,
       },
     },
   };
@@ -451,22 +534,31 @@ export function processRound(io: IO, s: InternalState) {
     players: {
       [s.player1.id]: {
         nickname: s.player1.nickname,
-        white: p1w, black: p1b, number: p1n,
-        success: j1.success, scoreChange: j1.scoreChange,
-        scoreBefore: p1ScoreBefore, scoreAfter: s.player1.score,
+        white: p1w,
+        black: p1b,
+        number: p1n,
+        success: j1.success,
+        scoreChange: j1.scoreChange,
+        scoreBefore: p1ScoreBefore,
+        scoreAfter: s.player1.score,
         conditionDetail: j1.conditionDetail,
       },
       [s.player2.id]: {
         nickname: s.player2.nickname,
-        white: p2w, black: p2b, number: p2n,
-        success: j2.success, scoreChange: j2.scoreChange,
-        scoreBefore: p2ScoreBefore, scoreAfter: s.player2.score,
+        white: p2w,
+        black: p2b,
+        number: p2n,
+        success: j2.success,
+        scoreChange: j2.scoreChange,
+        scoreBefore: p2ScoreBefore,
+        scoreAfter: s.player2.score,
         conditionDetail: j2.conditionDetail,
       },
     },
   });
 
   s.phase = 'reveal';
+  s.revealEndsAt = Date.now() + REVEAL_DELAY_MS;
   broadcastState(io, s);
 
   const p1Dead = s.player1.score === 0;
@@ -525,6 +617,7 @@ export function processRound(io: IO, s: InternalState) {
 export function advanceRound(io: IO, s: InternalState) {
   s.round++;
   s.phase = 'submit';
+  s.revealEndsAt = null;
 
   resetSubmissions(s.player1);
   resetSubmissions(s.player2);
@@ -548,10 +641,11 @@ export function getNumberFourResultData(roomId: string): unknown {
   const s = gameStates.get(roomId);
   if (!s) return undefined;
   return {
+    ...(s.tutorialData ? { tutorial: true } : {}),
     winType: s.winType,
     tiebreakerReason: s.tiebreakerReason,
     finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
-    roundHistory: s.roundHistory,
+    roundHistory: s.tutorialData?.roundHistory ?? s.roundHistory,
     actions: s.actionLog,
     players: {
       [s.player1.id]: { nickname: s.player1.nickname },

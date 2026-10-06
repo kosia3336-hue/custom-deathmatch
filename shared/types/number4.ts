@@ -1,5 +1,6 @@
 export const TILES_PER_ROUND = 7;
 export const TOTAL_ROUNDS = 6;
+export const NF4_REVEAL_DELAY_MS = 5000;
 export const INITIAL_SCORE = 3;
 export const INITIAL_WHITE = 22;
 export const INITIAL_BLACK = 20;
@@ -224,6 +225,8 @@ export interface NF4PlayerInfo {
   remainingWhite: number;
   remainingBlack: number;
   submitted: boolean;
+  /** 본인에게만 전송하는 현재 라운드 제출 내용. */
+  submission?: { white: number; black: number; number: NF4Number };
 }
 
 export interface NF4RevealPlayerData {
@@ -239,17 +242,35 @@ export interface NF4RevealData {
 
 export interface NF4RoundRecord {
   round: number;
-  players: Record<string, {
-    number: NF4Number;
-    success: boolean;
-    scoreChange: number;
-    scoreAfter: number;
-  }>;
+  players: Record<
+    string,
+    {
+      number: NF4Number;
+      success: boolean;
+      scoreChange: number;
+      scoreAfter: number;
+      /** 본인 기록에만 포함된다. 상대/관전자에게는 생략한다. */
+      white?: number;
+      black?: number;
+    }
+  >;
+}
+
+export interface NF4TutorialHint {
+  step: 'intro' | 'choose' | 'result' | 'summary';
+  title: string;
+  body: string;
+  expectedWhite?: number;
+  expectedNumber?: NF4Number;
+  ackLabel?: string;
 }
 
 export interface NumberFourGameData {
+  tutorial?: NF4TutorialHint;
   round: number;
   phase: NF4Phase;
+  /** 서버 기준 결과 공개 종료 시각. 튜토리얼은 자동 전환하지 않는다. */
+  revealEndsAt?: number;
   players: Record<string, NF4PlayerInfo>;
   revealData: NF4RevealData | null;
   roundHistory: NF4RoundRecord[];
@@ -260,6 +281,7 @@ export interface NumberFourGameData {
 }
 
 export type NumberFourAction =
+  | { type: 'tutorial-ack' }
   | { type: 'submit'; white: number; black: number; number: NF4Number };
 
 export const NF4_ADVISOR_ME = 'me';
@@ -367,7 +389,12 @@ export function buildNf4AdvisorKifu(opts: {
   return {
     advisor: true,
     winType,
-    tiebreakerReason: winType === 'tiebreaker' ? (opts.result.kind === 'playing' ? null : opts.result.reason) : null,
+    tiebreakerReason:
+      winType === 'tiebreaker'
+        ? opts.result.kind === 'playing'
+          ? null
+          : opts.result.reason
+        : null,
     finalScores: { [NF4_ADVISOR_ME]: myScore, [NF4_ADVISOR_OPP]: oppScore },
     roundHistory: actions.map((a) => ({
       round: a.round,

@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect } from 'react';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import RoundHistoryTable from './RoundHistoryTable';
@@ -103,7 +105,7 @@ export default function BankGame() {
   if (!gameData) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-gray-400">로딩 중...</p>
+        <GameLoading label="로딩 중" />
       </div>
     );
   }

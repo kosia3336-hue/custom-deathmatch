@@ -1,6 +1,8 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
+import { createNumberFourTutorial, advanceNumberFourTutorial } from '@shared/numberFourTutorial.js';
+import type { NumberFourAction } from '@shared/types/number4.js';
 import type { NF4Number } from '@shared/types/number4.js';
 import { INITIAL_SCORE, INITIAL_WHITE, INITIAL_BLACK, TILES_PER_ROUND } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -39,6 +41,9 @@ export function initNumberFour(
   if (playMode === 'solo') {
     p1 = makePlayer(players[0].id, `${players[0].nickname} (1P)`);
     p2 = makePlayer(players[0].id + '_p2', `${players[0].nickname} (2P)`);
+  } else if (playMode === 'tutorial') {
+    p1 = makePlayer(players[0].id, players[0].nickname);
+    p2 = makePlayer('tutorial_guide', '연습 상대');
   } else {
     p1 = makePlayer(players[0].id, players[0].nickname);
     p2 = makePlayer(players[1].id, players[1].nickname);
@@ -57,7 +62,10 @@ export function initNumberFour(
     tiebreakerReason: null,
     startedAt,
     turnStartedAt: Date.now(),
-    timeLimitSeconds,
+    revealEndsAt: null,
+    timeLimitSeconds: playMode === 'tutorial' ? null : timeLimitSeconds,
+    tutorialData:
+      playMode === 'tutorial' ? createNumberFourTutorial(p1.id, p1.nickname) : undefined,
     roundTimer: null,
     playMode,
     gameOver: false,
@@ -95,6 +103,45 @@ export function handleNumberFourAction(
 ) {
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return;
+
+  if (s.tutorialData) {
+    const myId = sessions.getToken(socket.id) ?? socket.id;
+    if (myId !== s.player1.id) {
+      socket.emit('error', { message: '튜토리얼은 플레이어만 진행할 수 있습니다.' });
+      return;
+    }
+    if (data.type !== 'submit' && data.type !== 'tutorial-ack') return;
+    const result = advanceNumberFourTutorial(s.tutorialData, data as NumberFourAction);
+    if (result.error) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    s.tutorialData = result.data;
+    s.round = result.data.round;
+    s.phase = result.data.phase;
+    for (const player of [s.player1, s.player2])
+      Object.assign(player, result.data.players[player.id]);
+    broadcastState(io, s);
+    if (result.complete) {
+      s.gameOver = true;
+      s.endGameCallback(io, roomId, {
+        rankings: [
+          { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
+        ],
+        totalTurns: s.round,
+        gameResultData: {
+          tutorial: true,
+          roundHistory: result.data.roundHistory,
+          finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
+          players: {
+            [s.player1.id]: { nickname: s.player1.nickname },
+            [s.player2.id]: { nickname: s.player2.nickname },
+          },
+        },
+      });
+    }
+    return;
+  }
 
   switch (data.type) {
     case 'submit':
@@ -184,11 +231,13 @@ function getActionPlayer(
 
 export function canNumberFourUndo(roomId: string): boolean {
   const s = gameStates.get(roomId);
-  if (!s || s.gameOver) return false;
+  if (!s || s.gameOver || s.playMode === 'tutorial') return false;
   const partial =
     s.phase !== 'submit' ||
-    s.player1.submitted || s.player2.submitted ||
-    s.player1.submittedWhite !== null || s.player2.submittedWhite !== null;
+    s.player1.submitted ||
+    s.player2.submitted ||
+    s.player1.submittedWhite !== null ||
+    s.player2.submittedWhite !== null;
   return partial ? s.undoSnapshots.length >= 1 : s.undoSnapshots.length >= 2;
 }
 

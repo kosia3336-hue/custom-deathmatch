@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useMemo, useState } from 'react';
 import { PlayingCard } from '@/components/game/cards';
 import Button from '@/components/ui/Button';
@@ -577,9 +579,7 @@ export default function DoubleSidedPokerGame() {
 
   if (!gameData) {
     return (
-      <div className="text-cdm-fg-muted flex h-full items-center justify-center">
-        게임을 불러오는 중...
-      </div>
+      <GameLoading label="게임을 불러오는 중" />
     );
   }
 

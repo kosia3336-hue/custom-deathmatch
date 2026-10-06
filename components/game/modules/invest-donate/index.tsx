@@ -1,5 +1,7 @@
 'use client';
 
+import GameLoading from '@/components/game/GameLoading';
+
 import { useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
@@ -68,7 +70,7 @@ export default function InvestDonateGame() {
   if (!gameData) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-500">게임을 불러오는 중...</p>
+        <GameLoading label="게임을 불러오는 중" />
       </div>
     );
   }
