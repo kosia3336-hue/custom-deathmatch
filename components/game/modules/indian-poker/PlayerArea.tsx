@@ -6,40 +6,34 @@ interface PlayerAreaProps {
   player: IPPlayerInfo;
   isMe: boolean;
   isCurrentTurn: boolean;
-  timerRemaining: number | null;
 }
 
-/*
-  사이드 패널의 '플레이어'(짙은 잉크 칸) 안에서만 쓴다. 예전에는 카드 바탕을
-  흰색으로 고정해 두고 닉네임은 색을 안 줘 잉크 칸의 밝은 글자색을 물려받아,
-  흰 카드 위 흰 닉네임이 되어 보이지 않았다. 카드도 잉크 톤으로 맞춘다.
-*/
-export default function PlayerArea({ player, isMe, isCurrentTurn, timerRemaining }: PlayerAreaProps) {
+export default function PlayerArea({ player, isMe, isCurrentTurn }: PlayerAreaProps) {
   return (
-    <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
-      isCurrentTurn
-        ? 'border-amber-400 bg-amber-400/15 ring-1 ring-amber-400/40'
-        : isMe ? 'border-cdm-primary bg-cdm-primary/20' : 'border-cdm-ink-border bg-white/5'
-    }`}>
+    <div
+      className={`text-cdm-fg min-w-0 rounded-lg border px-2 py-1.5 transition-colors sm:px-3 ${
+        isCurrentTurn
+          ? 'border-cdm-primary bg-cdm-primary/10'
+          : 'border-cdm-border bg-cdm-bg-elev-1'
+      }`}
+    >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-cdm-ink-fg truncate text-sm font-semibold lg:text-base">{player.nickname}</span>
-          {isMe && <span className="text-[10px] font-medium text-indigo-300 lg:text-xs">(나)</span>}
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="flex min-w-0 items-center gap-1 font-semibold">
+            <span className="min-w-0 truncate" title={player.nickname}>
+              {player.nickname}
+            </span>
+            {isMe && <span className="shrink-0 text-[11px]">(나)</span>}
+          </span>
+          <strong className="shrink-0 tabular-nums">{player.chips}칩</strong>
         </div>
-        <div className="mt-0.5 flex items-center gap-3">
-          <span className="text-sm font-bold text-cdm-ink-fg lg:text-base">{player.chips}</span>
-          {player.roundBet > 0 && (
-            <span className="text-xs text-cdm-ink-fg-muted lg:text-sm">베팅: {player.roundBet}</span>
-          )}
+        <div className="text-cdm-fg-muted mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-[11px]">
+          <span>
+            베팅 <strong className="tabular-nums">{player.roundBet}</strong>
+          </span>
+          {isCurrentTurn && <span className="text-cdm-primary font-semibold">베팅 중</span>}
         </div>
       </div>
-      {isCurrentTurn && timerRemaining !== null && timerRemaining >= 0 && (
-        <span className={`font-mono text-xs tabular-nums lg:text-sm ${
-          timerRemaining <= 10 ? 'animate-pulse text-red-400' : timerRemaining <= 30 ? 'text-yellow-300' : 'text-cdm-ink-fg-muted'
-        }`}>
-          ⏱{Math.ceil(timerRemaining)}s
-        </span>
-      )}
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
-import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import {
-  INITIAL_CHIPS_DEFAULT, INITIAL_CHIPS_MIN, INITIAL_CHIPS_MAX, INITIAL_CHIPS_STEP,
+  INITIAL_CHIPS_DEFAULT,
+  INITIAL_CHIPS_MIN,
+  INITIAL_CHIPS_MAX,
+  INITIAL_CHIPS_STEP,
   INITIAL_ANTE,
 } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -12,13 +14,14 @@ import {
   gameStates,
   broadcastState,
   emitStateToSocket,
-  clearTurnTimer,
+  clearGameTimers,
   startTurnTimer,
-  advanceRound,
   processBettingAction,
   performIndianPokerUndo,
 } from './state.js';
 import { aiTakeTurn } from './ai.js';
+import { createSnapshot } from './snapshots.js';
+import { indianPokerBettingLimits } from '@shared/indianPokerBetting.js';
 
 export type { EndGameFn };
 export { performIndianPokerUndo };
@@ -43,7 +46,7 @@ export function initIndianPoker(
   gameOptions: Record<string, unknown> = {},
 ) {
   const prev = gameStates.get(roomId);
-  if (prev) clearTurnTimer(prev);
+  if (prev) clearGameTimers(prev);
   gameStates.delete(roomId);
 
   const initialChips = parseInitialChips(gameOptions);
@@ -83,6 +86,8 @@ export function initIndianPoker(
     turnStartedAt: Date.now(),
     timeLimitSeconds,
     turnTimer: null,
+    nextRoundTimer: null,
+    finishTimer: null,
     playMode,
     gameOver: false,
     totalBettingActions: 0,
@@ -128,28 +133,6 @@ function startFirstRound(io: IO, s: InternalState) {
   }
 }
 
-function createSnapshot(s: InternalState) {
-  return {
-    round: s.round,
-    phase: s.phase,
-    deck: [...s.deck],
-    communityCards: s.communityCards ? [...s.communityCards] as [number, number] : null,
-    player1: { chips: s.players[s.player1Id].chips, roundBet: s.players[s.player1Id].roundBet, card: s.players[s.player1Id].card },
-    player2: { chips: s.players[s.player2Id].chips, roundBet: s.players[s.player2Id].roundBet, card: s.players[s.player2Id].card },
-    pot: s.pot,
-    currentTurnId: s.currentTurnId,
-    currentBet: s.currentBet,
-    ante: s.ante,
-    deckCycle: s.deckCycle,
-    firstBettorId: s.firstBettorId,
-    bettingStarted: s.bettingStarted,
-    currentRoundActions: JSON.parse(JSON.stringify(s.currentRoundActions)),
-    roundHistory: JSON.parse(JSON.stringify(s.roundHistory)),
-    usedCards: [...s.usedCards],
-    totalBettingActions: s.totalBettingActions,
-  };
-}
-
 export function handleIndianPokerAction(
   io: IO,
   socket: TypedSocket,
@@ -174,7 +157,9 @@ export function handleIndianPokerAction(
   if (typeof actionType !== 'string') return;
 
   const player = s.players[myId];
-  const opponent = Object.values(s.players).find(p => p.id !== myId)!;
+  const opponent = Object.values(s.players).find((p) => p.id !== myId);
+  if (!player || !opponent) return;
+  const limits = indianPokerBettingLimits(player, opponent);
 
   switch (actionType) {
     case 'check': {
@@ -187,8 +172,7 @@ export function handleIndianPokerAction(
     }
 
     case 'call': {
-      const callCost = opponent.roundBet - player.roundBet;
-      if (callCost > player.chips) {
+      if (!limits.canCall) {
         socket.emit('error', { message: '콜할 칩이 부족합니다. 다이만 가능합니다.' });
         return;
       }
@@ -202,7 +186,7 @@ export function handleIndianPokerAction(
         socket.emit('error', { message: '올바른 레이즈 금액을 입력해 주세요.' });
         return;
       }
-      if (amount <= opponent.roundBet) {
+      if (amount < limits.minRaise) {
         socket.emit('error', { message: '레이즈는 상대 베팅보다 많아야 합니다.' });
         return;
       }
@@ -211,8 +195,7 @@ export function handleIndianPokerAction(
         socket.emit('error', { message: '보유 칩이 부족합니다.' });
         return;
       }
-      const opponentMaxCall = opponent.roundBet + opponent.chips;
-      if (amount > opponentMaxCall) {
+      if (amount > limits.maxRaise) {
         socket.emit('error', { message: '상대의 보유 칩을 초과한 레이즈는 불가능합니다.' });
         return;
       }
@@ -239,7 +222,7 @@ export function canIndianPokerUndo(roomId: string): boolean {
 
 export function cleanupIndianPoker(roomId: string) {
   const s = gameStates.get(roomId);
-  if (s) clearTurnTimer(s);
+  if (s) clearGameTimers(s);
   gameStates.delete(roomId);
 }
 

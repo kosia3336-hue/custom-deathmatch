@@ -1,6 +1,6 @@
 import type { GameResult } from '@shared/types/events.js';
 import type { PlayMode } from '@shared/types/room.js';
-import type { IPPhase, IPWinType, IPHand, IPBettingAction, IPRoundRecord } from '@shared/types/indian-poker.js';
+import type { IPPhase, IPWinType, IPHand, IPBettingAction } from '@shared/types/indian-poker.js';
 
 export type EndGameFn = (
   io: import('./constants.js').IO,
@@ -43,6 +43,7 @@ export interface IPUndoSnapshot {
   currentTurnId: string | null;
   currentBet: number;
   ante: number;
+  roundAnte: number;
   deckCycle: number;
   firstBettorId: string;
   bettingStarted: boolean;
@@ -87,6 +88,8 @@ export interface InternalState {
   turnStartedAt: number;
   timeLimitSeconds: number | null;
   turnTimer: ReturnType<typeof setTimeout> | null;
+  nextRoundTimer: ReturnType<typeof setTimeout> | null;
+  finishTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
   gameOver: boolean;
   totalBettingActions: number;

@@ -1,0 +1,348 @@
+/* PC는 상대 위·본인 아래, 모바일은 본인 왼쪽·상대 오른쪽. */
+.tableCard {
+  width: min(3.5rem, max(0.65rem, calc((100cqh - var(--ip-card-overhead, 8rem)) / 4))) !important;
+  height: auto !important;
+  aspect-ratio: 5 / 7;
+}
+.tableCardSmall {
+  width: min(
+    2.75rem,
+    max(0.55rem, calc((100cqh - var(--ip-card-overhead, 8rem)) / 4.8))
+  ) !important;
+}
+@media (min-width: 1024px) {
+  .tableCard {
+    width: min(5rem, max(0.65rem, calc((100cqh - var(--ip-card-overhead, 8rem)) / 4))) !important;
+  }
+  .tableCardSmall {
+    width: min(
+      4.25rem,
+      max(0.55rem, calc((100cqh - var(--ip-card-overhead, 8rem)) / 4.8))
+    ) !important;
+  }
+}
+
+.bettingPanel {
+  --ip-accent: var(--cdm-primary);
+  --ip-ink: var(--cdm-fg);
+  color: var(--ip-ink);
+  background: var(--cdm-bg);
+  border: 1px solid var(--cdm-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 2px 4px #24243906;
+  font-size: 13px;
+}
+.bettingPanel :global(.ip-betting-summary) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  background: var(--cdm-bg-elev-1);
+  border-radius: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  color: var(--cdm-fg-muted);
+}
+.bettingPanel :global(.ip-betting-summary) span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 6px;
+  padding: 0 4px;
+}
+.bettingPanel :global(.ip-betting-summary) span + span {
+  border-left: 1px solid var(--cdm-border);
+}
+.bettingPanel strong {
+  color: inherit;
+}
+.bettingPanel :global(.ip-betting-summary) strong {
+  font-size: 16px;
+  color: var(--ip-ink);
+  font-variant-numeric: tabular-nums;
+}
+.bettingPanel :global(.ip-betting-status) {
+  background: var(--cdm-bg-elev-1);
+  border-radius: 7px;
+  text-align: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--cdm-fg-muted);
+}
+.bettingPanel button {
+  cursor: pointer;
+  touch-action: manipulation;
+  border: 1px solid var(--cdm-border-strong);
+  border-radius: 9px;
+  font: inherit;
+  min-height: 36px;
+  background: var(--cdm-bg);
+  transition:
+    background 120ms,
+    box-shadow 120ms,
+    transform 120ms;
+}
+.bettingPanel button:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.bettingPanel button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.bettingPanel button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.bettingPanel button:focus-visible,
+.bettingPanel input:focus-visible {
+  outline: 2px solid var(--ip-accent);
+  outline-offset: 3px;
+}
+.bettingPanel :global(.ip-betting-actions) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.bettingPanel :global(.ip-betting-action) {
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+.bettingPanel :global(.ip-betting-action) strong {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.bettingPanel :global(.ip-betting-action) span {
+  font-size: 11px;
+}
+.bettingPanel :global(.ip-betting-primary) {
+  color: #fff;
+  background: var(--ip-accent);
+  border-color: var(--ip-accent);
+  font-weight: 600;
+}
+.bettingPanel :global(.ip-betting-raise) {
+  border-color: var(--ip-accent);
+  color: var(--ip-accent);
+}
+.bettingPanel :global(.ip-betting-fold) {
+  background: #faeeec;
+  border-color: #dfaeb0;
+  color: #653345;
+}
+.bettingPanel :global(.ip-betting-wait) {
+  text-align: center;
+  padding: 8px;
+  color: var(--cdm-fg-muted);
+  font-size: 12px;
+}
+.bettingPanel :global(.ip-raise-input) {
+  display: grid;
+  gap: 8px;
+}
+.bettingPanel :global(.ip-raise-top) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bettingPanel :global(.ip-raise-top) label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bettingPanel :global(.ip-raise-stepper) {
+  display: flex;
+  gap: 6px;
+}
+.bettingPanel :global(.ip-raise-stepper) button {
+  width: 36px;
+  font-size: 20px;
+}
+.bettingPanel :global(.ip-raise-stepper) input {
+  width: 82px;
+  min-width: 0;
+  border: 1px solid var(--cdm-border-strong);
+  border-radius: 9px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  background: #fff;
+  color: var(--ip-ink);
+  padding: 1px 4px;
+  appearance: textfield;
+}
+.bettingPanel :global(.ip-raise-stepper) input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.bettingPanel :global(.ip-raise-presets) {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.bettingPanel :global(.ip-raise-presets) button {
+  padding: 3px 10px;
+  min-height: 32px;
+  font-size: 12px;
+}
+.bettingPanel :global(.ip-raise-slider) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--cdm-fg-muted);
+}
+.bettingPanel :global(.ip-raise-slider) span {
+  white-space: nowrap;
+}
+.bettingPanel :global(.ip-raise-slider) input {
+  accent-color: var(--ip-accent);
+  min-width: 0;
+  flex: 1;
+  height: 24px;
+}
+.bettingPanel :global(.ip-raise-confirm) {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+@media (min-width: 640px) {
+  .bettingPanel :global(.ip-betting-action) {
+    min-height: 68px;
+  }
+}
+@media (max-width: 480px) {
+  .bettingPanel :global(.ip-raise-presets) {
+    width: 100%;
+  }
+}
+@media (max-height: 740px) and (max-width: 639px) {
+  .bettingPanel {
+    padding: 8px;
+    gap: 5px;
+  }
+  .bettingPanel :global(.ip-betting-actions) {
+    gap: 5px;
+  }
+  .bettingPanel :global(.ip-betting-action) {
+    min-height: 44px;
+  }
+  .bettingPanel :global(.ip-betting-action) strong {
+    font-size: 17px;
+  }
+  .bettingPanel :global(.ip-betting-summary) {
+    padding: 4px 0;
+  }
+  .bettingPanel :global(.ip-raise-input) {
+    gap: 5px;
+  }
+}
+
+/* 높이는 자리 순서를 바꾸지 않고, 모바일 너비에서만 좌우 구도로 전환한다. */
+.cardTable {
+  isolation: isolate;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+  width: min(100%, 22rem);
+}
+.cardSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+}
+.cardSlot > span {
+  max-width: 100%;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.communityCards {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deckPile {
+  position: absolute;
+  left: calc(100% + 12px);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 1024px) {
+  .cardTable {
+    row-gap: 12px;
+  }
+}
+
+@container (max-height: 240px) {
+  /* 낮은 무대에서는 장식용 더미를 숨기고 플레이 카드 공간을 확보한다. */
+  .deckPile {
+    display: none;
+  }
+}
+
+@container (max-height: 200px) {
+  .tableShell {
+    padding: 4px !important;
+  }
+  .cardTable {
+    --ip-card-overhead: 4.5rem;
+    --ip-horizontal-reserve: 2rem;
+    gap: 2px;
+    padding: 4px !important;
+  }
+  .cardSlot {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 639px) {
+  .cardTable {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+  }
+  .mySlot {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .communitySlot {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .opponentSlot {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .tableCard {
+    width: min(
+      3.5rem,
+      max(0.65rem, calc((100cqh - var(--ip-horizontal-reserve, 4rem)) * 0.6))
+    ) !important;
+  }
+  .tableCardSmall {
+    width: min(
+      2.75rem,
+      max(0.55rem, calc((100cqh - var(--ip-horizontal-reserve, 4rem)) * 0.5))
+    ) !important;
+  }
+}

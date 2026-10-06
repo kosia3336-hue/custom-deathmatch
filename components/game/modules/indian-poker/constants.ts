@@ -21,7 +21,7 @@ export function formatBettingVerb(action: IPBettingAction | undefined): string {
     case 'raise':
       return `레이즈 → ${action.amount ?? '?'}`;
     case 'die':
-      return '다이';
+      return '폴드';
     default:
       return '—';
   }

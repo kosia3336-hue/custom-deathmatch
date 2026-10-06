@@ -32,7 +32,7 @@ export default function MoonlitShuffleOverlay({ show, ante }: Props) {
         </div>
         <div>
           <p className="text-2xl font-bold tracking-wide text-slate-100">카드를 셔플합니다</p>
-          <p className="mt-1 text-sm text-slate-400">앤티 {ante}개로 인상됩니다</p>
+          <p className="mt-1 text-sm text-slate-400">앤트 {ante}개로 인상됩니다</p>
         </div>
       </div>
     </div>

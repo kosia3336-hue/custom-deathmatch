@@ -9,9 +9,22 @@ import { gameStates, processBettingAction, broadcastState } from './state.js';
 
 /* ── types ──────────────────────────────────────────── */
 
-interface WinProbability { win: number; lose: number; draw: number; }
-interface HandProbability { noPair: number; double: number; straight: number; triple: number; }
-type BettingAction = { type: 'check' } | { type: 'call' } | { type: 'raise'; amount: number } | { type: 'die' };
+interface WinProbability {
+  win: number;
+  lose: number;
+  draw: number;
+}
+interface HandProbability {
+  noPair: number;
+  double: number;
+  straight: number;
+  triple: number;
+}
+type BettingAction =
+  | { type: 'check' }
+  | { type: 'call' }
+  | { type: 'raise'; amount: number }
+  | { type: 'die' };
 
 /* ── helpers ────────────────────────────────────────── */
 
@@ -41,7 +54,9 @@ function calcWinProbability(
   const userHand = evaluateHand(userCard, communityCards);
   const remaining = getRemainingCards(usedCards, communityCards, userCard);
 
-  let wins = 0, losses = 0, draws = 0;
+  let wins = 0,
+    losses = 0,
+    draws = 0;
   for (const aiCard of remaining) {
     const aiHand = evaluateHand(aiCard, communityCards);
     const result = judgeShowdown(
@@ -91,7 +106,7 @@ function calcUserAggressiveness(
     if (userActions.some((a) => a.action === 'die')) diedRounds++;
   }
   const total = roundHistory.length;
-  const score = (raisedRounds / total) - (diedRounds / total) * 0.5 + 0.5;
+  const score = raisedRounds / total - (diedRounds / total) * 0.5 + 0.5;
   return Math.min(1, Math.max(0, score));
 }
 
@@ -138,12 +153,16 @@ function isCallBetterThanDie(
 
 /** AI 레이즈 가능 최대치: 자신의 올인 상한과 상대 올인 상한 중 작은 값 */
 function aiMaxRaise(ai: IPPlayerInternal, opponent: IPPlayerInternal): number {
-  const myMax = ai.roundBet + ai.chips;           // 내 올인 총 roundBet
+  const myMax = ai.roundBet + ai.chips; // 내 올인 총 roundBet
   const opponentMax = opponent.roundBet + opponent.chips; // 상대 올인 총 roundBet
   return Math.min(myMax, opponentMax);
 }
 
-function valueRaise(s: InternalState, ai: IPPlayerInternal, winProb: WinProbability): BettingAction {
+function valueRaise(
+  s: InternalState,
+  ai: IPPlayerInternal,
+  winProb: WinProbability,
+): BettingAction {
   const opponent = getOpponent(s, ai.id);
   const maxAmount = aiMaxRaise(ai, opponent);
   const minAmount = opponent.roundBet + 1;
@@ -236,9 +255,9 @@ export async function aiTakeTurn(io: IO, s: InternalState): Promise<void> {
 
   await wait(randDelay());
 
-  if (!gameStates.has(s.roomId)) return;
+  if (gameStates.get(s.roomId) !== s) return;
   if (s.aiGeneration !== gen) return;
-  if (s.phase !== 'betting') return;
+  if (s.phase !== 'betting' || s.currentTurnId !== s.player2Id || s.gameOver) return;
 
   processBettingAction(io, s, s.player2Id, action);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useSkinFx } from '@/lib/skins/useSkinFx';
 import { sfxDealSequence } from '@/lib/audio/skins/nocturne';
 

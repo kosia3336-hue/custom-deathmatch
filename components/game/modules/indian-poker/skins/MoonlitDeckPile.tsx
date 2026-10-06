@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useDelayedCardReveal } from '../useIndianPokerPresentation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
@@ -20,33 +20,25 @@ function DeckCard() {
 }
 
 const STACK = [
-  { x: 9,   y: 9,   opacity: 0.30 },
-  { x: 7,   y: 7,   opacity: 0.40 },
-  { x: 5,   y: 5,   opacity: 0.55 },
-  { x: 3,   y: 3,   opacity: 0.70 },
+  { x: 9, y: 9, opacity: 0.3 },
+  { x: 7, y: 7, opacity: 0.4 },
+  { x: 5, y: 5, opacity: 0.55 },
+  { x: 3, y: 3, opacity: 0.7 },
   { x: 1.5, y: 1.5, opacity: 0.85 },
-  { x: 0,   y: 0,   opacity: 1.00 },
+  { x: 0, y: 0, opacity: 1.0 },
 ];
 
 const FAN_POSITIONS = [
-  { x: -28, y: -8,  rotate: -18 },
+  { x: -28, y: -8, rotate: -18 },
   { x: -16, y: -14, rotate: -9 },
-  { x: -4,  y: -16, rotate: -2 },
-  { x: 8,   y: -14, rotate: 5  },
-  { x: 20,  y: -8,  rotate: 12 },
-  { x: 30,  y: 0,   rotate: 18 },
+  { x: -4, y: -16, rotate: -2 },
+  { x: 8, y: -14, rotate: 5 },
+  { x: 20, y: -8, rotate: 12 },
+  { x: 30, y: 0, rotate: 18 },
 ];
 
 export default function MoonlitDeckPile({ showShuffle = false }: Props) {
-  const [isFanned, setIsFanned] = useState(false);
-
-  useEffect(() => {
-    if (showShuffle) {
-      const t = setTimeout(() => setIsFanned(true), 150);
-      return () => clearTimeout(t);
-    }
-    setIsFanned(false);
-  }, [showShuffle]);
+  const isFanned = useDelayedCardReveal(showShuffle, 'shuffle', 150);
 
   return (
     <div className="pointer-events-none relative flex flex-col items-center self-end" aria-hidden>
@@ -84,7 +76,7 @@ export default function MoonlitDeckPile({ showShuffle = false }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.3 }}
-            className="mt-2 whitespace-nowrap text-[11px] font-semibold tracking-wide text-slate-300/90 lg:text-xs"
+            className="mt-2 text-[11px] font-semibold tracking-wide whitespace-nowrap text-slate-300/90 lg:text-xs"
           >
             셔플합니다
           </motion.p>
