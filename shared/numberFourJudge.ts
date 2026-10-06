@@ -1,4 +1,4 @@
-import type { NF4Number } from './types/number4';
+import { nf4ScoreDelta, type NF4Number } from './types/number4';
 
 export function judgeNumber(
   myWhite: number,
@@ -13,7 +13,7 @@ export function judgeNumber(
       const success = totalBlack >= 11;
       return {
         success,
-        scoreChange: success ? 5 : -1,
+        scoreChange: nf4ScoreDelta(myNumber, success),
         conditionDetail: success ? '흑색 합계 ≥ 11' : '흑색 합계 < 11',
       };
     }
@@ -21,7 +21,7 @@ export function judgeNumber(
       const success = myWhite >= opWhite;
       return {
         success,
-        scoreChange: success ? 1 : -1,
+        scoreChange: nf4ScoreDelta(myNumber, success),
         conditionDetail: success ? '내 백색 ≥ 상대 백색' : '내 백색 < 상대 백색',
       };
     }
@@ -31,7 +31,7 @@ export function judgeNumber(
       const success = myProduct > opProduct;
       return {
         success,
-        scoreChange: success ? 2 : -1,
+        scoreChange: nf4ScoreDelta(myNumber, success),
         conditionDetail: success ? '내 (백×흑) > 상대 (백×흑)' : '내 (백×흑) ≤ 상대 (백×흑)',
       };
     }
@@ -40,7 +40,7 @@ export function judgeNumber(
       const success = myWhite >= threshold;
       return {
         success,
-        scoreChange: success ? 3 : -1,
+        scoreChange: nf4ScoreDelta(myNumber, success),
         conditionDetail: success ? '내 백색 ≥ 상대 흑색+2' : '내 백색 < 상대 흑색+2',
       };
     }
@@ -49,7 +49,7 @@ export function judgeNumber(
       const success = myWhite >= threshold;
       return {
         success,
-        scoreChange: success ? 4 : -1,
+        scoreChange: nf4ScoreDelta(myNumber, success),
         conditionDetail: success ? '내 백색 ≥ 상대 흑색×2' : '내 백색 < 상대 흑색×2',
       };
     }

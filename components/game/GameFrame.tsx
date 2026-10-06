@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
-import { useGameToolsRegistration, type GameTool } from '@/contexts/GameToolsContext';
+import { useMemo, type ReactNode } from 'react';
+import type { GameTool } from '@/contexts/GameToolsContext';
+import { useGameToolRegistration } from '@/hooks/useGameToolRegistration';
 import { cn } from '@/lib/utils';
 import styles from './game-frame.module.css';
 
@@ -87,24 +88,16 @@ export function GameFrame({
   /** PC에서 독립적으로 옮길 편의기능. mobileSlot은 좁은 화면의 기존 위치를 가리킨다. */
   tools?: GameTool[];
 }) {
-  const registration = useGameToolsRegistration();
-  const register = registration?.register;
-  const unregister = registration?.unregister;
-  useEffect(() => {
-    if (!register || !unregister) return;
-    const panels: GameTool[] = [...(tools ?? [])];
-    if (aside)
-      panels.push({
-        id: 'reference',
-        title: '편의기능',
-        content: aside,
-        defaultEdge: 'right',
-        height: 320,
-      });
-    panels.forEach(register);
-    return () => panels.forEach((panel) => unregister(panel.id));
-  }, [register, unregister, tools, aside]);
-  const desktop = registration?.desktop ?? false;
+  const panels = useMemo<GameTool[]>(
+    () => [
+      ...(tools ?? []),
+      ...(aside
+        ? [{ id: 'reference', title: '편의기능', content: aside, preferredBodyHeight: 320 }]
+        : []),
+    ],
+    [tools, aside],
+  );
+  const desktop = useGameToolRegistration(panels);
   const showInfo = !desktop || !tools?.some((tool) => tool.mobileSlot === 'info');
   const showControls = !desktop || !tools?.some((tool) => tool.mobileSlot === 'controls');
   return (

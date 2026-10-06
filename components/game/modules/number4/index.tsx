@@ -2,42 +2,24 @@
 
 import GameLoading from '@/components/game/GameLoading';
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
 import type { NumberFourGameData, NumberFourAction } from '@/shared/types/number4';
-import { INITIAL_WHITE, INITIAL_BLACK } from '@/shared/types/number4';
 import { getSkinTheme, type SkinTheme } from '@/lib/skins/registry';
 import { GAME_IDS } from '@/shared/types/game';
 import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
-import InfoPanel from './InfoPanel';
-import TileTracker from './TileTracker';
 import { WIN_TYPE_LABELS } from './constants';
 import { GameFrame } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import styles from './number-four.module.css';
-import { useGameToolsRegistration, type GameTool } from '@/contexts/GameToolsContext';
 import TutorialCoach from '@/components/game/TutorialCoach';
-import {
-  updateNumberFourNote,
-  clearNumberFourNote,
-  type NumberFourRoundNotes,
-} from '@/lib/numberFourNotes';
-
-export function numberFourStatus(data: NumberFourGameData, myId: string, spectator: boolean) {
-  if (data.tutorial) return '튜토리얼';
-  if (data.phase === 'finished') return '종료';
-  if (data.phase === 'reveal') return '제출 공개';
-  if (data.currentSide)
-    return `${data.currentSide === 'player1' ? '1P' : '2P'} 차례 · 타일 넘버 선택`;
-  if (spectator) return '(공동 차례) 제출 대기';
-  return data.players[myId]?.submitted
-    ? '(공동 차례) 상대 제출 대기'
-    : '(공동 차례) 타일 넘버 선택';
-}
+import { TOTAL_ROUNDS } from '@/shared/types/number4';
+import { useNumberFourTools } from './useNumberFourTools';
+export { numberFourStatus } from '@/lib/numberFourView';
 
 const sendAction = (action: NumberFourAction) => getSocket().emit('game:action', action);
 
@@ -87,103 +69,17 @@ export function NumberFourView({
   onAction: (action: NumberFourAction) => void;
 }) {
   const { setHud } = useRoomLayout();
-  const desktop = useGameToolsRegistration()?.desktop ?? false;
-  const [notes, setNotes] = useState<NumberFourRoundNotes>({});
-  const [pinnedMemoRound, setPinnedRound] = useState<number | null>(null);
-  const memoRound = Math.min(pinnedMemoRound ?? data.round, data.round);
-  const selectMemoRound = useCallback(
-    (round: number) => setPinnedRound(round === data.round ? null : round),
-    [data.round],
+  const { desktop, info, tracker, tools, model } = useNumberFourTools(
+    data,
+    myId,
+    isSpectator,
+    skin,
   );
-  const order = numberFourStatus(data, myId, isSpectator);
+  const { player, order } = model;
   useEffect(() => {
-    setHud({
-      round: `${data.round} / 6R`,
-      order,
-    });
+    setHud({ round: `${data.round} / ${TOTAL_ROUNDS}R`, order });
     return () => setHud(null);
   }, [data.round, order, setHud]);
-  const entries = Object.entries(data.players);
-  const player = data.players[data.currentSide === 'player2' ? `${myId}_p2` : myId];
-  const tracked = isSpectator
-    ? entries
-    : entries.filter(([id]) => id !== myId && id !== `${myId}_p2`);
-  // 솔로는 현재 조작하는 쪽의 상대를 추리한다.
-  const trackerEntries = tracked.length ? tracked : entries.filter(([id]) => id !== player?.id);
-  const setNote = useCallback(
-    (id: string, color: 'white' | 'black', value: number) =>
-      setNotes((prev) => updateNumberFourNote(prev, memoRound, id, color, value)),
-    [memoRound],
-  );
-  const info = useMemo(
-    () => (
-      <InfoPanel
-        gameData={data}
-        myId={myId}
-        predictions={notes[data.round] ?? {}}
-        compact={!desktop}
-        notes={notes}
-      />
-    ),
-    [data, myId, notes, desktop],
-  );
-  const trackerPanel = useMemo(
-    () => (
-      <div className={styles.trackerGroup}>
-        {trackerEntries.map(([id, p]) => (
-          <TileTracker
-            key={id}
-            playerNickname={isSpectator ? p.nickname : undefined}
-            {...(notes[memoRound]?.[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK })}
-            round={memoRound}
-            currentRound={data.round}
-            entered={!!notes[memoRound]?.[id]}
-            onSelectRound={selectMemoRound}
-            showTitle={!desktop}
-            skin={skin}
-            onSet={(color, value) => setNote(id, color, value)}
-            onClear={() => setNotes((prev) => clearNumberFourNote(prev, memoRound, id))}
-          />
-        ))}
-      </div>
-    ),
-    [
-      data.players,
-      data.round,
-      myId,
-      isSpectator,
-      skin,
-      notes,
-      memoRound,
-      setNote,
-      player?.id,
-      desktop,
-      selectMemoRound,
-    ],
-  );
-  const tools = useMemo<GameTool[]>(
-    () => [
-      {
-        id: 'score',
-        title: '점수·라운드 기록',
-        content: info,
-        defaultEdge: 'right',
-        defaultOrder: 0,
-        height: 210,
-        mobileSlot: 'info',
-      },
-      {
-        id: 'tracker',
-        title: '메모 - 상대 타일 추리',
-        content: trackerPanel,
-        defaultEdge: 'right',
-        defaultOrder: 10,
-        height: isSpectator ? 400 : 260,
-        sizeToContent: true,
-      },
-    ],
-    [info, trackerPanel, isSpectator],
-  );
   const hint = data.tutorial;
   return (
     <GameFrame
@@ -212,29 +108,24 @@ export function NumberFourView({
                 className="max-w-[min(100%,720px)]"
               />
             )}
-            {!desktop && <div className="w-full">{trackerPanel}</div>}
+            {!desktop && <div className="w-full">{tracker}</div>}
           </div>
         ) : undefined
       }
       tools={tools}
     >
       <div className={styles.stage}>
-        {data.phase === 'submit' &&
-          !isSpectator &&
-          player &&
-          !player.submitted &&
-          (!hint || hint.step === 'choose') && (
-            <SubmitSelector
-              key={`${data.round}-${player.id}`}
-              player={player}
-              currentSide={data.currentSide}
-              isSpectator={false}
-              skin={skin}
-              onAction={onAction}
-              tutorial={hint}
-            />
-          )}
-        {data.phase === 'submit' && (isSpectator || player?.submitted) && (
+        {model.canChoose && player && (
+          <SubmitSelector
+            key={`${data.round}-${player.id}`}
+            player={player}
+            isSpectator={false}
+            skin={skin}
+            onAction={onAction}
+            tutorial={hint}
+          />
+        )}
+        {model.waiting && (
           <div className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted rounded-xl border p-6 text-center text-sm">
             {isSpectator ? '플레이어들의 제출을 기다립니다.' : '상대의 제출을 기다립니다.'}
             {!isSpectator && player?.submission && (
@@ -245,7 +136,7 @@ export function NumberFourView({
             )}
           </div>
         )}
-        {(data.phase === 'reveal' || data.phase === 'finished') && data.revealData && (
+        {model.revealing && data.revealData && (
           <RevealPanel
             revealData={data.revealData}
             players={data.players}

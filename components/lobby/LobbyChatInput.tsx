@@ -24,7 +24,7 @@ export const LobbyChatInput = forwardRef<HTMLInputElement>((_props, ref) => {
 
   if (!nickname) {
     return (
-      <div className="flex items-center justify-between gap-3 border-t border-cdm-border bg-cdm-bg-elev-1 px-4 py-3 text-xs text-cdm-fg-muted">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-cdm-border bg-cdm-bg-elev-1 px-4 py-3 text-xs text-cdm-fg-muted">
         <span>로그인 후 채팅에 참여할 수 있습니다.</span>
         <Button size="sm" variant="primary" onClick={() => requireNickname(() => undefined)}>
           로그인
@@ -34,7 +34,7 @@ export const LobbyChatInput = forwardRef<HTMLInputElement>((_props, ref) => {
   }
 
   return (
-    <div className="flex gap-2 border-t border-cdm-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="flex shrink-0 gap-2 border-t border-cdm-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <input
         ref={ref}
         className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"

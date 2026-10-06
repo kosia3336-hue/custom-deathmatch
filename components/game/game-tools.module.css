@@ -87,7 +87,7 @@
 }
 .body {
   display: flex;
-  min-height: 0;
+  min-height: var(--tool-min-body-height, 0px);
   flex-direction: column;
   height: var(--tool-height);
   overflow: auto;
@@ -118,34 +118,4 @@
   flex: none;
   height: auto;
   overflow: visible;
-}
-.menu {
-  position: relative;
-}
-.menuBody {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  z-index: var(--cdm-z-modal);
-  width: 210px;
-  border: 1px solid var(--cdm-border);
-  border-radius: 10px;
-  padding: 10px;
-  background: var(--cdm-bg);
-  color: var(--cdm-fg);
-  box-shadow: var(--cdm-shadow-md);
-  font-size: 12px;
-}
-.menuBody label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 7px 4px;
-}
-.menuBody button {
-  width: 100%;
-  margin-top: 5px;
-  border: 1px solid var(--cdm-border);
-  border-radius: 6px;
-  padding: 7px;
 }

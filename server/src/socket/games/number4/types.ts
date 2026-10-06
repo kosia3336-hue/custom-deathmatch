@@ -100,6 +100,8 @@ export interface InternalState {
   revealEndsAt: number | null;
   timeLimitSeconds: number | null;
   roundTimer: ReturnType<typeof setTimeout> | null;
+  /** 결과 공개/최종 승패 표시의 다음 전이. 무르기/종료 때 취소한다. */
+  transitionTimer: ReturnType<typeof setTimeout> | null;
   playMode: PlayMode;
   gameOver: boolean;
   actionLog: RoundActionLog[];

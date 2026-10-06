@@ -2866,7 +2866,9 @@ body {
    skin-duality  —  이분법 (넘버4)
    빙결(Frost) × 흑요석(Void)
 ═══════════════════════════════════════════════════ */
-.skin-duality-field {
+.skin-duality-field,
+.skin-duality-reveal-panel,
+.skin-duality-tracker {
   --dl-bg:        #090e1c;
   --dl-bg-up:     #0e1628;
   --dl-seam:      #6366f1;
@@ -2881,7 +2883,9 @@ body {
   --dl-ember-s:   rgba(249, 115, 22, 0.55);
   --dl-ink:       #eef4ff;
   --dl-ink-dim:   #7a8fa8;
+}
 
+.skin-duality-field {
   position: relative;
   background:
     linear-gradient(90deg,

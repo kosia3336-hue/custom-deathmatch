@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import DockablePanel from '@/components/cdm/DockablePanel';
-import { RoomChatTabs } from '@/components/room/ChatButton';
+import { useRoomChatChannels, RoomChatContent, RoomChatHeaderActions, RoomChatChannelTitle } from './RoomChatChannels';
 import type { DockState } from '@/lib/dockPanel';
 import { useRoomStore } from '@/stores/room';
 import type { ChatScope } from '@/shared/types';
@@ -26,6 +26,7 @@ export default function RoomChatDockPanel({
   className?: string;
 }) {
   // 펴 둔 채팅은 늘 보고 있으므로 새 메시지는 바로 읽은 것으로. 좁은 화면(숨김)에서는 헤더 배지를 살려 둔다.
+  const channels = useRoomChatChannels();
   const messagesLen = useRoomStore((s) => s.messages.length);
   const clearChatUnread = useRoomStore((s) => s.clearChatUnread);
   useEffect(() => {
@@ -36,11 +37,13 @@ export default function RoomChatDockPanel({
     <DockablePanel
       id={ROOM_CHAT_DOCK_ID}
       title="채팅"
+      headerTitle={<RoomChatChannelTitle channels={channels} />}
+      headerActions={<RoomChatHeaderActions channels={channels} />}
       dock={dock}
       floatingSize={FLOATING_SIZE}
       className={className}
     >
-      <RoomChatTabs scope={scope} active />
+      <RoomChatContent scope={scope} active channels={channels} />
     </DockablePanel>
   );
 }

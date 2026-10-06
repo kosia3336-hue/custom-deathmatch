@@ -1,24 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import type {
-  NF4PlayerInfo,
-  NF4Number,
-  NumberFourAction,
-  NF4TutorialHint,
-} from '@/shared/types/number4';
+import type { NF4PlayerInfo, NumberFourAction, NF4TutorialHint } from '@/shared/types/number4';
 import { TILES_PER_ROUND } from '@/shared/types/number4';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { NUMBER_INFO } from './constants';
 import styles from './number-four.module.css';
+import { useNumberFourSubmission } from './useNumberFourSubmission';
 import Button from '@/components/ui/Button';
 import DualityFieldShell from './skins/DualityFieldShell';
 import { DualityTileRow } from './skins/DualityTile';
+import { TileQuantities } from './Presentation';
 import DualityNumberCard from './skins/DualityNumberCard';
 
 interface SubmitSelectorProps {
   player: NF4PlayerInfo;
-  currentSide: 'player1' | 'player2' | null;
   isSpectator: boolean;
   skin?: SkinTheme | null;
   onAction: (action: NumberFourAction) => void;
@@ -27,30 +22,23 @@ interface SubmitSelectorProps {
 
 export default function SubmitSelector({
   player,
-  currentSide,
   isSpectator,
   skin,
   onAction,
   tutorial,
 }: SubmitSelectorProps) {
-  const maxWhite = Math.min(TILES_PER_ROUND, player.remainingWhite);
-  const minWhite = Math.max(0, TILES_PER_ROUND - player.remainingBlack);
-  const [white, setWhite] = useState(Math.max(minWhite, Math.min(4, maxWhite)));
-  const black = TILES_PER_ROUND - white;
-  const [selectedNumber, setSelectedNumber] = useState<NF4Number | null>(null);
-
-  const tilesValid =
-    white >= minWhite && white <= maxWhite && black >= 0 && black <= player.remainingBlack;
-  const isValid =
-    tilesValid &&
-    selectedNumber !== null &&
-    (!tutorial || (white === tutorial.expectedWhite && selectedNumber === tutorial.expectedNumber));
-  const tileChoiceFixed = minWhite === maxWhite;
-
-  const handleSubmit = () => {
-    if (!isValid || isSpectator) return;
-    onAction({ type: 'submit', white, black, number: selectedNumber! });
-  };
+  const {
+    white,
+    black,
+    setWhite,
+    selectedNumber,
+    setSelectedNumber,
+    minWhite,
+    maxWhite,
+    tileChoiceFixed,
+    isValid,
+    handleSubmit,
+  } = useNumberFourSubmission(player, tutorial, isSpectator, onAction);
 
   const isDuality = skin === 'duality';
 
@@ -59,51 +47,39 @@ export default function SubmitSelector({
       {/* 타일 선택 */}
       <div className="flex flex-col gap-2">
         <div data-tile-heading className="flex items-center justify-between">
-          <span
-            className={`text-xs font-semibold tracking-wide uppercase ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}
-          >
+          <span className={`${styles.secondaryText} text-xs font-semibold tracking-wide uppercase`}>
             타일
           </span>
-          <span className={`text-xs ${isDuality ? 'text-slate-500' : 'text-gray-400'}`}>
-            보유 □{player.remainingWhite} ■{player.remainingBlack}
+          <span className={`${styles.mutedText} text-xs`}>
+            보유 <TileQuantities white={player.remainingWhite} black={player.remainingBlack} />
           </span>
         </div>
 
         {tileChoiceFixed ? (
-          <div
-            className={`flex items-center justify-center gap-4 text-sm ${isDuality ? 'text-slate-300' : 'text-gray-600'}`}
-          >
+          <div className={`${styles.primaryText} flex items-center justify-center gap-4 text-sm`}>
             <span>
               백색 □ <strong>{white}</strong>
             </span>
             <span>
               흑색 ■ <strong>{black}</strong>
             </span>
-            <span className={`text-xs ${isDuality ? 'text-slate-500' : 'text-gray-400'}`}>
-              (선택 불가)
-            </span>
+            <span className={`${styles.mutedText} text-xs`}>(선택 불가)</span>
           </div>
         ) : (
           <div data-tile-controls className="flex items-center justify-center gap-6">
             <div className="flex flex-col items-center gap-1">
-              <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}>
-                백색 □
-              </span>
+              <span className={`${styles.secondaryText} text-xs`}>백색 □</span>
               <div className="flex items-center gap-2">
                 <button
                   aria-label="제출할 백색 감소"
                   onClick={() => setWhite((v) => Math.max(minWhite, v - 1))}
                   disabled={white <= minWhite}
-                  className={`${styles.tileButton} flex h-8 w-8 items-center justify-center rounded-lg border text-lg font-bold transition ${
-                    isDuality
-                      ? 'border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-30'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
-                  }`}
+                  className={`${styles.tileButton} flex h-8 w-8 items-center justify-center rounded-lg border text-lg font-bold transition disabled:cursor-not-allowed disabled:opacity-30`}
                 >
                   −
                 </button>
                 <span
-                  className={`${styles.tileCount} w-8 text-center text-xl font-bold ${isDuality ? 'text-slate-100' : ''}`}
+                  className={`${styles.tileCount} ${styles.valueText} w-8 text-center text-xl font-bold`}
                 >
                   {white}
                 </span>
@@ -111,25 +87,15 @@ export default function SubmitSelector({
                   aria-label="제출할 백색 증가"
                   onClick={() => setWhite((v) => Math.min(maxWhite, v + 1))}
                   disabled={white >= maxWhite}
-                  className={`${styles.tileButton} flex h-8 w-8 items-center justify-center rounded-lg border text-lg font-bold transition ${
-                    isDuality
-                      ? 'border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-30'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30'
-                  }`}
+                  className={`${styles.tileButton} flex h-8 w-8 items-center justify-center rounded-lg border text-lg font-bold transition disabled:cursor-not-allowed disabled:opacity-30`}
                 >
                   +
                 </button>
               </div>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className={`text-xs ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}>
-                흑색 ■
-              </span>
-              <span
-                className={`text-xl font-bold ${isDuality ? 'text-slate-100' : 'text-gray-700'}`}
-              >
-                {black}
-              </span>
+              <span className={`${styles.secondaryText} text-xs`}>흑색 ■</span>
+              <span className={`${styles.valueText} text-xl font-bold`}>{black}</span>
             </div>
           </div>
         )}
@@ -152,21 +118,20 @@ export default function SubmitSelector({
           </div>
         )}
 
-        <div
-          data-tile-remainder
-          className={`text-center text-xs ${isDuality ? 'text-slate-500' : 'text-gray-400'}`}
-        >
-          제시 후 잔여: □{player.remainingWhite - white} ■{player.remainingBlack - black}
+        <div data-tile-remainder className={`${styles.mutedText} text-center text-xs`}>
+          제시 후 잔여:{' '}
+          <TileQuantities
+            white={player.remainingWhite - white}
+            black={player.remainingBlack - black}
+          />
         </div>
       </div>
 
-      <div className={`border-t ${isDuality ? 'border-slate-700/50' : 'border-gray-100'}`} />
+      <div className={`${styles.divider} border-t`} />
 
       {/* 넘버 선택 */}
       <div className="flex flex-col gap-2">
-        <span
-          className={`text-xs font-semibold tracking-wide uppercase ${isDuality ? 'text-slate-400' : 'text-gray-500'}`}
-        >
+        <span className={`${styles.secondaryText} text-xs font-semibold tracking-wide uppercase`}>
           넘버
         </span>
         <div className="grid grid-cols-5 gap-1.5">

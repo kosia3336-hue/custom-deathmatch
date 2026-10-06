@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGameAudio } from '@/hooks/useGameAudio';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ import { useSmsEventRoomStore } from '@/stores/smsEventRoom';
 import { useGuildWarStore } from '@/stores/guildWar';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { RoomChatSheet, RoomChatTabs, useRoomChatUnread } from '@/components/room/ChatButton';
+import { RoomChatSheet, useRoomChatUnread } from '@/components/room/ChatButton';
 import RoomInfoSheet, { InfoRow } from '@/components/room/RoomInfoSheet';
 import { SoundSettings } from '@/components/cdm/SoundSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
@@ -29,7 +29,13 @@ import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
 import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
-import GameToolsWorkspace, { GameToolsMenu } from './GameToolsWorkspace';
+import GameToolsWorkspace from './GameToolsWorkspace';
+import {
+  useRoomChatChannels,
+  RoomChatContent,
+  RoomChatHeaderActions,
+  RoomChatChannelTitle,
+} from '@/components/room/RoomChatChannels';
 
 /*
   상단 바 단추 — 그림 아래에 이름을 적는다.
@@ -40,7 +46,8 @@ import GameToolsWorkspace, { GameToolsMenu } from './GameToolsWorkspace';
 const HEADER_BTN =
   'flex flex-col items-center gap-0.5 rounded-cdm-md px-1.5 py-1 text-cdm-ink-fg-muted transition-colors hover:bg-white/10 hover:text-white';
 const HEADER_BTN_LABEL = 'text-[11px] leading-none font-medium';
-import type { GameUndoProposal, GameTimeExpiry } from '@/shared/types/events';
+import { useGameUndo } from '@/hooks/useGameUndo';
+import { useReconnectCountdowns } from '@/hooks/useReconnectCountdowns';
 
 interface Props {
   children: React.ReactNode;
@@ -58,18 +65,37 @@ export default function GameShell({ children }: Props) {
   const [showInfo, setShowInfo] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showMemo, setShowMemo] = useState(false);
-  const extraTools = useMemo<GameTool[]>(() => [
-    { id: 'chat', title: '채팅', content: <GameChatTool />, defaultEdge: 'right', defaultOrder: 100, height: 330 },
-    ...(hud?.memo ? [{ id: 'reference', title: '편의기능', content: hud.memo, defaultEdge: 'right' as const, height: 300 }] : []),
-  ], [hud?.memo]);
+  const channels = useRoomChatChannels();
+  const messagesLen = useRoomStore((s) => s.messages.length);
+  const extraTools = useMemo<GameTool[]>(
+    () => [
+      {
+        id: 'chat',
+        title: '채팅',
+        defaultOrder: 100,
+        content: <RoomChatContent scope="room" active channels={channels} />,
+        headerTitle: <RoomChatChannelTitle channels={channels} />,
+        headerActions: <RoomChatHeaderActions channels={channels} />,
+        minBodyHeight: 220,
+        preferredBodyHeight: 330,
+      },
+      ...(hud?.memo
+        ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
+        : []),
+    ],
+    [hud?.memo, channels],
+  );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
-  const chatUnread = useRoomChatUnread(showChat || (tools.desktop && !tools.hidden.chat));
+  const chatUnread = useRoomChatUnread(showChat || tools.desktop);
+  useEffect(() => {
+    if (tools.desktop) useRoomStore.getState().clearChatUnread();
+  }, [tools.desktop, messagesLen]);
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const myId = useMySocketId();
-  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(null);
-  const [undoProposal, setUndoProposal] = useState<GameUndoProposal | null>(null);
-  const [undoWaiting, setUndoWaiting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(
+    null,
+  );
   const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
@@ -78,23 +104,27 @@ export default function GameShell({ children }: Props) {
     room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
     room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
     room?.gameId === GAME_IDS.RING_THE_BELL;
-  const showUndo = !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
+  const showUndo =
+    !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
   const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
-  /* 멀티는 상대 동의가 필요해 기다림 상태로 들어간다. 혼자 두는 판은 바로 돌아간다. */
-  const requestUndo = useCallback(() => {
-    if (room?.playMode === 'multi') setUndoWaiting(true);
-    getSocket().emit('game:undo:request');
-  }, [room?.playMode]);
-  const gameStateSigRef = useRef<string | null>(null);
-  const [reconnectTimers, setReconnectTimers] = useState<Record<string, number>>({});
+  const gameStateSig = gameState
+    ? `${gameState.turnNumber}-${gameState.turnStartedAt ?? ''}-${gameState.message}`
+    : null;
+  const { undoProposal, setUndoProposal, undoWaiting, requestUndo } = useGameUndo(
+    room?.id,
+    room?.playMode,
+    gameStateSig,
+  );
+  const reconnectTimers = useReconnectCountdowns(reconnectingPlayers);
 
   /* 전체 화면 배경 이미지가 있는 스킨 — skin-bg-<theme> 클래스로 셸 배경 적용 */
   const skinMeta = getSkinMeta(gameState?.activeSkin);
-  const skinTheme = skinMeta
-    && skinMeta.gameId === room?.gameId
-    && ['candy', 'meow', 'four-card', 'spring-rain', 'ink-wash'].includes(skinMeta.theme)
-    ? skinMeta.theme
-    : null;
+  const skinTheme =
+    skinMeta &&
+    skinMeta.gameId === room?.gameId &&
+    ['candy', 'meow', 'four-card', 'spring-rain', 'ink-wash'].includes(skinMeta.theme)
+      ? skinMeta.theme
+      : null;
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
@@ -127,15 +157,26 @@ export default function GameShell({ children }: Props) {
   const smsState = useSmsEventRoomStore((s) => s.state);
   const warState = useGuildWarStore((s) => s.state);
   const isGuildWar = room?.gameId === GAME_IDS.RING_THE_BELL;
-  const eventRound = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.gameData.handNumber
-    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.gameData.roundNumber
-    : isGuildWar ? warState?.state.setIndex : undefined;
-  const round = hud?.round ?? (eventRound != null ? (isGuildWar ? `세트 ${eventRound}` : `${eventRound}R`) : progress);
+  const eventRound =
+    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT
+      ? eventState?.gameData.handNumber
+      : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT
+        ? smsState?.gameData.roundNumber
+        : isGuildWar
+          ? warState?.state.setIndex
+          : undefined;
+  const round =
+    hud?.round ??
+    (eventRound != null ? (isGuildWar ? `세트 ${eventRound}` : `${eventRound}R`) : progress);
   const order = isGuildWar ? hud?.order : (hud?.order ?? getGameStatus(gameState, myId));
-  const spectatorCount = room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ? eventState?.spectatorCount ?? 0
-    : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ? smsState?.spectatorCount ?? 0
-    : room?.gameId === GAME_IDS.RING_THE_BELL ? warState?.spectatorCount ?? 0
-    : room?.spectators.length ?? 0;
+  const spectatorCount =
+    room?.gameId === GAME_IDS.INDIAN_POKER_EVENT
+      ? (eventState?.spectatorCount ?? 0)
+      : room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT
+        ? (smsState?.spectatorCount ?? 0)
+        : room?.gameId === GAME_IDS.RING_THE_BELL
+          ? (warState?.spectatorCount ?? 0)
+          : (room?.spectators.length ?? 0);
 
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
@@ -157,7 +198,6 @@ export default function GameShell({ children }: Props) {
     setHeaderRight(
       <>
         {hud?.headerAction}
-        <GameToolsMenu controller={tools} />
         {hasMemo && (
           <button
             type="button"
@@ -172,10 +212,10 @@ export default function GameShell({ children }: Props) {
         )}
         <button
           type="button"
-          onClick={() => { if (tools.desktop) tools.setVisible('chat', true); else setShowChat(true); }}
+          onClick={() => setShowChat(true)}
           aria-label="채팅"
           title="채팅"
-          className={cn(HEADER_BTN, 'relative')}
+          className={cn(HEADER_BTN, 'relative lg:hidden')}
         >
           <Icon name="chat" />
           <span className={HEADER_BTN_LABEL}>채팅</span>
@@ -198,94 +238,20 @@ export default function GameShell({ children }: Props) {
             <span className={HEADER_BTN_LABEL}>무르기</span>
           </button>
         )}
-        <button type="button" onClick={() => setShowSettings(true)} aria-label="설정" title="설정" className={HEADER_BTN}>
+        <button
+          type="button"
+          onClick={() => setShowSettings(true)}
+          aria-label="설정"
+          title="설정"
+          className={HEADER_BTN}
+        >
           <Icon name="settings" />
           <span className={HEADER_BTN_LABEL}>설정</span>
         </button>
       </>,
     );
     return () => setHeaderRight(null);
-  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo, tools]);
-
-  useEffect(() => {
-    const s = getSocket();
-    const onProposal = (p: GameUndoProposal) => setUndoProposal(p);
-    const onTimeExpiry = (value: GameTimeExpiry | null) => {
-      if (!value) return;
-      setUndoProposal(null);
-      setUndoWaiting(false);
-    };
-    const onDeclined = () => {
-      setUndoWaiting(false);
-      toast.message('상대가 무르기를 거절했습니다.');
-    };
-    // 무르기 요청이 서버에서 거부된 경우 (권한 없음, 이미 진행 중 등)
-    const onError = (data: { message: string }) => {
-      if (undoWaiting) {
-        setUndoWaiting(false);
-      }
-      if (data?.message) toast.error(data.message);
-    };
-    s.on('game:undo:proposal', onProposal);
-    s.on('game:time-expiry', onTimeExpiry);
-    s.on('game:undo:declined', onDeclined);
-    s.on('error', onError);
-    return () => {
-      s.off('game:undo:proposal', onProposal);
-      s.off('game:time-expiry', onTimeExpiry);
-      s.off('game:undo:declined', onDeclined);
-      s.off('error', onError);
-    };
-  }, [undoWaiting]);
-
-  // 재연결 대기 카운트다운 (플레이어별 독립 타이머)
-  useEffect(() => {
-    if (reconnectingPlayers.length === 0) {
-      setReconnectTimers({});
-      return;
-    }
-    // 새로 추가된 플레이어는 초기값 설정
-    setReconnectTimers((prev) => {
-      const next = { ...prev };
-      reconnectingPlayers.forEach((p) => {
-        if (!(p.playerId in next)) next[p.playerId] = p.secondsLeft;
-      });
-      // 이미 재연결된 플레이어 제거
-      Object.keys(next).forEach((id) => {
-        if (!reconnectingPlayers.some((p) => p.playerId === id)) delete next[id];
-      });
-      return next;
-    });
-  }, [reconnectingPlayers]);
-
-  useEffect(() => {
-    if (Object.keys(reconnectTimers).length === 0) return;
-    const id = setInterval(() => {
-      setReconnectTimers((prev) => {
-        const next = { ...prev };
-        Object.keys(next).forEach((pid) => {
-          next[pid] = Math.max(0, (next[pid] ?? 1) - 1);
-        });
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [reconnectTimers]);
-
-  const gameStateSig = gameState
-    ? `${gameState.turnNumber}-${gameState.turnStartedAt ?? ''}-${gameState.message}`
-    : null;
-
-  useEffect(() => {
-    if (!undoWaiting) {
-      gameStateSigRef.current = gameStateSig;
-      return;
-    }
-    if (gameStateSig && gameStateSig !== gameStateSigRef.current) {
-      setUndoWaiting(false);
-      gameStateSigRef.current = gameStateSig;
-    }
-  }, [gameStateSig, undoWaiting]);
+  }, [setHeaderRight, hasMemo, chatUnread, hud?.headerAction, showUndo, undoWaiting, requestUndo]);
 
   useEffect(() => {
     setFooter(null);
@@ -295,12 +261,19 @@ export default function GameShell({ children }: Props) {
 
   return (
     <>
-      <TimeExpiryModal expiry={timeExpiry?.roomId === room?.id ? timeExpiry : null} myId={myId} onDecision={(decision) => {
-        if (!timeExpiry) return;
-        const socket = getSocket();
-        if (!socket.connected) { toast.error('서버에 다시 연결된 후 선택해 주세요.'); return; }
-        socket.emit('game:time-expiry:respond', { requestId: timeExpiry.requestId, decision });
-      }} />
+      <TimeExpiryModal
+        expiry={timeExpiry?.roomId === room?.id ? timeExpiry : null}
+        myId={myId}
+        onDecision={(decision) => {
+          if (!timeExpiry) return;
+          const socket = getSocket();
+          if (!socket.connected) {
+            toast.error('서버에 다시 연결된 후 선택해 주세요.');
+            return;
+          }
+          socket.emit('game:time-expiry:respond', { requestId: timeExpiry.requestId, decision });
+        }}
+      />
       <div
         className={`relative flex h-full min-h-0 flex-1 flex-col overflow-hidden ${
           skinTheme ? `skin-bg-${skinTheme}` : ''
@@ -310,43 +283,65 @@ export default function GameShell({ children }: Props) {
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
           <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="mx-4 w-full max-w-sm rounded-cdm-xl bg-cdm-bg p-6 text-center shadow-(--cdm-shadow-lg)">
+            <div className="rounded-cdm-xl bg-cdm-bg mx-4 w-full max-w-sm p-6 text-center shadow-(--cdm-shadow-lg)">
               {reconnectingPlayers.length === 1 ? (
                 <>
-                  <h3 className="mb-1 text-lg font-bold text-cdm-fg">
+                  <h3 className="text-cdm-fg mb-1 text-lg font-bold">
                     {/* 익명(???)은 플레이어에게 '상대' 로 — "??? 님" 은 누구인지 알아보기 어렵다 */}
                     {!isSpectator && reconnectingPlayers[0].nickname === ANONYMOUS_NICKNAME
                       ? '상대'
                       : `${reconnectingPlayers[0].nickname} 님`}{' '}
                     연결이 끊어졌습니다
                   </h3>
-                  <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
+                  <p className="text-cdm-fg-muted mb-4 text-sm">재연결 대기 중...</p>
                   <div className="mb-4 flex justify-center">
-                    <ProgressRing size={80} label="재접속 남은 시간" value={((reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft) / 30) * 100}>
-                      <span className="text-lg font-bold">{reconnectTimers[reconnectingPlayers[0].playerId] ?? reconnectingPlayers[0].secondsLeft}초</span>
+                    <ProgressRing
+                      size={80}
+                      label="재접속 남은 시간"
+                      value={
+                        ((reconnectTimers[reconnectingPlayers[0].playerId] ??
+                          reconnectingPlayers[0].secondsLeft) /
+                          30) *
+                        100
+                      }
+                    >
+                      <span className="text-lg font-bold">
+                        {reconnectTimers[reconnectingPlayers[0].playerId] ??
+                          reconnectingPlayers[0].secondsLeft}
+                        초
+                      </span>
                     </ProgressRing>
                   </div>
-                  <p className="text-xs text-cdm-fg-subtle">
+                  <p className="text-cdm-fg-subtle text-xs">
                     시간이 초과되면 상대방이 기권 처리됩니다.
                   </p>
                 </>
               ) : (
                 <>
-                  <h3 className="mb-3 text-lg font-bold text-cdm-fg">
+                  <h3 className="text-cdm-fg mb-3 text-lg font-bold">
                     두 플레이어 모두 연결이 끊어졌습니다
                   </h3>
-                  <p className="mb-4 text-sm text-cdm-fg-muted">재연결 대기 중...</p>
+                  <p className="text-cdm-fg-muted mb-4 text-sm">재연결 대기 중...</p>
                   <div className="mb-4 space-y-2">
                     {reconnectingPlayers.map((p) => (
-                      <div key={p.playerId} className="flex items-center justify-between rounded-cdm-md bg-cdm-bg-elev-1 px-4 py-2">
-                        <span className="text-sm font-medium text-cdm-fg">{p.nickname}</span>
-                        <ProgressRing size={48} label={`${p.nickname} 재접속 남은 시간`} value={((reconnectTimers[p.playerId] ?? p.secondsLeft) / 30) * 100}>
-                          <span className="text-[11px] font-bold">{reconnectTimers[p.playerId] ?? p.secondsLeft}초</span>
+                      <div
+                        key={p.playerId}
+                        className="rounded-cdm-md bg-cdm-bg-elev-1 flex items-center justify-between px-4 py-2"
+                      >
+                        <span className="text-cdm-fg text-sm font-medium">{p.nickname}</span>
+                        <ProgressRing
+                          size={48}
+                          label={`${p.nickname} 재접속 남은 시간`}
+                          value={((reconnectTimers[p.playerId] ?? p.secondsLeft) / 30) * 100}
+                        >
+                          <span className="text-[11px] font-bold">
+                            {reconnectTimers[p.playerId] ?? p.secondsLeft}초
+                          </span>
                         </ProgressRing>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-cdm-fg-subtle">
+                  <p className="text-cdm-fg-subtle text-xs">
                     30초 초과 시 해당 플레이어 기권 처리됩니다.
                   </p>
                 </>
@@ -365,14 +360,34 @@ export default function GameShell({ children }: Props) {
       {/* ── 설정 — 예전 상단 바에 흩어져 있던 것들 ── */}
       <BottomSheet open={showSettings} onClose={() => setShowSettings(false)} title="설정">
         <SoundSettings className="py-3" />
-        <ul className="divide-y divide-cdm-border">
-          <SettingRow label="게임 규칙" onClick={() => { setShowSettings(false); setShowRules(true); }} />
+        <ul className="divide-cdm-border divide-y">
+          <SettingRow
+            label="게임 규칙"
+            onClick={() => {
+              setShowSettings(false);
+              setShowRules(true);
+            }}
+          />
           {/* 무르기는 상단 바로 꺼냈다 — 판 도중에 자주 쓰는데 시트를 열어야 해서 묻혀 있었다 */}
-          {showResign && <SettingRow label="항복" danger onClick={() => { setShowSettings(false); setLeaveMode('resign'); setShowLeave(true); }} />}
+          {showResign && (
+            <SettingRow
+              label="항복"
+              danger
+              onClick={() => {
+                setShowSettings(false);
+                setLeaveMode('resign');
+                setShowLeave(true);
+              }}
+            />
+          )}
           <SettingRow
             label="나가기"
             danger
-            onClick={() => { setShowSettings(false); setLeaveMode('leave'); setShowLeave(true); }}
+            onClick={() => {
+              setShowSettings(false);
+              setLeaveMode('leave');
+              setShowLeave(true);
+            }}
           />
         </ul>
       </BottomSheet>
@@ -383,7 +398,9 @@ export default function GameShell({ children }: Props) {
         onClose={() => setShowInfo(false)}
         room={room}
         myId={myId}
-        extraRows={<InfoRow label="진행된 시간" value={<ElapsedTime startedAt={gameState?.startedAt} />} />}
+        extraRows={
+          <InfoRow label="진행된 시간" value={<ElapsedTime startedAt={gameState?.startedAt} />} />
+        }
         onReport={(target) => {
           setReportTarget(target);
           setShowInfo(false);
@@ -414,7 +431,7 @@ export default function GameShell({ children }: Props) {
         title={leaveMode === 'resign' ? '항복 (패배 처리)' : '나가기'}
         closable={false}
       >
-        <p className="mb-6 text-sm text-cdm-fg-muted">
+        <p className="text-cdm-fg-muted mb-6 text-sm">
           {leaveMode === 'resign'
             ? '항복하면 패배로 처리되고 결과 화면으로 이동합니다.'
             : isRankedRoom && !isSpectator
@@ -422,7 +439,9 @@ export default function GameShell({ children }: Props) {
               : '게임 도중 나가면 게임 모듈의 규칙에 따라 처리됩니다.'}
         </p>
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setShowLeave(false)}>계속하기</Button>
+          <Button variant="secondary" onClick={() => setShowLeave(false)}>
+            계속하기
+          </Button>
           <Button variant="danger" onClick={leaveMode === 'resign' ? handleResign : handleLeave}>
             {leaveMode === 'resign' ? '항복' : '나가기'}
           </Button>
@@ -432,8 +451,8 @@ export default function GameShell({ children }: Props) {
       <Modal open={!!undoProposal} title="무르기 요청" closable={false} className="max-w-sm">
         {undoProposal && (
           <>
-            <p className="mb-6 text-sm text-cdm-fg-muted">
-              <span className="font-medium text-cdm-fg">{undoProposal.requesterNickname}</span>
+            <p className="text-cdm-fg-muted mb-6 text-sm">
+              <span className="text-cdm-fg font-medium">{undoProposal.requesterNickname}</span>
               님이 무르기를 요청했습니다. 받으시겠습니까?
             </p>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -472,7 +491,12 @@ export default function GameShell({ children }: Props) {
  * 여는 동작은 전부 같으므로 표시도 하나로 둔다 — 다른 것은 왼쪽 이름뿐이다.
  */
 function SettingRow({
-  label, hint, badge, danger, disabled, onClick,
+  label,
+  hint,
+  badge,
+  danger,
+  disabled,
+  onClick,
 }: {
   label: string;
   hint?: string;
@@ -487,7 +511,7 @@ function SettingRow({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-cdm-bg-elev-1"
+        className="hover:bg-cdm-bg-elev-1 flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors"
       >
         <span className="flex min-w-0 items-center gap-1.5">
           <span className={cn('truncate text-sm', danger ? 'text-cdm-accent' : 'text-cdm-fg')}>
@@ -496,17 +520,10 @@ function SettingRow({
           {badge != null && <UnreadBadge count={badge} />}
         </span>
         <span className="flex shrink-0 items-center gap-1">
-          {hint && <span className="text-xs text-cdm-fg-subtle">{hint}</span>}
+          {hint && <span className="text-cdm-fg-subtle text-xs">{hint}</span>}
           <Icon name="chevronRight" size="sm" className="text-cdm-fg-subtle" />
         </span>
       </button>
     </li>
   );
-}
-
-/** 열린 PC 채팅만 읽음으로 처리한다. 닫힌 패널·모바일에서는 미읽음을 유지한다. */
-function GameChatTool() {
-  const messages = useRoomStore(s => s.messages.length);
-  useEffect(() => { useRoomStore.getState().clearChatUnread(); }, [messages]);
-  return <RoomChatTabs scope="room" active />;
 }

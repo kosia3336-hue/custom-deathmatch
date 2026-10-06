@@ -208,3 +208,68 @@
     display: none;
   }
 }
+
+/* 공통 마크업의 색만 스킨에서 교체한다. 전용 애니메이션/넘버 카드는 별도 유지. */
+.selector,
+.revealPanel {
+  --nf-primary: #374151;
+  --nf-secondary: #6b7280;
+  --nf-muted: #9ca3af;
+  --nf-value: #374151;
+  --nf-divider: #f3f4f6;
+  --nf-control-border: #d1d5db;
+  --nf-control-bg: transparent;
+  --nf-control-hover: #f3f4f6;
+}
+.selector[data-skin='duality'],
+.revealPanel[data-skin='duality'] {
+  --nf-primary: #cbd5e1;
+  --nf-secondary: #94a3b8;
+  --nf-muted: #64748b;
+  --nf-value: #f1f5f9;
+  --nf-divider: rgb(51 65 85 / 50%);
+  --nf-control-border: #475569;
+  --nf-control-bg: rgb(30 41 59 / 60%);
+  --nf-control-hover: rgb(51 65 85 / 60%);
+}
+.primaryText {
+  color: var(--nf-primary);
+}
+.secondaryText {
+  color: var(--nf-secondary);
+}
+.mutedText {
+  color: var(--nf-muted);
+}
+.valueText {
+  color: var(--nf-value);
+}
+.divider {
+  border-color: var(--nf-divider);
+}
+.tileButton {
+  border-color: var(--nf-control-border);
+  background: var(--nf-control-bg);
+  color: var(--nf-primary);
+}
+.tileButton:hover:not(:disabled) {
+  background: var(--nf-control-hover);
+}
+.revealPanel:not([data-skin='duality']) {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  --nf-secondary: #4b5563;
+  --nf-muted: #6b7280;
+  --nf-divider: #e5e7eb;
+}
+.revealPanel:not([data-skin='duality']) .revealPlayer {
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+.revealPanel:not([data-skin='duality']) .revealFinish {
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4338ca;
+}

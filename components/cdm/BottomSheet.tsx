@@ -37,6 +37,7 @@ export function BottomSheet({
   onClose,
   title,
   headerRight,
+  headerTitle,
   children,
   className,
   bodyClassName,
@@ -46,6 +47,7 @@ export function BottomSheet({
   title: string;
   /** 제목 줄 오른쪽에 얹는 것 (탭, 개수 배지 따위) */
   headerRight?: React.ReactNode;
+  headerTitle?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
@@ -113,7 +115,7 @@ export function BottomSheet({
         </div>
 
         <div className="flex shrink-0 items-center gap-2 px-4 py-2.5">
-          <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-cdm-fg">{title}</h2>
+          <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-cdm-fg">{headerTitle ?? title}</h2>
           {headerRight}
           <button
             type="button"

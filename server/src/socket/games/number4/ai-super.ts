@@ -5,8 +5,8 @@ import {
   TOTAL_ROUNDS,
   INITIAL_WHITE,
   INITIAL_BLACK,
-  nf4AdvisorSnapshot,
 } from '@shared/types/number4.js';
+import { nf4AdvisorSnapshot } from '@shared/numberFourAdvisor.js';
 import { judgeNumber } from './judge.js';
 import { flowPolicyBonus, replySeen, replyWeight } from './kifu-prior.js';
 

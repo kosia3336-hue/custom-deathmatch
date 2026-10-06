@@ -42,7 +42,7 @@ export function LobbyChatList() {
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex-1 space-y-2 overflow-y-auto px-4 py-3"
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3"
       >
         {messages.length === 0 ? (
           <p className="py-12 text-center text-xs text-cdm-fg-subtle">

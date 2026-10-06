@@ -1,4 +1,4 @@
-import type { NF4WinType, NF4Number } from '@/shared/types/number4';
+import { NF4_REWARDS, type NF4WinType, type NF4Number } from '@/shared/types/number4';
 
 export const WIN_TYPE_LABELS: Record<NF4WinType, string> = {
   score: '승점 우위',
@@ -16,10 +16,12 @@ export interface NumberInfo {
   color: string;
 }
 
-export const NUMBER_INFO: NumberInfo[] = [
-  { number: 0, reward: 5, label: '넘버 0', condition: '양측 흑색 합 ≥ 11', color: '#8b5cf6' },
-  { number: 1, reward: 1, label: '넘버 1', condition: '내 백색 ≥ 상대 백색', color: '#22c55e' },
-  { number: 2, reward: 2, label: '넘버 2', condition: '내 곱 > 상대 곱', color: '#3b82f6' },
-  { number: 3, reward: 3, label: '넘버 3', condition: '내 백색 ≥ 상대 흑+2', color: '#f59e0b' },
-  { number: 4, reward: 4, label: '넘버 4', condition: '내 백색 ≥ 상대 흑×2', color: '#ef4444' },
+const NUMBER_PRESENTATION: Omit<NumberInfo, 'reward'>[] = [
+  { number: 0,  label: '넘버 0', condition: '양측 흑색 합 ≥ 11', color: '#8b5cf6' },
+  { number: 1,  label: '넘버 1', condition: '내 백색 ≥ 상대 백색', color: '#22c55e' },
+  { number: 2,  label: '넘버 2', condition: '내 곱 > 상대 곱', color: '#3b82f6' },
+  { number: 3,  label: '넘버 3', condition: '내 백색 ≥ 상대 흑+2', color: '#f59e0b' },
+  { number: 4,  label: '넘버 4', condition: '내 백색 ≥ 상대 흑×2', color: '#ef4444' },
 ];
+
+export const NUMBER_INFO: NumberInfo[] = NUMBER_PRESENTATION.map(info => ({ ...info, reward: NF4_REWARDS[info.number] }));

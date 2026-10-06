@@ -280,11 +280,6 @@ export {
   isNf4Number,
   nf4ScoreDelta,
   nf4ApplyScore,
-  nf4AdvisorSnapshot,
-  nf4AdvisorFinished,
-  nf4AdvisorWinnerFromResult,
-  nf4AdvisorWinType,
-  buildNf4AdvisorKifu,
   NF4_ADVISOR_ME,
   NF4_ADVISOR_OPP,
 } from './number4';
@@ -905,3 +900,5 @@ export type {
   BankAdvisorOutcome,
   BankAdvisorKifu,
 } from './bank-game-advisor';
+
+export { nf4AdvisorSnapshot, nf4AdvisorFinished, nf4AdvisorWinnerFromResult, nf4AdvisorWinType, buildNf4AdvisorKifu } from '../numberFourAdvisor';

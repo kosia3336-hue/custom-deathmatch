@@ -2,7 +2,7 @@ import { supportsSuperAiMatch, SUPER_AI_GAMES } from '@shared/types/game.js';
 import {
   nf4AdvisorSnapshot,
   nf4AdvisorWinnerFromResult,
-} from '@shared/types/number4.js';
+} from '@shared/numberFourAdvisor.js';
 import {
   brpsAdvisorAsk,
   brpsAdvisorSnapshot,

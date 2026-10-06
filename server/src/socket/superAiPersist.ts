@@ -10,7 +10,7 @@ import {
   type Nf4AdvisorResult,
   type Nf4AdvisorRound,
   type Nf4AdvisorWinner,
-} from '@shared/types/number4.js';
+} from '@shared/numberFourAdvisor.js';
 import {
   buildBrpsAdvisorKifu,
   type BrpsAdvisorResult,

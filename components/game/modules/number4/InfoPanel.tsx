@@ -2,6 +2,7 @@
 
 import type { NumberFourGameData } from '@/shared/types/number4';
 import RoundHistory from './RoundHistory';
+import { TileCount } from './Presentation';
 import type { NumberFourRoundNotes } from '@/lib/numberFourNotes';
 
 export default function InfoPanel({
@@ -54,21 +55,5 @@ export default function InfoPanel({
       </section>
       <RoundHistory gameData={gameData} compact={compact} notes={notes} />
     </div>
-  );
-}
-
-/** 물음표는 수량이 아닌 비공개/추정 표시이므로 숫자와 시각적으로 분리한다. */
-function TileCount({ actual, predicted }: { actual: number; predicted?: number }) {
-  const hidden = actual < 0;
-  const value = hidden ? predicted : actual;
-  return (
-    <span className="inline-flex items-baseline gap-px tabular-nums">
-      {value !== undefined && <span className="text-cdm-fg text-xs font-medium">{value}</span>}
-      {hidden && value === undefined && (
-        <span className="relative -top-px text-[11px] font-normal opacity-40" title="비공개">
-          ?
-        </span>
-      )}
-    </span>
   );
 }

@@ -1,11 +1,11 @@
-import type { NF4Number } from '@shared/types/number4.js';
+import { NF4_REWARDS, type NF4Number } from '@shared/types/number4.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { AI_DELAY, TILES_PER_ROUND, TOTAL_ROUNDS } from './constants.js';
 import type { IO } from './constants.js';
 import type { InternalState, NF4PlayerInternal } from './types.js';
 import { gameStates, broadcastState, processRound } from './state.js';
 
-const REWARDS: readonly number[] = [5, 1, 2, 3, 4];
+const REWARDS = NF4_REWARDS;
 
 interface Plan {
   white: number;
@@ -254,7 +254,7 @@ export async function aiSubmit(io: IO, s: InternalState) {
 
   const gen = s.aiGeneration;
   await wait(randDelay());
-  if (!gameStates.has(s.roomId) || s.gameOver) return;
+  if (gameStates.get(s.roomId) !== s || s.gameOver || s.phase !== 'submit') return;
   if (s.aiGeneration !== gen) return;
 
   const plan = findBestPlan(s, ai);

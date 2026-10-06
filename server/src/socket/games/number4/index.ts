@@ -1,10 +1,8 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
-import { createNumberFourTutorial, advanceNumberFourTutorial } from '@shared/numberFourTutorial.js';
-import type { NumberFourAction } from '@shared/types/number4.js';
-import type { NF4Number } from '@shared/types/number4.js';
-import { INITIAL_SCORE, INITIAL_WHITE, INITIAL_BLACK, TILES_PER_ROUND } from './constants.js';
+import { createNumberFourTutorial } from '@shared/numberFourTutorial.js';
+import { INITIAL_SCORE, INITIAL_WHITE, INITIAL_BLACK } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { EndGameFn, NF4PlayerInternal } from './types.js';
 import {
@@ -12,11 +10,12 @@ import {
   broadcastState,
   emitStateToSocket,
   startRoundTimer,
-  clearRoundTimer,
-  processRound,
+  clearGameTimers,
   performNumberFourUndo,
 } from './state.js';
-import { aiSubmit } from './ai.js';
+import { handleNumberFourTutorial } from './tutorialAdapter.js';
+import { buildNumberFourDummyView } from './projection.js';
+import { handleSubmit } from './actions.js';
 
 export type { EndGameFn };
 export { performNumberFourUndo };
@@ -32,7 +31,7 @@ export function initNumberFour(
   _gameOptions?: Record<string, unknown>,
 ) {
   const prev = gameStates.get(roomId);
-  if (prev) clearRoundTimer(prev);
+  if (prev) clearGameTimers(prev);
   gameStates.delete(roomId);
 
   let p1: NF4PlayerInternal;
@@ -67,6 +66,7 @@ export function initNumberFour(
     tutorialData:
       playMode === 'tutorial' ? createNumberFourTutorial(p1.id, p1.nickname) : undefined,
     roundTimer: null,
+    transitionTimer: null,
     playMode,
     gameOver: false,
     actionLog: [],
@@ -104,129 +104,13 @@ export function handleNumberFourAction(
   const s = gameStates.get(roomId);
   if (!s || s.gameOver) return;
 
-  if (s.tutorialData) {
-    const myId = sessions.getToken(socket.id) ?? socket.id;
-    if (myId !== s.player1.id) {
-      socket.emit('error', { message: '튜토리얼은 플레이어만 진행할 수 있습니다.' });
-      return;
-    }
-    if (data.type !== 'submit' && data.type !== 'tutorial-ack') return;
-    const result = advanceNumberFourTutorial(s.tutorialData, data as NumberFourAction);
-    if (result.error) {
-      socket.emit('error', { message: result.error });
-      return;
-    }
-    s.tutorialData = result.data;
-    s.round = result.data.round;
-    s.phase = result.data.phase;
-    for (const player of [s.player1, s.player2])
-      Object.assign(player, result.data.players[player.id]);
-    broadcastState(io, s);
-    if (result.complete) {
-      s.gameOver = true;
-      s.endGameCallback(io, roomId, {
-        rankings: [
-          { playerId: s.player1.id, nickname: s.player1.nickname, rank: 1, score: s.player1.score },
-        ],
-        totalTurns: s.round,
-        gameResultData: {
-          tutorial: true,
-          roundHistory: result.data.roundHistory,
-          finalScores: { [s.player1.id]: s.player1.score, [s.player2.id]: s.player2.score },
-          players: {
-            [s.player1.id]: { nickname: s.player1.nickname },
-            [s.player2.id]: { nickname: s.player2.nickname },
-          },
-        },
-      });
-    }
-    return;
-  }
+  if (handleNumberFourTutorial(io, socket, s, data)) return;
 
   switch (data.type) {
     case 'submit':
       handleSubmit(io, socket, s, data);
       break;
   }
-}
-
-function handleSubmit(
-  io: IO,
-  socket: TypedSocket,
-  s: import('./types.js').InternalState,
-  data: Record<string, unknown>,
-) {
-  if (s.phase !== 'submit') {
-    socket.emit('error', { message: '현재 단계에서는 수행할 수 없습니다.' });
-    return;
-  }
-
-  const white = data.white;
-  const black = data.black;
-  const num = data.number;
-
-  if (typeof white !== 'number' || typeof black !== 'number') return;
-  if (!Number.isInteger(white) || !Number.isInteger(black)) return;
-  if (white + black !== TILES_PER_ROUND) {
-    socket.emit('error', { message: '백색과 흑색 타일의 합이 7개여야 합니다.' });
-    return;
-  }
-  if (typeof num !== 'number' || !Number.isInteger(num) || num < 0 || num > 4) {
-    socket.emit('error', { message: '0~4 사이의 넘버를 선택해 주세요.' });
-    return;
-  }
-
-  const myId = sessions.getToken(socket.id) ?? socket.id;
-  const player = getActionPlayer(s, myId);
-  if (!player) return;
-
-  if (player.submitted) {
-    socket.emit('error', { message: '이미 제출했습니다.' });
-    return;
-  }
-
-  if (white < 0 || white > player.remainingWhite || black < 0 || black > player.remainingBlack) {
-    socket.emit('error', { message: '보유한 타일 수를 초과했습니다.' });
-    return;
-  }
-
-  player.submittedWhite = white;
-  player.submittedBlack = black;
-  player.submittedNumber = num as NF4Number;
-  player.submitted = true;
-
-  if (s.playMode === 'solo') {
-    if (s.currentSide === 'player1') {
-      s.currentSide = 'player2';
-      broadcastState(io, s);
-      return;
-    } else {
-      s.currentSide = null;
-    }
-  }
-
-  if (s.player1.submitted && s.player2.submitted) {
-    processRound(io, s);
-    return;
-  }
-
-  broadcastState(io, s);
-
-  if (s.playMode === 'com' && myId !== AI_PLAYER_ID) {
-    aiSubmit(io, s);
-  }
-}
-
-function getActionPlayer(
-  s: import('./types.js').InternalState,
-  socketId: string,
-): NF4PlayerInternal | null {
-  if (s.playMode === 'solo') {
-    return s.currentSide === 'player1' ? s.player1 : s.player2;
-  }
-  if (s.player1.id === socketId) return s.player1;
-  if (s.player2.id === socketId) return s.player2;
-  return null;
 }
 
 export function canNumberFourUndo(roomId: string): boolean {
@@ -245,7 +129,7 @@ export function cleanupNumberFour(roomId: string) {
   const s = gameStates.get(roomId);
   if (s) {
     s.aiGeneration++;
-    clearRoundTimer(s);
+    clearGameTimers(s);
   }
   gameStates.delete(roomId);
 }
@@ -261,44 +145,7 @@ export function getNumberFourState(roomId: string) {
 export function getNumberFourDummyView(roomId: string, viewerId: string) {
   const s = gameStates.get(roomId);
   if (!s) return null;
-  const me = s.player1.id === viewerId ? s.player1 : s.player2.id === viewerId ? s.player2 : null;
-  const opp = me === s.player1 ? s.player2 : me === s.player2 ? s.player1 : null;
-  if (!me || !opp) return null;
-
-  return {
-    gameOver: s.gameOver,
-    phase: s.phase,
-    round: s.round,
-    myId: me.id,
-    oppId: opp.id,
-    my: {
-      score: me.score,
-      remainingWhite: me.remainingWhite,
-      remainingBlack: me.remainingBlack,
-      submitted: me.submitted,
-    },
-    opp: {
-      score: opp.score,
-      submitted: opp.submitted,
-    },
-    roundHistory: s.roundHistory.map((r) => ({
-      round: r.round,
-      players: Object.fromEntries(
-        Object.entries(r.players).map(([pid, pr]) => [
-          pid,
-          {
-            number: pr.number,
-            success: pr.success,
-            scoreChange: pr.scoreChange,
-            scoreAfter: pr.scoreAfter,
-          },
-        ]),
-      ),
-    })),
-    winner: s.winner,
-    turnStartedAt: s.turnStartedAt,
-    timeLimitSeconds: s.timeLimitSeconds,
-  };
+  return buildNumberFourDummyView(s, viewerId);
 }
 
 export function emitNumberFourStateToSocket(socket: TypedSocket, roomId: string) {

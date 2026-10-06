@@ -4,6 +4,7 @@ import type { NumberFourGameData } from '@/shared/types/number4';
 import type { NumberFourRoundNotes } from '@/lib/numberFourNotes';
 import { useRef, useLayoutEffect } from 'react';
 import styles from './number-four.module.css';
+import { ScoreDelta, TileQuantities } from './Presentation';
 
 /** 기록은 최신순 세로 목록. 기록 열람·스크롤은 메모 편집 라운드와 독립적이다. */
 export default function RoundHistory({
@@ -54,7 +55,7 @@ export default function RoundHistory({
                 </span>
                 {own && (
                   <span>
-                    내 제출 □{own.white} ■{own.black}
+                    내 제출 <TileQuantities white={own.white!} black={own.black!} />
                   </span>
                 )}
               </div>
@@ -68,12 +69,7 @@ export default function RoundHistory({
                       {gameData.players[id]?.nickname}
                     </span>
                     <span className="shrink-0 font-semibold">N{p.number}</span>
-                    <span
-                      className={`shrink-0 tabular-nums ${p.success ? 'text-emerald-600' : 'text-red-500'}`}
-                    >
-                      {p.scoreChange > 0 ? '+' : ''}
-                      {p.scoreChange}
-                    </span>
+                    <ScoreDelta value={p.scoreChange} success={p.success} />
                     <span className="text-cdm-fg-muted shrink-0">({p.scoreAfter}점)</span>
                   </div>
                 ))
