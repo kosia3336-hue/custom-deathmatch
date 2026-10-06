@@ -130,7 +130,10 @@ export default function PlayPage() {
               ? CounterBanGame
               : GAME_MODULES[gameId]
             : null;
-        if (!gameId || roomId_ !== roomId || !gameState || gameState.roomId !== roomId) return <GameLoading />;
+        // 밴픽·카운터 밴픽은 game:state 대신 전용 이벤트로 화면을 초기화한다.
+        // 모듈을 먼저 마운트해야 해당 이벤트를 구독하고 game:sync를 요청할 수 있다.
+        if (!gameId || roomId_ !== roomId) return <GameLoading />;
+        if (gameId !== GAME_IDS.BAN_PICK && (!gameState || gameState.roomId !== roomId)) return <GameLoading />;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>
