@@ -1,6 +1,7 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
+import { isBettingRpsResult, validBettingRpsBet } from '@shared/bettingRpsSubmission.js';
 import type { BettingRpsAction } from '@shared/types/betting-rps.js';
 import { BRPS_TOTAL_ROUNDS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
@@ -10,7 +11,7 @@ import {
   broadcastState,
   emitStateToSocket,
   startRoundTimer,
-  clearRoundTimer,
+  clearGameTimers,
   processRound,
   assignRoles,
   getChoiceRightId,
@@ -34,12 +35,12 @@ export function initBettingRps(
   endGameCallback: EndGameFn,
 ) {
   const prev = gameStates.get(roomId);
-  if (prev) clearRoundTimer(prev);
+  if (prev) clearGameTimers(prev);
   gameStates.delete(roomId);
 
   const round = 1;
-  const p1 = makePlayer(players[0].id, players[0].nickname, round);
-  const p2 = makePlayer(players[1].id, players[1].nickname, round);
+  const p1 = makePlayer(players[0].id, players[0].nickname);
+  const p2 = makePlayer(players[1].id, players[1].nickname);
 
   // 1라운드는 player1이 선택권
   p1.hasChoiceRight = true;
@@ -60,6 +61,9 @@ export function initBettingRps(
     turnStartedAt: Date.now(),
     timeLimitSeconds,
     roundTimer: null,
+    transitionTimer: null,
+    revealEndsAt: null,
+    finishedEndsAt: null,
     playMode,
     gameOver: false,
     actionLog: [],
@@ -161,7 +165,7 @@ function handleSubmitMatch(
     socket.emit('error', { message: '이미 제출했습니다.' });
     return;
   }
-  if (result !== 'win' && result !== 'draw' && result !== 'lose') {
+  if (!isBettingRpsResult(result)) {
     socket.emit('error', { message: '유효하지 않은 결과입니다.' });
     return;
   }
@@ -204,18 +208,17 @@ function handleSubmitBet(
     socket.emit('error', { message: '이미 제출했습니다.' });
     return;
   }
-  if (prediction !== 'win' && prediction !== 'draw' && prediction !== 'lose') {
+  if (!isBettingRpsResult(prediction)) {
     socket.emit('error', { message: '유효하지 않은 예측입니다.' });
     return;
   }
-  const minBet = player.chips > 0 ? 1 : 0;
-  if (typeof chips !== 'number' || !Number.isInteger(chips) || chips < minBet || chips > player.chips) {
+  if (!validBettingRpsBet(player.chips, prediction, chips)) {
     socket.emit('error', { message: '유효하지 않은 베팅 칩 수입니다.' });
     return;
   }
 
   player.prediction = prediction as 'win' | 'draw' | 'lose';
-  player.betChips = chips;
+  player.betChips = chips as number;
   player.submitted = true;
 
   const other = player.id === s.player1.id ? s.player2 : s.player1;
@@ -231,7 +234,7 @@ function handleSubmitBet(
 
 export function cleanupBettingRps(roomId: string) {
   const s = gameStates.get(roomId);
-  if (s) clearRoundTimer(s);
+  if (s) clearGameTimers(s);
   gameStates.delete(roomId);
 }
 

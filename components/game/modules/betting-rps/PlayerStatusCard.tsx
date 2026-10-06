@@ -1,15 +1,19 @@
 'use client';
 
-import type { BRPSPlayerInfo, BRPSRoundRecord } from '@/shared/types/betting-rps';
+import { brpsMatchWinBonus } from '@/shared/types/betting-rps';
+import type { BRPSPlayerInfo } from '@/shared/types/betting-rps';
 
 interface Props {
   players: Record<string, BRPSPlayerInfo>;
   myId: string;
+  round: number;
   isSpectator?: boolean;
 }
 
-export default function PlayerStatusCard({ players, myId, isSpectator }: Props) {
-  const pIds = Object.keys(players);
+export default function PlayerStatusCard({ players, myId, round, isSpectator }: Props) {
+  const pIds = Object.keys(players).sort((a, b) =>
+    !isSpectator ? Number(b === myId) - Number(a === myId) : 0,
+  );
 
   return (
     <div className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
@@ -18,7 +22,7 @@ export default function PlayerStatusCard({ players, myId, isSpectator }: Props) 
         const isMe = !isSpectator && pid === myId;
 
         let roleLabel = '';
-        if (p.role === 'match') roleLabel = '승부';
+        if (p.role === 'match') roleLabel = `승부 · 승 선택시 +${brpsMatchWinBonus(round)}칩`;
         else if (p.role === 'bet') roleLabel = '베팅';
 
         return (
@@ -27,24 +31,22 @@ export default function PlayerStatusCard({ players, myId, isSpectator }: Props) 
 
             <div className="flex items-center justify-between gap-3">
               {/* Nickname */}
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <span
                   className={`min-w-0 truncate text-sm ${
                     isMe ? 'font-bold text-indigo-700' : 'font-medium text-gray-700'
                   }`}
                 >
                   {p.nickname}
-                  {isMe && (
-                    <span className="ml-1 text-xs font-normal text-indigo-400">(나)</span>
-                  )}
+                  {isMe && <span className="ml-1 text-xs font-normal text-indigo-400">(나)</span>}
                 </span>
                 {!isSpectator && p.hasChoiceRight && (
-                  <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-medium text-amber-700">
+                  <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[11px] font-medium text-amber-700">
                     선택권
                   </span>
                 )}
-                {!isSpectator && roleLabel && (
-                  <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[10px] font-medium text-gray-600">
+                {roleLabel && (
+                  <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[11px] font-medium text-gray-600">
                     {roleLabel}
                   </span>
                 )}
@@ -52,9 +54,7 @@ export default function PlayerStatusCard({ players, myId, isSpectator }: Props) 
 
               <div className="flex shrink-0 items-center gap-3">
                 {/* Chips */}
-                <span className="text-sm font-bold tabular-nums text-gray-700">
-                  {p.chips}칩
-                </span>
+                <span className="text-sm font-bold text-gray-700 tabular-nums">{p.chips}칩</span>
 
                 {/* Submission dot — players only */}
                 {!isSpectator && !isMe && (

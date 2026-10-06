@@ -1,4 +1,6 @@
 export const BRPS_TOTAL_ROUNDS = 10;
+export const BRPS_REVEAL_DELAY_MS = 5000;
+export const BRPS_WIN_DISPLAY_MS = 2000;
 export const BRPS_INITIAL_CHIPS = 2;
 export const BRPS_BET_MULTIPLIER = 3;
 
@@ -46,16 +48,19 @@ export interface BRPSRevealData {
 export interface BRPSRoundRecord {
   round: number;
   choiceRightPlayerId: string;
-  players: Record<string, {
-    role: BRPSRole;
-    matchResult: BRPSResult | null;
-    prediction: BRPSResult | null;
-    betChips: number | null;
-    betOutcome: BRPSBetOutcome | null;
-    chipsBefore: number;
-    chipsAfter: number;
-    chipChange: number;
-  }>;
+  players: Record<
+    string,
+    {
+      role: BRPSRole;
+      matchResult: BRPSResult | null;
+      prediction: BRPSResult | null;
+      betChips: number | null;
+      betOutcome: BRPSBetOutcome | null;
+      chipsBefore: number;
+      chipsAfter: number;
+      chipChange: number;
+    }
+  >;
 }
 
 export interface BettingRpsGameData {
@@ -64,6 +69,8 @@ export interface BettingRpsGameData {
   totalRounds: number;
   players: Record<string, BRPSPlayerInfo>;
   revealData: BRPSRevealData | null;
+  revealEndsAt?: number;
+  finishedEndsAt?: number;
   roundHistory: BRPSRoundRecord[];
   winner: string | null;
   winType: BRPSWinType | null;
@@ -257,9 +264,7 @@ export function brpsAdvisorFinished(result: BrpsAdvisorResult): boolean {
   return result.kind === 'win' || result.kind === 'loss' || result.kind === 'draw';
 }
 
-export function brpsAdvisorWinnerFromResult(
-  result: BrpsAdvisorResult,
-): BrpsAdvisorWinner | null {
+export function brpsAdvisorWinnerFromResult(result: BrpsAdvisorResult): BrpsAdvisorWinner | null {
   if (result.kind === 'win') return 'me';
   if (result.kind === 'loss') return 'opp';
   if (result.kind === 'draw') return 'draw';

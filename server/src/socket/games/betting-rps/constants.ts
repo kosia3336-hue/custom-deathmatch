@@ -9,8 +9,10 @@ export {
 
 export const ROLE_SELECT_AI_DELAY = { min: 300, max: 800 };
 export const AI_DELAY = { min: 500, max: 1500 };
-export const REVEAL_DELAY_MS = 5000;
-export const WIN_DISPLAY_MS = 2000;
+export {
+  BRPS_REVEAL_DELAY_MS as REVEAL_DELAY_MS,
+  BRPS_WIN_DISPLAY_MS as WIN_DISPLAY_MS,
+} from '@shared/types/betting-rps.js';
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 export type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;

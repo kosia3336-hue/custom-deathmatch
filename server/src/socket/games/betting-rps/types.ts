@@ -1,7 +1,11 @@
 import type { GameResult } from '@shared/types/events.js';
 import type { PlayMode } from '@shared/types/room.js';
 import type {
-  BRPSPhase, BRPSResult, BRPSRole, BRPSBetOutcome, BRPSWinType,
+  BRPSPhase,
+  BRPSResult,
+  BRPSRole,
+  BRPSBetOutcome,
+  BRPSWinType,
 } from '@shared/types/betting-rps.js';
 import type { IO } from './constants.js';
 
@@ -48,17 +52,20 @@ export interface BRPSPlayerInternal {
 export interface BRPSRoundActionLog {
   round: number;
   choiceRightPlayerId: string;
-  players: Record<string, {
-    nickname: string;
-    role: BRPSRole;
-    matchResult: BRPSResult | null;
-    prediction: BRPSResult | null;
-    betChips: number | null;
-    betOutcome: BRPSBetOutcome | null;
-    chipsBefore: number;
-    chipsAfter: number;
-    chipChange: number;
-  }>;
+  players: Record<
+    string,
+    {
+      nickname: string;
+      role: BRPSRole;
+      matchResult: BRPSResult | null;
+      prediction: BRPSResult | null;
+      betChips: number | null;
+      betOutcome: BRPSBetOutcome | null;
+      chipsBefore: number;
+      chipsAfter: number;
+      chipChange: number;
+    }
+  >;
 }
 
 export interface InternalState {
@@ -77,6 +84,9 @@ export interface InternalState {
   turnStartedAt: number;
   timeLimitSeconds: number | null;
   roundTimer: ReturnType<typeof setTimeout> | null;
+  transitionTimer: ReturnType<typeof setTimeout> | null;
+  revealEndsAt: number | null;
+  finishedEndsAt: number | null;
   playMode: PlayMode;
   gameOver: boolean;
   actionLog: BRPSRoundActionLog[];

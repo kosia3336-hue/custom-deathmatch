@@ -26,8 +26,11 @@ import { AI_DELAY, ROLE_SELECT_AI_DELAY } from './constants.js';
 import type { IO } from './constants.js';
 import type { InternalState, BRPSPlayerInternal } from './types.js';
 import {
-  gameStates, broadcastState, processRound,
-  assignRoles, getChoiceRightId,
+  gameStates,
+  broadcastState,
+  processRound,
+  assignRoles,
+  getChoiceRightId,
 } from './state.js';
 
 /* ────────── 기본 유틸 ────────── */
@@ -217,9 +220,9 @@ function argmax(scores: Probs): BRPSResult {
 function softmaxSample(scores: Probs, temperature: number): BRPSResult {
   const keys: BRPSResult[] = ['win', 'draw', 'lose'];
   const maxS = Math.max(scores.win, scores.draw, scores.lose);
-  const exps = keys.map(k => Math.exp((scores[k] - maxS) / temperature));
+  const exps = keys.map((k) => Math.exp((scores[k] - maxS) / temperature));
   const sum = exps.reduce((a, b) => a + b, 0);
-  const cumProbs = exps.map(e => e / sum);
+  const cumProbs = exps.map((e) => e / sum);
   const r = Math.random();
   let cum = 0;
   for (let i = 0; i < keys.length; i++) {
@@ -238,7 +241,7 @@ function decideRole(s: InternalState): 'match' | 'bet' {
   const user = getUser(s);
 
   // 하드 룰
-  if (ai.chips === 0) return 'match';   // 베팅 칩 없음
+  if (ai.chips === 0) return 'match'; // 베팅 칩 없음
   if (user.chips === 0) return 'match'; // 상대 베팅 불가
 
   const bonus = brpsMatchWinBonus(s.round);
@@ -266,13 +269,13 @@ function decideRole(s: InternalState): 'match' | 'bet' {
   // 점수 비교 → 명확한 우위면 확정, 아니면 확률적
   const diff = matchRoleScore - betRoleScore;
   if (diff > 0.5) {
-    return Math.random() < 0.90 ? 'match' : 'bet'; // 10% 노이즈
+    return Math.random() < 0.9 ? 'match' : 'bet'; // 10% 노이즈
   }
   if (diff < -0.5) {
-    return Math.random() < 0.90 ? 'bet' : 'match';
+    return Math.random() < 0.9 ? 'bet' : 'match';
   }
   // 박빙: 우위 방향으로 60%
-  return Math.random() < (diff >= 0 ? 0.60 : 0.40) ? 'match' : 'bet';
+  return Math.random() < (diff >= 0 ? 0.6 : 0.4) ? 'match' : 'bet';
 }
 
 /* ════════════════════════════════════════
@@ -307,7 +310,7 @@ function decidePredictionAndChips(s: InternalState): { prediction: BRPSResult; c
   const bestEV = evs[bestByEV];
   let prediction: BRPSResult;
 
-  if (bestEV > 0.10 && Math.random() < 0.88) {
+  if (bestEV > 0.1 && Math.random() < 0.88) {
     // EV 명확히 양수 → 확정 (88%)
     prediction = bestByEV;
   } else if (bestEV > 0 && Math.random() < 0.75) {
@@ -324,11 +327,11 @@ function decidePredictionAndChips(s: InternalState): { prediction: BRPSResult; c
   const chipGap = ai.chips - getUser(s).chips;
 
   // 안전 계수 (기본 0.4배 켈리)
-  let factor = 0.40;
-  if (chipGap >= 3)              factor = 0.20; // 크게 앞서면 보수적
-  if (chipGap <= -3)             factor = 0.55; // 뒤처지면 공격적
-  if (chipGap < 0 && left <= 2) factor = 0.80; // 막판 역전 필요
-  if (left <= 1)                 factor = 1.00; // 마지막 라운드 = 풀 켈리
+  let factor = 0.4;
+  if (chipGap >= 3) factor = 0.2; // 크게 앞서면 보수적
+  if (chipGap <= -3) factor = 0.55; // 뒤처지면 공격적
+  if (chipGap < 0 && left <= 2) factor = 0.8; // 막판 역전 필요
+  if (left <= 1) factor = 1.0; // 마지막 라운드 = 풀 켈리
 
   // EV 음수인 예측을 어쩔 수 없이 고른 경우 → 최소 베팅
   if (kellyFrac <= 0) return { prediction, chips: 1 };
@@ -353,7 +356,7 @@ export async function aiSelectRole(io: IO, s: InternalState) {
 
   const gen = s.aiGeneration;
   await wait(randDelay(ROLE_SELECT_AI_DELAY));
-  if (!gameStates.has(s.roomId) || s.gameOver) return;
+  if (gameStates.get(s.roomId) !== s || s.gameOver) return;
   if (s.aiGeneration !== gen || s.phase !== 'roleSelect') return;
 
   const role = decideRole(s);
@@ -372,8 +375,8 @@ export async function aiSubmit(io: IO, s: InternalState) {
 
   const gen = s.aiGeneration;
   await wait(randDelay(AI_DELAY));
-  if (!gameStates.has(s.roomId) || s.gameOver) return;
-  if (s.aiGeneration !== gen || s.phase !== 'submit') return;
+  if (gameStates.get(s.roomId) !== s || s.gameOver) return;
+  if (s.aiGeneration !== gen || s.phase !== 'submit' || ai.submitted) return;
 
   if (ai.role === 'match') {
     ai.matchResult = decideMatchResult(s);
