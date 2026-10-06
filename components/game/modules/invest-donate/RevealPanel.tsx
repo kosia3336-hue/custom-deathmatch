@@ -1,44 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import type { IDRevealData, IDPlayerInfo, IDWinType } from '@/shared/types/invest-donate';
+import type { InvestDonateGameData } from '@/shared/types/invest-donate';
+import { ID_REVEAL_DELAY_MS, ID_WIN_DISPLAY_MS } from '@/shared/types/invest-donate';
+import CountdownRing from '@/components/game/CountdownRing';
+import { useRevealProgress } from './useRevealProgress';
 import { WIN_TYPE_LABELS } from './constants';
-
-interface Props {
-  revealData: IDRevealData;
-  players: Record<string, IDPlayerInfo>;
-  round: number;
-  winner: string | null;
-  winType: IDWinType | null;
-  rematchReason: string | null;
-}
-
-// step 1: 투자 합계 | step 2: 기부 합계 | step 3: 대주주/수전노 | step 4: 점수 변화
-const STEPS = [350, 850, 1450, 2100];
 
 function Reveal({ visible, children }: { visible: boolean; children: React.ReactNode }) {
   return (
-    <div className={`transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+    <div
+      className={`transition-all duration-500 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
+    >
       {children}
     </div>
   );
 }
 
-export default function RevealPanel({ revealData, players, round, winner, winType, rematchReason }: Props) {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    setStep(0);
-    const timers = STEPS.map((delay, i) =>
-      setTimeout(() => setStep(i + 1), delay),
+export default function RevealPanel({ gameData }: { gameData: InvestDonateGameData }) {
+  const {
+    revealData,
+    players,
+    round,
+    winner,
+    winType,
+    rematchReason,
+    revealEndsAt,
+    finishedEndsAt,
+  } = gameData;
+  const finished = gameData.phase === 'finished';
+  const step = useRevealProgress(revealEndsAt, finished);
+  if (!revealData)
+    return (
+      <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
+        <span>{winType ? WIN_TYPE_LABELS[winType] : '결과를 확인하고 있습니다.'}</span>
+        <CountdownRing
+          deadline={finishedEndsAt}
+          durationMs={ID_WIN_DISPLAY_MS}
+          label="게임 결과로 전환 중"
+          size={28}
+        />
+      </div>
     );
-    return () => timers.forEach(clearTimeout);
-  }, [revealData]);
 
   const pIds = Object.keys(revealData.players);
 
-  const totalInvest = pIds.reduce((sum, pid) => sum + (revealData.players[pid]?.investTotal ?? 0), 0);
-  const totalDonate = pIds.reduce((sum, pid) => sum + (revealData.players[pid]?.donateTotal ?? 0), 0);
+  const totalInvest = pIds.reduce(
+    (sum, pid) => sum + (revealData.players[pid]?.investTotal ?? 0),
+    0,
+  );
+  const totalDonate = pIds.reduce(
+    (sum, pid) => sum + (revealData.players[pid]?.donateTotal ?? 0),
+    0,
+  );
 
   const majorPid = pIds.find((pid) => revealData.players[pid]?.investBadge === 'majorShareholder');
   const majorNick = majorPid ? (players[majorPid]?.nickname ?? '???') : null;
@@ -48,16 +61,14 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <div className="text-center text-sm font-bold text-gray-700">
-          {round}라운드 결과
-        </div>
+      <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="text-center text-sm font-bold text-gray-700">{round}라운드 결과</div>
 
         {/* Step 1: 투자 합계 */}
         <Reveal visible={step >= 1}>
           <div className="flex items-center gap-2 text-sm">
             <span className="w-14 shrink-0 text-xs text-gray-400">투자</span>
-            <span className="font-semibold tabular-nums text-blue-600">{totalInvest}원</span>
+            <span className="font-semibold text-blue-600 tabular-nums">{totalInvest}원</span>
           </div>
         </Reveal>
 
@@ -65,7 +76,7 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
         <Reveal visible={step >= 2}>
           <div className="flex items-center gap-2 text-sm">
             <span className="w-14 shrink-0 text-xs text-gray-400">기부</span>
-            <span className="font-semibold tabular-nums text-emerald-600">{totalDonate}원</span>
+            <span className="font-semibold text-emerald-600 tabular-nums">{totalDonate}원</span>
           </div>
         </Reveal>
 
@@ -86,7 +97,10 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
               <span className="w-14 shrink-0 text-xs text-gray-400">수전노</span>
               {revealData.donateTied ? (
                 <span className="font-semibold text-red-600">
-                  {miserPids.map((pid) => players[pid]?.nickname).filter(Boolean).join(', ')}{' '}
+                  {miserPids
+                    .map((pid) => players[pid]?.nickname)
+                    .filter(Boolean)
+                    .join(', ')}{' '}
                   <span className="text-xs font-normal text-red-400">(공동)</span>
                 </span>
               ) : miserNick ? (
@@ -100,7 +114,7 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
 
         {/* Step 4: 플레이어별 점수 변화 */}
         <Reveal visible={step >= 4}>
-          <div className="border-t border-gray-100 pt-2 space-y-1.5">
+          <div className="space-y-1.5 border-t border-gray-100 pt-2">
             {pIds.map((pid) => {
               const pr = revealData.players[pid];
               const p = players[pid];
@@ -110,10 +124,12 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
                 <div key={pid} className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">{p.nickname}</span>
                   <div className="flex items-center gap-2">
-                    <span className={`font-semibold ${change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                    <span
+                      className={`font-semibold ${change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-500' : 'text-gray-400'}`}
+                    >
                       {change > 0 ? `+${change}점` : change < 0 ? `${change}점` : '±0점'}
                     </span>
-                    <span className="font-bold tabular-nums text-gray-700">{p.score}점</span>
+                    <span className="font-bold text-gray-700 tabular-nums">{p.score}점</span>
                   </div>
                 </div>
               );
@@ -122,7 +138,16 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
         </Reveal>
       </div>
 
-      {/* 게임 종료 / 재경기 / 다음 라운드 */}
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+        <CountdownRing
+          deadline={finished ? finishedEndsAt : revealEndsAt}
+          durationMs={finished ? ID_WIN_DISPLAY_MS : ID_REVEAL_DELAY_MS}
+          size={28}
+          label={finished ? '게임 결과로 전환 중' : '다음 라운드로 전환 중'}
+        />
+        <span>{finished ? '게임 결과로 전환 중' : '다음 라운드로 전환 중'}</span>
+      </div>
+      {/* 게임 종료 / 재경기 */}
       <Reveal visible={step >= 4}>
         {winner && winType && (
           <div className="rounded-lg bg-indigo-600 p-3 text-center text-sm font-bold text-white">
@@ -137,9 +162,9 @@ export default function RevealPanel({ revealData, players, round, winner, winTyp
             재경기! — {rematchReason}
           </div>
         )}
-        {!winner && !rematchReason && (
-          <div className="text-center text-xs text-gray-400 animate-pulse">
-            다음 라운드 준비 중...
+        {winType === 'draw' && (
+          <div className="rounded-lg bg-slate-100 p-3 text-center text-sm font-semibold text-gray-700">
+            무승부
           </div>
         )}
       </Reveal>

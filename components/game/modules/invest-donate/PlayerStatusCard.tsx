@@ -22,7 +22,9 @@ function calcBadgeCounts(pid: string, history: IDRoundRecord[]) {
 }
 
 export default function PlayerStatusCard({ players, roundHistory, myId, isSpectator }: Props) {
-  const pIds = Object.keys(players);
+  const pIds = Object.keys(players).sort(
+    (a, b) => Number(!isSpectator && b === myId) - Number(!isSpectator && a === myId),
+  );
 
   return (
     <div className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
@@ -46,9 +48,7 @@ export default function PlayerStatusCard({ players, roundHistory, myId, isSpecta
                   }`}
                 >
                   {p.nickname}
-                  {isMe && (
-                    <span className="ml-1 text-xs font-normal text-indigo-400">(나)</span>
-                  )}
+                  {isMe && <span className="ml-1 text-xs font-normal text-indigo-400">(나)</span>}
                 </span>
                 <span
                   className={`shrink-0 text-sm font-bold tabular-nums ${
@@ -63,7 +63,7 @@ export default function PlayerStatusCard({ players, roundHistory, myId, isSpecta
               <span className="flex items-center gap-1">
                 <span className="inline-block h-2 w-2 shrink-0 rounded-full border border-amber-500 bg-transparent" />
                 <span
-                  className={`text-[11px] tabular-nums font-semibold ${
+                  className={`text-[11px] font-semibold tabular-nums ${
                     major === 0 ? 'text-gray-300' : 'text-amber-700'
                   }`}
                 >
@@ -75,7 +75,7 @@ export default function PlayerStatusCard({ players, roundHistory, myId, isSpecta
               <span className="flex items-center gap-1">
                 <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-red-500" />
                 <span
-                  className={`text-[11px] tabular-nums font-semibold ${
+                  className={`text-[11px] font-semibold tabular-nums ${
                     miser === 0 ? 'text-gray-300' : 'text-red-600'
                   }`}
                 >

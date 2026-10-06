@@ -1,4 +1,4 @@
-import type { IDCoinAllocation, IDCoinStock, IDBadge } from '@shared/types/invest-donate.js';
+import type { IDCoinAllocation, IDCoinStock } from '@shared/types/invest-donate.js';
 import { coinValue, stockTotal } from '@shared/types/invest-donate.js';
 
 export { coinValue, stockTotal };
@@ -8,7 +8,11 @@ export function coinAdd(a: IDCoinAllocation, b: IDCoinAllocation): IDCoinAllocat
 }
 
 export function coinSubtract(stock: IDCoinStock, used: IDCoinAllocation): IDCoinStock {
-  return { coin50: stock.coin50 - used.coin50, coin10: stock.coin10 - used.coin10, coin1: stock.coin1 - used.coin1 };
+  return {
+    coin50: stock.coin50 - used.coin50,
+    coin10: stock.coin10 - used.coin10,
+    coin1: stock.coin1 - used.coin1,
+  };
 }
 
 export interface InvestResult {
@@ -18,8 +22,10 @@ export interface InvestResult {
 }
 
 export function judgeInvest(
-  aId: string, aInvest: IDCoinAllocation,
-  bId: string, bInvest: IDCoinAllocation,
+  aId: string,
+  aInvest: IDCoinAllocation,
+  bId: string,
+  bInvest: IDCoinAllocation,
 ): InvestResult {
   const aVal = coinValue(aInvest);
   const bVal = coinValue(bInvest);
@@ -52,8 +58,10 @@ export interface DonateResult {
 }
 
 export function judgeDonate(
-  aId: string, aDonate: IDCoinAllocation,
-  bId: string, bDonate: IDCoinAllocation,
+  aId: string,
+  aDonate: IDCoinAllocation,
+  bId: string,
+  bDonate: IDCoinAllocation,
 ): DonateResult {
   const aVal = coinValue(aDonate);
   const bVal = coinValue(bDonate);

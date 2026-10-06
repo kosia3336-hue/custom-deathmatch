@@ -16,7 +16,7 @@ export default function OpponentInferPanel({ opponentNickname, opponentCoinStock
         <span className="text-xs font-semibold tracking-wide text-gray-400">
           {opponentNickname} 남은 코인
         </span>
-        <span className="text-xs font-bold tabular-nums text-gray-500">
+        <span className="text-xs font-bold text-gray-500 tabular-nums">
           {stockTotal(opponentCoinStock)}원
         </span>
       </div>
@@ -24,11 +24,11 @@ export default function OpponentInferPanel({ opponentNickname, opponentCoinStock
         {COIN_DENOMINATIONS.map(({ key, label, color }) => (
           <div key={key} className="flex items-center gap-1.5">
             <span
-              className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${color}`}
+              className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold ${color}`}
             >
               {label}
             </span>
-            <span className="text-sm font-semibold tabular-nums text-gray-700">
+            <span className="text-sm font-semibold text-gray-700 tabular-nums">
               {opponentCoinStock[key]}
             </span>
           </div>

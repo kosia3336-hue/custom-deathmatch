@@ -1,197 +1,72 @@
 'use client';
 
-import GameLoading from '@/components/game/GameLoading';
-
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
+import GameLoading from '@/components/game/GameLoading';
 import { useRoomStore } from '@/stores/room';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useTurnTimer } from '@/hooks/useTurnTimer';
-import { toast } from 'sonner';
-import type { InvestDonateGameData } from '@/shared/types/invest-donate';
-import CoinSelector from './CoinSelector';
-import RevealPanel from './RevealPanel';
-import InfoPanel from './InfoPanel';
-import PlayerStatusCard from './PlayerStatusCard';
-import OpponentInferPanel from './OpponentInferPanel';
-import { opponentDisplayName } from '@/lib/anonymousOpponents';
-import { WIN_TYPE_LABELS } from './constants';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { seatStage, turnStage, submitStage } from '@/lib/gameSeat';
+import { getSocket } from '@/lib/socket';
+import type { InvestDonateGameData } from '@/shared/types/invest-donate';
+import InvestDonateView from './InvestDonateView';
+import { buildInvestDonateView } from './viewModel';
+import { WIN_TYPE_LABELS } from './constants';
 
 export default function InvestDonateGame() {
   const gameState = useRoomStore((s) => s.gameState);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as InvestDonateGameData | undefined;
-  const myId = useMySocketId();
-  useTurnTimer();
+  const myId = useMySocketId() ?? '';
+  const { remaining } = useTurnTimer();
   const { setHud } = useRoomLayout();
-
-  const shownWinnerRef = useRef<string | null>(null);
-  /* 동시 제출 판 — '내 차례' 대신 냈는지를 알린다 (lib/gameSeat.ts) */
-  const phaseLabel = gameData?.phase === 'submit'
-    ? submitStage({
-        finished: false,
-        isSpectator,
-        submitted: (myId ? gameData.players[myId]?.submitted : false) ?? false,
-        pending: '코인 배분',
-      })
-    : gameData?.phase === 'reveal'
-      ? '결과 공개'
-      : gameData?.phase === 'finished'
-        ? '종료'
-        : undefined;
+  const shownResult = useRef<string | null>(null);
+  const phaseLabel = gameData
+    ? buildInvestDonateView(gameData, myId, isSpectator).phaseLabel
+    : undefined;
 
   useEffect(() => {
     if (!gameData) return;
     setHud({
       round: `${gameData.round} / ${gameData.totalRounds}R`,
-      order: phaseLabel,
-      memo: <InvestDonateSidePanel gameData={gameData} myId={myId ?? ''} />,
+      order: (
+        <span className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg px-1.5 py-0.5 text-[11px] font-bold">
+          {phaseLabel}
+        </span>
+      ),
+      memo: null,
     });
     return () => setHud(null);
-  }, [gameData, myId, phaseLabel, setHud]);
+  }, [gameData, phaseLabel, setHud]);
 
   useEffect(() => {
-    if (!gameData?.winner || !gameData?.winType) return;
-    if (shownWinnerRef.current === gameData.winner) return;
-    shownWinnerRef.current = gameData.winner;
+    if (!gameData?.winType) return;
+    const resultKey = `${gameState?.startedAt}:${gameData.winType}:${gameData.winner}`;
+    if (shownResult.current === resultKey) return;
+    shownResult.current = resultKey;
+    const reason = WIN_TYPE_LABELS[gameData.winType] ?? '';
+    if (!gameData.winner) toast.info(reason, { duration: 5000 });
+    else {
+      const message = `${gameData.players[gameData.winner]?.nickname ?? '플레이어'} 승리! ${reason}`;
+      if (isSpectator) toast.info(message, { duration: 5000 });
+      else if (gameData.winner === myId) toast.success(message, { duration: 5000 });
+      else toast.error(message, { duration: 5000 });
+    }
+  }, [gameData, gameState?.startedAt, myId, isSpectator]);
 
-    const winnerEntry = Object.entries(gameData.players).find(([id]) => id === gameData.winner);
-    const winnerNick = winnerEntry?.[1].nickname ?? '???';
-    const reason = gameData.winType ? (WIN_TYPE_LABELS[gameData.winType] ?? '') : '';
-    const isMe = gameData.winner === myId;
-    const message = `${winnerNick} 승리! ${reason}`;
-
-    if (isMe) toast.success(message, { duration: 5000 });
-    else toast.error(message, { duration: 5000 });
-  }, [gameData, myId]);
-
-  if (!gameData) {
+  if (!gameData)
     return (
       <div className="flex h-full items-center justify-center">
         <GameLoading label="게임을 불러오는 중" />
       </div>
     );
-  }
-
-  const playerEntries = Object.entries(gameData.players);
-  const myPlayer = playerEntries.find(([id]) => id === myId)?.[1];
-  const opponentEntry = playerEntries.find(([id]) => id !== myId);
-  const opponent = opponentEntry?.[1];
-
-  const canAct = !isSpectator && gameData.phase === 'submit';
-  const canCancel = myPlayer?.submitted && opponent && !opponent.submitted;
-
-  const isSubmitPhase = gameData.phase === 'submit';
-  const isRevealPhase = gameData.phase === 'reveal' || gameData.phase === 'finished';
-
   return (
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* ── Main area ── */}
-        <div className="flex flex-1 flex-col items-center gap-2 overflow-y-auto p-2 lg:p-4">
-          {/* Status message */}
-          {gameState?.message && (
-            <div className="text-center text-xs text-gray-400">{gameState.message}</div>
-          )}
-
-          <div className="w-full max-w-lg space-y-2">
-            {/* Player status card — always visible */}
-            <PlayerStatusCard
-              players={gameData.players}
-              roundHistory={gameData.roundHistory}
-              myId={myId ?? ''}
-              isSpectator={isSpectator}
-            />
-
-            {/* Submit phase */}
-            {isSubmitPhase && (
-              <>
-                {/* My coin selector (players only) */}
-                {canAct && myPlayer && (
-                  <CoinSelector
-                    coinStock={myPlayer.coinStock}
-                    submitted={myPlayer.submitted}
-                    submittedCoins={
-                      myPlayer.investCoins && myPlayer.donateCoins
-                        ? { invest: myPlayer.investCoins, donate: myPlayer.donateCoins }
-                        : null
-                    }
-                    canCancel={!!canCancel}
-                  />
-                )}
-
-                {/* If I submitted, waiting for opponent */}
-                {!isSpectator && myPlayer?.submitted && (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm text-emerald-600">
-                    <span>제출 완료</span>
-                    {opponent && !opponent.submitted && (
-                      <>
-                        <span className="text-gray-400">—</span>
-                        <span className="animate-pulse text-gray-400">
-                          {opponentDisplayName(opponent.nickname)} 배분 중...
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Opponent coin display */}
-                {!isSpectator && opponent && (
-                  <OpponentInferPanel
-                    opponentNickname={opponentDisplayName(opponent.nickname)}
-                    opponentCoinStock={opponent.coinStock}
-                  />
-                )}
-
-                {/* Spectator: two coin panels + waiting indicator */}
-                {isSpectator && (
-                  <>
-                    <div className="flex gap-2">
-                      {playerEntries.map(([id, p]) => (
-                        <div key={id} className="flex-1">
-                          <OpponentInferPanel
-                            opponentNickname={p.nickname}
-                            opponentCoinStock={p.coinStock}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-3 text-sm text-gray-400">
-                      <span className="animate-pulse">●</span>
-                      <span>●</span>
-                      <span className="animate-pulse">●</span>
-                      <span className="ml-1">플레이어들이 배분 중...</span>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Reveal / Finished */}
-            {isRevealPhase && gameData.revealData && (
-              <RevealPanel
-                revealData={gameData.revealData}
-                players={gameData.players}
-                round={gameData.round}
-                winner={gameData.winner}
-                winType={gameData.winType}
-                rematchReason={gameData.rematchReason}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <InvestDonateView
+      gameData={gameData}
+      myId={myId}
+      isSpectator={isSpectator}
+      disabled={remaining !== null && remaining <= 0}
+      onAction={(action) => getSocket().emit('game:action', action)}
+    />
   );
-}
-
-function InvestDonateSidePanel({
-  gameData,
-  myId,
-}: {
-  gameData: InvestDonateGameData;
-  myId: string;
-}) {
-  return <InfoPanel players={gameData.players} roundHistory={gameData.roundHistory} myId={myId} />;
 }

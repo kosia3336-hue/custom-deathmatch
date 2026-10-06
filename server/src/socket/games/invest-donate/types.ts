@@ -1,6 +1,12 @@
 import type { GameResult } from '@shared/types/events.js';
 import type { PlayMode } from '@shared/types/room.js';
-import type { IDPhase, IDWinType, IDBadge, IDCoinAllocation, IDCoinStock } from '@shared/types/invest-donate.js';
+import type {
+  IDPhase,
+  IDWinType,
+  IDBadge,
+  IDCoinAllocation,
+  IDCoinStock,
+} from '@shared/types/invest-donate.js';
 import type { IO } from './constants.js';
 
 export type EndGameFn = (
@@ -27,34 +33,40 @@ export interface IDPlayerInternal {
 
 export interface InternalRoundRecord {
   round: number;
-  players: Record<string, {
-    investCoins: IDCoinAllocation;
-    donateCoins: IDCoinAllocation;
-    investTotal: number;
-    donateTotal: number;
-    investBadge: IDBadge;
-    donateBadge: IDBadge;
-    scoreChange: number;
-    scoreAfter: number;
-    coinStockAfter: IDCoinStock;
-  }>;
+  players: Record<
+    string,
+    {
+      investCoins: IDCoinAllocation;
+      donateCoins: IDCoinAllocation;
+      investTotal: number;
+      donateTotal: number;
+      investBadge: IDBadge;
+      donateBadge: IDBadge;
+      scoreChange: number;
+      scoreAfter: number;
+      coinStockAfter: IDCoinStock;
+    }
+  >;
 }
 
 export interface RoundActionLog {
   round: number;
-  players: Record<string, {
-    nickname: string;
-    investCoins: IDCoinAllocation;
-    donateCoins: IDCoinAllocation;
-    investTotal: number;
-    donateTotal: number;
-    investBadge: IDBadge;
-    donateBadge: IDBadge;
-    scoreChange: number;
-    scoreBefore: number;
-    scoreAfter: number;
-    coinStockAfter: IDCoinStock;
-  }>;
+  players: Record<
+    string,
+    {
+      nickname: string;
+      investCoins: IDCoinAllocation;
+      donateCoins: IDCoinAllocation;
+      investTotal: number;
+      donateTotal: number;
+      investBadge: IDBadge;
+      donateBadge: IDBadge;
+      scoreChange: number;
+      scoreBefore: number;
+      scoreAfter: number;
+      coinStockAfter: IDCoinStock;
+    }
+  >;
 }
 
 export interface IDPlayerSnapshot {
@@ -92,6 +104,9 @@ export interface InternalState {
   turnStartedAt: number;
   timeLimitSeconds: number | null;
   roundTimer: ReturnType<typeof setTimeout> | null;
+  transitionTimer: ReturnType<typeof setTimeout> | null;
+  revealEndsAt: number | null;
+  finishedEndsAt: number | null;
   playMode: PlayMode;
   gameOver: boolean;
   actionLog: RoundActionLog[];

@@ -1,10 +1,10 @@
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type { IDCoinAllocation, IDCoinStock } from '@shared/types/invest-donate.js';
-import { AI_DELAY, ID_TOTAL_ROUNDS } from './constants.js';
+import { AI_DELAY } from './constants.js';
 import type { IO } from './constants.js';
 import type { InternalState, IDPlayerInternal } from './types.js';
 import { gameStates, broadcastState, processRound } from './state.js';
-import { coinValue, stockTotal } from './judge.js';
+import { stockTotal } from './judge.js';
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,13 +32,13 @@ function analyzeUserPattern(s: InternalState, userId: string): UserPattern {
   if (s.roundHistory.length === 0) {
     return { avgInvest: 20, avgDonate: 10, aggressiveness: 0.5 };
   }
-  const records = s.roundHistory.map(r => r.players[userId]);
-  const invests = records.map(r => r.investTotal);
-  const donates = records.map(r => r.donateTotal);
+  const records = s.roundHistory.map((r) => r.players[userId]);
+  const invests = records.map((r) => r.investTotal);
+  const donates = records.map((r) => r.donateTotal);
   const avgInvest = invests.reduce((a, b) => a + b, 0) / invests.length;
   const avgDonate = donates.reduce((a, b) => a + b, 0) / donates.length;
   const totalSpent = invests.map((inv, i) => inv + donates[i]);
-  const ratios = invests.map((inv, i) => totalSpent[i] > 0 ? inv / totalSpent[i] : 0.5);
+  const ratios = invests.map((inv, i) => (totalSpent[i] > 0 ? inv / totalSpent[i] : 0.5));
   const aggressiveness = ratios.reduce((a, b) => a + b, 0) / ratios.length;
   return { avgInvest, avgDonate, aggressiveness };
 }
@@ -73,7 +73,10 @@ function allocateToCoinDenominations(
   };
 }
 
-function decideAllocation(s: InternalState): { invest: IDCoinAllocation; donate: IDCoinAllocation } {
+function decideAllocation(s: InternalState): {
+  invest: IDCoinAllocation;
+  donate: IDCoinAllocation;
+} {
   const ai = s.player1.id === AI_PLAYER_ID ? s.player1 : s.player2;
   const user = s.player1.id === AI_PLAYER_ID ? s.player2 : s.player1;
   const aiTotal = stockTotal(ai.coinStock);
@@ -90,7 +93,10 @@ function decideAllocation(s: InternalState): { invest: IDCoinAllocation; donate:
 
   if (aiScoreRisk) {
     targetDonate = Math.min(Math.ceil(pattern.avgDonate * 1.3) + noise(5), aiTotal);
-    targetInvest = Math.max(0, Math.min(Math.floor(pattern.avgInvest * 0.5), aiTotal - targetDonate));
+    targetInvest = Math.max(
+      0,
+      Math.min(Math.floor(pattern.avgInvest * 0.5), aiTotal - targetDonate),
+    );
   } else if (userScoreRisk) {
     targetDonate = Math.min(Math.ceil(pattern.avgDonate * 1.5) + noise(10), aiTotal);
     targetInvest = Math.max(0, Math.min(noise(5), aiTotal - targetDonate));
@@ -99,7 +105,10 @@ function decideAllocation(s: InternalState): { invest: IDCoinAllocation; donate:
       targetInvest = noise(3);
       targetDonate = noise(3);
     } else if (scoreDiff < 0) {
-      targetInvest = Math.min(Math.ceil(pattern.avgInvest * 1.2) + noise(5), Math.floor(aiTotal * 0.5));
+      targetInvest = Math.min(
+        Math.ceil(pattern.avgInvest * 1.2) + noise(5),
+        Math.floor(aiTotal * 0.5),
+      );
       targetDonate = Math.min(Math.ceil(pattern.avgDonate * 1.1), aiTotal - targetInvest);
     } else {
       targetInvest = noise(5);
@@ -129,9 +138,9 @@ export async function aiSubmit(io: IO, s: InternalState) {
 
   const gen = s.aiGeneration;
   await wait(randDelay());
-  if (!gameStates.has(s.roomId) || s.gameOver) return;
+  if (gameStates.get(s.roomId) !== s || s.gameOver) return;
   if (s.aiGeneration !== gen) return;
-  if (s.phase !== 'submit') return;
+  if (s.phase !== 'submit' || ai.submitted || !getOpponent(s, ai).submitted) return;
 
   const { invest, donate } = decideAllocation(s);
   ai.investCoins = invest;

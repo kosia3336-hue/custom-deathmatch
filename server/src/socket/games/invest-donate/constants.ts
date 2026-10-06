@@ -8,8 +8,10 @@ export {
 } from '@shared/types/invest-donate.js';
 
 export const AI_DELAY = { min: 500, max: 1500 };
-export const REVEAL_DELAY_MS = 4000;
-export const WIN_DISPLAY_MS = 2000;
+export {
+  ID_REVEAL_DELAY_MS as REVEAL_DELAY_MS,
+  ID_WIN_DISPLAY_MS as WIN_DISPLAY_MS,
+} from '@shared/types/invest-donate.js';
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 export type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;

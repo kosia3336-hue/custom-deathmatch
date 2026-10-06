@@ -1,7 +1,7 @@
 import type { Player, PlayMode } from '@shared/types/room.js';
 import { AI_PLAYER_ID } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
-import type { IDCoinAllocation } from '@shared/types/invest-donate.js';
+import { parseCoinAllocation, allocationError } from '@shared/investDonateAllocation.js';
 import { ID_INITIAL_SCORE, ID_INITIAL_COIN_STOCK, ID_TOTAL_ROUNDS } from './constants.js';
 import type { IO, TypedSocket } from './constants.js';
 import type { EndGameFn, IDPlayerInternal } from './types.js';
@@ -10,7 +10,7 @@ import {
   broadcastState,
   emitStateToSocket,
   startRoundTimer,
-  clearRoundTimer,
+  clearGameTimers,
   processRound,
   performInvestDonateUndo,
 } from './state.js';
@@ -29,7 +29,7 @@ export function initInvestDonate(
   endGameCallback: EndGameFn,
 ) {
   const prev = gameStates.get(roomId);
-  if (prev) clearRoundTimer(prev);
+  if (prev) clearGameTimers(prev);
   gameStates.delete(roomId);
 
   const p1 = makePlayer(players[0].id, players[0].nickname);
@@ -51,6 +51,9 @@ export function initInvestDonate(
     turnStartedAt: Date.now(),
     timeLimitSeconds,
     roundTimer: null,
+    transitionTimer: null,
+    revealEndsAt: null,
+    finishedEndsAt: null,
     playMode,
     gameOver: false,
     actionLog: [],
@@ -96,19 +99,6 @@ export function handleInvestDonateAction(
   }
 }
 
-function parseAllocation(data: unknown): IDCoinAllocation | null {
-  if (!data || typeof data !== 'object') return null;
-  const obj = data as Record<string, unknown>;
-  const coin50 = obj.coin50;
-  const coin10 = obj.coin10;
-  const coin1 = obj.coin1;
-  if (typeof coin50 !== 'number' || typeof coin10 !== 'number' || typeof coin1 !== 'number') return null;
-  if (!Number.isInteger(coin50) || !Number.isInteger(coin10) || !Number.isInteger(coin1)) return null;
-  if (coin50 < 0 || coin10 < 0 || coin1 < 0) return null;
-  if (coin50 > ID_INITIAL_COIN_STOCK.coin50 || coin10 > ID_INITIAL_COIN_STOCK.coin10 || coin1 > ID_INITIAL_COIN_STOCK.coin1) return null;
-  return { coin50, coin10, coin1 };
-}
-
 function handleSubmit(
   io: IO,
   socket: TypedSocket,
@@ -129,23 +119,16 @@ function handleSubmit(
     return;
   }
 
-  const invest = parseAllocation(data.invest);
-  const donate = parseAllocation(data.donate);
+  const invest = parseCoinAllocation(data.invest);
+  const donate = parseCoinAllocation(data.donate);
   if (!invest || !donate) {
     socket.emit('error', { message: '유효하지 않은 코인 개수입니다.' });
     return;
   }
 
-  if (invest.coin50 + donate.coin50 > player.coinStock.coin50) {
-    socket.emit('error', { message: '보유한 50원짜리 코인이 부족합니다.' });
-    return;
-  }
-  if (invest.coin10 + donate.coin10 > player.coinStock.coin10) {
-    socket.emit('error', { message: '보유한 10원짜리 코인이 부족합니다.' });
-    return;
-  }
-  if (invest.coin1 + donate.coin1 > player.coinStock.coin1) {
-    socket.emit('error', { message: '보유한 1원짜리 코인이 부족합니다.' });
+  const error = allocationError(player.coinStock, invest, donate);
+  if (error) {
+    socket.emit('error', { message: error });
     return;
   }
 
@@ -192,13 +175,19 @@ function handleCancelSubmit(io: IO, socket: TypedSocket, s: import('./types.js')
   broadcastState(io, s);
 }
 
-function getPlayer(s: import('./types.js').InternalState, socketId: string): IDPlayerInternal | null {
+function getPlayer(
+  s: import('./types.js').InternalState,
+  socketId: string,
+): IDPlayerInternal | null {
   if (s.player1.id === socketId) return s.player1;
   if (s.player2.id === socketId) return s.player2;
   return null;
 }
 
-function getOpponent(s: import('./types.js').InternalState, socketId: string): IDPlayerInternal | null {
+function getOpponent(
+  s: import('./types.js').InternalState,
+  socketId: string,
+): IDPlayerInternal | null {
   if (s.player1.id === socketId) return s.player2;
   if (s.player2.id === socketId) return s.player1;
   return null;
@@ -214,7 +203,7 @@ export function canInvestDonateUndo(roomId: string): boolean {
 
 export function cleanupInvestDonate(roomId: string) {
   const s = gameStates.get(roomId);
-  if (s) clearRoundTimer(s);
+  if (s) clearGameTimers(s);
   gameStates.delete(roomId);
 }
 
@@ -252,9 +241,7 @@ export function getInvestDonateDummyView(roomId: string, viewerId: string) {
     },
     roundHistory: s.roundHistory.map((r) => ({
       round: r.round,
-      players: Object.fromEntries(
-        Object.entries(r.players).map(([pid, pr]) => [pid, { ...pr }]),
-      ),
+      players: Object.fromEntries(Object.entries(r.players).map(([pid, pr]) => [pid, { ...pr }])),
     })),
     winner: s.winner,
     turnStartedAt: s.turnStartedAt,

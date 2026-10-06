@@ -1,4 +1,6 @@
 export const ID_TOTAL_ROUNDS = 7;
+export const ID_REVEAL_DELAY_MS = 4000;
+export const ID_WIN_DISPLAY_MS = 2000;
 export const ID_INITIAL_SCORE = 4;
 export const ID_INITIAL_COIN_STOCK = {
   coin50: 2,
@@ -52,17 +54,20 @@ export interface IDRevealData {
 
 export interface IDRoundRecord {
   round: number;
-  players: Record<string, {
-    investCoins: IDCoinAllocation;
-    donateCoins: IDCoinAllocation;
-    investTotal: number;
-    donateTotal: number;
-    investBadge: IDBadge;
-    donateBadge: IDBadge;
-    scoreChange: number;
-    scoreAfter: number;
-    coinStockAfter: IDCoinStock;
-  }>;
+  players: Record<
+    string,
+    {
+      investCoins: IDCoinAllocation;
+      donateCoins: IDCoinAllocation;
+      investTotal: number;
+      donateTotal: number;
+      investBadge: IDBadge;
+      donateBadge: IDBadge;
+      scoreChange: number;
+      scoreAfter: number;
+      coinStockAfter: IDCoinStock;
+    }
+  >;
 }
 
 export interface InvestDonateGameData {
@@ -75,6 +80,8 @@ export interface InvestDonateGameData {
   winner: string | null;
   winType: IDWinType | null;
   rematchReason: string | null;
+  revealEndsAt?: number;
+  finishedEndsAt?: number;
 }
 
 export type InvestDonateAction =

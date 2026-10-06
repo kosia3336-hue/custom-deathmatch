@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
+import { serverNow } from '@/lib/serverClock';
 import { remainingProgress } from '@/lib/progressRing';
 
 export default function CountdownRing({
@@ -17,7 +18,7 @@ export default function CountdownRing({
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (deadline === undefined) return;
-    const update = () => setNow(Date.now());
+    const update = () => setNow(serverNow());
     update();
     const timer = setInterval(update, 100);
     return () => clearInterval(timer);
