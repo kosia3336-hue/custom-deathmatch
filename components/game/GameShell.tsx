@@ -205,7 +205,8 @@ export default function GameShell({ children }: Props) {
           title="방 채팅"
           className={cn(HEADER_BTN, 'relative lg:hidden')}
         >
-          <span className="text-xs font-medium">방 채팅</span>
+          <Icon name="chat" />
+          <span className={HEADER_BTN_LABEL}>방 채팅</span>
           <UnreadBadge
             count={chatUnread}
             label={`안 읽은 채팅 ${chatUnread}건`}

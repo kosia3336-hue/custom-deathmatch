@@ -10,7 +10,6 @@ export default function TileTracker({
   black,
   round,
   currentRound,
-  entered,
   onSet,
   onClear,
   onSelectRound,
@@ -23,7 +22,6 @@ export default function TileTracker({
   black: number;
   round: number;
   currentRound: number;
-  entered: boolean;
   onSet: (color: 'white' | 'black', value: number) => void;
   onClear: () => void;
   onSelectRound: (round: number) => void;
@@ -43,6 +41,14 @@ export default function TileTracker({
         <div className="ml-auto flex shrink-0 items-center gap-1" aria-label="메모 라운드 선택">
           <button
             type="button"
+            onClick={onClear}
+            disabled={white === INITIAL_WHITE && black === INITIAL_BLACK}
+            className="mr-1 px-1 py-1 disabled:opacity-30"
+          >
+            초기화
+          </button>
+          <button
+            type="button"
             aria-label="이전 라운드 메모"
             disabled={round <= 1}
             onClick={() => onSelectRound(round - 1)}
@@ -59,14 +65,6 @@ export default function TileTracker({
             className="border-cdm-border h-7 w-7 rounded border text-base disabled:opacity-30"
           >
             ›
-          </button>
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={!entered}
-            className="ml-1 px-1 py-1 disabled:opacity-30"
-          >
-            초기화
           </button>
         </div>
       </div>
@@ -91,15 +89,14 @@ export default function TileTracker({
                 −
               </button>
               <input
-                key={`${round}-${color}-${value}-${entered}`}
+                key={`${round}-${color}-${value}`}
                 aria-label={`${label} 추리값`}
                 type="number"
                 inputMode="numeric"
                 step={1}
                 min={0}
                 max={max}
-                defaultValue={entered ? value : ''}
-                placeholder="?"
+                defaultValue={value}
                 onFocus={(e) => e.currentTarget.select()}
                 onBlur={(e) => {
                   const raw = e.currentTarget.value;
@@ -108,7 +105,7 @@ export default function TileTracker({
                     e.currentTarget.value = String(normalized);
                     onSet(color, normalized);
                   } else {
-                    e.currentTarget.value = entered ? String(value) : '';
+                    e.currentTarget.value = String(value);
                   }
                 }}
                 onKeyDown={(e) => {

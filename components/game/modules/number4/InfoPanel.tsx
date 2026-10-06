@@ -40,12 +40,17 @@ export default function InfoPanel({
               <div className="text-cdm-fg-muted mt-0.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
                 <span aria-label={`${p.nickname} 잔여 타일`}>
                   백 □<TileCount actual={p.remainingWhite} predicted={predicted?.white} />
-                  {' · 흑 ■'}
-                  <TileCount actual={p.remainingBlack} predicted={predicted?.black} />
+                  {' · '}
+                  <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+                    <span>
+                      흑 ■<TileCount actual={p.remainingBlack} predicted={predicted?.black} />
+                    </span>
+                    {predicted && p.remainingWhite < 0 && <span>(나의 메모)</span>}
+                  </span>
                 </span>
-                {predicted && p.remainingWhite < 0 ? (
-                  <span className="ml-auto">(나의 메모)</span>
-                ) : gameData.phase === 'submit' && p.submitted ? (
+                {!(predicted && p.remainingWhite < 0) &&
+                gameData.phase === 'submit' &&
+                p.submitted ? (
                   <span>제출 완료</span>
                 ) : null}
               </div>

@@ -18,10 +18,13 @@ export function useNumberFourTools(
   skin?: SkinTheme | null,
 ) {
   const desktop = useGameToolsRegistration()?.desktop ?? false;
-  const memo = useNumberFourNotes(data.round);
   const model = useMemo(
     () => buildNumberFourViewModel(data, myId, spectator),
     [data, myId, spectator],
+  );
+  const memo = useNumberFourNotes(
+    data.round,
+    model.trackerEntries.map(([id]) => id),
   );
   const { notes, round, selectRound, setNote, clearNote } = memo;
   const info = useMemo(
@@ -46,7 +49,6 @@ export function useNumberFourTools(
             {...(notes[round]?.[id] ?? { white: INITIAL_WHITE, black: INITIAL_BLACK })}
             round={round}
             currentRound={data.round}
-            entered={!!notes[round]?.[id]}
             onSelectRound={selectRound}
             showTitle={!desktop}
             skin={skin}

@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { updateNumberFourNote, clearNumberFourNote } from '../../../lib/numberFourNotes';
+import {
+  updateNumberFourNote,
+  clearNumberFourNote,
+  initializeNumberFourNotes,
+} from '../../../lib/numberFourNotes';
 import {
   initNumberFour,
   handleNumberFourAction,
@@ -23,7 +27,7 @@ afterEach(() => {
 });
 
 describe('넘버 4 라운드 메모', () => {
-  it('이전 라운드를 수정하거나 지워도 다른 라운드와 플레이어 메모를 유지한다', () => {
+  it('이전 라운드를 수정하거나 초기화해도 다른 라운드와 플레이어 메모를 유지한다', () => {
     let notes = updateNumberFourNote({}, 1, 'opponent', 'white', 5);
     notes = updateNumberFourNote(notes, 2, 'opponent', 'white', 3);
     notes = updateNumberFourNote(notes, 1, 'another', 'black', 8);
@@ -32,10 +36,39 @@ describe('넘버 4 라운드 메모', () => {
     expect(edited[2].opponent.white).toBe(3);
     expect(notes[1].opponent.black).toBe(20);
     const cleared = clearNumberFourNote(edited, 1, 'opponent');
-    expect(cleared[1].opponent).toBeUndefined();
+    expect(cleared[1].opponent).toEqual({ white: 22, black: 20 });
     expect(cleared[1].another.black).toBe(8);
     expect(cleared[2]).toEqual(edited[2]);
-    expect(clearNumberFourNote(cleared, 1, 'another')[1]).toBeUndefined();
+    expect(clearNumberFourNote(cleared, 1, 'another')[1].another).toEqual({ white: 22, black: 20 });
+  });
+  it('최초 메모는 최대치이고 새 라운드는 이전 값을 복사하며 과거 수정과 독립적이다', () => {
+    let notes = initializeNumberFourNotes({}, 1, ['opponent', 'another']);
+    expect(notes[1].opponent).toEqual({ white: 22, black: 20 });
+    notes = updateNumberFourNote(notes, 1, 'opponent', 'white', 16);
+    notes = updateNumberFourNote(notes, 1, 'opponent', 'black', 18);
+    const round2 = initializeNumberFourNotes(notes, 2, ['opponent', 'another']);
+    expect(round2[2].opponent).toEqual({ white: 16, black: 18 });
+    expect(round2[2].opponent).not.toBe(round2[1].opponent);
+    expect(round2[2].another).toEqual({ white: 22, black: 20 });
+    const edited = updateNumberFourNote(round2, 1, 'opponent', 'white', 10);
+    expect(edited[2].opponent).toEqual({ white: 16, black: 18 });
+    expect(initializeNumberFourNotes(edited, 2, ['opponent', 'another'])).toBe(edited);
+    const reset = clearNumberFourNote(edited, 2, 'opponent');
+    expect(reset[2].opponent).toEqual({ white: 22, black: 20 });
+    expect(reset[1].opponent.white).toBe(10);
+    expect(initializeNumberFourNotes(reset, 3, ['opponent'])[3].opponent).toEqual({
+      white: 22,
+      black: 20,
+    });
+  });
+  it('건너뛴 라운드와 새 관전 대상도 초기화하고 한 색 편집 시 다른 색은 이어받는다', () => {
+    let notes = updateNumberFourNote({}, 1, 'opponent', 'black', 12);
+    notes = updateNumberFourNote(notes, 2, 'opponent', 'white', 16);
+    expect(notes[2].opponent).toEqual({ white: 16, black: 12 });
+    const restored = initializeNumberFourNotes(notes, 4, ['opponent', 'new-player']);
+    expect(restored[4].opponent).toEqual({ white: 16, black: 12 });
+    expect(restored[4]['new-player']).toEqual({ white: 22, black: 20 });
+    expect(initializeNumberFourNotes(restored, 7, ['opponent'])).toBe(restored);
   });
   it('범위 밖 숫자는 제한하고 소수 및 잘못된 라운드는 거부한다', () => {
     const notes = updateNumberFourNote({}, 1, 'opponent', 'white', 99);

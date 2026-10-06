@@ -76,13 +76,12 @@ function ChatChannelToggle({
       {target && (
         <button
           type="button"
-          aria-label={target.label}
-          title={`${target.label}${target.id === 'lobby' ? '로' : '으로'} 전환`}
+          aria-label={`${target.id === 'lobby' ? '로비 채팅' : '방 채팅'}으로 전환`}
+          title={`${target.id === 'lobby' ? '로비 채팅' : '방 채팅'}으로 전환`}
           onClick={() => onChange(target.id)}
-          className="rounded-cdm-md border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg focus-visible:outline-cdm-primary flex h-8 items-center gap-1.5 border px-2 text-xs font-medium transition-colors focus-visible:outline-2"
+          className="rounded-cdm-md border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg focus-visible:outline-cdm-primary flex h-8 w-8 items-center justify-center border transition-colors focus-visible:outline-2"
         >
-          <Icon name={target.icon} size="sm" />
-          {target.label}
+          <Icon name="swap" />
         </button>
       )}
       {extras.map((choice) => (
