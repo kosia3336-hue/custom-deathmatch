@@ -1,8 +1,9 @@
 import manifest from '../../public/audio/sfx/manifest.json';
+import dreamshopManifest from '../../public/audio/skins/dreamshop/manifest.json';
 
 export type FileSoundId = 'cardDeal' | 'cardFlip' | 'chipPlace' | 'chipRaise' | 'chipCollect'
   | 'matchPick' | 'matchReveal' | 'matchEliminate' | 'matchConfirm' | 'turn' | 'boardMove'
-  | 'candyButton' | 'candyCard' | 'candyMinus' | 'meow0' | 'meow1' | 'meow2' | 'meow3' | 'meow4' | 'showdownGunshot';
+  | 'candyButton' | 'candyCard' | 'candyMinus' | 'meow0' | 'meow1' | 'meow2' | 'meow3' | 'meow4' | 'showdownGunshot' | 'dreamshopWin' | 'dreamshopDraw' | 'dreamshopLose' | 'dreamshopSuccess' | 'dreamshopFail' | 'dreamshopRefund';
 
 export type FileSound = {
   id: FileSoundId; name: string; detail: string; category: string; src: string; volume: number;
@@ -11,6 +12,7 @@ export type FileSound = {
 
 export const FILE_SOUNDS: FileSound[] = [
   ...manifest as FileSound[],
+  ...dreamshopManifest as FileSound[],
   { id: 'boardMove', name: '말·돌 놓기', detail: '추상전략 게임에서 서버가 확정한 수', category: 'board', src: '/audio/sfx/board/move.mp3', volume: .55 },
   { id: 'candyButton', name: '유리설탕 병 열기', detail: '설탕 + / MAX / 제출', category: 'skins', src: '/audio/skins/candy/button.mp3', volume: .5 },
   { id: 'candyCard', name: '유리설탕 카드 선택', detail: '유리잔을 부딪히는 소리', category: 'skins', src: '/audio/skins/candy/card.mp3', volume: .55 },

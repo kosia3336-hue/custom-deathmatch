@@ -11,6 +11,8 @@ import { getSocket } from '@/lib/socket';
 import type { BettingRpsGameData } from '@/shared/types/betting-rps';
 import BettingRpsView from './BettingRpsView';
 import { buildBettingRpsView } from './viewModel';
+import { getSkinTheme } from '@/lib/skins/registry';
+import { GAME_IDS } from '@/shared/types/game';
 import { WIN_TYPE_LABELS } from './constants';
 
 export default function BettingRpsGame() {
@@ -18,6 +20,7 @@ export default function BettingRpsGame() {
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const gameData = gameState?.gameData as BettingRpsGameData | undefined;
   const myId = useMySocketId() ?? '';
+  const dreamshop = getSkinTheme(gameState?.activeSkin, GAME_IDS.BETTING_RPS) === 'dreamshop';
   const { remaining } = useTurnTimer();
   const { setHud } = useRoomLayout();
   const shownResult = useRef<string | null>(null);
@@ -30,14 +33,16 @@ export default function BettingRpsGame() {
     setHud({
       round: `${gameData.round} / ${gameData.totalRounds}R`,
       order: (
-        <span className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg px-1.5 py-0.5 text-[11px] font-bold">
+        <span
+          className={`rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg px-1.5 py-0.5 text-[11px] font-bold ${dreamshop ? 'brps-dreamshop-hud' : ''}`}
+        >
           {phaseLabel}
         </span>
       ),
       memo: null,
     });
     return () => setHud(null);
-  }, [gameData, phaseLabel, setHud]);
+  }, [gameData, phaseLabel, dreamshop, setHud]);
 
   useEffect(() => {
     if (!gameData?.winType) return;
@@ -62,6 +67,7 @@ export default function BettingRpsGame() {
     );
   return (
     <BettingRpsView
+      dreamshop={dreamshop}
       gameData={gameData}
       myId={myId}
       isSpectator={isSpectator}

@@ -7,6 +7,8 @@ import ResultSelector from './ResultSelector';
 import BetSelector from './BetSelector';
 import RevealPanel from './RevealPanel';
 import RoundHistoryTable from './RoundHistoryTable';
+import { useDreamshopAudio } from './skins/useDreamshopAudio';
+import skinStyles from './skins/dreamshop.module.css';
 import styles from './betting-rps.module.css';
 export default function BettingRpsView({
   gameData,
@@ -14,16 +16,23 @@ export default function BettingRpsView({
   isSpectator,
   disabled,
   onAction,
+  dreamshop = false,
 }: {
   gameData: BettingRpsGameData;
   myId: string;
   isSpectator: boolean;
   disabled?: boolean;
+  dreamshop?: boolean;
   onAction: (action: BettingRpsAction) => void;
 }) {
+  useDreamshopAudio(dreamshop);
   const view = buildBettingRpsView(gameData, myId, isSpectator);
   return (
-    <div className={styles.layout} data-betting-rps>
+    <div
+      className={`${styles.layout} ${dreamshop ? skinStyles.dreamshop : ''}`}
+      data-betting-rps
+      data-skin={dreamshop ? 'dreamshop' : undefined}
+    >
       <section className={styles.board} aria-label="베팅 가위바위보 게임판">
         <PlayerStatusCard
           players={gameData.players}
@@ -39,6 +48,7 @@ export default function BettingRpsView({
         )}
         {view.canSubmit && view.me?.role === 'match' && (
           <ResultSelector
+            dreamshop={dreamshop}
             key={gameData.round}
             disabled={disabled}
             onSubmit={(result) => onAction({ type: 'submitMatch', result })}
@@ -46,6 +56,7 @@ export default function BettingRpsView({
         )}
         {view.canSubmit && view.me?.role === 'bet' && (
           <BetSelector
+            dreamshop={dreamshop}
             key={gameData.round}
             disabled={disabled}
             myChips={view.me.chips}
@@ -66,7 +77,7 @@ export default function BettingRpsView({
           </div>
         )}
         {(gameData.phase === 'reveal' || gameData.phase === 'finished') && (
-          <RevealPanel key={gameData.round} gameData={gameData} />
+          <RevealPanel key={gameData.round} gameData={gameData} dreamshop={dreamshop} />
         )}
       </section>
       <section className={styles.history} aria-label="라운드 기록">

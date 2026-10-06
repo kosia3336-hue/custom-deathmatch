@@ -4,17 +4,25 @@ import type { BRPSResult } from '@/shared/types/betting-rps';
 import ResultChoices from './ResultChoices';
 export default function ResultSelector({
   disabled,
+  dreamshop = false,
   onSubmit,
 }: {
   disabled?: boolean;
+  dreamshop?: boolean;
   onSubmit: (result: BRPSResult) => void;
 }) {
   const [selected, setSelected] = useState<BRPSResult | null>(null);
   return (
-    <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
+    <div data-brps-input className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
       <div className="text-center text-sm font-medium text-blue-800">승부 결과를 선택하세요</div>
-      <ResultChoices value={selected} onChange={setSelected} disabled={disabled} />
+      <ResultChoices
+        dreamshop={dreamshop}
+        value={selected}
+        onChange={setSelected}
+        disabled={disabled}
+      />
       <button
+        data-brps-submit
         onClick={() => {
           if (selected && !disabled) onSubmit(selected);
         }}

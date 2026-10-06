@@ -1,0 +1,168 @@
+.dreamshop {
+  --ds-ink: #171717;
+  --ds-mint: #3ad6ac;
+  --ds-paper: #fffdf5;
+  --ds-peach: #ffb6a3;
+  --ds-yellow: #f4df82;
+  --ds-border: 2px solid var(--ds-ink);
+  --ds-shadow: 4px 4px 0 var(--ds-ink);
+  color: var(--ds-ink);
+  padding-bottom: 16px;
+  gap: 14px;
+  scrollbar-color: #171717 #e9e6db;
+}
+.dreamshop :global([data-brps-status]),
+.dreamshop :global([data-brps-input]),
+.dreamshop :global([data-brps-role-select]),
+.dreamshop :global([data-brps-reveal]),
+.dreamshop > section:last-child {
+  border: var(--ds-border);
+  border-radius: 5px;
+  background: var(--ds-paper);
+  box-shadow: var(--ds-shadow);
+}
+.dreamshop :global([data-brps-status]) {
+  background: white;
+}
+.dreamshop :global([data-brps-status]) > div + div > div:first-child {
+  border-color: var(--ds-ink);
+}
+.dreamshop :global([data-brps-status]) span {
+  color: var(--ds-ink);
+}
+.dreamshop :global([data-brps-role]) {
+  border: 1px solid var(--ds-ink);
+  border-radius: 3px;
+  font-weight: 800;
+}
+.dreamshop :global([data-brps-role='match']) {
+  background: var(--ds-mint);
+}
+.dreamshop :global([data-brps-role='bet']) {
+  background: var(--ds-yellow);
+}
+.dreamshop :global([data-brps-input]) > div:first-child {
+  color: var(--ds-ink);
+  font-weight: 800;
+}
+.dreamshop :global([data-brps-role-select]) button {
+  border: var(--ds-border);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--ds-ink);
+  background: var(--ds-mint);
+}
+.dreamshop :global([data-brps-role-select]) button:last-child {
+  background: var(--ds-yellow);
+}
+.dreamshop :global([data-brps-role-select]) button div {
+  color: var(--ds-ink);
+}
+.dreamshop :global([data-result]) {
+  border: var(--ds-border);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--ds-ink);
+  color: var(--ds-ink);
+  font-weight: 900;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s,
+    background 0.12s;
+}
+.dreamshop :global([data-result='win']) {
+  --tone: #3ad6ac;
+  --soft: #e0f8ee;
+}
+.dreamshop :global([data-result='draw']) {
+  --tone: #f4df82;
+  --soft: #fff5c8;
+}
+.dreamshop :global([data-result='lose']) {
+  --tone: #ffb6a3;
+  --soft: #ffe7de;
+}
+.dreamshop :global([data-result][aria-pressed='true']),
+.dreamshop :global([data-result][aria-pressed='true']:hover:not(:disabled)) {
+  color: var(--ds-ink);
+  background: var(--tone);
+  box-shadow: 1px 1px 0 var(--ds-ink);
+  transform: translate(2px, 2px);
+}
+.dreamshop :global([data-result]:hover:not(:disabled)) {
+  color: var(--ds-ink);
+  background: var(--soft);
+}
+.dreamshop :global([data-brps-submit]),
+.dreamshop :global([data-brps-chip-step]) {
+  border: var(--ds-border);
+  border-radius: 3px;
+  background: var(--ds-ink);
+  color: white;
+  font-weight: 800;
+}
+.dreamshop :global([data-brps-submit]:hover:not(:disabled)) {
+  background: var(--ds-mint);
+  color: var(--ds-ink);
+}
+.dreamshop :global([data-brps-chip-step]) {
+  background: white;
+  color: var(--ds-ink);
+  box-shadow: 2px 2px 0 var(--ds-ink);
+}
+.dreamshop :global(button:focus-visible) {
+  outline: 3px solid #066447;
+  outline-offset: 4px;
+}
+.dreamshop :global(button:disabled) {
+  opacity: 0.4;
+}
+.dreamshop :global([data-brps-reveal-role]) {
+  border: var(--ds-border);
+  border-radius: 3px;
+  background: white;
+}
+.dreamshop :global([data-brps-reveal-role] span) {
+  color: var(--ds-ink);
+}
+.dreamshop :global([data-brps-reveal-role='match']) {
+  background: #e0f8ee;
+}
+.dreamshop :global([data-brps-reveal-role='bet']) {
+  background: #fff5c8;
+}
+.dreamshop :global([data-brps-outcome]) {
+  border: var(--ds-border);
+  border-radius: 3px;
+  color: var(--ds-ink);
+  box-shadow: 2px 2px 0 var(--ds-ink);
+}
+.dreamshop :global([data-brps-outcome='success']) {
+  background: var(--ds-mint);
+}
+.dreamshop :global([data-brps-outcome='fail']) {
+  background: var(--ds-peach);
+}
+.dreamshop :global([data-brps-outcome='refund']) {
+  background: var(--ds-yellow);
+}
+.dreamshop > section:last-child h2 {
+  border-bottom: var(--ds-border);
+  background: var(--ds-mint);
+  color: var(--ds-ink);
+  font-weight: 800;
+}
+.dreamshop > section:last-child article {
+  border: 1px solid var(--ds-ink);
+  border-radius: 3px;
+  background: white;
+}
+@media (max-width: 639px) {
+  .dreamshop {
+    gap: 12px;
+    padding-right: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dreamshop :global(button) {
+    transition: none;
+  }
+}

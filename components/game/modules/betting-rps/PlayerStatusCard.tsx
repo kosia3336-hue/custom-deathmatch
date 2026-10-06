@@ -16,7 +16,7 @@ export default function PlayerStatusCard({ players, myId, round, isSpectator }: 
   );
 
   return (
-    <div className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
+    <div data-brps-status className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
       {pIds.map((pid, idx) => {
         const p = players[pid];
         const isMe = !isSpectator && pid === myId;
@@ -46,7 +46,10 @@ export default function PlayerStatusCard({ players, myId, round, isSpectator }: 
                   </span>
                 )}
                 {roleLabel && (
-                  <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[11px] font-medium text-gray-600">
+                  <span
+                    data-brps-role={p.role ?? undefined}
+                    className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[11px] font-medium text-gray-600"
+                  >
                     {roleLabel}
                   </span>
                 )}

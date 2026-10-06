@@ -1,5 +1,6 @@
 'use client';
 import CountdownRing from '@/components/game/CountdownRing';
+import { useDreamshopRevealSound } from './skins/useDreamshopAudio';
 import { useRevealProgress } from './useRevealProgress';
 import {
   BRPS_REVEAL_DELAY_MS,
@@ -8,18 +9,26 @@ import {
 } from '@/shared/types/betting-rps';
 import { RESULT_LABELS, RESULT_COLORS, OUTCOME_LABELS, WIN_TYPE_LABELS } from './constants';
 
-export default function RevealPanel({ gameData }: { gameData: BettingRpsGameData }) {
+export default function RevealPanel({
+  gameData,
+  dreamshop = false,
+}: {
+  gameData: BettingRpsGameData;
+  dreamshop?: boolean;
+}) {
   const { revealData, players, winner, winType } = gameData;
   const finished = gameData.phase === 'finished';
   const step = useRevealProgress(gameData.revealEndsAt, finished);
   const entries = Object.entries(revealData?.players ?? {});
   const bet = entries.find(([, player]) => player.role === 'bet')?.[1];
+  const matchResult = entries.find(([, p]) => p.role === 'match')?.[1].matchResult ?? null;
+  useDreamshopRevealSound(dreamshop, step, matchResult, bet?.betOutcome ?? null);
   const show = (stage: number) =>
     `transition duration-500 ${step >= stage ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`;
   return (
     <div className="space-y-2">
       {revealData && (
-        <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
+        <div data-brps-reveal className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
           <div className="text-center text-sm font-bold text-gray-700">
             {gameData.round}라운드 결과
           </div>
@@ -31,6 +40,7 @@ export default function RevealPanel({ gameData }: { gameData: BettingRpsGameData
               return (
                 <div key={id} className={show(match ? 1 : 2)}>
                   <div
+                    data-brps-reveal-role={player.role ?? undefined}
                     className={`rounded-lg border px-3 py-2 ${match ? 'border-blue-100 bg-blue-50' : 'border-emerald-100 bg-emerald-50'}`}
                   >
                     <div className="flex items-center justify-between gap-2 text-sm">
@@ -57,6 +67,7 @@ export default function RevealPanel({ gameData }: { gameData: BettingRpsGameData
           {bet && (
             <div className={show(3)}>
               <div
+                data-brps-outcome={bet.betOutcome ?? undefined}
                 className={`rounded-lg px-3 py-2 text-center text-sm font-bold text-white ${bet.betOutcome === 'success' ? 'bg-emerald-600' : bet.betOutcome === 'fail' ? 'bg-red-600' : 'bg-amber-700'}`}
               >
                 {bet.betOutcome ? OUTCOME_LABELS[bet.betOutcome] : '—'} ·{' '}

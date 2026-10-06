@@ -11,7 +11,10 @@ export default function RoleSelector({ onSelectRole, disabled }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-6">
+    <div
+      data-brps-role-select
+      className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-6"
+    >
       <div className="flex gap-3 sm:gap-4">
         <button
           onClick={() => selectRole('match')}

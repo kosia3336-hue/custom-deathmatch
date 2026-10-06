@@ -120,7 +120,7 @@ export default function GameShell({ children }: Props) {
   const skinTheme =
     skinMeta &&
     skinMeta.gameId === room?.gameId &&
-    ['candy', 'meow', 'four-card', 'spring-rain', 'ink-wash'].includes(skinMeta.theme)
+    ['candy', 'meow', 'four-card', 'spring-rain', 'ink-wash', 'dreamshop'].includes(skinMeta.theme)
       ? skinMeta.theme
       : null;
 

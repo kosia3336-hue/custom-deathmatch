@@ -5,18 +5,28 @@ import { useBettingInput } from './useBettingInput';
 export default function BetSelector({
   myChips,
   disabled,
+  dreamshop = false,
   onSubmit,
 }: {
   myChips: number;
   disabled?: boolean;
+  dreamshop?: boolean;
   onSubmit: (prediction: BRPSResult, chips: number) => void;
 }) {
   const input = useBettingInput(myChips);
   const gain = input.chips * (input.prediction ? brpsBetMultiplier(input.prediction) - 1 : 1);
   return (
-    <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+    <div
+      data-brps-input
+      className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3"
+    >
       <div className="text-center text-sm font-medium text-emerald-800">예측 + 베팅</div>
-      <ResultChoices value={input.prediction} onChange={input.setPrediction} disabled={disabled} />
+      <ResultChoices
+        dreamshop={dreamshop}
+        value={input.prediction}
+        onChange={input.setPrediction}
+        disabled={disabled}
+      />
       <div>
         <div className="mb-1.5 flex justify-between text-xs text-emerald-700">
           <span>베팅 칩</span>
@@ -24,6 +34,7 @@ export default function BetSelector({
         </div>
         <div className="flex items-center gap-2">
           <button
+            data-brps-chip-step
             aria-label="베팅 칩 줄이기"
             disabled={disabled || input.chips <= input.bounds.min}
             onClick={() => input.changeChips(-1)}
@@ -33,6 +44,7 @@ export default function BetSelector({
           </button>
           <span className="flex-1 text-center text-lg font-bold text-gray-800">{input.chips}</span>
           <button
+            data-brps-chip-step
             aria-label="베팅 칩 늘리기"
             disabled={disabled || input.chips >= input.bounds.max}
             onClick={() => input.changeChips(1)}
@@ -58,6 +70,7 @@ export default function BetSelector({
         )}
       </div>
       <button
+        data-brps-submit
         disabled={disabled || !input.canSubmit}
         onClick={() => {
           if (input.prediction && input.canSubmit && !disabled)

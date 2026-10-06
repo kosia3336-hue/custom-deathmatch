@@ -1,0 +1,68 @@
+[
+  {
+    "id": "dreamshopWin",
+    "name": "승",
+    "detail": "경쾌하게 올라가는 뚱·띵",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/win.wav",
+    "volume": 0.62,
+    "duration": 0.515,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  },
+  {
+    "id": "dreamshopDraw",
+    "name": "무",
+    "detail": "동일한 높이로 톡·톡",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/draw.wav",
+    "volume": 0.62,
+    "duration": 0.455,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  },
+  {
+    "id": "dreamshopLose",
+    "name": "패",
+    "detail": "부드럽게 내려오는 뚱·땅",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/lose.wav",
+    "volume": 0.62,
+    "duration": 0.485,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  },
+  {
+    "id": "dreamshopSuccess",
+    "name": "베팅 성공",
+    "detail": "민트빛 다섯 음의 반짝이는 상승음",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/success.wav",
+    "volume": 0.62,
+    "duration": 0.68,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  },
+  {
+    "id": "dreamshopFail",
+    "name": "베팅 실패",
+    "detail": "낮게 내려앉는 세 음",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/fail.wav",
+    "volume": 0.62,
+    "duration": 0.565,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  },
+  {
+    "id": "dreamshopRefund",
+    "name": "베팅 반환",
+    "detail": "올라갔다 돌아오는 말랑한 회수음",
+    "category": "skins",
+    "src": "/audio/skins/dreamshop/refund.wav",
+    "volume": 0.62,
+    "duration": 0.58,
+    "peak": 0.62,
+    "original": "Original Dreamshop synth composition; scripts/audio/build-dreamshop.py"
+  }
+]

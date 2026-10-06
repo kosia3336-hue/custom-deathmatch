@@ -46,6 +46,9 @@ function ShowdownBundle({ state }: { state: 'lit' | 'active' }) {
 }
 
 export default function SkinPreview({ theme }: { theme: SkinTheme }) {
+  if (theme === 'dreamshop') {
+    return <div className="skin-bg-dreamshop skin-dreamshop-preview flex h-24 w-full items-center justify-center gap-3 overflow-hidden rounded-lg" aria-label="드림샵 스킨 미리보기">{['승','무','패'].map((label,i) => <span key={label} className="skin-dreamshop-preview-tile" data-result={i}>{label}</span>)}</div>;
+  }
   if (theme === 'spring-rain') {
     return (
       <div className="skin-bg-spring-rain skin-spring-rain-preview relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg">

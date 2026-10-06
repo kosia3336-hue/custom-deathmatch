@@ -24,7 +24,8 @@ export type SkinTheme =
   | 'four-card'
   | 'spring-rain'
   | 'ink-wash'
-  | 'dalmaji';
+  | 'dalmaji'
+  | 'dreamshop';
 
 export interface SkinMeta {
   /** DB skins.id */
@@ -42,6 +43,14 @@ export interface SkinMeta {
 }
 
 export const SKIN_REGISTRY: Record<string, SkinMeta> = {
+  'skin-g006-01': {
+    id: 'skin-g006-01',
+    gameId: GAME_IDS.BETTING_RPS,
+    name: '드림샵',
+    theme: 'dreamshop',
+    description: '민트 포인트, 굵은 검정 선과 단단한 그림자. 승·무·패와 베팅 결과가 귀여운 신스 음으로 울리는 네오 브루탈리즘.',
+    swatch: 'linear-gradient(135deg, #3ad6ac 0 50%, #fff9e9 50% 85%, #171717 85%)',
+  },
   'skin-g003-01': {
     id: 'skin-g003-01',
     gameId: GAME_IDS.NUMBER_FOUR,

@@ -9714,3 +9714,31 @@ html[data-native-app] .site-footer--home {
     transition: none;
   }
 }
+
+/* 드림샵 · 베팅 가위바위보. 무대 배치와 크기는 기본 UI 계약을 유지한다. */
+.skin-bg-dreamshop {
+  background-color: #f4f4ef;
+  background-image: linear-gradient(#1717170a 1px, transparent 1px), linear-gradient(90deg, #1717170a 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.brps-dreamshop-hud {
+  background: #3ad6ac;
+  color: #171717;
+  border: 1px solid #171717;
+  border-radius: 3px;
+}
+.skin-dreamshop-preview-tile {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 48px;
+  border: 2px solid #171717;
+  border-radius: 3px;
+  background: #3ad6ac;
+  box-shadow: 3px 3px 0 #171717;
+  color: #171717;
+  font-size: 20px;
+  font-weight: 900;
+}
+.skin-dreamshop-preview-tile[data-result='1'] { background: #f4df82; }
+.skin-dreamshop-preview-tile[data-result='2'] { background: #ffb6a3; }
