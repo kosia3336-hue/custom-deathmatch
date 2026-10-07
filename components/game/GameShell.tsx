@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
-import { getSkinMeta } from '@/lib/skins/registry';
+import { getSkinTheme } from '@/lib/skins/registry';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { getGameProgress, getGameStatus } from '@/lib/gameProgress';
@@ -115,14 +115,7 @@ export default function GameShell({ children }: Props) {
   );
   const reconnectTimers = useReconnectCountdowns(reconnectingPlayers);
 
-  /* 전체 화면 배경 이미지가 있는 스킨 — skin-bg-<theme> 클래스로 셸 배경 적용 */
-  const skinMeta = getSkinMeta(gameState?.activeSkin);
-  const skinTheme =
-    skinMeta &&
-    skinMeta.gameId === room?.gameId &&
-    ['candy', 'meow', 'four-card', 'spring-rain', 'ink-wash', 'dreamshop'].includes(skinMeta.theme)
-      ? skinMeta.theme
-      : null;
+  const skinTheme = getSkinTheme(gameState?.activeSkin, room?.gameId ?? '');
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
@@ -272,12 +265,10 @@ export default function GameShell({ children }: Props) {
           socket.emit('game:time-expiry:respond', { requestId: timeExpiry.requestId, decision });
         }}
       />
-      <div
-        className={`relative flex h-full min-h-0 flex-1 flex-col overflow-hidden ${
-          skinTheme ? `skin-bg-${skinTheme}` : ''
-        }`}
-      >
-        <GameToolsWorkspace controller={tools}>{children}</GameToolsWorkspace>
+      <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+        <GameToolsWorkspace controller={tools} skin={skinTheme}>
+          {children}
+        </GameToolsWorkspace>
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
           <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">

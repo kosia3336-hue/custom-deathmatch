@@ -169,6 +169,52 @@
    판과 말의 CSS 2.5D 깊이는 유지하고 수면·연잎 에셋은 윗면에만 쓴다.
    ────────────────────────────────────────────── */
 
+/* 전체 게임 영역 배경. 이미지가 없는 테마도 해당 스킨의 팔레트로 여백까지 채운다. */
+.skin-bg-cosmos {
+  background-color: #110b28;
+  background-image:
+    radial-gradient(circle, rgba(225, 218, 255, 0.32) 1px, transparent 1.5px),
+    radial-gradient(ellipse at 35% 20%, #352257, transparent 70%);
+  background-size: 97px 83px, cover;
+}
+.skin-bg-imperial {
+  background-color: #1a1407;
+  background-image: radial-gradient(ellipse at 50% 0%, #4b3c1c, #1a1407 75%);
+}
+.skin-bg-nocturne {
+  background-color: #0b1220;
+  background-image: radial-gradient(ellipse at 50% 12%, #1e3a5f, #0b1220 75%);
+}
+.skin-bg-citadel {
+  background-color: #2a2520;
+  background-image:
+    linear-gradient(rgba(194, 170, 140, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(194, 170, 140, 0.04) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 20%, #514538, #2a2520 75%);
+  background-size: 80px 40px, 80px 40px, cover;
+}
+.skin-bg-duality {
+  background-color: #080b14;
+  background-image: linear-gradient(115deg, #17334b, #080b14 48%, #28182c);
+}
+.skin-bg-showdown {
+  background-color: #e3c6a0;
+  background-image: linear-gradient(180deg, #f3e6d0, #d7b583 65%, #b8825d);
+}
+.skin-bg-treasury {
+  background-color: #07111d;
+  background-image:
+    linear-gradient(180deg, rgba(2, 7, 12, 0.18), rgba(2, 7, 12, 0.72)),
+    url('/skins/treasury/vault-background.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.skin-bg-dalmaji {
+  background-color: #141e38;
+  background-image: linear-gradient(180deg, #141e38, #17434b 65%, #124850);
+}
+
 .skin-bg-spring-rain {
   background-color: #b9d0ca;
   background-image:

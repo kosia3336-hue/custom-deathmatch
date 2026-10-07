@@ -15,6 +15,7 @@ import { useDockTargets, type DockRegions, type ToolEdge } from '@/hooks/useDock
 import DockablePanel from '@/components/cdm/DockablePanel';
 import styles from './game-tools.module.css';
 import { GameReferenceParts } from './GameInfoPart';
+import type { SkinTheme } from '@/lib/skins/registry';
 
 const LABELS = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽' };
 
@@ -22,9 +23,12 @@ const LABELS = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽
 export default function GameToolsWorkspace({
   controller,
   children,
+  skin = null,
 }: {
   controller: GameToolsController;
   children: ReactNode;
+  /** 게임판뿐 아니라 여백·독립 창 뒤까지 선택한 스킨 배경으로 채운다. */
+  skin?: SkinTheme | null;
 }) {
   const regions = useRef<DockRegions>({});
   useDockWheel(regions, controller.desktop);
@@ -33,7 +37,10 @@ export default function GameToolsWorkspace({
       {controller.desktop && controller.reference && (
         <GameReferenceParts key={controller.scope}>{controller.reference}</GameReferenceParts>
       )}
-      <div className={controller.desktop ? styles.workspace : styles.mobile}>
+      <div
+        data-game-skin={skin ?? 'base'}
+        className={`${controller.desktop ? styles.workspace : styles.mobile} ${skin ? `skin-bg-${skin}` : ''}`}
+      >
         {controller.desktop &&
           (['top', 'left', 'right', 'bottom'] as const).map((edge) => {
             const minimum = Math.max(
