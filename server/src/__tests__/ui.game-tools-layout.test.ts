@@ -10,6 +10,32 @@ import { setToolOrder } from '../../../lib/gameToolOrder';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('공용 창 배치 저장 계약', () => {
+  it('점수/자동 카운팅은 기본 위쪽이고 사용자가 옮긴 위치는 보존한다', () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+    });
+    const defaults = { score: 'top' as const, remaining: 'top' as const };
+    const store = createGameToolsLayoutStore(
+      'movable-score-contract',
+      ['score', 'remaining', 'chat'],
+      defaults,
+    );
+    expect(store.getSnapshot().docks.score).toEqual({ mode: 'docked', edge: 'top' });
+    expect(store.getSnapshot().docks.remaining).toEqual({ mode: 'docked', edge: 'top' });
+    expect(store.getSnapshot().docks.chat).toEqual({ mode: 'docked', edge: 'right' });
+    setDockState(gameToolDockId('movable-score-contract', 'score'), {
+      mode: 'docked',
+      edge: 'left',
+    });
+    expect(
+      createGameToolsLayoutStore('movable-score-contract', ['score'], defaults).getSnapshot().docks
+        .score,
+    ).toEqual({ mode: 'docked', edge: 'left' });
+  });
   it('동일한 hud/aside 원본은 하나만 사용하고 각 파츠와 채팅은 독립 창으로 유지한다', () => {
     const memo = { id: 'reference', content: 'mobile-memo' };
     const aside = { id: 'reference', content: 'shared-aside' };

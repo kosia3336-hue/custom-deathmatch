@@ -1,3 +1,16 @@
+.stage {
+  padding: clamp(12px, 2.5vw, 24px);
+  box-sizing: border-box;
+}
+.stage :global([data-note-tone='gray'] .skin-citadel-block) {
+  background: #d1d5db;
+  border-color: #9ca3af;
+  color: #4b5563;
+  box-shadow: none;
+}
+.stage :global([data-note-tone='gray'] .skin-citadel-block-top) {
+  background: #e5e7eb;
+}
 .stage > :first-child {
   flex: 1;
   min-height: 0;

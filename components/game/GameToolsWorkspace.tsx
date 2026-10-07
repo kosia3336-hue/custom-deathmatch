@@ -142,6 +142,7 @@ function ToolPanel({
     >
       <div
         data-resizable-body={tool.resizable || undefined}
+        data-top-stack={tool.stacked || undefined}
         className={`${styles.body} ${tool.sizeToContent ? styles.contentSized : ''} ${tool.resizable ? styles.resizable : ''}`}
         style={
           {

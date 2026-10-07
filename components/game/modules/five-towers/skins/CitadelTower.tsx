@@ -13,6 +13,7 @@ interface CitadelTowerProps {
   id: FTTower;
   tower: FTTowerPublicInfo;
   userCount: number;
+  gray?: boolean;
   gameKey: string;
   onSetCell: (tower: FTTower, level: number) => void;
   onResetTower: (tower: FTTower) => void;
@@ -30,6 +31,7 @@ export default function CitadelTower({
   id,
   tower,
   userCount,
+  gray = false,
   gameKey,
   onSetCell,
   onResetTower,
@@ -144,6 +146,10 @@ export default function CitadelTower({
               key={level}
               type="button"
               onClick={() => onSetCell(id, level)}
+              aria-label={`${id}탑 ${level}칸`}
+              data-note-tone={
+                showCompleted ? 'color' : isFilled ? (gray ? 'gray' : 'color') : 'empty'
+              }
               disabled={isCompleted}
               className={[
                 'skin-citadel-cell',

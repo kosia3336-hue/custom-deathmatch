@@ -20,9 +20,9 @@ export function getToolInsertion(
   y: number,
   region: ToolRect,
   items: readonly { id: string; rect: ToolRect }[],
+  horizontal = edge === 'top' || edge === 'bottom',
 ): { beforeId?: string; guide: InsertionGuide } | null {
   if (!items.length) return null;
-  const horizontal = edge === 'top' || edge === 'bottom';
   const before = items.find(({ rect }) =>
     horizontal ? x < (rect.left + rect.right) / 2 : y < (rect.top + rect.bottom) / 2,
   );

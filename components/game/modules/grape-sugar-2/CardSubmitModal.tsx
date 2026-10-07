@@ -1,4 +1,5 @@
 'use client';
+import styles from './layout.module.css';
 import { playCandyButtonSfx } from '@/lib/audio/skins/candy';
 import type { GS2CardId } from '@/shared/types/grape-sugar-2';
 import { CARD_HINTS, CARD_NAMES, CARD_STYLES } from './constants';
@@ -34,7 +35,7 @@ export function CardSubmitModal({
             className={
               candy
                 ? `skin-candy-card skin-candy-card--${card} flex w-20 shrink-0 flex-col items-center justify-center`
-                : `flex h-28 w-20 shrink-0 flex-col items-center justify-center rounded-xl border-2 ${style.bg} ${style.text} ${style.border}`
+                : `${styles.card} flex w-20 shrink-0 flex-col items-center justify-center rounded-xl border-2 ${style.bg} ${style.text} ${style.border}`
             }
           >
             <span className="text-3xl">{style.icon}</span>

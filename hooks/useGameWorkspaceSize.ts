@@ -13,7 +13,8 @@ export function useGameWorkspaceSize(
     const outer = viewport.current;
     const inner = canvas.current;
     if (!outer || !inner) return;
-    let scheduled = 0;
+    let scheduled = false;
+    let active = true;
     const measure = () => {
       const frame = Array.from(inner.querySelectorAll<HTMLElement>('[data-game-frame]')).find(
         (element) => element.getClientRects().length > 0,
@@ -60,8 +61,13 @@ export function useGameWorkspaceSize(
       setHeight((previous) => (previous === next ? previous : next));
     };
     const schedule = () => {
-      cancelAnimationFrame(scheduled);
-      scheduled = requestAnimationFrame(measure);
+      if (scheduled) return;
+      scheduled = true;
+      // 배경 탭에서 animation frame이 멈춰도 도킹/모바일 전환 직후 판 높이를 확보한다.
+      queueMicrotask(() => {
+        scheduled = false;
+        if (active) measure();
+      });
     };
     const resize = new ResizeObserver(schedule);
     const observe = () => {
@@ -82,7 +88,7 @@ export function useGameWorkspaceSize(
     observe();
     measure();
     return () => {
-      cancelAnimationFrame(scheduled);
+      active = false;
       resize.disconnect();
       mutation.disconnect();
     };

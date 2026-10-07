@@ -165,3 +165,19 @@
   outline: 2px solid var(--cdm-primary);
   outline-offset: -2px;
 }
+.top:has([data-top-stack]),
+.bottom:has([data-top-stack]) {
+  flex-direction: column;
+  max-height: none;
+  scrollbar-gutter: auto;
+}
+.top:has([data-top-stack]) .panel,
+.bottom:has([data-top-stack]) .panel {
+  width: 100%;
+  flex: none;
+}
+.body[data-top-stack] :global(.game-info-part) {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}

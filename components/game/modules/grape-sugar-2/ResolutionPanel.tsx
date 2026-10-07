@@ -1,4 +1,5 @@
 'use client';
+import styles from './layout.module.css';
 import type {
   GS2PlayerPublic,
   GS2ResolveStep,
@@ -65,7 +66,7 @@ export function ResolutionPanel({
                   className={
                     candy
                       ? `skin-candy-card skin-candy-card--${card} flex w-20 flex-col items-center justify-center lg:w-24`
-                      : `flex h-28 w-20 flex-col items-center justify-center rounded-xl border-2 lg:h-32 lg:w-24 ${style.bg} ${style.text} ${style.border}`
+                      : `${styles.card} flex w-20 flex-col items-center justify-center rounded-xl border-2 lg:w-24 ${style.bg} ${style.text} ${style.border}`
                   }
                 >
                   <span className="text-3xl lg:text-4xl">{style.icon}</span>

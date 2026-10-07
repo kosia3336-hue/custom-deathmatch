@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useGameToolsLayout } from '@/hooks/useGameToolsLayout';
 import { selectGameToolSources } from '@/lib/gameToolsLayout';
+import type { DockEdge } from '@/lib/dockPanel';
 
 export interface GameTool {
   id: string;
@@ -23,6 +24,10 @@ export interface GameTool {
   /** 채팅처럼 최소 본문 공간이 필요한 창. 상·하 배치에서도 유지한다. */
   minBodyHeight?: number;
   defaultOrder?: number;
+  /** 저장된 사용자 배치가 없을 때만 적용할 기본 가장자리. */
+  defaultEdge?: DockEdge;
+  /** 상·하 기본 배치에서 한 줄 전체를 차지하는 점수/자동 카운팅. */
+  stacked?: boolean;
   /** 여러 창을 같은 쪽에 붙이면 이 높이를 유지하고 바깥 영역이 스크롤한다. */
   preferredBodyHeight?: number;
   /** PC 채팅처럼 사용자가 아래 손잡이로 본문 높이를 조절할 수 있는 창. */
@@ -83,6 +88,9 @@ export function useGameToolsController(scope: string, extraTools: GameTool[] = [
   const layout = useGameToolsLayout(
     scope,
     defaultTools.map((tool) => tool.id),
+    Object.fromEntries(
+      defaultTools.filter((tool) => tool.defaultEdge).map((tool) => [tool.id, tool.defaultEdge!]),
+    ),
   );
   const tools = useMemo(() => {
     const byId = new Map(defaultTools.map((tool) => [tool.id, tool]));

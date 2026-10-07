@@ -1,4 +1,5 @@
 'use client';
+import styles from './layout.module.css';
 import { playCandyCardSfx } from '@/lib/audio/skins/candy';
 import type { GS2CardId } from '@/shared/types/grape-sugar-2';
 import { CARD_IDS } from '@/shared/types/grape-sugar-2';
@@ -46,10 +47,11 @@ export function CardHand({
             return (
               <div
                 key={c}
+                data-grape-card
                 className={
                   candy
                     ? `skin-candy-card skin-candy-card--${c} skin-candy-card--spent flex w-full min-w-0 flex-col items-center justify-center`
-                    : 'flex h-14 w-full flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 opacity-30 sm:h-20 lg:h-[88px]'
+                    : `${styles.card} flex w-full flex-col items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 opacity-30`
                 }
               >
                 <span
@@ -63,6 +65,7 @@ export function CardHand({
           return (
             <button
               key={c}
+              data-grape-card
               type="button"
               onClick={() => {
                 if (!canAct) return;
@@ -74,7 +77,7 @@ export function CardHand({
               className={
                 candy
                   ? `skin-candy-card skin-candy-card--${c} skin-candy-card-btn flex w-full min-w-0 flex-col items-center justify-center select-none ${canAct ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`
-                  : `flex h-14 w-full flex-col items-center justify-center rounded-lg border-2 transition-all select-none sm:h-20 lg:h-[88px] ${
+                  : `${styles.card} flex w-full flex-col items-center justify-center rounded-lg border-2 transition-all select-none ${
                       canAct
                         ? 'cursor-pointer shadow-sm hover:-translate-y-1 hover:scale-105 hover:shadow-md active:scale-95'
                         : 'cursor-not-allowed opacity-60'

@@ -16,8 +16,26 @@ export function parseToolOrder(raw: string | null): readonly string[] {
 }
 
 /** 나중에 등록된 창은 기본 순서대로 뒤에 추가하고, 잠시 사라진 창의 저장값은 유지한다. */
-export function orderedToolIds(saved: readonly string[], available: readonly string[]): string[] {
-  return [...new Set([...saved, ...available])].filter((id) => available.includes(id));
+export function orderedToolIds(
+  saved: readonly string[],
+  available: readonly string[],
+  anchored: readonly string[] = [],
+): string[] {
+  const order = [...new Set([...saved, ...available])].filter((id) => available.includes(id));
+  // 새로 이동 가능해진 점수판은 기존 저장 순서에 없더라도 기본 이웃 옆에 둔다.
+  // 사용자가 이미 옮긴 창과 기존 창들 사이의 순서는 그대로 유지한다.
+  for (const id of anchored) {
+    if (saved.includes(id) || !available.includes(id)) continue;
+    order.splice(order.indexOf(id), 1);
+    const index = available.indexOf(id);
+    const next = available.slice(index + 1).find((peer) => order.includes(peer));
+    const previous = available
+      .slice(0, index)
+      .reverse()
+      .find((peer) => order.includes(peer));
+    order.splice(next ? order.indexOf(next) : previous ? order.indexOf(previous) + 1 : 0, 0, id);
+  }
+  return order;
 }
 
 /** before가 없으면 맨 뒤. 같은 창 위에 놓거나 없는 창을 옮기면 그대로 둔다. */

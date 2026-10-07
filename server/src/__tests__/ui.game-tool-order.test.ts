@@ -24,6 +24,19 @@ describe('편의기능 순서 변경', () => {
     expect(orderedToolIds(saved, [...defaults, 'reference'])).toEqual([...saved, 'reference']);
     expect(orderedToolIds([], defaults)).toEqual(defaults);
   });
+  it('기존 저장값에 새 점수판을 기본 이웃 앞에 추가하되 명시적인 사용자 순서는 보존한다', () => {
+    expect(orderedToolIds(['tracker', 'chat'], defaults, ['score', 'tracker'])).toEqual(defaults);
+    expect(orderedToolIds(['chat', 'tracker'], defaults, ['score'])).toEqual([
+      'chat',
+      'score',
+      'tracker',
+    ]);
+    expect(orderedToolIds(['tracker', 'score', 'chat'], defaults, ['score', 'tracker'])).toEqual([
+      'tracker',
+      'score',
+      'chat',
+    ]);
+  });
   it('깨진 저장값과 중복·잘못된 id를 제거한다', () => {
     expect(parseToolOrder('broken')).toEqual([]);
     expect(parseToolOrder('{"score":1}')).toEqual([]);

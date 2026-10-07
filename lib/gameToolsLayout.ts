@@ -1,4 +1,10 @@
-import { DEFAULT_DOCK_STATE, getDockState, subscribeDockState, type DockState } from './dockPanel';
+import {
+  DEFAULT_DOCK_STATE,
+  getDockState,
+  subscribeDockState,
+  type DockState,
+  type DockEdge,
+} from './dockPanel';
 import { getToolOrder, getServerToolOrder, subscribeToolOrder } from './gameToolOrder';
 
 export const gameToolDockId = (scope: string, id: string) => `game-tools:v2:${scope}:${id}`;
@@ -20,10 +26,20 @@ export interface GameToolsSnapshot {
   docks: Record<string, DockState>;
 }
 /** 위치/순서는 기존 v2 키를 유지한다. snapshot 참조는 실제 변경이 있을 때만 바뀐다. */
-export function createGameToolsLayoutStore(scope: string, ids: string[]) {
+export function createGameToolsLayoutStore(
+  scope: string,
+  ids: string[],
+  defaultEdges: Record<string, DockEdge> = {},
+) {
+  const defaults = Object.fromEntries(
+    ids.map((id) => [
+      id,
+      defaultEdges[id] ? { mode: 'docked' as const, edge: defaultEdges[id] } : DEFAULT_DOCK_STATE,
+    ]),
+  );
   const server: GameToolsSnapshot = {
     order: getServerToolOrder(),
-    docks: Object.fromEntries(ids.map((id) => [id, DEFAULT_DOCK_STATE])),
+    docks: defaults,
   };
   let previous: GameToolsSnapshot | undefined;
   return {
@@ -38,7 +54,7 @@ export function createGameToolsLayoutStore(scope: string, ids: string[]) {
     getSnapshot() {
       const order = getToolOrder(scope);
       const docks = Object.fromEntries(
-        ids.map((id) => [id, getDockState(gameToolDockId(scope, id))]),
+        ids.map((id) => [id, getDockState(gameToolDockId(scope, id), defaults[id])]),
       );
       if (
         previous &&

@@ -38,4 +38,9 @@ describe('편의기능 드롭 안내선', () => {
     expect(insertion.guide.top + insertion.guide.height).toBeLessThanOrEqual(region.bottom);
     expect(getToolInsertion('right', 1000, 200, region, [])).toBeNull();
   });
+  it('위쪽의 점수/자동 카운팅 세로 배치는 가로 안내선으로 순서를 표시한다', () => {
+    const between = getToolInsertion('top', 1000, 350, region, items, false)!;
+    expect(between.beforeId).toBe('chat');
+    expect(between.guide).toEqual({ left: 908, top: 302.5, width: 284, height: 3 });
+  });
 });

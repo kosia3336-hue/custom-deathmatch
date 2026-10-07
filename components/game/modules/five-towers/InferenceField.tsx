@@ -6,6 +6,7 @@ import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
 import { useCallback, useEffect, useState } from 'react';
 import CitadelFieldShell from './skins/CitadelFieldShell';
 import CitadelTower from './skins/CitadelTower';
+import { cycleTowerNote, parseTowerNote, type TowerNote } from '@/lib/fiveTowersNotes';
 
 const TOWER_COLORS: Record<FTTower, { bg: string; border: string; text: string }> = {
   A: { bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700' },
@@ -15,7 +16,9 @@ const TOWER_COLORS: Record<FTTower, { bg: string; border: string; text: string }
   E: { bg: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-700' },
 };
 
-const EMPTY_COUNTS: Record<FTTower, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+const EMPTY_COUNTS: Record<FTTower, TowerNote> = Object.fromEntries(
+  FT_TOWERS.map((id) => [id, parseTowerNote(0)]),
+) as Record<FTTower, TowerNote>;
 
 interface InferenceFieldProps {
   towers: Record<FTTower, FTTowerPublicInfo>;
@@ -23,18 +26,22 @@ interface InferenceFieldProps {
   skin?: SkinTheme | null;
 }
 
-function loadCounts(key: string): Record<FTTower, number> {
+function loadCounts(key: string): Record<FTTower, TowerNote> {
   if (typeof window === 'undefined') return { ...EMPTY_COUNTS };
   try {
     const raw = sessionStorage.getItem(`ft.inference-counts.${key}`);
     if (!raw) return { ...EMPTY_COUNTS };
-    return { ...EMPTY_COUNTS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return Object.fromEntries(FT_TOWERS.map((id) => [id, parseTowerNote(parsed?.[id])])) as Record<
+      FTTower,
+      TowerNote
+    >;
   } catch {
     return { ...EMPTY_COUNTS };
   }
 }
 
-function saveCounts(key: string, c: Record<FTTower, number>) {
+function saveCounts(key: string, c: Record<FTTower, TowerNote>) {
   if (typeof window === 'undefined') return;
   try {
     sessionStorage.setItem(`ft.inference-counts.${key}`, JSON.stringify(c));
@@ -44,7 +51,7 @@ function saveCounts(key: string, c: Record<FTTower, number>) {
 }
 
 export default function InferenceField({ towers, gameKey, skin }: InferenceFieldProps) {
-  const [counts, setCounts] = useState<Record<FTTower, number>>(() => loadCounts(gameKey));
+  const [counts, setCounts] = useState<Record<FTTower, TowerNote>>(() => loadCounts(gameKey));
 
   // 게임이 바뀌면 해당 게임의 저장값으로 교체 (새 게임 시 0으로 초기화)
   useEffect(() => {
@@ -57,15 +64,12 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
 
   const setCell = useCallback((tower: FTTower, level: number) => {
     setCounts((prev) => {
-      const cur = prev[tower] ?? 0;
-      // 채워진 최상단 셀을 다시 누르면 1 감소
-      const next = cur === level ? Math.max(0, cur - 1) : level;
-      return { ...prev, [tower]: Math.min(10, Math.max(0, next)) };
+      return { ...prev, [tower]: cycleTowerNote(prev[tower], level) };
     });
   }, []);
 
   const resetTower = useCallback((tower: FTTower) => {
-    setCounts((prev) => ({ ...prev, [tower]: 0 }));
+    setCounts((prev) => ({ ...prev, [tower]: parseTowerNote(0) }));
   }, []);
 
   if (skin === 'citadel') {
@@ -77,7 +81,8 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
               key={id}
               id={id}
               tower={towers[id]}
-              userCount={counts[id] ?? 0}
+              userCount={counts[id].height}
+              gray={counts[id].tone === 'gray'}
               gameKey={gameKey}
               onSetCell={setCell}
               onResetTower={resetTower}
@@ -93,7 +98,8 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
       {FT_TOWERS.map((id) => {
         const tower = towers[id];
         const colors = TOWER_COLORS[id];
-        const userCount = counts[id] ?? 0;
+        const userCount = counts[id].height;
+        const gray = counts[id].tone === 'gray';
         const isCompleted = tower.completed;
 
         return (
@@ -136,12 +142,16 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
                     key={level}
                     type="button"
                     onClick={() => setCell(id, level)}
+                    aria-label={`${id}탑 ${level}칸`}
+                    data-note-tone={isFilled ? counts[id].tone : 'empty'}
                     disabled={isCompleted}
                     className={`relative flex min-h-0 flex-1 items-center justify-end border-t px-1.5 text-[11px] leading-3 font-medium transition-all sm:text-xs ${
                       isCompleted
                         ? 'cursor-default bg-yellow-100 text-yellow-700'
                         : isFilled
-                          ? `${colors.bg} ${colors.text} hover:brightness-95`
+                          ? gray
+                            ? 'bg-gray-200 text-gray-600 hover:brightness-95'
+                            : `${colors.bg} ${colors.text} hover:brightness-95`
                           : 'bg-white text-gray-300 hover:bg-gray-50'
                     } ${
                       isHalf

@@ -19,14 +19,22 @@ export function useDockTargets(
 ) {
   const insertion = useCallback(
     (edge: DockEdge, x: number, y: number) => {
-      const region = regions.current[edge]?.getBoundingClientRect();
+      const element = regions.current[edge];
+      const region = element?.getBoundingClientRect();
       if (!region || region.width <= 0 || region.height <= 0) return null;
       const items = peers(regions.current, edge).flatMap((item) => {
         const peerId = item.dataset.toolId;
         const rect = item.querySelector('section')?.getBoundingClientRect();
         return peerId && peerId !== id && rect ? [{ id: peerId, rect }] : [];
       });
-      return getToolInsertion(edge, x, y, region, items);
+      return getToolInsertion(
+        edge,
+        x,
+        y,
+        region,
+        items,
+        element ? getComputedStyle(element).flexDirection === 'row' : undefined,
+      );
     },
     [regions, id],
   );

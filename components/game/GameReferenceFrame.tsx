@@ -22,6 +22,7 @@ export function GameReferenceFrame({
   controls,
   children,
   className,
+  autoAboveStage = false,
 }: {
   reference?: ReactNode;
   tools?: GameTool[];
@@ -29,6 +30,8 @@ export function GameReferenceFrame({
   controls?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** 자동 잔여 카운팅을 점수 바로 아래에 두는 게임. */
+  autoAboveStage?: boolean;
 }) {
   const desktop = useGameToolsRegistration()?.desktop ?? false;
   const [registered, setRegistered] = useState<Record<string, GameTool>>({});
@@ -56,11 +59,22 @@ export function GameReferenceFrame({
         .sort((a, b) => (a.defaultOrder ?? 30) - (b.defaultOrder ?? 30)),
     [tools, registered],
   );
-  const docked = useMemo(() => parts.filter((tool) => tool.kind !== 'score'), [parts]);
+  const docked = useMemo(
+    () =>
+      parts.map((tool) =>
+        tool.kind === 'score' || (autoAboveStage && tool.kind === 'auto')
+          ? { ...tool, defaultEdge: 'top' as const, sizeToContent: true, stacked: true }
+          : tool,
+      ),
+    [parts, autoAboveStage],
+  );
   // 모바일에서도 기록 원본을 등록해 공통 상단 바의 기록 아이콘이 같은 내용을 연다.
   useGameToolRegistration(docked);
   const score = parts.filter((tool) => tool.kind === 'score');
-  const notes = parts.filter((tool) => tool.kind === 'auto' || tool.kind === 'memo');
+  const above = [...score, ...(autoAboveStage ? parts.filter((tool) => tool.kind === 'auto') : [])];
+  const notes = parts.filter(
+    (tool) => (tool.kind === 'auto' && !autoAboveStage) || tool.kind === 'memo',
+  );
   return (
     <>
       <GameToolsContext.Provider value={registration}>
@@ -69,19 +83,21 @@ export function GameReferenceFrame({
       <GameFrame
         className={className}
         info={
-          <>
-            {score.length > 0 && (
-              <div className={styles.score} data-game-scoreboard>
-                {score.map((tool) => (
-                  <section key={tool.id} aria-label={tool.title} data-game-reference-panel>
-                    <div className={styles.panelHeading}>{tool.title}</div>
-                    <div className={styles.scoreContent}>{tool.content}</div>
-                  </section>
-                ))}
-              </div>
-            )}
-            {info}
-          </>
+          (!desktop && above.length > 0) || info ? (
+            <>
+              {!desktop && above.length > 0 && (
+                <div className={styles.score} data-game-scoreboard>
+                  {above.map((tool) => (
+                    <section key={tool.id} aria-label={tool.title} data-game-reference-panel>
+                      <div className={styles.panelHeading}>{tool.title}</div>
+                      <div className={styles.scoreContent}>{tool.content}</div>
+                    </section>
+                  ))}
+                </div>
+              )}
+              {info}
+            </>
+          ) : undefined
         }
         controls={
           <>

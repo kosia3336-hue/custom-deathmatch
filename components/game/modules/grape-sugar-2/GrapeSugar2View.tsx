@@ -17,6 +17,7 @@ import { PlayerPanel } from './PlayerPanel';
 import { CANDY_SPARKLES } from './presentation';
 import { RoundHistoryPanel } from './RoundHistoryPanel';
 import { SugarBar } from './SugarBar';
+import styles from './layout.module.css';
 
 function GrapeSugar2View({
   gameData,
@@ -175,6 +176,7 @@ function GrapeSugar2View({
         />
       )}
       <GameReferenceFrame
+        autoAboveStage
         className={isCandy ? 'skin-candy-field' : undefined}
         reference={
           <GameInfoStack>
@@ -218,22 +220,6 @@ function GrapeSugar2View({
             </GameInfoPart>
           </GameInfoStack>
         }
-        controls={
-          myPlayer && !isSpectator && isInput ? (
-            <div className="flex flex-col gap-1">
-              <SugarBar
-                sugarRemain={myPlayer.sugarRemain}
-                pendingSugar={pendingSugar}
-                setPendingSugar={setPendingSugar}
-                canAct={canAct}
-                submitted={mySubmitted}
-                oppSubmitted={oppSubmitted}
-                onCancelSubmit={handleCancelSubmit}
-                candy={isCandy}
-              />
-            </div>
-          ) : undefined
-        }
       >
         {isCandy && (
           <div className="skin-candy-fx" aria-hidden>
@@ -251,14 +237,26 @@ function GrapeSugar2View({
         <div className="flex h-full w-full max-w-2xl flex-col justify-center gap-2 overflow-hidden">
           {isInput ? (
             myPlayer && !isSpectator ? (
-              <CardHand
-                hand={myPlayer.hand}
-                onSelectCard={handleSelectCard}
-                canAct={canAct}
-                submitted={mySubmitted}
-                candy={isCandy}
-                belt={isCandy}
-              />
+              <div className={styles.input} data-game-intrinsic-stage>
+                <SugarBar
+                  sugarRemain={myPlayer.sugarRemain}
+                  pendingSugar={pendingSugar}
+                  setPendingSugar={setPendingSugar}
+                  canAct={canAct}
+                  submitted={mySubmitted}
+                  oppSubmitted={oppSubmitted}
+                  onCancelSubmit={handleCancelSubmit}
+                  candy={isCandy}
+                />
+                <CardHand
+                  hand={myPlayer.hand}
+                  onSelectCard={handleSelectCard}
+                  canAct={canAct}
+                  submitted={mySubmitted}
+                  candy={isCandy}
+                  belt={isCandy}
+                />
+              </div>
             ) : (
               <p className="text-cdm-fg-muted text-center text-sm">플레이어들이 선택 중입니다.</p>
             )
