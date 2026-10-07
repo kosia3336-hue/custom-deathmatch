@@ -75,7 +75,7 @@ function GrapeSugar2View({
   /* 게임 종료 토스트 */
   /*
     상단 바 — 라운드만. 동시 제출 게임이라 선/후가 없다.
-    점수·기록은 독립 창, 입력 카드는 무대, 설탕 조절은 하단에 둔다.
+    잔여 카드는 점수에 포함한다. 게임판과 제출 창에서 같은 설탕 수량을 조절한다.
   */
   const gsRound = gameData?.round ?? 0;
   const gsMax = gameData?.maxRound ?? 8;
@@ -115,7 +115,7 @@ function GrapeSugar2View({
     else toast.error(`${winner.nickname} 승리! (${reason})`, { duration: 5000 });
   }, [gameData, myId]);
 
-  /* 카드 클릭 → 모달 오픈 (설탕은 이미 입력된 값 사용) */
+  /* 카드 클릭 → 설탕을 조절할 제출 모달 오픈 */
   const handleSelectCard = useCallback(
     (card: GS2CardId) => {
       if (submitting || isSpectator) return;
@@ -165,10 +165,12 @@ function GrapeSugar2View({
 
   return (
     <>
-      {modalCard && (
+      {modalCard && myPlayer && canAct && (
         <CardSubmitModal
           card={modalCard}
           sugar={pendingSugar}
+          sugarRemain={myPlayer.sugarRemain}
+          onSugarChange={setPendingSugar}
           onClose={() => setModalCard(null)}
           onConfirm={handleConfirmSubmit}
           submitting={submitting}
@@ -176,7 +178,6 @@ function GrapeSugar2View({
         />
       )}
       <GameReferenceFrame
-        autoAboveStage
         className={isCandy ? 'skin-candy-field' : undefined}
         reference={
           <GameInfoStack>
@@ -190,25 +191,10 @@ function GrapeSugar2View({
                     isMe={p.id === myId && !isSpectator}
                     showSubmittedBadge={isInput}
                     candy={isCandy}
-                    showHand={false}
+                    showHand={isSpectator || p.id !== myId}
                   />
                 ))}
               </div>
-            </GameInfoPart>
-            <GameInfoPart title="잔여 카드" sizeToContent>
-              {[gameData.players.p1, gameData.players.p2]
-                .filter((p) => isSpectator || p.id !== myId)
-                .map((p) => (
-                  <PlayerPanel
-                    key={p.side}
-                    player={p}
-                    label={isSpectator ? p.nickname : '상대'}
-                    isMe={false}
-                    showSubmittedBadge={false}
-                    showStats={false}
-                    candy={isCandy}
-                  />
-                ))}
             </GameInfoPart>
             <GameInfoPart title="라운드 기록">
               <RoundHistoryPanel
@@ -238,16 +224,30 @@ function GrapeSugar2View({
           {isInput ? (
             myPlayer && !isSpectator ? (
               <div className={styles.input} data-game-intrinsic-stage>
-                <SugarBar
-                  sugarRemain={myPlayer.sugarRemain}
-                  pendingSugar={pendingSugar}
-                  setPendingSugar={setPendingSugar}
-                  canAct={canAct}
-                  submitted={mySubmitted}
-                  oppSubmitted={oppSubmitted}
-                  onCancelSubmit={handleCancelSubmit}
-                  candy={isCandy}
-                />
+                {mySubmitted ? (
+                  <div className="flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2">
+                    <span className="flex-1 text-sm font-bold text-emerald-700">
+                      제출 완료 — 상대 대기 중...
+                    </span>
+                    {!oppSubmitted && (
+                      <button
+                        type="button"
+                        onClick={handleCancelSubmit}
+                        className="shrink-0 rounded border border-emerald-400 px-2 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <SugarBar
+                    sugarRemain={myPlayer.sugarRemain}
+                    pendingSugar={pendingSugar}
+                    setPendingSugar={setPendingSugar}
+                    canAct={canAct}
+                    candy={isCandy}
+                  />
+                )}
                 <CardHand
                   hand={myPlayer.hand}
                   onSelectCard={handleSelectCard}

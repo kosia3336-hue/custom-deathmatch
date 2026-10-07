@@ -3,10 +3,13 @@ import styles from './layout.module.css';
 import { playCandyButtonSfx } from '@/lib/audio/skins/candy';
 import type { GS2CardId } from '@/shared/types/grape-sugar-2';
 import { CARD_HINTS, CARD_NAMES, CARD_STYLES } from './constants';
+import { SugarBar } from './SugarBar';
 
 export function CardSubmitModal({
   card,
   sugar,
+  sugarRemain,
+  onSugarChange,
   onClose,
   onConfirm,
   submitting,
@@ -14,6 +17,8 @@ export function CardSubmitModal({
 }: {
   card: GS2CardId;
   sugar: number;
+  sugarRemain: number;
+  onSugarChange: (n: number) => void;
   onClose: () => void;
   onConfirm: () => void;
   submitting: boolean;
@@ -28,7 +33,15 @@ export function CardSubmitModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="카드 제출"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl"
+      >
         {/* 카드 + 효과 설명 */}
         <div className="mb-4 flex items-start gap-4">
           <div
@@ -46,7 +59,16 @@ export function CardSubmitModal({
           </p>
         </div>
 
-        {/* 설탕 확인 */}
+        <div className="mb-3">
+          <SugarBar
+            sugarRemain={sugarRemain}
+            pendingSugar={sugar}
+            setPendingSugar={onSugarChange}
+            canAct={!submitting}
+            candy={candy}
+          />
+        </div>
+        {/* 수정한 설탕과 카드를 함께 제출 */}
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
           <span className="text-sm text-amber-800">
             설탕 <strong>{sugar}개</strong> 함께 제출

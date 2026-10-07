@@ -65,7 +65,10 @@ export function PlayerPanel({
         볼 방법이 아예 없었다. 좁은 화면에서는 한 줄을 접어 내려 폭을 다 쓴다.
       */}
       {showHand && (
-        <div className="flex w-full shrink-0 flex-wrap justify-start gap-0.5 sm:w-auto sm:max-w-[200px] sm:justify-end lg:max-w-[240px]">
+        <div
+          aria-label={`${player.nickname} 잔여 카드`}
+          className="flex w-full shrink-0 flex-wrap justify-start gap-0.5"
+        >
           {CARD_IDS.map((c) => {
             const has = player.hand.includes(c);
             const style = CARD_STYLES[c];

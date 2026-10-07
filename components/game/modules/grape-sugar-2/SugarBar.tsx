@@ -6,18 +6,12 @@ export function SugarBar({
   pendingSugar,
   setPendingSugar,
   canAct,
-  submitted,
-  oppSubmitted,
-  onCancelSubmit,
   candy,
 }: {
   sugarRemain: number;
   pendingSugar: number;
   setPendingSugar: (n: number) => void;
   canAct: boolean;
-  submitted: boolean;
-  oppSubmitted: boolean;
-  onCancelSubmit: () => void;
   candy?: boolean;
 }) {
   const clamp = (n: number) => Math.max(0, Math.min(sugarRemain, Math.floor(n)));
@@ -30,25 +24,6 @@ export function SugarBar({
     const n = Number(v.replace(/[^\d]/g, ''));
     if (Number.isFinite(n)) setPendingSugar(clamp(n));
   };
-
-  if (submitted) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 px-3 py-2">
-        <span className="flex-1 text-sm font-bold text-emerald-700">
-          제출 완료 — 상대 대기 중...
-        </span>
-        {!oppSubmitted && (
-          <button
-            type="button"
-            onClick={onCancelSubmit}
-            className="shrink-0 rounded border border-emerald-400 px-2 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
-          >
-            취소
-          </button>
-        )}
-      </div>
-    );
-  }
 
   if (candy) {
     // -5/-1 은 잼병 닫는 소리, +1/+5 는 잼병 여는 '뽁'
@@ -81,6 +56,7 @@ export function SugarBar({
             <span className="sr-only">-1</span>
           </button>
           <input
+            aria-label="제출 설탕 수량"
             type="text"
             inputMode="numeric"
             value={pendingSugar}
@@ -141,6 +117,7 @@ export function SugarBar({
           </button>
         ))}
         <input
+          aria-label="제출 설탕 수량"
           type="text"
           inputMode="numeric"
           value={pendingSugar}
