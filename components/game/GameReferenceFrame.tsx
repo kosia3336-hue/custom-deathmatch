@@ -18,6 +18,7 @@ export function GameReferenceFrame({
   children,
   className,
   historyAboveStage = false,
+  mobileReferenceLayout = 'tabs',
 }: {
   reference: ReactNode;
   info?: ReactNode;
@@ -26,6 +27,8 @@ export function GameReferenceFrame({
   className?: string;
   /** 넘버4처럼 모바일 기록은 점수 바로 아래, 추리는 게임판 아래에 둔다. */
   historyAboveStage?: boolean;
+  /** 모바일에서도 점수 → 기록 → 잔여 정보를 각각 독립된 칸으로 펼친다. */
+  mobileReferenceLayout?: 'tabs' | 'stacked';
 }) {
   const parent = useGameToolsRegistration();
   const desktop = parent?.desktop ?? false;
@@ -61,9 +64,12 @@ export function GameReferenceFrame({
     (a, b) => (a.defaultOrder ?? 30) - (b.defaultOrder ?? 30),
   );
   const score = parts.filter((tool) => tool.defaultOrder === 0);
-  const history = historyAboveStage ? parts.filter((tool) => tool.defaultOrder === 10) : [];
+  const stacked = mobileReferenceLayout === 'stacked';
+  const history =
+    historyAboveStage && !stacked ? parts.filter((tool) => tool.defaultOrder === 10) : [];
   const references = parts.filter(
-    (tool) => tool.defaultOrder !== 0 && (!historyAboveStage || tool.defaultOrder !== 10),
+    (tool) =>
+      tool.defaultOrder !== 0 && (stacked || !historyAboveStage || tool.defaultOrder !== 10),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = references.find((tool) => tool.id === selectedId) ?? references[0];
@@ -90,12 +96,29 @@ export function GameReferenceFrame({
                   {tool.content}
                 </section>
               ))}
+            {!desktop && stacked && (
+              <div className={styles.independentReferences}>
+                {references.map((tool) => (
+                  <section
+                    key={tool.id}
+                    data-game-reference-panel
+                    className={styles.references}
+                    aria-label={tool.title}
+                  >
+                    <div className={styles.panelHeading}>{tool.title}</div>
+                    <div className={`${styles.content} ${styles.independentContent}`}>
+                      {tool.content}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
           </>
         }
         controls={
           <>
             {controls}
-            {!desktop && references.length > 0 && (
+            {!desktop && !stacked && references.length > 0 && (
               <section
                 data-game-reference-panel
                 className={styles.references}

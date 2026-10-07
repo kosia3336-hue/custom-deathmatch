@@ -1,6 +1,7 @@
 'use client';
 import type { WSCardType } from '@/shared/types/winning-streak';
-import { CARD_COLORS, CARD_MATCHUP_DESC, CARD_NAMES } from './constants';
+import { CARD_MATCHUP_DESC, CARD_NAMES } from './constants';
+import { WinningStreakCard } from './WinningStreakCard';
 
 export function CardModal({
   card,
@@ -13,7 +14,6 @@ export function CardModal({
   onSubmit: () => void;
   submitting: boolean;
 }) {
-  const style = CARD_COLORS[card];
   const info = CARD_MATCHUP_DESC[card];
 
   return (
@@ -26,12 +26,7 @@ export function CardModal({
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
         {/* 카드 미리보기 */}
         <div className="mb-5 flex items-center gap-4">
-          <div
-            className={`flex h-28 w-20 shrink-0 flex-col items-center justify-center rounded-xl border-2 ${style.border} ${style.bg} ${style.text}`}
-          >
-            <span className="text-4xl">{style.icon}</span>
-            <span className="mt-1.5 text-sm font-semibold">{CARD_NAMES[card]}</span>
-          </div>
+          <WinningStreakCard card={card} />
           <div className="grid min-w-0 flex-1 grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm lg:text-base">
             <span className="font-semibold whitespace-nowrap text-emerald-600">이김</span>
             <span className="min-w-0 text-gray-700">{info.beats}</span>

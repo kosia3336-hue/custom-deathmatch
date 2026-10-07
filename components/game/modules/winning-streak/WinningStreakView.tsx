@@ -150,11 +150,13 @@ function WinningStreakView({
         />
       )}
 
-      <GameReferenceFrame reference={<WinningStreakSidePanel gameData={gameData} myId={myId} />}>
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-white p-3">
+      <GameReferenceFrame
+        reference={<WinningStreakSidePanel gameData={gameData} myId={myId} />}
+        mobileReferenceLayout="stacked"
+      >
+        <div className="flex h-full w-full flex-col items-center justify-start gap-2 overflow-y-auto overscroll-contain rounded-xl border border-gray-200 bg-white p-3">
           {isCardSelect && (
-            <div className="w-full">
-              {' '}
+            <div className="flex h-full min-h-0 w-full flex-col">
               {myPlayer && !isSpectator && (
                 <MyCardHand
                   cards={myPlayer.remainingCards}

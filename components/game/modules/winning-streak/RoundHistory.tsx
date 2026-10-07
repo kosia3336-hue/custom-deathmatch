@@ -12,10 +12,10 @@ export function RoundHistory({
   const playerIds = Object.keys(players);
 
   return (
-    <div className="border-cdm-border bg-cdm-bg-elev-1 h-full w-full rounded-xl border">
-      <div className="max-h-72 space-y-1.5 overflow-y-auto p-2 lg:max-h-[420px]">
+    <div className="w-full">
+      <div className="space-y-1.5">
         {history.length === 0 ? (
-          <p className="text-cdm-fg-muted py-4 text-center text-sm">아직 기록이 없습니다</p>
+          <p className="text-cdm-fg-muted py-2 text-center text-sm">아직 기록이 없습니다</p>
         ) : (
           [...history].reverse().map((round) => (
             <div

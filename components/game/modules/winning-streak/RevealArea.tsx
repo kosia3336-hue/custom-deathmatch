@@ -2,7 +2,7 @@
 import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 import type { WinningStreakGameData, WSPlayerInfo } from '@/shared/types/winning-streak';
 import { useState } from 'react';
-import { CARD_COLORS, CARD_NAMES } from './constants';
+import { WinningStreakCard } from './WinningStreakCard';
 import { REVEAL_STEPS } from './presentation';
 import { Reveal } from './Reveal';
 
@@ -32,13 +32,12 @@ export function RevealArea({
     myId && playerIds.includes(myId) ? [myId, ...playerIds.filter((id) => id !== myId)] : playerIds;
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div className="my-auto flex w-full shrink-0 flex-col items-center gap-4">
       {/* Step 1~2: 카드 한 장씩 공개 */}
       <div className="flex items-center justify-center gap-6 sm:gap-12">
         {orderedIds.map((pid, idx) => {
           const pr = revealData.players[pid];
           if (!pr) return null;
-          const style = CARD_COLORS[pr.card];
           return (
             <div
               key={pid}
@@ -47,14 +46,7 @@ export function RevealArea({
               <span className="max-w-[90px] truncate text-sm font-medium text-gray-500 lg:max-w-[120px] lg:text-base">
                 {players[pid]?.nickname}
               </span>
-              <div
-                className={`flex h-28 w-20 flex-col items-center justify-center rounded-xl border-2 lg:h-40 lg:w-28 ${style.bg} ${style.text} border-gray-300`}
-              >
-                <span className="text-3xl lg:text-5xl">{style.icon}</span>
-                <span className="mt-1 text-xs font-semibold lg:text-base">
-                  {CARD_NAMES[pr.card]}
-                </span>
-              </div>
+              <WinningStreakCard card={pr.card} />
             </div>
           );
         })}
