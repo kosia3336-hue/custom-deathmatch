@@ -50,6 +50,7 @@ export function GameInfoPart({
   toolId,
   preferredBodyHeight = 240,
   sizeToContent = false,
+  defaultOrder,
 }: {
   title?: ReactNode;
   children: ReactNode;
@@ -58,6 +59,8 @@ export function GameInfoPart({
   toolId?: string;
   preferredBodyHeight?: number;
   sizeToContent?: boolean;
+  /** 게임별 기본 패널 순서. 지정하지 않으면 공통 배치 정책을 따른다. */
+  defaultOrder?: number;
 }) {
   const split = useContext(SplitReferenceContext);
   const tone = useContext(ReferenceToneContext);
@@ -69,7 +72,8 @@ export function GameInfoPart({
             {
               id: `reference:${toolId ?? title}`,
               title: typeof title === 'string' ? title : '판 정보',
-              defaultOrder: gameReferenceOrder(typeof title === 'string' ? title : '판 정보'),
+              defaultOrder:
+                defaultOrder ?? gameReferenceOrder(typeof title === 'string' ? title : '판 정보'),
               preferredBodyHeight,
               sizeToContent,
               content: (
@@ -91,6 +95,7 @@ export function GameInfoPart({
       title,
       preferredBodyHeight,
       sizeToContent,
+      defaultOrder,
       inheritedClass,
       className,
       children,

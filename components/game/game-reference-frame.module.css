@@ -104,6 +104,6 @@
 .content.independentContent {
   max-height: clamp(60px, 12dvh, 100px);
 }
-.independentReferences > .references:last-child .independentContent {
+.content.independentContent[data-size-to-content='true'] {
   max-height: min(156px, 25dvh);
 }

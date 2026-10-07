@@ -27,7 +27,7 @@ export function GameReferenceFrame({
   className?: string;
   /** 넘버4처럼 모바일 기록은 점수 바로 아래, 추리는 게임판 아래에 둔다. */
   historyAboveStage?: boolean;
-  /** 모바일에서도 점수 → 기록 → 잔여 정보를 각각 독립된 칸으로 펼친다. */
+  /** 모바일에서도 게임별 순서대로 정보를 각각 독립된 칸으로 펼친다. */
   mobileReferenceLayout?: 'tabs' | 'stacked';
 }) {
   const parent = useGameToolsRegistration();
@@ -106,7 +106,10 @@ export function GameReferenceFrame({
                     aria-label={tool.title}
                   >
                     <div className={styles.panelHeading}>{tool.title}</div>
-                    <div className={`${styles.content} ${styles.independentContent}`}>
+                    <div
+                      data-size-to-content={tool.sizeToContent || undefined}
+                      className={`${styles.content} ${styles.independentContent}`}
+                    >
                       {tool.content}
                     </div>
                   </section>
