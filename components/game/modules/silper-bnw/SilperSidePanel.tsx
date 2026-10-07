@@ -24,7 +24,11 @@ export function SilperSidePanel({
   return (
     <GameInfoStack>
       {showTracker && opponentUsed && (
-        <GameInfoPart title="메모 - 상대 타일 추리" sizeToContent>
+        <GameInfoPart
+          title="메모 - 상대 타일 추리"
+          className="border-0 bg-transparent shadow-none"
+          sizeToContent
+        >
           <OpponentTileTracker
             opponentUsed={opponentUsed}
             rematchIndex={gameData.rematchIndex}

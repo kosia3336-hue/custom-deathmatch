@@ -40,13 +40,7 @@ export default function OpponentTileTracker({ opponentUsed, rematchIndex, skin }
   };
 
   return (
-    <div
-      className={
-        isMeow
-          ? 'skin-meow-tracker space-y-1.5 p-3'
-          : 'space-y-1.5 rounded-xl border border-gray-200 bg-gray-50 p-3'
-      }
-    >
+    <div className="space-y-1.5">
       <p className={`text-xs font-semibold ${isMeow ? 'skin-meow-heading' : 'text-gray-500'}`}>
         {isMeow ? '🐾 상대 잔여 타일 추정' : '상대 잔여 타일 추정'}
       </p>

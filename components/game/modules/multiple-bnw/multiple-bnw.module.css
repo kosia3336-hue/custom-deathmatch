@@ -50,7 +50,6 @@
 }
 @media (max-width: 767px) and (max-height: 700px) {
   .tracker {
-    padding: 8px;
     gap: 4px;
   }
   .tracker > div {

@@ -20,9 +20,7 @@ export default function OpponentTileTracker({
   const blacks = MBNW_TILE_SET.filter((t) => MBNW_TILE_COLOR[t] === 'black');
 
   return (
-    <div
-      className={`${styles.tracker} mbnw-panel mbnw-tracker flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3`}
-    >
+    <div className={`${styles.tracker} mbnw-tracker flex flex-col gap-2`}>
       <p className="mbnw-panel-title text-xs font-semibold text-gray-500">상대 타일 추리</p>
 
       <div className="flex flex-col gap-2">

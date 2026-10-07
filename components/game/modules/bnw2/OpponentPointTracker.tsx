@@ -15,7 +15,7 @@ export function OpponentPointTracker({
   const clamp = (v: number) => Math.min(hi, Math.max(lo, v));
 
   return (
-    <section className="rounded-cdm-lg border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg flex flex-col gap-2 border p-3">
+    <section className="text-cdm-fg flex flex-col gap-2">
       <p className="text-cdm-fg-muted text-xs font-semibold">상대 잔여 추리</p>
       <div className="flex items-center gap-2">
         <button

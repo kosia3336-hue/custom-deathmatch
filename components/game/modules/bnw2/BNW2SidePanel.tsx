@@ -22,7 +22,11 @@ export function BNW2SidePanel({
   return (
     <div className="flex flex-col gap-3">
       {showTracker && opponentStage != null && (
-        <GameInfoPart title="메모 - 상대 잔여 추리" sizeToContent>
+        <GameInfoPart
+          title="메모 - 상대 잔여 추리"
+          className="border-0 bg-transparent shadow-none"
+          sizeToContent
+        >
           <OpponentPointTracker
             opponentStage={opponentStage}
             estimate={estimate}

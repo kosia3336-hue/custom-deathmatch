@@ -24,7 +24,11 @@ export function MultipleBnwSidePanel({
   return (
     <GameInfoStack className={inkWash ? 'skin-ink-wash-memo' : undefined}>
       {showTracker && (
-        <GameInfoPart title="메모 - 상대 타일 추리" sizeToContent>
+        <GameInfoPart
+          title="메모 - 상대 타일 추리"
+          className="border-0 bg-transparent shadow-none"
+          sizeToContent
+        >
           <OpponentTileTracker
             markedTiles={trackedOpponentUsed}
             onToggle={onTrackerToggle}
