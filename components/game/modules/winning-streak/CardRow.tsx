@@ -14,11 +14,9 @@ export function CardRow({
 }) {
   const entries = getCardEntries(cards);
   return (
-    <div className="border-cdm-ink-border rounded-lg border bg-white/5 px-3 py-2">
+    <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-lg border px-3 py-2">
       {label && (
-        <p className="text-cdm-ink-fg-muted mb-1.5 text-xs font-medium uppercase lg:text-sm">
-          {label}
-        </p>
+        <p className="text-cdm-fg-muted mb-1.5 text-xs font-medium uppercase lg:text-sm">{label}</p>
       )}
       <div className="flex flex-wrap gap-1.5">
         {entries.map(({ type, count }) => {

@@ -37,7 +37,7 @@ export function BNW2SidePanel({
             .map(([id, player]) => (
               <div
                 key={id}
-                className="flex items-center justify-between rounded-md bg-white/5 px-2.5 py-2 text-sm"
+                className="bg-cdm-bg-elev-1 flex items-center justify-between rounded-md px-2.5 py-2 text-sm"
               >
                 <span className="min-w-0 truncate font-medium">
                   {id === myId ? '나' : player.nickname}
@@ -58,7 +58,7 @@ export function BNW2SidePanel({
             myId={myId}
           />
         ) : (
-          <p className="text-cdm-ink-fg-muted text-xs">아직 기록이 없습니다.</p>
+          <p className="text-cdm-fg-muted text-xs">아직 기록이 없습니다.</p>
         )}
       </GameInfoPart>
     </div>

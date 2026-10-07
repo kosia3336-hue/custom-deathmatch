@@ -1,7 +1,7 @@
 .score {
   margin-top: 4px;
 }
-.score :global(.ink-scope) {
+.score :global(.game-info-part) {
   padding: 8px;
 }
 .score :global(.mbnw-score-row),
@@ -44,13 +44,13 @@
 .content[hidden] {
   display: none;
 }
-.content :global(.ink-scope) {
+.content :global(.game-info-part) {
   border: 0;
   border-radius: 0;
   padding: 8px;
   box-shadow: none;
 }
-.content :global(.ink-scope > div:first-child.text-xs) {
+.content :global(.game-info-part > div:first-child.text-xs) {
   margin-bottom: 4px;
 }
 @media (max-height: 700px) {
@@ -71,7 +71,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
-.history :global(.ink-scope) {
+.history :global(.game-info-part) {
   padding: 8px;
 }
 @media (max-height: 700px) {

@@ -12,17 +12,17 @@ export function RoundHistory({
   const playerIds = Object.keys(players);
 
   return (
-    <div className="border-cdm-ink-border h-full w-full rounded-xl border bg-white/5">
+    <div className="border-cdm-border bg-cdm-bg-elev-1 h-full w-full rounded-xl border">
       <div className="max-h-72 space-y-1.5 overflow-y-auto p-2 lg:max-h-[420px]">
         {history.length === 0 ? (
-          <p className="text-cdm-ink-fg-muted py-4 text-center text-sm">아직 기록이 없습니다</p>
+          <p className="text-cdm-fg-muted py-4 text-center text-sm">아직 기록이 없습니다</p>
         ) : (
           [...history].reverse().map((round) => (
             <div
               key={round.round}
-              className="border-cdm-ink-border rounded-lg border bg-white/5 p-2"
+              className="border-cdm-border bg-cdm-bg-elev-1 rounded-lg border p-2"
             >
-              <div className="text-cdm-ink-fg-muted mb-1 text-xs font-semibold lg:text-sm">
+              <div className="text-cdm-fg-muted mb-1 text-xs font-semibold lg:text-sm">
                 R{round.round}
               </div>
               <div className="flex flex-col gap-1">
@@ -36,7 +36,7 @@ export function RoundHistory({
                       <span className={`rounded px-1.5 py-0.5 ${style.bg} ${style.text}`}>
                         {style.icon}
                       </span>
-                      <span className="text-cdm-ink-fg-muted max-w-[72px] truncate">
+                      <span className="text-cdm-fg-muted max-w-[72px] truncate">
                         {players[pid]?.nickname ?? pid}
                       </span>
                       <span

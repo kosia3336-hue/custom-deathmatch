@@ -47,40 +47,38 @@ export default function RecordPanel({
     <GameInfoStack>
       <GameInfoPart title="라운드 기록">
         {data.rounds.length === 0 ? (
-          <p className="text-cdm-ink-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
+          <p className="text-cdm-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
         ) : (
           <ul className="max-h-64 space-y-1 overflow-y-auto">
             {[...data.rounds].reverse().map((round) => {
               const winner = name(round.winnerId);
               return (
-                <li key={round.round} className="rounded-md bg-white/5 px-2 py-1.5 text-xs">
+                <li key={round.round} className="bg-cdm-bg-elev-1 rounded-md px-2 py-1.5 text-xs">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-cdm-ink-fg-muted">{round.round}R</span>
-                    <span className="text-cdm-ink-fg font-bold">
+                    <span className="text-cdm-fg-muted">{round.round}R</span>
+                    <span className="text-cdm-fg font-bold">
                       {round.reason === 'die'
                         ? `${name(round.foldedPlayerId) ?? '상대'}님 다이`
                         : round.winnerId
                           ? `${winner} 승`
                           : REASON_LABEL[round.reason]}
                     </span>
-                    <span className="text-cdm-ink-fg-muted tabular-nums">팟 {round.potAmount}</span>
+                    <span className="text-cdm-fg-muted tabular-nums">팟 {round.potAmount}</span>
                   </div>
 
                   {isPlayer && (
-                    <p className="text-cdm-ink-fg-muted mt-0.5 tabular-nums">
-                      내 베팅 <b className="text-cdm-ink-fg">{betOf(round, myId)}</b>
+                    <p className="text-cdm-fg-muted mt-0.5 tabular-nums">
+                      내 베팅 <b className="text-cdm-fg">{betOf(round, myId)}</b>
                       {opponentId && ` · 상대 ${betOf(round, opponentId)}`}
                       {round.diePenalty > 0 && (
-                        <span className="text-cdm-ink-fg ml-1">
-                          · 다이 패널티 {round.diePenalty}
-                        </span>
+                        <span className="text-cdm-fg ml-1">· 다이 패널티 {round.diePenalty}</span>
                       )}
                     </p>
                   )}
 
                   {/* 공개된 패만 적는다 — 안 깐 패는 줄 자체를 만들지 않는다 */}
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-cdm-ink-fg-muted flex items-center gap-1">
+                    <span className="text-cdm-fg-muted flex items-center gap-1">
                       시드
                       <SeedSeotdaCard card={round.seedCard} size="tiny" />
                     </span>
@@ -90,11 +88,11 @@ export default function RecordPanel({
                       const evaluation = round.evaluations[playerId];
                       return (
                         <span key={playerId} className="flex items-center gap-1">
-                          <span className="text-cdm-ink-fg-muted">{name(playerId)}</span>
+                          <span className="text-cdm-fg-muted">{name(playerId)}</span>
                           {hand.map((card, index) => (
                             <SeedSeotdaCard key={`${card.id}-${index}`} card={card} size="tiny" />
                           ))}
-                          {evaluation && <span className="text-cdm-ink-fg">{evaluation.name}</span>}
+                          {evaluation && <span className="text-cdm-fg">{evaluation.name}</span>}
                         </span>
                       );
                     })}

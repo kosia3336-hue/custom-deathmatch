@@ -59,12 +59,12 @@ export function SilperSidePanel({
             myId={myId}
           />
         ) : (
-          <p className="text-cdm-ink-fg-muted text-xs">아직 기록이 없습니다.</p>
+          <p className="text-cdm-fg-muted text-xs">아직 기록이 없습니다.</p>
         )}
       </GameInfoPart>
       {gameData.segmentsHistory.length > 0 && (
         <GameInfoPart title="지난 세그먼트">
-          <div className="text-cdm-ink-fg-muted space-y-1 text-xs">
+          <div className="text-cdm-fg-muted space-y-1 text-xs">
             {gameData.segmentsHistory.map((segment) => (
               <div key={segment.rematchIndex} className="tabular-nums">
                 #{segment.rematchIndex} · {segment.rounds.length}R ·{' '}

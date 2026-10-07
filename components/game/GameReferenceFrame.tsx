@@ -70,7 +70,7 @@ export function GameReferenceFrame({
   return (
     <>
       <GameToolsContext.Provider value={registration}>
-        <GameReferenceParts>{reference}</GameReferenceParts>
+        <GameReferenceParts tone="light">{reference}</GameReferenceParts>
       </GameToolsContext.Provider>
       <GameFrame
         className={className}

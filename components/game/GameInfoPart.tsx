@@ -7,18 +7,27 @@ import { cn } from '@/lib/utils';
 import { gameReferenceOrder } from '@/lib/gameReferencePolicy';
 
 const SplitReferenceContext = createContext(false);
+const ReferenceToneContext = createContext<'ink' | 'light'>('ink');
 const ReferenceClassContext = createContext<string | undefined>(undefined);
 
 /** PC에서는 원본 한 벌만 마운트해 각 정보 파츠를 독립 창으로 등록한다. */
-export function GameReferenceParts({ children }: { children: ReactNode }) {
+export function GameReferenceParts({
+  children,
+  tone = 'ink',
+}: {
+  children: ReactNode;
+  tone?: 'ink' | 'light';
+}) {
   return (
     <SplitReferenceContext.Provider value={true}>
-      <div hidden>{children}</div>
+      <ReferenceToneContext.Provider value={tone}>
+        <div hidden>{children}</div>
+      </ReferenceToneContext.Provider>
     </SplitReferenceContext.Provider>
   );
 }
 
-/** 데스크톱 우측 정보와 모바일 메모가 공유하는 짙은 정보 파츠. */
+/** 데스크톱 정보 창과 모바일 메모가 공유하는 정보 파츠. */
 export function GameInfoStack({
   children,
   className,
@@ -51,6 +60,7 @@ export function GameInfoPart({
   sizeToContent?: boolean;
 }) {
   const split = useContext(SplitReferenceContext);
+  const tone = useContext(ReferenceToneContext);
   const inheritedClass = useContext(ReferenceClassContext);
   const tools = useMemo<GameTool[]>(
     () =>
@@ -64,29 +74,42 @@ export function GameInfoPart({
               sizeToContent,
               content: (
                 <SplitReferenceContext.Provider value={false}>
-                  <div className={inheritedClass}>
-                    <GameInfoPart className={className}>{children}</GameInfoPart>
-                  </div>
+                  <ReferenceToneContext.Provider value={tone}>
+                    <div className={inheritedClass}>
+                      <GameInfoPart className={className}>{children}</GameInfoPart>
+                    </div>
+                  </ReferenceToneContext.Provider>
                 </SplitReferenceContext.Provider>
               ),
             },
           ]
         : [],
-    [split, toolId, title, preferredBodyHeight, sizeToContent, inheritedClass, className, children],
+    [
+      split,
+      tone,
+      toolId,
+      title,
+      preferredBodyHeight,
+      sizeToContent,
+      inheritedClass,
+      className,
+      children,
+    ],
   );
   useGameToolRegistration(tools);
   if (split) return null;
   return (
     <section
       className={cn(
-        'ink-scope rounded-cdm-lg border-cdm-ink-border bg-cdm-ink text-cdm-ink-fg border p-3 shadow-sm',
+        'game-info-part rounded-cdm-lg border p-3',
+        tone === 'light'
+          ? 'border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg'
+          : 'ink-scope border-cdm-ink-border bg-cdm-ink text-cdm-ink-fg shadow-sm',
         className,
       )}
     >
       {title != null && (
-        <div className="text-cdm-ink-fg-muted mb-2 text-xs font-semibold tracking-wide">
-          {title}
-        </div>
+        <div className="text-cdm-fg-muted mb-2 text-xs font-semibold tracking-wide">{title}</div>
       )}
       {children}
     </section>

@@ -7791,7 +7791,7 @@ html[data-native-app] .site-footer--home {
 }
 
 :is(.skin-ink-wash-field, .skin-ink-wash-memo) .mbnw-panel,
-.skin-ink-wash-memo > .ink-scope {
+.skin-ink-wash-memo > .game-info-part {
   border-color: var(--iw-line) !important;
   color: var(--iw-ink) !important;
   background-color: rgba(249, 245, 236, 0.95) !important;
@@ -7804,7 +7804,7 @@ html[data-native-app] .site-footer--home {
     inset 0 1px rgba(255, 255, 255, 0.62) !important;
 }
 
-.skin-ink-wash-memo > .ink-scope {
+.skin-ink-wash-memo > .game-info-part {
   border-radius: 0.8rem;
 }
 

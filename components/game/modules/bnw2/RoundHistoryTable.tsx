@@ -16,8 +16,11 @@ export function RoundHistoryTable({
       {history.map((r) => {
         const entries = Object.entries(r.players);
         return (
-          <div key={r.round} className="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1.5">
-            <span className="text-cdm-ink-fg-muted w-6 shrink-0 font-medium">R{r.round}</span>
+          <div
+            key={r.round}
+            className="bg-cdm-bg-elev-1 flex items-center gap-2 rounded-md px-2 py-1.5"
+          >
+            <span className="text-cdm-fg-muted w-6 shrink-0 font-medium">R{r.round}</span>
             {entries.map(([pid, pd]) => {
               const isWinner = r.winnerId === pid;
 
@@ -32,7 +35,7 @@ export function RoundHistoryTable({
                   >
                     {pd.color === 'black' ? '흑' : '백'}
                   </span>
-                  <span className="text-cdm-ink-fg-muted">
+                  <span className="text-cdm-fg-muted">
                     {pid === myId ? '나' : (players[pid]?.nickname ?? '')}
                   </span>
                   {/*
@@ -41,7 +44,7 @@ export function RoundHistoryTable({
                     핵심을 그대로 넘겨주는 셈이다.
                   */}
                   {pid === myId && (
-                    <span className="text-cdm-ink-fg font-bold tabular-nums">{pd.points}p</span>
+                    <span className="text-cdm-fg font-bold tabular-nums">{pd.points}p</span>
                   )}
                   {isWinner && <span className="text-amber-500">+1</span>}
                 </span>
