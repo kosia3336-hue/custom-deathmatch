@@ -1,12 +1,13 @@
 'use client';
+import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 
-import { useEffect, useRef, useState } from 'react';
+import { sfxCitadelCollapse, sfxCitadelComplete } from '@/lib/audio/synth/general';
 import { useSkinFx } from '@/lib/skins/useSkinFx';
-import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
 import { FT_HALF_MILESTONE } from '@/shared/types';
+import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
+import { useRef, useState } from 'react';
 import { CITADEL_TOWER_CLASS } from './citadelTowerClasses';
 import { useCitadelCountPulse } from './useCitadelCountPulse';
-import { sfxCitadelCollapse, sfxCitadelComplete } from '@/lib/audio/synth/general';
 
 interface CitadelTowerProps {
   id: FTTower;
@@ -48,7 +49,7 @@ export default function CitadelTower({
   const [appeared, setAppeared] = useState(false);
   const [countBump, setCountBump] = useState(false);
 
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (isCompleted && !prevCompleted.current && !collapseShownRef.current.has(collapseKey)) {
       collapseShownRef.current.add(collapseKey);
       prevCompleted.current = isCompleted;
@@ -61,12 +62,15 @@ export default function CitadelTower({
         sfxCitadelComplete();
       }, 1500);
       const t2 = setTimeout(() => setAppeared(false), 2100);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     }
     prevCompleted.current = isCompleted;
   }, [isCompleted, collapseKey, reducedMotion]);
 
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (!pulse || reducedMotion) return;
     setCountBump(true);
     const t = setTimeout(() => setCountBump(false), 380);
@@ -85,14 +89,19 @@ export default function CitadelTower({
         showCompleted ? 'skin-citadel-tower-complete' : '',
         collapsing ? 'skin-citadel-tower-collapsing' : '',
         appeared ? 'skin-citadel-tower-appeared' : '',
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       <div className="skin-citadel-cap" aria-hidden />
       {/* crack styles via ::before on skin-citadel-block */}
 
       <button
         type="button"
-        onContextMenu={(e) => { e.preventDefault(); onResetTower(id); }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onResetTower(id);
+        }}
         onDoubleClick={() => onResetTower(id)}
         disabled={isCompleted}
         className={`skin-citadel-pillar ${countBump ? 'skin-citadel-pillar--pulse' : ''} ${
@@ -125,8 +134,10 @@ export default function CitadelTower({
           const isFilled = userCount >= level || collapsing;
           const isTop = userCount === level && userCount > 0 && !isCompleted;
           const isHalf = level === FT_HALF_MILESTONE;
-          const placeUp = pulse?.dir === 'up' && pulse.level === level && isFilled && !reducedMotion;
-          const placeDown = pulse?.dir === 'down' && pulse.level === level && !isFilled && !reducedMotion;
+          const placeUp =
+            pulse?.dir === 'up' && pulse.level === level && isFilled && !reducedMotion;
+          const placeDown =
+            pulse?.dir === 'down' && pulse.level === level && !isFilled && !reducedMotion;
 
           return (
             <button
@@ -142,21 +153,23 @@ export default function CitadelTower({
                     ? 'skin-citadel-cell--filled'
                     : 'skin-citadel-cell--empty',
                 isTop ? 'skin-citadel-cell--crest' : '',
-                isHalf ? (halfReached ? 'skin-citadel-cell--half-reached' : 'skin-citadel-cell--half') : '',
+                isHalf
+                  ? halfReached
+                    ? 'skin-citadel-cell--half-reached'
+                    : 'skin-citadel-cell--half'
+                  : '',
                 placeUp ? 'skin-citadel-cell--place-up' : '',
                 placeDown ? 'skin-citadel-cell--place-down' : '',
-              ].filter(Boolean).join(' ')}
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
-              {isHalf && !halfReached && (
-                <span className="skin-citadel-gate-mark" aria-hidden />
-              )}
+              {isHalf && !halfReached && <span className="skin-citadel-gate-mark" aria-hidden />}
               <span className="skin-citadel-block">
                 <span className="skin-citadel-block-top" aria-hidden />
                 <span className="skin-citadel-block-engrave tabular-nums">{level}</span>
               </span>
-              {isHalf && halfReached && (
-                <span className="skin-citadel-half-badge">6+</span>
-              )}
+              {isHalf && halfReached && <span className="skin-citadel-half-badge">6+</span>}
             </button>
           );
         })}

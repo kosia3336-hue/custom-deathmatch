@@ -94,6 +94,8 @@ export interface DoubleSidedPokerGameData {
   doubleCost: number | null;
   /** 여는 수로 양면베팅할 때 한 면에 걸 수 있는 최대 칩. 응답이라면 null. */
   maxDouble: number | null;
+  /** 각 시청자에게 공개된 면만 담은 이전 라운드 기록. */
+  rounds?: DoubleSidedPokerRoundResult[];
   lastRoundResult: DoubleSidedPokerRoundResult | null;
   roundStartedAt: number;
   turnStartedAt: number | null;

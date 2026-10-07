@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { BANK_INITIAL_INVENTORY, type BankDenomination } from '@/shared/types/bank-game';
+import { useState } from 'react';
 import { DENOM_ORDER, DENOM_STYLES } from './constants';
 
 /* ════════════════════════════════════════════════════════════

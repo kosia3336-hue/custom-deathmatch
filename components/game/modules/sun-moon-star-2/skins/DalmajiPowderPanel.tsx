@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { MARK_IDS, sumPowder } from '@/shared/types/sun-moon-star-2';
 import type { SMS2MarkId, SMS2PowderSubmission } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, sumPowder } from '@/shared/types/sun-moon-star-2';
+import { useCallback, useMemo } from 'react';
 import { CelestialGlyph } from './CelestialGlyph';
 
 interface Props {
@@ -48,7 +48,10 @@ export default function DalmajiPowderPanel({
   );
 
   return (
-    <div className={`skin-dalmaji-panel ${disabled ? 'opacity-70' : ''}`}>
+    <div
+      style={{ padding: 8, gap: 8 }}
+      className={`skin-dalmaji-panel ${disabled ? 'opacity-70' : ''}`}
+    >
       <div className="flex items-center justify-between">
         <p className="skin-dalmaji-panel-title">빛가루 분배</p>
         <p className="skin-dalmaji-panel-meta">
@@ -56,7 +59,7 @@ export default function DalmajiPowderPanel({
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1">
         {MARK_IDS.map((mark) => (
           <PowderSlot
             key={mark}
@@ -86,7 +89,10 @@ export default function DalmajiPowderPanel({
           aria-valuemax={powderRemain}
           aria-valuenow={total}
         >
-          <div className="skin-dalmaji-dust-fill" style={{ width: `${Math.min(100, progressPct)}%` }} />
+          <div
+            className="skin-dalmaji-dust-fill"
+            style={{ width: `${Math.min(100, progressPct)}%` }}
+          />
         </div>
       </div>
 
@@ -149,10 +155,20 @@ function PowderSlot({
         </span>
         <span className="skin-dalmaji-slot-label">{LABELS[mark]}</span>
       </span>
-      <button type="button" disabled={disabled || value <= 0} onClick={() => onChange(clamp(value - 5))} className="skin-dalmaji-step">
+      <button
+        type="button"
+        disabled={disabled || value <= 0}
+        onClick={() => onChange(clamp(value - 5))}
+        className="skin-dalmaji-step"
+      >
         −5
       </button>
-      <button type="button" disabled={disabled || value <= 0} onClick={() => onChange(clamp(value - 1))} className="skin-dalmaji-step skin-dalmaji-step--lg">
+      <button
+        type="button"
+        disabled={disabled || value <= 0}
+        onClick={() => onChange(clamp(value - 1))}
+        className="skin-dalmaji-step skin-dalmaji-step--lg"
+      >
         −
       </button>
       <input
@@ -168,10 +184,20 @@ function PowderSlot({
         }}
         className="skin-dalmaji-step-input"
       />
-      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(clamp(value + 1))} className="skin-dalmaji-step skin-dalmaji-step--lg">
+      <button
+        type="button"
+        disabled={disabled || value >= max}
+        onClick={() => onChange(clamp(value + 1))}
+        className="skin-dalmaji-step skin-dalmaji-step--lg"
+      >
         +
       </button>
-      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(clamp(value + 5))} className="skin-dalmaji-step">
+      <button
+        type="button"
+        disabled={disabled || value >= max}
+        onClick={() => onChange(clamp(value + 5))}
+        className="skin-dalmaji-step"
+      >
         +5
       </button>
     </div>

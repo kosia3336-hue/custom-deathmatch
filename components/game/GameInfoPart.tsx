@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useGameToolRegistration } from '@/hooks/useGameToolRegistration';
 import type { GameTool } from '@/contexts/GameToolsContext';
 import { cn } from '@/lib/utils';
+import { gameReferenceOrder } from '@/lib/gameReferencePolicy';
 
 const SplitReferenceContext = createContext(false);
 const ReferenceClassContext = createContext<string | undefined>(undefined);
@@ -58,6 +59,7 @@ export function GameInfoPart({
             {
               id: `reference:${toolId ?? title}`,
               title: typeof title === 'string' ? title : '판 정보',
+              defaultOrder: gameReferenceOrder(typeof title === 'string' ? title : '판 정보'),
               preferredBodyHeight,
               sizeToContent,
               content: (

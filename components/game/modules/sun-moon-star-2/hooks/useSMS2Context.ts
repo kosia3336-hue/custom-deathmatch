@@ -1,11 +1,8 @@
 'use client';
+import { useGameAction } from '@/components/game/GameActionContext';
+import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
+import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { useRoomStore } from '@/stores/room';
-import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
-import { getSocket } from '@/lib/socket';
 import type {
   SMS2ChipBet,
   SMS2GameData,
@@ -23,41 +20,30 @@ import {
   zeroBet,
   zeroPowder,
 } from '@/shared/types/sun-moon-star-2';
-import { getSkinTheme } from '@/lib/skins/registry';
-import { GAME_IDS } from '@/shared/types/game';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { WIN_TYPE_LABELS } from '../constants';
-import {
-  type OpponentPowderEstimate,
-  zeroOpponentEstimate,
-} from '../types';
+import { type OpponentPowderEstimate, zeroOpponentEstimate } from '../types';
 
-/* ════════════════════════════════════════════════════════════
- * useSMS2Context
- *   해달별 II 의 모든 공통 상태·액션·파생값을 한 객체로 모아 반환.
- *   MobileLayout / DesktopLayout 가 이 객체 하나만 받아 사용한다.
- *
- *   ⚠️ 자동 스크롤용 ref / useEffect 는 MobileLayout 내부에서 직접 사용.
- *      (두 레이아웃이 동시에 마운트되어도 ref 충돌이 없도록)
- * ════════════════════════════════════════════════════════════ */
+/** 해달별2의 파생값·입력·연출 상태. 동일 GameLayout을 PC/모바일에서 공유한다. */
 
 export type SMS2ContextValue = ReturnType<typeof useSMS2Context>;
 
-export function useSMS2Context() {
-  const gameState = useRoomStore((s) => s.gameState);
-  const isSpectator = useRoomStore((s) => s.isSpectator);
-  const gameData = gameState?.gameData as SMS2GameData | undefined;
-  const dalmaji = getSkinTheme(gameState?.activeSkin, GAME_IDS.SUN_MOON_STAR_2) === 'dalmaji';
-  const myId = useMySocketId();
-  useTurnTimer();
+export function useSMS2Context({
+  gameData,
+  myId,
+  isSpectator = false,
+  skin = null,
+}: GameModuleViewProps<SMS2GameData>) {
+  const sendAction = useGameAction();
+  const dalmaji = skin === 'dalmaji';
 
   const [pendingPowder, setPendingPowder] = useState<SMS2PowderSubmission>(zeroPowder());
   const [pendingBet, setPendingBet] = useState<SMS2ChipBet>(zeroBet());
   const [submitting, setSubmitting] = useState(false);
   const [prevKey, setPrevKey] = useState('');
 
-  const [opponentEstimate, setOpponentEstimate] = useState<OpponentPowderEstimate | null>(
-    null,
-  );
+  const [opponentEstimate, setOpponentEstimate] = useState<OpponentPowderEstimate | null>(null);
   const prevOpponentStageRef = useRef<SMS2PowderStage | null>(null);
 
   const shownWinnerRef = useRef<string | null>(null);
@@ -92,7 +78,7 @@ export function useSMS2Context() {
   }
 
   /* 상대 stage 변화 → 추리 자동 리셋 */
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (!opponent) return;
     const prev = prevOpponentStageRef.current;
     const now = opponent.powderStage;
@@ -121,7 +107,7 @@ export function useSMS2Context() {
     const winner = gameData.players[gameData.finalWinner];
     const isMe = winner.id === myId;
     const reason = gameData.winType
-      ? (WIN_TYPE_LABELS as Record<string, string>)[gameData.winType] ?? ''
+      ? ((WIN_TYPE_LABELS as Record<string, string>)[gameData.winType] ?? '')
       : '';
     if (isMe) toast.success(`${winner.nickname} 승리! (${reason})`, { duration: 5000 });
     else toast.error(`${winner.nickname} 승리! (${reason})`, { duration: 5000 });
@@ -137,14 +123,14 @@ export function useSMS2Context() {
       return;
     }
     setSubmitting(true);
-    getSocket().emit('game:action', { type: 'submitPowder', powder: pendingPowder });
-  }, [myPlayer, pendingPowder, submitting, gameData]);
+    sendAction({ type: 'submitPowder', powder: pendingPowder });
+  }, [myPlayer, pendingPowder, submitting, gameData, sendAction]);
 
   const handleCancelPowder = useCallback(() => {
     if (!myPlayer?.submittedPowder) return;
-    getSocket().emit('game:action', { type: 'cancelPowder' });
+    sendAction({ type: 'cancelPowder' });
     setSubmitting(false);
-  }, [myPlayer]);
+  }, [myPlayer, sendAction]);
 
   const handleSubmitBet = useCallback(() => {
     if (!myPlayer || submitting || !gameData) return;
@@ -168,8 +154,8 @@ export function useSMS2Context() {
       }
     }
     setSubmitting(true);
-    getSocket().emit('game:action', { type: 'submitBet', bet: pendingBet });
-  }, [myPlayer, pendingBet, submitting, gameData, opponent]);
+    sendAction({ type: 'submitBet', bet: pendingBet });
+  }, [myPlayer, pendingBet, submitting, gameData, opponent, sendAction]);
 
   const resetPowder = useCallback(() => setPendingPowder(zeroPowder()), []);
   const resetBet = useCallback(() => setPendingBet(zeroBet()), []);
@@ -215,8 +201,7 @@ export function useSMS2Context() {
   const markRowPendingPowder: SMS2PowderSubmission | null =
     isPowder && myPlayer && !mySubmittedPowder ? pendingPowder : null;
 
-  const showTracker =
-    !isSpectator && (isPowder || isBet) && !!opponentEstimate;
+  const showTracker = !isSpectator && (isPowder || isBet) && !!opponentEstimate;
 
   return {
     /* raw */

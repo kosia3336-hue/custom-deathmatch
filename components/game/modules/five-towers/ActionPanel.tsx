@@ -1,9 +1,15 @@
 'use client';
+import { useGameAction } from '@/components/game/GameActionContext';
 
-import { useEffect, useMemo, useState } from 'react';
-import type { FTAction, FTGameData, FTItem, FTStackCount, FTTower } from '@/shared/types/five-towers';
 import { FT_TOWERS } from '@/shared/types';
-import { getSocket } from '@/lib/socket';
+import type {
+  FTAction,
+  FTGameData,
+  FTItem,
+  FTStackCount,
+  FTTower,
+} from '@/shared/types/five-towers';
+import { useMemo, useState } from 'react';
 import { TOWER_COLORS } from './InferenceField';
 
 interface ActionPanelProps {
@@ -16,6 +22,7 @@ interface ActionPanelProps {
 type Tab = 'stack' | 'item';
 
 export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: ActionPanelProps) {
+  const sendAction = useGameAction();
   const [tab, setTab] = useState<Tab>('stack');
   const [tower, setTower] = useState<FTTower | null>(null);
   const [count, setCount] = useState<FTStackCount>(1);
@@ -26,27 +33,6 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
   const me = gameData.players[myId];
   const itemUsed = me?.itemUsed ?? false;
 
-  useEffect(() => {
-    if (!isMyTurn) {
-      setTower(null);
-      setCount(1);
-      setItem(null);
-      setInfoTargets([]);
-      setSubmitting(false);
-    }
-  }, [isMyTurn, gameData.turn]);
-
-  useEffect(() => {
-    const len = gameData.myInfoResults?.length ?? 0;
-    if (len > 0) {
-      setSubmitting(false);
-      setItem(null);
-      setInfoTargets([]);
-      setTab('stack');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameData.myInfoResults?.length]);
-
   const incompleteTowers = useMemo(
     () => FT_TOWERS.filter((t) => !gameData.towers[t].completed),
     [gameData.towers],
@@ -55,7 +41,7 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
   const submit = (action: FTAction) => {
     if (submitting) return;
     setSubmitting(true);
-    getSocket().emit('game:action', action as unknown as Record<string, unknown>);
+    sendAction(action as unknown as Record<string, unknown>);
   };
 
   const onStackSubmit = () => {
@@ -86,11 +72,17 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
   }
 
   return (
-    <div className={`flex flex-col gap-3 rounded-xl border border-indigo-200 bg-white p-3 sm:p-4 ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
+    <div
+      className={`flex flex-col gap-3 rounded-xl border border-indigo-200 bg-white p-3 sm:p-4 ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+    >
       <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
         <button
           type="button"
-          onClick={() => { setTab('stack'); setItem(null); setInfoTargets([]); }}
+          onClick={() => {
+            setTab('stack');
+            setItem(null);
+            setInfoTargets([]);
+          }}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             tab === 'stack' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500'
           }`}
@@ -99,7 +91,11 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
         </button>
         <button
           type="button"
-          onClick={() => { setTab('item'); setTower(null); setCount(1); }}
+          onClick={() => {
+            setTab('item');
+            setTower(null);
+            setCount(1);
+          }}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             tab === 'item' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500'
           } ${itemUsed ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -128,7 +124,7 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                     completed
                       ? 'border-yellow-300 bg-yellow-100 text-yellow-700 line-through opacity-50'
                       : sel
-                        ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-offset-1 ring-indigo-400`
+                        ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-indigo-400 ring-offset-1`
                         : `border-gray-200 bg-white ${cs.text} hover:bg-gray-50`
                   }`}
                 >
@@ -191,11 +187,13 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                     setCount(1);
                   }}
                   className={`flex flex-col items-center rounded-lg border-2 px-1 py-2 text-xs transition-all ${
-                    sel ? `${tone} ring-2 ring-offset-1 ring-indigo-400` : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    sel
+                      ? `${tone} ring-2 ring-indigo-400 ring-offset-1`
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   <span className="text-sm font-bold">{label}</span>
-                  <span className="text-[10px] opacity-75">{desc}</span>
+                  <span className="text-[11px] opacity-75">{desc}</span>
                 </button>
               );
             })}
@@ -226,7 +224,7 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                         completed
                           ? 'border-yellow-300 bg-yellow-100 text-yellow-700 line-through opacity-50'
                           : sel
-                            ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-offset-1 ring-indigo-400`
+                            ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-indigo-400 ring-offset-1`
                             : `border-gray-200 bg-white ${cs.text} hover:bg-gray-50`
                       }`}
                     >
@@ -241,7 +239,9 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                 disabled={infoTargets.length !== 2 || submitting}
                 className="rounded-lg bg-sky-600 py-2.5 text-sm font-bold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {infoTargets.length === 2 ? `${infoTargets[0]}+${infoTargets[1]} 합 확인` : '두 탑을 선택하세요'}
+                {infoTargets.length === 2
+                  ? `${infoTargets[0]}+${infoTargets[1]} 합 확인`
+                  : '두 탑을 선택하세요'}
               </button>
             </>
           )}
@@ -264,7 +264,7 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                         completed
                           ? 'border-yellow-300 bg-yellow-100 text-yellow-700 line-through opacity-50'
                           : sel
-                            ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-offset-1 ring-indigo-400`
+                            ? `${cs.border} ${cs.bg} ${cs.text} ring-2 ring-indigo-400 ring-offset-1`
                             : `border-gray-200 bg-white ${cs.text} hover:bg-gray-50`
                       }`}
                     >
@@ -301,7 +301,9 @@ export default function ActionPanel({ gameData, myId, isMyTurn, disabled }: Acti
                 onClick={onItemSubmit}
                 disabled={!tower || submitting}
                 className={`rounded-lg py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300 ${
-                  item === 'zero' ? 'bg-slate-700 hover:bg-slate-800' : 'bg-purple-600 hover:bg-purple-700'
+                  item === 'zero'
+                    ? 'bg-slate-700 hover:bg-slate-800'
+                    : 'bg-purple-600 hover:bg-purple-700'
                 }`}
               >
                 {tower

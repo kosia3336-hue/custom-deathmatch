@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { SMS2GameData } from '@/shared/types/sun-moon-star-2';
+import { useEffect, useState } from 'react';
 
 /* ════════════════════════════════════════════════════════════
  * PhaseTransitionOverlay
@@ -96,9 +96,7 @@ export default function PhaseTransitionOverlay({
     >
       <div
         className={`pointer-events-none flex flex-col items-center gap-1 rounded-2xl border px-6 py-3 shadow-lg backdrop-blur-sm transition-all ${accentClass} ${
-          visible
-            ? 'translate-y-0 scale-100 opacity-100'
-            : '-translate-y-2 scale-95 opacity-0'
+          visible ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-2 scale-95 opacity-0'
         }`}
         style={{ transitionDuration: `${FADE_MS}ms` }}
       >
@@ -133,9 +131,7 @@ function buildOverlay({
       return {
         key: 'powder',
         title: '🌫️ 빛가루 분배',
-        subtitle: isSpectator
-          ? '양측이 동시에 분배합니다'
-          : '해 · 달 · 별에 비공개로 분배하세요',
+        subtitle: isSpectator ? '양측이 동시에 분배합니다' : '해 · 달 · 별에 비공개로 분배하세요',
         accent: 'indigo',
       };
     case 'betFirst': {

@@ -97,7 +97,7 @@ export default function PowderTrack({
           {leftLabel}
           {leftIsFirst && <span className="ml-1 text-amber-500">👑</span>}
         </div>
-        <div className="w-16 shrink-0 text-center text-[10px] text-gray-400">빛가루</div>
+        <div className="w-16 shrink-0 text-center text-[11px] text-gray-400">빛가루</div>
         <div className="flex-1 truncate text-center text-xs font-semibold text-amber-600">
           {rightLabel}
           {rightIsFirst && <span className="ml-1 text-amber-500">👑</span>}
@@ -108,13 +108,13 @@ export default function PowderTrack({
       {!compact && (
         <div className="flex items-center gap-1 pb-2">
           <div className="flex-1 text-center">
-            <div className="text-lg font-bold tabular-nums text-indigo-700">🪙 {leftChips}</div>
-            <div className="text-[10px] text-gray-400">칩</div>
+            <div className="text-lg font-bold text-indigo-700 tabular-nums">🪙 {leftChips}</div>
+            <div className="text-[11px] text-gray-400">칩</div>
           </div>
-          <div className="w-16 shrink-0 text-center text-[10px] text-gray-400">단계(g)</div>
+          <div className="w-16 shrink-0 text-center text-[11px] text-gray-400">단계(g)</div>
           <div className="flex-1 text-center">
-            <div className="text-lg font-bold tabular-nums text-amber-700">🪙 {rightChips}</div>
-            <div className="text-[10px] text-gray-400">칩</div>
+            <div className="text-lg font-bold text-amber-700 tabular-nums">🪙 {rightChips}</div>
+            <div className="text-[11px] text-gray-400">칩</div>
           </div>
         </div>
       )}

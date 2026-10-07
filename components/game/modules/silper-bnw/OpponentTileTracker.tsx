@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import type { SkinTheme } from '@/lib/skins/registry';
 import type { SBNWTile } from '@/shared/types/silper-bnw';
 import { SBNW_INITIAL_TILES } from '@/shared/types/silper-bnw';
-import type { SkinTheme } from '@/lib/skins/registry';
+import { useEffect, useState } from 'react';
 
 interface Props {
   /** 상대가 사용한 타일 누적 카운트 */
@@ -56,32 +56,38 @@ export default function OpponentTileTracker({ opponentUsed, rematchIndex, skin }
         const canInc = val < SBNW_INITIAL_TILES[t];
         return (
           <div key={t} className="flex items-center gap-2 text-xs">
-            <span className={`w-4 font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-700'}`}>{t}:</span>
+            <span className={`w-4 font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-700'}`}>
+              {t}:
+            </span>
             <button
               onClick={() => adjust(t, -1)}
               disabled={!canDec}
-              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors
-                ${isMeow
+              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors ${
+                isMeow
                   ? 'skin-meow-tracker-btn'
                   : canDec
                     ? 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                     : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
-                }`}
+              }`}
               aria-label={`${t} 감소`}
             >
               −
             </button>
-            <span className={`w-6 text-center text-sm font-bold tabular-nums ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}>{val}</span>
+            <span
+              className={`w-6 text-center text-sm font-bold tabular-nums ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}
+            >
+              {val}
+            </span>
             <button
               onClick={() => adjust(t, +1)}
               disabled={!canInc}
-              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors
-                ${isMeow
+              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors ${
+                isMeow
                   ? 'skin-meow-tracker-btn'
                   : canInc
                     ? 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
                     : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
-                }`}
+              }`}
               aria-label={`${t} 증가`}
             >
               +

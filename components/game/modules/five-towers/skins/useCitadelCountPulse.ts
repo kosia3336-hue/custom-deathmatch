@@ -1,6 +1,7 @@
 'use client';
+import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 export type CitadelCountPulse = {
   level: number;
@@ -12,7 +13,7 @@ export function useCitadelCountPulse(userCount: number): CitadelCountPulse {
   const prevRef = useRef(userCount);
   const [pulse, setPulse] = useState<CitadelCountPulse>(null);
 
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (prevRef.current === userCount) return;
     const prev = prevRef.current;
     const dir = userCount > prev ? 'up' : 'down';

@@ -1,9 +1,9 @@
 'use client';
+import { useGameAction } from '@/components/game/GameActionContext';
 
-import { useState } from 'react';
-import { getSocket } from '@/lib/socket';
 import type { MBNWTile, MBNWTileColor } from '@/shared/types/multiple-bnw';
 import { MBNW_TILE_COLOR } from '@/shared/types/multiple-bnw';
+import { useState } from 'react';
 
 interface TileSelectorProps {
   remainingTiles: MBNWTile[];
@@ -11,17 +11,22 @@ interface TileSelectorProps {
   firstColor?: MBNWTileColor | null;
 }
 
-export default function TileSelector({ remainingTiles, actionType, firstColor }: TileSelectorProps) {
+export default function TileSelector({
+  remainingTiles,
+  actionType,
+  firstColor,
+}: TileSelectorProps) {
+  const sendAction = useGameAction();
   const [selected, setSelected] = useState<MBNWTile | null>(
     remainingTiles.length === 1 ? remainingTiles[0] : null,
   );
 
-  const whites = remainingTiles.filter(t => MBNW_TILE_COLOR[t] === 'white').sort((a, b) => a - b);
-  const blacks = remainingTiles.filter(t => MBNW_TILE_COLOR[t] === 'black').sort((a, b) => a - b);
+  const whites = remainingTiles.filter((t) => MBNW_TILE_COLOR[t] === 'white').sort((a, b) => a - b);
+  const blacks = remainingTiles.filter((t) => MBNW_TILE_COLOR[t] === 'black').sort((a, b) => a - b);
 
   const handleSubmit = () => {
     if (selected == null) return;
-    getSocket().emit('game:action', { type: actionType, tile: selected });
+    sendAction({ type: actionType, tile: selected });
   };
 
   return (
@@ -29,11 +34,13 @@ export default function TileSelector({ remainingTiles, actionType, firstColor }:
       {actionType === 'respondTile' && firstColor && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">선플 타일:</span>
-          <span className={`mbnw-color-badge mbnw-color-badge--${firstColor} inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-            firstColor === 'black'
-              ? 'bg-slate-800 text-slate-100'
-              : 'border border-gray-300 bg-white text-slate-700'
-          }`}>
+          <span
+            className={`mbnw-color-badge mbnw-color-badge--${firstColor} inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${
+              firstColor === 'black'
+                ? 'bg-slate-800 text-slate-100'
+                : 'border border-gray-300 bg-white text-slate-700'
+            }`}
+          >
             {firstColor === 'black' ? '흑색' : '백색'}
           </span>
         </div>
@@ -45,7 +52,7 @@ export default function TileSelector({ remainingTiles, actionType, firstColor }:
         <div>
           <p className="mbnw-tile-group-label mb-1 text-xs text-gray-400">백색</p>
           <div className="flex flex-wrap gap-2">
-            {whites.map(t => (
+            {whites.map((t) => (
               <TileButton
                 key={t}
                 tile={t}
@@ -62,7 +69,7 @@ export default function TileSelector({ remainingTiles, actionType, firstColor }:
         <div>
           <p className="mbnw-tile-group-label mb-1 text-xs text-gray-400">흑색</p>
           <div className="flex flex-wrap gap-2">
-            {blacks.map(t => (
+            {blacks.map((t) => (
               <TileButton
                 key={t}
                 tile={t}
@@ -86,18 +93,22 @@ export default function TileSelector({ remainingTiles, actionType, firstColor }:
   );
 }
 
-function TileButton({ tile, color, selected, onClick }: {
+function TileButton({
+  tile,
+  color,
+  selected,
+  onClick,
+}: {
   tile: MBNWTile;
   color: MBNWTileColor;
   selected: boolean;
   onClick: () => void;
 }) {
-  const base = color === 'black'
-    ? 'bg-slate-800 text-slate-100 border-slate-600'
-    : 'bg-white text-slate-800 border-gray-300';
-  const sel = selected
-    ? 'ring-2 ring-indigo-500 border-indigo-500'
-    : 'hover:border-gray-400';
+  const base =
+    color === 'black'
+      ? 'bg-slate-800 text-slate-100 border-slate-600'
+      : 'bg-white text-slate-800 border-gray-300';
+  const sel = selected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'hover:border-gray-400';
 
   return (
     <button

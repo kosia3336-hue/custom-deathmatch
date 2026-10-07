@@ -77,7 +77,7 @@ function DenomCard({
   const empty = remain <= 0;
   const sizeCls = size === 'md' ? 'min-h-[100px] px-2 py-2.5' : 'min-h-[80px] px-1.5 py-2';
   const numCls = size === 'md' ? 'text-3xl' : 'text-2xl';
-  const labelCls = size === 'md' ? 'text-xs' : 'text-[10px]';
+  const labelCls = size === 'md' ? 'text-xs' : 'text-[11px]';
 
   return (
     <div
@@ -99,12 +99,12 @@ function DenomCard({
         {remain}
       </span>
       {pending > 0 && (
-        <span className="bank-denom-pending rounded bg-rose-100 px-1 py-0 text-[10px] font-bold text-rose-700 tabular-nums">
+        <span className="bank-denom-pending rounded bg-rose-100 px-1 py-0 text-[11px] font-bold text-rose-700 tabular-nums">
           −{pending}
         </span>
       )}
       {pending === 0 && size === 'md' && (
-        <span className="text-[9px] text-gray-400">/ {count}장</span>
+        <span className="text-[11px] text-gray-400">/ {count}장</span>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { BankPhase } from '@/shared/types/bank-game';
+import { useEffect, useState } from 'react';
 
 interface Props {
   phase: BankPhase;

@@ -1,7 +1,7 @@
 'use client';
 
-import { MARK_IDS, MARK_PRIORITY } from '@/shared/types/sun-moon-star-2';
 import type { SMS2MarkId, SMS2PowderSubmission } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, MARK_PRIORITY } from '@/shared/types/sun-moon-star-2';
 import { CelestialGlyph } from './CelestialGlyph';
 
 interface Props {
@@ -79,8 +79,7 @@ function DalmajiMarkCard({
       <span className="skin-dalmaji-mark-label">{labels[mark]}</span>
       {total > 0 && (
         <span className="skin-dalmaji-mark-chip">
-          내 {total}g
-          {pendingPowder > 0 && <span className="opacity-70"> (+{pendingPowder})</span>}
+          내 {total}g{pendingPowder > 0 && <span className="opacity-70"> (+{pendingPowder})</span>}
         </span>
       )}
     </div>

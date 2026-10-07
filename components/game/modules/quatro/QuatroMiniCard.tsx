@@ -1,5 +1,5 @@
-import type { QuatroCard, QuatroSuit } from '@/shared/types/quatro';
 import { cn } from '@/lib/utils';
+import type { QuatroCard, QuatroSuit } from '@/shared/types/quatro';
 
 const SUIT_INFO: Record<QuatroSuit, { symbol: string; cls: string; label: string }> = {
   spade: { symbol: '♠', cls: 'text-blue-600 border-blue-300 bg-blue-50', label: '스페이드' },
@@ -10,7 +10,13 @@ const SUIT_INFO: Record<QuatroSuit, { symbol: string; cls: string; label: string
 };
 
 /** 기록용 작은 카드 — 인게임 메모 '기록'과 게임 기록 뷰어가 함께 쓴다. card=null 이면 뒷면(비공개). */
-export default function QuatroMiniCard({ card, dimmed }: { card: QuatroCard | null; dimmed?: boolean }) {
+export default function QuatroMiniCard({
+  card,
+  dimmed,
+}: {
+  card: QuatroCard | null;
+  dimmed?: boolean;
+}) {
   if (!card) {
     return (
       <span
@@ -26,7 +32,7 @@ export default function QuatroMiniCard({ card, dimmed }: { card: QuatroCard | nu
     <span
       aria-label={`${info.label} ${card.num}`}
       className={cn(
-        'inline-flex h-9 w-7 flex-col items-center justify-center rounded border text-[11px] font-bold leading-none',
+        'inline-flex h-9 w-7 flex-col items-center justify-center rounded border text-[11px] leading-none font-bold',
         info.cls,
         dimmed && 'opacity-50',
       )}

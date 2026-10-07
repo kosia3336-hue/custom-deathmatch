@@ -42,7 +42,7 @@ export default function PowderStageDeltaBanner({ players, lastRecord, mySide }: 
             className="flex flex-col items-center"
             style={{ animation: `sms2FadeIn 200ms ease-out ${i * 120}ms both` }}
           >
-            <span className="text-[10px] font-bold text-gray-500 lg:text-xs">{label}</span>
+            <span className="text-[11px] font-bold text-gray-500 lg:text-xs">{label}</span>
             <span
               className={`text-xs font-extrabold tabular-nums lg:text-sm ${
                 diff > 0 ? 'text-orange-600' : 'text-gray-400'
@@ -53,9 +53,7 @@ export default function PowderStageDeltaBanner({ players, lastRecord, mySide }: 
           </div>
         ))}
       </div>
-      {!anyChanged && (
-        <span className="text-[10px] text-gray-400 lg:text-xs">꺼진 칸 없음</span>
-      )}
+      {!anyChanged && <span className="text-[11px] text-gray-400 lg:text-xs">꺼진 칸 없음</span>}
     </div>
   );
 }

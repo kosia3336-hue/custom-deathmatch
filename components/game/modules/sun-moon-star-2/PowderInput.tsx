@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
 import type { SMS2MarkId, SMS2PowderSubmission } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, sumPowder, zeroPowder } from '@/shared/types/sun-moon-star-2';
+import { useCallback, useMemo } from 'react';
 import { MARK_STYLES } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -44,10 +44,7 @@ export default function PowderInput({
 
   const setSlot = useCallback(
     (slot: SMS2MarkId, next: number) => {
-      const others = MARK_IDS.reduce(
-        (acc, m) => (m === slot ? acc : acc + value[m]),
-        0,
-      );
+      const others = MARK_IDS.reduce((acc, m) => (m === slot ? acc : acc + value[m]), 0);
       const max = Math.max(0, powderRemain - others);
       const clamped = Math.max(0, Math.min(max, Math.floor(next)));
       onChange({ ...value, [slot]: clamped });
@@ -71,7 +68,7 @@ export default function PowderInput({
 
   return (
     <div
-      className={`space-y-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 ${
+      className={`space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-2 ${
         disabled ? 'opacity-60' : ''
       }`}
     >
@@ -83,7 +80,7 @@ export default function PowderInput({
       </div>
 
       {/* 3슬롯 */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         {MARK_IDS.map((mark) => (
           <PowderSlot
             key={mark}
@@ -104,9 +101,7 @@ export default function PowderInput({
             총 <span className="font-bold text-gray-800 tabular-nums">{total}</span>g /{' '}
             <span className="tabular-nums">{powderRemain}</span>g
           </span>
-          <span
-            className={`font-bold tabular-nums ${over ? 'text-rose-600' : 'text-amber-600'}`}
-          >
+          <span className={`font-bold tabular-nums ${over ? 'text-rose-600' : 'text-amber-600'}`}>
             {progressPct}%
           </span>
         </div>
@@ -189,7 +184,7 @@ function PowderSlot({
         type="button"
         disabled={disabled || value <= 0}
         onClick={() => onChange(clamp(value - 5))}
-        className="h-9 w-8 shrink-0 rounded-md border border-gray-200 bg-white text-[10px] font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+        className="h-9 w-8 shrink-0 rounded-md border border-gray-200 bg-white text-[11px] font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
       >
         −5
       </button>
@@ -212,7 +207,7 @@ function PowderSlot({
           const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
-        className="h-9 flex-1 min-w-0 rounded-md border border-gray-300 bg-white text-center text-base font-bold tabular-nums text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100"
+        className="h-9 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:ring-indigo-400 focus:outline-none disabled:bg-gray-100"
       />
       <button
         type="button"
@@ -226,7 +221,7 @@ function PowderSlot({
         type="button"
         disabled={disabled || value >= max}
         onClick={() => onChange(clamp(value + 5))}
-        className="h-9 w-8 shrink-0 rounded-md border border-gray-200 bg-white text-[10px] font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+        className="h-9 w-8 shrink-0 rounded-md border border-gray-200 bg-white text-[11px] font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
       >
         +5
       </button>

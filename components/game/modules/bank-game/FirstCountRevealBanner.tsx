@@ -40,7 +40,7 @@ export default function FirstCountRevealBanner({ firstNick, firstBetCount, isMyT
         </div>
       </div>
       <div className="text-right">
-        <p className="text-[10px] tracking-wide text-amber-600 uppercase">제출 장수</p>
+        <p className="text-[11px] tracking-wide text-amber-600 uppercase">제출 장수</p>
         <p className="text-3xl font-extrabold text-amber-700 tabular-nums lg:text-4xl">
           {firstBetCount}
           <span className="ml-0.5 text-sm font-bold">장</span>

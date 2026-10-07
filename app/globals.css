@@ -7542,7 +7542,7 @@ html[data-native-app] .site-footer--home {
 }
 
 .skin-four-card-card--sm .skin-four-card-corner {
-  font-size: 0.82em;
+  font-size: 11px;
 }
 
 .skin-four-card-card--sm .skin-four-card-corner--top {
@@ -9371,7 +9371,7 @@ html[data-native-app] .site-footer--home {
   border: 1px solid rgba(232, 197, 106, 0.28);
   background: rgba(20, 18, 32, 0.8);
   color: var(--dj-cream);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 .skin-dalmaji-step--lg {

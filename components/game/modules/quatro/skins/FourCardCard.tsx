@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { QuatroCard, QuatroSuit } from '@/shared/types/quatro';
+import type { CSSProperties } from 'react';
 
 const SUIT_INFO: Record<QuatroSuit, { symbol: string; label: string }> = {
   spade: { symbol: '♠', label: '스페이드' },
@@ -27,12 +28,19 @@ export default function FourCardCard({
   onClick,
   badge,
 }: FourCardCardProps) {
+  const fit: CSSProperties = {
+    height: size === 'sm' ? 'clamp(26px, 7cqh, 48px)' : 'clamp(42px, 10cqh, 64px)',
+    width: 'auto',
+    aspectRatio: '3/4',
+    fontSize: '11px',
+  };
   const sizeClass = `skin-four-card-card--${size}`;
 
   if (!card) {
     return (
       <div
         className={cn('skin-four-card-card skin-four-card-card--back', sizeClass)}
+        style={fit}
         aria-label="뒷면 카드"
       />
     );
@@ -75,6 +83,7 @@ export default function FourCardCard({
       <button
         type="button"
         onClick={onClick}
+        style={fit}
         className={className}
         aria-label={`${info.label} ${card.num}`}
       >
@@ -84,7 +93,7 @@ export default function FourCardCard({
   }
 
   return (
-    <div className={className} aria-label={`${info.label} ${card.num}`}>
+    <div style={fit} className={className} aria-label={`${info.label} ${card.num}`}>
       {content}
     </div>
   );

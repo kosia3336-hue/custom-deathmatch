@@ -1,7 +1,7 @@
 'use client';
 
-import { useId } from 'react';
 import { useSkinFx } from '@/lib/skins/useSkinFx';
+import { useId } from 'react';
 import type { DalmajiSky } from './dalmajiSky';
 
 type Star = readonly [number, number, number, number];
@@ -108,7 +108,17 @@ function Peak({
   );
 }
 
-function MinhwaPine({ x, ground, h, flip = false }: { x: number; ground: number; h: number; flip?: boolean }) {
+function MinhwaPine({
+  x,
+  ground,
+  h,
+  flip = false,
+}: {
+  x: number;
+  ground: number;
+  h: number;
+  flip?: boolean;
+}) {
   const s = h / 180;
   return (
     <g className="dj-pine" transform={`translate(${x} ${ground}) scale(${flip ? -s : s} ${s})`}>
@@ -121,8 +131,18 @@ function MinhwaPine({ x, ground, h, flip = false }: { x: number; ground: number;
         <path d="M-3 -98 C0 -96 1.5 -100 3 -97" />
         <path d="M-1 -118 C1 -116 2 -120 3 -117" />
       </g>
-      <path d="M-4 -78 C-22 -82 -40 -76 -54 -90" fill="none" stroke="currentColor" strokeWidth="2.4" />
-      <path d="M4 -96 C20 -100 36 -94 48 -108" fill="none" stroke="currentColor" strokeWidth="2.1" />
+      <path
+        d="M-4 -78 C-22 -82 -40 -76 -54 -90"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+      />
+      <path
+        d="M4 -96 C20 -100 36 -94 48 -108"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.1"
+      />
       <path d={CANOPY_LO} />
       <path d={CANOPY_L} />
       <path d={CANOPY_R} />
@@ -136,8 +156,19 @@ function Cheongsacho({ cx, cy }: { cx: number; cy: number }) {
   return (
     <g transform={`translate(${cx} ${cy})`}>
       <path className="dj-cheongsacho" d="M0 -14 L12 -8 L12 10 L0 16 L-12 10 L-12 -8 Z" />
-      <path d="M0 -8 L7 -4 L7 6 L0 10 L-7 6 L-7 -4 Z" fill="none" stroke="#f0d078" strokeWidth="0.9" />
-      <path d="M-12 -2 H12 M-12 4 H12" fill="none" stroke="#f6e7b0" strokeWidth="0.55" opacity="0.7" />
+      <path
+        d="M0 -8 L7 -4 L7 6 L0 10 L-7 6 L-7 -4 Z"
+        fill="none"
+        stroke="#f0d078"
+        strokeWidth="0.9"
+      />
+      <path
+        d="M-12 -2 H12 M-12 4 H12"
+        fill="none"
+        stroke="#f6e7b0"
+        strokeWidth="0.55"
+        opacity="0.7"
+      />
       <path d="M0 16 L0 28" fill="none" stroke="#c9a24a" strokeWidth="1.1" />
       <path d="M-5 20 Q-8 30 -12 34" fill="none" stroke="#c44a32" strokeWidth="1.05" />
       <path d="M5 20 Q8 30 12 34" fill="none" stroke="#2a6a7a" strokeWidth="1.05" />
@@ -158,7 +189,12 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
       <div className="skin-dalmaji-wash skin-dalmaji-wash--morning" />
       <div className="skin-dalmaji-wash skin-dalmaji-wash--night" />
 
-      <svg className="skin-dalmaji-starfield" viewBox="0 0 400 240" preserveAspectRatio="xMidYMin slice" aria-hidden>
+      <svg
+        className="skin-dalmaji-starfield"
+        viewBox="0 0 400 240"
+        preserveAspectRatio="xMidYMin slice"
+        aria-hidden
+      >
         {STARFIELD.map(([x, y, r, o]) => (
           <g key={`${x}-${y}-${r}`}>
             {r > 1.6 ? <circle cx={x} cy={y} r={r * 3.2} fill="#fff6d8" opacity="0.22" /> : null}
@@ -268,12 +304,30 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
             />
           </pattern>
           <filter id={`${uid}-mottle`} x="-12%" y="-12%" width="124%" height="124%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.034" numOctaves="4" seed="11" result="t" />
-            <feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.4 0" />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.034"
+              numOctaves="4"
+              seed="11"
+              result="t"
+            />
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.4 0"
+            />
           </filter>
           <filter id={`${uid}-hanji`} x="-10%" y="-20%" width="120%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.62" numOctaves="2" seed="4" result="n" />
-            <feColorMatrix type="matrix" values="0 0 0 0 0.78  0 0 0 0 0.7  0 0 0 0 0.48  0 0 0 0.16 0" />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.62"
+              numOctaves="2"
+              seed="4"
+              result="n"
+            />
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0.78  0 0 0 0 0.7  0 0 0 0 0.48  0 0 0 0.16 0"
+            />
           </filter>
           <clipPath id={`${uid}-moon-clip`}>
             <circle cx="780" cy="102" r="70" />
@@ -284,16 +338,44 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
         </defs>
 
         <g className="skin-dalmaji-orb skin-dalmaji-orb--sun">
-          <circle cx="148" cy="100" r="52" fill="none" stroke="rgba(255, 210, 140, 0.28)" strokeWidth="8" />
+          <circle
+            cx="148"
+            cy="100"
+            r="52"
+            fill="none"
+            stroke="rgba(255, 210, 140, 0.28)"
+            strokeWidth="8"
+          />
           <circle cx="148" cy="100" r="44" fill={`url(#${uid}-sun-body)`} />
-          <circle cx="148" cy="100" r="42.4" fill="none" stroke="rgba(255, 230, 170, 0.75)" strokeWidth="1.8" />
-          <circle cx="148" cy="100" r="38" fill="none" stroke="rgba(255, 180, 90, 0.35)" strokeWidth="1" />
+          <circle
+            cx="148"
+            cy="100"
+            r="42.4"
+            fill="none"
+            stroke="rgba(255, 230, 170, 0.75)"
+            strokeWidth="1.8"
+          />
+          <circle
+            cx="148"
+            cy="100"
+            r="38"
+            fill="none"
+            stroke="rgba(255, 180, 90, 0.35)"
+            strokeWidth="1"
+          />
           <circle cx="136" cy="88" r="9" fill="rgba(255, 244, 210, 0.5)" />
         </g>
 
         <g className="skin-dalmaji-orb skin-dalmaji-orb--moon">
           <circle cx="780" cy="102" r="108" fill={`url(#${uid}-moon-atm)`} />
-          <circle cx="780" cy="102" r="86" fill="none" stroke="rgba(255, 230, 170, 0.18)" strokeWidth="10" />
+          <circle
+            cx="780"
+            cy="102"
+            r="86"
+            fill="none"
+            stroke="rgba(255, 230, 170, 0.18)"
+            strokeWidth="10"
+          />
           <g clipPath={`url(#${uid}-moon-clip)`}>
             <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-body)`} />
             {!lowSpec && (
@@ -318,7 +400,14 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
             <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-limb)`} />
             <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-spec)`} />
           </g>
-          <circle cx="780" cy="102" r="68.6" fill="none" stroke="rgba(255, 248, 220, 0.7)" strokeWidth="1.7" />
+          <circle
+            cx="780"
+            cy="102"
+            r="68.6"
+            fill="none"
+            stroke="rgba(255, 248, 220, 0.7)"
+            strokeWidth="1.7"
+          />
         </g>
 
         <g className="skin-dalmaji-clouds">
@@ -387,18 +476,37 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
           ]}
         />
 
-        <path className="dj-fall" d="M468 148 C474 240 466 330 470 424 L488 424 C484 330 492 240 486 148 Z" fill={`url(#${uid}-fall)`} />
+        <path
+          className="dj-fall"
+          d="M468 148 C474 240 466 330 470 424 L488 424 C484 330 492 240 486 148 Z"
+          fill={`url(#${uid}-fall)`}
+        />
         <path className="dj-fall-edge" d="M472 150 C476 240 470 330 474 422" />
         <path className="dj-fall-edge" d="M482 150 C480 240 484 330 482 422" />
 
         <g className="dj-rock">
           <path d="M10 410 C4 372 22 338 58 334 C78 308 118 318 132 348 C158 358 168 392 148 412 C122 436 70 438 38 428 C22 424 14 418 10 410 Z" />
-          <path d="M28 392 C22 372 40 352 62 356 C74 348 96 358 98 374 C108 382 98 400 78 406 C52 416 34 406 28 392 Z" opacity="0.35" />
-          <path className="dj-rock-hole" d="M72 360 C66 352 78 346 86 354 C92 362 82 370 72 360 Z" />
-          <path className="dj-rock-hole" d="M108 378 C104 372 114 368 118 376 C120 384 112 386 108 378 Z" />
+          <path
+            d="M28 392 C22 372 40 352 62 356 C74 348 96 358 98 374 C108 382 98 400 78 406 C52 416 34 406 28 392 Z"
+            opacity="0.35"
+          />
+          <path
+            className="dj-rock-hole"
+            d="M72 360 C66 352 78 346 86 354 C92 362 82 370 72 360 Z"
+          />
+          <path
+            className="dj-rock-hole"
+            d="M108 378 C104 372 114 368 118 376 C120 384 112 386 108 378 Z"
+          />
           <path d="M800 408 C792 368 818 334 856 330 C878 304 922 316 936 348 C960 360 962 398 940 414 C910 438 860 438 828 426 C808 420 802 414 800 408 Z" />
-          <path d="M824 388 C818 368 838 350 860 354 C872 346 894 356 896 372 C906 380 896 396 876 402 C850 412 830 402 824 388 Z" opacity="0.35" />
-          <path className="dj-rock-hole" d="M868 356 C862 348 876 342 884 352 C890 360 878 368 868 356 Z" />
+          <path
+            d="M824 388 C818 368 838 350 860 354 C872 346 894 356 896 372 C906 380 896 396 876 402 C850 412 830 402 824 388 Z"
+            opacity="0.35"
+          />
+          <path
+            className="dj-rock-hole"
+            d="M868 356 C862 348 876 342 884 352 C890 360 878 368 868 356 Z"
+          />
         </g>
 
         <g className="dj-pine">
@@ -424,9 +532,21 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
           <g className="dj-gongpo">
             {[200, 244, 288, 332].map((x, i) => (
               <g key={x}>
-                <rect className={i % 2 ? 'dj-gongpo-nok' : 'dj-gongpo-cheong'} x={x - 2} y="332" width="11" height="5" />
+                <rect
+                  className={i % 2 ? 'dj-gongpo-nok' : 'dj-gongpo-cheong'}
+                  x={x - 2}
+                  y="332"
+                  width="11"
+                  height="5"
+                />
                 <rect className="dj-gongpo-gold" x={x} y="328" width="7" height="4" />
-                <rect className={i % 2 ? 'dj-gongpo-cheong' : 'dj-gongpo-nok'} x={x - 1} y="324" width="9" height="4" />
+                <rect
+                  className={i % 2 ? 'dj-gongpo-cheong' : 'dj-gongpo-nok'}
+                  x={x - 1}
+                  y="324"
+                  width="9"
+                  height="4"
+                />
               </g>
             ))}
           </g>
@@ -442,8 +562,20 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
             />
           ))}
           <path d="M198 372 H354" fill="none" stroke="#c9a24a" strokeWidth="1.2" />
-          <path d="M208 372 V390 M252 372 V390 M296 372 V390 M340 372 V390" fill="none" stroke="#c9a24a" strokeWidth="1.15" />
-          <ellipse className="dj-lantern-glow" cx="276" cy="352" rx="32" ry="16" style={{ fill: `url(#${uid}-lantern)` }} />
+          <path
+            d="M208 372 V390 M252 372 V390 M296 372 V390 M340 372 V390"
+            fill="none"
+            stroke="#c9a24a"
+            strokeWidth="1.15"
+          />
+          <ellipse
+            className="dj-lantern-glow"
+            cx="276"
+            cy="352"
+            rx="32"
+            ry="16"
+            style={{ fill: `url(#${uid}-lantern)` }}
+          />
           <Cheongsacho cx={276} cy={352} />
           <path
             className="dj-chima"
@@ -456,8 +588,14 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
           {GIWA.map((d) => (
             <path key={d} className="dj-giwa-line" d={d} />
           ))}
-          <path className="dj-chima-curl" d="M152 350 C140 346 132 338 138 328 C148 332 156 340 164 344" />
-          <path className="dj-chima-curl" d="M400 350 C412 346 420 338 414 328 C404 332 396 340 388 344" />
+          <path
+            className="dj-chima-curl"
+            d="M152 350 C140 346 132 338 138 328 C148 332 156 340 164 344"
+          />
+          <path
+            className="dj-chima-curl"
+            d="M400 350 C412 346 420 338 414 328 C404 332 396 340 388 344"
+          />
           <path d="M276 300 L276 286" fill="none" stroke="#e8c56a" strokeWidth="2.6" />
           <circle cx="276" cy="282" r="4.2" fill="#e8c56a" />
           <circle cx="276" cy="282" r="2.1" fill="#fff4d4" />
@@ -471,7 +609,14 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
             d="M0 422 C40 412 80 428 120 418 C160 408 200 424 240 416 C280 408 320 424 360 414 C400 406 440 422 480 414 C520 406 560 422 600 414 C640 406 680 422 720 414 C760 406 800 422 840 414 C880 408 920 418 960 416"
           />
           <ellipse className="dj-splash" cx="478" cy="424" rx="28" ry="8" />
-          <ellipse className="dj-moon-reflect" cx="780" cy="470" rx="36" ry="48" fill={`url(#${uid}-reflect)`} />
+          <ellipse
+            className="dj-moon-reflect"
+            cx="780"
+            cy="470"
+            rx="36"
+            ry="48"
+            fill={`url(#${uid}-reflect)`}
+          />
         </g>
 
         {!lowSpec && (

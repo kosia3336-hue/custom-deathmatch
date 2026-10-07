@@ -1,11 +1,11 @@
 'use client';
 
 import { forwardRef } from 'react';
-import type { BankContextValue } from './hooks/useBankContext';
 import BetInput from './BetInput';
-import WaitingCard from './WaitingCard';
-import ResolvePanel from './ResolvePanel';
 import FinalResult from './FinalResult';
+import type { BankContextValue } from './hooks/useBankContext';
+import ResolvePanel from './ResolvePanel';
+import WaitingCard from './WaitingCard';
 
 /* ════════════════════════════════════════════════════════════
  * PhaseArea — 페이즈에 따라 입력/대기/정산/종료 카드를 선택

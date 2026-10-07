@@ -87,10 +87,7 @@ export function doubleSidedPokerBettingBounds(state: DoubleSidedPokerState) {
     한 면에 걸 수 있는 최대는 두 가지에 걸린다 — 내가 앞뒤로 두 배를 내야 하고
     (chips / 2), 상대가 한 면으로 받을 수 있어야 한다(상대 stake + chips).
   */
-  const maxDoubleStake = Math.min(
-    Math.floor(actor.chips / 2),
-    opponent.stake + opponent.chips,
-  );
+  const maxDoubleStake = Math.min(Math.floor(actor.chips / 2), opponent.stake + opponent.chips);
   const canDouble =
     actor.selection == null &&
     opponent.selection != null &&
@@ -208,6 +205,7 @@ export function toDoubleSidedPokerGameData(
     selectOnly: state.selectOnly,
     doubleBettorId: state.doubleBettorId,
     ...bounds,
+    rounds: state.roundResults.map((result) => maskRoundResultFor(result, viewerId)),
     lastRoundResult: maskedLast,
     roundStartedAt: state.roundStartedAt,
     turnStartedAt: state.turnStartedAt,
@@ -224,8 +222,7 @@ function gameMessage(state: DoubleSidedPokerState) {
       return '무승부입니다. 팟을 다음 라운드로 넘깁니다.';
     return '라운드가 종료되었습니다.';
   }
-  if (state.selectOnly)
-    return '걸 칩이 없습니다. 겨룰 면만 골라 이월된 팟의 주인을 가립니다.';
+  if (state.selectOnly) return '걸 칩이 없습니다. 겨룰 면만 골라 이월된 팟의 주인을 가립니다.';
   if (state.doubleBettorId) return '양면베팅이 선언되었습니다. 콜, 레이즈 또는 다이하세요.';
   return state.bettingOpened
     ? '콜, 레이즈, 양면베팅 또는 다이를 선택하세요.'
@@ -245,9 +242,7 @@ function emitDoubleSidedPokerDbg(
   socket.emit('ext:data', {
     game: 'double-sided-poker',
     round: state.round,
-    opponent: oppPlayer
-      ? nicknameFor(state, playerId, oppId, oppPlayer.nickname)
-      : oppId,
+    opponent: oppPlayer ? nicknameFor(state, playerId, oppId, oppPlayer.nickname) : oppId,
     back: opp.card?.back ?? null,
   });
 }

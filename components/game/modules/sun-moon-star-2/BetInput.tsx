@@ -1,17 +1,8 @@
 'use client';
 
+import type { SMS2ChipBet, SMS2MarkId, SMS2Side } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, firstMaxBet, secondMinBet, sumBet } from '@/shared/types/sun-moon-star-2';
 import { useCallback } from 'react';
-import type {
-  SMS2ChipBet,
-  SMS2MarkId,
-  SMS2Side,
-} from '@/shared/types/sun-moon-star-2';
-import {
-  MARK_IDS,
-  firstMaxBet,
-  secondMinBet,
-  sumBet,
-} from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -52,8 +43,7 @@ export default function BetInput({
   const firstTotal = firstBet ? sumBet(firstBet) : 0;
 
   const minTotal = turn === 'first' ? 0 : secondMinBet(firstTotal);
-  const maxTotal =
-    turn === 'first' ? Math.min(myChips, firstMaxBet(opponentChips)) : myChips;
+  const maxTotal = turn === 'first' ? Math.min(myChips, firstMaxBet(opponentChips)) : myChips;
 
   const overMax = total > maxTotal;
   const underMin = total < minTotal;
@@ -63,10 +53,7 @@ export default function BetInput({
 
   const setSlot = useCallback(
     (slot: SMS2MarkId, next: number) => {
-      const others = MARK_IDS.reduce(
-        (acc, m) => (m === slot ? acc : acc + value[m]),
-        0,
-      );
+      const others = MARK_IDS.reduce((acc, m) => (m === slot ? acc : acc + value[m]), 0);
       const maxForSlot = Math.max(0, maxTotal - others);
       const clamped = Math.max(0, Math.min(maxForSlot, Math.floor(next)));
       onChange({ ...value, [slot]: clamped });
@@ -75,9 +62,7 @@ export default function BetInput({
   );
 
   const submitLabel =
-    total === 0 && minTotal === 0
-      ? '0칩 베팅 확정 (패스)'
-      : `${total}칩 베팅 확정`;
+    total === 0 && minTotal === 0 ? '0칩 베팅 확정 (패스)' : `${total}칩 베팅 확정`;
 
   return (
     <div
@@ -95,7 +80,7 @@ export default function BetInput({
       </div>
 
       {/* 제약 안내 */}
-      <div className="flex flex-wrap items-center gap-1 text-[10px]">
+      <div className="flex flex-wrap items-center gap-1 text-[11px]">
         <span
           className={`rounded px-1.5 py-0.5 font-semibold ${
             underMin ? 'bg-rose-100 text-rose-700' : 'bg-white text-gray-600'
@@ -105,9 +90,7 @@ export default function BetInput({
         </span>
         <span
           className={`rounded px-1.5 py-0.5 font-semibold ${
-            overMax || overChips
-              ? 'bg-rose-100 text-rose-700'
-              : 'bg-white text-gray-600'
+            overMax || overChips ? 'bg-rose-100 text-rose-700' : 'bg-white text-gray-600'
           }`}
         >
           최대 {maxTotal}칩
@@ -137,16 +120,12 @@ export default function BetInput({
       {/* 총합 */}
       <div className="flex items-center justify-between text-xs">
         <span className="text-gray-600">
-          총 <span className="font-bold tabular-nums text-gray-800">{total}</span>칩
+          총 <span className="font-bold text-gray-800 tabular-nums">{total}</span>칩
         </span>
         {underMin && (
           <span className="font-bold text-rose-600">최소 {minTotal - total}칩 부족</span>
         )}
-        {overMax && (
-          <span className="font-bold text-rose-600">
-            한도 {total - maxTotal}칩 초과
-          </span>
-        )}
+        {overMax && <span className="font-bold text-rose-600">한도 {total - maxTotal}칩 초과</span>}
       </div>
 
       {/* 액션 */}
@@ -163,7 +142,7 @@ export default function BetInput({
           type="button"
           disabled={!canSubmit}
           onClick={onSubmit}
-          className="flex-1 rounded-lg bg-amber-600 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-40 whitespace-nowrap"
+          className="flex-1 rounded-lg bg-amber-600 py-2 text-sm font-bold whitespace-nowrap text-white hover:bg-amber-700 disabled:opacity-40"
         >
           {submitLabel}
         </button>
@@ -216,7 +195,7 @@ function BetSlot({
           const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
-        className="h-9 flex-1 min-w-0 rounded-md border border-gray-300 bg-white text-center text-base font-bold tabular-nums text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-100"
+        className="h-9 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:ring-amber-400 focus:outline-none disabled:bg-gray-100"
       />
       <button
         type="button"

@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback } from 'react';
 import type { BankBet, BankDenomination } from '@/shared/types/bank-game';
 import { sumBetAmount, sumBetCount } from '@/shared/types/bank-game';
+import { useCallback } from 'react';
 import { DENOM_ORDER, DENOM_STYLES, formatKRW } from './constants';
 
 /* ════════════════════════════════════════════════════════════

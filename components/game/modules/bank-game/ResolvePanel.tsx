@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 import type { BankGameData, BankSide } from '@/shared/types/bank-game';
+import { useState } from 'react';
 import { formatKRW } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -25,7 +26,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
   const r = gameData.roundResult;
   const [step, setStep] = useState(instant ? 4 : 0);
 
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (instant) {
       setStep(4);
       return;
@@ -42,7 +43,6 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
       clearTimeout(t4);
     };
     // round가 바뀌면 재실행
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r?.round, instant]);
 
   if (!r) return null;
@@ -130,14 +130,14 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
               <div className="flex items-center gap-1">
                 <p className={`truncate text-xs font-bold ${accentText}`}>
                   {player.nickname}
-                  {isMe && <span className="ml-0.5 text-[10px] text-indigo-500">(나)</span>}
+                  {isMe && <span className="ml-0.5 text-[11px] text-indigo-500">(나)</span>}
                 </p>
               </div>
 
               {/* 장수 — 카드 등장 즉시 */}
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[10px] text-gray-500">제출 장수</p>
+                  <p className="text-[11px] text-gray-500">제출 장수</p>
                   <p className={`text-2xl font-extrabold tabular-nums ${accentText}`}>
                     {count}
                     <span className="ml-0.5 text-xs font-bold">장</span>
@@ -152,7 +152,7 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                     transform: step >= 3 ? 'scale(1)' : 'scale(0.7)',
                   }}
                 >
-                  <p className="text-[10px] text-gray-500">금액</p>
+                  <p className="text-[11px] text-gray-500">금액</p>
                   {amount == null ? (
                     <p className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-[11px] font-bold text-gray-400">
                       비공개
@@ -165,13 +165,13 @@ export default function ResolvePanel({ gameData, mySide, instant = false }: Prop
                       }
                     >
                       {formatKRW(amount)}
-                      <span className="ml-0.5 text-[10px] font-bold">원</span>
+                      <span className="ml-0.5 text-[11px] font-bold">원</span>
                     </p>
                   )}
                 </div>
               </div>
 
-              {auto && <p className="text-right text-[10px] text-amber-600">시간초과 자동제출</p>}
+              {auto && <p className="text-right text-[11px] text-amber-600">시간초과 자동제출</p>}
             </div>
           );
         })}

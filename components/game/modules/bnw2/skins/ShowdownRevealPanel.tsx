@@ -1,7 +1,7 @@
 'use client';
 
-import type { BNW2Color, BNW2PlayerInfo, BNW2RevealData } from '@/shared/types/bnw2';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
+import type { BNW2Color, BNW2PlayerInfo, BNW2RevealData } from '@/shared/types/bnw2';
 
 interface Props {
   revealData: BNW2RevealData;
@@ -57,15 +57,19 @@ type Side = 'left' | 'right';
 
 function DuelFigure({ side, outcome }: { side: Side; outcome: DuelOutcome }) {
   return (
-    <div className={`skin-showdown-duel-figure skin-showdown-duel-figure--${side === 'left' ? 'me' : 'opp'}`}>
+    <div
+      className={`skin-showdown-duel-figure skin-showdown-duel-figure--${side === 'left' ? 'me' : 'opp'}`}
+    >
       <div className={`skin-showdown-duel-body skin-showdown-duel-body--${outcome}`}>
-        <div className={`skin-showdown-duel-body-inner${side === 'right' ? ' skin-showdown-duel-body-inner--flip' : ''}`}>
+        <div
+          className={`skin-showdown-duel-body-inner${side === 'right' ? 'skin-showdown-duel-body-inner--flip' : ''}`}
+        >
           {outcome === 'win' && <span className="skin-showdown-duel-flash" />}
           <Cowboy />
         </div>
       </div>
       <div
-        className={`skin-showdown-duel-hat skin-showdown-duel-hat--${outcome}${side === 'right' ? ' skin-showdown-duel-hat--flip' : ''}`}
+        className={`skin-showdown-duel-hat skin-showdown-duel-hat--${outcome}${side === 'right' ? 'skin-showdown-duel-hat--flip' : ''}`}
       >
         <CowboyHat />
       </div>
@@ -100,13 +104,21 @@ function DuelScene({
       <DuelFigure side="left" outcome={outcomeOf(leftId)} />
       <DuelFigure side="right" outcome={outcomeOf(rightId)} />
       <div className="skin-showdown-duel-ground" />
-      {revealed && winnerId === null && <span className="skin-showdown-duel-draw-label">무승부</span>}
+      {revealed && winnerId === null && (
+        <span className="skin-showdown-duel-draw-label">무승부</span>
+      )}
     </div>
   );
 }
 
 /** 라운드 결과 — 결투 실루엣 컷씬 + 색/점수 단계 공개 (숫자 제시값은 끝까지 비공개) */
-export default function ShowdownRevealPanel({ revealData, players, myId, firstPlayerId, step }: Props) {
+export default function ShowdownRevealPanel({
+  revealData,
+  players,
+  myId,
+  firstPlayerId,
+  step,
+}: Props) {
   const entries = Object.entries(revealData.players);
   const winnerId = revealData.winnerId;
 
@@ -168,7 +180,9 @@ export default function ShowdownRevealPanel({ revealData, players, myId, firstPl
               </div>
               {colorVisible && (
                 <p className="text-xs font-medium text-indigo-500">
-                  {stagesConsumed > 0 ? `불이 ${stagesConsumed}칸 꺼집니다.` : '불이 꺼지지 않습니다.'}
+                  {stagesConsumed > 0
+                    ? `불이 ${stagesConsumed}칸 꺼집니다.`
+                    : '불이 꺼지지 않습니다.'}
                 </p>
               )}
               {winnerVisible && pd.scoreChange > 0 && (

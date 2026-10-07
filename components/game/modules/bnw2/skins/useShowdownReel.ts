@@ -1,7 +1,8 @@
 'use client';
+import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { playShowdownReelTick, playShowdownReelWhoosh } from '@/lib/audio/skins/showdown';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const TICK_MS_MIN = 26;
 const TICK_MS_MAX = 72;
@@ -27,7 +28,7 @@ export function useShowdownReel(value: number, remaining: number, onChange: (v: 
     tickResetRef.current = null;
   }, []);
 
-  useEffect(() => {
+  usePresentationEffect(() => {
     if (spinningRef.current) return;
     displayRef.current = value;
     setDisplay(value);

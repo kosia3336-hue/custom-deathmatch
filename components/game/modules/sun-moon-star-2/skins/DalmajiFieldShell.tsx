@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import type { SMS2MarkId } from '@/shared/types/sun-moon-star-2';
+import type { ReactNode } from 'react';
 import DalmajiFieldFx from './DalmajiFieldFx';
 import { dalmajiSkyOf } from './dalmajiSky';
 

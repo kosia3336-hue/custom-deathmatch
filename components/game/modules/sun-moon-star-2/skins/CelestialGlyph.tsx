@@ -1,7 +1,7 @@
 'use client';
 
-import { useId } from 'react';
 import type { SMS2MarkId } from '@/shared/types/sun-moon-star-2';
+import { useId } from 'react';
 
 function r2(n: number) {
   return Math.round(n * 100) / 100;
@@ -76,13 +76,7 @@ const TYCHO_RAYS: readonly [number, number][] = [
   [14, 48],
 ];
 
-export function CelestialGlyph({
-  mark,
-  className,
-}: {
-  mark: SMS2MarkId;
-  className?: string;
-}) {
+export function CelestialGlyph({ mark, className }: { mark: SMS2MarkId; className?: string }) {
   if (mark === 'sun') return <SunGlyph className={className} />;
   if (mark === 'moon') return <MoonGlyph className={className} />;
   return <StarGlyph className={className} />;
@@ -121,8 +115,17 @@ function SunGlyph({ className }: { className?: string }) {
           <stop offset="100%" stopColor="rgba(255, 248, 220, 0.95)" />
         </linearGradient>
         <filter id={`${uid}-gran`} x="-12%" y="-12%" width="124%" height="124%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" seed="6" result="n" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0.9  0 0 0 0 0.45  0 0 0 0 0.08  0 0 0 0.22 0" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.55"
+            numOctaves="3"
+            seed="6"
+            result="n"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0.9  0 0 0 0 0.45  0 0 0 0 0.08  0 0 0 0.22 0"
+          />
         </filter>
         <clipPath id={`${uid}-clip`}>
           <circle cx="32" cy="32" r="13.4" />
@@ -166,11 +169,24 @@ function SunGlyph({ className }: { className?: string }) {
       </g>
       <g clipPath={`url(#${uid}-clip)`}>
         <circle cx="32" cy="32" r="13.4" fill={`url(#${uid}-disc)`} />
-        <rect width="64" height="64" filter={`url(#${uid}-gran)`} opacity="0.42" style={{ mixBlendMode: 'multiply' }} />
+        <rect
+          width="64"
+          height="64"
+          filter={`url(#${uid}-gran)`}
+          opacity="0.42"
+          style={{ mixBlendMode: 'multiply' }}
+        />
         <circle cx="32" cy="32" r="13.4" fill={`url(#${uid}-limb)`} />
         <circle cx="32" cy="32" r="13.4" fill={`url(#${uid}-spec)`} />
       </g>
-      <circle cx="32" cy="32" r="13" fill="none" stroke="rgba(255, 246, 200, 0.7)" strokeWidth="0.7" />
+      <circle
+        cx="32"
+        cy="32"
+        r="13"
+        fill="none"
+        stroke="rgba(255, 246, 200, 0.7)"
+        strokeWidth="0.7"
+      />
     </svg>
   );
 }
@@ -207,48 +223,91 @@ function MoonGlyph({ className }: { className?: string }) {
           <stop offset="100%" stopColor="#f4deaa" />
         </radialGradient>
         <filter id={`${uid}-mottle`} x="-10%" y="-10%" width="120%" height="120%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.085" numOctaves="3" seed="11" result="t" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.38 0" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.085"
+            numOctaves="3"
+            seed="11"
+            result="t"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.38 0"
+          />
         </filter>
         <clipPath id={`${uid}-clip`}>
           <circle cx="32" cy="32" r="14" />
         </clipPath>
       </defs>
       <circle className="dj-glyph-moon-halo" cx="32" cy="32" r="22" fill={`url(#${uid}-atm)`} />
-      <circle className="dj-glyph-moon-ring" cx="32" cy="32" r="17" fill="none" stroke="rgba(255, 236, 180, 0.7)" strokeWidth="1.4" />
-      <circle className="dj-glyph-moon-ripple" cx="32" cy="32" r="16" fill="none" stroke="rgba(255, 244, 200, 0.85)" strokeWidth="1.3" />
+      <circle
+        className="dj-glyph-moon-ring"
+        cx="32"
+        cy="32"
+        r="17"
+        fill="none"
+        stroke="rgba(255, 236, 180, 0.7)"
+        strokeWidth="1.4"
+      />
+      <circle
+        className="dj-glyph-moon-ripple"
+        cx="32"
+        cy="32"
+        r="16"
+        fill="none"
+        stroke="rgba(255, 244, 200, 0.85)"
+        strokeWidth="1.3"
+      />
       <g className="dj-glyph-moon-body">
         <g clipPath={`url(#${uid}-clip)`}>
-        <circle cx="32" cy="32" r="14" fill={`url(#${uid}-body)`} />
-        <rect width="64" height="64" filter={`url(#${uid}-mottle)`} opacity="0.22" style={{ mixBlendMode: 'multiply' }} />
-        <g opacity="0.28" style={{ mixBlendMode: 'multiply' }}>
-          {MOON_MARIA.map(([cx, cy, rx, ry]) => (
-            <ellipse key={`${cx}-${cy}`} cx={cx} cy={cy} rx={rx} ry={ry} fill="#6e6450" />
-          ))}
-        </g>
-        <g opacity="0.22" style={{ mixBlendMode: 'screen' }}>
-          {TYCHO_RAYS.map(([x2, y2]) => (
-            <line
-              key={`${x2}-${y2}`}
-              x1={TYCHO.cx}
-              y1={TYCHO.cy}
-              x2={x2}
-              y2={y2}
-              stroke="rgba(255, 248, 220, 0.95)"
-              strokeWidth="0.45"
-            />
-          ))}
-        </g>
-        {MOON_CRATERS.map(([cx, cy, r]) => (
-          <g key={`${cx}-${cy}`}>
-            <circle cx={cx} cy={cy} r={r} fill={`url(#${uid}-bowl)`} opacity="0.7" />
-            <circle cx={cx - r * 0.28} cy={cy - r * 0.28} r={r * 0.4} fill="rgba(255, 248, 220, 0.4)" />
+          <circle cx="32" cy="32" r="14" fill={`url(#${uid}-body)`} />
+          <rect
+            width="64"
+            height="64"
+            filter={`url(#${uid}-mottle)`}
+            opacity="0.22"
+            style={{ mixBlendMode: 'multiply' }}
+          />
+          <g opacity="0.28" style={{ mixBlendMode: 'multiply' }}>
+            {MOON_MARIA.map(([cx, cy, rx, ry]) => (
+              <ellipse key={`${cx}-${cy}`} cx={cx} cy={cy} rx={rx} ry={ry} fill="#6e6450" />
+            ))}
           </g>
-        ))}
-        <circle cx="32" cy="32" r="14" fill={`url(#${uid}-limb)`} />
-        <circle cx="32" cy="32" r="14" fill={`url(#${uid}-spec)`} />
+          <g opacity="0.22" style={{ mixBlendMode: 'screen' }}>
+            {TYCHO_RAYS.map(([x2, y2]) => (
+              <line
+                key={`${x2}-${y2}`}
+                x1={TYCHO.cx}
+                y1={TYCHO.cy}
+                x2={x2}
+                y2={y2}
+                stroke="rgba(255, 248, 220, 0.95)"
+                strokeWidth="0.45"
+              />
+            ))}
+          </g>
+          {MOON_CRATERS.map(([cx, cy, r]) => (
+            <g key={`${cx}-${cy}`}>
+              <circle cx={cx} cy={cy} r={r} fill={`url(#${uid}-bowl)`} opacity="0.7" />
+              <circle
+                cx={cx - r * 0.28}
+                cy={cy - r * 0.28}
+                r={r * 0.4}
+                fill="rgba(255, 248, 220, 0.4)"
+              />
+            </g>
+          ))}
+          <circle cx="32" cy="32" r="14" fill={`url(#${uid}-limb)`} />
+          <circle cx="32" cy="32" r="14" fill={`url(#${uid}-spec)`} />
         </g>
-        <circle cx="32" cy="32" r="13.4" fill="none" stroke="rgba(255, 248, 220, 0.72)" strokeWidth="0.8" />
+        <circle
+          cx="32"
+          cy="32"
+          r="13.4"
+          fill="none"
+          stroke="rgba(255, 248, 220, 0.72)"
+          strokeWidth="0.8"
+        />
       </g>
     </svg>
   );
@@ -278,7 +337,12 @@ function StarGlyph({ className }: { className?: string }) {
       </defs>
       <circle className="dj-glyph-star-glow" cx="32" cy="32" r="30" fill={`url(#${uid}-glow)`} />
       <g className="dj-glyph-star-body">
-        <path d={STAR_OUTER} fill={`url(#${uid}-gold)`} stroke="rgba(255, 248, 220, 0.75)" strokeWidth="0.7" />
+        <path
+          d={STAR_OUTER}
+          fill={`url(#${uid}-gold)`}
+          stroke="rgba(255, 248, 220, 0.75)"
+          strokeWidth="0.7"
+        />
         <path d={STAR_MID} fill="#fff6d8" opacity="0.55" />
         <path d={STAR_CORE} fill={`url(#${uid}-core)`} />
         <circle cx="32" cy="32" r="2.1" fill="#fffef8" />

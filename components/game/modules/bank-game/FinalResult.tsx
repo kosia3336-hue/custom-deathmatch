@@ -65,7 +65,7 @@ export default function FinalResult({ finalWinner, winType, players, myId }: Pro
                     {p.inventoryCount}장
                   </span>
                   {p.inventoryAmount != null && (
-                    <span className="block text-[10px] text-gray-500 tabular-nums">
+                    <span className="block text-[11px] text-gray-500 tabular-nums">
                       {formatKRW(p.inventoryAmount)}원
                     </span>
                   )}

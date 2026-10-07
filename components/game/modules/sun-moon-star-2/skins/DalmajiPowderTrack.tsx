@@ -47,7 +47,7 @@ export default function DalmajiPowderTrack({
           {leftLabel}
           {leftIsFirst && <span className="ml-1">선</span>}
         </div>
-        <div className="w-16 shrink-0 text-center text-[10px] text-[#c9b888]/70">빛가루</div>
+        <div className="w-16 shrink-0 text-center text-[11px] text-[#c9b888]/70">빛가루</div>
         <div className="flex-1 truncate text-center text-xs font-semibold text-[#e8c56a]">
           {rightLabel}
           {rightIsFirst && <span className="ml-1">선</span>}
@@ -57,13 +57,13 @@ export default function DalmajiPowderTrack({
       {!compact && (
         <div className="flex items-center gap-1 pb-2">
           <div className="flex-1 text-center">
-            <div className="text-lg font-bold tabular-nums text-[#f6e7b0]">{leftChips}</div>
-            <div className="text-[10px] text-[#c9b888]/70">칩</div>
+            <div className="text-lg font-bold text-[#f6e7b0] tabular-nums">{leftChips}</div>
+            <div className="text-[11px] text-[#c9b888]/70">칩</div>
           </div>
-          <div className="w-16 shrink-0 text-center text-[10px] text-[#c9b888]/60">단계(g)</div>
+          <div className="w-16 shrink-0 text-center text-[11px] text-[#c9b888]/60">단계(g)</div>
           <div className="flex-1 text-center">
-            <div className="text-lg font-bold tabular-nums text-[#f6e7b0]">{rightChips}</div>
-            <div className="text-[10px] text-[#c9b888]/70">칩</div>
+            <div className="text-lg font-bold text-[#f6e7b0] tabular-nums">{rightChips}</div>
+            <div className="text-[11px] text-[#c9b888]/70">칩</div>
           </div>
         </div>
       )}
@@ -73,11 +73,11 @@ export default function DalmajiPowderTrack({
       ))}
 
       <div className="flex items-center gap-1 pt-1">
-        <div className="flex-1 text-center text-[11px] font-medium tabular-nums text-[#f0d078]">
+        <div className="flex-1 text-center text-[11px] font-medium text-[#f0d078] tabular-nums">
           {leftRemain !== null ? `${leftRemain}g` : `${leftStage}단계`}
         </div>
         <div className="w-16 shrink-0" />
-        <div className="flex-1 text-center text-[11px] font-medium tabular-nums text-[#e8c56a]">
+        <div className="flex-1 text-center text-[11px] font-medium text-[#e8c56a] tabular-nums">
           {rightRemain !== null ? `${rightRemain}g` : `${rightStage}단계`}
         </div>
       </div>

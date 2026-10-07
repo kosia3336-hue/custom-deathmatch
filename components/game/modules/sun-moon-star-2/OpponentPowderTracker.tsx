@@ -1,13 +1,10 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
 import type { SMS2MarkId, SMS2PowderStage } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, powderStageRange } from '@/shared/types/sun-moon-star-2';
+import { useCallback, useMemo } from 'react';
 import { MARK_STYLES } from './constants';
-import {
-  type OpponentPowderEstimate,
-  opponentUsedRange,
-} from './types';
+import { type OpponentPowderEstimate, opponentUsedRange } from './types';
 
 /* "중앙값 스케일" 자동 정렬 버튼 제거됨 (2026-04 UX 개선) */
 
@@ -64,7 +61,7 @@ export default function OpponentPowderTracker({
         <button
           type="button"
           onClick={onReset}
-          className="rounded text-[10px] font-medium text-gray-400 hover:text-gray-600"
+          className="rounded text-[11px] font-medium text-gray-400 hover:text-gray-600"
         >
           초기화
         </button>
@@ -72,10 +69,16 @@ export default function OpponentPowderTracker({
 
       {/* 단계/추정 범위 */}
       <div className="rounded bg-white px-2 py-1.5 text-[11px] text-gray-600">
-        직전 <span className="font-bold text-gray-800">{stagePrev}단계 ({prevRangeText})</span>
+        직전{' '}
+        <span className="font-bold text-gray-800">
+          {stagePrev}단계 ({prevRangeText})
+        </span>
         <span className="mx-1 text-gray-400">→</span>
-        현재 <span className="font-bold text-gray-800">{stageNow}단계 ({nowRangeText})</span>
-        <div className="mt-0.5 text-[10px] text-gray-500">
+        현재{' '}
+        <span className="font-bold text-gray-800">
+          {stageNow}단계 ({nowRangeText})
+        </span>
+        <div className="mt-0.5 text-[11px] text-gray-500">
           이번 라운드 추정 사용량:{' '}
           <span className="font-bold text-amber-600 tabular-nums">
             {range.min}~{range.max}g
@@ -103,11 +106,11 @@ export default function OpponentPowderTracker({
           합 <span className="font-bold text-gray-800 tabular-nums">{total}g</span>
         </span>
         {outOfRange ? (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">
             범위 밖
           </span>
         ) : (
-          <span className="text-[10px] text-emerald-600">범위 내 ✓</span>
+          <span className="text-[11px] text-emerald-600">범위 내 ✓</span>
         )}
       </div>
     </div>
@@ -151,7 +154,7 @@ function EstimateSlot({
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
         aria-label={`${style.label} 상대 추정`}
-        className="h-8 flex-1 min-w-0 rounded border border-gray-200 bg-white text-center text-sm font-bold tabular-nums text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+        className="h-8 min-w-0 flex-1 rounded border border-gray-200 bg-white text-center text-sm font-bold text-gray-700 tabular-nums focus:ring-2 focus:ring-gray-300 focus:outline-none"
       />
       <button
         type="button"

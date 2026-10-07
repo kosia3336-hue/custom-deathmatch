@@ -60,14 +60,14 @@ function RoundEntry({
       >
         <div className="flex items-center gap-1.5">
           <span className="font-bold text-gray-700 tabular-nums">R{r.round}</span>
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold ${winColor}`}>
+          <span className={`rounded px-1.5 py-0.5 text-[11px] font-extrabold ${winColor}`}>
             {winLabel}
           </span>
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[11px] text-gray-400">
             선 {r.firstSide === 'p1' ? players.p1.nickname : players.p2.nickname}
           </span>
         </div>
-        <span className="text-[10px] text-gray-500 tabular-nums">
+        <span className="text-[11px] text-gray-500 tabular-nums">
           {r.scoreAfter.p1} : {r.scoreAfter.p2}
         </span>
       </div>
@@ -99,12 +99,9 @@ function RoundEntry({
 
 function PlayerRow({
   isMe,
-  isFirst,
-  isWinner,
   nickname,
   count,
   amount,
-  auto,
 }: {
   side: BankSide;
   isMe: boolean;

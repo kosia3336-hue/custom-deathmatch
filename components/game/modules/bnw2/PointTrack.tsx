@@ -43,15 +43,15 @@ function StageRow({
     leftState === 'active'
       ? 'bg-indigo-900 opacity-100 [box-shadow:inset_0_0_0_1px_rgba(99,102,241,0.6)]'
       : leftState === 'lit'
-      ? 'bg-indigo-950 opacity-70'
-      : 'bg-gray-800 opacity-25';
+        ? 'bg-indigo-950 opacity-70'
+        : 'bg-gray-800 opacity-25';
 
   const rightCls =
     rightState === 'active'
       ? 'bg-amber-900 opacity-100 [box-shadow:inset_0_0_0_1px_rgba(217,119,6,0.6)]'
       : rightState === 'lit'
-      ? 'bg-amber-950 opacity-70'
-      : 'bg-gray-800 opacity-25';
+        ? 'bg-amber-950 opacity-70'
+        : 'bg-gray-800 opacity-25';
 
   /*
     칸 높이를 못 박지 않는다. 10칸짜리 사다리가 세로로 길어, 고정 높이로 두면
@@ -60,11 +60,15 @@ function StageRow({
   */
   return (
     <div className="flex min-h-0 flex-1 items-center gap-1">
-      <div className={`h-full max-h-7 min-h-2.5 flex-1 rounded-l-md transition-colors duration-300 ${leftCls}`} />
+      <div
+        className={`h-full max-h-7 min-h-2.5 flex-1 rounded-l-md transition-colors duration-300 ${leftCls}`}
+      />
       <div className="flex h-full max-h-7 min-h-2.5 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-gray-200 bg-white text-[11px] leading-none font-medium text-gray-500">
         {label}
       </div>
-      <div className={`h-full max-h-7 min-h-2.5 flex-1 rounded-r-md transition-colors duration-300 ${rightCls}`} />
+      <div
+        className={`h-full max-h-7 min-h-2.5 flex-1 rounded-r-md transition-colors duration-300 ${rightCls}`}
+      />
     </div>
   );
 }
@@ -78,16 +82,13 @@ export default function PointTrack({ leftPlayer, rightPlayer, leftLabel, rightLa
     <div className="flex h-full min-h-0 flex-col gap-1">
       {/* Player headers */}
       <div className="flex shrink-0 items-center gap-1 pb-1">
-        <div className="flex-1 truncate text-center text-xs font-semibold text-indigo-600">{leftLabel}</div>
+        <div className="flex-1 truncate text-center text-xs font-semibold text-indigo-600">
+          {leftLabel}
+        </div>
         <div className="w-20 shrink-0" />
-        <div className="flex-1 truncate text-center text-xs font-semibold text-amber-600">{rightLabel}</div>
-      </div>
-
-      {/* Score row */}
-      <div className="flex shrink-0 items-center gap-1 pb-2">
-        <div className="flex-1 text-center text-2xl font-bold text-indigo-700">{leftPlayer.score}</div>
-        <div className="w-20 shrink-0 text-center text-[10px] text-gray-400">점수</div>
-        <div className="flex-1 text-center text-2xl font-bold text-amber-700">{rightPlayer.score}</div>
+        <div className="flex-1 truncate text-center text-xs font-semibold text-amber-600">
+          {rightLabel}
+        </div>
       </div>
 
       {/* Stage rows */}
@@ -104,11 +105,15 @@ export default function PointTrack({ leftPlayer, rightPlayer, leftLabel, rightLa
       {/* Remaining points / stage hint */}
       <div className="flex shrink-0 items-center gap-1 pt-1">
         <div className="flex-1 text-center text-[11px] text-gray-400">
-          {leftPlayer.remainingPoints !== null ? `${leftPlayer.remainingPoints}p` : `${leftStage}단계`}
+          {leftPlayer.remainingPoints !== null
+            ? `${leftPlayer.remainingPoints}p`
+            : `${leftStage}단계`}
         </div>
         <div className="w-20 shrink-0" />
         <div className="flex-1 text-center text-[11px] text-gray-400">
-          {rightPlayer.remainingPoints !== null ? `${rightPlayer.remainingPoints}p` : `${rightStage}단계`}
+          {rightPlayer.remainingPoints !== null
+            ? `${rightPlayer.remainingPoints}p`
+            : `${rightStage}단계`}
         </div>
       </div>
     </div>

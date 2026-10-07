@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { getSocket } from '@/lib/socket';
 import { playShowdownSubmitSfx, unlockShowdownAudio } from '@/lib/audio/skins/showdown';
+import { getSocket } from '@/lib/socket';
+import { useState } from 'react';
 import { useShowdownReel } from './useShowdownReel';
 
 interface Props {
@@ -13,7 +13,11 @@ interface Props {
 
 export default function ShowdownPointInput({ remaining, actionType, label }: Props) {
   const [value, setValue] = useState(0);
-  const { display, spinning, tickDir, tickKey, spinTo } = useShowdownReel(value, remaining, setValue);
+  const { display, spinning, tickDir, tickKey, spinTo } = useShowdownReel(
+    value,
+    remaining,
+    setValue,
+  );
 
   const spinToWrapped = (target: number) => {
     unlockShowdownAudio();
@@ -32,7 +36,12 @@ export default function ShowdownPointInput({ remaining, actionType, label }: Pro
       <div className="skin-showdown-input skin-showdown-input--panel">
         <p className="skin-showdown-input-label">{label}</p>
         <p className="skin-showdown-input-remaining">잔여 포인트가 없습니다. 0을 제시합니다.</p>
-        <button type="button" className="skin-showdown-draw-btn" onClick={handleSubmit} disabled={spinning}>
+        <button
+          type="button"
+          className="skin-showdown-draw-btn"
+          onClick={handleSubmit}
+          disabled={spinning}
+        >
           0 제시
         </button>
       </div>
@@ -96,7 +105,9 @@ export default function ShowdownPointInput({ remaining, actionType, label }: Pro
               <span className="skin-showdown-reel-num" aria-hidden={display <= 0}>
                 {display > 0 ? prev : ''}
               </span>
-              <span className="skin-showdown-reel-num skin-showdown-reel-num--current">{display}</span>
+              <span className="skin-showdown-reel-num skin-showdown-reel-num--current">
+                {display}
+              </span>
               <span className="skin-showdown-reel-num" aria-hidden={display >= remaining}>
                 {display < remaining ? next : ''}
               </span>
@@ -115,7 +126,12 @@ export default function ShowdownPointInput({ remaining, actionType, label }: Pro
         </button>
       </div>
 
-      <button type="button" className="skin-showdown-draw-btn" onClick={handleSubmit} disabled={spinning}>
+      <button
+        type="button"
+        className="skin-showdown-draw-btn"
+        onClick={handleSubmit}
+        disabled={spinning}
+      >
         {display}포인트 제시
       </button>
     </div>

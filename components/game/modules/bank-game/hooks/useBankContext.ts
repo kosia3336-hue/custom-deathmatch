@@ -1,13 +1,7 @@
 'use client';
+import { useGameAction } from '@/components/game/GameActionContext';
+import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { useRoomStore } from '@/stores/room';
-import { useMySocketId } from '@/hooks/useMySocketId';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
-import { getSocket } from '@/lib/socket';
-import { getSkinTheme } from '@/lib/skins/registry';
-import { GAME_IDS } from '@/shared/types/game';
 import type { BankBet, BankGameData, BankPlayerInfo, BankSide } from '@/shared/types/bank-game';
 import {
   BANK_DENOMINATIONS,
@@ -16,18 +10,20 @@ import {
   validateBet,
   zeroBet,
 } from '@/shared/types/bank-game';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { WIN_TYPE_LABELS } from '../constants';
 
 export type BankContextValue = ReturnType<typeof useBankContext>;
 
-export function useBankContext() {
-  const gameState = useRoomStore((s) => s.gameState);
-  const isSpectator = useRoomStore((s) => s.isSpectator);
-  const gameData = gameState?.gameData as BankGameData | undefined;
-  const skin = getSkinTheme(gameState?.activeSkin, GAME_IDS.BANK_GAME);
+export function useBankContext({
+  gameData,
+  myId,
+  isSpectator = false,
+  skin = null,
+}: GameModuleViewProps<BankGameData>) {
+  const sendAction = useGameAction();
   const isTreasury = skin === 'treasury';
-  const myId = useMySocketId();
-  useTurnTimer();
 
   const [pendingBet, setPendingBet] = useState<BankBet>(zeroBet());
   const [submitting, setSubmitting] = useState(false);
@@ -125,20 +121,20 @@ export function useBankContext() {
       return;
     }
     setSubmitting(true);
-    getSocket().emit('game:action', { type: 'submitBet', bet: pendingBet });
-  }, [myPlayer, submitting, gameData, pendingBet]);
+    sendAction({ type: 'submitBet', bet: pendingBet });
+  }, [myPlayer, submitting, gameData, pendingBet, sendAction]);
 
   const handleResetBet = useCallback(() => {
     setPendingBet(zeroBet());
   }, []);
 
   const handleNextRoundReady = useCallback(() => {
-    getSocket().emit('game:action', { type: 'nextRoundReady' });
-  }, []);
+    sendAction({ type: 'nextRoundReady' });
+  }, [sendAction]);
 
   const handleSkipReveal = useCallback(() => {
-    getSocket().emit('game:action', { type: 'skipReveal' });
-  }, []);
+    sendAction({ type: 'skipReveal' });
+  }, [sendAction]);
 
   const pendingTotal = useMemo(() => sumBetAmount(pendingBet), [pendingBet]);
   const pendingCount = useMemo(() => sumBetCount(pendingBet), [pendingBet]);

@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import type { SkinTheme } from '@/lib/skins/registry';
+import { FT_HALF_MILESTONE, FT_TOWER_MAX_HEIGHT, FT_TOWERS } from '@/shared/types';
 import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
-import { FT_TOWER_MAX_HEIGHT, FT_HALF_MILESTONE, FT_TOWERS } from '@/shared/types';
+import { useCallback, useEffect, useState } from 'react';
 import CitadelFieldShell from './skins/CitadelFieldShell';
 import CitadelTower from './skins/CitadelTower';
 
@@ -137,7 +137,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
                     type="button"
                     onClick={() => setCell(id, level)}
                     disabled={isCompleted}
-                    className={`relative flex h-6 items-center justify-end border-t px-1.5 text-[10px] font-medium transition-all sm:h-7 sm:text-xs ${
+                    className={`relative flex h-6 items-center justify-end border-t px-1.5 text-[11px] font-medium transition-all sm:h-7 sm:text-xs ${
                       isCompleted
                         ? 'cursor-default bg-yellow-100 text-yellow-700'
                         : isFilled
@@ -147,13 +147,13 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
                       isHalf
                         ? halfReached
                           ? 'border-t-yellow-500'
-                          : 'border-t-gray-400 border-dashed'
+                          : 'border-dashed border-t-gray-400'
                         : 'border-gray-100'
                     }`}
                   >
                     <span className="tabular-nums">{level}</span>
                     {isHalf && halfReached && (
-                      <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-bold text-yellow-700">
+                      <span className="absolute top-1/2 left-1 -translate-y-1/2 text-[11px] font-bold text-yellow-700">
                         6+
                       </span>
                     )}
@@ -168,4 +168,4 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
   );
 }
 
-export { TOWER_COLORS, FT_TOWER_MAX_HEIGHT };
+export { FT_TOWER_MAX_HEIGHT, TOWER_COLORS };

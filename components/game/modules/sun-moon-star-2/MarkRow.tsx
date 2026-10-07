@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  SMS2MarkId,
-  SMS2PowderSubmission,
-} from '@/shared/types/sun-moon-star-2';
+import type { SMS2MarkId, SMS2PowderSubmission } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, MARK_PRIORITY } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
 
@@ -80,10 +77,7 @@ function MarkCell({
   const myCommittedContribution = myContribution + pendingPowder;
   const textCls = lit ? style.textLit : style.textSoft;
 
-  const sizeCls =
-    size === 'md'
-      ? 'min-h-[96px] px-2 py-2.5'
-      : 'min-h-[68px] px-1 py-1.5';
+  const sizeCls = size === 'md' ? 'min-h-[96px] px-2 py-2.5' : 'min-h-[68px] px-1 py-1.5';
   const iconCls = size === 'md' ? 'text-3xl' : 'text-2xl';
   const labelCls = size === 'md' ? 'text-sm' : 'text-xs';
 
@@ -93,13 +87,13 @@ function MarkCell({
       aria-label={`${style.label}, 우선순위 ${MARK_PRIORITY[mark]}, 내 누적 ${myCommittedContribution}g`}
     >
       {/* 우선순위 배지 */}
-      <span className="absolute left-1 top-1 rounded-full bg-white/70 px-1 py-0 text-[8px] font-bold text-gray-500">
+      <span className="absolute top-1 left-1 rounded-full bg-white/70 px-1 py-0 text-[11px] font-bold text-gray-500">
         #{MARK_PRIORITY[mark]}
       </span>
 
       {/* 점등 배지 */}
       {lit && (
-        <span className="absolute right-1 top-1 rounded-full bg-amber-500 px-1 py-0 text-[8px] font-bold text-white">
+        <span className="absolute top-1 right-1 rounded-full bg-amber-500 px-1 py-0 text-[11px] font-bold text-white">
           점등
         </span>
       )}
@@ -112,10 +106,10 @@ function MarkCell({
 
       {/* 내 누적 기여 — 실제 값 있을 때만 */}
       {myCommittedContribution > 0 && (
-        <div className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${style.chipSelf}`}>
+        <div className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${style.chipSelf}`}>
           내 {myCommittedContribution}g
           {pendingPowder > 0 && (
-            <span className="ml-0.5 text-[9px] opacity-70">(+{pendingPowder})</span>
+            <span className="ml-0.5 text-[11px] opacity-70">(+{pendingPowder})</span>
           )}
         </div>
       )}

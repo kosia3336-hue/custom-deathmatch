@@ -1,13 +1,8 @@
 'use client';
 
-import { useCallback } from 'react';
-import {
-  MARK_IDS,
-  firstMaxBet,
-  secondMinBet,
-  sumBet,
-} from '@/shared/types/sun-moon-star-2';
 import type { SMS2ChipBet, SMS2MarkId } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, firstMaxBet, secondMinBet, sumBet } from '@/shared/types/sun-moon-star-2';
+import { useCallback } from 'react';
 import { CelestialGlyph } from './CelestialGlyph';
 
 interface Props {
@@ -79,16 +74,24 @@ export default function DalmajiBetPanel({
       </div>
 
       <p className="skin-dalmaji-panel-meta">
-        {turn === 'first'
-          ? `최대 ${maxTotal}칩`
-          : `최소 ${minTotal}칩 · 최대 ${maxTotal}칩`}
+        {turn === 'first' ? `최대 ${maxTotal}칩` : `최소 ${minTotal}칩 · 최대 ${maxTotal}칩`}
       </p>
 
       <div className="flex gap-2">
-        <button type="button" disabled={disabled || submitting || total === 0} onClick={onReset} className="skin-dalmaji-btn skin-dalmaji-btn--ghost">
+        <button
+          type="button"
+          disabled={disabled || submitting || total === 0}
+          onClick={onReset}
+          className="skin-dalmaji-btn skin-dalmaji-btn--ghost"
+        >
           초기화
         </button>
-        <button type="button" disabled={!canSubmit} onClick={onSubmit} className="skin-dalmaji-btn skin-dalmaji-btn--gold flex-1">
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={onSubmit}
+          className="skin-dalmaji-btn skin-dalmaji-btn--gold flex-1"
+        >
           {submitLabel}
         </button>
       </div>
@@ -118,7 +121,12 @@ function BetSlot({
         </span>
         <span className="skin-dalmaji-slot-label">{LABELS[mark]}</span>
       </span>
-      <button type="button" disabled={disabled || value <= 0} onClick={() => onChange(clamp(value - 1))} className="skin-dalmaji-step skin-dalmaji-step--lg">
+      <button
+        type="button"
+        disabled={disabled || value <= 0}
+        onClick={() => onChange(clamp(value - 1))}
+        className="skin-dalmaji-step skin-dalmaji-step--lg"
+      >
         −
       </button>
       <input
@@ -134,7 +142,12 @@ function BetSlot({
         }}
         className="skin-dalmaji-step-input"
       />
-      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(clamp(value + 1))} className="skin-dalmaji-step skin-dalmaji-step--lg">
+      <button
+        type="button"
+        disabled={disabled || value >= max}
+        onClick={() => onChange(clamp(value + 1))}
+        className="skin-dalmaji-step skin-dalmaji-step--lg"
+      >
         +
       </button>
     </div>

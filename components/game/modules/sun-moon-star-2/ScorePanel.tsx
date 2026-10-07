@@ -19,52 +19,47 @@ interface Props {
 
 export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">점수 · 칩</p>
-      {([p1, p2] as const).map((p) => {
-        const isMe = p.id === myId;
-        const isFirst = p.side === firstSide;
-        const range = powderStageRange(p.powderStage);
-        return (
-          <div
-            key={p.side}
-            className={`flex flex-col gap-1.5 rounded-xl border-2 p-3 ${
-              isMe
-                ? 'border-indigo-200 bg-indigo-50'
-                : 'border-amber-200 bg-amber-50'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className={`min-w-0 truncate text-sm font-semibold ${
-                  isMe ? 'text-indigo-700' : 'text-amber-700'
-                }`}
-              >
-                {isMe ? '나' : p.nickname}
-                {isFirst && <span className="ml-1 text-amber-500">👑선</span>}
-              </span>
-            </div>
-            <div className="flex items-end justify-between gap-2">
-              <span
-                className={`text-2xl font-extrabold tabular-nums ${
-                  isMe ? 'text-purple-700' : 'text-purple-600'
-                }`}
-              >
-                🪙{p.chips}
-              </span>
-              <span className="text-right">
-                <span className="block text-[10px] text-gray-500">빛가루</span>
-                <span className="block text-xs font-bold tabular-nums text-gray-700">
-                  {p.powderStage}단계
+    <div className="grid grid-cols-2 gap-2">
+      {[p1, p2]
+        .sort((a, b) => Number(b.id === myId) - Number(a.id === myId))
+        .map((p) => {
+          const isMe = p.id === myId;
+          const isFirst = p.side === firstSide;
+          const range = powderStageRange(p.powderStage);
+          return (
+            <div
+              key={p.side}
+              className={`flex flex-col gap-1 rounded-xl border-2 p-2 ${
+                isMe ? 'border-indigo-200 bg-indigo-50' : 'border-amber-200 bg-amber-50'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={`min-w-0 truncate text-sm font-semibold ${
+                    isMe ? 'text-indigo-700' : 'text-amber-700'
+                  }`}
+                >
+                  {isMe ? '나' : p.nickname}
+                  {isFirst && <span className="ml-1 text-amber-500">👑선</span>}
                 </span>
-                <span className="block text-[10px] text-gray-400 tabular-nums">
+              </div>
+              <div className="flex items-end justify-between gap-2">
+                <span
+                  className={`text-lg font-extrabold tabular-nums ${
+                    isMe ? 'text-purple-700' : 'text-purple-600'
+                  }`}
+                >
+                  🪙{p.chips}
+                </span>
+                <span className="text-right text-[11px] text-gray-500">
+                  빛가루 {p.powderStage}단계
+                  <br />
                   {range.min}~{range.max}g
                 </span>
-              </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
     </div>
   );
 }

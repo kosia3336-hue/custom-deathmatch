@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { SMS2ChipBet, SMS2Side } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, secondMinBet, sumBet } from '@/shared/types/sun-moon-star-2';
+import { useEffect, useState } from 'react';
 import { MARK_STYLES } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -22,11 +22,7 @@ interface Props {
   isMyTurn: boolean;
 }
 
-export default function FirstBetRevealBanner({
-  firstBet,
-  firstNick,
-  isMyTurn,
-}: Props) {
+export default function FirstBetRevealBanner({ firstBet, firstNick, isMyTurn }: Props) {
   const total = sumBet(firstBet);
   const minSecond = secondMinBet(total);
   const [pulse, setPulse] = useState(true);
@@ -49,13 +45,11 @@ export default function FirstBetRevealBanner({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="text-base">👑</span>
-          <p className="text-xs font-bold text-amber-700 lg:text-sm">
-            {firstNick} (선) 베팅 공개
-          </p>
+          <p className="text-xs font-bold text-amber-700 lg:text-sm">{firstNick} (선) 베팅 공개</p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-amber-600 lg:text-[11px]">총 베팅</p>
-          <p className="text-xl font-extrabold tabular-nums text-amber-700 lg:text-2xl">
+          <p className="text-[11px] text-amber-600 lg:text-[11px]">총 베팅</p>
+          <p className="text-xl font-extrabold text-amber-700 tabular-nums lg:text-2xl">
             {total}
             <span className="ml-0.5 text-xs font-bold">칩</span>
           </p>
@@ -71,9 +65,7 @@ export default function FirstBetRevealBanner({
             <div
               key={m}
               className={`flex flex-col items-center gap-0.5 rounded-lg border p-1.5 ${
-                placed
-                  ? `${s.borderLit} ${s.bgLit}`
-                  : 'border-amber-200/70 bg-white/70'
+                placed ? `${s.borderLit} ${s.bgLit}` : 'border-amber-200/70 bg-white/70'
               }`}
             >
               <span className="text-lg lg:text-xl">{s.icon}</span>
@@ -91,21 +83,13 @@ export default function FirstBetRevealBanner({
 
       <div
         className={`mt-0.5 rounded-lg px-2 py-1.5 text-center text-[11px] font-semibold lg:text-xs ${
-          isMyTurn
-            ? 'bg-amber-200/80 text-amber-900'
-            : 'bg-amber-100 text-amber-700'
+          isMyTurn ? 'bg-amber-200/80 text-amber-900' : 'bg-amber-100 text-amber-700'
         }`}
       >
         {isMyTurn ? '내가 후 베팅' : '후 베팅 최소'}{' '}
-        <span className="text-base font-extrabold tabular-nums lg:text-lg">
-          {minSecond}
-        </span>
-        <span className="text-[10px] font-bold lg:text-[11px]"> 칩 이상</span>
-        {total > 0 && (
-          <span className="ml-1 text-[10px] font-medium opacity-75">
-            (선 ×2)
-          </span>
-        )}
+        <span className="text-base font-extrabold tabular-nums lg:text-lg">{minSecond}</span>
+        <span className="text-[11px] font-bold lg:text-[11px]"> 칩 이상</span>
+        {total > 0 && <span className="ml-1 text-[11px] font-medium opacity-75">(선 ×2)</span>}
       </div>
     </div>
   );

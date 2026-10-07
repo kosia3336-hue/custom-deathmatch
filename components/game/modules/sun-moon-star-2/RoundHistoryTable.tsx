@@ -1,5 +1,6 @@
 'use client';
 
+import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import type {
   SMS2MarkId,
   SMS2PlayerPublic,
@@ -8,7 +9,6 @@ import type {
 } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS, sumBet } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
-import { opponentDisplayName } from '@/lib/anonymousOpponents';
 
 /* ════════════════════════════════════════════════════════════
  * RoundHistoryTable — 라운드별 상세 기록
@@ -29,7 +29,11 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
     return <p className="text-[11px] text-gray-400">아직 기록이 없습니다.</p>;
   }
   const nick = (side: SMS2Side) =>
-    mySide ? (side === mySide ? '나' : opponentDisplayName(players[side].nickname)) : players[side].nickname;
+    mySide
+      ? side === mySide
+        ? '나'
+        : opponentDisplayName(players[side].nickname)
+      : players[side].nickname;
 
   return (
     <ul className="space-y-2 text-[11px]">
@@ -41,18 +45,12 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
         const oppAfter = mySide ? r.chipAfter[oppSide] : null;
 
         /* 단계 변화 */
-        const myStageDiff = mySide
-          ? r.stageBefore[mySide] - r.stageAfter[mySide]
-          : null;
-        const oppStageDiff = mySide
-          ? r.stageBefore[oppSide] - r.stageAfter[oppSide]
-          : null;
+        const myStageDiff = mySide ? r.stageBefore[mySide] - r.stageAfter[mySide] : null;
+        const oppStageDiff = mySide ? r.stageBefore[oppSide] - r.stageAfter[oppSide] : null;
 
         /* 내 빛가루 제출 (서버가 상대 것은 0으로 마스킹하므로 내 것만 의미 있음) */
         const myPowder = mySide ? r.powderSubmission[mySide] : null;
-        const myPowderTotal = myPowder
-          ? myPowder.sun + myPowder.moon + myPowder.star
-          : 0;
+        const myPowderTotal = myPowder ? myPowder.sun + myPowder.moon + myPowder.star : 0;
 
         const s = MARK_STYLES[r.litMark];
 
@@ -65,21 +63,24 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
             <div className={`flex items-center justify-between px-2.5 py-1.5 ${s.bgLit}`}>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-gray-600">R{r.round}</span>
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold ${s.textLit}`}>
+                <span className={`rounded px-1.5 py-0.5 text-[11px] font-extrabold ${s.textLit}`}>
                   {s.icon} {s.label} 점등
                 </span>
               </div>
-              <span className="text-[10px] text-gray-500">선 {nick(r.firstPlayerSide)}</span>
+              <span className="text-[11px] text-gray-500">선 {nick(r.firstPlayerSide)}</span>
             </div>
 
             <div className="space-y-1.5 px-2.5 py-2">
               {/* 단계 변화 */}
               {mySide && (
-                <div className="flex items-center gap-1 text-[10px]">
+                <div className="flex items-center gap-1 text-[11px]">
                   <span className="shrink-0 text-gray-400">💡 단계</span>
                   <StageDiff label="나" diff={myStageDiff} />
                   <span className="text-gray-300">/</span>
-                  <StageDiff label={opponentDisplayName(players[oppSide].nickname)} diff={oppStageDiff} />
+                  <StageDiff
+                    label={opponentDisplayName(players[oppSide].nickname)}
+                    diff={oppStageDiff}
+                  />
                 </div>
               )}
 
@@ -96,7 +97,9 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
                   />
                 )}
                 <BetRow
-                  label={mySide ? opponentDisplayName(players[oppSide].nickname) : players.p1.nickname}
+                  label={
+                    mySide ? opponentDisplayName(players[oppSide].nickname) : players.p1.nickname
+                  }
                   bet={mySide ? r.bets[oppSide] : r.bets.p1}
                   delta={oppDelta ?? r.chipDelta.p1}
                   after={oppAfter ?? r.chipAfter.p1}
@@ -117,12 +120,13 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
 
               {/* 내 빛가루 제출 (본인만) */}
               {myPowder && myPowderTotal > 0 && (
-                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                <div className="flex items-center gap-1 text-[11px] text-gray-400">
                   <span className="shrink-0">✨ 내 분배</span>
                   {MARK_IDS.map((m) =>
                     myPowder[m] > 0 ? (
                       <span key={m} className="tabular-nums">
-                        {MARK_STYLES[m].icon}{myPowder[m]}g
+                        {MARK_STYLES[m].icon}
+                        {myPowder[m]}g
                       </span>
                     ) : null,
                   )}
@@ -142,9 +146,7 @@ function StageDiff({ label, diff }: { label: string; diff: number | null }) {
   if (diff === null) return null;
   return (
     <span
-      className={`font-semibold tabular-nums ${
-        diff > 0 ? 'text-orange-600' : 'text-gray-400'
-      }`}
+      className={`font-semibold tabular-nums ${diff > 0 ? 'text-orange-600' : 'text-gray-400'}`}
     >
       {label} {diff > 0 ? `${diff}칸↓` : '유지'}
     </span>
@@ -184,7 +186,7 @@ function BetRow({
           return (
             <span
               key={m}
-              className={`rounded px-1 py-0.5 tabular-nums font-semibold ${
+              className={`rounded px-1 py-0.5 font-semibold tabular-nums ${
                 v > 0
                   ? isLit
                     ? `${ms.chipSelf} ring-1 ${ms.ringLit}`
@@ -192,7 +194,8 @@ function BetRow({
                   : 'text-gray-300'
               }`}
             >
-              {ms.icon}{v}
+              {ms.icon}
+              {v}
             </span>
           );
         })}

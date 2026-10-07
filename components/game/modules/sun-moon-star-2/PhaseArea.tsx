@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import PowderInput from './PowderInput';
-import BetInput from './BetInput';
-import DalmajiPowderPanel from './skins/DalmajiPowderPanel';
-import DalmajiBetPanel from './skins/DalmajiBetPanel';
-import MarkRevealPanel from './MarkRevealPanel';
-import WaitingCard, { buildWaitingText } from './WaitingCard';
-import FinalResult from './FinalResult';
-import PowderStageDeltaBanner from './PowderStageDeltaBanner';
 import type { SMS2ResolveStep } from '@/shared/types/sun-moon-star-2';
+import { useState } from 'react';
+import BetInput from './BetInput';
+import FinalResult from './FinalResult';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
+import MarkRevealPanel from './MarkRevealPanel';
+import PowderStageDeltaBanner from './PowderStageDeltaBanner';
+import DalmajiBetPanel from './skins/DalmajiBetPanel';
+import WaitingCard, { buildWaitingText } from './WaitingCard';
 
 /* ════════════════════════════════════════════════════════════
  * PhaseArea — 페이즈에 따라 입력/대기/정산/종료 카드 중 하나를 렌더
@@ -43,15 +41,10 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
     isResolve,
     isRoundEnd,
     isFinished,
-    pendingPowder,
     pendingBet,
     submitting,
-    setPendingPowder,
     setPendingBet,
-    resetPowder,
     resetBet,
-    handleSubmitPowder,
-    handleCancelPowder,
     handleSubmitBet,
     mySubmittedPowder,
     myTurnInBet,
@@ -59,14 +52,13 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
 
   /*
    * resolve → roundEnd 전환 시 resolveSteps가 null이 돼도 패널이 유지되도록 캐싱.
-   * 같은 참조를 넘기면 MarkRevealPanel의 cachedRef 체크가 통과 → 애니 재시작 없이 done 상태 유지.
+   * MarkRevealPanel은 round를 기준으로 연출하므로 새 서버 투영이 도착해도 다시 시작하지 않는다.
    * powder 페이즈(새 라운드)가 오면 새 steps가 들어오며 자연스럽게 덮어쓰기됨.
    */
   const [cachedResolveSteps, setCachedResolveSteps] = useState<SMS2ResolveStep[] | null>(null);
   if (gameData?.resolveSteps && gameData.resolveSteps !== cachedResolveSteps) {
     // 렌더 중 state 조정(React 공식 패턴). ref 에 렌더 중 대입하던 것을 대체한다 —
     // effect 로 미루면 steps 가 처음 들어온 프레임에 패널이 빈 채로 그려진다.
-    // 같은 참조를 그대로 보관하므로 MarkRevealPanel 의 cachedRef 검사도 그대로 통과한다.
     setCachedResolveSteps(gameData.resolveSteps);
   }
 
@@ -87,6 +79,7 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
     return (
       <MarkRevealPanel
         resolveSteps={cachedResolveSteps}
+        round={gameData.round}
         players={gameData.players}
         mySide={mySide}
       />
@@ -129,7 +122,7 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
             myChips={myPlayer.chips}
             opponentChips={opponent?.chips ?? 0}
             value={pendingBet}
-            firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+            firstBet={isBetSecond ? (opponent?.publicBet ?? null) : null}
             submitting={submitting}
             disabled={myPlayer.betConfirmed || submitting}
             onChange={setPendingBet}
@@ -142,7 +135,7 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
             myChips={myPlayer.chips}
             opponentChips={opponent?.chips ?? 0}
             value={pendingBet}
-            firstBet={isBetSecond ? opponent?.publicBet ?? null : null}
+            firstBet={isBetSecond ? (opponent?.publicBet ?? null) : null}
             firstSide={firstSide}
             submitting={submitting}
             disabled={myPlayer.betConfirmed || submitting}
@@ -177,25 +170,8 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
     );
   }
 
-  if (!isSpectator && myPlayer && isPowder) {
-    const powderProps = {
-      powderRemain: gameData.selfPrivate?.powderRemain ?? 0,
-      value: pendingPowder,
-      submitted: mySubmittedPowder,
-      opponentSubmitted: opponent?.submittedPowder ?? false,
-      submitting,
-      onChange: setPendingPowder,
-      onSubmit: handleSubmitPowder,
-      onCancel: handleCancelPowder,
-      onReset: resetPowder,
-    };
-    return ctx.dalmaji ? <DalmajiPowderPanel {...powderProps} /> : <PowderInput {...powderProps} />;
-  }
-
   /* 그 외: 대기 */
-  const showWaiting =
-    (isPowder && mySubmittedPowder) ||
-    (isSpectator && (isPowder || isBet));
+  const showWaiting = (isPowder && mySubmittedPowder) || (isSpectator && (isPowder || isBet));
 
   if (!showWaiting) return null;
 
