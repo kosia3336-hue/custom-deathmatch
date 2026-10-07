@@ -34,7 +34,6 @@ export default function PowderStageDeltaBanner({ players, lastRecord, mySide }: 
 
   return (
     <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 lg:px-4 lg:py-2.5">
-      <span className="text-sm lg:text-base">💡</span>
       <div className="flex flex-1 items-center justify-around gap-2">
         {entries.map(({ side, label, diff }, i) => (
           <div

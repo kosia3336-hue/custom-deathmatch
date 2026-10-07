@@ -40,7 +40,7 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                   }`}
                 >
                   {isMe ? '나' : p.nickname}
-                  {isFirst && <span className="ml-1 text-amber-500">👑선</span>}
+                  {isFirst && <span className="ml-1 text-amber-500">선</span>}
                 </span>
               </div>
               <div className="flex items-end justify-between gap-2">
@@ -49,7 +49,7 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                     isMe ? 'text-purple-700' : 'text-purple-600'
                   }`}
                 >
-                  🪙{p.chips}
+                  칩 {p.chips}
                 </span>
                 <span className="text-right text-[11px] text-gray-500">
                   빛가루 {p.powderStage}단계

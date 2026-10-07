@@ -1,14 +1,12 @@
 'use client';
 import { useGameAction } from '@/components/game/GameActionContext';
 import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
-import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 
 import type {
   SMS2ChipBet,
   SMS2GameData,
   SMS2MarkId,
   SMS2PlayerPublic,
-  SMS2PowderStage,
   SMS2PowderSubmission,
   SMS2Side,
 } from '@/shared/types/sun-moon-star-2';
@@ -23,7 +21,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { WIN_TYPE_LABELS } from '../constants';
-import { type OpponentPowderEstimate, zeroOpponentEstimate } from '../types';
+import { useOpponentPowderNotes } from './useOpponentPowderNotes';
 
 /** 해달별2의 파생값·입력·연출 상태. 동일 GameLayout을 PC/모바일에서 공유한다. */
 
@@ -34,6 +32,8 @@ export function useSMS2Context({
   myId,
   isSpectator = false,
   skin = null,
+  gameKey = '',
+  roomId = '',
 }: GameModuleViewProps<SMS2GameData>) {
   const sendAction = useGameAction();
   const dalmaji = skin === 'dalmaji';
@@ -42,9 +42,6 @@ export function useSMS2Context({
   const [pendingBet, setPendingBet] = useState<SMS2ChipBet>(zeroBet());
   const [submitting, setSubmitting] = useState(false);
   const [prevKey, setPrevKey] = useState('');
-
-  const [opponentEstimate, setOpponentEstimate] = useState<OpponentPowderEstimate | null>(null);
-  const prevOpponentStageRef = useRef<SMS2PowderStage | null>(null);
 
   const shownWinnerRef = useRef<string | null>(null);
 
@@ -77,21 +74,11 @@ export function useSMS2Context({
     }
   }
 
-  /* 상대 stage 변화 → 추리 자동 리셋 */
-  usePresentationEffect(() => {
-    if (!opponent) return;
-    const prev = prevOpponentStageRef.current;
-    const now = opponent.powderStage;
-    if (prev === null) {
-      prevOpponentStageRef.current = now;
-      setOpponentEstimate(zeroOpponentEstimate(now, now));
-      return;
-    }
-    if (prev !== now) {
-      setOpponentEstimate(zeroOpponentEstimate(prev, now));
-      prevOpponentStageRef.current = now;
-    }
-  }, [opponent]);
+  const powderNotes = useOpponentPowderNotes(
+    gameData,
+    opponent?.side ?? 'p2',
+    `${gameKey || roomId}:${myId}`,
+  );
 
   /* 게임 종료 토스트 */
   useEffect(() => {
@@ -201,7 +188,7 @@ export function useSMS2Context({
   const markRowPendingPowder: SMS2PowderSubmission | null =
     isPowder && myPlayer && !mySubmittedPowder ? pendingPowder : null;
 
-  const showTracker = !isSpectator && (isPowder || isBet) && !!opponentEstimate;
+  const showTracker = !isSpectator && !!myPlayer && !!opponent;
 
   return {
     /* raw */
@@ -245,8 +232,7 @@ export function useSMS2Context({
     resetBet,
 
     /* opponent tracker */
-    opponentEstimate,
-    setOpponentEstimate,
+    powderNotes,
     showTracker,
 
     /* derived display */

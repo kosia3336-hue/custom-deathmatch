@@ -74,7 +74,7 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
               {/* 단계 변화 */}
               {mySide && (
                 <div className="flex items-center gap-1 text-[11px]">
-                  <span className="shrink-0 text-gray-400">💡 단계</span>
+                  <span className="shrink-0 text-gray-400">단계</span>
                   <StageDiff label="나" diff={myStageDiff} />
                   <span className="text-gray-300">/</span>
                   <StageDiff
@@ -121,7 +121,7 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
               {/* 내 빛가루 제출 (본인만) */}
               {myPowder && myPowderTotal > 0 && (
                 <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                  <span className="shrink-0">✨ 내 분배</span>
+                  <span className="shrink-0">내 분배</span>
                   {MARK_IDS.map((m) =>
                     myPowder[m] > 0 ? (
                       <span key={m} className="tabular-nums">

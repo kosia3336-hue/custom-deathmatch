@@ -135,7 +135,7 @@ function ResolveStepRow({
       >
         <div className="border-b border-amber-200 px-3 py-1.5 lg:px-4 lg:py-2">
           <span className="text-[11px] font-bold tracking-wide text-amber-600 uppercase lg:text-xs">
-            🪙 베팅 공개
+            베팅 공개
           </span>
         </div>
         <div className="grid grid-cols-2 divide-x divide-amber-100 px-2 py-2 lg:px-3 lg:py-3">
@@ -207,7 +207,6 @@ function ResolveStepRow({
         className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 lg:px-4 lg:py-2.5"
         style={{ animation: 'sms2FadeIn 280ms ease-out forwards' }}
       >
-        <span className="text-base lg:text-xl">🔥</span>
         <span className="text-xs text-orange-800 lg:text-sm">
           {s.icon} {s.label}의 빛가루 소멸
         </span>
@@ -223,7 +222,7 @@ function ResolveStepRow({
       >
         <div className="border-b border-indigo-200 px-3 py-1.5 lg:px-4 lg:py-2">
           <span className="text-[11px] font-bold tracking-wide text-indigo-500 uppercase lg:text-xs">
-            📊 라운드 결과
+            라운드 결과
           </span>
         </div>
         <div className="grid grid-cols-2 divide-x divide-indigo-100 px-2 py-2 lg:px-3 lg:py-3">

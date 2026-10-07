@@ -25,7 +25,6 @@ export default function FinalResult({ finalWinner, winType, players, myId }: Pro
   const reason = winType ? ((WIN_TYPE_LABELS as Record<string, string>)[winType] ?? '') : '';
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-indigo-300 bg-linear-to-br from-indigo-50 via-violet-50 to-fuchsia-50 p-5 text-center shadow-lg">
-      <span className="text-5xl">{finalWinner === 'draw' ? '🤝' : '🏆'}</span>
       <p className="text-xl font-bold text-indigo-900">{winnerLabel}</p>
       {reason && <p className="text-xs text-indigo-600">{reason}</p>}
       <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
@@ -44,7 +43,7 @@ export default function FinalResult({ finalWinner, winType, players, myId }: Pro
               <div className="truncate text-[11px] text-gray-500">
                 {p.id === myId ? '나' : p.nickname}
               </div>
-              <div className="text-base font-bold text-purple-700 tabular-nums">🪙 {p.chips}</div>
+              <div className="text-base font-bold text-purple-700 tabular-nums">칩 {p.chips}</div>
             </div>
           );
         })}

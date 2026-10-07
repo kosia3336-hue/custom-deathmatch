@@ -72,7 +72,7 @@ export default function BetInput({
     >
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-amber-700">
-          🪙 {turn === 'first' ? '선 베팅 👑' : '후 베팅'}
+          {turn === 'first' ? '선 베팅' : '후 베팅'}
         </p>
         <p className="text-xs text-gray-500">
           보유 <span className="font-bold text-gray-800 tabular-nums">{myChips}칩</span>

@@ -130,7 +130,7 @@ function buildOverlay({
     case 'powder':
       return {
         key: 'powder',
-        title: '🌫️ 빛가루 분배',
+        title: '빛가루 분배',
         subtitle: isSpectator ? '양측이 동시에 분배합니다' : '해 · 달 · 별에 비공개로 분배하세요',
         accent: 'indigo',
       };
@@ -143,7 +143,7 @@ function buildOverlay({
           : `${who} (선) 베팅 대기 중`;
       return {
         key: 'betFirst',
-        title: isMyTurn && !isSpectator ? '🪙 내 차례 — 선 베팅' : '🪙 선 베팅',
+        title: isMyTurn && !isSpectator ? '내 차례 — 선 베팅' : '선 베팅',
         subtitle,
         accent: 'amber',
       };
@@ -157,7 +157,7 @@ function buildOverlay({
           : `${who} (후) 베팅 대기 중`;
       return {
         key: 'betSecond',
-        title: isMyTurn && !isSpectator ? '🪙 내 차례 — 후 베팅' : '🪙 후 베팅',
+        title: isMyTurn && !isSpectator ? '내 차례 — 후 베팅' : '후 베팅',
         subtitle,
         accent: 'amber',
       };
@@ -165,14 +165,14 @@ function buildOverlay({
     case 'resolve':
       return {
         key: 'resolve',
-        title: '✨ 점등 판정',
+        title: '점등 판정',
         subtitle: '합산 최다 표식이 점등됩니다',
         accent: 'violet',
       };
     case 'roundEnd':
       return {
         key: 'roundEnd',
-        title: '🏁 라운드 종료',
+        title: '라운드 종료',
         subtitle: '곧 다음 라운드가 시작됩니다',
         accent: 'emerald',
       };

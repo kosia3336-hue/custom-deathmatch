@@ -1,121 +1,80 @@
 'use client';
 
-import type { SMS2MarkId, SMS2PowderStage } from '@/shared/types/sun-moon-star-2';
-import { MARK_IDS, powderStageRange } from '@/shared/types/sun-moon-star-2';
-import { useCallback, useMemo } from 'react';
+import type { SMS2MarkId } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
-import { type OpponentPowderEstimate, opponentUsedRange } from './types';
-
-/* "중앙값 스케일" 자동 정렬 버튼 제거됨 (2026-04 UX 개선) */
-
-/* ════════════════════════════════════════════════════════════
- * OpponentPowderTracker — 상대 빛가루 추리 (클라 전용)
- *   · 상대 stage 변경 시 부모에서 key 로 리마운트 → 자동 초기화
- *   · 이번 라운드 추정 사용량 범위 안에서 표식별 메모
- *   · 절대 서버로 전송되지 않음
- * ════════════════════════════════════════════════════════════ */
+import type { OpponentPowderEstimate } from './types';
 
 interface Props {
-  stageNow: SMS2PowderStage;
-  stagePrev: SMS2PowderStage;
+  round: number;
+  latestRound: number;
   estimate: OpponentPowderEstimate;
-  onChange: (next: OpponentPowderEstimate) => void;
+  max: number;
+  onSelectRound: (round: number) => void;
+  onChange: (mark: SMS2MarkId, value: number) => void;
   onReset: () => void;
 }
 
 export default function OpponentPowderTracker({
-  stageNow,
-  stagePrev,
+  round,
+  latestRound,
   estimate,
+  max,
+  onSelectRound,
   onChange,
   onReset,
 }: Props) {
-  const range = useMemo(() => opponentUsedRange(stagePrev, stageNow), [stagePrev, stageNow]);
-  const prevRangeText = useMemo(() => {
-    const r = powderStageRange(stagePrev);
-    return `${r.min}~${r.max}g`;
-  }, [stagePrev]);
-  const nowRangeText = useMemo(() => {
-    const r = powderStageRange(stageNow);
-    return `${r.min}~${r.max}g`;
-  }, [stageNow]);
-
   const total = estimate.perMark.sun + estimate.perMark.moon + estimate.perMark.star;
-  const outOfRange = total < range.min || total > range.max;
-
-  const setSlot = useCallback(
-    (slot: SMS2MarkId, next: number) => {
-      const clamped = Math.max(0, Math.min(range.max, Math.floor(next)));
-      onChange({
-        ...estimate,
-        perMark: { ...estimate.perMark, [slot]: clamped },
-      });
-    },
-    [estimate, range.max, onChange],
-  );
-
+  const roundButton =
+    'border-cdm-border text-cdm-fg hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm disabled:opacity-30';
   return (
-    <div
-      data-panel-inset
-      className="border-cdm-border bg-cdm-bg-elev-1 flex flex-col gap-2 rounded-xl border p-3"
-    >
-      <div className="flex items-center justify-between">
-        <p className="text-cdm-fg-muted text-xs font-bold">🔍 상대 빛가루 추리</p>
+    <div data-powder-note-round={round} className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={onReset}
-          className="text-cdm-fg-subtle hover:text-cdm-fg-muted rounded text-[11px] font-medium"
+          className="text-cdm-fg-muted hover:text-cdm-fg min-h-8 px-1 text-xs"
         >
           초기화
         </button>
-      </div>
-
-      {/* 단계/추정 범위 */}
-      <div className="bg-cdm-bg text-cdm-fg-muted rounded px-2 py-1.5 text-[11px]">
-        직전{' '}
-        <span className="text-cdm-fg font-bold">
-          {stagePrev}단계 ({prevRangeText})
-        </span>
-        <span className="text-cdm-fg-subtle mx-1">→</span>
-        현재{' '}
-        <span className="text-cdm-fg font-bold">
-          {stageNow}단계 ({nowRangeText})
-        </span>
-        <div className="text-cdm-fg-muted mt-0.5 text-[11px]">
-          이번 라운드 추정 사용량:{' '}
-          <span className="font-bold text-amber-600 tabular-nums">
-            {range.min}~{range.max}g
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="추리 이전 라운드"
+            disabled={round <= 1}
+            onClick={() => onSelectRound(round - 1)}
+            className={roundButton}
+          >
+            ‹
+          </button>
+          <span className="text-cdm-fg min-w-6 text-center text-xs font-semibold tabular-nums">
+            R{round}
           </span>
-          <span className="text-cdm-fg-subtle"> (중앙값 {range.median}g)</span>
+          <button
+            type="button"
+            aria-label="추리 다음 라운드"
+            disabled={round >= latestRound}
+            onClick={() => onSelectRound(round + 1)}
+            className={roundButton}
+          >
+            ›
+          </button>
         </div>
       </div>
-
-      {/* 표식별 추정 */}
       <div className="space-y-1">
-        {MARK_IDS.map((m) => (
+        {MARK_IDS.map((mark) => (
           <EstimateSlot
-            key={m}
-            mark={m}
-            value={estimate.perMark[m]}
-            max={range.max}
-            onChange={(v) => setSlot(m, v)}
+            key={mark}
+            mark={mark}
+            value={estimate.perMark[mark]}
+            max={max}
+            onChange={(value) => onChange(mark, value)}
           />
         ))}
       </div>
-
-      {/* 총합 */}
-      <div className="bg-cdm-bg flex items-center justify-between rounded px-2 py-1 text-[11px]">
-        <span className="text-cdm-fg-muted">
-          합 <span className="text-cdm-fg font-bold tabular-nums">{total}g</span>
-        </span>
-        {outOfRange ? (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">
-            범위 밖
-          </span>
-        ) : (
-          <span className="text-[11px] text-emerald-600">범위 내 ✓</span>
-        )}
-      </div>
+      <p className="text-cdm-fg-muted px-2 text-right text-xs">
+        합 <span className="text-cdm-fg font-bold tabular-nums">{total}g</span>
+      </p>
     </div>
   );
 }
@@ -143,6 +102,7 @@ function EstimateSlot({
         type="button"
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= 0}
+        aria-label={`${style.label} 추정 줄이기`}
         className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
       >
         −
@@ -163,6 +123,7 @@ function EstimateSlot({
         type="button"
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
+        aria-label={`${style.label} 추정 늘리기`}
         className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
       >
         +

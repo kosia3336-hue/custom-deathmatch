@@ -6,7 +6,12 @@ import type { FTTower, FTTowerPublicInfo } from '@/shared/types/five-towers';
 import { useCallback, useEffect, useState } from 'react';
 import CitadelFieldShell from './skins/CitadelFieldShell';
 import CitadelTower from './skins/CitadelTower';
-import { cycleTowerNote, parseTowerNote, type TowerNote } from '@/lib/fiveTowersNotes';
+import {
+  cycleTowerNote,
+  parseTowerNote,
+  towerNoteTone,
+  type TowerNote,
+} from '@/lib/fiveTowersNotes';
 
 const TOWER_COLORS: Record<FTTower, { bg: string; border: string; text: string }> = {
   A: { bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700' },
@@ -82,7 +87,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
               id={id}
               tower={towers[id]}
               userCount={counts[id].height}
-              gray={counts[id].tone === 'gray'}
+              grayFrom={counts[id].grayFrom}
               gameKey={gameKey}
               onSetCell={setCell}
               onResetTower={resetTower}
@@ -99,7 +104,6 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
         const tower = towers[id];
         const colors = TOWER_COLORS[id];
         const userCount = counts[id].height;
-        const gray = counts[id].tone === 'gray';
         const isCompleted = tower.completed;
 
         return (
@@ -133,7 +137,8 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
             {/* 셀 */}
             <div className="flex min-h-0 flex-1 flex-col">
               {Array.from({ length: 10 }, (_, i) => 10 - i).map((level) => {
-                const isFilled = userCount >= level;
+                const tone = towerNoteTone(counts[id], level);
+                const isFilled = tone !== 'empty';
                 const isHalf = level === FT_HALF_MILESTONE;
                 const halfReached = tower.milestonesReached.half;
 
@@ -143,13 +148,13 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
                     type="button"
                     onClick={() => setCell(id, level)}
                     aria-label={`${id}탑 ${level}칸`}
-                    data-note-tone={isFilled ? counts[id].tone : 'empty'}
+                    data-note-tone={isCompleted ? 'color' : tone}
                     disabled={isCompleted}
                     className={`relative flex min-h-0 flex-1 items-center justify-end border-t px-1.5 text-[11px] leading-3 font-medium transition-all sm:text-xs ${
                       isCompleted
                         ? 'cursor-default bg-yellow-100 text-yellow-700'
                         : isFilled
-                          ? gray
+                          ? tone === 'gray'
                             ? 'bg-gray-200 text-gray-600 hover:brightness-95'
                             : `${colors.bg} ${colors.text} hover:brightness-95`
                           : 'bg-white text-gray-300 hover:bg-gray-50'

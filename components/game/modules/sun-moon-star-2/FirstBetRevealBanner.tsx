@@ -44,7 +44,6 @@ export default function FirstBetRevealBanner({ firstBet, firstNick, isMyTurn }: 
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-base">👑</span>
           <p className="text-xs font-bold text-amber-700 lg:text-sm">{firstNick} (선) 베팅 공개</p>
         </div>
         <div className="text-right">

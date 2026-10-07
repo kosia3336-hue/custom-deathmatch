@@ -237,14 +237,14 @@ function FiveTowersView({
           ) : undefined
         }
       >
-        <div
-          className={`${styles.stage} flex h-full min-h-0 w-full max-w-3xl flex-col justify-center gap-2 overflow-hidden`}
-        >
-          <InferenceField
-            towers={gameData.towers}
-            gameKey={gameKey || roomId + '.' + gameData.firstPlayerId}
-            skin={skin}
-          />
+        <div className={styles.stage} data-game-intrinsic-stage>
+          <div className={styles.board}>
+            <InferenceField
+              towers={gameData.towers}
+              gameKey={gameKey || roomId + '.' + gameData.firstPlayerId}
+              skin={skin}
+            />
+          </div>
           {gameData.unresolvedSecrets.length > 0 && (
             <div className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-700">
               <b>시크릿 진행 중</b>:{' '}

@@ -1,5 +1,9 @@
 .stage {
-  padding: clamp(12px, 2.5vw, 24px);
+  width: min(100%, 544px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   box-sizing: border-box;
 }
 .stage :global([data-note-tone='gray'] .skin-citadel-block) {
@@ -11,9 +15,20 @@
 .stage :global([data-note-tone='gray'] .skin-citadel-block-top) {
   background: #e5e7eb;
 }
-.stage > :first-child {
-  flex: 1;
-  min-height: 0;
+/* 독립 패널 수에 따라 탑을 가로/세로로 늘리지 않는다. */
+.board {
+  width: 100%;
+  height: 328px;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .board {
+    height: auto;
+    aspect-ratio: 512 / 328;
+  }
+}
+.board > :first-child {
+  height: 100%;
 }
 .stage :global(.skin-citadel-field) > :last-child,
 .stage :global(.skin-citadel-towers) {

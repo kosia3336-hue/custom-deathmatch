@@ -9,7 +9,6 @@ import RoundHistoryTable from './RoundHistoryTable';
 import ScorePanel from './ScorePanel';
 import DalmajiPowderTrack from './skins/DalmajiPowderTrack';
 import DalmajiScorePanel from './skins/DalmajiScorePanel';
-import { zeroOpponentEstimate } from './types';
 
 export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
   const {
@@ -21,8 +20,7 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
     mySide,
     firstSide,
     showTracker,
-    opponentEstimate,
-    setOpponentEstimate,
+    powderNotes,
     dalmaji,
   } = ctx;
   const Scores = dalmaji ? DalmajiScorePanel : ScorePanel;
@@ -40,18 +38,16 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
           myId={myId}
         />
       </GameInfoPart>
-      {showTracker && opponentEstimate && opponent && (
-        <GameInfoPart title="상대 빛가루 추리">
+      {showTracker && opponent && (
+        <GameInfoPart title="상대 빛가루 추리" sizeToContent>
           <OpponentPowderTracker
-            stageNow={opponent.powderStage}
-            stagePrev={opponentEstimate.basedOnStagePrev}
-            estimate={opponentEstimate}
-            onChange={setOpponentEstimate}
-            onReset={() =>
-              setOpponentEstimate(
-                zeroOpponentEstimate(opponentEstimate.basedOnStagePrev, opponent.powderStage),
-              )
-            }
+            round={powderNotes.round}
+            latestRound={powderNotes.latest}
+            estimate={powderNotes.estimate}
+            max={powderNotes.max}
+            onSelectRound={powderNotes.selectRound}
+            onChange={powderNotes.change}
+            onReset={powderNotes.reset}
           />
         </GameInfoPart>
       )}

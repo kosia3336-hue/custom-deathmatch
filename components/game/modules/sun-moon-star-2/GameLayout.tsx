@@ -99,7 +99,6 @@ export default function GameLayout({ ctx }: Props) {
       <GameReferenceFrame
         reference={<SunMoonStarReference ctx={ctx} />}
         controls={powderInput && <div className={styles.powder}>{powderInput}</div>}
-        /* 이 게임은 입력판이 커서 뼈대 여백까지 아껴야 한 화면에 들어간다. */
         className={`gap-1.5 p-1.5 ${styles.frame}`}
         /*
           칩과 단계는 늘 보이게 둔다. 칩을 걸어 겨루는 판이라 양쪽 칩 수는
@@ -107,7 +106,7 @@ export default function GameLayout({ ctx }: Props) {
           넣었더니 버튼을 눌러야 상대 칩이 보인다는 신고가 들어왔다.
         */
       >
-        <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden">
+        <div data-game-intrinsic-stage className={styles.board}>
           <div className="w-full min-w-0">
             <Marks
               size={desktop ? 'md' : 'sm'}
