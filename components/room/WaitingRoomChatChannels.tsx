@@ -79,9 +79,10 @@ function ChatChannelToggle({
           aria-label={`${target.id === 'lobby' ? '로비 채팅' : '방 채팅'}으로 전환`}
           title={`${target.id === 'lobby' ? '로비 채팅' : '방 채팅'}으로 전환`}
           onClick={() => onChange(target.id)}
-          className="rounded-cdm-md border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg focus-visible:outline-cdm-primary flex h-8 w-8 items-center justify-center border transition-colors focus-visible:outline-2"
+          className="rounded-cdm-md border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 hover:text-cdm-fg focus-visible:outline-cdm-primary flex min-h-8 items-center justify-center gap-1.5 border px-2 py-1 text-[11px] transition-colors focus-visible:outline-2"
         >
           <Icon name="swap" />
+          <span>{target.id === 'lobby' ? '로비 채팅으로 전환' : '방 채팅으로 전환'}</span>
         </button>
       )}
       {extras.map((choice) => (

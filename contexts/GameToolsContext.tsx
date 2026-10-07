@@ -25,6 +25,8 @@ export interface GameTool {
   defaultOrder?: number;
   /** 여러 창을 같은 쪽에 붙이면 이 높이를 유지하고 바깥 영역이 스크롤한다. */
   preferredBodyHeight?: number;
+  /** PC 채팅처럼 사용자가 아래 손잡이로 본문 높이를 조절할 수 있는 창. */
+  resizable?: boolean;
   /** 짧은 입력 창은 고정 높이·내부 스크롤 없이 내용만큼 표시한다. */
   sizeToContent?: boolean;
   /** 모바일 위치를 정하는 대신 이미 렌더한 info/controls의 PC 중복만 막는다. */

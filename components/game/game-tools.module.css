@@ -126,3 +126,42 @@
   height: auto;
   overflow: visible;
 }
+/* 채팅은 목록만 스크롤하고 입력/전송은 항상 본문 아래에 남는다. */
+.body.resizable {
+  flex-shrink: 0;
+  height: var(--tool-height);
+  overflow: hidden;
+}
+.floating .body.resizable {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+.top:has([data-resizable-body]),
+.bottom:has([data-resizable-body]) {
+  max-height: none;
+}
+.resizeHandle {
+  display: flex;
+  flex-shrink: 0;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+  border-top: 1px solid var(--cdm-border);
+}
+.resizeHandle > span {
+  width: 32px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--cdm-fg-subtle);
+}
+.resizeHandle:hover > span,
+.resizeHandle:focus-visible > span {
+  background: var(--cdm-primary);
+}
+.resizeHandle:focus-visible {
+  outline: 2px solid var(--cdm-primary);
+  outline-offset: -2px;
+}

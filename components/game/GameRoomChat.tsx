@@ -11,6 +11,7 @@ import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 import GameChatParticipants from './GameChatParticipants';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { gamePanelSkinClass } from './GamePanelSkin';
+import type { ChatScope } from '@/shared/types';
 
 /** 인게임은 방 채널만 제공한다. 길드전의 비공개 길드 채널은 별도로 유지한다. */
 export function useGameChatChannel() {
@@ -24,21 +25,31 @@ export function useGameChatChannel() {
 }
 type GameChatChannel = ReturnType<typeof useGameChatChannel>;
 
-export function GameRoomChatBody({ channels }: { channels: GameChatChannel }) {
+export function GameRoomChatBody({
+  channels,
+  onSend,
+}: {
+  channels: GameChatChannel;
+  onSend?: (message: string, scope: ChatScope) => void;
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         hidden={channels.channel !== 'room'}
         className={channels.channel === 'room' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}
       >
-        <RoomChatBody scope="room" scrollClassName="flex-1 min-h-[120px] max-h-none" />
+        <RoomChatBody scope="room" scrollClassName="flex-1 min-h-0 max-h-none" onSend={onSend} />
       </div>
       {channels.hasGuild && (
         <div
           hidden={channels.channel !== 'guild_war'}
           className={channels.channel === 'guild_war' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}
         >
-          <RoomChatBody scope="guild_war" scrollClassName="flex-1 min-h-[120px] max-h-none" />
+          <RoomChatBody
+            scope="guild_war"
+            scrollClassName="flex-1 min-h-0 max-h-none"
+            onSend={onSend}
+          />
         </div>
       )}
     </div>
@@ -84,11 +95,13 @@ export function GameChatSheet({
   onClose,
   channels,
   skin,
+  onSend,
 }: {
   open: boolean;
   onClose: () => void;
   channels: GameChatChannel;
   skin?: SkinTheme | null;
+  onSend?: (message: string, scope: ChatScope) => void;
 }) {
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -106,7 +119,7 @@ export function GameChatSheet({
       className={gamePanelSkinClass(skin, true)}
     >
       <div className="flex h-[52dvh] flex-col">
-        <GameRoomChatBody channels={channels} />
+        <GameRoomChatBody channels={channels} onSend={onSend} />
       </div>
     </BottomSheet>
   );

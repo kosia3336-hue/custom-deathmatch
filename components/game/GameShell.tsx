@@ -81,6 +81,7 @@ export default function GameShell({ children }: Props) {
         headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
         minBodyHeight: 220,
         preferredBodyHeight: 330,
+        resizable: true,
       },
       ...(hud?.memo
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]

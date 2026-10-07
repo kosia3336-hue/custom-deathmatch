@@ -11,6 +11,7 @@ import {
 } from '@/contexts/GameToolsContext';
 import { useDockWheel } from '@/hooks/useDockWheel';
 import { useGameWorkspaceSize } from '@/hooks/useGameWorkspaceSize';
+import { usePanelBodyHeight } from '@/hooks/usePanelBodyHeight';
 import { useStableToolHost } from '@/hooks/useStableToolHost';
 import { useDockTargets, type DockRegions, type ToolEdge } from '@/hooks/useDockTargets';
 import DockablePanel from '@/components/cdm/DockablePanel';
@@ -92,7 +93,12 @@ export default function GameToolsWorkspace({
           )}
           {controller.desktop &&
             controller.tools.map((tool) => (
-              <ToolPanel key={tool.id} controller={controller} tool={tool} regions={regions} />
+              <ToolPanel
+                key={`${controller.scope}:${tool.id}`}
+                controller={controller}
+                tool={tool}
+                regions={regions}
+              />
             ))}
         </div>
       </div>
@@ -110,6 +116,11 @@ function ToolPanel({
   regions: RefObject<DockRegions>;
 }) {
   const id = gameToolDockId(controller.scope, tool.id);
+  const bodySize = usePanelBodyHeight(
+    id,
+    tool.preferredBodyHeight ?? 300,
+    tool.minBodyHeight ?? 220,
+  );
   const dock = controller.docks[tool.id] ?? DEFAULT_DOCK_STATE;
   const edge: ToolEdge = dock.mode === 'docked' ? dock.edge : 'floating';
   const host = useStableToolHost(regions, edge, tool.id, controller.orderedIds, styles.host);
@@ -122,21 +133,41 @@ function ToolPanel({
       headerTitle={tool.headerTitle}
       headerActions={tool.headerActions}
       dock={dock}
-      floatingSize={{ width: 340, height: tool.preferredBodyHeight ?? 300 }}
+      floatingSize={{
+        width: 340,
+        height: tool.resizable ? bodySize.height + 64 : (tool.preferredBodyHeight ?? 300),
+      }}
       className={`${styles.panel} game-tool-panel`}
       {...targets}
     >
       <div
-        className={`${styles.body} ${tool.sizeToContent ? styles.contentSized : ''}`}
+        data-resizable-body={tool.resizable || undefined}
+        className={`${styles.body} ${tool.sizeToContent ? styles.contentSized : ''} ${tool.resizable ? styles.resizable : ''}`}
         style={
           {
-            '--tool-height': `${tool.preferredBodyHeight ?? 300}px`,
+            '--tool-height': `${tool.resizable ? bodySize.height : (tool.preferredBodyHeight ?? 300)}px`,
             '--tool-min-body-height': `${tool.minBodyHeight ?? 0}px`,
           } as CSSProperties
         }
       >
         {tool.content}
       </div>
+      {tool.resizable && (
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-label={`${tool.title} 높이 조절`}
+          aria-orientation="horizontal"
+          aria-valuemin={bodySize.minimum}
+          aria-valuemax={bodySize.maximum}
+          aria-valuenow={bodySize.height}
+          title="끌어서 높이 조절 · 위/아래 방향키"
+          className={styles.resizeHandle}
+          {...bodySize.handlers}
+        >
+          <span />
+        </div>
+      )}
     </DockablePanel>,
     host,
   );
