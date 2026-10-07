@@ -213,6 +213,7 @@ export default function TileInput({ myTiles, actionType, label, firstDigits, ski
       `}</style>
 
       <div
+        data-game-intrinsic-stage
         ref={inputRoot}
         className={
           isMeow

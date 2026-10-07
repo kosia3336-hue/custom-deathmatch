@@ -10,6 +10,7 @@ import {
   type GameToolsController,
 } from '@/contexts/GameToolsContext';
 import { useDockWheel } from '@/hooks/useDockWheel';
+import { useGameWorkspaceSize } from '@/hooks/useGameWorkspaceSize';
 import { useStableToolHost } from '@/hooks/useStableToolHost';
 import { useDockTargets, type DockRegions, type ToolEdge } from '@/hooks/useDockTargets';
 import DockablePanel from '@/components/cdm/DockablePanel';
@@ -32,60 +33,68 @@ export default function GameToolsWorkspace({
   skin?: SkinTheme | null;
 }) {
   const regions = useRef<DockRegions>({});
+  const viewport = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLDivElement>(null);
+  const canvasHeight = useGameWorkspaceSize(viewport, canvas);
   useDockWheel(regions, controller.desktop);
   return (
     <GameToolsContext.Provider value={controller.registration}>
       {controller.desktop && controller.reference && (
         <GameReferenceParts key={controller.scope}>{controller.reference}</GameReferenceParts>
       )}
-      <div
-        data-game-skin={skin ?? 'base'}
-        className={`${controller.desktop ? styles.workspace : styles.mobile} ${skin ? `skin-bg-${skin} ${gamePanelSkinClass(skin)}` : ''}`}
-      >
-        {controller.desktop &&
-          (['top', 'left', 'right', 'bottom'] as const).map((edge) => {
-            const minimum = Math.max(
-              0,
-              ...controller.tools.map((tool) => {
-                const dock = controller.docks[tool.id];
-                return dock?.mode === 'docked' && dock.edge === edge
-                  ? (tool.minBodyHeight ?? 0)
-                  : 0;
-              }),
-            );
-            return (
-              <section
-                key={edge}
-                ref={(element) => {
-                  if (element) regions.current[edge] = element;
-                  else delete regions.current[edge];
-                }}
-                aria-label={`${LABELS[edge]} 편의기능 영역`}
-                className={`${styles.region} ${styles[edge]}`}
-                style={
-                  edge === 'top' || edge === 'bottom'
-                    ? ({ '--region-limit': horizontalDockLimit(edge, minimum) } as CSSProperties)
-                    : undefined
-                }
-              />
-            );
-          })}
-        <div key="game" className={styles.game}>
-          {children}
+      <div ref={viewport} className={styles.viewport} data-game-scroll-viewport>
+        <div
+          ref={canvas}
+          style={canvasHeight ? { height: canvasHeight } : undefined}
+          data-game-skin={skin ?? 'base'}
+          className={`${controller.desktop ? styles.workspace : styles.mobile} ${skin ? `skin-bg-${skin} ${gamePanelSkinClass(skin)}` : ''}`}
+        >
+          {controller.desktop &&
+            (['top', 'left', 'right', 'bottom'] as const).map((edge) => {
+              const minimum = Math.max(
+                0,
+                ...controller.tools.map((tool) => {
+                  const dock = controller.docks[tool.id];
+                  return dock?.mode === 'docked' && dock.edge === edge
+                    ? (tool.minBodyHeight ?? 0)
+                    : 0;
+                }),
+              );
+              return (
+                <section
+                  key={edge}
+                  ref={(element) => {
+                    if (element) regions.current[edge] = element;
+                    else delete regions.current[edge];
+                  }}
+                  aria-label={`${LABELS[edge]} 편의기능 영역`}
+                  data-game-dock-edge={edge}
+                  className={`${styles.region} ${styles[edge]}`}
+                  style={
+                    edge === 'top' || edge === 'bottom'
+                      ? ({ '--region-limit': horizontalDockLimit(edge, minimum) } as CSSProperties)
+                      : undefined
+                  }
+                />
+              );
+            })}
+          <div key="game" className={styles.game}>
+            {children}
+          </div>
+          {controller.desktop && (
+            <div
+              ref={(element) => {
+                if (element) regions.current.floating = element;
+                else delete regions.current.floating;
+              }}
+              className={styles.floating}
+            />
+          )}
+          {controller.desktop &&
+            controller.tools.map((tool) => (
+              <ToolPanel key={tool.id} controller={controller} tool={tool} regions={regions} />
+            ))}
         </div>
-        {controller.desktop && (
-          <div
-            ref={(element) => {
-              if (element) regions.current.floating = element;
-              else delete regions.current.floating;
-            }}
-            className={styles.floating}
-          />
-        )}
-        {controller.desktop &&
-          controller.tools.map((tool) => (
-            <ToolPanel key={tool.id} controller={controller} tool={tool} regions={regions} />
-          ))}
       </div>
     </GameToolsContext.Provider>
   );

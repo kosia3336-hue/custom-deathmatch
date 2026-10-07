@@ -1,6 +1,9 @@
 .meowTile {
   height: 80px;
 }
+.input {
+  flex-shrink: 0;
+}
 .rack :global(.skin-meow-sprite-count) {
   font-size: 11px;
 }

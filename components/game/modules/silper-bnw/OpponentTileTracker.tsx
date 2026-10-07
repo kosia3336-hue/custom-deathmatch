@@ -60,57 +60,52 @@ export default function OpponentTileTracker({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-5 gap-1">
+      <div className="space-y-1.5">
         {SBNW_TILES.map((tile) => (
-          <div key={tile} className="flex min-w-0 flex-col items-center gap-1">
-            <div className="flex items-center gap-1 text-xs">
-              <strong>{tile}</strong>
-              <span className="text-cdm-fg-muted">×</span>
-              <input
-                key={`${round}-${tile}-${note[tile]}`}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={SBNW_INITIAL_TILES[tile]}
-                step={1}
-                defaultValue={note[tile]}
-                aria-label={`${tile} 타일 추리값`}
-                onFocus={(event) => event.currentTarget.select()}
-                onBlur={(event) => {
-                  const raw = event.currentTarget.value;
-                  const value = Number(raw);
-                  if (raw !== '' && Number.isInteger(value)) {
-                    const normalized = Math.max(0, Math.min(SBNW_INITIAL_TILES[tile], value));
-                    event.currentTarget.value = String(normalized);
-                    setNote(tile, normalized);
-                  } else event.currentTarget.value = String(note[tile]);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') event.currentTarget.blur();
-                }}
-                className="border-cdm-border w-6 [appearance:textfield] rounded border bg-transparent py-0.5 text-center text-xs font-semibold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-            </div>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                aria-label={`${tile} 감소`}
-                disabled={note[tile] <= 0}
-                onClick={() => setNote(tile, note[tile] - 1)}
-                className={`border-cdm-border h-7 w-6 rounded border text-base disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
-              >
-                −
-              </button>
-              <button
-                type="button"
-                aria-label={`${tile} 증가`}
-                disabled={note[tile] >= SBNW_INITIAL_TILES[tile]}
-                onClick={() => setNote(tile, note[tile] + 1)}
-                className={`border-cdm-border h-7 w-6 rounded border text-base disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
-              >
-                +
-              </button>
-            </div>
+          <div key={tile} className="flex items-center gap-2 text-xs">
+            <strong className="w-4">{tile}:</strong>
+            <button
+              type="button"
+              aria-label={`${tile} 감소`}
+              disabled={note[tile] <= 0}
+              onClick={() => setNote(tile, note[tile] - 1)}
+              className={`border-cdm-border flex h-6 w-6 items-center justify-center rounded border text-sm font-bold disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
+            >
+              −
+            </button>
+            <input
+              key={`${round}-${tile}-${note[tile]}`}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={SBNW_INITIAL_TILES[tile]}
+              step={1}
+              defaultValue={note[tile]}
+              aria-label={`${tile} 타일 추리값`}
+              onFocus={(event) => event.currentTarget.select()}
+              onBlur={(event) => {
+                const raw = event.currentTarget.value;
+                const value = Number(raw);
+                if (raw !== '' && Number.isInteger(value)) {
+                  const normalized = Math.max(0, Math.min(SBNW_INITIAL_TILES[tile], value));
+                  event.currentTarget.value = String(normalized);
+                  setNote(tile, normalized);
+                } else event.currentTarget.value = String(note[tile]);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') event.currentTarget.blur();
+              }}
+              className="w-6 [appearance:textfield] border-0 bg-transparent py-0.5 text-center text-sm font-bold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <button
+              type="button"
+              aria-label={`${tile} 증가`}
+              disabled={note[tile] >= SBNW_INITIAL_TILES[tile]}
+              onClick={() => setNote(tile, note[tile] + 1)}
+              className={`border-cdm-border flex h-6 w-6 items-center justify-center rounded border text-sm font-bold disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
+            >
+              +
+            </button>
           </div>
         ))}
       </div>

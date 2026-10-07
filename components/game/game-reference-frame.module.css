@@ -27,9 +27,6 @@
   flex-direction: column;
   gap: 4px;
   margin-top: 4px;
-  max-height: var(--game-notes-max-height, 30dvh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 .references {
   min-width: 0;
@@ -53,9 +50,4 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--cdm-fg-muted);
-}
-@media (max-height: 700px) {
-  .notes {
-    max-height: var(--game-notes-max-height, 25dvh);
-  }
 }

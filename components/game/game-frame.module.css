@@ -2,6 +2,14 @@
   게임 화면 공통 뼈대. 자세한 규약은 GameFrame.tsx 주석에 있다.
 */
 
+.frame {
+  --game-stage-min-height: 320px;
+}
+@media (min-width: 1024px) {
+  .frame {
+    --game-stage-min-height: 360px;
+  }
+}
 .stage {
   position: relative;
   display: flex;
@@ -12,7 +20,7 @@
   justify-content: center;
 
   /*
-    무대의 크기를 자식이 cqw/cqh 로 읽는다. 판을 '남은 높이에 맞춰' 줄이려면
+    무대의 크기를 자식이 cqw/cqh 로 읽는다. 판을 '확보된 높이에 맞춰' 줄이려면
     남은 높이를 숫자로 알아야 하는데, 그 값을 CSS 로 얻는 길이 이것뿐이다.
     dvh 로 어림잡던 기존 방식(62dvh 따위)은 머리말·조작부 높이를 모르니
     화면마다 어긋난다.
@@ -25,12 +33,10 @@
 }
 
 /*
-  컨테이너 질의를 못 쓰는 브라우저에서는 무대가 0 이 되어 판이 사라진다.
-  그럴 때만 예전처럼 화면 높이로 어림잡는다 — 정확하진 않아도 보이긴 한다.
+  컨테이너 질의를 못 쓰는 브라우저도 확보한 판 높이를 제한하지 않는다.
 */
 @supports not (container-type: size) {
   .stage {
     container-type: normal;
-    max-height: 68dvh;
   }
 }
