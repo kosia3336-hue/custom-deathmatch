@@ -283,7 +283,6 @@ function BNW2View({
       `}</style>
 
       <GameReferenceFrame
-        baseSkin={!isShowdown}
         /* 트랙이 세로로 길어 뼈대 여백까지 아껴야 한 화면에 들어간다. */
         className={`gap-1.5 p-1.5 ${isShowdown ? 'skin-showdown-stage-content' : ''}`}
         controls={

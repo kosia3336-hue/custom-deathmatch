@@ -151,10 +151,7 @@ function WinningStreakView({
       )}
 
       <GameReferenceFrame reference={<WinningStreakSidePanel gameData={gameData} myId={myId} />}>
-        <div
-          data-game-panel
-          className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-white p-3"
-        >
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-gray-200 bg-white p-3">
           {isCardSelect && (
             <div className="w-full">
               {' '}

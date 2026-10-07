@@ -175,7 +175,6 @@ function GrapeSugar2View({
         />
       )}
       <GameReferenceFrame
-        baseSkin={!isCandy}
         className={isCandy ? 'skin-candy-field' : undefined}
         reference={
           <GameInfoStack>

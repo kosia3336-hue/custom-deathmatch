@@ -301,7 +301,6 @@ function SilperBnwView({
       `}</style>
 
       <GameReferenceFrame
-        baseSkin={!isMeow}
         className={isMeow ? 'skin-meow-field' : undefined}
         reference={
           <SilperSidePanel

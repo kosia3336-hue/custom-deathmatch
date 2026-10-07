@@ -113,10 +113,7 @@ function SeedSeotdaView({
         </>
       }
     >
-      <main
-        data-game-panel
-        className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid h-full w-full grid-cols-2 content-center items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4 lg:grid-cols-1"
-      >
+      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid h-full w-full grid-cols-2 content-center items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4 lg:grid-cols-1">
         <div className="order-first col-span-2 text-center lg:order-1 lg:col-span-1">
           <p className="text-cdm-fg-subtle text-[11px] leading-3 font-bold tracking-[0.14em]">
             SEED

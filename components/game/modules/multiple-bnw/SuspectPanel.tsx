@@ -42,10 +42,7 @@ export default function SuspectPanel({
   const canSucceed = multipleTiles.length > 0;
 
   return (
-    <div
-      data-game-panel
-      className="mbnw-panel mbnw-suspect-panel flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
-    >
+    <div className="mbnw-panel mbnw-suspect-panel flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
       {firstSuspectFailed && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
           선플 배수의심 실패 — 보너스 +1점 획득

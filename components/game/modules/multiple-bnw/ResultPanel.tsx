@@ -40,10 +40,7 @@ export default function ResultPanel({
   const hasSuspectWinner = entries.some(([, pr]) => pr.suspectSuccess === true);
 
   return (
-    <div
-      data-game-panel
-      className="mbnw-panel mbnw-result-panel flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4"
-    >
+    <div className="mbnw-panel mbnw-result-panel flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
       <p className="mbnw-panel-title text-center text-sm font-semibold text-indigo-800">
         라운드 {round} 결과
       </p>

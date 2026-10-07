@@ -18,7 +18,6 @@ export function GameReferenceFrame({
   children,
   className,
   historyAboveStage = false,
-  baseSkin = true,
 }: {
   reference: ReactNode;
   info?: ReactNode;
@@ -27,8 +26,6 @@ export function GameReferenceFrame({
   className?: string;
   /** 넘버4처럼 모바일 기록은 점수 바로 아래, 추리는 게임판 아래에 둔다. */
   historyAboveStage?: boolean;
-  /** 별도 스킨의 외곽선은 해당 스킨이 관리한다. */
-  baseSkin?: boolean;
 }) {
   const parent = useGameToolsRegistration();
   const desktop = parent?.desktop ?? false;
@@ -76,7 +73,7 @@ export function GameReferenceFrame({
         <GameReferenceParts tone="light">{reference}</GameReferenceParts>
       </GameToolsContext.Provider>
       <GameFrame
-        className={`${baseSkin ? styles.base : ''} ${className ?? ''}`}
+        className={className}
         info={
           <>
             {info}

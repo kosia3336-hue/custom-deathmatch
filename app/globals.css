@@ -63,9 +63,6 @@
 
   --cdm-border: #e2e8f0;
   --cdm-border-strong: #cbd5e1;
-  /* 기본 게임 스킨: 드림샵처럼 정보 패널 바깥을 선명한 한 겹으로 구분한다. */
-  --cdm-game-frame-width: 3px;
-  --cdm-game-frame-color: var(--cdm-fg);
 
   --cdm-fg: #0f172a;
   --cdm-fg-muted: #64748b;

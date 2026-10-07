@@ -76,14 +76,6 @@
   min-width: 0;
   flex-shrink: 0;
 }
-
-.base .panel {
-  border: var(--cdm-game-frame-width) solid var(--cdm-game-frame-color);
-}
-.base .panel :global(.game-info-part) {
-  border: 0;
-  box-shadow: none;
-}
 .host {
   display: contents;
 }

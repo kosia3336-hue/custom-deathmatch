@@ -277,9 +277,7 @@ export default function GameShell({ children }: Props) {
           skinTheme ? `skin-bg-${skinTheme}` : ''
         }`}
       >
-        <GameToolsWorkspace controller={tools} baseSkin={!skinMeta}>
-          {children}
-        </GameToolsWorkspace>
+        <GameToolsWorkspace controller={tools}>{children}</GameToolsWorkspace>
         {/* 재연결 대기 오버레이 */}
         {reconnectingPlayers.length > 0 && (
           <div className="absolute inset-0 z-(--cdm-z-overlay) flex items-center justify-center bg-black/50 backdrop-blur-sm">
