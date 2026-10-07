@@ -128,6 +128,7 @@ function QuatroView({
 
   return (
     <GameReferenceFrame
+      baseSkin={!isFourCard}
       controls={
         me && (
           <>

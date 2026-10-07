@@ -213,6 +213,7 @@ function MultipleBnwView({
   return (
     <>
       <GameReferenceFrame
+        baseSkin={!isInkWash}
         className={isInkWash ? 'skin-ink-wash-field' : undefined}
         historyAboveStage
         reference={
@@ -235,7 +236,10 @@ function MultipleBnwView({
           <div className="mbnw-stage-content w-full max-w-lg space-y-3">
             {/* Color reveal badges */}
             {gameData.colorReveal && (
-              <div className="mbnw-panel mbnw-color-reveal flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3">
+              <div
+                data-game-panel
+                className="mbnw-panel mbnw-color-reveal flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-white p-3"
+              >
                 {/* First player color */}
                 {gameData.colorReveal.firstPlayerColor && (
                   <div
@@ -282,7 +286,10 @@ function MultipleBnwView({
               ['tileSubmit', 'tileRespond', 'suspectFirst', 'suspectSecond'].includes(
                 gameData.phase,
               ) && (
-                <div className="mbnw-panel mbnw-waiting-card flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400">
+                <div
+                  data-game-panel
+                  className="mbnw-panel mbnw-waiting-card flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-6 text-sm text-gray-400"
+                >
                   <WaitingDots />
                   <span className="ml-1">플레이어들이 선택 중...</span>
                 </div>

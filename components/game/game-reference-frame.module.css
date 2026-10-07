@@ -1,6 +1,23 @@
 .score {
   margin-top: 4px;
 }
+
+/* 굵은 선은 바깥 한 겹만. 점수 칸·탭·타일 등 내부 경계는 기존 선을 유지한다. */
+.base .score :global(.game-info-part),
+.base .history,
+.base .references,
+.base :global([data-game-panel]) {
+  border: var(--cdm-game-frame-width) solid var(--cdm-game-frame-color);
+}
+.base .history {
+  border-radius: var(--cdm-radius-lg);
+  background: var(--cdm-bg-elev-1);
+}
+.base .history :global(.game-info-part) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .score :global(.game-info-part) {
   padding: 8px;
 }

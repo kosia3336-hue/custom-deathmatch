@@ -67,6 +67,7 @@ export default function GameLayout({ ctx }: Props) {
   return (
     <>
       <GameReferenceFrame
+        baseSkin={ctx.skin == null}
         reference={<BankReference ctx={ctx} />}
         className="bank-layout bank-layout-mobile"
         /*

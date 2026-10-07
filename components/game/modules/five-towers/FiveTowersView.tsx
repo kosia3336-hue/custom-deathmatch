@@ -198,6 +198,7 @@ function FiveTowersView({
       />
 
       <GameReferenceFrame
+        baseSkin={skin == null}
         reference={
           <GameInfoStack>
             <GameInfoPart title="점수" sizeToContent>

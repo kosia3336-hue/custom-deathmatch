@@ -22,9 +22,12 @@ const LABELS = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽
 export default function GameToolsWorkspace({
   controller,
   children,
+  baseSkin = true,
 }: {
   controller: GameToolsController;
   children: ReactNode;
+  /** 별도 스킨을 선택하면 해당 스킨의 창 외곽선을 유지한다. */
+  baseSkin?: boolean;
 }) {
   const regions = useRef<DockRegions>({});
   useDockWheel(regions, controller.desktop);
@@ -33,7 +36,9 @@ export default function GameToolsWorkspace({
       {controller.desktop && controller.reference && (
         <GameReferenceParts key={controller.scope}>{controller.reference}</GameReferenceParts>
       )}
-      <div className={controller.desktop ? styles.workspace : styles.mobile}>
+      <div
+        className={`${controller.desktop ? styles.workspace : styles.mobile} ${baseSkin ? styles.base : ''}`}
+      >
         {controller.desktop &&
           (['top', 'left', 'right', 'bottom'] as const).map((edge) => {
             const minimum = Math.max(

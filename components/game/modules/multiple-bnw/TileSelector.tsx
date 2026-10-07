@@ -30,7 +30,10 @@ export default function TileSelector({
   };
 
   return (
-    <div className="mbnw-panel mbnw-tile-selector flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
+    <div
+      data-game-panel
+      className="mbnw-panel mbnw-tile-selector flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4"
+    >
       {actionType === 'respondTile' && firstColor && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">선플 타일:</span>

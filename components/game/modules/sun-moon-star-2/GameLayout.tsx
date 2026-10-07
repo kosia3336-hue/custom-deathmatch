@@ -96,6 +96,7 @@ export default function GameLayout({ ctx }: Props) {
   return (
     <>
       <GameReferenceFrame
+        baseSkin={!dalmaji}
         reference={<SunMoonStarReference ctx={ctx} />}
         controls={powderInput}
         /* 이 게임은 입력판이 커서 뼈대 여백까지 아껴야 한 화면에 들어간다. */
