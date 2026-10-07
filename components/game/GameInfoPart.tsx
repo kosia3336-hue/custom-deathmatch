@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useGameToolRegistration } from '@/hooks/useGameToolRegistration';
 import type { GameTool } from '@/contexts/GameToolsContext';
 import { cn } from '@/lib/utils';
-import { gameReferenceOrder } from '@/lib/gameReferencePolicy';
+import { gameReferenceOrder, gameReferenceKind } from '@/lib/gameReferencePolicy';
 
 const SplitReferenceContext = createContext(false);
 const ReferenceToneContext = createContext<'ink' | 'light'>('ink');
@@ -51,6 +51,7 @@ export function GameInfoPart({
   preferredBodyHeight = 240,
   sizeToContent = false,
   defaultOrder,
+  kind,
 }: {
   title?: ReactNode;
   children: ReactNode;
@@ -61,6 +62,7 @@ export function GameInfoPart({
   sizeToContent?: boolean;
   /** 게임별 기본 패널 순서. 지정하지 않으면 공통 배치 정책을 따른다. */
   defaultOrder?: number;
+  kind?: GameTool['kind'];
 }) {
   const split = useContext(SplitReferenceContext);
   const tone = useContext(ReferenceToneContext);
@@ -72,8 +74,10 @@ export function GameInfoPart({
             {
               id: `reference:${toolId ?? title}`,
               title: typeof title === 'string' ? title : '판 정보',
+              kind: kind ?? gameReferenceKind(typeof title === 'string' ? title : '판 정보'),
               defaultOrder:
-                defaultOrder ?? gameReferenceOrder(typeof title === 'string' ? title : '판 정보'),
+                defaultOrder ??
+                gameReferenceOrder(typeof title === 'string' ? title : '판 정보', kind),
               preferredBodyHeight,
               sizeToContent,
               content: (
@@ -96,6 +100,7 @@ export function GameInfoPart({
       preferredBodyHeight,
       sizeToContent,
       defaultOrder,
+      kind,
       inheritedClass,
       className,
       children,

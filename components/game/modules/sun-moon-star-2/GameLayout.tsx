@@ -13,6 +13,7 @@ import DalmajiBetPanel from './skins/DalmajiBetPanel';
 import DalmajiMarkRow from './skins/DalmajiMarkRow';
 import DalmajiPowderPanel from './skins/DalmajiPowderPanel';
 import { SunMoonStarReference } from './SunMoonStarReference';
+import styles from './game-layout.module.css';
 
 /** 점수·기록·추리는 독립 창, 표식은 무대, 빛가루 입력은 하단. 모바일 베팅은 접을 수 있는 시트. */
 
@@ -97,9 +98,9 @@ export default function GameLayout({ ctx }: Props) {
     <>
       <GameReferenceFrame
         reference={<SunMoonStarReference ctx={ctx} />}
-        controls={powderInput}
+        controls={powderInput && <div className={styles.powder}>{powderInput}</div>}
         /* 이 게임은 입력판이 커서 뼈대 여백까지 아껴야 한 화면에 들어간다. */
-        className="gap-1.5 p-1.5"
+        className={`gap-1.5 p-1.5 ${styles.frame}`}
         /*
           칩과 단계는 늘 보이게 둔다. 칩을 걸어 겨루는 판이라 양쪽 칩 수는
           '가끔 확인하는 참고' 가 아니라 매 수마다 읽는 값이다. 메모 안으로

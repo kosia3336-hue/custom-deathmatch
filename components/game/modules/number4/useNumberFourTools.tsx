@@ -6,6 +6,7 @@ import { buildNumberFourViewModel } from '@/lib/numberFourView';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { useGameToolsRegistration, type GameTool } from '@/contexts/GameToolsContext';
 import InfoPanel from './InfoPanel';
+import RoundHistory from './RoundHistory';
 import TileTracker from './TileTracker';
 import { useNumberFourNotes } from './useNumberFourNotes';
 import styles from './number-four.module.css';
@@ -28,16 +29,8 @@ export function useNumberFourTools(
   );
   const { notes, round, selectRound, setNote, clearNote } = memo;
   const info = useMemo(
-    () => (
-      <InfoPanel
-        gameData={data}
-        myId={myId}
-        predictions={notes[data.round] ?? {}}
-        compact={!desktop}
-        notes={notes}
-      />
-    ),
-    [data, myId, notes, desktop],
+    () => <InfoPanel gameData={data} myId={myId} predictions={notes[data.round] ?? {}} />,
+    [data, myId, notes],
   );
   const tracker = useMemo(
     () => (
@@ -50,7 +43,7 @@ export function useNumberFourTools(
             round={round}
             currentRound={data.round}
             onSelectRound={selectRound}
-            showTitle={!desktop}
+            showTitle={false}
             skin={skin}
             onSet={(color, value) => setNote(id, color, value)}
             onClear={() => clearNote(id)}
@@ -58,28 +51,37 @@ export function useNumberFourTools(
         ))}
       </div>
     ),
-    [model, spectator, notes, round, data.round, selectRound, desktop, skin, setNote, clearNote],
+    [model, spectator, notes, round, data.round, selectRound, skin, setNote, clearNote],
   );
   const tools = useMemo<GameTool[]>(
     () => [
       {
         id: 'score',
-        title: '점수·라운드 기록',
+        title: '점수판',
+        kind: 'score',
         content: info,
         defaultOrder: 0,
         preferredBodyHeight: 210,
-        mobileSlot: 'info',
+      },
+      {
+        id: 'round-history',
+        title: '라운드 기록',
+        kind: 'history',
+        content: <RoundHistory gameData={data} compact={false} notes={notes} showTitle={false} />,
+        defaultOrder: 20,
+        preferredBodyHeight: 260,
       },
       {
         id: 'tracker',
         title: '메모 - 상대 타일 추리',
         content: tracker,
-        defaultOrder: 10,
+        kind: 'memo',
+        defaultOrder: 30,
         preferredBodyHeight: spectator ? 400 : 260,
         sizeToContent: true,
       },
     ],
-    [info, tracker, spectator],
+    [info, tracker, spectator, data, notes],
   );
   return { desktop, info, tracker, tools, model };
 }

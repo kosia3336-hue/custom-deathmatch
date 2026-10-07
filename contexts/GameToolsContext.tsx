@@ -15,6 +15,8 @@ import { selectGameToolSources } from '@/lib/gameToolsLayout';
 export interface GameTool {
   id: string;
   title: string;
+  /** 반응형 배치에서 점수·기록·자동 카운팅·수동 메모를 구분한다. */
+  kind?: 'score' | 'history' | 'auto' | 'memo';
   content: ReactNode;
   headerActions?: ReactNode;
   headerTitle?: ReactNode;

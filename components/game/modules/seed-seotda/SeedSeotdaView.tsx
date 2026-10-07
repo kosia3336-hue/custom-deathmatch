@@ -17,6 +17,7 @@ import RecordPanel from './RecordPanel';
 import { ResultOverlay } from './ResultOverlay';
 import { SeedChoiceArea } from './SeedChoiceArea';
 import { useSeedSeotdaMarks } from './useSeedSeotdaMarks';
+import styles from './seed-choice.module.css';
 
 function SeedSeotdaView({
   gameData,
@@ -113,17 +114,20 @@ function SeedSeotdaView({
         </>
       }
     >
-      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid h-full w-full grid-cols-2 content-center items-center justify-center gap-1.5 overflow-hidden border p-1.5 sm:gap-3 sm:p-4 lg:grid-cols-1">
-        <div className="order-first col-span-2 text-center lg:order-1 lg:col-span-1">
+      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid h-full w-full grid-cols-3 content-center items-center justify-center gap-1 overflow-hidden border p-1 sm:gap-3 sm:p-4 lg:grid-cols-1 lg:gap-1.5 lg:p-2">
+        <div className="order-1 text-center">
           <p className="text-cdm-fg-subtle text-[11px] leading-3 font-bold tracking-[0.14em]">
             SEED
           </p>
-          <SeedSeotdaCard card={gameData.seedCard} size="md" className="mt-0.5" />
+          <SeedSeotdaCard card={gameData.seedCard} size="md" className={`mt-0.5 ${styles.seed}`} />
           <p className="text-cdm-fg mt-0.5 text-[11px] leading-3 font-black">공용 시드패</p>
         </div>
         <div className="contents">
           {orderedPlayerIds.map((playerId) => (
-            <div key={playerId} className={playerId === myId ? 'lg:order-2' : 'lg:order-0'}>
+            <div
+              key={playerId}
+              className={playerId === myId ? 'order-0 lg:order-2' : 'order-2 lg:order-0'}
+            >
               <PlayerPanel
                 player={gameData.players[playerId]}
                 playerId={playerId}

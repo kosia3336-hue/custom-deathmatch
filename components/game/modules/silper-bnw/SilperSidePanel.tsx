@@ -67,7 +67,7 @@ export function SilperSidePanel({
         )}
       </GameInfoPart>
       {gameData.segmentsHistory.length > 0 && (
-        <GameInfoPart title="지난 세그먼트">
+        <GameInfoPart title="지난 세그먼트" kind="history">
           <div className="text-cdm-fg-muted space-y-1 text-xs">
             {gameData.segmentsHistory.map((segment) => (
               <div key={segment.rematchIndex} className="tabular-nums">

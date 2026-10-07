@@ -13,7 +13,7 @@ import { GAME_IDS } from '@/shared/types/game';
 import SubmitSelector from './SubmitSelector';
 import RevealPanel from './RevealPanel';
 import { WIN_TYPE_LABELS } from './constants';
-import { GameFrame } from '@/components/game/GameFrame';
+import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import styles from './number-four.module.css';
 import TutorialCoach from '@/components/game/TutorialCoach';
@@ -69,12 +69,7 @@ export function NumberFourView({
   onAction: (action: NumberFourAction) => void;
 }) {
   const { setHud } = useRoomLayout();
-  const { desktop, info, tracker, tools, model } = useNumberFourTools(
-    data,
-    myId,
-    isSpectator,
-    skin,
-  );
+  const { tools, model } = useNumberFourTools(data, myId, isSpectator, skin);
   const { player, order } = model;
   useEffect(() => {
     setHud({ round: `${data.round} / ${TOTAL_ROUNDS}R`, order });
@@ -82,11 +77,10 @@ export function NumberFourView({
   }, [data.round, order, setHud]);
   const hint = data.tutorial;
   return (
-    <GameFrame
+    <GameReferenceFrame
       className={styles.frame}
-      info={info}
       controls={
-        hint || !desktop ? (
+        hint ? (
           <div className="flex flex-col items-center gap-2">
             {hint && (
               <TutorialCoach
@@ -108,7 +102,6 @@ export function NumberFourView({
                 className="max-w-[min(100%,720px)]"
               />
             )}
-            {!desktop && <div className="w-full">{tracker}</div>}
           </div>
         ) : undefined
       }
@@ -149,6 +142,6 @@ export function NumberFourView({
           />
         )}
       </div>
-    </GameFrame>
+    </GameReferenceFrame>
   );
 }

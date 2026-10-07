@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { SeedSeotdaGameData } from '@/shared/types/seed-seotda';
 import { useState } from 'react';
+import styles from './seed-choice.module.css';
 
 export function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameData; myId: string }) {
   const sendAction = useGameAction();
@@ -47,40 +48,42 @@ export function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameDat
       <p className="text-cdm-fg text-[11px] leading-4 font-black">
         버릴 패를 고르세요. 버리면 시드패와 남은 한 장으로 겨룹니다.
       </p>
-      <div className="mt-1.5 flex justify-center gap-2">
-        {mine.cards.map((card, index) => (
-          <button
-            key={card?.id ?? index}
-            type="button"
-            className={cn(
-              'rounded-cdm-md border-2 p-0.5 transition focus-visible:outline-2',
-              discardIndex === index
-                ? 'border-cdm-accent bg-cdm-accent-soft outline-cdm-accent'
-                : 'hover:border-cdm-highlight outline-cdm-highlight border-transparent',
-            )}
-            onClick={() => setDiscardIndex(index as 0 | 1)}
-            aria-label={`${index + 1}번째 카드를 버릴 패로 선택`}
+      <div className={styles.choices}>
+        <div className="mt-1.5 flex justify-center gap-2">
+          {mine.cards.map((card, index) => (
+            <button
+              key={card?.id ?? index}
+              type="button"
+              className={cn(
+                'rounded-cdm-md border-2 p-0.5 transition focus-visible:outline-2',
+                discardIndex === index
+                  ? 'border-cdm-accent bg-cdm-accent-soft outline-cdm-accent'
+                  : 'hover:border-cdm-highlight outline-cdm-highlight border-transparent',
+              )}
+              onClick={() => setDiscardIndex(index as 0 | 1)}
+              aria-label={`${index + 1}번째 카드를 버릴 패로 선택`}
+            >
+              <SeedSeotdaCard card={card} size="sm" />
+              <span className="text-cdm-accent mt-0.5 block text-[11px] leading-3 font-black">
+                {discardIndex === index ? '버릴 패' : '선택'}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="mx-auto mt-1.5 grid max-w-md grid-cols-2 gap-2">
+          <Button
+            disabled={discardIndex == null}
+            onClick={() => {
+              if (discardIndex == null) return;
+              sendAction({ type: 'use-seed', discardIndex });
+            }}
           >
-            <SeedSeotdaCard card={card} size="sm" />
-            <span className="text-cdm-accent mt-0.5 block text-[11px] leading-3 font-black">
-              {discardIndex === index ? '버릴 패' : '선택'}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div className="mx-auto mt-1.5 grid max-w-md grid-cols-2 gap-2">
-        <Button
-          disabled={discardIndex == null}
-          onClick={() => {
-            if (discardIndex == null) return;
-            sendAction({ type: 'use-seed', discardIndex });
-          }}
-        >
-          패 버리기
-        </Button>
-        <Button variant="secondary" onClick={() => sendAction({ type: 'skip-seed' })}>
-          버리지 않기
-        </Button>
+            패 버리기
+          </Button>
+          <Button variant="secondary" onClick={() => sendAction({ type: 'skip-seed' })}>
+            버리지 않기
+          </Button>
+        </div>
       </div>
     </section>
   );

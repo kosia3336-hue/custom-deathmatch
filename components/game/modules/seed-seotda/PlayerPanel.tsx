@@ -25,7 +25,7 @@ export function PlayerPanel({
   return (
     <section
       className={cn(
-        'rounded-cdm-lg border p-2.5 text-center transition sm:p-3',
+        'rounded-cdm-lg min-w-0 border p-1 text-center transition sm:p-3 lg:flex lg:items-center lg:justify-center lg:gap-4 lg:p-2',
         current
           ? 'border-cdm-highlight bg-cdm-highlight-soft'
           : 'border-cdm-border bg-cdm-bg-elev-1',

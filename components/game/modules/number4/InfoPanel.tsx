@@ -1,22 +1,16 @@
 'use client';
 
 import type { NumberFourGameData } from '@/shared/types/number4';
-import RoundHistory from './RoundHistory';
 import { TileCount } from './Presentation';
-import type { NumberFourRoundNotes } from '@/lib/numberFourNotes';
 
 export default function InfoPanel({
   gameData,
   myId,
   predictions,
-  compact,
-  notes,
 }: {
   gameData: NumberFourGameData;
   myId: string;
   predictions: Record<string, { white: number; black: number }>;
-  compact: boolean;
-  notes: NumberFourRoundNotes;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -58,7 +52,6 @@ export default function InfoPanel({
           );
         })}
       </section>
-      <RoundHistory gameData={gameData} compact={compact} notes={notes} />
     </div>
   );
 }

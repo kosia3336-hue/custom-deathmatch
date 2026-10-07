@@ -1,73 +1,21 @@
-.layout {
-  container-type: inline-size;
-  position: absolute;
-  inset: 0;
-  margin: 0 auto;
-  width: 100%;
+.frame {
   max-width: 780px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
 }
 .board {
-  flex-shrink: 0;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
-}
-.allocation {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-}
-.history {
-  display: flex;
-  flex-direction: column;
-  min-height: 64px;
-  max-height: 240px;
-  flex: 1;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
-  overflow: hidden;
-}
-.historyBody {
-  min-height: 0;
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 12px;
+  padding: 4px;
 }
-@media (max-width: 639px) {
-  .layout {
-    padding: 8px;
-    gap: 8px;
-  }
-  .allocation {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.board > * {
+  flex-shrink: 0;
 }
-@media (max-height: 700px) and (max-width: 639px) {
-  .layout {
-    gap: 6px;
-  }
-  .board {
-    gap: 6px;
-  }
-  .allocation {
-    gap: 6px;
-  }
-  .allocation > div:last-child {
-    display: contents;
-  }
-  .allocation > div:last-child > div[role='status'] {
-    display: none;
-  }
-}
-
-@container (max-width: 620px) {
-  .allocation {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.allocation {
+  width: 100%;
 }

@@ -1,109 +1,61 @@
 .score {
-  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.score > section {
+  overflow: hidden;
+  border: 1px solid var(--cdm-border);
+  border-radius: 8px;
+  background: var(--cdm-bg-elev-1);
 }
 .score :global(.game-info-part) {
-  padding: 8px;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.scoreContent {
+  padding: 0 8px 8px;
 }
 .score :global(.mbnw-score-row),
 .score :global([data-score-row]) {
   padding: 4px 8px;
 }
-.references {
-  margin-top: 6px;
-  min-width: 0;
-  border: 1px solid var(--cdm-border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--cdm-bg);
-}
-.tabs {
+.notes {
   display: flex;
+  flex-direction: column;
   gap: 4px;
-  overflow-x: auto;
-  padding: 4px;
-  border-bottom: 1px solid var(--cdm-border);
-}
-.tabs button {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  color: var(--cdm-fg-muted);
-}
-.tabs button[aria-selected='true'] {
-  background: var(--cdm-primary-soft);
-  color: var(--cdm-primary);
-}
-.content {
-  height: auto;
-  max-height: clamp(80px, 15dvh, 126px);
+  margin-top: 4px;
+  max-height: var(--game-notes-max-height, 30dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.content[hidden] {
-  display: none;
+.references {
+  min-width: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--cdm-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--cdm-bg-elev-1);
+}
+.content {
+  padding: 6px 8px;
 }
 .content :global(.game-info-part) {
   border: 0;
   border-radius: 0;
-  padding: 8px;
+  padding: 0;
   box-shadow: none;
-}
-.content :global(.game-info-part > div:first-child.text-xs) {
-  margin-bottom: 4px;
-}
-@media (max-height: 700px) {
-  .content {
-    max-height: 80px;
-  }
-}
-
-.content[data-size-to-content='true'] {
-  height: auto;
-  max-height: 28dvh;
-}
-
-.history {
-  margin-top: 6px;
-  max-height: 96px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.history :global(.game-info-part) {
-  padding: 8px;
-}
-@media (max-height: 700px) {
-  .history {
-    max-height: 60px;
-  }
-}
-
-.content.stackedContent[data-size-to-content='true'] {
-  max-height: none;
-  overflow: visible;
-}
-
-.independentReferences {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-}
-.independentReferences > .references {
-  margin-top: 0;
 }
 .panelHeading {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--cdm-border);
   font-size: 11px;
   font-weight: 600;
   color: var(--cdm-fg-muted);
 }
-.content.independentContent {
-  max-height: clamp(60px, 12dvh, 100px);
-}
-.content.independentContent[data-size-to-content='true'] {
-  max-height: min(156px, 25dvh);
+@media (max-height: 700px) {
+  .notes {
+    max-height: var(--game-notes-max-height, 25dvh);
+  }
 }

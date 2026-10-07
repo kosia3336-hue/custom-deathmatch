@@ -11,10 +11,12 @@ export default function RoundHistory({
   gameData,
   compact,
   notes,
+  showTitle = true,
 }: {
   gameData: NumberFourGameData;
   compact: boolean;
   notes: NumberFourRoundNotes;
+  showTitle?: boolean;
 }) {
   const list = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -30,9 +32,11 @@ export default function RoundHistory({
           : 'flex min-h-0 min-w-0 flex-1 flex-col'
       }
     >
-      <div className="text-cdm-fg-muted flex shrink-0 flex-wrap items-center justify-between gap-1 text-[11px] font-semibold">
-        <span>라운드 기록</span>
-      </div>
+      {showTitle && (
+        <div className="text-cdm-fg-muted flex shrink-0 flex-wrap items-center justify-between gap-1 text-[11px] font-semibold">
+          <span>라운드 기록</span>
+        </div>
+      )}
       <div
         ref={list}
         tabIndex={0}

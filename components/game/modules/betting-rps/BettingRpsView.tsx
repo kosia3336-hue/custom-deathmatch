@@ -10,6 +10,8 @@ import RoundHistoryTable from './RoundHistoryTable';
 import { useDreamshopAudio } from './skins/useDreamshopAudio';
 import skinStyles from './skins/dreamshop.module.css';
 import styles from './betting-rps.module.css';
+import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
+import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 export default function BettingRpsView({
   gameData,
   myId,
@@ -28,18 +30,34 @@ export default function BettingRpsView({
   useDreamshopAudio(dreamshop);
   const view = buildBettingRpsView(gameData, myId, isSpectator);
   return (
-    <div
-      className={`${styles.layout} ${dreamshop ? skinStyles.dreamshop : ''}`}
-      data-betting-rps
-      data-skin={dreamshop ? 'dreamshop' : undefined}
+    <GameReferenceFrame
+      className={`${styles.frame} ${dreamshop ? skinStyles.dreamshop : ''}`}
+      reference={
+        <GameInfoStack className={dreamshop ? skinStyles.dreamshop : undefined}>
+          <GameInfoPart title="점수판" sizeToContent>
+            <PlayerStatusCard
+              players={gameData.players}
+              myId={myId}
+              round={gameData.round}
+              isSpectator={isSpectator}
+            />
+          </GameInfoPart>
+          <GameInfoPart title="라운드 기록">
+            <RoundHistoryTable
+              history={gameData.roundHistory}
+              players={gameData.players}
+              myId={isSpectator ? '' : myId}
+            />
+          </GameInfoPart>
+        </GameInfoStack>
+      }
     >
-      <section className={styles.board} aria-label="베팅 가위바위보 게임판">
-        <PlayerStatusCard
-          players={gameData.players}
-          myId={myId}
-          round={gameData.round}
-          isSpectator={isSpectator}
-        />
+      <section
+        className={styles.board}
+        aria-label="베팅 가위바위보 게임판"
+        data-betting-rps
+        data-skin={dreamshop ? 'dreamshop' : undefined}
+      >
         {view.canChoose && (
           <RoleSelector
             disabled={disabled}
@@ -80,18 +98,6 @@ export default function BettingRpsView({
           <RevealPanel key={gameData.round} gameData={gameData} dreamshop={dreamshop} />
         )}
       </section>
-      <section className={styles.history} aria-label="라운드 기록">
-        <h2 className="shrink-0 border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">
-          라운드 기록
-        </h2>
-        <div className={styles.historyBody}>
-          <RoundHistoryTable
-            history={gameData.roundHistory}
-            players={gameData.players}
-            myId={isSpectator ? '' : myId}
-          />
-        </div>
-      </section>
-    </div>
+    </GameReferenceFrame>
   );
 }

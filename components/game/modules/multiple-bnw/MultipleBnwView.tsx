@@ -217,7 +217,6 @@ function MultipleBnwView({
     <>
       <GameReferenceFrame
         className={isInkWash ? 'skin-ink-wash-field' : undefined}
-        historyAboveStage
         reference={
           <MultipleBnwSidePanel
             gameData={gameData}

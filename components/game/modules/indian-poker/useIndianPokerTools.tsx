@@ -2,56 +2,46 @@
 
 import { useMemo } from 'react';
 import type { IndianPokerGameData } from '@/shared/types/indian-poker';
-import { useGameToolsRegistration, type GameTool } from '@/contexts/GameToolsContext';
+import { type GameTool } from '@/contexts/GameToolsContext';
 import Scoreboard from './Scoreboard';
 import RoundHistory from './RoundHistory';
 
 export function useIndianPokerTools(data: IndianPokerGameData, myId: string) {
-  const desktop = useGameToolsRegistration()?.desktop ?? false;
   const score = useMemo(
-    () => <Scoreboard data={data} myId={myId} showTitle={!desktop} />,
-    [data, myId, desktop],
+    () => <Scoreboard data={data} myId={myId} showTitle={false} />,
+    [data, myId],
   );
   const history = useMemo(
     () => (
       <RoundHistory
         roundHistory={data.roundHistory}
         players={data.players}
-        compact={!desktop}
-        showTitle={!desktop}
+        compact={false}
+        showTitle={false}
       />
     ),
-    [data.roundHistory, data.players, desktop],
-  );
-  const info = useMemo(
-    () => (
-      <div className="flex min-w-0 flex-col gap-2">
-        {score}
-        {history}
-      </div>
-    ),
-    [score, history],
+    [data.roundHistory, data.players],
   );
   const tools = useMemo<GameTool[]>(
     () => [
       {
         id: 'score',
         title: '플레이어 점수판',
+        kind: 'score',
         content: score,
         defaultOrder: 0,
         sizeToContent: true,
-        mobileSlot: 'info',
       },
       {
         id: 'round-history',
         title: '라운드 기록',
+        kind: 'history',
         content: history,
-        defaultOrder: 10,
+        defaultOrder: 20,
         preferredBodyHeight: 240,
-        mobileSlot: 'info',
       },
     ],
     [score, history],
   );
-  return { info, tools };
+  return { tools };
 }

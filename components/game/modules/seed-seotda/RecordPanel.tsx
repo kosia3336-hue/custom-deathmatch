@@ -49,7 +49,7 @@ export default function RecordPanel({
         {data.rounds.length === 0 ? (
           <p className="text-cdm-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
         ) : (
-          <ul className="max-h-64 space-y-1 overflow-y-auto">
+          <ul className="space-y-1">
             {[...data.rounds].reverse().map((round) => {
               const winner = name(round.winnerId);
               return (
@@ -105,8 +105,8 @@ export default function RecordPanel({
       </GameInfoPart>
 
       <GameInfoPart title="카운팅">
-        {/* 다섯 칸씩 네 줄. 칸이 폭을 정하므로 좁은 화면에서도 꽉 찬다. */}
-        <div className="grid grid-cols-5 gap-1">
+        {/* 모바일은 자동 카운팅을 낮게 표시해 게임판 높이를 확보한다. */}
+        <div className="grid grid-cols-10 gap-1 lg:grid-cols-5">
           {DECK.map((card) => {
             const known = seen.includes(card.id);
             const marked = known || marks.includes(card.id);

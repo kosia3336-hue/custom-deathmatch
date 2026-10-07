@@ -89,7 +89,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
   }
 
   return (
-    <div className="grid grid-cols-5 gap-2 sm:gap-3">
+    <div className="grid h-full min-h-0 grid-cols-5 gap-2 sm:gap-3">
       {FT_TOWERS.map((id) => {
         const tower = towers[id];
         const colors = TOWER_COLORS[id];
@@ -99,7 +99,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
         return (
           <div
             key={id}
-            className={`flex flex-col items-stretch overflow-hidden rounded-lg border-2 ${
+            className={`flex min-h-0 flex-col items-stretch overflow-hidden rounded-lg border-2 ${
               isCompleted ? 'border-yellow-400 bg-yellow-50' : colors.border
             } ${isCompleted ? 'opacity-90' : 'bg-white'}`}
           >
@@ -112,7 +112,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
               }}
               onDoubleClick={() => resetTower(id)}
               disabled={isCompleted}
-              className={`flex flex-col items-center justify-center px-1 py-1.5 ${
+              className={`flex shrink-0 items-center justify-center gap-2 px-1 py-1 ${
                 isCompleted ? 'bg-yellow-200 text-yellow-800' : `${colors.bg} ${colors.text}`
               } ${isCompleted ? 'cursor-default' : 'hover:brightness-95'}`}
               title={isCompleted ? '완성된 탑' : '더블클릭/우클릭으로 카운트 초기화'}
@@ -125,7 +125,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
             </button>
 
             {/* 셀 */}
-            <div className="flex flex-col">
+            <div className="flex min-h-0 flex-1 flex-col">
               {Array.from({ length: 10 }, (_, i) => 10 - i).map((level) => {
                 const isFilled = userCount >= level;
                 const isHalf = level === FT_HALF_MILESTONE;
@@ -137,7 +137,7 @@ export default function InferenceField({ towers, gameKey, skin }: InferenceField
                     type="button"
                     onClick={() => setCell(id, level)}
                     disabled={isCompleted}
-                    className={`relative flex h-6 items-center justify-end border-t px-1.5 text-[11px] font-medium transition-all sm:h-7 sm:text-xs ${
+                    className={`relative flex min-h-0 flex-1 items-center justify-end border-t px-1.5 text-[11px] leading-3 font-medium transition-all sm:text-xs ${
                       isCompleted
                         ? 'cursor-default bg-yellow-100 text-yellow-700'
                         : isFilled

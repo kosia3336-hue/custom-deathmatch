@@ -30,6 +30,7 @@ import { GAME_IDS } from '@/shared/types/game';
 import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
 import GameToolsWorkspace from './GameToolsWorkspace';
+import GameHistoryAction from './GameHistoryAction';
 import { gamePanelSkinClass } from './GamePanelSkin';
 import {
   useGameChatChannel,
@@ -74,7 +75,7 @@ export default function GameShell({ children }: Props) {
       {
         id: 'chat',
         title: '방 채팅',
-        defaultOrder: room?.gameId === GAME_IDS.WINNING_STREAK ? 0 : 100,
+        defaultOrder: -10,
         content: <GameRoomChatBody channels={channels} />,
         headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
         headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
@@ -85,7 +86,7 @@ export default function GameShell({ children }: Props) {
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels, skinTheme, room?.gameId],
+    [hud?.memo, channels, skinTheme],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
   const chatUnread = useRoomChatUnread(showChat || tools.desktop);
@@ -179,6 +180,7 @@ export default function GameShell({ children }: Props) {
     setHeaderRight(
       <>
         {hud?.headerAction}
+        <GameHistoryAction tools={tools.tools} desktop={tools.desktop} skin={skinTheme} />
         {hasMemo && (
           <button
             type="button"
@@ -238,6 +240,9 @@ export default function GameShell({ children }: Props) {
     hasMemo,
     chatUnread,
     hud?.headerAction,
+    tools.tools,
+    tools.desktop,
+    skinTheme,
     showRulesShortcut,
     showUndo,
     undoWaiting,

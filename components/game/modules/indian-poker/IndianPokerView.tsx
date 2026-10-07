@@ -7,7 +7,7 @@ import CardArea from './CardArea';
 import BettingPanel from './BettingPanel';
 import HandResult from './HandResult';
 import DeckInfo from './DeckInfo';
-import { GameFrame } from '@/components/game/GameFrame';
+import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { useIndianPokerTools } from './useIndianPokerTools';
 import { buildIndianPokerViewModel } from './viewModel';
@@ -29,7 +29,7 @@ export default function IndianPokerView({
   onAction: (action: IndianPokerAction) => void;
   remaining?: number | null;
 }) {
-  const { info, tools } = useIndianPokerTools(gameData, myId);
+  const { tools } = useIndianPokerTools(gameData, myId);
 
   const model = buildIndianPokerViewModel(gameData, myId, isSpectator);
   const { showShuffle, shuffleAnte, dealStep } = useIndianPokerPresentation(gameData, myId, skin);
@@ -79,8 +79,7 @@ export default function IndianPokerView({
         </div>
       )}
 
-      <GameFrame
-        info={info}
+      <GameReferenceFrame
         tools={tools}
         controls={
           <div className="w-full">
@@ -133,7 +132,7 @@ export default function IndianPokerView({
             </div>
           )}
         </div>
-      </GameFrame>
+      </GameReferenceFrame>
     </>
   );
 }

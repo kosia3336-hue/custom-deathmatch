@@ -1,0 +1,25 @@
+.stage > :first-child {
+  flex: 1;
+  min-height: 0;
+}
+.stage :global(.skin-citadel-field) > :last-child,
+.stage :global(.skin-citadel-towers) {
+  height: 100%;
+  min-height: 0;
+}
+.stage :global(.skin-citadel-tower),
+.stage :global(.skin-citadel-stack) {
+  min-height: 0;
+}
+.stage :global(.skin-citadel-stack) {
+  flex: 1;
+}
+.stage :global(.skin-citadel-cell) {
+  height: auto;
+  min-height: 0;
+  flex: 1;
+}
+.actions > div {
+  gap: 6px;
+  padding: 8px;
+}

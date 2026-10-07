@@ -57,6 +57,7 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
       )}
       <GameInfoPart title="빛가루 트랙" sizeToContent>
         <Track
+          compact
           leftLabel={!isSpectator && myPlayer ? '나' : left.nickname}
           leftStage={left.powderStage}
           leftRemain={

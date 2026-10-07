@@ -8,6 +8,8 @@ import OpponentInferPanel from './OpponentInferPanel';
 import RoundHistoryTable from './RoundHistoryTable';
 import { buildInvestDonateView } from './viewModel';
 import styles from './invest-donate.module.css';
+import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
+import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function InvestDonateView({
   gameData,
@@ -24,14 +26,45 @@ export default function InvestDonateView({
 }) {
   const view = buildInvestDonateView(gameData, myId, isSpectator);
   return (
-    <div className={styles.layout} data-invest-donate>
-      <section className={styles.board} aria-label="투자와 기부 게임판">
-        <PlayerStatusCard
-          players={gameData.players}
-          roundHistory={gameData.roundHistory}
-          myId={myId}
-          isSpectator={isSpectator}
-        />
+    <GameReferenceFrame
+      className={styles.frame}
+      reference={
+        <>
+          <GameInfoPart title="점수판" sizeToContent>
+            <PlayerStatusCard
+              players={gameData.players}
+              roundHistory={gameData.roundHistory}
+              myId={myId}
+              isSpectator={isSpectator}
+            />
+          </GameInfoPart>
+          <GameInfoPart title="상대 남은 코인" kind="auto" defaultOrder={10} sizeToContent>
+            {isSpectator
+              ? view.entries.map(([id, player]) => (
+                  <OpponentInferPanel
+                    key={id}
+                    opponentNickname={player.nickname}
+                    opponentCoinStock={player.coinStock}
+                  />
+                ))
+              : view.opponent && (
+                  <OpponentInferPanel
+                    opponentNickname={view.opponentName}
+                    opponentCoinStock={view.opponent.coinStock}
+                  />
+                )}
+          </GameInfoPart>
+          <GameInfoPart title="라운드 기록">
+            <RoundHistoryTable
+              history={gameData.roundHistory}
+              players={gameData.players}
+              myId={isSpectator ? '' : myId}
+            />
+          </GameInfoPart>
+        </>
+      }
+    >
+      <section className={styles.board} aria-label="투자와 기부 게임판" data-invest-donate>
         {gameData.phase === 'submit' && (
           <div className={styles.allocation}>
             {view.canAct && view.myPlayer && (
@@ -51,20 +84,6 @@ export default function InvestDonateView({
               />
             )}
             <div className="flex min-w-0 flex-col gap-2">
-              {isSpectator
-                ? view.entries.map(([id, player]) => (
-                    <OpponentInferPanel
-                      key={id}
-                      opponentNickname={player.nickname}
-                      opponentCoinStock={player.coinStock}
-                    />
-                  ))
-                : view.opponent && (
-                    <OpponentInferPanel
-                      opponentNickname={view.opponentName}
-                      opponentCoinStock={view.opponent.coinStock}
-                    />
-                  )}
               {(isSpectator || view.myPlayer?.submitted) && (
                 <div
                   role="status"
@@ -82,18 +101,6 @@ export default function InvestDonateView({
         )}
         {gameData.phase !== 'submit' && <RevealPanel key={gameData.round} gameData={gameData} />}
       </section>
-      <section className={styles.history} aria-label="라운드 기록">
-        <h2 className="shrink-0 border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">
-          라운드 기록
-        </h2>
-        <div className={styles.historyBody}>
-          <RoundHistoryTable
-            history={gameData.roundHistory}
-            players={gameData.players}
-            myId={isSpectator ? '' : myId}
-          />
-        </div>
-      </section>
-    </div>
+    </GameReferenceFrame>
   );
 }

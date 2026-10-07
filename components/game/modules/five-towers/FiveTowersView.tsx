@@ -18,6 +18,7 @@ import InferenceField from './InferenceField';
 import { MilestoneOverlay } from './MilestoneOverlay';
 import { WIN_TYPE_LABELS } from './presentation';
 import { ScoreCard } from './ScoreCard';
+import styles from './layout.module.css';
 
 function FiveTowersView({
   gameData,
@@ -222,7 +223,7 @@ function FiveTowersView({
         controls={
           !isSpectator ? (
             <>
-              {desktop && <div>{actionContent}</div>}
+              {desktop && <div className={styles.actions}>{actionContent}</div>}
               {!desktop && isMyTurn && (
                 <button
                   type="button"
@@ -236,7 +237,9 @@ function FiveTowersView({
           ) : undefined
         }
       >
-        <div className="flex h-full min-h-0 w-full max-w-3xl flex-col justify-center gap-2 overflow-hidden">
+        <div
+          className={`${styles.stage} flex h-full min-h-0 w-full max-w-3xl flex-col justify-center gap-2 overflow-hidden`}
+        >
           <InferenceField
             towers={gameData.towers}
             gameKey={gameKey || roomId + '.' + gameData.firstPlayerId}
