@@ -7966,6 +7966,12 @@ html[data-native-app] .site-footer--home {
   background: rgba(109, 102, 91, 0.13) !important;
 }
 
+:is(.skin-ink-wash-field, .skin-ink-wash-memo) .mbnw-tracker-tile--uncertain {
+  border-color: var(--cdm-highlight) !important;
+  color: var(--cdm-highlight-strong) !important;
+  background: var(--cdm-highlight-soft) !important;
+}
+
 :is(.skin-ink-wash-field, .skin-ink-wash-memo) .mbnw-score-row,
 :is(.skin-ink-wash-field, .skin-ink-wash-memo) .mbnw-history-row,
 .skin-ink-wash-field .mbnw-result-player {

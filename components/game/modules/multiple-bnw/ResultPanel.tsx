@@ -115,20 +115,19 @@ export default function ResultPanel({
               <div
                 className={`flex flex-col items-center gap-0.5 transition-all duration-300 ${step >= 3 ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
               >
+                <span
+                  className={`text-sm font-bold ${hasScoreGain ? 'text-blue-600' : 'text-gray-400'}`}
+                >
+                  획득 +{pr.totalScoreChange}점
+                </span>
                 {pr.bonusPoint > 0 && (
-                  <span className="text-[11px] font-semibold text-amber-600">
-                    +{pr.bonusPoint} 보너스
+                  <span className="text-[11px] text-gray-500">
+                    보너스 {pr.bonusPoint}
+                    {pr.normalPoint > 0 &&
+                      ` · ${pr.suspectSuccess ? '의심 성공' : '숫자 승리'} ${pr.normalPoint}`}
                   </span>
                 )}
-                {pr.normalPoint > 0 && (
-                  <span
-                    className={`text-[11px] font-semibold ${pr.suspectSuccess ? 'text-violet-600' : 'text-green-600'}`}
-                  >
-                    +{pr.normalPoint} {pr.suspectSuccess ? '(의심성공)' : ''}
-                  </span>
-                )}
-                {pr.totalScoreChange === 0 && <span className="text-[11px] text-gray-400">+0</span>}
-                <span className="text-sm font-bold text-gray-800">{pr.scoreAfter}점</span>
+                <span className="text-sm font-bold text-gray-800">누적 {pr.scoreAfter}점</span>
               </div>
             </div>
           );

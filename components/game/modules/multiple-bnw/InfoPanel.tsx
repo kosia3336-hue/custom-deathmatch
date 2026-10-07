@@ -45,7 +45,9 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
         {roundHistory.length === 0 && <p className="text-xs">아직 기록이 없습니다.</p>}
         <div className="space-y-1 text-xs">
           {[...roundHistory].reverse().map((r) => {
-            const entries = Object.entries(r.players);
+            const entries = Object.entries(r.players).sort(
+              ([a], [b]) => Number(b === myId) - Number(a === myId),
+            );
             return (
               <div
                 key={r.round}
@@ -53,7 +55,10 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
               >
                 <div className="flex items-center gap-1 font-medium text-gray-500">R{r.round}</div>
                 {entries.map(([pid, pr]) => (
-                  <div key={pid} className="ml-2 flex items-center gap-1 text-gray-600">
+                  <div
+                    key={pid}
+                    className="ml-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-gray-600"
+                  >
                     <span
                       className={`mbnw-history-color mbnw-history-color--${pr.color} rounded px-1 text-[11px] font-bold ${
                         pr.color === 'black'
@@ -63,20 +68,28 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
                     >
                       {pr.color === 'black' ? '흑' : '백'}
                     </span>
-                    <span className="text-[11px] text-gray-500">
+                    <span
+                      className="max-w-20 truncate text-[11px] text-gray-500"
+                      title={players[pid]?.nickname}
+                    >
                       {pid === myId ? '나' : (players[pid]?.nickname ?? pid)}
                     </span>
                     {pr.suspected && (
                       <span className={pr.suspectSuccess ? 'text-green-600' : 'text-red-500'}>
-                        의심
+                        {pr.suspectSuccess === true
+                          ? '의심 성공'
+                          : pr.suspectSuccess === false
+                            ? '의심 실패'
+                            : '판정 대기'}
                       </span>
                     )}
                     <span
-                      className={
+                      title={`의심 실패 보너스 ${pr.bonusPoint}점 + 승리 ${pr.normalPoint}점`}
+                      className={`ml-auto shrink-0 font-semibold ${
                         pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'
-                      }
+                      }`}
                     >
-                      +{pr.bonusPoint + pr.normalPoint}
+                      획득 +{pr.bonusPoint + pr.normalPoint}점
                     </span>
                   </div>
                 ))}

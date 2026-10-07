@@ -7,8 +7,8 @@ import { seatStage, turnStage } from '@/lib/gameSeat';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { josa } from '@/shared/lib/josa';
 import type { MBNWSuspectResult, MBNWTile, MultipleBnwGameData } from '@/shared/types/multiple-bnw';
-import { MBNW_TOTAL_ROUNDS } from '@/shared/types/multiple-bnw';
-import { memo, useEffect, useRef, useState } from 'react';
+import { MBNW_TILE_SET, MBNW_TOTAL_ROUNDS } from '@/shared/types/multiple-bnw';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ColorBadge } from './ColorBadge';
 import { MultipleBnwSidePanel } from './MultipleBnwSidePanel';
@@ -21,6 +21,7 @@ import { WIN_TYPE_LABELS } from './constants';
 import { SuspectAnim } from './presentation';
 import InkWashFieldFx from './skins/InkWashFieldFx';
 import styles from './multiple-bnw.module.css';
+import { cycleTileNote, type TileNotes } from './tileTracker';
 
 function MultipleBnwView({
   gameData,
@@ -39,11 +40,13 @@ function MultipleBnwView({
   const isInkWash = skin === 'ink-wash';
 
   // Opponent tile manual tracker (client-side only)
-  const [trackedOpponentUsed, setTrackedOpponentUsed] = useState<MBNWTile[]>([]);
+  const [opponentTileNotes, setOpponentTileNotes] = useState<TileNotes>({});
+  const trackedOpponentUsed = useMemo(
+    () => MBNW_TILE_SET.filter((tile) => opponentTileNotes[tile] === 'used'),
+    [opponentTileNotes],
+  );
   const handleTrackerToggle = (tile: MBNWTile) => {
-    setTrackedOpponentUsed((prev) =>
-      prev.includes(tile) ? prev.filter((t) => t !== tile) : [...prev, tile],
-    );
+    setOpponentTileNotes((previous) => cycleTileNote(previous, tile));
   };
 
   // Suspect animation overlay
@@ -220,7 +223,7 @@ function MultipleBnwView({
             gameData={gameData}
             myId={myId}
             showTracker={showTracker}
-            trackedOpponentUsed={trackedOpponentUsed}
+            opponentTileNotes={opponentTileNotes}
             onTrackerToggle={handleTrackerToggle}
             opponentCurrentColor={opponentCurrentColor}
             inkWash={isInkWash}

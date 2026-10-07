@@ -3,12 +3,13 @@ import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import type { MBNWTile, MBNWTileColor, MultipleBnwGameData } from '@/shared/types/multiple-bnw';
 import InfoPanel from './InfoPanel';
 import OpponentTileTracker from './OpponentTileTracker';
+import type { TileNotes } from './tileTracker';
 
 export function MultipleBnwSidePanel({
   gameData,
   myId,
   showTracker,
-  trackedOpponentUsed,
+  opponentTileNotes,
   onTrackerToggle,
   opponentCurrentColor,
   inkWash,
@@ -16,7 +17,7 @@ export function MultipleBnwSidePanel({
   gameData: MultipleBnwGameData;
   myId: string;
   showTracker: boolean;
-  trackedOpponentUsed: MBNWTile[];
+  opponentTileNotes: TileNotes;
   onTrackerToggle: (tile: MBNWTile) => void;
   opponentCurrentColor: MBNWTileColor | null;
   inkWash: boolean;
@@ -30,7 +31,7 @@ export function MultipleBnwSidePanel({
           sizeToContent
         >
           <OpponentTileTracker
-            markedTiles={trackedOpponentUsed}
+            notes={opponentTileNotes}
             onToggle={onTrackerToggle}
             opponentCurrentColor={opponentCurrentColor}
           />
