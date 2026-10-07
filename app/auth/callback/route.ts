@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { safeNextPath } from '@/lib/safeRedirect';
 
 /**
  * 카카오 OAuth 콜백.
@@ -37,6 +38,6 @@ export async function GET(request: NextRequest) {
   }
 
   // 회원 상태 분기는 middleware 가 처리. 여기선 next 로만 보낸다.
-  const target = next.startsWith('/') ? next : '/lobby';
+  const target = safeNextPath(next, '/lobby');
   return NextResponse.redirect(target);
 }

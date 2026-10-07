@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { safeNextPath } from '@/lib/safeRedirect';
 
 /**
  * 커스텀 카카오 OAuth 시작.
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   kakaoUrl.searchParams.set('response_type', 'code');
   kakaoUrl.searchParams.set('scope', 'profile_nickname'); // 이메일 없이 닉네임만
   // state 에 next 를 담아 CSRF 방지 (프로덕션에선 서명된 nonce 권장)
-  kakaoUrl.searchParams.set('state', next.startsWith('/') ? next : '/');
+  kakaoUrl.searchParams.set('state', safeNextPath(next));
 
   return NextResponse.redirect(kakaoUrl.toString());
 }

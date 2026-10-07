@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { createHmac } from 'crypto';
 import type { CookieOptions } from '@supabase/ssr';
+import { safeNextPath } from '@/lib/safeRedirect';
 
 const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token';
 const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
@@ -99,8 +100,8 @@ export async function GET(request: NextRequest) {
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001').replace(/\/$/, '');
   const redirectUri = `${siteUrl}/auth/kakao/callback`;
 
-  // state 는 next 경로. 상대 경로만 허용해 오픈 리다이렉트 방지.
-  const nextPath = state.startsWith('/') ? state : '/';
+  // state 는 next 경로. 사이트 안 경로만 허용해 오픈 리다이렉트 방지.
+  const nextPath = safeNextPath(state);
   const finalRedirect = new URL(nextPath, siteUrl);
 
   // 세션 쿠키를 응답에 심기 위한 Response 먼저 생성
