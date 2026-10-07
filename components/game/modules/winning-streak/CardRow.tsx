@@ -1,7 +1,6 @@
 'use client';
 import type { WSCardCount, WSCardType } from '@/shared/types/winning-streak';
-import { WinningStreakCard } from './WinningStreakCard';
-import styles from './winning-streak.module.css';
+import { CARD_COLORS } from './constants';
 import { getCardEntries } from './getCardEntries';
 
 export function CardRow({
@@ -15,24 +14,28 @@ export function CardRow({
 }) {
   const entries = getCardEntries(cards);
   return (
-    <div>
+    <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-lg border px-3 py-2">
       {label && (
         <p className="text-cdm-fg-muted mb-1.5 text-xs font-medium uppercase lg:text-sm">{label}</p>
       )}
-      <div className={`${styles.cardGrid} ${styles.remainingGrid}`}>
+      <div className="flex flex-wrap gap-1.5">
         {entries.map(({ type, count }) => {
+          const style = CARD_COLORS[type];
           const isLocked = type === lastPlayed;
           const isEmpty = count <= 0;
           return (
             <div
               key={type}
-              className={`flex flex-col items-center gap-1 ${isEmpty ? 'opacity-30' : isLocked ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium lg:text-sm ${
+                isEmpty
+                  ? 'bg-gray-100 text-gray-300 line-through'
+                  : isLocked
+                    ? 'bg-gray-200 text-gray-500 ring-1 ring-red-300'
+                    : `${style.bg} ${style.text}`
+              }`}
             >
-              <WinningStreakCard card={type} />
-              <span className="text-cdm-fg-muted text-xs font-bold tabular-nums">
-                ×{count}
-                {isLocked && !isEmpty ? ' · 연속 불가' : ''}
-              </span>
+              <span>{style.icon}</span>
+              <span className="font-mono font-bold">×{count}</span>
             </div>
           );
         })}

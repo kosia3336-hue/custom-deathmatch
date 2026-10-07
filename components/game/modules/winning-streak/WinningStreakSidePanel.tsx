@@ -33,7 +33,7 @@ export function WinningStreakSidePanel({
         <RoundHistory history={gameData.roundHistory} players={gameData.players} />
       </GameInfoPart>
       {opponent && (
-        <GameInfoPart title="상대 잔여 카드" preferredBodyHeight={320} className="p-1">
+        <GameInfoPart title="상대 잔여 카드" sizeToContent>
           <CardRow cards={opponent.remainingCards} lastPlayed={opponent.lastPlayedCard} label="" />
         </GameInfoPart>
       )}
