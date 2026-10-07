@@ -74,7 +74,7 @@ export default function GameShell({ children }: Props) {
       {
         id: 'chat',
         title: '방 채팅',
-        defaultOrder: 100,
+        defaultOrder: room?.gameId === GAME_IDS.WINNING_STREAK ? 0 : 100,
         content: <GameRoomChatBody channels={channels} />,
         headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
         headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
@@ -85,7 +85,7 @@ export default function GameShell({ children }: Props) {
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels, skinTheme],
+    [hud?.memo, channels, skinTheme, room?.gameId],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
   const chatUnread = useRoomChatUnread(showChat || tools.desktop);

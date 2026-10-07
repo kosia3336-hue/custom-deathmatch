@@ -2,13 +2,17 @@
 import { useGameAction } from '@/components/game/GameActionContext';
 import GameLoading from '@/components/game/GameLoading';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
+import { BottomSheet } from '@/components/cdm/BottomSheet';
+import { Icon } from '@/components/cdm/Icon';
+import { gamePanelSkinClass } from '@/components/game/GamePanelSkin';
+import { useGameToolsRegistration } from '@/contexts/GameToolsContext';
 import { useGameHud } from '@/hooks/useGameHud';
 import { usePresentationEffect } from '@/hooks/usePresentationEffect';
 import { submitStage } from '@/lib/gameSeat';
 import type { SkinTheme } from '@/lib/skins/registry';
 import type { WinningStreakGameData, WSCardType } from '@/shared/types/winning-streak';
 import { WS_TOTAL_ROUNDS } from '@/shared/types/winning-streak';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CardModal } from './CardModal';
 import { WIN_TYPE_LABELS } from './constants';
@@ -17,11 +21,15 @@ import { MyCardHand } from './MyCardHand';
 import { ModalCard } from './presentation';
 import { RevealArea } from './RevealArea';
 import { WinningStreakSidePanel } from './WinningStreakSidePanel';
+import { WinningStreakScore } from './WinningStreakScore';
+import { CardRow } from './CardRow';
+import { RoundHistory } from './RoundHistory';
 
 function WinningStreakView({
   gameData,
   myId,
   isSpectator = false,
+  skin = null,
 }: {
   gameData?: WinningStreakGameData;
   myId: string;
@@ -32,6 +40,25 @@ function WinningStreakView({
   remaining?: number | null;
 }) {
   const sendAction = useGameAction();
+  const desktop = useGameToolsRegistration()?.desktop ?? false;
+  const [showHistory, setShowHistory] = useState(false);
+  if (desktop && showHistory) setShowHistory(false);
+  const historyAction = useMemo(
+    () =>
+      desktop ? null : (
+        <button
+          type="button"
+          aria-label="라운드 기록"
+          title="라운드 기록"
+          onClick={() => setShowHistory(true)}
+          className="rounded-cdm-md text-cdm-ink-fg-muted flex flex-col items-center gap-0.5 px-1.5 py-1 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+        >
+          <Icon name="memo" />
+          <span className="text-[11px] leading-none font-medium">기록</span>
+        </button>
+      ),
+    [desktop],
+  );
 
   const [modalCard, setModalCard] = useState<ModalCard | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +86,13 @@ function WinningStreakView({
           : undefined;
 
   useGameHud(
-    gameData ? { round: `${gameData.round} / ${WS_TOTAL_ROUNDS}R`, order: phaseLabel } : null,
+    gameData
+      ? {
+          round: `${gameData.round} / ${WS_TOTAL_ROUNDS}R`,
+          order: phaseLabel,
+          headerAction: historyAction,
+        }
+      : null,
   );
 
   const handleCardClick = useCallback(
@@ -129,6 +162,7 @@ function WinningStreakView({
 
   const playerIds = Object.keys(gameData.players);
   const myPlayer = myId ? gameData.players[myId] : null;
+  const opponent = playerIds.filter((id) => id !== myId).map((id) => gameData.players[id])[0];
   const isCardSelect = gameData.phase === 'cardSelect';
   const isRevealing = gameData.phase === 'reveal' || gameData.phase === 'result';
   const isFinished = gameData.phase === 'finished';
@@ -151,8 +185,23 @@ function WinningStreakView({
       )}
 
       <GameReferenceFrame
-        reference={<WinningStreakSidePanel gameData={gameData} myId={myId} />}
-        mobileReferenceLayout="stacked"
+        reference={desktop ? <WinningStreakSidePanel gameData={gameData} myId={myId} /> : null}
+        info={<WinningStreakScore gameData={gameData} myId={myId} />}
+        controls={
+          !desktop && opponent ? (
+            <section
+              aria-label="상대 잔여 카드"
+              className="game-info-part border-cdm-border bg-cdm-bg-elev-1 rounded-lg border p-2"
+            >
+              <div className="text-cdm-fg-muted mb-1 text-[11px] font-semibold">상대 잔여 카드</div>
+              <CardRow
+                cards={opponent.remainingCards}
+                lastPlayed={opponent.lastPlayedCard}
+                label=""
+              />
+            </section>
+          ) : null
+        }
       >
         <div className="flex h-full w-full flex-col items-center justify-start gap-2 overflow-y-auto overscroll-contain rounded-xl border border-gray-200 bg-white p-3">
           {isCardSelect && (
@@ -208,6 +257,14 @@ function WinningStreakView({
           </div>
         )}
       </GameReferenceFrame>
+      <BottomSheet
+        open={!desktop && showHistory}
+        onClose={() => setShowHistory(false)}
+        title="라운드 기록"
+        className={gamePanelSkinClass(skin, true)}
+      >
+        <RoundHistory history={gameData.roundHistory} players={gameData.players} />
+      </BottomSheet>
     </>
   );
 }
