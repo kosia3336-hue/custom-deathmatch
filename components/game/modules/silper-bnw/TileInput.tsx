@@ -6,13 +6,13 @@ import type { SBNWTile } from '@/shared/types/silper-bnw';
 import { useEffect, useRef, useState } from 'react';
 
 import type { SkinTheme } from '@/lib/skins/registry';
+import styles from './tile-input.module.css';
 
 interface Props {
   myTiles: Record<SBNWTile, number>;
   actionType: 'submitFirst' | 'submitSecond';
   label: string;
   firstDigits: number | null;
-  onSlotLengthChange?: (n: number) => void;
   skin?: SkinTheme | null;
 }
 
@@ -46,14 +46,7 @@ function tilesToDisplayValue(items: SlotItem[]): string {
   return v.toString();
 }
 
-export default function TileInput({
-  myTiles,
-  actionType,
-  label,
-  firstDigits,
-  onSlotLengthChange,
-  skin,
-}: Props) {
+export default function TileInput({ myTiles, actionType, label, firstDigits, skin }: Props) {
   const sendAction = useGameAction();
   const isMeow = skin === 'meow';
   const [slot, setSlot] = useState<SlotItem[]>([]);
@@ -92,11 +85,6 @@ export default function TileInput({
   const leadingZeroError = slot.length >= 2 && slot[0].tile === 0;
   const isEmpty = slot.length === 0;
   const canSubmit = !isEmpty && !leadingZeroError;
-
-  // 부모에게 자릿수 알림
-  useEffect(() => {
-    onSlotLengthChange?.(slot.length);
-  }, [slot.length, onSlotLengthChange]);
 
   // 타일 추가 (내부 공통)
   const addTile = (t: SBNWTile) => {
@@ -138,7 +126,10 @@ export default function TileInput({
     const handler = (e: KeyboardEvent) => {
       if (inputRoot.current?.closest('[inert]')) return;
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      // 메모·기록 버튼 조작은 제시 단축키로 처리하지 않는다. 입력판 버튼은 기본 Enter 동작을 사용한다.
+      const button = target.closest('button, [role="button"]');
+      if (button && (!inputRoot.current?.contains(button) || e.key === 'Enter')) return;
 
       if (['0', '1', '2', '3', '4'].includes(e.key)) {
         e.preventDefault();
@@ -225,8 +216,8 @@ export default function TileInput({
         ref={inputRoot}
         className={
           isMeow
-            ? 'skin-meow-panel mx-auto w-full max-w-lg space-y-2 p-3'
-            : 'mx-auto w-full max-w-lg space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-3'
+            ? `${styles.input} skin-meow-panel mx-auto w-full max-w-lg space-y-2 p-3`
+            : `${styles.input} mx-auto w-full max-w-lg space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-3`
         }
       >
         <p
@@ -239,7 +230,7 @@ export default function TileInput({
 
         {firstDigits != null && (
           <div
-            className={`px-3 py-2 text-center ${
+            className={`${styles.hint} px-3 py-2 text-center ${
               isMeow ? 'skin-meow-slot rounded-lg' : 'rounded-lg border border-indigo-200 bg-white'
             }`}
           >
@@ -257,7 +248,7 @@ export default function TileInput({
         )}
 
         {/* 타일 랙 */}
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className={`${styles.rack} grid grid-cols-5 gap-1.5`}>
           {TILE_VALUES.map((t) => {
             const rem = remaining[t];
             const disabled = rem <= 0;
@@ -270,16 +261,14 @@ export default function TileInput({
                 onPointerUp={stopLongPress}
                 onPointerLeave={stopLongPress}
                 disabled={disabled}
-                style={
-                  isMeow ? { height: 80, width: '100%', backgroundSize: 'contain' } : undefined
-                }
+                style={isMeow ? { width: '100%', backgroundSize: 'contain' } : undefined}
                 aria-label={`${t} 타일, ${rem}개 남음`}
                 aria-disabled={disabled}
                 className={
                   isMeow
                     ? [
                         `skin-meow-tile-sprite skin-meow-tile-sprite--${t}`,
-                        'skin-meow-tile-btn select-none',
+                        `${styles.meowTile} skin-meow-tile-btn select-none`,
                         disabled ? 'pointer-events-none' : '',
                       ].join(' ')
                     : [
@@ -316,10 +305,10 @@ export default function TileInput({
         <div
           className={
             isMeow
-              ? `skin-meow-slot p-3 transition-colors duration-200 ${
+              ? `${styles.slot} skin-meow-slot p-3 transition-colors duration-200 ${
                   leadingZeroError ? 'skin-meow-slot--error' : ''
                 }`
-              : `rounded-xl border-2 bg-white p-3 transition-colors duration-200 ${
+              : `${styles.slot} rounded-xl border-2 bg-white p-3 transition-colors duration-200 ${
                   leadingZeroError ? 'border-rose-400 bg-rose-50' : 'border-gray-200'
                 }`
           }
@@ -353,9 +342,7 @@ export default function TileInput({
             )
           ) : (
             <>
-              <div
-                className={`relative flex gap-1 py-1 ${isLongSlot ? 'overflow-x-auto pb-2' : 'flex-wrap'}`}
-              >
+              <div className={`relative flex gap-1 py-1 ${styles.slotRow} overflow-x-auto pb-2`}>
                 {slot.map((item) => {
                   const c = TILE_COLORS[item.tile];
                   return (
@@ -394,14 +381,17 @@ export default function TileInput({
                 )}
               </div>
 
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="text-xs text-gray-600">
-                  = <span className="font-bold text-gray-800 tabular-nums">{displayValue}</span>{' '}
+              <div className={`${styles.valueRow} mt-1.5 flex items-center justify-between gap-1`}>
+                <span className="min-w-0 text-xs text-gray-600">
+                  ={' '}
+                  <span className="font-bold break-all text-gray-800 tabular-nums">
+                    {displayValue}
+                  </span>{' '}
                   <span className="text-gray-400">({slot.length}자리)</span>
                 </span>
                 {badge && (
                   <span
-                    className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold transition-all duration-200 ${badge.cls}`}
+                    className={`shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-semibold transition-all duration-200 ${badge.cls}`}
                   >
                     {badge.text}
                   </span>
@@ -424,13 +414,13 @@ export default function TileInput({
           /* 냥냥: 버튼 왼쪽 빈 공간에 앉아 있는 고양이 (텍스트는 중앙, 발바닥은 우측이라 좌측이 빈다) */
           <div className="relative">
             <div
-              className="skin-meow-cat-img skin-meow-cat-img--left absolute bottom-1.5 left-4 z-10 h-11 w-11"
+              className={`${styles.cat} skin-meow-cat-img skin-meow-cat-img--left absolute bottom-1.5 left-4 z-10 h-11 w-11`}
               aria-hidden
             />
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="skin-meow-submit-sprite"
+              className={`${styles.submit} skin-meow-submit-sprite`}
             >
               <span className="sr-only">제시하기</span>
             </button>

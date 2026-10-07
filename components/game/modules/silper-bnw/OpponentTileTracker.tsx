@@ -1,94 +1,119 @@
 'use client';
 
 import type { SkinTheme } from '@/lib/skins/registry';
-import type { SBNWTile } from '@/shared/types/silper-bnw';
-import { SBNW_INITIAL_TILES } from '@/shared/types/silper-bnw';
-import { useEffect, useState } from 'react';
+import { SBNW_INITIAL_TILES, SBNW_TILES, type SBNWTile } from '@/shared/types/silper-bnw';
+import type { SilperTileNote } from '@/lib/silperTileNotes';
 
-interface Props {
-  /** 상대가 사용한 타일 누적 카운트 */
-  opponentUsed: Record<SBNWTile, number>;
-  rematchIndex: number;
+export default function OpponentTileTracker({
+  note,
+  round,
+  currentRound,
+  selectRound,
+  setNote,
+  clearNote,
+  skin,
+}: {
+  note: SilperTileNote;
+  round: number;
+  currentRound: number;
+  selectRound: (round: number) => void;
+  setNote: (tile: SBNWTile, value: number) => void;
+  clearNote: () => void;
   skin?: SkinTheme | null;
-}
-
-const TILE_VALUES: SBNWTile[] = [0, 1, 2, 3, 4];
-
-export default function OpponentTileTracker({ opponentUsed, rematchIndex, skin }: Props) {
+}) {
   const isMeow = skin === 'meow';
-  const computeAuto = (): Record<SBNWTile, number> => ({
-    0: SBNW_INITIAL_TILES[0] - (opponentUsed[0] ?? 0),
-    1: SBNW_INITIAL_TILES[1] - (opponentUsed[1] ?? 0),
-    2: SBNW_INITIAL_TILES[2] - (opponentUsed[2] ?? 0),
-    3: SBNW_INITIAL_TILES[3] - (opponentUsed[3] ?? 0),
-    4: SBNW_INITIAL_TILES[4] - (opponentUsed[4] ?? 0),
-  });
-
-  const [memo, setMemo] = useState<Record<SBNWTile, number>>(computeAuto);
-
-  // 재대결(새 세그먼트) 시작 시에만 리셋
-  useEffect(() => {
-    setMemo(computeAuto());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rematchIndex]);
-
-  const adjust = (t: SBNWTile, delta: number) => {
-    setMemo((prev) => ({
-      ...prev,
-      [t]: Math.min(SBNW_INITIAL_TILES[t], Math.max(0, prev[t] + delta)),
-    }));
-  };
-
+  const unchanged = SBNW_TILES.every((tile) => note[tile] === SBNW_INITIAL_TILES[tile]);
   return (
-    <div className="space-y-1.5">
-      <p className={`text-xs font-semibold ${isMeow ? 'skin-meow-heading' : 'text-gray-500'}`}>
-        {isMeow ? '🐾 상대 잔여 타일 추정' : '상대 잔여 타일 추정'}
-      </p>
-      {TILE_VALUES.map((t) => {
-        const val = memo[t];
-        const canDec = val > 0;
-        const canInc = val < SBNW_INITIAL_TILES[t];
-        return (
-          <div key={t} className="flex items-center gap-2 text-xs">
-            <span className={`w-4 font-bold ${isMeow ? 'skin-meow-heading' : 'text-gray-700'}`}>
-              {t}:
-            </span>
-            <button
-              onClick={() => adjust(t, -1)}
-              disabled={!canDec}
-              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors ${
-                isMeow
-                  ? 'skin-meow-tracker-btn'
-                  : canDec
-                    ? 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                    : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
-              }`}
-              aria-label={`${t} 감소`}
-            >
-              −
-            </button>
-            <span
-              className={`w-6 text-center text-sm font-bold tabular-nums ${isMeow ? 'skin-meow-heading' : 'text-gray-800'}`}
-            >
-              {val}
-            </span>
-            <button
-              onClick={() => adjust(t, +1)}
-              disabled={!canInc}
-              className={`flex h-6 w-6 items-center justify-center rounded border text-sm font-bold transition-colors ${
-                isMeow
-                  ? 'skin-meow-tracker-btn'
-                  : canInc
-                    ? 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                    : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
-              }`}
-              aria-label={`${t} 증가`}
-            >
-              +
-            </button>
+    <section
+      aria-label={`R${round} 타일 추리`}
+      className={isMeow ? 'skin-meow-heading' : 'text-cdm-fg'}
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-1 text-[11px]">
+        <span className="text-cdm-fg-muted">{round < currentRound ? '이전 기록' : ''}</span>
+        <div className="ml-auto flex items-center gap-1" aria-label="메모 라운드 선택">
+          <button
+            type="button"
+            onClick={clearNote}
+            disabled={unchanged}
+            className="mr-1 px-1 py-1 disabled:opacity-30"
+          >
+            초기화
+          </button>
+          <button
+            type="button"
+            aria-label="이전 라운드 메모"
+            disabled={round <= 1}
+            onClick={() => selectRound(round - 1)}
+            className="border-cdm-border h-7 w-7 rounded border text-base disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <span className="min-w-8 text-center font-semibold">R{round}</span>
+          <button
+            type="button"
+            aria-label="다음 라운드 메모"
+            disabled={round >= currentRound}
+            onClick={() => selectRound(round + 1)}
+            className="border-cdm-border h-7 w-7 rounded border text-base disabled:opacity-30"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-5 gap-1">
+        {SBNW_TILES.map((tile) => (
+          <div key={tile} className="flex min-w-0 flex-col items-center gap-1">
+            <div className="flex items-center gap-1 text-xs">
+              <strong>{tile}</strong>
+              <span className="text-cdm-fg-muted">×</span>
+              <input
+                key={`${round}-${tile}-${note[tile]}`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={SBNW_INITIAL_TILES[tile]}
+                step={1}
+                defaultValue={note[tile]}
+                aria-label={`${tile} 타일 추리값`}
+                onFocus={(event) => event.currentTarget.select()}
+                onBlur={(event) => {
+                  const raw = event.currentTarget.value;
+                  const value = Number(raw);
+                  if (raw !== '' && Number.isInteger(value)) {
+                    const normalized = Math.max(0, Math.min(SBNW_INITIAL_TILES[tile], value));
+                    event.currentTarget.value = String(normalized);
+                    setNote(tile, normalized);
+                  } else event.currentTarget.value = String(note[tile]);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                }}
+                className="border-cdm-border w-6 [appearance:textfield] rounded border bg-transparent py-0.5 text-center text-xs font-semibold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </div>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                aria-label={`${tile} 감소`}
+                disabled={note[tile] <= 0}
+                onClick={() => setNote(tile, note[tile] - 1)}
+                className={`border-cdm-border h-7 w-6 rounded border text-base disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
+              >
+                −
+              </button>
+              <button
+                type="button"
+                aria-label={`${tile} 증가`}
+                disabled={note[tile] >= SBNW_INITIAL_TILES[tile]}
+                onClick={() => setNote(tile, note[tile] + 1)}
+                className={`border-cdm-border h-7 w-6 rounded border text-base disabled:opacity-30 ${isMeow ? 'skin-meow-tracker-btn' : ''}`}
+              >
+                +
+              </button>
+            </div>
           </div>
-        );
-      })}
-    </div>
+        ))}
+      </div>
+    </section>
   );
 }

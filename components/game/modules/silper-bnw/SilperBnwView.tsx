@@ -1,5 +1,4 @@
 'use client';
-import { useGameToolsRegistration } from '@/contexts/GameToolsContext';
 import GameLoading from '@/components/game/GameLoading';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useGameHud } from '@/hooks/useGameHud';
@@ -10,7 +9,6 @@ import type { SBNWGameData } from '@/shared/types/silper-bnw';
 import { SBNW_TOTAL_ROUNDS } from '@/shared/types/silper-bnw';
 import { memo, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { BottomSheet } from './BottomSheet';
 import { DigitHintPanel } from './DigitHintPanel';
 import { WIN_TYPE_LABELS } from './presentation';
 import { RevealPanel } from './RevealPanel';
@@ -18,6 +16,7 @@ import { SilperSidePanel } from './SilperSidePanel';
 import MeowFieldFx from './skins/MeowFieldFx';
 import TileInput from './TileInput';
 import { WaitingCard } from './WaitingCard';
+import { useSilperTileNotes } from './useSilperTileNotes';
 
 function SilperBnwView({
   gameData,
@@ -33,7 +32,6 @@ function SilperBnwView({
   gameKey?: string;
   remaining?: number | null;
 }) {
-  const desktop = useGameToolsRegistration()?.desktop ?? false;
   const isMeow = skin === 'meow';
 
   /* ── 상태 ── */
@@ -51,8 +49,6 @@ function SilperBnwView({
   const [rematchOverlay, setRematchOverlay] = useState<number | null>(null);
   const [winsixOverlay, setWinsixOverlay] = useState<{ winnerNick: string } | null>(null);
   const [revealStep, setRevealStep] = useState(0);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [mySlotLength, setMySlotLength] = useState(0);
 
   /* ── 언마운트 시 라운드 오버레이 타이머 정리 ── */
   /*
@@ -61,6 +57,7 @@ function SilperBnwView({
   const sbRound = gameData?.round ?? 0;
   const sbOppId =
     gameData && myId ? (Object.keys(gameData.players).find((id) => id !== myId) ?? null) : null;
+  const tileNotes = useSilperTileNotes(gameData, sbOppId);
   /* 자리와 단계를 같이 (lib/gameSeat.ts) */
   const sbIsFirst = gameData ? myId === gameData.firstPlayerId : false;
   const sbSeat = isSpectator ? null : sbIsFirst ? '선' : '후';
@@ -93,11 +90,6 @@ function SilperBnwView({
       }
     };
   }, []);
-
-  /* ── 라운드/재대결 전환 시 슬롯 길이 리셋 ── */
-  useEffect(() => {
-    setMySlotLength(0);
-  }, [gameData?.round, gameData?.rematchIndex]);
 
   /* ── 승리 토스트 ── */
   useEffect(() => {
@@ -191,16 +183,6 @@ function SilperBnwView({
     }
   }, [gameData?.phase]);
 
-  /* ── 내 차례 시 바텀시트 자동 열기 ── */
-  useEffect(() => {
-    if (!gameData || isSpectator) return;
-    const isMyTurn =
-      (gameData.phase === 'firstSubmit' && myId === gameData.firstPlayerId) ||
-      (gameData.phase === 'secondSubmit' && myId !== gameData.firstPlayerId);
-    const tid = setTimeout(() => setSheetOpen(isMyTurn), 0);
-    return () => clearTimeout(tid);
-  }, [gameData, myId, isSpectator]);
-
   /* ── 로딩 ── */
   if (!gameData) {
     return (
@@ -235,43 +217,17 @@ function SilperBnwView({
       : 0;
   const firstDigits = gameData.firstHint?.digits ?? null;
 
-  /* ── 내 자릿수 힌트 (선플 대기 중) ── */
-  const myDigitsHint = isFirst && gameData.phase === 'firstSubmit' ? mySlotLength : null;
-
-  /* ── 힌트 패널 key (변경 시 remount → 애니메이션 재생) ── */
-  const hintKey =
-    firstDigits != null
-      ? `hint-${firstDigits}`
-      : myDigitsHint != null
-        ? `my-${myDigitsHint}`
-        : 'empty';
-
   /* ── 제시 입력 영역 ── */
   const inputContent =
     isMyTurn && myPlayer?.tiles ? (
-      <div className="space-y-3">
-        {/* 후플: 모바일 힌트 (BottomSheet 안) */}
-        {!isFirst && firstDigits != null && (
-          <div className="lg:hidden">
-            <DigitHintPanel
-              firstNick={fp?.nickname ?? '선플'}
-              firstDigits={firstDigits}
-              myDigitsHint={null}
-              isFirstSelf={false}
-              meow={isMeow}
-            />
-          </div>
-        )}
-        <TileInput
-          key={`${gameData.rematchIndex}-${gameData.round}-${isFirst ? 'first' : 'second'}`}
-          myTiles={myPlayer.tiles}
-          actionType={isFirst ? 'submitFirst' : 'submitSecond'}
-          label={isFirst ? '타일을 제시하세요 (선플)' : '타일을 제시하세요 (후플)'}
-          firstDigits={firstDigits}
-          onSlotLengthChange={setMySlotLength}
-          skin={skin}
-        />
-      </div>
+      <TileInput
+        key={`${gameData.rematchIndex}-${gameData.round}-${isFirst ? 'first' : 'second'}`}
+        myTiles={myPlayer.tiles}
+        actionType={isFirst ? 'submitFirst' : 'submitSecond'}
+        label={isFirst ? '타일을 제시하세요 (선플)' : '타일을 제시하세요 (후플)'}
+        firstDigits={firstDigits}
+        skin={skin}
+      />
     ) : null;
 
   /* ══════════ JSX ══════════ */
@@ -309,40 +265,23 @@ function SilperBnwView({
             opponentId={sbOppId}
             skin={skin}
             showTracker={!isSpectator}
+            tileNotes={tileNotes}
           />
-        }
-        controls={
-          !isSpectator && isMyTurn ? (
-            <>
-              {desktop && <div>{inputContent}</div>}
-              {!desktop && (
-                <button
-                  type="button"
-                  onClick={() => setSheetOpen(true)}
-                  className={
-                    'w-full py-2 text-sm font-bold text-white lg:hidden ' +
-                    (isMeow ? 'skin-meow-cta' : 'rounded-lg bg-indigo-600')
-                  }
-                >
-                  타일 제시하기
-                </button>
-              )}
-            </>
-          ) : undefined
         }
       >
         <div className="flex h-full min-h-0 w-full max-w-lg flex-col justify-center gap-2 overflow-hidden">
           {isMeow && <MeowFieldFx />}
-          {(gameData.phase === 'firstSubmit' || gameData.phase === 'secondSubmit') && (
+          {!isMyTurn && (gameData.phase === 'firstSubmit' || gameData.phase === 'secondSubmit') && (
             <DigitHintPanel
-              key={hintKey}
+              key={`hint-${firstDigits}`}
               firstNick={fp?.nickname ?? '선플'}
               firstDigits={firstDigits}
-              myDigitsHint={myDigitsHint}
+              myDigitsHint={null}
               isFirstSelf={isFirst}
               meow={isMeow}
             />
           )}
+          {inputContent}
           {isReveal && gameData.revealData ? (
             <RevealPanel
               revealData={gameData.revealData}
@@ -365,15 +304,6 @@ function SilperBnwView({
           ) : null}
         </div>
       </GameReferenceFrame>
-
-      {/* ══ 모바일 바텀시트 ══ */}
-      {!desktop && !isSpectator && (
-        <>
-          <BottomSheet open={sheetOpen && isMyTurn} onClose={() => setSheetOpen(false)}>
-            {inputContent}
-          </BottomSheet>
-        </>
-      )}
 
       {/* ══ 라운드 전환 오버레이 ══ */}
       <div

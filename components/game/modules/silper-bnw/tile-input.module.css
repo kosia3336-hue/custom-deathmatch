@@ -1,0 +1,50 @@
+.meowTile {
+  height: 80px;
+}
+.rack :global(.skin-meow-sprite-count) {
+  font-size: 11px;
+}
+.slotRow > button {
+  flex-shrink: 0;
+}
+@media (max-width: 1023px) and (max-height: 700px) {
+  .input.input {
+    padding: 6px;
+  }
+  .input.input > :not(:last-child) {
+    margin-bottom: 4px;
+  }
+  .input.input > p {
+    display: none;
+  }
+  .hint.hint {
+    padding-block: 2px;
+  }
+  .rack > button {
+    height: 48px;
+    aspect-ratio: auto;
+  }
+  .slot.slot {
+    padding: 4px;
+  }
+  .slotRow.slotRow {
+    padding-block: 0;
+  }
+  .valueRow.valueRow {
+    margin-top: 2px;
+  }
+  .submit.submit {
+    height: 42px;
+    aspect-ratio: auto;
+  }
+  .cat {
+    display: none;
+  }
+  .slotRow > button {
+    height: 32px;
+    width: 32px;
+  }
+  .slot > :first-child {
+    margin-bottom: 2px;
+  }
+}

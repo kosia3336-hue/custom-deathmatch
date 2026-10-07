@@ -2,7 +2,7 @@
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { type SkinTheme } from '@/lib/skins/registry';
 import type { SBNWGameData } from '@/shared/types/silper-bnw';
-import { computeOpponentUsed } from './computeOpponentUsed';
+import type { useSilperTileNotes } from './useSilperTileNotes';
 import OpponentTileTracker from './OpponentTileTracker';
 import { RoundHistoryTable } from './RoundHistoryTable';
 import { ScoreCard } from './ScoreCard';
@@ -13,27 +13,24 @@ export function SilperSidePanel({
   opponentId,
   skin,
   showTracker,
+  tileNotes,
 }: {
   gameData: SBNWGameData;
   myId: string;
   opponentId: string | null;
   skin: SkinTheme | null;
   showTracker: boolean;
+  tileNotes: ReturnType<typeof useSilperTileNotes>;
 }) {
-  const opponentUsed = opponentId ? computeOpponentUsed(gameData.roundHistory, opponentId) : null;
   return (
     <GameInfoStack>
-      {showTracker && opponentUsed && (
+      {showTracker && opponentId && (
         <GameInfoPart
           title="메모 - 상대 타일 추리"
           className="border-0 bg-transparent shadow-none"
           sizeToContent
         >
-          <OpponentTileTracker
-            opponentUsed={opponentUsed}
-            rematchIndex={gameData.rematchIndex}
-            skin={skin}
-          />
+          <OpponentTileTracker {...tileNotes} skin={skin} />
         </GameInfoPart>
       )}
       <GameInfoPart title="점수" sizeToContent>
