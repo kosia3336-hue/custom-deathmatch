@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { SkinTheme } from '@/lib/skins/registry';
+import { gamePanelSkinClass } from './GamePanelSkin';
 import { Icon } from '@/components/cdm';
 import { ReportModal } from '@/components/cdm/ReportModal';
 import RoomParticipants, { type ParticipantReportTarget } from '@/components/room/RoomParticipants';
@@ -14,11 +16,13 @@ export default function GameChatParticipants({
   myId,
   spectatorCount,
   active = true,
+  skin,
 }: {
   room: Room | null | undefined;
   myId: string | null | undefined;
   spectatorCount: number;
   active?: boolean;
+  skin?: SkinTheme | null;
 }) {
   const [open, setOpen] = useState(false);
   if (open && !active) setOpen(false);
@@ -112,10 +116,13 @@ export default function GameChatParticipants({
               role="dialog"
               aria-modal="true"
               aria-labelledby={headingId}
-              className={styles.participants}
+              className={`${styles.participants} ${gamePanelSkinClass(skin, true) ?? ''}`}
               style={position}
             >
-              <div className="border-cdm-border flex shrink-0 items-center justify-between border-b px-4 py-2.5">
+              <div
+                data-panel-header
+                className="border-cdm-border flex shrink-0 items-center justify-between border-b px-4 py-2.5"
+              >
                 <h2 id={headingId} className="text-sm font-bold">
                   참여자 정보
                 </h2>

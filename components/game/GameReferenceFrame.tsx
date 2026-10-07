@@ -96,7 +96,11 @@ export function GameReferenceFrame({
           <>
             {controls}
             {!desktop && references.length > 0 && (
-              <section className={styles.references} aria-label="게임 기록과 메모">
+              <section
+                data-game-reference-panel
+                className={styles.references}
+                aria-label="게임 기록과 메모"
+              >
                 {(!historyAboveStage || references.length > 1) && (
                   <div className={styles.tabs} role="tablist" aria-label="기록·메모 선택">
                     {references.map((tool) => (

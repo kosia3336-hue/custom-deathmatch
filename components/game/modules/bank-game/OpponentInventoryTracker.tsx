@@ -33,13 +33,16 @@ export default function OpponentInventoryTracker() {
   };
 
   return (
-    <div className="bank-tracker space-y-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3">
+    <div
+      data-panel-inset
+      className="bank-tracker border-cdm-border bg-cdm-bg-elev-1 space-y-3 rounded-xl border-2 p-3"
+    >
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-600">상대 잔여 추리</p>
+        <p className="text-cdm-fg-muted text-sm font-semibold">상대 잔여 추리</p>
         <button
           type="button"
           onClick={() => setSpent(buildInitial())}
-          className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+          className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 rounded border px-3 py-1 text-xs font-semibold"
         >
           초기화
         </button>
@@ -53,16 +56,16 @@ export default function OpponentInventoryTracker() {
           return (
             <div
               key={denom}
-              className={`bank-bet-row bank-bet-row--${denom} flex items-center gap-1.5 rounded-lg bg-white px-2 py-1`}
+              className={`bank-bet-row bank-bet-row--${denom} bg-cdm-bg flex items-center gap-1.5 rounded-lg px-2 py-1`}
             >
-              <span className="bank-bet-denom w-16 shrink-0 truncate text-xs font-bold text-gray-500">
+              <span className="bank-bet-denom text-cdm-fg-muted w-16 shrink-0 truncate text-xs font-bold">
                 {style.label}
               </span>
               <button
                 type="button"
                 disabled={val <= 0}
                 onClick={() => adjust(denom, -1)}
-                className="bank-step-action h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="bank-step-action border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-9 w-9 shrink-0 rounded-md border text-lg font-bold disabled:opacity-40"
               >
                 −
               </button>
@@ -75,13 +78,13 @@ export default function OpponentInventoryTracker() {
                   const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
                   setDenom(denom, isNaN(n) ? 0 : n);
                 }}
-                className="bank-quantity-input h-9 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:ring-gray-300 focus:outline-none"
+                className="bank-quantity-input border-cdm-border bg-cdm-bg text-cdm-fg focus:ring-cdm-primary h-9 min-w-0 flex-1 rounded-md border text-center text-base font-bold tabular-nums focus:ring-2 focus:outline-none"
               />
               <button
                 type="button"
                 disabled={val >= max}
                 onClick={() => adjust(denom, +1)}
-                className="bank-step-action h-9 w-9 shrink-0 rounded-md border border-gray-300 bg-white text-lg font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="bank-step-action border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-9 w-9 shrink-0 rounded-md border text-lg font-bold disabled:opacity-40"
               >
                 +
               </button>

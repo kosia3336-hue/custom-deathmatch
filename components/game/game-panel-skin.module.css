@@ -1,0 +1,210 @@
+/* 패널 전용 팔레트. 게임판의 흑백 타일이나 승패 색을 덮어쓰지 않는다. */
+.theme {
+  --cdm-skin-panel-bg: #f8fafc;
+  --cdm-skin-panel-raised: #ffffff;
+  --cdm-skin-panel-header: #eef0f6;
+  --cdm-skin-panel-fg: #0f172a;
+  --cdm-skin-panel-muted: #64748b;
+  --cdm-skin-panel-border: #d2d8e4;
+  --cdm-skin-panel-accent: #4f46e5;
+  --cdm-skin-panel-selected: #e0e7ff;
+  --cdm-skin-panel-texture: none;
+  --cdm-skin-panel-radius: 8px;
+  --cdm-skin-panel-width: 1px;
+  --cdm-skin-panel-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+.ink-wash {
+  --cdm-skin-panel-bg: #f3ebdc;
+  --cdm-skin-panel-raised: #faf6ee;
+  --cdm-skin-panel-header: #e9dfcd;
+  --cdm-skin-panel-fg: #29261f;
+  --cdm-skin-panel-muted: #665d4e;
+  --cdm-skin-panel-border: #b5a78d;
+  --cdm-skin-panel-accent: #a5362a;
+  --cdm-skin-panel-selected: #eee0ca;
+  --cdm-skin-panel-texture: url('/skins/ink-wash/hanji-texture.webp');
+}
+.meow {
+  --cdm-skin-panel-bg: #fff6ec;
+  --cdm-skin-panel-raised: #fffaf3;
+  --cdm-skin-panel-header: #ffe4ec;
+  --cdm-skin-panel-fg: #68452f;
+  --cdm-skin-panel-muted: #896953;
+  --cdm-skin-panel-border: #e7b3c3;
+  --cdm-skin-panel-accent: #b44970;
+  --cdm-skin-panel-selected: #fbe7ed;
+}
+.candy {
+  --cdm-skin-panel-bg: #f5effb;
+  --cdm-skin-panel-raised: #fffafd;
+  --cdm-skin-panel-header: #e9e1f8;
+  --cdm-skin-panel-fg: #514361;
+  --cdm-skin-panel-muted: #76618c;
+  --cdm-skin-panel-border: #ccbfdf;
+  --cdm-skin-panel-accent: #82569a;
+  --cdm-skin-panel-selected: #eee2f5;
+}
+.showdown {
+  --cdm-skin-panel-bg: #f2e3c9;
+  --cdm-skin-panel-raised: #fff4df;
+  --cdm-skin-panel-header: #e4c491;
+  --cdm-skin-panel-fg: #452e1c;
+  --cdm-skin-panel-muted: #7c5836;
+  --cdm-skin-panel-border: #b38d5b;
+  --cdm-skin-panel-accent: #955026;
+  --cdm-skin-panel-selected: #ecd4ad;
+}
+.spring-rain {
+  --cdm-skin-panel-bg: #e4efe7;
+  --cdm-skin-panel-raised: #f2f7ee;
+  --cdm-skin-panel-header: #ccded2;
+  --cdm-skin-panel-fg: #314f46;
+  --cdm-skin-panel-muted: #587169;
+  --cdm-skin-panel-border: #97b9aa;
+  --cdm-skin-panel-accent: #426e53;
+  --cdm-skin-panel-selected: #d3e5d6;
+}
+.dreamshop {
+  --cdm-skin-panel-bg: #fffdf5;
+  --cdm-skin-panel-raised: #ffffff;
+  --cdm-skin-panel-header: #3ad6ac;
+  --cdm-skin-panel-fg: #171717;
+  --cdm-skin-panel-muted: #575349;
+  --cdm-skin-panel-border: #171717;
+  --cdm-skin-panel-accent: #066447;
+  --cdm-skin-panel-selected: #dff7ed;
+  --cdm-skin-panel-radius: 5px;
+  --cdm-skin-panel-width: 2px;
+  --cdm-skin-panel-shadow: 3px 3px 0 #171717;
+}
+.cosmos,
+.duality,
+.nocturne,
+.imperial,
+.citadel,
+.treasury,
+.four-card,
+.dalmaji {
+  --cdm-skin-panel-fg: #f0e9dc;
+  --cdm-skin-panel-muted: #c1b9ad;
+}
+.cosmos {
+  --cdm-skin-panel-bg: #1c1330;
+  --cdm-skin-panel-raised: #291b42;
+  --cdm-skin-panel-header: #302149;
+  --cdm-skin-panel-border: #665184;
+  --cdm-skin-panel-accent: #d4b0fa;
+  --cdm-skin-panel-selected: #432b63;
+}
+.duality {
+  --cdm-skin-panel-bg: #101724;
+  --cdm-skin-panel-raised: #1b2638;
+  --cdm-skin-panel-header: #263344;
+  --cdm-skin-panel-border: #536882;
+  --cdm-skin-panel-accent: #9accec;
+  --cdm-skin-panel-selected: #263e54;
+}
+.nocturne {
+  --cdm-skin-panel-bg: #0b1727;
+  --cdm-skin-panel-raised: #15273e;
+  --cdm-skin-panel-header: #1e344f;
+  --cdm-skin-panel-border: #516d8d;
+  --cdm-skin-panel-accent: #a7d2f4;
+  --cdm-skin-panel-selected: #243f5c;
+}
+.imperial {
+  --cdm-skin-panel-bg: #241e11;
+  --cdm-skin-panel-raised: #342b18;
+  --cdm-skin-panel-header: #453921;
+  --cdm-skin-panel-border: #8c7447;
+  --cdm-skin-panel-accent: #f5d27a;
+  --cdm-skin-panel-selected: #4d3e22;
+}
+.citadel {
+  --cdm-skin-panel-bg: #302920;
+  --cdm-skin-panel-raised: #40372c;
+  --cdm-skin-panel-header: #4c4032;
+  --cdm-skin-panel-border: #8c795d;
+  --cdm-skin-panel-accent: #e3bd79;
+  --cdm-skin-panel-selected: #574530;
+}
+.treasury {
+  --cdm-skin-panel-bg: #0b1a24;
+  --cdm-skin-panel-raised: #142b34;
+  --cdm-skin-panel-header: #1c343d;
+  --cdm-skin-panel-border: #81704b;
+  --cdm-skin-panel-accent: #f1d08a;
+  --cdm-skin-panel-selected: #343628;
+}
+.four-card {
+  --cdm-skin-panel-bg: #08291f;
+  --cdm-skin-panel-raised: #123b2e;
+  --cdm-skin-panel-header: #1b4735;
+  --cdm-skin-panel-border: #8c7958;
+  --cdm-skin-panel-accent: #e4c58c;
+  --cdm-skin-panel-selected: #3b4732;
+}
+.dalmaji {
+  --cdm-skin-panel-bg: #111e2f;
+  --cdm-skin-panel-raised: #1b3543;
+  --cdm-skin-panel-header: #234751;
+  --cdm-skin-panel-border: #8c815b;
+  --cdm-skin-panel-accent: #e8c56a;
+  --cdm-skin-panel-selected: #3b463b;
+}
+
+/* 구조·높이·드래그 핸들은 공통 컴포넌트가 관리하고, 스킨은 표면만 바꾼다. */
+.sheet,
+.theme :global(.game-tool-panel),
+.theme :global(.game-info-part),
+.theme :global([data-game-reference-panel]) {
+  --cdm-bg: var(--cdm-skin-panel-raised);
+  --cdm-bg-elev-1: var(--cdm-skin-panel-bg);
+  --cdm-bg-elev-2: var(--cdm-skin-panel-header);
+  --cdm-fg: var(--cdm-skin-panel-fg);
+  --cdm-fg-muted: var(--cdm-skin-panel-muted);
+  --cdm-fg-subtle: var(--cdm-skin-panel-muted);
+  --cdm-border: var(--cdm-skin-panel-border);
+  --cdm-border-strong: var(--cdm-skin-panel-border);
+  --cdm-primary: var(--cdm-skin-panel-accent);
+  --cdm-primary-soft: var(--cdm-skin-panel-selected);
+  --cdm-ink: var(--cdm-skin-panel-bg);
+  --cdm-ink-fg: var(--cdm-skin-panel-fg);
+  --cdm-ink-fg-muted: var(--cdm-skin-panel-muted);
+  --cdm-ink-border: var(--cdm-skin-panel-border);
+  color: var(--cdm-skin-panel-fg);
+  border-color: var(--cdm-skin-panel-border);
+  border-width: var(--cdm-skin-panel-width);
+  background: var(--cdm-skin-panel-bg) var(--cdm-skin-panel-texture) center / 260px !important;
+  box-shadow: var(--cdm-skin-panel-shadow);
+}
+.theme :global(.game-tool-panel) {
+  border-radius: var(--cdm-skin-panel-radius);
+}
+.sheet > :global([data-panel-header]),
+.theme :global(.game-tool-panel > [data-panel-header]) {
+  color: var(--cdm-skin-panel-fg);
+  border-bottom: 1px solid var(--cdm-skin-panel-border);
+  background: var(--cdm-skin-panel-header) var(--cdm-skin-panel-texture) center / 260px;
+  box-shadow: inset 3px 0 var(--cdm-skin-panel-accent);
+}
+.theme :global([data-panel-inset]),
+.theme :global(.game-tool-panel .game-info-part),
+.theme :global([data-game-reference-panel] .game-info-part) {
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+.theme :global(.mbnw-history-row) {
+  border-color: var(--cdm-skin-panel-border) !important;
+  background: var(--cdm-skin-panel-raised) !important;
+}
+
+.sheet :is(input, textarea, select),
+.theme :global(.game-tool-panel) :is(input, textarea, select),
+.theme :global([data-game-reference-panel]) :is(input, textarea, select) {
+  color: var(--cdm-skin-panel-fg);
+  border-color: var(--cdm-skin-panel-border);
+  background-color: var(--cdm-skin-panel-raised);
+  accent-color: var(--cdm-skin-panel-accent);
+}

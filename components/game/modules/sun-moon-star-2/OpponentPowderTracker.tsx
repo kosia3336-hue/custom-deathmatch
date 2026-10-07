@@ -55,35 +55,38 @@ export default function OpponentPowderTracker({
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+    <div
+      data-panel-inset
+      className="border-cdm-border bg-cdm-bg-elev-1 flex flex-col gap-2 rounded-xl border p-3"
+    >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-gray-600">🔍 상대 빛가루 추리</p>
+        <p className="text-cdm-fg-muted text-xs font-bold">🔍 상대 빛가루 추리</p>
         <button
           type="button"
           onClick={onReset}
-          className="rounded text-[11px] font-medium text-gray-400 hover:text-gray-600"
+          className="text-cdm-fg-subtle hover:text-cdm-fg-muted rounded text-[11px] font-medium"
         >
           초기화
         </button>
       </div>
 
       {/* 단계/추정 범위 */}
-      <div className="rounded bg-white px-2 py-1.5 text-[11px] text-gray-600">
+      <div className="bg-cdm-bg text-cdm-fg-muted rounded px-2 py-1.5 text-[11px]">
         직전{' '}
-        <span className="font-bold text-gray-800">
+        <span className="text-cdm-fg font-bold">
           {stagePrev}단계 ({prevRangeText})
         </span>
-        <span className="mx-1 text-gray-400">→</span>
+        <span className="text-cdm-fg-subtle mx-1">→</span>
         현재{' '}
-        <span className="font-bold text-gray-800">
+        <span className="text-cdm-fg font-bold">
           {stageNow}단계 ({nowRangeText})
         </span>
-        <div className="mt-0.5 text-[11px] text-gray-500">
+        <div className="text-cdm-fg-muted mt-0.5 text-[11px]">
           이번 라운드 추정 사용량:{' '}
           <span className="font-bold text-amber-600 tabular-nums">
             {range.min}~{range.max}g
           </span>
-          <span className="text-gray-400"> (중앙값 {range.median}g)</span>
+          <span className="text-cdm-fg-subtle"> (중앙값 {range.median}g)</span>
         </div>
       </div>
 
@@ -101,9 +104,9 @@ export default function OpponentPowderTracker({
       </div>
 
       {/* 총합 */}
-      <div className="flex items-center justify-between rounded bg-white px-2 py-1 text-[11px]">
-        <span className="text-gray-600">
-          합 <span className="font-bold text-gray-800 tabular-nums">{total}g</span>
+      <div className="bg-cdm-bg flex items-center justify-between rounded px-2 py-1 text-[11px]">
+        <span className="text-cdm-fg-muted">
+          합 <span className="text-cdm-fg font-bold tabular-nums">{total}g</span>
         </span>
         {outOfRange ? (
           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">
@@ -131,7 +134,7 @@ function EstimateSlot({
   const style = MARK_STYLES[mark];
   const clamp = (v: number) => Math.max(0, Math.min(max, Math.floor(v)));
   return (
-    <div className="flex items-center gap-1.5 rounded bg-white px-2 py-1">
+    <div className="bg-cdm-bg flex items-center gap-1.5 rounded px-2 py-1">
       <span className="flex w-10 shrink-0 items-center gap-1">
         <span className="text-sm">{style.icon}</span>
         <span className={`text-[11px] font-bold ${style.textSoft}`}>{style.label}</span>
@@ -140,7 +143,7 @@ function EstimateSlot({
         type="button"
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= 0}
-        className="h-8 w-8 shrink-0 rounded border border-gray-200 bg-white text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+        className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
       >
         −
       </button>
@@ -154,13 +157,13 @@ function EstimateSlot({
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
         aria-label={`${style.label} 상대 추정`}
-        className="h-8 min-w-0 flex-1 rounded border border-gray-200 bg-white text-center text-sm font-bold text-gray-700 tabular-nums focus:ring-2 focus:ring-gray-300 focus:outline-none"
+        className="border-cdm-border bg-cdm-bg text-cdm-fg focus:ring-cdm-primary h-8 min-w-0 flex-1 rounded border text-center text-sm font-bold tabular-nums focus:ring-2 focus:outline-none"
       />
       <button
         type="button"
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
-        className="h-8 w-8 shrink-0 rounded border border-gray-200 bg-white text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+        className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
       >
         +
       </button>

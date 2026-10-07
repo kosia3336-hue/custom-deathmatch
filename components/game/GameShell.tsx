@@ -30,6 +30,7 @@ import { GAME_IDS } from '@/shared/types/game';
 import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
 import GameToolsWorkspace from './GameToolsWorkspace';
+import { gamePanelSkinClass } from './GamePanelSkin';
 import {
   useGameChatChannel,
   GameRoomChatBody,
@@ -59,6 +60,7 @@ export default function GameShell({ children }: Props) {
   const room = useRoomStore((s) => s.room);
   const timeExpiry = useRoomStore((s) => s.timeExpiry);
   const gameState = useRoomStore((s) => s.gameState);
+  const skinTheme = getSkinTheme(gameState?.activeSkin, room?.gameId ?? '');
   const reconnectingPlayers = useRoomStore((s) => s.reconnectingPlayers);
   const { setHeaderLeft, setHeaderRight, setFooter, setFooterHidden, hud } = useRoomLayout();
   const [showSettings, setShowSettings] = useState(false);
@@ -75,7 +77,7 @@ export default function GameShell({ children }: Props) {
         defaultOrder: 100,
         content: <GameRoomChatBody channels={channels} />,
         headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
-        headerActions: <GameRoomChatActions channels={channels} />,
+        headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
         minBodyHeight: 220,
         preferredBodyHeight: 330,
       },
@@ -83,7 +85,7 @@ export default function GameShell({ children }: Props) {
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels],
+    [hud?.memo, channels, skinTheme],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
   const chatUnread = useRoomChatUnread(showChat || tools.desktop);
@@ -114,8 +116,6 @@ export default function GameShell({ children }: Props) {
     gameStateSig,
   );
   const reconnectTimers = useReconnectCountdowns(reconnectingPlayers);
-
-  const skinTheme = getSkinTheme(gameState?.activeSkin, room?.gameId ?? '');
 
   const handleLeave = () => {
     getSocket().emit('game:leave');
@@ -347,7 +347,12 @@ export default function GameShell({ children }: Props) {
       />
 
       {/* ── 설정 — 예전 상단 바에 흩어져 있던 것들 ── */}
-      <BottomSheet open={showSettings} onClose={() => setShowSettings(false)} title="설정">
+      <BottomSheet
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="설정"
+        className={gamePanelSkinClass(skinTheme, true)}
+      >
         <SoundSettings className="py-3" />
         <ul className="divide-cdm-border divide-y">
           {!showRulesShortcut && (
@@ -397,7 +402,12 @@ export default function GameShell({ children }: Props) {
 
       {/* ── 메모 — 좁은 화면에서 라운드 기록·상대 추리. 넓은 화면은 GameFrame aside ── */}
       {hud?.memo != null && (
-        <BottomSheet open={showMemo} onClose={() => setShowMemo(false)} title="메모">
+        <BottomSheet
+          open={showMemo}
+          onClose={() => setShowMemo(false)}
+          title="메모"
+          className={gamePanelSkinClass(skinTheme, true)}
+        >
           {hud.memo}
         </BottomSheet>
       )}
@@ -406,6 +416,7 @@ export default function GameShell({ children }: Props) {
         open={showChat && !tools.desktop}
         onClose={() => setShowChat(false)}
         channels={channels}
+        skin={skinTheme}
       />
 
       <Modal

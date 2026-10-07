@@ -9,6 +9,8 @@ import { useRoomStore } from '@/stores/room';
 import { useGuildWarStore } from '@/stores/guildWar';
 import { GUILD_WAR_ROOM_ID } from '@shared/types/ring-the-bell';
 import GameChatParticipants from './GameChatParticipants';
+import type { SkinTheme } from '@/lib/skins/registry';
+import { gamePanelSkinClass } from './GamePanelSkin';
 
 /** 인게임은 방 채널만 제공한다. 길드전의 비공개 길드 채널은 별도로 유지한다. */
 export function useGameChatChannel() {
@@ -46,9 +48,11 @@ export function GameRoomChatBody({ channels }: { channels: GameChatChannel }) {
 export function GameRoomChatActions({
   channels,
   active = true,
+  skin,
 }: {
   channels: GameChatChannel;
   active?: boolean;
+  skin?: SkinTheme | null;
 }) {
   const room = useRoomStore((s) => s.room);
   const myId = useMySocketId();
@@ -69,6 +73,7 @@ export function GameRoomChatActions({
         myId={myId}
         spectatorCount={spectatorCount}
         active={active}
+        skin={skin}
       />
     </div>
   );
@@ -78,10 +83,12 @@ export function GameChatSheet({
   open,
   onClose,
   channels,
+  skin,
 }: {
   open: boolean;
   onClose: () => void;
   channels: GameChatChannel;
+  skin?: SkinTheme | null;
 }) {
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -94,8 +101,9 @@ export function GameChatSheet({
       onClose={onClose}
       title="방 채팅"
       headerTitle={channels.channel === 'room' ? '방 채팅' : '길드 채팅'}
-      headerRight={<GameRoomChatActions channels={channels} active={open} />}
+      headerRight={<GameRoomChatActions channels={channels} active={open} skin={skin} />}
       bodyClassName="px-0"
+      className={gamePanelSkinClass(skin, true)}
     >
       <div className="flex h-[52dvh] flex-col">
         <GameRoomChatBody channels={channels} />

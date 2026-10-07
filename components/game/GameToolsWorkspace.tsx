@@ -16,6 +16,7 @@ import DockablePanel from '@/components/cdm/DockablePanel';
 import styles from './game-tools.module.css';
 import { GameReferenceParts } from './GameInfoPart';
 import type { SkinTheme } from '@/lib/skins/registry';
+import { gamePanelSkinClass } from './GamePanelSkin';
 
 const LABELS = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽' };
 
@@ -39,7 +40,7 @@ export default function GameToolsWorkspace({
       )}
       <div
         data-game-skin={skin ?? 'base'}
-        className={`${controller.desktop ? styles.workspace : styles.mobile} ${skin ? `skin-bg-${skin}` : ''}`}
+        className={`${controller.desktop ? styles.workspace : styles.mobile} ${skin ? `skin-bg-${skin} ${gamePanelSkinClass(skin)}` : ''}`}
       >
         {controller.desktop &&
           (['top', 'left', 'right', 'bottom'] as const).map((edge) => {
@@ -113,7 +114,7 @@ function ToolPanel({
       headerActions={tool.headerActions}
       dock={dock}
       floatingSize={{ width: 340, height: tool.preferredBodyHeight ?? 300 }}
-      className={styles.panel}
+      className={`${styles.panel} game-tool-panel`}
       {...targets}
     >
       <div

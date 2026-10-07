@@ -23,17 +23,19 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
             <div
               key={id}
               className={`mbnw-score-row ${id === myId ? 'mbnw-score-row--me' : ''} flex items-center justify-between rounded-lg border px-3 py-1.5 ${
-                id === myId ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white'
+                id === myId
+                  ? 'border-cdm-primary/30 bg-cdm-primary-soft'
+                  : 'border-cdm-border bg-cdm-bg'
               }`}
             >
               <span
                 title={id === myId ? '나' : p.nickname}
-                className={`min-w-0 flex-1 truncate text-sm font-medium ${id === myId ? 'text-indigo-700' : 'text-gray-700'}`}
+                className={`min-w-0 flex-1 truncate text-sm font-medium ${id === myId ? 'text-cdm-primary' : 'text-cdm-fg'}`}
               >
                 {id === myId ? '나' : p.nickname}
                 {p.isFirst && <span className="ml-1 text-[11px] text-amber-500">선</span>}
               </span>
-              <span className="shrink-0 font-bold whitespace-nowrap text-gray-800 tabular-nums">
+              <span className="text-cdm-fg shrink-0 font-bold whitespace-nowrap tabular-nums">
                 {p.score}점
               </span>
             </div>
@@ -51,13 +53,15 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
             return (
               <div
                 key={r.round}
-                className="mbnw-history-row rounded-md border border-gray-100 bg-gray-50 px-2 py-1"
+                className="mbnw-history-row border-cdm-border bg-cdm-bg-elev-1 rounded-md border px-2 py-1"
               >
-                <div className="flex items-center gap-1 font-medium text-gray-500">R{r.round}</div>
+                <div className="text-cdm-fg-muted flex items-center gap-1 font-medium">
+                  R{r.round}
+                </div>
                 {entries.map(([pid, pr]) => (
                   <div
                     key={pid}
-                    className="ml-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-gray-600"
+                    className="text-cdm-fg-muted ml-2 flex flex-wrap items-center gap-x-1 gap-y-0.5"
                   >
                     <span
                       className={`mbnw-history-color mbnw-history-color--${pr.color} rounded px-1 text-[11px] font-bold ${
@@ -69,7 +73,7 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
                       {pr.color === 'black' ? '흑' : '백'}
                     </span>
                     <span
-                      className="max-w-20 truncate text-[11px] text-gray-500"
+                      className="text-cdm-fg-muted max-w-20 truncate text-[11px]"
                       title={players[pid]?.nickname}
                     >
                       {pid === myId ? '나' : (players[pid]?.nickname ?? pid)}
@@ -86,7 +90,7 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
                     <span
                       title={`의심 실패 보너스 ${pr.bonusPoint}점 + 승리 ${pr.normalPoint}점`}
                       className={`ml-auto shrink-0 font-semibold ${
-                        pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-gray-400'
+                        pr.bonusPoint + pr.normalPoint > 0 ? 'text-blue-600' : 'text-cdm-fg-subtle'
                       }`}
                     >
                       획득 +{pr.bonusPoint + pr.normalPoint}점
