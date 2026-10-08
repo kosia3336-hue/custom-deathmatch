@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { KnightTourCell, KnightTourGameData } from '@/shared/types/knights-tour';
 import { fitBoardWidth } from '@/components/game/GameFrame';
-import Modal from '@/components/ui/Modal';
+import { GamePlayerScoreboard } from '@/components/game/GamePlayerScoreboard';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart } from '@/components/game/GameInfoPart';
 
@@ -40,7 +40,6 @@ function KnightsTourView({
 function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
   const sendAction = useGameAction();
   // 첫 값은 라운드 시작 시각. 렌더 중에 Date.now() 를 부르면 순수하지 않다.
-  const [showHelp, setShowHelp] = useState(false);
   const { setHud } = useRoomLayout();
 
   const serverPath = useMemo(() => gameData.progress[myId]?.path ?? [], [gameData.progress, myId]);
@@ -57,7 +56,7 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
   const winningCount = result?.winnerId
     ? (result.visitedCounts[result.winnerId] ?? result.winningPath.length)
     : null;
-  const sidePanel = <TourReference gameData={gameData} myId={myId} />;
+  const sidePanel = <TourScore gameData={gameData} myId={myId} />;
 
   useEffect(() => {
     setHud({
@@ -140,7 +139,7 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
       <GameReferenceFrame
         controls={
           <div className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2">
-            <div className="grid grid-cols-[1fr_1fr_1.3fr_auto] gap-1.5">
+            <div className="grid grid-cols-[1fr_1fr_1.3fr] gap-1.5">
               <button
                 type="button"
                 onClick={backtrack}
@@ -164,14 +163,6 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
                 className="bg-cdm-primary hover:bg-cdm-primary-strong rounded-cdm-md min-h-11 px-2 text-[11px] font-black text-white disabled:opacity-35"
               >
                 {submitted ? '제출 완료' : `${path.length}칸 제출`}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowHelp(true)}
-                aria-label="이동 규칙 보기"
-                className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted min-h-11 w-10 border text-sm font-black lg:hidden"
-              >
-                ?
               </button>
             </div>
             <p className="text-cdm-fg-muted mt-1.5 flex min-h-6 items-center justify-center text-center text-[11px]">
@@ -273,64 +264,22 @@ function TourRound({ gameData, myId }: { gameData: KnightTourGameData; myId: str
           </div>
         )}
       </GameReferenceFrame>
-
-      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="나이트의 여행">
-        <TourReference gameData={gameData} myId={myId} />
-      </Modal>
     </>
   );
 }
 
-function TourReference({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
-  const entries = Object.entries(gameData.players).sort(
-    ([a], [b]) => Number(b === myId) - Number(a === myId),
-  );
-  const total = gameData.board.activeCells.length;
+function TourScore({ gameData, myId }: { gameData: KnightTourGameData; myId: string }) {
   return (
-    <div className="flex flex-col gap-3">
-      <GameInfoPart title="진행 상황" kind="score" sizeToContent>
-        <div className="grid grid-cols-2 gap-3">
-          {entries.map(([playerId, player]) => {
-            const count = gameData.progress[playerId]?.visitedCount ?? 0;
-            return (
-              <div key={playerId}>
-                <div className="text-cdm-fg-muted mb-1 flex justify-between text-xs font-semibold">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate">
-                      {player.nickname}
-                      {playerId === myId && ' (나)'} · {gameData.scores[playerId] ?? 0}점
-                    </span>
-                    {gameData.progress[playerId]?.submitted && (
-                      <span className="bg-cdm-success-soft text-cdm-success rounded-full px-1.5 text-[11px] font-black">
-                        제출
-                      </span>
-                    )}
-                  </span>
-                  <span className="tabular-nums">{count}칸</span>
-                </div>
-                <div className="bg-cdm-bg-elev-2 h-2 overflow-hidden rounded-full">
-                  <div
-                    className="bg-cdm-primary h-full rounded-full transition-[width] duration-200"
-                    style={{ width: `${total ? (count / total) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </GameInfoPart>
-      <GameInfoPart title="나이트 이동" sizeToContent>
-        <div className="text-cdm-fg-muted text-xs leading-5">
-          <p>
-            <span className="font-black">나이트 이동</span> · 가로 2칸 + 세로 1칸, 또는 가로 1칸 +
-            세로 2칸
-          </p>
-          <p className="mt-1">방문한 칸은 다시 밟을 수 없습니다.</p>
-          <p className="mt-1">검은 칸은 이동할 수 없는 구멍입니다.</p>
-          <p className="mt-1">원하는 때 제출할 수 있고, 동률이면 먼저 제출한 쪽이 이깁니다.</p>
-        </div>
-      </GameInfoPart>
-    </div>
+    <GameInfoPart title="점수" kind="score" sizeToContent>
+      <GamePlayerScoreboard
+        myId={myId}
+        entries={Object.entries(gameData.players).map(([id, player]) => ({
+          id,
+          nickname: player.nickname,
+          value: `${gameData.scores[id] ?? 0}점`,
+        }))}
+      />
+    </GameInfoPart>
   );
 }
 

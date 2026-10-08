@@ -23,7 +23,6 @@ import {
   GamePiece3D,
   usePlacementConfirm,
 } from '@/components/game/abstract-strategy';
-import Modal from '@/components/ui/Modal';
 import { StackVisual } from './StackVisual';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
@@ -76,7 +75,6 @@ function KingmakingBoard({
   const [source, setSource] = useState<KingmakingPosition | null>(null);
   const [moveCount, setMoveCount] = useState(1);
   const [pending, setPending] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   /*
     터치에서는 첫 탭에 반투명 말로 자리만 보여 주고, 같은 칸을 한 번 더 눌러야
     둔다·옮긴다. 말 종류·옮길 탑·층수를 바꾸면 보여 주던 모양이나 갈 수 있는
@@ -175,7 +173,93 @@ function KingmakingBoard({
     <>
       <GameReferenceFrame
         className={springRain ? 'skin-spring-rain-field' : undefined}
-        controls={
+        reference={sidePanel}
+      >
+        {springRain && <SpringRainFieldFx />}
+        <div
+          data-game-intrinsic-stage
+          className="border-cdm-border bg-cdm-bg rounded-cdm-lg mx-auto flex w-full max-w-xl flex-col items-center gap-3 border p-3 sm:p-4"
+        >
+          <Board3D
+            columns={5}
+            ariaLabel="5 곱하기 5 킹메이킹 보드"
+            maxWidth="34rem"
+            density="compact"
+            className={springRain ? 'skin-spring-rain-board' : undefined}
+            frameClassName={springRain ? 'skin-spring-rain-pond-frame' : undefined}
+            gridClassName={springRain ? 'skin-spring-rain-pond-grid' : undefined}
+          >
+            {gameData.board.flatMap((row, rowIndex) =>
+              row.map((stack, colIndex) => {
+                const position = { row: rowIndex, col: colIndex };
+                const key = kingmakingPositionKey(position);
+                const selected = source && kingmakingPositionKey(source) === key;
+                const legal = legalTargetKeys.has(key);
+                const placeable = mode !== 'move' && stack.length === 0 && canPlay;
+                const armed = placeable && placement.armed === key;
+                const armedMove = legal && placement.armed === key;
+                return (
+                  <BoardCellButton3D
+                    key={key}
+                    onClick={() => clickCell(position)}
+                    disabled={!canPlay || pending || (!placeable && stack.length === 0 && !legal)}
+                    aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${stack.length ? `, ${stack.length}층` : ', 빈칸'}`}
+                    tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
+                    state={
+                      selected || armed || armedMove ? 'selected' : legal ? 'available' : 'idle'
+                    }
+                    className={cn(
+                      'kingmaking-board-cell',
+                      springRain && 'kingmaking-spring-rain-cell',
+                      !canPlay && 'cursor-default',
+                    )}
+                  >
+                    <StackVisual
+                      stack={armedMove ? [...stack, ...movingPieces] : stack}
+                      ghostFrom={armedMove ? stack.length : undefined}
+                      playerIds={playerIds}
+                      compact
+                      springRain={springRain}
+                    />
+                    {springRain && landing?.row === rowIndex && landing.col === colIndex && (
+                      <span
+                        key={gameData.lastAction?.turn}
+                        className="kingmaking-spring-rain-ripple"
+                        aria-hidden
+                      />
+                    )}
+                    {legal && (
+                      <span className="bg-cdm-success absolute top-1 left-1 h-2.5 w-2.5 rounded-full shadow-sm" />
+                    )}
+                    {armed ? (
+                      <span
+                        className="pointer-events-none absolute left-1/2 -translate-x-1/2 opacity-55"
+                        style={{
+                          bottom: '8%',
+                          width: '66%',
+                          height: mode === 'special' ? '21%' : '17%',
+                        }}
+                        aria-hidden
+                      >
+                        <GamePiece3D
+                          tone={playerIds.indexOf(myId) === 0 ? 'primary' : 'highlight'}
+                          shape={mode === 'special' ? 'crown' : 'disc'}
+                          label={mode === 'special' ? '◆' : undefined}
+                          className={springRain ? 'kingmaking-spring-rain-piece' : undefined}
+                        />
+                      </span>
+                    ) : (
+                      placeable && (
+                        <span className="text-cdm-fg-subtle absolute inset-0 flex items-center justify-center text-xl font-light opacity-35">
+                          ＋
+                        </span>
+                      )
+                    )}
+                  </BoardCellButton3D>
+                );
+              }),
+            )}
+          </Board3D>
           <ActionBar
             mode={mode}
             canPlay={canPlay}
@@ -186,93 +270,10 @@ function KingmakingBoard({
             legalCount={legalTargets.length}
             onChooseMode={chooseMode}
             onChooseCount={setMoveCount}
-            onOpenHelp={() => setShowHelp(true)}
             springRain={springRain}
             armed={placement.armed != null}
           />
-        }
-        reference={sidePanel}
-      >
-        {springRain && <SpringRainFieldFx />}
-        <Board3D
-          fit
-          columns={5}
-          ariaLabel="5 곱하기 5 킹메이킹 보드"
-          maxWidth="34rem"
-          density="compact"
-          className={springRain ? 'skin-spring-rain-board' : undefined}
-          frameClassName={springRain ? 'skin-spring-rain-pond-frame' : undefined}
-          gridClassName={springRain ? 'skin-spring-rain-pond-grid' : undefined}
-        >
-          {gameData.board.flatMap((row, rowIndex) =>
-            row.map((stack, colIndex) => {
-              const position = { row: rowIndex, col: colIndex };
-              const key = kingmakingPositionKey(position);
-              const selected = source && kingmakingPositionKey(source) === key;
-              const legal = legalTargetKeys.has(key);
-              const placeable = mode !== 'move' && stack.length === 0 && canPlay;
-              const armed = placeable && placement.armed === key;
-              const armedMove = legal && placement.armed === key;
-              return (
-                <BoardCellButton3D
-                  key={key}
-                  onClick={() => clickCell(position)}
-                  disabled={!canPlay || pending || (!placeable && stack.length === 0 && !legal)}
-                  aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${stack.length ? `, ${stack.length}층` : ', 빈칸'}`}
-                  tone={(rowIndex + colIndex) % 2 ? 'dark' : 'light'}
-                  state={selected || armed || armedMove ? 'selected' : legal ? 'available' : 'idle'}
-                  className={cn(
-                    'kingmaking-board-cell',
-                    springRain && 'kingmaking-spring-rain-cell',
-                    !canPlay && 'cursor-default',
-                  )}
-                >
-                  <StackVisual
-                    stack={armedMove ? [...stack, ...movingPieces] : stack}
-                    ghostFrom={armedMove ? stack.length : undefined}
-                    playerIds={playerIds}
-                    compact
-                    springRain={springRain}
-                  />
-                  {springRain && landing?.row === rowIndex && landing.col === colIndex && (
-                    <span
-                      key={gameData.lastAction?.turn}
-                      className="kingmaking-spring-rain-ripple"
-                      aria-hidden
-                    />
-                  )}
-                  {legal && (
-                    <span className="bg-cdm-success absolute top-1 left-1 h-2.5 w-2.5 rounded-full shadow-sm" />
-                  )}
-                  {armed ? (
-                    <span
-                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 opacity-55"
-                      style={{
-                        bottom: '8%',
-                        width: '66%',
-                        height: mode === 'special' ? '21%' : '17%',
-                      }}
-                      aria-hidden
-                    >
-                      <GamePiece3D
-                        tone={playerIds.indexOf(myId) === 0 ? 'primary' : 'highlight'}
-                        shape={mode === 'special' ? 'crown' : 'disc'}
-                        label={mode === 'special' ? '◆' : undefined}
-                        className={springRain ? 'kingmaking-spring-rain-piece' : undefined}
-                      />
-                    </span>
-                  ) : (
-                    placeable && (
-                      <span className="text-cdm-fg-subtle absolute inset-0 flex items-center justify-center text-xl font-light opacity-35">
-                        ＋
-                      </span>
-                    )
-                  )}
-                </BoardCellButton3D>
-              );
-            }),
-          )}
-        </Board3D>
+        </div>
 
         {/*
           결과는 무대 위에 겹쳐 띄운다. 새 줄로 만들면 그 순간 판이 밀려 작아진다.
@@ -294,10 +295,6 @@ function KingmakingBoard({
           </div>
         )}
       </GameReferenceFrame>
-
-      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="이동 규칙">
-        <MoveReference />
-      </Modal>
     </>
   );
 }
@@ -350,9 +347,6 @@ function KingmakingSidePanel({
             })}
         </div>
       </GameInfoPart>
-      <GameInfoPart title="말 이동표">
-        <MoveReference springRain={springRain} />
-      </GameInfoPart>
     </GameInfoStack>
   );
 }
@@ -373,7 +367,6 @@ function ActionBar({
   legalCount,
   onChooseMode,
   onChooseCount,
-  onOpenHelp,
   springRain,
   armed,
 }: {
@@ -386,7 +379,6 @@ function ActionBar({
   legalCount: number;
   onChooseMode: (next: KingmakingPieceKind | 'move') => void;
   onChooseCount: (count: number) => void;
-  onOpenHelp: () => void;
   springRain: boolean;
   /** 터치 첫 탭으로 둘 자리를 보여 주는 중 */
   armed: boolean;
@@ -394,13 +386,8 @@ function ActionBar({
   const counts = Array.from({ length: Math.min(5, sourceHeight) }, (_, i) => i + 1).reverse();
 
   return (
-    <div
-      className={cn(
-        'border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2',
-        springRain && 'skin-spring-rain-controls',
-      )}
-    >
-      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5">
+    <div className={cn('w-full p-1', springRain && 'skin-spring-rain-controls')}>
+      <div className="grid grid-cols-3 gap-1.5">
         <ModeButton
           active={mode === 'normal'}
           disabled={!canPlay || reserve.normal <= 0}
@@ -419,14 +406,6 @@ function ActionBar({
           onClick={() => onChooseMode('move')}
           label="탑 이동"
         />
-        <button
-          type="button"
-          onClick={onOpenHelp}
-          aria-label="이동 규칙 보기"
-          className="rounded-cdm-md border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted min-h-11 w-10 border text-sm font-black lg:hidden"
-        >
-          ?
-        </button>
       </div>
 
       <div className="mt-1.5 flex min-h-11 items-center">
@@ -469,42 +448,6 @@ function ActionBar({
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-/** 참고 — 넓은 화면에서는 옆에, 좁은 화면에서는 ? 단추로 연다. */
-function MoveReference({ springRain = false }: { springRain?: boolean }) {
-  return (
-    <div
-      className={cn(
-        'border-cdm-border bg-cdm-bg rounded-cdm-lg h-full border p-3',
-        springRain && 'skin-spring-rain-reference',
-      )}
-    >
-      <p className="text-cdm-fg text-xs font-black">떼어 낸 층수별 이동</p>
-      <div className="text-cdm-fg-muted mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-        {MOVE_LABELS.map((label, index) => (
-          <span key={label}>
-            <b className="text-cdm-fg">{index + 1}층</b> {label}
-          </span>
-        ))}
-        <span>
-          <b className="text-cdm-accent">6층</b> 즉시 승리
-        </span>
-      </div>
-      <p className="text-cdm-fg-muted mt-3 text-[11px] leading-4">
-        ◆ 이동은 반드시 다른 탑 위로 합니다. 빈칸으로는 옮길 수 없습니다.
-      </p>
-      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
-        ◆ 상대의 탑도 옮길 수 있습니다. 6층을 만든 탑의 <b>맨 위 말 주인</b>이 이깁니다.
-      </p>
-      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
-        ◆ 특수말이 맨 위인 탑에는 올릴 수 없습니다.
-      </p>
-      <p className="text-cdm-fg-muted mt-1 text-[11px] leading-4">
-        ◆ 경기 중 이미 나온 판 배치는 다시 만들 수 없습니다.
-      </p>
     </div>
   );
 }

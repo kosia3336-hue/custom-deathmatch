@@ -7,10 +7,9 @@ import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 
 import GameLoading from '@/components/game/GameLoading';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CompleteHapCard, CompleteHapGameData } from '@/shared/types/complete-hap';
 import { cn } from '@/lib/utils';
-import { fitBoardWidth } from '@/components/game/GameFrame';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 
@@ -85,6 +84,21 @@ function RoundWorkspace({
   const sendAction = useGameAction();
   const [selection, setSelection] = useState<number[]>([]);
   const [savedSets, setSavedSets] = useState<number[][]>([]);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [tileSize, setTileSize] = useState(0);
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const measure = () => {
+      const width = board.firstElementChild?.getBoundingClientRect().width ?? 0;
+      setTileSize((previous) => (Math.abs(previous - width) < 0.5 ? previous : width));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(board);
+    if (board.firstElementChild) observer.observe(board.firstElementChild);
+    measure();
+    return () => observer.disconnect();
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { setHud } = useRoomLayout();
   const canPlay = isPlayer && gameData.phase === 'playing' && !isSubmitting;
@@ -119,7 +133,6 @@ function RoundWorkspace({
   }
 
   const cards = gameData.board.cards;
-  const rows = Math.ceil(cards.length / 3);
   const roundResult = gameData.lastRoundResult;
   const finished = gameData.phase === 'finished';
   const savedPanel = (
@@ -128,6 +141,7 @@ function RoundWorkspace({
       savedSets={savedSets}
       canPlay={canPlay}
       onRemove={removeSavedHap}
+      tileSize={tileSize}
     />
   );
   const sidePanel = (
@@ -198,8 +212,10 @@ function RoundWorkspace({
         reference={sidePanel}
       >
         <div
+          ref={boardRef}
+          data-game-intrinsic-stage
           className="mx-auto grid w-full grid-cols-3 gap-1.5 sm:gap-2"
-          style={{ maxWidth: fitBoardWidth(3, rows, '30rem') }}
+          style={{ width: 'calc(100% - 1.5rem)', maxWidth: '30rem' }}
         >
           {cards.map((card, cardIndex) => (
             <PictureCard
@@ -301,14 +317,16 @@ function SavedList({
   savedSets,
   canPlay,
   onRemove,
+  tileSize,
 }: {
   gameData: CompleteHapGameData;
   savedSets: number[][];
   canPlay: boolean;
   onRemove: (index: number) => void;
+  tileSize: number;
 }) {
   return (
-    <div className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex flex-col border p-3">
+    <div className="flex flex-col">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-cdm-fg-muted text-[11px]">결을 외치기 전까지 수정할 수 있습니다.</p>
@@ -323,23 +341,30 @@ function SavedList({
             저장한 합이 없습니다.
           </div>
         ) : (
-          savedSets.map((set, savedIndex) => (
-            <button
-              key={setKey(set)}
-              type="button"
-              onClick={() => onRemove(savedIndex)}
-              disabled={!canPlay}
-              className="border-cdm-border bg-cdm-bg-elev-1 hover:border-cdm-accent rounded-cdm-md grid w-full grid-cols-[1fr_1fr_1fr_auto] items-center gap-1.5 border p-2 text-left disabled:cursor-default"
-              aria-label={`저장한 합 ${savedIndex + 1} 삭제`}
-            >
-              {set.map((cardIndex) => (
-                <PictureThumbnail key={cardIndex} card={gameData.board.cards[cardIndex]} />
-              ))}
-              <span className="text-cdm-fg-muted px-1 text-base" aria-hidden="true">
-                ×
-              </span>
-            </button>
-          ))
+          savedSets
+            .map((set, savedIndex) => ({ set, savedIndex }))
+            .reverse()
+            .map(({ set, savedIndex }) => (
+              <button
+                key={setKey(set)}
+                type="button"
+                onClick={() => onRemove(savedIndex)}
+                disabled={!canPlay}
+                className="rounded-cdm-md relative grid w-full grid-cols-3 items-center gap-1.5 text-left disabled:cursor-default"
+                style={{ maxWidth: tileSize > 0 ? `calc(${tileSize * 3}px + 0.75rem)` : undefined }}
+                aria-label={`저장한 합 ${savedIndex + 1} 삭제`}
+              >
+                {set.map((cardIndex) => (
+                  <PictureThumbnail key={cardIndex} card={gameData.board.cards[cardIndex]} />
+                ))}
+                <span
+                  className="text-cdm-fg-muted bg-cdm-bg/90 absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full text-base"
+                  aria-hidden="true"
+                >
+                  ×
+                </span>
+              </button>
+            ))
         )}
       </div>
     </div>
@@ -380,11 +405,9 @@ function PictureCard({
       aria-label={`${cardIndex + 1}번째 그림`}
       aria-pressed={selected}
       className={cn(
-        'rounded-cdm-md relative aspect-square overflow-hidden border-2 transition-all',
-        selected
-          ? 'border-cdm-primary ring-cdm-primary/30 z-[1] scale-[1.035] ring-2'
-          : 'border-cdm-border-strong',
-        selectable && !selected && 'hover:border-cdm-primary cursor-pointer hover:-translate-y-0.5',
+        'rounded-cdm-md focus-visible:outline-cdm-primary relative aspect-square overflow-hidden transition-all focus-visible:outline-2',
+        selected && 'z-[1]',
+        selectable && !selected && 'cursor-pointer hover:-translate-y-0.5',
         !selectable && 'cursor-default',
       )}
     >
@@ -400,7 +423,7 @@ function PictureCard({
 
 function PictureThumbnail({ card }: { card: CompleteHapCard }) {
   return (
-    <span className="rounded-cdm-sm border-cdm-border-strong block aspect-square overflow-hidden border">
+    <span className="rounded-cdm-sm block aspect-square overflow-hidden">
       <PictureSvg card={card} />
     </span>
   );
