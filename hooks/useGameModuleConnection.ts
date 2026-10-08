@@ -12,6 +12,7 @@ export interface GameModuleViewProps<T> {
   gameData?: T;
   myId: string;
   isSpectator?: boolean;
+  isSolo?: boolean;
   skin?: SkinTheme | null;
   roomId?: string;
   gameKey?: string;
@@ -22,6 +23,7 @@ export interface GameModuleViewProps<T> {
 export function useGameModuleConnection<T>(gameId: string) {
   const gameState = useRoomStore((state) => state.gameState);
   const roomId = useRoomStore((state) => state.room?.id ?? '');
+  const isSolo = useRoomStore((state) => state.room?.playMode === 'solo');
   const isSpectator = useRoomStore((state) => state.isSpectator);
   const myId = useMySocketId();
   const { remaining } = useTurnTimer();
@@ -35,6 +37,7 @@ export function useGameModuleConnection<T>(gameId: string) {
     gameData: gameState?.gameData as T | undefined,
     myId,
     isSpectator,
+    isSolo,
     roomId,
     gameKey: `${roomId}:${gameState?.startedAt ?? ''}`,
     remaining,

@@ -20,7 +20,8 @@ const CATEGORY_LABEL: Record<ChoiceHoldemHandCategory, string> = {
 
 export function evaluationLabel(evaluation: ChoiceHoldemEvaluation | undefined) {
   if (!evaluation) return '';
-  const number = evaluation.primaryValues.length > 0 ? ` ${evaluation.primaryValues.join('/')}` : '';
+  const number =
+    evaluation.primaryValues.length > 0 ? ` ${evaluation.primaryValues.join('/')}` : '';
   return `${CATEGORY_LABEL[evaluation.category]}${number}`;
 }
 
@@ -56,13 +57,7 @@ function reasonLabel(
  * 넓은 화면에서는 GameFrame 의 옆 칸, 좁은 화면에서는 상단 바의 '메모' 아이콘으로 연다.
  * 같은 것을 두 자리에서 쓰므로 바깥 여백은 두지 않는다.
  */
-export default function RecordPanel({
-  data,
-  myId,
-}: {
-  data: ChoiceHoldemGameData;
-  myId: string;
-}) {
+export default function RecordPanel({ data, myId }: { data: ChoiceHoldemGameData; myId: string }) {
   const name = (id: string | null | undefined) =>
     id ? (id === myId ? '나' : (data.players[id]?.nickname ?? '상대')) : null;
   const opponentId = Object.keys(data.players).find((id) => id !== myId) ?? null;
@@ -72,7 +67,7 @@ export default function RecordPanel({
     <GameInfoStack>
       <GameInfoPart title="라운드 기록">
         {data.rounds.length === 0 ? (
-          <p className="text-cdm-ink-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
+          <p className="text-cdm-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
         ) : (
           <ul className="max-h-72 space-y-1 overflow-y-auto">
             {[...data.rounds].reverse().map((round) => {
@@ -81,31 +76,31 @@ export default function RecordPanel({
                 ? (data.players[round.foldedPlayerId]?.nickname ?? null)
                 : null;
               return (
-                <li key={round.round} className="rounded-md bg-white/5 px-2 py-1.5 text-xs">
+                <li key={round.round} className="bg-cdm-bg-elev-1 rounded-md px-2 py-1.5 text-xs">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-cdm-ink-fg-muted">{round.round}R</span>
-                    <span className="text-cdm-ink-fg font-bold">
+                    <span className="text-cdm-fg-muted">{round.round}R</span>
+                    <span className="text-cdm-fg font-bold">
                       {reasonLabel(round, winnerName, foldedName)}
                     </span>
-                    <span className="text-cdm-ink-fg-muted tabular-nums">팟 {round.potAmount}</span>
+                    <span className="text-cdm-fg-muted tabular-nums">팟 {round.potAmount}</span>
                   </div>
                   {/* 내가 낸 칩은 늘 보이게 둔다 — 이 기록을 여는 까닭이 대개 그것이다 */}
                   {isPlayer && (
-                    <p className="text-cdm-ink-fg-muted mt-0.5 tabular-nums">
-                      내 베팅 <b className="text-cdm-ink-fg">{betOf(round, myId)}</b>
+                    <p className="text-cdm-fg-muted mt-0.5 tabular-nums">
+                      내 베팅 <b className="text-cdm-fg">{betOf(round, myId)}</b>
                       {opponentId && ` · 상대 ${betOf(round, opponentId)}`}
                       <span className="ml-1">(기본 {round.ante} 포함)</span>
                     </p>
                   )}
                   {round.evaluations && (
-                    <p className="text-cdm-ink-fg mt-0.5">
+                    <p className="text-cdm-fg mt-0.5">
                       {Object.entries(round.evaluations).map(([playerId, evaluation], index) => (
                         <span key={playerId}>
-                          {index > 0 && <span className="text-cdm-ink-fg-muted"> · </span>}
-                          <span className="text-cdm-ink-fg-muted">{name(playerId)} </span>
+                          {index > 0 && <span className="text-cdm-fg-muted"> · </span>}
+                          <span className="text-cdm-fg-muted">{name(playerId)} </span>
                           {evaluationLabel(evaluation)}
                           {round.holeCards?.[playerId] && (
-                            <span className="text-cdm-ink-fg-muted">
+                            <span className="text-cdm-fg-muted">
                               {' '}
                               [{round.holeCards[playerId].join(' ')}]
                             </span>
@@ -115,7 +110,7 @@ export default function RecordPanel({
                     </p>
                   )}
                   {round.communityCards.length > 0 && (
-                    <p className="text-cdm-ink-fg-muted mt-0.5 tracking-wider">
+                    <p className="text-cdm-fg-muted mt-0.5 tracking-wider">
                       공유 {round.communityCards.join(' ')}
                       {round.choiceFaceUp != null && ` · 선택 ${round.choiceFaceUp}`}
                     </p>

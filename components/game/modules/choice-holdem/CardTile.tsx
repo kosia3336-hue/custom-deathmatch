@@ -40,11 +40,11 @@ export default function CardTile({
           value={value}
           hidden={hidden}
           decorative
-          className={compact ? 'w-10 sm:w-12' : 'w-14 sm:w-17'}
+          className={compact ? 'w-14 sm:w-20' : 'w-18 sm:w-24'}
         />
       </Element>
       {label && (
-        <span className="text-cdm-fg-muted max-w-24 truncate text-[10px] font-bold">{label}</span>
+        <span className="text-cdm-fg-muted max-w-24 truncate text-[11px] font-bold">{label}</span>
       )}
     </div>
   );

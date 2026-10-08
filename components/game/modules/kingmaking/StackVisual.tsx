@@ -38,14 +38,12 @@ export function StackVisual({
               label={special ? '◆' : undefined}
               className={springRain ? 'kingmaking-spring-rain-piece' : undefined}
             />
-            {springRain && special && (
-              <span className="kingmaking-spring-rain-special-piece" />
-            )}
+            {springRain && special && <span className="kingmaking-spring-rain-special-piece" />}
           </span>
         );
       })}
       {stack.length > 0 && (
-        <span className="kingmaking-stack-count bg-cdm-fg absolute top-1 right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white tabular-nums">
+        <span className="kingmaking-stack-count bg-cdm-fg absolute top-1 right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-black text-white tabular-nums">
           {stack.length}
         </span>
       )}
