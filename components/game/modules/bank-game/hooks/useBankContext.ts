@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { WIN_TYPE_LABELS } from '../constants';
+import { useBankInventoryNotes } from './useBankInventoryNotes';
 import { needsBankZeroBetConfirmation } from '@/lib/bankGameUi';
 
 export type BankContextValue = ReturnType<typeof useBankContext>;
@@ -22,6 +23,7 @@ export function useBankContext({
   myId,
   isSpectator = false,
   skin = null,
+  gameKey = '',
 }: GameModuleViewProps<BankGameData>) {
   const sendAction = useGameAction();
   const isTreasury = skin === 'treasury';
@@ -44,6 +46,11 @@ export function useBankContext({
     if (!myId) return gameData.players.p2;
     return gameData.players.p1.id === myId ? gameData.players.p2 : gameData.players.p1;
   }, [gameData, myId]);
+
+  const inventoryNotes = useBankInventoryNotes(
+    gameData?.round ?? 1,
+    `${gameKey}:${myId ?? ''}:${opponent?.id ?? ''}`,
+  );
 
   const mySide: BankSide | null = myPlayer?.side ?? null;
   const firstSide: BankSide | null = gameData?.firstSide ?? null;
@@ -217,6 +224,7 @@ export function useBankContext({
 
     /* 상대 추리 표시 여부 */
     showOpponentTracker,
+    inventoryNotes,
 
     /* input */
     pendingBet,

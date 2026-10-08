@@ -1,36 +1,16 @@
 'use client';
 
-import { BANK_INITIAL_INVENTORY, type BankDenomination } from '@/shared/types/bank-game';
-import { useState } from 'react';
+import { BANK_INITIAL_INVENTORY } from '@/shared/types/bank-game';
+import type { useBankInventoryNotes } from './hooks/useBankInventoryNotes';
 import { DENOM_ORDER, DENOM_STYLES } from './constants';
 
-/* ════════════════════════════════════════════════════════════
- * OpponentInventoryTracker — 상대 잔여 추리 (클라 전용)
- *   · BetInput BetRow 와 동일한 레이아웃
- *   · 입력값 = 상대가 썼다고 추정하는 장수, 잔n = 남은 장수 추정
- *   · 라운드 넘어가도 리셋 안 됨 (silper-bnw 패턴)
- * ════════════════════════════════════════════════════════════ */
-
-type Spent = Record<BankDenomination, number>;
-
-function buildInitial(): Spent {
-  return { ...BANK_INITIAL_INVENTORY };
-}
-
-export default function OpponentInventoryTracker() {
-  const [spent, setSpent] = useState<Spent>(buildInitial);
-
-  const adjust = (denom: BankDenomination, delta: number) => {
-    setSpent((prev) => ({
-      ...prev,
-      [denom]: Math.max(0, Math.min(BANK_INITIAL_INVENTORY[denom], prev[denom] + delta)),
-    }));
-  };
-
-  const setDenom = (denom: BankDenomination, next: number) => {
-    const max = BANK_INITIAL_INVENTORY[denom];
-    setSpent((prev) => ({ ...prev, [denom]: Math.max(0, Math.min(max, Math.floor(next))) }));
-  };
+/** 잔여 장수 메모. 기록 창의 선택과 독립적으로 라운드를 이동한다. */
+export default function OpponentInventoryTracker({
+  notes,
+}: {
+  notes: ReturnType<typeof useBankInventoryNotes>;
+}) {
+  const { note, round, currentRound, selectRound, setNote, reset } = notes;
 
   return (
     <div
@@ -38,19 +18,41 @@ export default function OpponentInventoryTracker() {
       className="bank-tracker border-cdm-border bg-cdm-bg-elev-1 space-y-3 rounded-xl border-2 p-3"
     >
       <div className="flex items-center justify-between">
-        <p className="text-cdm-fg-muted text-sm font-semibold">상대 잔여 추리</p>
         <button
           type="button"
-          onClick={() => setSpent(buildInitial())}
+          onClick={reset}
           className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 rounded border px-3 py-1 text-xs font-semibold"
         >
           초기화
         </button>
+        <div className="flex items-center gap-1 text-xs tabular-nums">
+          <button
+            type="button"
+            aria-label="이전 라운드 메모"
+            disabled={round <= 1}
+            onClick={() => selectRound(round - 1)}
+            className="border-cdm-border h-8 w-8 rounded border text-lg disabled:opacity-30"
+          >
+            ‹
+          </button>
+          <span aria-live="polite" className="text-cdm-fg min-w-8 text-center">
+            R{round}
+          </span>
+          <button
+            type="button"
+            aria-label="다음 라운드 메모"
+            disabled={round >= currentRound}
+            onClick={() => selectRound(round + 1)}
+            className="border-cdm-border h-8 w-8 rounded border text-lg disabled:opacity-30"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1.5">
         {DENOM_ORDER.map((denom) => {
-          const val = spent[denom];
+          const val = note[denom];
           const max = BANK_INITIAL_INVENTORY[denom];
           const style = DENOM_STYLES[denom];
           return (
@@ -63,27 +65,30 @@ export default function OpponentInventoryTracker() {
               </span>
               <button
                 type="button"
+                aria-label={`${style.label} 메모 1장 빼기`}
                 disabled={val <= 0}
-                onClick={() => adjust(denom, -1)}
+                onClick={() => setNote(denom, val - 1)}
                 className="bank-step-action border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-9 w-9 shrink-0 rounded-md border text-lg font-bold disabled:opacity-40"
               >
                 −
               </button>
               <input
+                aria-label={`${style.label} 잔여 추리`}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={val}
                 onChange={(e) => {
                   const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
-                  setDenom(denom, isNaN(n) ? 0 : n);
+                  setNote(denom, isNaN(n) ? 0 : n);
                 }}
                 className="bank-quantity-input border-cdm-border bg-cdm-bg text-cdm-fg focus:ring-cdm-primary h-9 min-w-0 flex-1 rounded-md border text-center text-base font-bold tabular-nums focus:ring-2 focus:outline-none"
               />
               <button
                 type="button"
+                aria-label={`${style.label} 메모 1장 더`}
                 disabled={val >= max}
-                onClick={() => adjust(denom, +1)}
+                onClick={() => setNote(denom, val + 1)}
                 className="bank-step-action border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-9 w-9 shrink-0 rounded-md border text-lg font-bold disabled:opacity-40"
               >
                 +

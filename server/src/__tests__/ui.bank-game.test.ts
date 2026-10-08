@@ -1,15 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { bankProgressIndex, needsBankZeroBetConfirmation } from '../../../lib/bankGameUi';
+import { needsBankZeroBetConfirmation } from '../../../lib/bankGameUi';
 import { zeroBet } from '../../../shared/types/bank-game';
 
-describe('은행놀이 진행 및 0원 제출 확인', () => {
-  it('실제 서버 단계에서 네 단계 진행 상황을 선택한다', () => {
-    expect(
-      ['firstSubmit', 'firstReveal', 'secondSubmit', 'reveal', 'roundEnd', 'finished'].map(
-        (phase) => bankProgressIndex(phase as Parameters<typeof bankProgressIndex>[0]),
-      ),
-    ).toEqual([0, 1, 2, 3, 3, 4]);
-  });
+describe('은행놀이 0원 제출 확인', () => {
   it('선의 총 0원 제출에만 확인이 필요하다', () => {
     expect(needsBankZeroBetConfirmation('firstSubmit', zeroBet())).toBe(true);
     expect(needsBankZeroBetConfirmation('secondSubmit', zeroBet())).toBe(false);

@@ -1,6 +1,11 @@
 'use client';
 
-import { BANK_TOTAL_ROUNDS, type BankPlayerInfo, type BankSide } from '@/shared/types/bank-game';
+import {
+  BANK_TOTAL_ROUNDS,
+  type BankBet,
+  type BankPlayerInfo,
+  type BankSide,
+} from '@/shared/types/bank-game';
 import { formatKRW } from './constants';
 import InventoryRow from './InventoryRow';
 
@@ -12,9 +17,10 @@ interface Props {
   p2: BankPlayerInfo;
   firstSide: BankSide;
   myId: string | null;
+  opponentNote?: BankBet;
 }
 
-export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
+export default function ScorePanel({ p1, p2, firstSide, myId, opponentNote }: Props) {
   return (
     <div className="bank-score-panel grid grid-cols-2 gap-2">
       {[p1, p2]
@@ -75,6 +81,12 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                   </span>
                 </span>
               </div>
+              {!isMe && opponentNote && (
+                <>
+                  <InventoryRow inventory={opponentNote} inventoryAmount={null} size="compact" />
+                  <span className="text-right text-[11px] text-gray-500">(나의 메모)</span>
+                </>
+              )}
               {isMe && p.inventory && (
                 <InventoryRow
                   inventory={p.inventory}

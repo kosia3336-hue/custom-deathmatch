@@ -29,10 +29,10 @@ export default function FourCardCard({
   badge,
 }: FourCardCardProps) {
   const fit: CSSProperties = {
-    height: size === 'sm' ? 'clamp(26px, 7cqh, 48px)' : 'clamp(42px, 10cqh, 64px)',
+    height: size === 'sm' ? 'clamp(44px, 7cqh, 48px)' : 'clamp(64px, 10cqh, 72px)',
     width: 'auto',
     aspectRatio: '3/4',
-    fontSize: '11px',
+    fontSize: '15px',
   };
   const sizeClass = `skin-four-card-card--${size}`;
 

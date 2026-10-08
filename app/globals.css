@@ -6843,7 +6843,6 @@ html[data-native-app] .site-footer--home {
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.3);
 }
 
-.skin-treasury-field .bank-phase-stepper,
 .skin-treasury-field .bank-bet-panel,
 .skin-treasury-field .bank-tracker,
 .skin-treasury-field .bank-waiting-card,
@@ -6858,55 +6857,6 @@ html[data-native-app] .site-footer--home {
     inset 0 1px rgba(255, 255, 255, 0.05),
     inset 0 0 0 1px rgba(0, 0, 0, 0.35),
     0 10px 28px rgba(0, 0, 0, 0.28) !important;
-}
-
-.skin-treasury-field .bank-phase-stepper {
-  color: var(--tr-muted);
-}
-
-.skin-treasury-field .bank-step-connector {
-  background: rgba(118, 91, 53, 0.42) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.skin-treasury-field .bank-step-fill {
-  background: linear-gradient(90deg, var(--tr-brass-dim), var(--tr-brass-bright)) !important;
-}
-
-.skin-treasury-field .bank-step-dot,
-.skin-treasury-field .bank-step-node .bank-step-dot {
-  border: 1px solid rgba(199, 154, 82, 0.58);
-  color: var(--tr-muted) !important;
-  background: #111c27 !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
-}
-
-.skin-treasury-field .bank-step-node[data-state='done'] .bank-step-dot,
-.skin-treasury-field .bank-step-dot[data-state='done'] {
-  color: #07111d !important;
-  background: var(--tr-brass) !important;
-}
-
-.skin-treasury-field .bank-step-node[data-state='active'] .bank-step-dot,
-.skin-treasury-field .bank-step-dot[data-state='active'] {
-  color: #07111d !important;
-  background: var(--tr-brass-bright) !important;
-  box-shadow:
-    0 0 0 2px rgba(199, 154, 82, 0.24),
-    0 0 15px rgba(241, 208, 138, 0.48) !important;
-}
-
-.skin-treasury-field .bank-step-node[data-state='active'] .bank-step-label,
-.skin-treasury-field .bank-phase-stepper .text-amber-600 {
-  color: var(--tr-brass-bright) !important;
-}
-
-.skin-treasury-field .bank-step-node[data-state='done'] .bank-step-label {
-  color: var(--tr-brass) !important;
-}
-
-.skin-treasury-field .bank-phase-stepper :is(.text-gray-500, .text-gray-400) {
-  color: var(--tr-muted) !important;
 }
 
 .skin-treasury-field .bank-inventory {
@@ -7374,8 +7324,6 @@ html[data-native-app] .site-footer--home {
     animation: none;
     opacity: 0;
   }
-  .skin-treasury-field .bank-step-dot,
-  .skin-treasury-field .bank-step-node .bank-step-dot,
   .skin-treasury-field .bank-primary-action {
     animation: none !important;
     transition-duration: 0.01ms !important;
@@ -7418,18 +7366,6 @@ html[data-native-app] .site-footer--home {
 
 .skin-four-card-table :is(.text-cdm-fg-muted, .text-cdm-fg-subtle) {
   color: var(--fc-muted) !important;
-}
-
-.skin-four-card-table .quatro-status {
-  border-color: rgba(184, 137, 71, 0.7) !important;
-  color: var(--fc-ivory) !important;
-  background:
-    linear-gradient(90deg, transparent, rgba(227, 189, 117, 0.06), transparent),
-    linear-gradient(180deg, rgba(8, 43, 33, 0.96), rgba(3, 23, 18, 0.96)) !important;
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.05),
-    0 10px 24px rgba(0, 0, 0, 0.2);
-  letter-spacing: 0.015em;
 }
 
 .skin-four-card-table .quatro-panel {
@@ -7528,14 +7464,14 @@ html[data-native-app] .site-footer--home {
 }
 
 .skin-four-card-card--md {
-  width: clamp(2.75rem, 12vw, 3rem);
-  font-size: 0.78rem;
+  width: 3rem;
+  font-size: 15px;
 }
 
 .skin-four-card-card--sm {
-  width: clamp(1.28rem, 7vw, 2.25rem);
+  width: 2.25rem;
   border-radius: 0.32rem;
-  font-size: clamp(0.48rem, 1.8vw, 0.66rem);
+  font-size: 15px;
 }
 
 .skin-four-card-card--face {
@@ -7587,8 +7523,14 @@ html[data-native-app] .site-footer--home {
   transform: rotate(180deg);
 }
 
-.skin-four-card-card--sm .skin-four-card-corner {
-  font-size: 11px;
+.skin-four-card-corner {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* 작은 카드는 숫자를 크게 유지하고 문양을 중앙에 한 번만 표시한다. */
+.skin-four-card-card--sm .skin-four-card-corner > span:nth-child(2) {
+  display: none;
 }
 
 .skin-four-card-card--sm .skin-four-card-corner--top {
@@ -7672,7 +7614,7 @@ html[data-native-app] .site-footer--home {
   background: #173d31;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
   font-family: var(--font-sans, sans-serif);
-  font-size: 0.55rem;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.05rem;
   white-space: nowrap;
@@ -7712,7 +7654,7 @@ html[data-native-app] .site-footer--home {
   .skin-four-card-badge {
     top: -0.78rem;
     padding-inline: 0.24rem;
-    font-size: 0.46rem;
+    font-size: 11px;
     line-height: 0.82rem;
   }
 }

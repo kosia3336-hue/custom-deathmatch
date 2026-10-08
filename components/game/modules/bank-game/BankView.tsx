@@ -2,9 +2,7 @@
 import { useGameHud } from '@/hooks/useGameHud';
 import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 import type { BankGameData } from '@/shared/types/bank-game';
-import { memo, useEffect } from 'react';
-import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { BankPhaseProgress } from './BankPhaseProgress';
+import { memo } from 'react';
 import GameLayout from './GameLayout';
 
 import GameLoading from '@/components/game/GameLoading';
@@ -18,7 +16,6 @@ import TreasuryFieldFx from './skins/TreasuryFieldFx';
 
 function BankView(props: GameModuleViewProps<BankGameData>) {
   const ctx = useBankContext(props);
-  const { setHeaderBelow } = useRoomLayout();
   const {
     gameData,
     isSpectator,
@@ -66,14 +63,6 @@ function BankView(props: GameModuleViewProps<BankGameData>) {
     gameData ? { round: `${gameData.round} / ${gameData.maxRound}R`, order: phaseLabel } : null,
   );
 
-  const hasGameData = !!gameData;
-  useEffect(() => {
-    setHeaderBelow(
-      hasGameData && phase ? <BankPhaseProgress phase={phase} treasury={isTreasury} /> : null,
-    );
-    return () => setHeaderBelow(null);
-  }, [setHeaderBelow, hasGameData, phase, isTreasury]);
-
   if (!gameData) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -106,10 +95,6 @@ function BankView(props: GameModuleViewProps<BankGameData>) {
           0%   { transform: scale(0.96); opacity: 0; }
           60%  { transform: scale(1.02); opacity: 1; }
           100% { transform: scale(1.0); opacity: 1; }
-        }
-        @keyframes bankStepPulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
-          50%      { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
         }
         @keyframes bankSlideUp {
           from { transform: translateY(100%); }

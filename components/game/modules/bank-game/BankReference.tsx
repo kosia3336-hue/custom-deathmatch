@@ -6,7 +6,8 @@ import ScorePanel from './ScorePanel';
 import type { BankContextValue } from './hooks/useBankContext';
 
 export function BankReference({ ctx }: { ctx: BankContextValue }) {
-  const { gameData, firstSide, myId, mySide, showOpponentTracker } = ctx;
+  const { gameData, firstSide, myId, mySide, showOpponentTracker, inventoryNotes, isSpectator } =
+    ctx;
   if (!gameData) return null;
   return (
     <GameInfoStack>
@@ -17,6 +18,7 @@ export function BankReference({ ctx }: { ctx: BankContextValue }) {
             p2={gameData.players.p2}
             firstSide={firstSide}
             myId={myId}
+            opponentNote={!isSpectator ? inventoryNotes.currentNote : undefined}
           />
         </GameInfoPart>
       )}
@@ -30,7 +32,7 @@ export function BankReference({ ctx }: { ctx: BankContextValue }) {
       </GameInfoPart>
       {showOpponentTracker && (
         <GameInfoPart title="상대 잔여 추리" sizeToContent>
-          <OpponentInventoryTracker />
+          <OpponentInventoryTracker notes={inventoryNotes} />
         </GameInfoPart>
       )}
     </GameInfoStack>

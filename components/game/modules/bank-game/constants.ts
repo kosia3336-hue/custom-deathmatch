@@ -86,14 +86,6 @@ export const PHASE_PILL_COLORS: Record<string, string> = {
   finished: 'bg-gray-100 text-gray-700',
 };
 
-/** 4단계 페이즈 스테퍼용 라벨 (간결) */
-export const STEPPER_PHASE_LABELS: Array<{ key: string; label: string }> = [
-  { key: 'firstSubmit', label: '선 제출' },
-  { key: 'firstReveal', label: '선 공개' },
-  { key: 'secondSubmit', label: '후 제출' },
-  { key: 'reveal', label: '정산' },
-];
-
 /** 본인 차례 라벨 — sms2 패턴 동일 */
 export function buildBankTurnLabel(opts: {
   phase: string;
