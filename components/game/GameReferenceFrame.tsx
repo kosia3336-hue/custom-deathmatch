@@ -30,8 +30,8 @@ export function GameReferenceFrame({
   controls?: ReactNode;
   children: ReactNode;
   className?: string;
-  /** 자동 잔여 카운팅을 점수 바로 아래에 두는 게임. */
-  autoAboveStage?: boolean;
+  /** 자동 카운팅을 점수 바로 아래에 배치한다. 'mobile'이면 PC 도킹 위치는 유지한다. */
+  autoAboveStage?: boolean | 'mobile';
 }) {
   const desktop = useGameToolsRegistration()?.desktop ?? false;
   const [registered, setRegistered] = useState<Record<string, GameTool>>({});
@@ -62,7 +62,7 @@ export function GameReferenceFrame({
   const docked = useMemo(
     () =>
       parts.map((tool) =>
-        tool.kind === 'score' || (autoAboveStage && tool.kind === 'auto')
+        tool.kind === 'score' || (autoAboveStage === true && tool.kind === 'auto')
           ? { ...tool, defaultEdge: 'top' as const, sizeToContent: true, stacked: true }
           : tool,
       ),

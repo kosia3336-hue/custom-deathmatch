@@ -97,6 +97,7 @@ export default function GameLayout({ ctx }: Props) {
   return (
     <>
       <GameReferenceFrame
+        autoAboveStage
         reference={<SunMoonStarReference ctx={ctx} />}
         controls={powderInput && <div className={styles.powder}>{powderInput}</div>}
         className={`gap-1.5 p-1.5 ${styles.frame}`}
