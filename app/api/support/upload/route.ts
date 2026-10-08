@@ -4,11 +4,15 @@ import {
   getSupabaseServiceRole,
   isSupabaseServiceRoleConfigured,
 } from '@/lib/supabase/service-role';
-import { ensureBucketOnce, readImageUpload } from '@/lib/uploads/image';
+import { IMAGE_MAX_BYTES, ensureBucketOnce, readImageUpload } from '@/lib/uploads/image';
+import { ATTACHMENTS_BUCKET, signAttachmentPaths } from '@/lib/support/attachments';
 
 export const dynamic = 'force-dynamic';
 
-const BUCKET = 'attachments';
+// 문의·신고 스크린샷은 본인과 관리자만 본다 — 비공개 버킷, 보여 줄 때 서명 URL
+const BUCKET = ATTACHMENTS_BUCKET;
+/** 업로드 직후 미리보기용 */
+const PREVIEW_TTL_SECONDS = 10 * 60;
 
 /**
  * POST /api/support/upload — 문의/신고 스크린샷 업로드 (multipart 'file').
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = getSupabaseServiceRole();
-  await ensureBucketOnce(sb, BUCKET);
+  await ensureBucketOnce(sb, BUCKET, IMAGE_MAX_BYTES, false);
 
   const path = `${member.id}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${upload.ext}`;
 
@@ -50,5 +54,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '첨부 기록 생성에 실패했습니다.' }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, id: (row as { id: string }).id, url: (row as { url: string }).url });
+  // url 은 저장·제출용 원래 주소, previewUrl 은 화면에 띄울 서명 주소
+  const signed = await signAttachmentPaths([path], PREVIEW_TTL_SECONDS);
+  return NextResponse.json({
+    ok: true,
+    id: (row as { id: string }).id,
+    url: (row as { url: string }).url,
+    previewUrl: signed.get(path) ?? null,
+  });
 }

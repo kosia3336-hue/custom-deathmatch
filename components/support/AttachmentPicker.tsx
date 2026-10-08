@@ -5,7 +5,10 @@ import { toast } from 'sonner';
 
 export interface AttachedFile {
   id: string;
+  /** 저장·제출용 원래 주소 */
   url: string;
+  /** 화면에 띄울 서명 주소 (첨부 버킷은 비공개) */
+  previewUrl?: string;
 }
 
 interface Props {
@@ -35,12 +38,18 @@ export function AttachmentPicker({ files, onChange, max = 5, disabled }: Props) 
         const form = new FormData();
         form.append('file', f);
         const res = await fetch('/api/support/upload', { method: 'POST', body: form });
-        const json = (await res.json()) as { ok?: boolean; id?: string; url?: string; error?: string };
+        const json = (await res.json()) as {
+          ok?: boolean;
+          id?: string;
+          url?: string;
+          previewUrl?: string | null;
+          error?: string;
+        };
         if (!res.ok || !json.ok || !json.id || !json.url) {
           toast.error(json.error ?? `${f.name} 업로드에 실패했습니다.`);
           continue;
         }
-        added.push({ id: json.id, url: json.url });
+        added.push({ id: json.id, url: json.url, previewUrl: json.previewUrl ?? undefined });
       }
       if (added.length > 0) onChange([...files, ...added]);
     } finally {
@@ -83,7 +92,7 @@ export function AttachmentPicker({ files, onChange, max = 5, disabled }: Props) 
             <div key={f.id} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={f.url}
+                src={f.previewUrl ?? f.url}
                 alt="첨부 스크린샷"
                 className="h-20 w-20 rounded-cdm-md border border-cdm-border object-cover"
               />

@@ -96,10 +96,12 @@ export async function ensureBucketOnce(
   sb: SupabaseClient<any, any, any>,
   bucket: string,
   fileSizeLimit: number = IMAGE_MAX_BYTES,
+  /** 없을 때 새로 만들 버킷의 공개 여부. 이미 있는 버킷은 바꾸지 않는다. */
+  isPublic = true,
 ): Promise<void> {
   if (ensuredBuckets.has(bucket)) return;
   try {
-    await sb.storage.createBucket(bucket, { public: true, fileSizeLimit });
+    await sb.storage.createBucket(bucket, { public: isPublic, fileSizeLimit });
   } catch {
     // 이미 존재 — 무시
   }
