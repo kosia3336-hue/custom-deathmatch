@@ -8957,6 +8957,8 @@ html[data-native-app] .site-footer--home {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  /* 해·달 자리를 이 상자 크기(cqw/cqh)로 계산한다 — .skin-dalmaji-orb */
+  container-type: size;
 }
 
 .skin-dalmaji-wash {
@@ -8966,15 +8968,12 @@ html[data-native-app] .site-footer--home {
   opacity: 0;
   transition: opacity 1.2s ease;
 }
+/* 달·해 둘레 빛은 원판과 같은 그림에 있다(.skin-dalmaji-orb). 여기 화면 % 로 칠하면 원판과 어긋난다. */
 .skin-dalmaji-wash--dawn {
-  background:
-    radial-gradient(ellipse 42% 32% at 82% 18%, rgba(255, 232, 186, 0.5), transparent 58%),
-    linear-gradient(180deg, #10182c 0%, #1a2848 58%, #2a3860 82%, #4a4468 100%);
+  background: linear-gradient(180deg, #10182c 0%, #1a2848 58%, #2a3860 82%, #4a4468 100%);
 }
 .skin-dalmaji-wash--morning {
-  background:
-    radial-gradient(ellipse 36% 28% at 16% 16%, rgba(255, 180, 120, 0.45), transparent 55%),
-    linear-gradient(180deg, #3a88b4 0%, #7eb8c4 42%, #c8dcc0 100%);
+  background: linear-gradient(180deg, #3a88b4 0%, #7eb8c4 42%, #c8dcc0 100%);
 }
 .skin-dalmaji-wash--night {
   background:
@@ -9006,9 +9005,50 @@ html[data-native-app] .site-footer--home {
   height: 100%;
 }
 
+/*
+  해·달 — 원판과 둘레 빛을 한 그림으로 그리고, 자리는 배경 그림(.skin-dalmaji-sky)과
+  같은 계산으로 잡는다. 배경 그림은 viewBox 960×540 을 xMidYMax slice 로 깔므로
+    배율  s = max(가로/960, 세로/540)
+    화면 x = (가로 − 960·s)/2 + cx·s,  화면 y = 세로 − 540·s + cy·s
+  가로 화면에서는 이 자리 그대로라 산·물에 비친 달과 맞는다. 세로 화면에서는
+  배경 양옆이 잘려 해·달이 화면 밖으로 나가므로, 화면 안쪽으로 당기고
+  크기(os)도 가로 폭에 맞춰 줄인다. 아주 넓은 화면은 반대로 위쪽이 잘리므로
+  아래로 당긴다.
+
+  --dj-cx/--dj-cy 는 그림 속 중심, --dj-r 은 원판(바깥 고리) 반지름,
+  --dj-glow 는 그림 viewBox 의 반지름이다(TSX 의 viewBox 와 같이 바꿀 것).
+*/
 .skin-dalmaji-orb {
+  --dj-s: max(calc(100cqw / 960), calc(100cqh / 540));
+  --dj-os: min(var(--dj-s), calc(100cqw / 640));
+  --dj-x: calc((100cqw - 960 * var(--dj-s)) / 2 + var(--dj-cx) * var(--dj-s));
+  --dj-y: calc(100cqh - 540 * var(--dj-s) + var(--dj-cy) * var(--dj-s));
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--dj-px) - var(--dj-glow) * var(--dj-os));
+  /* 아주 넓은 화면에서는 배경 위쪽이 잘려 해·달이 위로 나간다 — 아래로 당긴다 */
+  top: calc(
+    max(var(--dj-y), calc(var(--dj-r) * var(--dj-os) + 12px)) - var(--dj-glow) * var(--dj-os)
+  );
+  width: calc(2 * var(--dj-glow) * var(--dj-os));
+  height: calc(2 * var(--dj-glow) * var(--dj-os));
+  overflow: visible;
   opacity: 0;
   transition: opacity 1.2s ease;
+}
+.skin-dalmaji-orb--sun {
+  --dj-cx: 148;
+  --dj-cy: 100;
+  --dj-r: 52;
+  --dj-glow: 280;
+  --dj-px: max(var(--dj-x), calc(var(--dj-r) * var(--dj-os) + 12px));
+}
+.skin-dalmaji-orb--moon {
+  --dj-cx: 780;
+  --dj-cy: 102;
+  --dj-r: 86;
+  --dj-glow: 300;
+  --dj-px: min(var(--dj-x), calc(100cqw - var(--dj-r) * var(--dj-os) - 12px));
 }
 .skin-dalmaji-field--dawn .skin-dalmaji-orb--moon { opacity: 1; }
 .skin-dalmaji-field--morning .skin-dalmaji-orb--sun { opacity: 1; }
@@ -9151,9 +9191,15 @@ html[data-native-app] .site-footer--home {
   filter: brightness(0.72);
 }
 
+/*
+  점등 빛은 카드가 아니라 해·달·별 그림(.skin-dalmaji-mark-glyph)에 붙인다.
+  카드에 붙이면 아래 글자 몫만큼 중심이 내려가고, 카드가 가로로 길어 고리가
+  납작한 타원이 됐다. 그림 상자는 정사각형이라 고리가 동그랗게 그림을 감싼다.
+*/
 .skin-dalmaji-mark-halo {
   position: absolute;
-  inset: -18%;
+  inset: -30%;
+  z-index: -1;
   pointer-events: none;
 }
 .skin-dalmaji-mark-halo-bloom {
