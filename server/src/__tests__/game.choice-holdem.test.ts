@@ -199,6 +199,69 @@ describe('초이스 홀덤 경기 진행', () => {
     ).toBe(11);
   });
 
+  it('5칩에서 앤티 3칩을 내고 2칩이 남아도 패배하지 않는다', () => {
+    const { io, state, first, second } = setup('choice-holdem-ante-leaves-two');
+    state.round = 21;
+    state.pot = 0;
+    state.playerStates[first.id].chips = 5;
+    state.playerStates[second.id].chips = 20;
+    beginChoiceHoldemRound(io, state);
+    expect(state.ante).toBe(3);
+    expect(state.playerStates[first.id].chips).toBe(2);
+    expect(state.phase).toBe('first-betting');
+    expect(state.gameOver).toBe(false);
+    expect(state.winnerId).toBeNull();
+    checkThroughFirstBetting(io, state);
+    selectCards(io, state);
+    expect(state.phase).toBe('second-betting');
+    expect(state.gameOver).toBe(false);
+  });
+
+  it.each(['first', 'second'] as const)(
+    '%s 베팅에서 2칩으로 내려가도 판을 마치고 팟을 받아 다음 라운드에 참가할 수 있다',
+    async (phase) => {
+      const { io, state, first, second } = setup(`choice-holdem-low-chips-${phase}`);
+      state.round = 21;
+      state.pot = 0;
+      state.playerStates[first.id].chips = 8;
+      state.playerStates[second.id].chips = 20;
+      const setWinningHand = () => {
+        // 잔여 칩이 적은 플레이어가 스트레이트로 승리하도록 패를 고정한다.
+        state.communityCards = [1, 2, 3];
+        state.playerStates[first.id].cards = [4, 5];
+        state.playerStates[second.id].cards = [1, 1];
+      };
+      beginChoiceHoldemRound(io, state);
+      if (phase === 'second') {
+        checkThroughFirstBetting(io, state);
+        selectCards(io, state);
+        setWinningHand();
+      }
+      expect(
+        performChoiceHoldemAction(io, state, first.id, { type: 'raise', amount: 6 }),
+      ).toBeNull();
+      expect(state.playerStates[first.id].chips).toBe(2);
+      expect(state.gameOver).toBe(false);
+      expect(state.winnerId).toBeNull();
+      expect(performChoiceHoldemAction(io, state, second.id, { type: 'call' })).toBeNull();
+      if (phase === 'first') {
+        selectCards(io, state);
+        setWinningHand();
+        expect(performChoiceHoldemAction(io, state, first.id, { type: 'call' })).toBeNull();
+        expect(performChoiceHoldemAction(io, state, second.id, { type: 'call' })).toBeNull();
+      }
+      expect(state.phase).toBe('round-result');
+      expect(state.gameOver).toBe(false);
+      expect(state.lastRoundResult?.winnerId).toBe(first.id);
+      expect(state.playerStates[first.id].chips).toBe(14);
+      await vi.advanceTimersByTimeAsync(2400);
+      expect(state.round).toBe(22);
+      expect(state.phase).toBe('first-betting');
+      expect(state.gameOver).toBe(false);
+      expect(state.playerStates[first.id].chips).toBe(11);
+    },
+  );
+
   it('동률 이월 라운드는 잔여 2칩이어도 앤티 3칩을 다시 요구하지 않는다', () => {
     const { io, state, first, second } = setup('choice-holdem-carry-low-chips');
     state.round = 21;
