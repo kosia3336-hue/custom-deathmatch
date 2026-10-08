@@ -22,12 +22,14 @@ import ShowdownPointInput from './skins/ShowdownPointInput';
 import ShowdownPointTrack from './skins/ShowdownPointTrack';
 import ShowdownRevealPanel from './skins/ShowdownRevealPanel';
 import { WaitingCard } from './WaitingCard';
+import { useBNW2PointNotes } from './useBNW2PointNotes';
 
 function BNW2View({
   gameData,
   myId,
   isSpectator = false,
   skin = null,
+  gameKey = '',
 }: {
   gameData?: BNW2GameData;
   myId: string;
@@ -54,7 +56,8 @@ function BNW2View({
     라운드 기록은 넓은 화면에서 aside 로 이미 펴져 있으므로 memo 는 좁은 화면 몫이다.
   */
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [opponentEstimate, setOpponentEstimate] = useState<number>(200);
+  const opponentId = Object.keys(gameData?.players ?? {}).find((id) => id !== myId) ?? '';
+  const pointNotes = useBNW2PointNotes(gameData, opponentId, gameKey);
 
   // Winner/draw toast
   const bnwRound = gameData?.round ?? 0;
@@ -177,15 +180,6 @@ function BNW2View({
     playShowdownSubmitSfx();
   }, [gameData?.phase, isShowdown, isSpectator, myId, gameData?.firstPlayerId]);
 
-  /*
-    상대 불이 꺼질 때 추리값을 구간 상한으로 되돌리지 않는다.
-
-    예전에는 상대 stage 가 바뀔 때마다 estimate 를 stage*20 으로 리셋했다.
-    그런데 이 칸은 플레이어가 직접 좁혀 가는 메모다 — 어렵게 조여 놓은 값이
-    상대가 포인트를 쓸 때마다 상한으로 튕겨 나가 추리를 다시 시작해야 했다.
-    값은 플레이어가 스스로 조정한다.
-  */
-
   // 내 차례가 되면 바텀시트 자동 열기 (모바일)
   useEffect(() => {
     if (!gameData || isSpectator) return;
@@ -228,8 +222,8 @@ function BNW2View({
   const isReveal = gameData.phase === 'reveal' || gameData.phase === 'finished';
   const inPlay = gameData.phase === 'firstSubmit' || gameData.phase === 'secondSubmit';
 
-  // firstSubmit·secondSubmit 동안 비관전자에게 상대 잔여 추리 트래커 표시 (상대 단계는 항상 공개)
-  const showTracker = !isSpectator && inPlay;
+  // 공개·종료 단계에서도 지난 라운드 메모를 확인할 수 있다.
+  const showTracker = !isSpectator && !!opponentPlayer;
 
   // 서부 스킨 컴포넌트는 기본 컴포넌트와 props가 동일하므로 그대로 스왑한다.
   const TrackCmp = isShowdown ? ShowdownPointTrack : PointTrack;
@@ -345,9 +339,7 @@ function BNW2View({
             gameData={gameData}
             myId={myId}
             showTracker={showTracker}
-            opponentStage={opponentPlayer?.stage}
-            estimate={opponentEstimate}
-            setEstimate={setOpponentEstimate}
+            notes={pointNotes}
           />
         }
       >

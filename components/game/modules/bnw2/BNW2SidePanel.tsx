@@ -3,35 +3,28 @@ import { GameInfoPart } from '@/components/game/GameInfoPart';
 import type { BNW2GameData } from '@/shared/types/bnw2';
 import { OpponentPointTracker } from './OpponentPointTracker';
 import { RoundHistoryTable } from './RoundHistoryTable';
+import type { useBNW2PointNotes } from './useBNW2PointNotes';
 
 export function BNW2SidePanel({
   gameData,
   myId,
   showTracker,
-  opponentStage,
-  estimate,
-  setEstimate,
+  notes,
 }: {
   gameData: BNW2GameData;
   myId: string;
   showTracker: boolean;
-  opponentStage?: number;
-  estimate: number;
-  setEstimate: React.Dispatch<React.SetStateAction<number>>;
+  notes: ReturnType<typeof useBNW2PointNotes>;
 }) {
   return (
     <div className="flex flex-col gap-3">
-      {showTracker && opponentStage != null && (
+      {showTracker && (
         <GameInfoPart
           title="메모 - 상대 잔여 추리"
           className="border-0 bg-transparent shadow-none"
           sizeToContent
         >
-          <OpponentPointTracker
-            opponentStage={opponentStage}
-            estimate={estimate}
-            setEstimate={setEstimate}
-          />
+          <OpponentPointTracker notes={notes} />
         </GameInfoPart>
       )}
       <GameInfoPart title="점수" sizeToContent>
