@@ -4,6 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 import { createHmac } from 'crypto';
 import type { CookieOptions } from '@supabase/ssr';
 import { safeNextPath } from '@/lib/safeRedirect';
+import {
+  KAKAO_STATE_COOKIE,
+  KAKAO_STATE_COOKIE_PATH,
+  verifyKakaoState,
+} from '@/lib/auth/kakaoState';
 
 const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token';
 const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
@@ -80,32 +85,47 @@ function deriveCredentials(kakaoId: string): { email: string; password: string }
  *    - 없으면 admin API 로 유저 생성 후 재로그인
  * 4. 세션 쿠키 설정 → next 로 리다이렉트
  */
+/** 로그인 화면으로 돌려보내며 state 쿠키를 지운다 (한 번 쓰면 끝) */
+function toLogin(request: NextRequest, error: string): NextResponse {
+  const res = NextResponse.redirect(
+    new URL(`/login?error=${encodeURIComponent(error)}`, request.url),
+  );
+  res.cookies.set(KAKAO_STATE_COOKIE, '', { path: KAKAO_STATE_COOKIE_PATH, maxAge: 0 });
+  return res;
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state') ?? '/';
+  const state = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
   const errorDesc = url.searchParams.get('error_description');
 
   if (errorParam) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(errorDesc ?? errorParam)}`, request.url),
-    );
+    return toLogin(request, errorDesc ?? errorParam);
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=missing_code', request.url));
+    return toLogin(request, 'missing_code');
+  }
+
+  // 이 브라우저에서 시작한 로그인인지 확인 — 남이 만든 콜백 링크로 공격자 계정에
+  // 로그인되는 것을 막는다(lib/auth/kakaoState.ts)
+  const verified = verifyKakaoState(request.cookies.get(KAKAO_STATE_COOKIE)?.value, state);
+  if (!verified) {
+    return toLogin(request, '로그인 요청이 만료됐습니다. 다시 시도해 주세요.');
   }
 
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001').replace(/\/$/, '');
   const redirectUri = `${siteUrl}/auth/kakao/callback`;
 
-  // state 는 next 경로. 사이트 안 경로만 허용해 오픈 리다이렉트 방지.
-  const nextPath = safeNextPath(state);
+  // 사이트 안 경로만 허용해 오픈 리다이렉트 방지
+  const nextPath = safeNextPath(verified.next);
   const finalRedirect = new URL(nextPath, siteUrl);
 
   // 세션 쿠키를 응답에 심기 위한 Response 먼저 생성
   const response = NextResponse.redirect(finalRedirect);
+  response.cookies.set(KAKAO_STATE_COOKIE, '', { path: KAKAO_STATE_COOKIE_PATH, maxAge: 0 });
 
   try {
     // ── 1. 카카오 토큰 & 프로필 ────────────────────────────────────
@@ -164,10 +184,8 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (err) {
+    // 카카오 응답 본문·Supabase 오류 문구는 로그에만 남기고 주소창에는 싣지 않는다
     console.error('[Kakao OAuth Callback]', err);
-    const msg = err instanceof Error ? err.message : '알 수 없는 오류';
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(msg)}`, request.url),
-    );
+    return toLogin(request, '카카오 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
   }
 }
