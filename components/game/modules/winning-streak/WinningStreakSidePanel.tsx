@@ -30,7 +30,12 @@ export function WinningStreakSidePanel({
         </div>
       </GameInfoPart>
       {opponent && (
-        <GameInfoPart title="상대 잔여 카드" defaultOrder={10} sizeToContent>
+        <GameInfoPart
+          title="상대 잔여 카드"
+          defaultOrder={10}
+          sizeToContent
+          className="lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+        >
           <CardRow cards={opponent.remainingCards} lastPlayed={opponent.lastPlayedCard} label="" />
         </GameInfoPart>
       )}

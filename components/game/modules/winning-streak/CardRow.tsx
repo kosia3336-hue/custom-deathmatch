@@ -14,7 +14,7 @@ export function CardRow({
 }) {
   const entries = getCardEntries(cards);
   return (
-    <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-lg border px-3 py-2">
+    <div className="border-cdm-border bg-cdm-bg-elev-1 rounded-lg border px-3 py-2 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
       {label && (
         <p className="text-cdm-fg-muted mb-1.5 text-xs font-medium uppercase lg:text-sm">{label}</p>
       )}
