@@ -88,10 +88,13 @@ export default function PlayPage() {
   const roomId_ = useRoomStore((s) => s.room?.id);
   const hiddenMatch = useRoomStore((s) => s.room?.hiddenMatch);
 
-  /** 플레이 라우트 진입마다(대기실→플레이는 roomId 동일) 이전 판 gameResult 제거 */
+  /** 새 판의 이전 결과만 지운다. 종료 직후 도착한 현재 결과는 보존한다. */
   useEffect(() => {
-    useRoomStore.getState().setGameResult(null);
-  }, []);
+    const state = useRoomStore.getState();
+    const finished = state.room?.status === 'finished' ||
+      (state.gameState?.gameData as { phase?: string } | undefined)?.phase === 'finished';
+    if (state.gameResult?.roomId !== roomId || !finished) state.setGameResult(null);
+  }, [roomId]);
 
   useEffect(() => {
     if (!gameResult) return;

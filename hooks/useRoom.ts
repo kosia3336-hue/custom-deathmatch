@@ -6,11 +6,26 @@ import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
+import { recoverGameResult } from '@/lib/gameResultRecovery';
 import type { GameTimeExpiry } from '@/shared/types/events';
 import type { Room, Player, ChatMessage, GameState, GameResult, RankGameEndedPayload } from '@/shared/types';
 
 export function useRoom(roomId: string) {
   const mountedRef = useRef(false);
+  const gameResult = useRoomStore((s) => s.gameResult);
+  const finished = useRoomStore((s) =>
+    (s.room?.id === roomId && s.room.status === 'finished') ||
+    (s.gameState?.roomId === roomId &&
+      (s.gameState.gameData as { phase?: string } | undefined)?.phase === 'finished'),
+  );
+
+  useEffect(() => {
+    if (!finished || gameResult?.roomId === roomId) return;
+    return recoverGameResult(
+      () => getSocket().emit('game:sync'),
+      () => useRoomStore.getState().gameResult?.roomId === roomId,
+    );
+  }, [finished, gameResult?.roomId, roomId]);
 
   useEffect(() => {
     if (mountedRef.current) return;
@@ -66,7 +81,9 @@ export function useRoom(roomId: string) {
       if (state.roomId !== roomId) return;
       useRoomStore.getState().setGameState(state);
     };
-    const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
+    const onGameEnded = (result: GameResult) => {
+      if (result.roomId === roomId) useRoomStore.getState().setGameResult(result);
+    };
     const onTimeExpiry = (value: GameTimeExpiry | null) => {
       if (value && value.roomId !== roomId) return;
       useRoomStore.getState().setTimeExpiry(value);
@@ -140,7 +157,7 @@ export function useRoom(roomId: string) {
   return {
     room: useRoomStore((s) => s.room),
     gameState: useRoomStore((s) => s.gameState),
-    gameResult: useRoomStore((s) => s.gameResult),
+    gameResult,
     countdown: useRoomStore((s) => s.countdown),
   };
 }
