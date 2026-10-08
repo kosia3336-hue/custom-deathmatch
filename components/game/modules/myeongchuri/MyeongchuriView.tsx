@@ -1,6 +1,7 @@
 'use client';
 import { memo } from 'react';
 import { GamePlayerScoreboard } from '@/components/game/GamePlayerScoreboard';
+import { GameNotepad } from '@/components/game/GameNotepad';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useGameFeedback } from '@/components/game/GameFeedbackContext';
 import { useGameAction } from '@/components/game/GameActionContext';
@@ -246,6 +247,11 @@ function MyeongchuriTable({
             memo={memo}
             onMemo={isPlayer ? updateMemo : undefined}
           />
+          {isPlayer && (
+            <GameInfoPart title="일반 메모장" kind="memo" defaultOrder={31} sizeToContent>
+              <GameNotepad storageKey={`cdm-myeongchuri-notepad:${memoKey}`} />
+            </GameInfoPart>
+          )}
         </>
       }
       controls={

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from '@/components/cdm/Button';
+import { formulaTileUsage } from '@/lib/formulaTileUsage';
 import { cn } from '@/lib/utils';
 import styles from './formula-completion.module.css';
 
@@ -50,6 +51,8 @@ export default function FormulaPad({
   const isMobile = useSyncExternalStore(subscribeMobile, getMobileSnapshot, getServerSnapshot);
   const [nativeInput, setNativeInput] = useState(false);
   const compactInput = isMobile && nativeInput;
+  const [preferredIndices, setPreferredIndices] = useState<number[]>([]);
+  const { usedIndices, invalidNumbers } = formulaTileUsage(expression, numbers, preferredIndices);
 
   useEffect(() => {
     // 모바일은 카드 키패드를 기본으로 사용한다. 자동 포커스로 키보드를 열지 않는다.
@@ -96,6 +99,27 @@ export default function FormulaPad({
 
   return (
     <div ref={padRef} className={cn(styles.pad, className)}>
+      <div className={styles.tileRow} aria-label="제시 숫자">
+        {numbers.map((number, index) => {
+          const used = usedIndices.includes(index);
+          return (
+            <button
+              key={`${number}-${index}`}
+              type="button"
+              onClick={() => {
+                if (disabled || used) return;
+                setPreferredIndices([...usedIndices, index]);
+                append(String(number));
+              }}
+              disabled={disabled || used}
+              className={cn(styles.tile, styles.numberTile, used && styles.usedTile)}
+              aria-label={`숫자 ${number} 입력${used ? ' (사용됨)' : ''}`}
+            >
+              {number}
+            </button>
+          );
+        })}
+      </div>
       <div className="flex items-center justify-between gap-2">
         <label
           className="text-cdm-fg-muted text-xs font-semibold"
@@ -122,7 +146,11 @@ export default function FormulaPad({
         value={expression}
         onChange={(event) => onExpressionChange(cleanInput(event.target.value))}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+          if (
+            event.key === 'Enter' &&
+            !event.nativeEvent.isComposing &&
+            invalidNumbers.length === 0
+          ) {
             event.preventDefault();
             onSubmit();
           }
@@ -137,38 +165,24 @@ export default function FormulaPad({
       />
 
       {!compactInput && (
-        <div className="flex flex-col gap-2">
-          <div className={styles.tileRow} aria-label="제시 숫자">
-            {numbers.map((number, index) => (
-              <button
-                key={`${number}-${index}`}
-                type="button"
-                onClick={() => append(String(number))}
-                disabled={disabled}
-                className={styles.tile}
-                aria-label={`숫자 ${number} 입력`}
-              >
-                {number}
-              </button>
-            ))}
-          </div>
-          <div className={styles.tileRow} aria-label="연산자와 괄호">
-            {OPERATORS.map((operator) => (
-              <button
-                key={operator.value}
-                type="button"
-                onClick={() => append(operator.value)}
-                disabled={disabled}
-                className={styles.tile}
-              >
-                {operator.label}
-              </button>
-            ))}
-          </div>
+        <div className={styles.tileRow} aria-label="연산자와 괄호">
+          {OPERATORS.map((operator) => (
+            <button
+              key={operator.value}
+              type="button"
+              onClick={() => append(operator.value)}
+              disabled={disabled}
+              className={styles.tile}
+            >
+              {operator.label}
+            </button>
+          ))}
         </div>
       )}
-      {compactInput && (
-        <p className="text-cdm-fg-muted text-xs">제시 숫자: {numbers.join(' · ')}</p>
+      {invalidNumbers.length > 0 && (
+        <p role="status" className="text-cdm-accent text-xs">
+          제시된 숫자를 각 타일당 한 번만 사용해 주세요.
+        </p>
       )}
 
       <div className="grid grid-cols-[auto_auto_1fr] gap-2">
@@ -184,7 +198,10 @@ export default function FormulaPad({
         <Button
           variant="tertiary"
           className="h-11 px-3"
-          onClick={() => onExpressionChange('')}
+          onClick={() => {
+            onExpressionChange('');
+            setPreferredIndices([]);
+          }}
           disabled={disabled || !expression}
         >
           초기화
@@ -193,7 +210,7 @@ export default function FormulaPad({
           fullWidth
           className="h-11 px-3"
           onClick={onSubmit}
-          disabled={disabled || !expression.trim()}
+          disabled={disabled || !expression.trim() || invalidNumbers.length > 0}
         >
           수식 외치기
         </Button>

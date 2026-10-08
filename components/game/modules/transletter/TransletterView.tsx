@@ -205,8 +205,8 @@ function TransletterView({
         })}
 
         {gameData.phase === 'finished' && gameData.result && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-            <div className="rounded-cdm-lg border-cdm-primary bg-cdm-bg/95 max-w-xs border-2 px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
+          <div className="mt-1 flex justify-center">
+            <div className="rounded-cdm-lg border-cdm-primary bg-cdm-bg w-full border-2 px-5 py-4 text-center shadow-(--cdm-shadow-lg)">
               <p className="text-cdm-fg text-base font-bold">
                 {gameData.isSolo
                   ? gameData.result.winnerId && gameData.result.reason.includes('모두 완성')
