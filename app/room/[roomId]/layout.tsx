@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useCallback } from 'react';
+import { ReactNode, useState, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRoomStore } from '@/stores/room';
 import { useDockState } from '@/hooks/useDockState';
@@ -43,18 +43,23 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
   const setFooterHidden = useCallback((hidden: boolean) => setFooterHiddenState(hidden), []);
   const setHud = useCallback((v: GameHud | null) => setHudState(v), []);
 
+  // 헤더/푸터를 갱신해도 게임 모듈과 편의 패널에 새 context를 전파하지 않는다.
+  // 패널 등록 → 헤더 갱신 → context 변경 → 패널 재등록 순환을 끊는다.
+  const context = useMemo(
+    () => ({
+      setHeaderLeft,
+      setHeaderRight,
+      setHeaderBelow,
+      setFooter,
+      setFooterHidden,
+      setHud,
+      hud,
+    }),
+    [setHeaderLeft, setHeaderRight, setHeaderBelow, setFooter, setFooterHidden, setHud, hud],
+  );
+
   return (
-    <RoomLayoutContext.Provider
-      value={{
-        setHeaderLeft,
-        setHeaderRight,
-        setHeaderBelow,
-        setFooter,
-        setFooterHidden,
-        setHud,
-        hud,
-      }}
-    >
+    <RoomLayoutContext.Provider value={context}>
       <div className="flex min-h-screen flex-col bg-cdm-page">
         {/* 공통 헤더 */}
         <div className="ink-scope sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
