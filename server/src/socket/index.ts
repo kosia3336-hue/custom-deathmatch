@@ -33,6 +33,32 @@ import { rankQueueStore } from '../store/rankQueue.js';
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
 
+/** (객체, 응답 콜백) 을 받는 이벤트 */
+const DATA_WITH_ACK_EVENTS = new Set([
+  'nickname:set',
+  'room:create',
+  'room:join',
+  'room:move:to:player',
+  'room:move:to:spectate',
+  'room:settings:update',
+  'spectate:join',
+]);
+
+/** 응답 콜백만 받는 이벤트 */
+const ACK_ONLY_EVENTS = new Set([
+  'event:join',
+  'event:meta:get',
+  'room:invite:create',
+  'room:quickjoin',
+  'room:to:spectate',
+  'spectate:to:player',
+  'time:sync',
+]);
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
 /** 인게임 재연결 유예 시간 (ms) */
 const RECONNECT_GRACE_PLAYING = 30_000;
 
@@ -130,6 +156,20 @@ export function setupSocketHandlers(io: IO) {
   });
 
   io.on('connection', (socket) => {
+    // ── 패킷 형식 가드 ──────────────────────────────────────────────────
+    // 응답 콜백을 받는 핸들러는 인자를 구조분해하거나 callback(...) 을 곧바로
+    // 부른다. 클라이언트가 객체 대신 null 을, 함수 대신 다른 값을 보내면 거기서
+    // 예외가 난다. 핸들러마다 막는 대신 여기서 모양이 틀린 패킷을 버린다.
+    socket.use((packet, next) => {
+      const [event, ...args] = packet as [string, ...unknown[]];
+      if (DATA_WITH_ACK_EVENTS.has(event)) {
+        const [data, ack] = args;
+        if (!isPlainObject(data) || typeof ack !== 'function') return;
+      } else if (ACK_ONLY_EVENTS.has(event)) {
+        if (typeof args[args.length - 1] !== 'function') return;
+      }
+      next();
+    });
 
     // ── 시각 맞추기 ──────────────────────────────────────────────────────
     // 타이머 마감은 서버 시각(turnStartedAt 등)으로 온다. 기기 시계가 몇 초씩

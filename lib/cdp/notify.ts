@@ -57,6 +57,20 @@ export async function notifyCdpAdjusted(args: NotifyCdpAdjustedArgs): Promise<vo
   }
 }
 
+/** 정지·영구정지된 회원의 접속을 끊게 한다 (다시 붙을 때 핸드셰이크가 막는다) */
+export async function notifyMemberSanctioned(memberId: string): Promise<void> {
+  const url = `${getSocketBaseUrl()}/internal/member-sanctioned`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: getInternalSecret(), memberId }),
+    });
+  } catch {
+    // 소켓 서버 다운 — 무시 (다음 접속 때 핸드셰이크가 막는다)
+  }
+}
+
 export async function notifyShopItemChanged(args: NotifyShopItemChangedArgs): Promise<void> {
   const url = `${getSocketBaseUrl()}/internal/notify-shop-item-changed`;
   try {

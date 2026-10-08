@@ -182,10 +182,14 @@ export async function executeGachaDraw(
       if (error && !isRpcMissing(error)) {
         throw mapRpcToGachaError(error);
       }
+      if (!error) throw new GachaDrawError('draw_gacha_empty', 'internal_error');
     } catch (e) {
       if (e instanceof GachaDrawError) throw e;
+      // RPC 가 아예 없을 때만 TS 경로로 내려간다. 일시 오류에 내려가면 잔액을
+      // 읽고 덮어쓰는 TS 경로가 동시 요청에 노출된다.
       if (!isRpcMissing(e)) {
-        console.warn('[gacha] RPC draw_gacha 실패, TS 폴백:', (e as Error).message);
+        console.warn('[gacha] RPC draw_gacha 실패:', (e as Error).message);
+        throw new GachaDrawError('draw_gacha_failed', 'internal_error');
       }
     }
   }
@@ -220,6 +224,54 @@ function mapRpcDrawRow(row: Record<string, unknown>): GachaDrawResult {
   };
 }
 
+/** 뽑기권 1장 차감 — 읽은 개수가 그대로일 때만 쓴다(낙관적 잠금). */
+async function takeGachaTicket(sb: SupabaseClient, memberId: string): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data: tRow } = await sb
+      .from('shop_consumable_inventory')
+      .select('count')
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .maybeSingle();
+    const count = Number((tRow as { count?: number } | null)?.count ?? 0);
+    if (count < 1) throw new GachaDrawError('insufficient_ticket', 'insufficient_ticket');
+    const { data: updated, error } = await sb
+      .from('shop_consumable_inventory')
+      .update({ count: count - 1, updated_at: new Date().toISOString() })
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .eq('count', count)
+      .select('count')
+      .maybeSingle();
+    if (error) throw new GachaDrawError(error.message, 'internal_error');
+    if (updated) return;
+  }
+  throw new GachaDrawError('ticket_conflict', 'internal_error');
+}
+
+/** 뽑기 기록을 못 남겼을 때 떼어 간 뽑기권을 돌려준다. */
+async function returnGachaTicket(sb: SupabaseClient, memberId: string): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data: tRow } = await sb
+      .from('shop_consumable_inventory')
+      .select('count')
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .maybeSingle();
+    const count = Number((tRow as { count?: number } | null)?.count ?? 0);
+    const { data: updated } = await sb
+      .from('shop_consumable_inventory')
+      .update({ count: count + 1, updated_at: new Date().toISOString() })
+      .eq('member_id', memberId)
+      .eq('kind', 'gacha_ticket')
+      .eq('count', count)
+      .select('count')
+      .maybeSingle();
+    if (updated) return;
+  }
+  console.warn('[gacha] 뽑기권 반환 실패', memberId);
+}
+
 async function executeGachaDrawTs(
   sb: SupabaseClient,
   memberId: string,
@@ -227,6 +279,8 @@ async function executeGachaDrawTs(
   payWith: 'cdp' | 'ticket' = 'cdp',
   forcedCtx?: PoolContext,
   depth = 0,
+  /** 레전드 재추첨처럼 같은 결제로 다시 뽑을 때 — 뽑기권을 또 떼지 않는다 */
+  ticketPaid = false,
 ): Promise<GachaDrawResult> {
   if (depth > 3) throw new GachaDrawError('draw_reroll_exhausted', 'internal_error');
   const { data: banner } = await sb
@@ -260,16 +314,10 @@ async function executeGachaDrawTs(
   if (payWith === 'cdp' && balance < price) {
     throw new GachaDrawError('insufficient_balance', 'insufficient_balance');
   }
-  if (payWith === 'ticket') {
-    const { data: tRow } = await sb
-      .from('shop_consumable_inventory')
-      .select('count')
-      .eq('member_id', memberId)
-      .eq('kind', 'gacha_ticket')
-      .maybeSingle();
-    if (Number((tRow as { count?: number } | null)?.count ?? 0) < 1) {
-      throw new GachaDrawError('insufficient_ticket', 'insufficient_ticket');
-    }
+  // 뽑기권은 상품을 정하기 전에 먼저 뗀다. 확인과 차감 사이가 비어 있으면
+  // 1장으로 동시에 여러 번 요청해 모두 통과시킬 수 있다.
+  if (payWith === 'ticket' && !ticketPaid) {
+    await takeGachaTicket(sb, memberId);
   }
 
   const pricePaid = payWith === 'cdp' ? price : 0;
@@ -287,7 +335,10 @@ async function executeGachaDrawTs(
     })
     .select('id')
     .single();
-  if (drawErr) throw new GachaDrawError(drawErr.message, 'internal_error');
+  if (drawErr) {
+    if (payWith === 'ticket') await returnGachaTicket(sb, memberId);
+    throw new GachaDrawError(drawErr.message, 'internal_error');
+  }
   const drawId = (drawRow as { id: string }).id;
 
   let legendClaimed = false;
@@ -307,6 +358,7 @@ async function executeGachaDrawTs(
         payWith,
         { ...ctx, legendClaimedGlobally: true },
         depth + 1,
+        payWith === 'ticket',
       );
     }
     legendClaimed = true;
@@ -335,21 +387,6 @@ async function executeGachaDrawTs(
       ref_id: drawId,
       metadata: { grade: pick.grade, prizeDefId: pick.prizeDefId },
     });
-  } else {
-    // ticket: 뽑기권 1장 차감
-    const { data: tRow } = await sb
-      .from('shop_consumable_inventory')
-      .select('count')
-      .eq('member_id', memberId)
-      .eq('kind', 'gacha_ticket')
-      .maybeSingle();
-    const ticketsNow = Number((tRow as { count?: number } | null)?.count ?? 0);
-    const { error: tErr } = await sb
-      .from('shop_consumable_inventory')
-      .update({ count: Math.max(0, ticketsNow - 1), updated_at: new Date().toISOString() })
-      .eq('member_id', memberId)
-      .eq('kind', 'gacha_ticket');
-    if (tErr) throw new GachaDrawError(tErr.message, 'internal_error');
   }
 
   const resolved = await applyResolved(sb, memberId, pick.resolved);

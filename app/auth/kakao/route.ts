@@ -1,4 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { safeNextPath } from '@/lib/safeRedirect';
+import {
+  KAKAO_STATE_COOKIE,
+  KAKAO_STATE_COOKIE_PATH,
+  KAKAO_STATE_MAX_AGE,
+  createKakaoState,
+} from '@/lib/auth/kakaoState';
 
 /**
  * 커스텀 카카오 OAuth 시작.
@@ -23,8 +30,18 @@ export async function GET(request: NextRequest) {
   kakaoUrl.searchParams.set('redirect_uri', redirectUri);
   kakaoUrl.searchParams.set('response_type', 'code');
   kakaoUrl.searchParams.set('scope', 'profile_nickname'); // 이메일 없이 닉네임만
-  // state 에 next 를 담아 CSRF 방지 (프로덕션에선 서명된 nonce 권장)
-  kakaoUrl.searchParams.set('state', next.startsWith('/') ? next : '/');
+  // state 는 이 브라우저 쿠키와 짝을 이루는 무작위 값 (로그인 CSRF 방지, lib/auth/kakaoState.ts)
+  const { nonce, cookieValue } = createKakaoState(safeNextPath(next));
+  kakaoUrl.searchParams.set('state', nonce);
 
-  return NextResponse.redirect(kakaoUrl.toString());
+  const response = NextResponse.redirect(kakaoUrl.toString());
+  response.cookies.set(KAKAO_STATE_COOKIE, cookieValue, {
+    httpOnly: true,
+    // 카카오에서 돌아오는 최상위 GET 이동에는 Lax 쿠키가 실린다
+    sameSite: 'lax',
+    secure: siteUrl.startsWith('https://'),
+    path: KAKAO_STATE_COOKIE_PATH,
+    maxAge: KAKAO_STATE_MAX_AGE,
+  });
+  return response;
 }

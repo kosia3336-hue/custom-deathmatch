@@ -333,7 +333,7 @@ export function handleAction(
 
     case 'raise': {
       const target = action.amount;
-      if (typeof target !== 'number' || !Number.isFinite(target)) {
+      if (typeof target !== 'number' || !Number.isInteger(target)) {
         return { ok: false, error: 'INVALID_RAISE_AMOUNT' };
       }
       const min = s.currentBet + 1;

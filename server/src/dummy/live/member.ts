@@ -23,6 +23,25 @@ async function findAuthUserIdByEmail(
   return null;
 }
 
+/**
+ * 예전에 만든 더미에는 app_metadata 표식이 없다 — 기동 때 채워 둔다.
+ * 닉네임만 보고 붙이면 그 닉을 가진 다른 회원이 더미로 올라가므로,
+ * 로스터의 메일 주소와 같은 인증 계정일 때만 붙인다.
+ */
+async function markDummyAppMetadata(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  email: string,
+): Promise<void> {
+  const { data, error } = await sb.auth.admin.getUserById(userId);
+  if (error || !data.user) return;
+  if (data.user.email !== email) return;
+  if (data.user.app_metadata?.dummy === true) return;
+  await sb.auth.admin.updateUserById(userId, {
+    app_metadata: { ...data.user.app_metadata, dummy: true },
+  });
+}
+
 /** 닉이 있으면 그 id. 없으면 auth + members + members_private. */
 export async function ensureLiveDummyMember(dummy: LiveDummyRuntime): Promise<string> {
   const sb = getSupabaseAdmin();
@@ -33,7 +52,10 @@ export async function ensureLiveDummyMember(dummy: LiveDummyRuntime): Promise<st
     .eq('nickname', dummy.nickname)
     .maybeSingle();
   if (nickErr) throw nickErr;
-  if (byNick?.id) return byNick.id as string;
+  if (byNick?.id) {
+    await markDummyAppMetadata(sb, byNick.id as string, dummy.email);
+    return byNick.id as string;
+  }
 
   let userId = await findAuthUserIdByEmail(sb, dummy.email);
   if (!userId) {
@@ -42,6 +64,8 @@ export async function ensureLiveDummyMember(dummy: LiveDummyRuntime): Promise<st
       password: dummyPassword(dummy.passwordSeed),
       email_confirm: true,
       user_metadata: { dummy: true, nickname: dummy.nickname },
+      // 데브 전환 권한은 이 값으로만 판단한다 (본인이 못 고치는 영역)
+      app_metadata: { dummy: true },
     });
     if (created.error || !created.data.user) {
       throw created.error ?? new Error(`[liveDummy] createUser 실패 ${dummy.nickname}`);

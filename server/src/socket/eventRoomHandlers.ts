@@ -53,6 +53,7 @@ export function registerEventRoomHandlers(_io: IO, socket: TypedSocket): void {
 
   // game:action 가로채기 — 이벤트 룸 좌석에 있으면 본 엔진이 처리
   socket.on('game:action', (data: Record<string, unknown>) => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return;
     const token = sessions.getToken(socket.id);
     if (!token) return;
     if (sessions.getRoom(socket.id) !== EVENT_ROOM_KEY) return;

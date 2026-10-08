@@ -155,6 +155,17 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     const currentRoom = sessions.getRoom(socket.id);
     if (currentRoom) return callback({ success: false, error: '이미 다른 방에 참여 중입니다.' });
 
+    // 형식 확인 — 문자열이어야 할 값이 다른 타입이면 길이 검사를 그냥 지나친다.
+    // 방 종류는 공개/비공개만 받는다(랭크 방은 매칭 큐만 만든다).
+    if (
+      typeof data.title !== 'string' ||
+      (data.password !== undefined && typeof data.password !== 'string') ||
+      (data.gameId !== undefined && typeof data.gameId !== 'string') ||
+      (data.roomType !== undefined && data.roomType !== 'public' && data.roomType !== 'private')
+    ) {
+      return callback({ success: false, error: '잘못된 요청입니다.' });
+    }
+
     if (!data.title || data.title.length < 1 || data.title.length > 30) {
       return callback({ success: false, error: '방 제목은 1~30자로 입력해 주세요.' });
     }
@@ -176,11 +187,11 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
         }
       }
       const tl = bpPlayMode === 'multi' ? (data.timeLimitSeconds ?? null) : null;
-      if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
+      if (tl != null && (typeof tl !== 'number' || !Number.isFinite(tl) || tl < 10 || tl > 600)) {
         return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
       }
       const rawBanCount =
-        typeof data.gameOptions?.banCount === 'number' ? data.gameOptions.banCount : 3;
+        Number.isInteger(data.gameOptions?.banCount) ? (data.gameOptions!.banCount as number) : 3;
       const host = makePlayer(socket, true);
       const room = roomStore.create({
         title: data.title,
@@ -242,7 +253,7 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     const tl = playMode === 'multi' && !isRandom ? data.timeLimitSeconds : null;
-    if (tl != null && (typeof tl !== 'number' || tl < 10 || tl > 600)) {
+    if (tl != null && (typeof tl !== 'number' || !Number.isFinite(tl) || tl < 10 || tl > 600)) {
       return callback({ success: false, error: '시간제한은 10초~10분 사이로 설정해 주세요.' });
     }
 
@@ -536,6 +547,16 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
     if (room.isRanked) {
       return fail('랭크 방의 설정은 변경할 수 없습니다.');
+    }
+
+    // 형식 확인 — 문자열이어야 할 값이 다른 타입으로 오면 아래 길이 검사를 그냥 지나친다
+    if (
+      (data.title !== undefined && typeof data.title !== 'string') ||
+      (data.password !== undefined && typeof data.password !== 'string') ||
+      (data.gameId !== undefined && typeof data.gameId !== 'string') ||
+      (data.roomType !== undefined && data.roomType !== 'public' && data.roomType !== 'private')
+    ) {
+      return fail('잘못된 요청입니다.');
     }
 
     // 방 제목 검증

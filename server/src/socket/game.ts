@@ -1200,6 +1200,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const room = roomStore.get(roomId);
     if (!room || room.status !== 'playing') return;
     if (roomStore.isSystemRoom(roomId)) return;
+    if (typeof data?.gameId !== 'string') return;
     handleBanPickBan(io, socket, roomId, data.gameId);
   });
 
