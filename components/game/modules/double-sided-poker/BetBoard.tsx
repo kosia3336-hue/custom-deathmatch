@@ -16,28 +16,26 @@ export function BetBoard({
     { side: 'back' as const, label: '뒷면', amount: backBet },
   ];
   return (
-    <div className="border-cdm-border-strong -mx-1.5 grid grid-cols-2 border-y">
-      {ordered.map((lane, index) => {
+    <div aria-label="면별 베팅 칩" className="grid grid-cols-2 gap-2">
+      {ordered.map((lane) => {
         const picked = selection === lane.side || selection === 'both';
         return (
           <div
             key={lane.side}
             className={cn(
-              'flex items-baseline justify-between gap-1 px-3 py-2',
-              // 가운데 칸막이 한 줄만 둔다. 바깥 테두리는 판 전체가 갖는다.
-              index === 0 && 'border-cdm-border-strong border-r',
-              picked ? 'bg-cdm-highlight-soft' : 'bg-cdm-bg',
+              'flex min-w-0 items-baseline justify-between gap-2 rounded-lg border px-3 py-2',
+              picked ? 'border-cdm-primary bg-cdm-primary-soft' : 'border-cdm-border bg-cdm-bg',
             )}
           >
             <span
               className={cn(
                 'text-[11px] font-black',
-                picked ? 'text-cdm-highlight' : 'text-cdm-fg-muted',
+                picked ? 'text-cdm-primary' : 'text-cdm-fg-muted',
               )}
             >
               {lane.label}
             </span>
-            <span className="text-cdm-fg text-xl leading-6 font-black tabular-nums">
+            <span className="text-cdm-fg text-2xl leading-7 font-black tabular-nums">
               {lane.amount}
             </span>
           </div>

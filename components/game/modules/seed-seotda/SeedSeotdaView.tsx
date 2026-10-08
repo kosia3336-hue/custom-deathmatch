@@ -84,6 +84,7 @@ function SeedSeotdaView({
 
   return (
     <GameReferenceFrame
+      autoAboveStage
       controls={
         <div className="flex flex-col gap-2">
           <SeedChoiceArea key={`seed-${actionKey}`} gameData={gameData} myId={myId} />

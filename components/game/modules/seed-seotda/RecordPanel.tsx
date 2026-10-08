@@ -2,6 +2,7 @@
 
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { SeedSeotdaCard } from '@/components/game/cards';
+import styles from './counting.module.css';
 import { cn } from '@/lib/utils';
 import { createSeedSeotdaDeck } from '@/shared/logic/seed-seotda';
 import type { SeedSeotdaGameData, SeedSeotdaRoundResult } from '@/shared/types/seed-seotda';
@@ -104,33 +105,34 @@ export default function RecordPanel({
         )}
       </GameInfoPart>
 
-      <GameInfoPart title="카운팅">
-        {/* 모바일은 자동 카운팅을 낮게 표시해 게임판 높이를 확보한다. */}
-        <div className="grid grid-cols-10 gap-1 lg:grid-cols-5">
-          {DECK.map((card) => {
-            const known = seen.includes(card.id);
-            const marked = known || marks.includes(card.id);
-            return (
-              <button
-                key={card.id}
-                type="button"
-                onClick={() => onToggleMark(card.id)}
-                /* 내가 본 패는 되돌릴 일이 없다 — 눌러서 되살아나면 거짓이 된다. */
-                disabled={known}
-                aria-pressed={marked}
-                aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장${known ? ' · 확인됨' : ''}`}
-                /*
+      <GameInfoPart title="카운팅" kind="auto" sizeToContent>
+        <div className={styles.counting}>
+          <div className={styles.cards}>
+            {DECK.map((card) => {
+              const known = seen.includes(card.id);
+              const marked = known || marks.includes(card.id);
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => onToggleMark(card.id)}
+                  /* 내가 본 패는 되돌릴 일이 없다 — 눌러서 되살아나면 거짓이 된다. */
+                  disabled={known}
+                  aria-pressed={marked}
+                  aria-label={`${card.month}월 ${card.variant === 'a' ? '첫' : '둘'}째 장${known ? ' · 확인됨' : ''}`}
+                  /*
                   flex 로 둬야 카드 아래에 글자 여백이 안 붙는다(칸마다 8px 씩 버려졌다).
                   흐리기는 클래스로 주면 먹지 않았다 — 눌러도 그대로 밝게 남았다.
                   그림이 지워졌는지가 이 기능의 전부라 인라인으로 못 박는다.
                 */
-                className={cn('flex w-full rounded transition-all', marked && 'grayscale')}
-                style={{ opacity: marked ? 0.25 : 1 }}
-              >
-                <SeedSeotdaCard card={card} size="full" />
-              </button>
-            );
-          })}
+                  className={cn('flex w-full rounded transition-all', marked && 'grayscale')}
+                  style={{ opacity: marked ? 0.25 : 1 }}
+                >
+                  <SeedSeotdaCard card={card} size="full" />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </GameInfoPart>
     </GameInfoStack>

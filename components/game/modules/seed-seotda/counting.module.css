@@ -1,0 +1,18 @@
+.counting {
+  container-type: inline-size;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+/* PC에서 사용자가 좁은 사이드로 옮겼을 때에도 카드 식별이 가능하게 한다. */
+@media (min-width: 1024px) {
+  @container (max-width: 340px) {
+    .cards {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+}

@@ -63,10 +63,8 @@ export function PlayerPanel({
   return (
     <section
       className={cn(
-        'rounded-cdm-lg flex min-w-0 flex-col justify-center gap-0.5 overflow-hidden border px-1.5 py-0.5 transition',
-        isCurrent
-          ? 'border-cdm-highlight bg-cdm-highlight-soft'
-          : 'border-cdm-border bg-cdm-bg-elev-1',
+        'rounded-cdm-lg flex min-w-0 flex-col justify-center gap-2 border p-3 transition',
+        isCurrent ? 'border-cdm-primary bg-cdm-primary-soft' : 'border-cdm-border bg-cdm-bg-elev-1',
       )}
     >
       {mirrored ? (

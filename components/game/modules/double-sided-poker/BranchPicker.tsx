@@ -22,7 +22,11 @@ export function BranchPicker({
     );
   }
   return (
-    <div className="border-cdm-border bg-cdm-bg-elev-1 mb-2 grid grid-cols-3 gap-1 rounded-lg border p-0.5">
+    <div
+      role="group"
+      aria-label="베팅할 면 선택"
+      className="ip-branch-picker border-cdm-border bg-cdm-bg-elev-1 grid grid-cols-3 gap-1 rounded-lg border p-1"
+    >
       {(['front', 'back', 'both'] as const).map((branch) => {
         const disabled = branch === 'both' && !doubleEnabled;
         return (
@@ -30,10 +34,11 @@ export function BranchPicker({
             key={branch}
             type="button"
             disabled={disabled}
+            aria-pressed={value === branch}
             className={cn(
               'rounded-md px-2 py-1.5 text-xs font-black transition',
               value === branch
-                ? 'bg-cdm-primary text-white'
+                ? 'ip-betting-primary'
                 : disabled
                   ? 'text-cdm-fg-subtle cursor-not-allowed'
                   : 'text-cdm-fg-muted hover:bg-cdm-bg-elev-2',

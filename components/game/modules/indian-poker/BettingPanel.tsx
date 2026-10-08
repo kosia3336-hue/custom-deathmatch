@@ -10,7 +10,7 @@ import type { IndianPokerViewModel } from './viewModel';
 import BettingSummary from './betting/BettingSummary';
 import BettingActions from './betting/BettingActions';
 import RaiseInput from './betting/RaiseInput';
-import styles from './indian-poker.module.css';
+import { PokerBettingPanel } from '@/components/game/poker/PokerBettingPanel';
 
 export default function BettingPanel({
   data,
@@ -50,7 +50,7 @@ export default function BettingPanel({
     setRaising(false);
   };
   return (
-    <section aria-label="플레이어 조작판" className={styles.bettingPanel}>
+    <PokerBettingPanel>
       <BettingSummary
         chips={model.bettingPlayer?.chips ?? 0}
         pot={data.pot}
@@ -81,6 +81,6 @@ export default function BettingPanel({
               : '상대의 선택을 기다리고 있습니다.'}
         </p>
       )}
-    </section>
+    </PokerBettingPanel>
   );
 }

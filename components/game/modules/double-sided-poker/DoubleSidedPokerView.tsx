@@ -4,6 +4,8 @@ import GameLoading from '@/components/game/GameLoading';
 import { GamePlayerScoreboard } from '@/components/game/GamePlayerScoreboard';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { usePokerAudio } from '@/hooks/useGameAudio';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { PokerTableInfo } from '@/components/game/poker/PokerTableInfo';
 import { useGameHud } from '@/hooks/useGameHud';
 import { playChipsSfx } from '@/lib/audio/chips';
 import type { SkinTheme } from '@/lib/skins/registry';
@@ -26,6 +28,7 @@ function DoubleSidedPokerView({
   gameKey?: string;
   remaining?: number | null;
 }) {
+  const { setHeaderBelow } = useRoomLayout();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
 
   usePokerAudio(
@@ -54,7 +57,7 @@ function DoubleSidedPokerView({
   useGameHud(
     gameData
       ? {
-          round: `${gameData.round}R · 팟 ${gameData.pot} · 덱 ${gameData.deckRemaining}`,
+          round: `${gameData.round}R`,
           order:
             gameData.phase === 'betting'
               ? `${gameData.currentTurnId === myId ? '(내 차례)' : '(상대 차례)'} ${gameData.doubleBettorId ? '양면베팅 응답' : '베팅'}`
@@ -64,6 +67,19 @@ function DoubleSidedPokerView({
         }
       : null,
   );
+  const pot = gameData?.pot;
+  const deckRemaining = gameData?.deckRemaining;
+  const deckCycle = gameData?.deckCycles;
+  const ante = gameData?.ante;
+  useEffect(() => {
+    setHeaderBelow(
+      pot != null && deckRemaining != null && deckCycle != null && ante != null ? (
+        <PokerTableInfo pot={pot} deckRemaining={deckRemaining} deckCycle={deckCycle} ante={ante} />
+      ) : null,
+    );
+    return () => setHeaderBelow(null);
+  }, [setHeaderBelow, pot, deckRemaining, deckCycle, ante]);
+
   if (!gameData) {
     return <GameLoading label="게임을 불러오는 중" />;
   }
@@ -114,10 +130,12 @@ function DoubleSidedPokerView({
       }
     >
       {/*
-        상대가 위, 내가 아래. 두 사람의 베팅판이 화면 가운데에서 맞닿도록
-        상대 자리는 180도 돌린 모양으로 둔다.
+        상대가 위, 내가 아래. 각 플레이어의 카드와 면별 베팅 금액을 한 묶음으로 둔다.
       */}
-      <main className="mx-auto flex h-full w-full max-w-xl min-w-0 flex-col justify-center gap-1.5 overflow-hidden">
+      <main
+        data-game-intrinsic-stage
+        className="mx-auto flex w-full max-w-xl min-w-0 flex-col justify-center gap-2 p-2"
+      >
         {seatOrder.map((playerId) => (
           <PlayerPanel
             key={playerId}
