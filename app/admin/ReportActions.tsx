@@ -8,6 +8,7 @@ import { Modal } from '@/components/cdm/Modal';
 import { TextInput } from '@/components/cdm/TextInput';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
+import { notifySanctioned } from '@/lib/admin/notify-sanctioned';
 import type { ReportResolution } from '@/lib/supabase/database.types';
 
 export default function ReportActions({ reportId }: { reportId: string }) {
@@ -37,6 +38,7 @@ export default function ReportActions({ reportId }: { reportId: string }) {
             args.p_sanction_until = new Date(Date.now() + days * 86400_000).toISOString();
           }
           await callRpc(sb, 'admin_resolve_report', args);
+          if (open === 'suspended' || open === 'banned') notifySanctioned({ reportId });
           toast.success('신고가 처리되었습니다');
         }
         setOpen(null);

@@ -76,6 +76,35 @@ interface NotifyShopItemChangedBody {
 }
 
 export function registerAdminRoutes(app: FastifyInstance, getIO: () => IO | null) {
+  // ── 제재 반영: 정지된 회원의 접속을 끊는다 ──────────────────────────
+  // 소켓은 연결할 때만 회원 상태를 확인한다(socket/index.ts 핸드셰이크).
+  // 끊어 두면 다시 붙을 때 핸드셰이크가 정지 상태를 보고 막는다.
+  app.post<{ Body: { secret: string; memberId: string } }>(
+    '/internal/member-sanctioned',
+    async (req, reply) => {
+      const { secret, memberId } = req.body ?? ({} as { secret: string; memberId: string });
+      if (!isValidInternalSecret(secret)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+      if (typeof memberId !== 'string' || !memberId) {
+        return reply.status(400).send({ error: 'memberId required' });
+      }
+      const io = getIO();
+      if (!io) {
+        return reply.status(503).send({ status: 'not_ready' });
+      }
+
+      let disconnected = 0;
+      for (const s of io.sockets.sockets.values()) {
+        const member = (s.data as { member?: { id?: string } | null }).member;
+        if (member?.id !== memberId) continue;
+        s.disconnect(true);
+        disconnected += 1;
+      }
+      return reply.send({ ok: true, disconnected });
+    },
+  );
+
   app.post<{ Body: NotifyTitleGrantedBody }>(
     '/internal/notify-title-granted',
     async (req, reply) => {

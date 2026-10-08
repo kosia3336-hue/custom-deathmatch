@@ -7,6 +7,7 @@ import { Button } from '@/components/cdm/Button';
 import { Modal } from '@/components/cdm/Modal';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
+import { notifySanctioned } from '@/lib/admin/notify-sanctioned';
 import type { MemberStatus } from '@/lib/supabase/database.types';
 
 interface Props {
@@ -140,6 +141,7 @@ function SuspendModal({
           p_until: until,
           p_reason: reason.trim(),
         });
+        notifySanctioned({ memberId });
         toast.success(`${nickname} 일시정지 (${days}일)`);
         onClose();
         router.refresh();
@@ -219,6 +221,7 @@ function BanModal({
           p_member_id: memberId,
           p_reason: reason.trim(),
         });
+        notifySanctioned({ memberId });
         toast.success(`${nickname} 영구정지`);
         onClose();
         router.refresh();
