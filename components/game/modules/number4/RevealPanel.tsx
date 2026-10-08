@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import type { NF4RevealData, NF4PlayerInfo, NF4WinType } from '@/shared/types/number4';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { NUMBER_INFO, WIN_TYPE_LABELS } from './constants';
-import { NF4_REVEAL_DELAY_MS } from '@/shared/types/number4';
-import CountdownRing from '@/components/game/CountdownRing';
 import { ResultBadge, ScoreDelta } from './Presentation';
 import styles from './number-four.module.css';
 
@@ -16,8 +14,6 @@ interface RevealPanelProps {
   winType: NF4WinType | null;
   tiebreakerReason: string | null;
   skin?: SkinTheme | null;
-  automatic?: boolean;
-  revealEndsAt?: number;
 }
 
 // step 1: 넘버 공개 | step 2: 조건 판정 | step 3: 점수 변화 + 누적
@@ -43,8 +39,6 @@ function AnimatedRevealPanel({
   winType,
   tiebreakerReason,
   skin,
-  automatic = true,
-  revealEndsAt,
 }: RevealPanelProps) {
   const [step, setStep] = useState(0);
   const isDuality = skin === 'duality';
@@ -129,17 +123,6 @@ function AnimatedRevealPanel({
             {tiebreakerReason && <div className="mt-1 text-xs opacity-70">{tiebreakerReason}</div>}
           </div>
         </Reveal>
-      )}
-
-      {automatic && !isFinished && (
-        <div className="flex justify-center">
-          <CountdownRing
-            deadline={revealEndsAt}
-            durationMs={NF4_REVEAL_DELAY_MS}
-            size={24}
-            label="다음 라운드로 전환 중"
-          />
-        </div>
       )}
     </div>
   );

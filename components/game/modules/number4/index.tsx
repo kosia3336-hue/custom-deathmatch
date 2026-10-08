@@ -137,8 +137,6 @@ export function NumberFourView({
             winType={data.winType}
             tiebreakerReason={data.tiebreakerReason}
             skin={skin}
-            automatic={!hint}
-            revealEndsAt={data.revealEndsAt}
           />
         )}
       </div>

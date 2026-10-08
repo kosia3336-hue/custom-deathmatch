@@ -2,11 +2,7 @@
 import CountdownRing from '@/components/game/CountdownRing';
 import { useDreamshopRevealSound } from './skins/useDreamshopAudio';
 import { useRevealProgress } from './useRevealProgress';
-import {
-  BRPS_REVEAL_DELAY_MS,
-  BRPS_WIN_DISPLAY_MS,
-  type BettingRpsGameData,
-} from '@/shared/types/betting-rps';
+import { BRPS_WIN_DISPLAY_MS, type BettingRpsGameData } from '@/shared/types/betting-rps';
 import { RESULT_LABELS, RESULT_COLORS, OUTCOME_LABELS, WIN_TYPE_LABELS } from './constants';
 
 export default function RevealPanel({
@@ -89,11 +85,13 @@ export default function RevealPanel({
         </div>
       )}
       <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-        <CountdownRing
-          deadline={finished ? gameData.finishedEndsAt : gameData.revealEndsAt}
-          durationMs={finished ? BRPS_WIN_DISPLAY_MS : BRPS_REVEAL_DELAY_MS}
-          label={finished ? '게임 결과 표시 중' : '다음 라운드로 이동 중'}
-        />
+        {finished && (
+          <CountdownRing
+            deadline={gameData.finishedEndsAt}
+            durationMs={BRPS_WIN_DISPLAY_MS}
+            label="게임 결과 표시 중"
+          />
+        )}
         <span>{finished ? '게임 종료' : '다음 라운드로 이동 중'}</span>
       </div>
     </div>

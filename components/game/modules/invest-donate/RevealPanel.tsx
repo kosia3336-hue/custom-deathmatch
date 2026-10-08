@@ -1,7 +1,7 @@
 'use client';
 
 import type { InvestDonateGameData } from '@/shared/types/invest-donate';
-import { ID_REVEAL_DELAY_MS, ID_WIN_DISPLAY_MS } from '@/shared/types/invest-donate';
+import { ID_WIN_DISPLAY_MS } from '@/shared/types/invest-donate';
 import CountdownRing from '@/components/game/CountdownRing';
 import { useRevealProgress } from './useRevealProgress';
 import { WIN_TYPE_LABELS } from './constants';
@@ -33,12 +33,14 @@ export default function RevealPanel({ gameData }: { gameData: InvestDonateGameDa
     return (
       <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
         <span>{winType ? WIN_TYPE_LABELS[winType] : '결과를 확인하고 있습니다.'}</span>
-        <CountdownRing
-          deadline={finishedEndsAt}
-          durationMs={ID_WIN_DISPLAY_MS}
-          label="게임 결과로 전환 중"
-          size={28}
-        />
+        {finished && (
+          <CountdownRing
+            deadline={finishedEndsAt}
+            durationMs={ID_WIN_DISPLAY_MS}
+            label="게임 결과로 전환 중"
+            size={28}
+          />
+        )}
       </div>
     );
 
@@ -139,12 +141,14 @@ export default function RevealPanel({ gameData }: { gameData: InvestDonateGameDa
       </div>
 
       <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-        <CountdownRing
-          deadline={finished ? finishedEndsAt : revealEndsAt}
-          durationMs={finished ? ID_WIN_DISPLAY_MS : ID_REVEAL_DELAY_MS}
-          size={28}
-          label={finished ? '게임 결과로 전환 중' : '다음 라운드로 전환 중'}
-        />
+        {finished && (
+          <CountdownRing
+            deadline={finishedEndsAt}
+            durationMs={ID_WIN_DISPLAY_MS}
+            size={28}
+            label="게임 결과로 전환 중"
+          />
+        )}
         <span>{finished ? '게임 결과로 전환 중' : '다음 라운드로 전환 중'}</span>
       </div>
       {/* 게임 종료 / 재경기 */}
