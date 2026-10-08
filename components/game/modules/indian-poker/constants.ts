@@ -53,7 +53,7 @@ export const HAND_COLORS: Record<IPHand, string> = {
 
 export const WIN_TYPE_LABELS: Record<IPWinType, string> = {
   chipOut: '상대 칩 소진',
-  anteLack: '앤트 지불 불가',
+  anteLack: '앤티 지불 불가',
   timeout: '시간 초과',
   leave: '상대 이탈',
 };

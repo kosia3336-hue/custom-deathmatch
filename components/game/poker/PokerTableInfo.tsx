@@ -5,7 +5,7 @@ export interface PokerTableInfoProps {
   pot: number;
 }
 
-/** 상단 바의 팟·덱·앤트 표시를 포커 게임에서 같은 모양으로 사용한다. */
+/** 상단 바의 팟·덱·앤티 표시를 포커 게임에서 같은 모양으로 사용한다. */
 export function PokerTableInfo({ deckRemaining, deckCycle, ante, pot }: PokerTableInfoProps) {
   return (
     <div
@@ -17,7 +17,7 @@ export function PokerTableInfo({ deckRemaining, deckCycle, ante, pot }: PokerTab
       </span>
       {deckCycle > 1 && <span>리셋 {deckCycle - 1}회</span>}
       <span>
-        앤트 <strong className="text-cdm-ink-fg tabular-nums">{ante}</strong>
+        앤티 <strong className="text-cdm-ink-fg tabular-nums">{ante}</strong>
       </span>
       <span>
         팟 <strong className="text-cdm-highlight tabular-nums">{pot}</strong>

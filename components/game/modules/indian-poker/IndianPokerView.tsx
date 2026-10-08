@@ -73,7 +73,7 @@ export default function IndianPokerView({
           >
             <div>
               <p className="text-2xl font-bold tracking-wide">카드를 셔플합니다</p>
-              <p className="mt-1 text-sm text-indigo-300">앤트 {shuffleAnte}개로 인상됩니다</p>
+              <p className="mt-1 text-sm text-indigo-300">앤티 {shuffleAnte}개로 인상됩니다</p>
             </div>
           </div>
         </div>

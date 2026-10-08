@@ -31,7 +31,7 @@ export function BankReference({ ctx }: { ctx: BankContextValue }) {
         />
       </GameInfoPart>
       {showOpponentTracker && (
-        <GameInfoPart title="상대 잔여 추리" sizeToContent>
+        <GameInfoPart title="나의 메모 - 상대 잔여 추리" toolId="상대 잔여 추리" sizeToContent>
           <OpponentInventoryTracker notes={inventoryNotes} />
         </GameInfoPart>
       )}

@@ -4,6 +4,8 @@ import { GameInfoPart } from '@/components/game/GameInfoPart';
 import GameLoading from '@/components/game/GameLoading';
 import { GamePlayerScoreboard } from '@/components/game/GamePlayerScoreboard';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { PokerTableInfo } from '@/components/game/poker/PokerTableInfo';
 import { usePokerAudio } from '@/hooks/useGameAudio';
 import { useGameHud } from '@/hooks/useGameHud';
 import { playChipsSfx } from '@/lib/audio/chips';
@@ -33,6 +35,7 @@ function SeedSeotdaView({
   gameKey?: string;
   remaining?: number | null;
 }) {
+  const { setHeaderBelow } = useRoomLayout();
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
   usePokerAudio(
     gameData
@@ -67,11 +70,24 @@ function SeedSeotdaView({
   useGameHud(
     gameData
       ? {
-          round: `${gameData.round}R · 팟 ${gameData.pot} · 덱 ${gameData.deckRemaining}`,
+          round: `${gameData.round}R`,
           order: `${gameData.phase === 'seed-choice' ? '(공동 차례) ' : gameData.phase === 'betting' ? (gameData.currentTurnId === myId ? '(내 차례) ' : '(상대 차례) ') : ''}${PHASE_LABEL[gameData.phase]}`,
         }
       : null,
   );
+
+  const pot = gameData?.pot;
+  const deckRemaining = gameData?.deckRemaining;
+  const deckCycle = gameData?.deckCycles;
+  const ante = gameData?.ante;
+  useEffect(() => {
+    setHeaderBelow(
+      pot != null && deckRemaining != null && deckCycle != null && ante != null ? (
+        <PokerTableInfo pot={pot} deckRemaining={deckRemaining} deckCycle={deckCycle} ante={ante} />
+      ) : null,
+    );
+    return () => setHeaderBelow(null);
+  }, [setHeaderBelow, pot, deckRemaining, deckCycle, ante]);
 
   if (!gameData) {
     return <GameLoading label="게임을 불러오는 중" />;
