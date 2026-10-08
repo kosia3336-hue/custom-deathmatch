@@ -482,7 +482,7 @@ export async function initBanPick(
     && (!rankingActiveOnly || g.rankingActive),
   );
   const maxBanCount = Math.floor((allGames.length - 1) / 2);
-  const rawBanCount = typeof gameOptions?.banCount === 'number' ? gameOptions.banCount : 3;
+  const rawBanCount = Number.isInteger(gameOptions?.banCount) ? (gameOptions!.banCount as number) : 3;
   const banCount = Math.max(1, Math.min(rawBanCount, maxBanCount));
   const banTurnOverride =
     typeof gameOptions?.banTurnSeconds === 'number' ? gameOptions.banTurnSeconds : null;
