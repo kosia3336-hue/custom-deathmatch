@@ -9,10 +9,16 @@ export interface DevMemberRow {
   nickname: string;
 }
 
-export function isDevAuthUser(user: Pick<User, 'email' | 'user_metadata'>): boolean {
-  const email = user.email ?? '';
-  if (email.endsWith('@dummy.internal')) return true;
-  return user.user_metadata?.dummy === true;
+/**
+ * 더미 계정 표식은 app_metadata 로만 판단한다.
+ *
+ * user_metadata 는 로그인한 본인이 anon 키로 고칠 수 있고, 메일 주소도 인증
+ * 설정에 따라 본인이 바꿀 수 있다. 둘 중 하나라도 믿으면 일반 회원이 스스로
+ * 더미가 되어 데브 전환으로 천하 세션을 받아 갈 수 있다. app_metadata 는
+ * 서비스 롤만 쓸 수 있다(서버의 ensureLiveDummyMember, scripts/backfill-dummy-app-metadata).
+ */
+export function isDevAuthUser(user: Pick<User, 'app_metadata'>): boolean {
+  return user.app_metadata?.dummy === true;
 }
 
 export function isDevSwitchOwner(m: { nickname: string; role: string }): boolean {
@@ -22,7 +28,7 @@ export function isDevSwitchOwner(m: { nickname: string; role: string }): boolean
 /** 천하(관리자) 또는 더미 세션이면 데브 전환 메뉴·API를 쓸 수 있다. */
 export function canUseDevSwitch(
   member: { nickname: string; role: string },
-  authUser: Pick<User, 'email' | 'user_metadata'> | null,
+  authUser: Pick<User, 'app_metadata'> | null,
 ): boolean {
   if (isDevSwitchOwner(member)) return true;
   return authUser != null && isDevAuthUser(authUser);
