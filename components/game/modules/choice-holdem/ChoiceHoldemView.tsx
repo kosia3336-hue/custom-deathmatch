@@ -31,7 +31,7 @@ const PHASE_LABEL: Record<ChoiceHoldemGameData['phase'], string> = {
   finished: '게임 종료',
 };
 
-/** 한 사람의 자리 — 이름·칩·이번 라운드에 낸 칩. 낮게 유지해 카드 자리를 남긴다. */
+/** 선의 앞면 배치와 후의 카드 선택. */
 function ChoiceArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: string }) {
   const sendAction = useGameAction();
   const isMyTurn = gameData.currentTurnId === myId;
@@ -139,7 +139,7 @@ function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId:
         pot={gameData.pot}
         callCost={showRaise ? raiseExtra : gameData.toCall}
         costLabel={showRaise ? '추가 칩' : '콜 비용'}
-        status={`이미 낸 ${myBet}칩 · ${PHASE_LABEL[gameData.phase]}`}
+        status={PHASE_LABEL[gameData.phase]}
       />
       {showRaise && gameData.minRaise != null && gameData.maxRaise != null ? (
         <PokerAmountInput
@@ -187,8 +187,8 @@ function BettingArea({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId:
   );
 }
 
-/** 라운드 결과는 무대 위에 겹쳐 띄운다 — 새 줄로 만들면 그 순간 판이 밀린다. */
-function ResultOverlay({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: string }) {
+/** 공개된 개인 카드와 공유 카드를 가리지 않도록 판 아래에 결과를 표시한다. */
+function ResultSummary({ gameData, myId }: { gameData: ChoiceHoldemGameData; myId: string }) {
   const result = gameData.lastRoundResult;
   if (gameData.phase !== 'round-result' || !result) return null;
   const winnerName = result.winnerId
@@ -204,34 +204,35 @@ function ResultOverlay({ gameData, myId }: { gameData: ChoiceHoldemGameData; myI
     ? gameData.players[result.foldedPlayerId]?.nickname
     : null;
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-      <div className="border-cdm-highlight bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
-        <p className="text-cdm-fg text-base font-black">
-          {result.reason === 'tie'
-            ? '완전 동률 · 팟 이월'
-            : result.reason === 'fold'
-              ? `${foldedName ?? '상대'}님 다이`
-              : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`}
+    <section
+      aria-label="라운드 결과"
+      className="border-cdm-highlight bg-cdm-bg rounded-cdm-lg border px-3 py-3 text-center"
+    >
+      <p className="text-cdm-fg text-base font-black">
+        {result.reason === 'tie'
+          ? '완전 동률 · 팟 이월'
+          : result.reason === 'fold'
+            ? `${foldedName ?? '상대'}님 다이`
+            : `${winnerName ?? '플레이어'} 님이 ${result.potAmount}칩 획득`}
+      </p>
+      {result.evaluations && (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {Object.entries(result.evaluations).map(([playerId, evaluation]) => (
+            <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md px-2 py-1">
+              <p className="text-cdm-fg-muted truncate text-[11px]">
+                {playerId === myId ? '나' : gameData.players[playerId]?.nickname}
+              </p>
+              <p className="text-cdm-fg text-xs font-black">{evaluationLabel(evaluation)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {result.reason === 'tie' && (
+        <p className="text-cdm-fg-muted mt-2 text-[11px]">
+          선 플레이어를 유지하고 다음 딜은 베팅 없이 진행합니다.
         </p>
-        {result.evaluations && (
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {Object.entries(result.evaluations).map(([playerId, evaluation]) => (
-              <div key={playerId} className="bg-cdm-bg-elev-1 rounded-cdm-md px-2 py-1">
-                <p className="text-cdm-fg-muted truncate text-[11px]">
-                  {playerId === myId ? '나' : gameData.players[playerId]?.nickname}
-                </p>
-                <p className="text-cdm-fg text-xs font-black">{evaluationLabel(evaluation)}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {result.reason === 'tie' && (
-          <p className="text-cdm-fg-muted mt-2 text-[11px]">
-            선 플레이어를 유지하고 다음 딜은 베팅 없이 진행합니다.
-          </p>
-        )}
-      </div>
-    </div>
+      )}
+    </section>
   );
 }
 
@@ -239,7 +240,7 @@ function ChoiceHoldemView({
   gameData,
   myId,
 }: GameModuleViewProps<ChoiceHoldemGameData> & { isSolo?: boolean }) {
-  const { setHud } = useRoomLayout();
+  const { setHud, setHeaderBelow } = useRoomLayout();
 
   const playerIds = useMemo(() => (gameData ? Object.keys(gameData.players) : []), [gameData]);
   const isPlayer = Boolean(gameData && gameData.players[myId]);
@@ -250,7 +251,6 @@ function ChoiceHoldemView({
     if (!gameData) return;
     setHud({
       round: `${gameData.round}R`,
-      headerAction: <PokerTableInfo ante={gameData.ante} pot={gameData.pot} />,
       order:
         gameData.phase === 'finished'
           ? '종료'
@@ -264,6 +264,12 @@ function ChoiceHoldemView({
     });
   }, [gameData, isPlayer, myTurn, myId, setHud]);
   useEffect(() => () => setHud(null), [setHud]);
+  const ante = gameData?.ante;
+  const pot = gameData?.pot;
+  useEffect(() => {
+    setHeaderBelow(ante != null && pot != null ? <PokerTableInfo ante={ante} pot={pot} /> : null);
+    return () => setHeaderBelow(null);
+  }, [ante, pot, setHeaderBelow]);
 
   usePokerAudio(
     gameData
@@ -322,7 +328,6 @@ function ChoiceHoldemView({
                 id,
                 nickname: gameData.players[id].nickname,
                 value: `${gameData.players[id].chips}칩`,
-                detail: `베팅 ${gameData.players[id].roundBet}`,
                 active: gameData.currentTurnId === id,
               }))}
             />
@@ -375,6 +380,7 @@ function ChoiceHoldemView({
         </div>
 
         <ChoiceArea gameData={gameData} myId={myId} />
+        <ResultSummary gameData={gameData} myId={myId} />
 
         {gameData.phase === 'finished' && (
           <div className="bg-cdm-primary-soft rounded-cdm-lg p-3 text-center">
@@ -387,8 +393,6 @@ function ChoiceHoldemView({
           </div>
         )}
       </main>
-
-      <ResultOverlay gameData={gameData} myId={myId} />
     </GameReferenceFrame>
   );
 }

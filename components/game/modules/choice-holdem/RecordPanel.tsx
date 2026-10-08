@@ -54,7 +54,7 @@ function reasonLabel(
 /**
  * 라운드 기록 — 내가 얼마를 걸었고, 누가 무슨 패로 이겼는지.
  *
- * 넓은 화면에서는 GameFrame 의 옆 칸, 좁은 화면에서는 상단 바의 '메모' 아이콘으로 연다.
+ * 넓은 화면에서는 GameFrame 의 옆 칸, 좁은 화면에서는 상단 바의 '기록' 아이콘으로 연다.
  * 같은 것을 두 자리에서 쓰므로 바깥 여백은 두지 않는다.
  */
 export default function RecordPanel({ data, myId }: { data: ChoiceHoldemGameData; myId: string }) {
@@ -69,7 +69,7 @@ export default function RecordPanel({ data, myId }: { data: ChoiceHoldemGameData
         {data.rounds.length === 0 ? (
           <p className="text-cdm-fg-muted text-xs">아직 끝난 라운드가 없습니다.</p>
         ) : (
-          <ul className="max-h-72 space-y-1 overflow-y-auto">
+          <ul className="space-y-1">
             {[...data.rounds].reverse().map((round) => {
               const winnerName = name(round.winnerId);
               const foldedName = round.foldedPlayerId

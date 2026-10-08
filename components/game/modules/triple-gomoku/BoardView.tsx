@@ -29,6 +29,14 @@ const GRID_STROKE_WIDTH = 2.2;
 const GRID_STROKE_OPACITY = 0.72;
 /** 미리보기 돌의 불투명도. */
 const PREVIEW_OPACITY = 0.55;
+// 격자 끝 좌표는 0 또는 1이다. 3층 돌과 선택 링까지 테두리 안에 들어오도록
+// 격자·돌·터치 위치를 같은 여백 좌표로 옮긴다. 게임 규칙의 좌표는 바꾸지 않는다.
+const BOARD_INSET = 0.1;
+const BOARD_SCALE = 1 - BOARD_INSET * 2;
+function boardPosition(cell: TripleGomokuCell) {
+  const point = tripleGomokuPosition(cell);
+  return { x: BOARD_INSET + point.x * BOARD_SCALE, y: BOARD_INSET + point.y * BOARD_SCALE };
+}
 
 export type TripleGomokuCellMark = 'none' | 'selected' | 'target' | 'win' | 'last';
 
@@ -46,7 +54,7 @@ export interface TripleGomokuBoardViewProps {
   ariaLabel: string;
   className?: string;
   footer?: ReactNode;
-  /** 판 최대 너비. GameFrame 안에서는 fitBoardWidth() 값을 넘겨 높이에 맞춘다. */
+  /** 판 최대 너비. 자연 높이를 측정해 짧은 화면에서도 판을 잘라내지 않는다. */
   maxWidth?: string;
 }
 
@@ -59,7 +67,15 @@ const MARK_RING: Record<TripleGomokuCellMark, string> = {
 };
 
 /** 한 칸에 쌓인 돌(또는 미리보기 돌) 하나. 아래층은 격자점에, 윗층은 그만큼 위로 그린다. */
-function StoneLayer({ layer, children, opacity }: { layer: number; children: ReactNode; opacity?: number }) {
+function StoneLayer({
+  layer,
+  children,
+  opacity,
+}: {
+  layer: number;
+  children: ReactNode;
+  opacity?: number;
+}) {
   return (
     <span
       className="pointer-events-none absolute bottom-1/2 left-1/2 block"
@@ -94,10 +110,10 @@ export function TripleGomokuBoardView({
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   return (
-    <div className={cn('w-full', className)}>
+    <div data-game-intrinsic-stage className={cn('mx-auto w-full', className)} style={{ maxWidth }}>
       <div
         className="relative mx-auto w-full"
-        style={{ maxWidth, aspectRatio: `${TG_BOARD_ASPECT}` }}
+        style={{ aspectRatio: `${TG_BOARD_ASPECT}` }}
         role="group"
         aria-label={ariaLabel}
       >
@@ -114,16 +130,18 @@ export function TripleGomokuBoardView({
             </radialGradient>
           </defs>
           <rect
-            width="1000"
-            height="866"
+            x="1"
+            y="1"
+            width="998"
+            height="864"
             rx="28"
             fill="url(#tg-surface)"
             stroke="var(--cdm-border-strong)"
             strokeWidth={2}
           />
           {edges.map(([from, to]) => {
-            const a = tripleGomokuPosition(from);
-            const b = tripleGomokuPosition(to);
+            const a = boardPosition(from);
+            const b = boardPosition(to);
             return (
               <line
                 key={`${tripleGomokuCellKey(from)}-${tripleGomokuCellKey(to)}`}
@@ -139,7 +157,7 @@ export function TripleGomokuBoardView({
             );
           })}
           {cells.map((cell) => {
-            const point = tripleGomokuPosition(cell);
+            const point = boardPosition(cell);
             return (
               <circle
                 key={tripleGomokuCellKey(cell)}
@@ -155,7 +173,7 @@ export function TripleGomokuBoardView({
 
         {cells.map((cell) => {
           const key = tripleGomokuCellKey(cell);
-          const point = tripleGomokuPosition(cell);
+          const point = boardPosition(cell);
           const stack = board[key] ?? [];
           const mark = markOf?.(cell) ?? 'none';
           const enabled = Boolean(onCellClick) && (isEnabled?.(cell) ?? false);
@@ -186,13 +204,13 @@ export function TripleGomokuBoardView({
                 'absolute rounded-full transition-colors',
                 mark !== 'none' && MARK_RING[mark],
                 // 목적지 표시(target) 위에서도 '여기 둘 예정' 이 보이게 테두리를 덮어쓴다
-                armedKey === key && enabled && 'ring-2 ring-cdm-primary',
+                armedKey === key && enabled && 'ring-cdm-primary ring-2',
                 enabled ? 'cursor-pointer' : 'cursor-default',
               )}
               style={{
                 left: `${point.x * 100}%`,
                 top: `${point.y * 100}%`,
-                width: '8%',
+                width: `${8 * BOARD_SCALE}%`,
                 aspectRatio: '1',
                 transform: 'translate(-50%, -50%)',
               }}
@@ -211,7 +229,7 @@ export function TripleGomokuBoardView({
                 </StoneLayer>
               )}
               {stack.length === TG_MAX_HEIGHT && (
-                <span className="bg-cdm-fg text-cdm-fg-inverse pointer-events-none absolute -top-1 -right-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-black">
+                <span className="bg-cdm-fg text-cdm-fg-inverse pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 w-4 items-center justify-center rounded-full text-[11px] font-black">
                   3
                 </span>
               )}

@@ -22,8 +22,6 @@ import {
 } from '@/shared/logic/triple-gomoku';
 import type { TripleGomokuCell, TripleGomokuGameData } from '@/shared/types/triple-gomoku';
 import { TripleGomokuBoardView, type TripleGomokuCellMark } from './BoardView';
-import { fitBoardWidth } from '@/components/game/GameFrame';
-import { TG_BOARD_ASPECT } from '@/shared/logic/triple-gomoku';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { GamePiece3D, usePlacementConfirm } from '@/components/game/abstract-strategy';
@@ -94,7 +92,7 @@ function PlaySurface({
     acceptedSignature 가 바뀌면서 잠금이 저절로 풀린다.
   */
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
-  const { setHud } = useRoomLayout();
+  const { setHud, setHeaderBelow } = useRoomLayout();
   const setup = gameData.phase === 'setup';
   const reserve = gameData.reserves[seatId] ?? 0;
   const sidePanel = <TripleGomokuSidePanel gameData={gameData} myId={myId} />;
@@ -221,30 +219,40 @@ function PlaySurface({
   const winnerName = gameData.winnerId ? gameData.players[gameData.winnerId]?.nickname : null;
   const finished = gameData.phase === 'finished';
 
+  const guide = finished
+    ? [
+        winnerName ? `${winnerName} 승리!` : '게임 종료',
+        gameData.winType ? WIN_HINT[gameData.winType] : '',
+        gameData.finishReason,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : placement.armed && active
+      ? armedIsMove
+        ? '같은 자리를 한 번 더 누르면 옮깁니다. 다른 목적지를 누르면 미리보기만 바뀝니다.'
+        : '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
+      : setup
+        ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
+        : !isPlayer
+          ? '관전 중입니다.'
+          : !isMyTurn
+            ? `${currentName} 님의 차례입니다.`
+            : source
+              ? `${sourceHeight}층 내 돌을 골랐습니다 · 초록 칸 ${targets.length}곳으로 옮길 수 있습니다. 같은 돌을 다시 누르면 풀립니다.`
+              : reserve > 0
+                ? '빈칸을 누르면 돌을 놓고, 내 돌을 누르면 옮길 곳을 고릅니다.'
+                : '남은 돌이 없습니다. 내 돌을 눌러 옮겨야 합니다.';
+
+  useEffect(() => {
+    setHeaderBelow(
+      <p className="text-cdm-ink-fg-muted text-[11px] leading-relaxed sm:text-xs">{guide}</p>,
+    );
+    return () => setHeaderBelow(null);
+  }, [guide, setHeaderBelow]);
+
   return (
     <>
-      <GameReferenceFrame
-        controls={
-          <p className="border-cdm-border bg-cdm-bg rounded-cdm-lg text-cdm-fg-muted flex min-h-11 items-center justify-center border px-3 py-2 text-center text-[11px]">
-            {placement.armed && active
-              ? armedIsMove
-                ? '같은 자리를 한 번 더 누르면 옮깁니다. 다른 목적지를 누르면 미리보기만 바뀝니다.'
-                : '같은 자리를 한 번 더 누르면 놓습니다. 다른 곳을 누르면 자리만 옮깁니다.'
-              : setup
-                ? `기본 배치 · 이번 턴에 ${gameData.setupRemaining}개. 정중앙과 자기 돌 옆은 안 됩니다.`
-                : !isPlayer
-                  ? '관전 중입니다.'
-                  : !isMyTurn
-                    ? `${currentName} 님의 차례입니다.`
-                    : source
-                      ? `${sourceHeight}층 내 돌을 골랐습니다 · 초록 칸 ${targets.length}곳으로 옮길 수 있습니다. 같은 돌을 다시 누르면 풀립니다.`
-                      : reserve > 0
-                        ? '빈칸을 누르면 돌을 놓고, 내 돌을 누르면 옮길 곳을 고릅니다.'
-                        : '남은 돌이 없습니다. 내 돌을 눌러 옮겨야 합니다.'}
-          </p>
-        }
-        reference={sidePanel}
-      >
+      <GameReferenceFrame reference={sidePanel}>
         <TripleGomokuBoardView
           board={gameData.board}
           firstPlayerId={gameData.firstPlayerId}
@@ -254,25 +262,9 @@ function PlaySurface({
           previewOwnerId={active ? seatId : null}
           armedKey={placement.armed}
           ariaLabel="삼층 오목 판"
-          maxWidth={fitBoardWidth(TG_BOARD_ASPECT, 1, '38rem', '1rem')}
+          maxWidth="44rem"
           className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 sm:p-3"
         />
-
-        {finished && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-            <div className="border-cdm-primary bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
-              <p className="text-cdm-primary text-base font-black">
-                {winnerName ? `${winnerName} 승리!` : '게임 종료'}
-              </p>
-              {gameData.winType && (
-                <p className="text-cdm-fg-muted mt-0.5 text-[11px] font-bold">
-                  {WIN_HINT[gameData.winType] ?? ''}
-                </p>
-              )}
-              <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
-            </div>
-          </div>
-        )}
       </GameReferenceFrame>
     </>
   );

@@ -161,6 +161,60 @@ describe('초이스 홀덤 경기 진행', () => {
     expect(state.winnerId).toBe(second.id);
   });
 
+  it('21라운드의 앤티 3칩보다 적은 2칩이면 차감 없이 패배한다', () => {
+    const { io, state, first, second } = setup('choice-holdem-ante-three-lack');
+    state.round = 21;
+    state.pot = 0;
+    state.playerStates[first.id].chips = 2;
+    state.playerStates[second.id].chips = 8;
+    beginChoiceHoldemRound(io, state);
+    expect(state.ante).toBe(3);
+    expect(state.gameOver).toBe(true);
+    expect(state.winnerId).toBe(second.id);
+    expect(state.playerStates[first.id].chips).toBe(2);
+    expect(state.playerStates[second.id].chips).toBe(8);
+    expect(state.pot).toBe(0);
+  });
+
+  it('앤티 3칩을 정확히 내면 잔여 0칩이어도 현재 라운드를 끝까지 진행한다', () => {
+    const { io, state, first, second } = setup('choice-holdem-ante-three-exact');
+    state.round = 21;
+    state.pot = 0;
+    state.playerStates[first.id].chips = 3;
+    state.playerStates[second.id].chips = 8;
+    beginChoiceHoldemRound(io, state);
+    expect(state.gameOver).toBe(false);
+    expect(state.playerStates[first.id].chips).toBe(0);
+    expect(state.playerStates[second.id].chips).toBe(5);
+    expect(state.pot).toBe(6);
+    checkThroughFirstBetting(io, state);
+    selectCards(io, state);
+    expect(state.phase).toBe('second-betting');
+    expect(performChoiceHoldemAction(io, state, first.id, { type: 'call' })).toBeNull();
+    expect(performChoiceHoldemAction(io, state, second.id, { type: 'call' })).toBeNull();
+    expect(state.phase).toBe('round-result');
+    expect(state.lastRoundResult?.potAmount).toBe(6);
+    expect(
+      Object.values(state.playerStates).reduce((total, player) => total + player.chips, state.pot),
+    ).toBe(11);
+  });
+
+  it('동률 이월 라운드는 잔여 2칩이어도 앤티 3칩을 다시 요구하지 않는다', () => {
+    const { io, state, first, second } = setup('choice-holdem-carry-low-chips');
+    state.round = 21;
+    state.carryRound = true;
+    state.pot = 6;
+    state.playerStates[first.id].chips = 2;
+    state.playerStates[second.id].chips = 8;
+    beginChoiceHoldemRound(io, state);
+    expect(state.gameOver).toBe(false);
+    expect(state.phase).toBe('arranging-choice');
+    expect(state.pot).toBe(6);
+    expect(state.playerStates[first.id].chips).toBe(2);
+    expect(state.playerStates[first.id].roundBet).toBe(0);
+    expect(state.playerStates[second.id].chips).toBe(8);
+  });
+
   it('후 플레이어 COM은 실제 뒷면 값이 달라도 같은 공개 정보로 선택한다', () => {
     const { state } = setup('choice-holdem-ai-hidden', AI_PLAYER_ID, 'com');
     state.phase = 'choosing-card';
