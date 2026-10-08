@@ -937,8 +937,6 @@ export function startGame(io: IO, roomId: string) {
   const room = roomStore.get(roomId);
   if (!room) return;
 
-  roomStore.setGameResult(roomId, undefined);
-
   clearPendingUndo(roomId);
 
   // 확정된 선후공을 방에도 반영해야 결과·기록의 first/second가 실제 게임과 일치한다.
@@ -1076,25 +1074,6 @@ export function handleGameForfeit(io: IO, roomId: string, playerId: string) {
 
 /** session:restore 시 index.ts에서 game:state를 재전송하는 데 사용 */
 export function emitGameStateToSocket(socket: TypedSocket, roomId: string, gameId: string) {
-  if (roomStore.get(roomId)?.status === 'finished') {
-    const result = roomStore.getGameResult(roomId);
-    if (result) {
-      const viewerToken = sessions.getToken(socket.id) ?? null;
-      const room = roomStore.get(roomId)!;
-      const shopState = getRoomShopState(roomId);
-      const anonNicknames = room.players
-        .filter((p) => shopState?.anonymizedTokens.has(p.id) && p.id !== viewerToken)
-        .map((p) => p.nickname);
-      socket.emit('game:ended', {
-        ...result,
-        rankings: maskRankingForViewer(roomId, result.rankings, viewerToken),
-        ...(result.gameResultData != null ? {
-          gameResultData: maskGameResultDataForViewer(roomId, result.gameResultData, viewerToken, anonNicknames),
-        } : {}),
-      });
-    }
-    return;
-  }
   gameModules[gameId]?.emitStateToSocket(socket, roomId);
   emitTurnExpiry(socket, roomId);
 }
@@ -1110,7 +1089,7 @@ export function registerGameHandlers(io: IO, socket: TypedSocket) {
     const roomId = sessions.getRoom(socket.id);
     if (!roomId) return;
     const room = roomStore.get(roomId);
-    if (!room || (room.status !== 'playing' && room.status !== 'finished')) return;
+    if (!room || room.status !== 'playing') return;
 
     // room:state는 시스템 룸도 전송해야 클라이언트의 gameId가 세팅되어 게임 모듈이 렌더됨
     const clientRoom = maskedClientRoomForSocket(roomId, socket);
@@ -1439,7 +1418,6 @@ export function endGame(
   };
 
   const emitEndedAndGrants = (payload: GameResult) => {
-    roomStore.setGameResult(roomId, payload);
     const shopState = getRoomShopState(roomId);
     if (shopState && shopState.anonymizedTokens.size > 0) {
       // viewer 시점별 마스킹: 본인은 원본, 다른 사람은 닉네임 ??? 처리

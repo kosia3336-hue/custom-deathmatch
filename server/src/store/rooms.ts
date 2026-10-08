@@ -1,7 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { AI_PLAYER_ID, isSoloLikePlayMode } from '@shared/types/room.js';
 import { isDummyPlayerId } from '@shared/dummy.js';
-import type { GameResult } from '@shared/types/events.js';
 import type {
   Room,
   RoomSummary,
@@ -28,8 +27,6 @@ function makeAiPlayer(): Player {
 }
 
 type RoomInternal = Room & {
-  /** 방 수명 동안만 보관하며 viewer별 마스킹 후 game:ended로 전송한다. */
-  _gameResult?: GameResult;
   _password?: string;
   _minPlayers: number;
   _fromBanPick?: boolean;
@@ -76,7 +73,6 @@ function toSummary(room: RoomInternal): RoomSummary {
 
 function toClientRoom(room: RoomInternal): Room {
   const copy = { ...room } as Room & {
-    _gameResult?: GameResult;
     _password?: string;
     _minPlayers?: number;
     _fromBanPick?: boolean;
@@ -84,7 +80,6 @@ function toClientRoom(room: RoomInternal): Room {
   delete copy._password;
   delete copy._minPlayers;
   delete copy._fromBanPick;
-  delete copy._gameResult;
   // v2: 2인 게임의 자리 순서 = 선/후공 (players[0] = 선공)
   if (copy.players.length === 2) {
     copy.players = copy.players.map((p, i) => ({
@@ -276,15 +271,6 @@ export const roomStore = {
   setStatus(roomId: string, status: RoomStatus) {
     const room = rooms.get(roomId);
     if (room) room.status = status;
-  },
-
-  setGameResult(roomId: string, result: GameResult | undefined) {
-    const room = rooms.get(roomId);
-    if (room) room._gameResult = result;
-  },
-
-  getGameResult(roomId: string): GameResult | undefined {
-    return rooms.get(roomId)?._gameResult;
   },
 
   updateSettings(
@@ -535,7 +521,6 @@ export const roomStore = {
     const room = rooms.get(roomId);
     if (!room) return;
     room.status = 'waiting';
-    delete room._gameResult;
     room.players.forEach((p) => {
       p.isReady = false;
     });

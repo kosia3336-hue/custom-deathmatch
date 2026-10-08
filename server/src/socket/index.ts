@@ -276,9 +276,7 @@ export function setupSocketHandlers(io: IO) {
             // room:state + game:state 재전송
             const clientRoom = maskedClientRoomFor(roomId, token);
             if (clientRoom) socket.emit('room:state', clientRoom);
-            if (room.status === 'playing' || room.status === 'finished') {
-              emitGameStateToSocket(socket, roomId, room.gameId);
-            }
+            if (room.status === 'playing') emitGameStateToSocket(socket, roomId, room.gameId);
 
             // 방 전체에 재연결 성공 알림 (playerId = token = Player.id)
             // 플레이어만 알린다. 관전자는 방 화면을 열 때마다 여기로 들어와서, 조건이
