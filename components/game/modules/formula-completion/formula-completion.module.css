@@ -1,0 +1,53 @@
+.board {
+  width: min(100%, 40rem);
+  padding: 16px;
+}
+.pad {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.tileRow {
+  --formula-tile-gap: 8px;
+  display: flex;
+  justify-content: center;
+  gap: var(--formula-tile-gap);
+  width: min(100%, 32rem);
+  margin-inline: auto;
+}
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 calc((100% - 5 * var(--formula-tile-gap)) / 6);
+  aspect-ratio: 4 / 5;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--cdm-border-strong);
+  border-radius: var(--cdm-radius-md, 8px);
+  background: var(--cdm-bg-elev-1);
+  color: var(--cdm-fg);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 800;
+  line-height: 1;
+}
+button.tile:hover:not(:disabled) {
+  border-color: var(--cdm-primary);
+  background: var(--cdm-primary-soft);
+}
+button.tile:focus-visible {
+  outline: 2px solid var(--cdm-primary);
+  outline-offset: 2px;
+}
+button.tile:disabled {
+  opacity: 0.4;
+}
+@media (max-width: 639px) {
+  .board {
+    padding: 12px;
+  }
+  .tileRow {
+    --formula-tile-gap: 6px;
+  }
+}

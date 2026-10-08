@@ -14,6 +14,7 @@ import FormulaPad from './FormulaPad';
 import RoundHistory from './RoundHistory';
 import RoundReveal from './RoundReveal';
 import ScoreBoard from './ScoreBoard';
+import styles from './formula-completion.module.css';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 
@@ -54,46 +55,42 @@ function FormulaCompletionView({
     <GameReferenceFrame
       /* 점수는 늘 보이게 (components/game/GameScoreLine.tsx) */
 
-      controls={
-        gameData.phase === 'playing' ? (
-          isPlayer ? (
+      reference={<FormulaInfo gameData={gameData} myId={myId} />}
+    >
+      <div
+        data-game-intrinsic-stage
+        className="flex w-full flex-col items-center justify-center gap-3 px-2 py-4 sm:px-4 sm:py-6"
+      >
+        <Card className={styles.board}>
+          <div className="mb-4 text-center">
+            <p className="text-cdm-fg-subtle text-xs font-semibold tracking-[0.18em]">TARGET</p>
+            <p className="text-cdm-primary mt-1 text-5xl font-black tabular-nums sm:text-6xl">
+              {gameData.target}
+            </p>
+          </div>
+          {gameData.phase === 'playing' && isPlayer ? (
             <PlayingRound
               key={`${gameData.round}-${gameData.roundStartedAt}`}
               numbers={gameData.numbers}
             />
           ) : (
-            <Card className="text-cdm-fg-muted text-center text-xs">
-              {gameData.isSolo
-                ? '솔로 플레이를 관전하고 있습니다.'
-                : '관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.'}
-            </Card>
-          )
-        ) : null
-      }
-      reference={<FormulaInfo gameData={gameData} myId={myId} />}
-    >
-      <div
-        data-game-intrinsic-stage
-        className="flex w-full flex-col items-center justify-center gap-3"
-      >
-        <Card className="w-full text-center">
-          <p className="text-cdm-fg-subtle text-xs font-semibold tracking-[0.18em]">TARGET</p>
-          <p className="text-cdm-primary mt-1 text-5xl font-black tabular-nums sm:text-6xl">
-            {gameData.target}
-          </p>
-          <div
-            className="mt-3 flex flex-wrap justify-center gap-2"
-            aria-label={`${gameData.numberCount}개의 제시 숫자`}
-          >
-            {gameData.numbers.map((number, index) => (
-              <span
-                key={`${number}-${index}`}
-                className="rounded-cdm-md border-cdm-border-strong bg-cdm-bg-elev-1 text-cdm-fg flex h-12 w-12 items-center justify-center border-2 text-xl font-extrabold"
-              >
-                {number}
-              </span>
-            ))}
-          </div>
+            <>
+              <div className={styles.tileRow} aria-label={`${gameData.numberCount}개의 제시 숫자`}>
+                {gameData.numbers.map((number, index) => (
+                  <span key={`${number}-${index}`} className={styles.tile}>
+                    {number}
+                  </span>
+                ))}
+              </div>
+              {gameData.phase === 'playing' && (
+                <p className="text-cdm-fg-muted mt-4 text-center text-xs">
+                  {gameData.isSolo
+                    ? '솔로 플레이를 관전하고 있습니다.'
+                    : '관전 중 — 먼저 수식을 외치는 플레이어가 라운드를 결정합니다.'}
+                </p>
+              )}
+            </>
+          )}
         </Card>
 
         {gameData.phase !== 'playing' && (

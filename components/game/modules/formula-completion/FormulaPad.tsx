@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '@/components/cdm/Button';
 import { cn } from '@/lib/utils';
+import styles from './formula-completion.module.css';
 
 interface Props {
   numbers: number[];
@@ -12,6 +14,15 @@ interface Props {
   disabled?: boolean;
   className?: string;
 }
+
+const MOBILE_QUERY = '(max-width: 1023px)';
+function subscribeMobile(callback: () => void) {
+  const media = window.matchMedia(MOBILE_QUERY);
+  media.addEventListener('change', callback);
+  return () => media.removeEventListener('change', callback);
+}
+const getMobileSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
+const getServerSnapshot = () => false;
 
 const OPERATORS = [
   { label: '+', value: '+' },
@@ -35,86 +46,136 @@ export default function FormulaPad({
   className,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const numberGridClass = numbers.length === 4
-    ? 'grid-cols-4'
-    : numbers.length === 5
-      ? 'grid-cols-5'
-      : 'grid-cols-6';
-
-  const focusInput = () => {
-    inputRef.current?.focus({ preventScroll: true });
-  };
+  const padRef = useRef<HTMLDivElement>(null);
+  const isMobile = useSyncExternalStore(subscribeMobile, getMobileSnapshot, getServerSnapshot);
+  const [nativeInput, setNativeInput] = useState(false);
+  const compactInput = isMobile && nativeInput;
 
   useEffect(() => {
-    if (disabled) return;
-    const frame = requestAnimationFrame(() => {
-      inputRef.current?.focus({ preventScroll: true });
-    });
+    // 모바일은 카드 키패드를 기본으로 사용한다. 자동 포커스로 키보드를 열지 않는다.
+    if (disabled || window.matchMedia(MOBILE_QUERY).matches) return;
+    const frame = requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
   }, [disabled]);
+
+  useEffect(() => {
+    if (!compactInput) return;
+    const viewport = window.visualViewport;
+    let frame = 0;
+    const keepInputVisible = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // 키보드 높이가 바뀐 뒤 입력란과 제출 버튼이 함께 보이도록 실제 스크롤한다.
+        padRef.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+      });
+    };
+    keepInputVisible();
+    viewport?.addEventListener('resize', keepInputVisible);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener('resize', keepInputVisible);
+    };
+  }, [compactInput]);
 
   const append = (value: string) => {
     if (disabled) return;
     onExpressionChange(`${expression}${value}`.slice(0, 160));
-    focusInput();
+    if (!isMobile) inputRef.current?.focus({ preventScroll: true });
+  };
+
+  const toggleKeyboard = () => {
+    if (nativeInput) {
+      inputRef.current?.blur();
+      setNativeInput(false);
+    } else {
+      // iOS는 사용자 클릭 안에서 focus해야 키보드를 연다. readOnly 해제부터 반영한다.
+      flushSync(() => setNativeInput(true));
+      inputRef.current?.focus();
+    }
   };
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      <label className="sr-only" htmlFor="formula-completion-input">수식 입력</label>
+    <div ref={padRef} className={cn(styles.pad, className)}>
+      <div className="flex items-center justify-between gap-2">
+        <label
+          className="text-cdm-fg-muted text-xs font-semibold"
+          htmlFor="formula-completion-input"
+        >
+          수식 입력
+        </label>
+        {isMobile && (
+          <Button
+            variant="tertiary"
+            size="sm"
+            className="h-11 px-3"
+            onClick={toggleKeyboard}
+            disabled={disabled}
+            aria-pressed={nativeInput}
+          >
+            {nativeInput ? '카드 키패드' : '키보드 입력'}
+          </Button>
+        )}
+      </div>
       <input
         ref={inputRef}
         id="formula-completion-input"
-        autoFocus
         value={expression}
         onChange={(event) => onExpressionChange(cleanInput(event.target.value))}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') onSubmit();
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            onSubmit();
+          }
         }}
+        readOnly={isMobile && !nativeInput}
         disabled={disabled}
-        inputMode="text"
+        inputMode={isMobile && !nativeInput ? 'none' : 'text'}
         autoComplete="off"
         spellCheck={false}
         placeholder="예: 4*6+7-5"
-        className="h-14 w-full rounded-cdm-md border-2 border-cdm-border bg-cdm-bg px-4 text-center font-mono text-xl font-bold tracking-wide text-cdm-fg outline-none transition-colors focus:border-cdm-primary disabled:bg-cdm-bg-elev-1 disabled:text-cdm-fg-muted"
+        className="rounded-cdm-md border-cdm-border bg-cdm-bg text-cdm-fg focus:border-cdm-primary disabled:bg-cdm-bg-elev-1 disabled:text-cdm-fg-muted h-14 w-full border-2 px-3 text-center font-mono text-xl font-bold tracking-wide transition-colors outline-none"
       />
 
-      <div className={cn('grid gap-2', numberGridClass)} aria-label="제시 숫자">
-        {numbers.map((number, index) => (
-          <button
-            key={`${number}-${index}`}
-            type="button"
-            onClick={() => append(String(number))}
-            disabled={disabled}
-            className="h-11 rounded-cdm-md border border-cdm-border-strong bg-cdm-bg text-lg font-extrabold text-cdm-fg transition-colors hover:border-cdm-primary hover:bg-cdm-primary-soft disabled:opacity-40"
-            aria-label={`숫자 ${number} 입력`}
-          >
-            {number}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-6 gap-2" aria-label="연산자와 괄호">
-        {OPERATORS.map((operator) => (
-          <button
-            key={operator.value}
-            type="button"
-            onClick={() => append(operator.value)}
-            disabled={disabled}
-            className="h-10 rounded-cdm-md bg-cdm-bg-elev-2 text-base font-bold text-cdm-fg-muted transition-colors hover:bg-cdm-primary-soft hover:text-cdm-primary disabled:opacity-40"
-          >
-            {operator.label}
-          </button>
-        ))}
-      </div>
+      {!compactInput && (
+        <div className="flex flex-col gap-2">
+          <div className={styles.tileRow} aria-label="제시 숫자">
+            {numbers.map((number, index) => (
+              <button
+                key={`${number}-${index}`}
+                type="button"
+                onClick={() => append(String(number))}
+                disabled={disabled}
+                className={styles.tile}
+                aria-label={`숫자 ${number} 입력`}
+              >
+                {number}
+              </button>
+            ))}
+          </div>
+          <div className={styles.tileRow} aria-label="연산자와 괄호">
+            {OPERATORS.map((operator) => (
+              <button
+                key={operator.value}
+                type="button"
+                onClick={() => append(operator.value)}
+                disabled={disabled}
+                className={styles.tile}
+              >
+                {operator.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {compactInput && (
+        <p className="text-cdm-fg-muted text-xs">제시 숫자: {numbers.join(' · ')}</p>
+      )}
 
       <div className="grid grid-cols-[auto_auto_1fr] gap-2">
         <Button
           variant="tertiary"
-          onClick={() => {
-            onExpressionChange(expression.slice(0, -1));
-            focusInput();
-          }}
+          className="h-11 px-3"
+          onClick={() => onExpressionChange(expression.slice(0, -1))}
           disabled={disabled || !expression}
           aria-label="마지막 글자 지우기"
         >
@@ -122,16 +183,15 @@ export default function FormulaPad({
         </Button>
         <Button
           variant="tertiary"
-          onClick={() => {
-            onExpressionChange('');
-            focusInput();
-          }}
+          className="h-11 px-3"
+          onClick={() => onExpressionChange('')}
           disabled={disabled || !expression}
         >
           초기화
         </Button>
         <Button
           fullWidth
+          className="h-11 px-3"
           onClick={onSubmit}
           disabled={disabled || !expression.trim()}
         >
