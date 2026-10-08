@@ -1,4 +1,5 @@
 'use client';
+import styles from './inventory.module.css';
 
 import type { BankBet, BankDenomination } from '@/shared/types/bank-game';
 import { sumBetAmount, sumBetCount } from '@/shared/types/bank-game';
@@ -15,7 +16,7 @@ interface Props {
   inventory: BankBet;
   inventoryAmount: number | null;
   pendingBet?: BankBet | null;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'compact';
 }
 
 export default function InventoryRow({
@@ -31,8 +32,10 @@ export default function InventoryRow({
   const remainAmount = (inventoryAmount ?? 0) - pendingAmount;
 
   return (
-    <div className="bank-inventory space-y-1.5">
-      <div className="bank-inventory-grid grid grid-cols-4 gap-2">
+    <div className={`bank-inventory space-y-1.5 ${size === 'compact' ? styles.compact : ''}`}>
+      <div
+        className={`bank-inventory-grid grid grid-cols-4 ${size === 'compact' ? 'gap-1' : 'gap-2'}`}
+      >
         {DENOM_ORDER.map((denom) => (
           <DenomCard
             key={denom}
@@ -70,18 +73,23 @@ function DenomCard({
   denom: BankDenomination;
   count: number;
   pending: number;
-  size: 'sm' | 'md';
+  size: 'sm' | 'md' | 'compact';
 }) {
   const style = DENOM_STYLES[denom];
   const remain = count - pending;
   const empty = remain <= 0;
-  const sizeCls = size === 'md' ? 'min-h-[100px] px-2 py-2.5' : 'min-h-[80px] px-1.5 py-2';
-  const numCls = size === 'md' ? 'text-3xl' : 'text-2xl';
+  const sizeCls =
+    size === 'compact'
+      ? 'min-h-12 px-0.5 py-1'
+      : size === 'md'
+        ? 'min-h-[100px] px-2 py-2.5'
+        : 'min-h-[80px] px-1.5 py-2';
+  const numCls = size === 'compact' ? 'text-base' : size === 'md' ? 'text-3xl' : 'text-2xl';
   const labelCls = size === 'md' ? 'text-xs' : 'text-[11px]';
 
   return (
     <div
-      aria-label={`${style.label} ${count}장, 베팅 ${pending}장`}
+      aria-label={`${style.label} 잔여 ${remain}장${pending > 0 ? `, 선택 ${pending}장` : ''}`}
       className={`bank-denom-card bank-denom-card--${denom} relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border-2 transition-all duration-300 ${sizeCls} ${
         empty ? 'border-gray-200 bg-gray-50' : `${style.border} ${style.bg}`
       }`}
@@ -92,7 +100,7 @@ function DenomCard({
         {style.shortLabel}
       </span>
       <span
-        className={`bank-denom-count ${numCls} leading-none font-extrabold tabular-nums ${
+        className={`bank-denom-count ${numCls} leading-none font-extrabold whitespace-nowrap tabular-nums ${
           empty ? 'text-gray-400' : style.textStrong
         }`}
       >

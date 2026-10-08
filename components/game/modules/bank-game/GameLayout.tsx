@@ -1,5 +1,7 @@
 'use client';
 
+import { Modal } from '@/components/cdm/Modal';
+import { Button } from '@/components/cdm/Button';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useGameToolsRegistration } from '@/contexts/GameToolsContext';
 import { useEffect, useState } from 'react';
@@ -7,7 +9,6 @@ import { BankReference } from './BankReference';
 import BetInput from './BetInput';
 import FirstCountRevealBanner from './FirstCountRevealBanner';
 import type { BankContextValue } from './hooks/useBankContext';
-import InventoryRow from './InventoryRow';
 import PhaseArea from './PhaseArea';
 
 /** PC와 모바일 공통 배치. 모바일 베팅은 접는 시트, 기록/메모는 하단 탭 또는 PC 독립 창. */
@@ -57,6 +58,8 @@ export default function GameLayout({ ctx }: Props) {
     !myPlayer.betConfirmed;
 
   const showSheet = canShowSheet && sheetOpen;
+  const showNextRoundButton = isRoundEnd && !isSpectator;
+  const showInputButton = !desktop && !isSpectator && canShowSheet && !showSheet;
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
 
@@ -69,57 +72,43 @@ export default function GameLayout({ ctx }: Props) {
       <GameReferenceFrame
         reference={<BankReference ctx={ctx} />}
         className="bank-layout bank-layout-mobile"
-        /*
-          승점은 늘 보이게 둔다 — 9라운드 승점제라 몇 대 몇인지가 이번 라운드에
-          얼마를 걸지를 정한다. 잔여 장수는 내 것만 공개라 함께 적는다.
-          (components/game/GameScoreLine.tsx)
-        */
         controls={
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            {/*
-              라운드 세부 진행 — 선 제출 · 선공개 · 후제출 · 정산.
-              상단 바에는 '몇 라운드인가'(1 / 9R)만 두고, '그 라운드 안 어디쯤인가'
-              는 손 가까운 아래에 둔다. 다음에 무엇을 할지 알려 주는 표시라
-              누르는 자리 옆에 있는 편이 읽힌다.
-            */}
-            {/*
+          showNextRoundButton || showInputButton ? (
+            <div className="flex w-full min-w-0 flex-col gap-1.5">
+              {/*
               라운드 종료 버튼. 예전에는 무대(PhaseArea) 안에 있었는데, 무대는
               contain:size 라 넘치면 스크롤 없이 그냥 잘린다 — 정산 내용이 길면
               이 버튼이 화면 밖으로 사라져 다음 라운드로 못 갔다.
               누르는 것은 전부 controls 로 (GameFrame 주석의 세 칸 문법).
             */}
-            {isRoundEnd && !isSpectator && (
-              <button
-                type="button"
-                onClick={handleNextRoundReady}
-                className="bank-primary-action w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]"
-              >
-                다음 라운드로 →
-              </button>
-            )}
-            {!isSpectator && myPlayer?.inventory && myPlayer.inventoryAmount != null && (
-              <InventoryRow
-                inventory={myPlayer.inventory}
-                inventoryAmount={myPlayer.inventoryAmount}
-                pendingBet={myTurnInput ? pendingBet : null}
-                size="sm"
-              />
-            )}
-            <div className="flex gap-1.5">
-              {!desktop && !isSpectator && canShowSheet && !showSheet && (
+              {showNextRoundButton && (
                 <button
                   type="button"
-                  onClick={() => setSheetOpen(true)}
-                  className="bank-primary-action flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-bold text-white shadow-lg"
+                  onClick={handleNextRoundReady}
+                  className="bank-primary-action w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]"
                 >
-                  베팅 입력하기 →
+                  다음 라운드로 →
                 </button>
               )}
+              <div className="flex gap-1.5">
+                {showInputButton && (
+                  <button
+                    type="button"
+                    onClick={() => setSheetOpen(true)}
+                    className="bank-primary-action flex-1 rounded-xl bg-amber-600 py-2.5 text-sm font-bold text-white shadow-lg"
+                  >
+                    베팅 입력하기 →
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          ) : undefined
         }
       >
-        <div className="bank-mobile-content flex h-full w-full min-w-0 flex-col items-center justify-center gap-2 overflow-hidden">
+        <div
+          data-game-intrinsic-stage
+          className="bank-mobile-content flex w-full max-w-2xl min-w-0 flex-col items-center justify-center gap-2 p-3"
+        >
           {showBanner && firstBetCount != null && (
             <FirstCountRevealBanner
               firstNick={firstPlayer.nickname}
@@ -135,6 +124,27 @@ export default function GameLayout({ ctx }: Props) {
           />
         </div>
       </GameReferenceFrame>
+
+      <Modal
+        open={ctx.zeroBetConfirmationOpen}
+        onClose={ctx.handleCancelZeroBet}
+        title="0원 제출 확인"
+        size="sm"
+        mobileBottomSheet={false}
+        closeOnBackdrop={false}
+        footer={
+          <>
+            <Button variant="secondary" onClick={ctx.handleCancelZeroBet} autoFocus>
+              취소
+            </Button>
+            <Button onClick={ctx.handleConfirmZeroBet} disabled={submitting}>
+              0원 제출
+            </Button>
+          </>
+        }
+      >
+        <p className="text-cdm-fg text-sm">정말 0원 제출합니까?</p>
+      </Modal>
 
       {/* ── 베팅 bottom-sheet ── */}
       {!desktop && !isSpectator && canShowSheet && (

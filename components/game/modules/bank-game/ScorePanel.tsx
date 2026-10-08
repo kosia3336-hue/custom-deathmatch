@@ -2,6 +2,7 @@
 
 import { BANK_TOTAL_ROUNDS, type BankPlayerInfo, type BankSide } from '@/shared/types/bank-game';
 import { formatKRW } from './constants';
+import InventoryRow from './InventoryRow';
 
 /* 승점 칸 수 = 도달 가능한 최대 점수. 근거는 ScoreBar.tsx 주석 참고. */
 const WIN_SCORE = Math.floor(BANK_TOTAL_ROUNDS / 2) + 1;
@@ -16,9 +17,6 @@ interface Props {
 export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
   return (
     <div className="bank-score-panel grid grid-cols-2 gap-2">
-      <p className="bank-sidebar-heading col-span-2 text-xs font-semibold tracking-wide text-gray-400 uppercase">
-        점수 · 잔여
-      </p>
       {[p1, p2]
         .sort((a, b) => Number(b.id === myId) - Number(a.id === myId))
         .map((p) => {
@@ -67,7 +65,7 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                 ))}
               </div>
               <div className="flex items-center justify-between gap-2 border-t border-white/60 pt-1.5">
-                <span className="text-[11px] tracking-wide text-gray-500 uppercase">잔여 자원</span>
+                <span className="text-[11px] tracking-wide text-gray-500 uppercase">잔여 지폐</span>
                 <span className="text-right">
                   <span className="block text-xs font-bold text-gray-700 tabular-nums">
                     {p.inventoryCount}장
@@ -77,6 +75,13 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                   </span>
                 </span>
               </div>
+              {isMe && p.inventory && (
+                <InventoryRow
+                  inventory={p.inventory}
+                  inventoryAmount={p.inventoryAmount}
+                  size="compact"
+                />
+              )}
             </div>
           );
         })}

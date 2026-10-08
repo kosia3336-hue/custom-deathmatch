@@ -2,7 +2,9 @@
 import { useGameHud } from '@/hooks/useGameHud';
 import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 import type { BankGameData } from '@/shared/types/bank-game';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
+import { useRoomLayout } from '@/contexts/RoomLayoutContext';
+import { BankPhaseProgress } from './BankPhaseProgress';
 import GameLayout from './GameLayout';
 
 import GameLoading from '@/components/game/GameLoading';
@@ -16,6 +18,7 @@ import TreasuryFieldFx from './skins/TreasuryFieldFx';
 
 function BankView(props: GameModuleViewProps<BankGameData>) {
   const ctx = useBankContext(props);
+  const { setHeaderBelow } = useRoomLayout();
   const {
     gameData,
     isSpectator,
@@ -62,6 +65,14 @@ function BankView(props: GameModuleViewProps<BankGameData>) {
   useGameHud(
     gameData ? { round: `${gameData.round} / ${gameData.maxRound}R`, order: phaseLabel } : null,
   );
+
+  const hasGameData = !!gameData;
+  useEffect(() => {
+    setHeaderBelow(
+      hasGameData && phase ? <BankPhaseProgress phase={phase} treasury={isTreasury} /> : null,
+    );
+    return () => setHeaderBelow(null);
+  }, [setHeaderBelow, hasGameData, phase, isTreasury]);
 
   if (!gameData) {
     return (

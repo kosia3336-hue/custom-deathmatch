@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { WIN_TYPE_LABELS } from '../constants';
+import { needsBankZeroBetConfirmation } from '@/lib/bankGameUi';
 
 export type BankContextValue = ReturnType<typeof useBankContext>;
 
@@ -28,6 +29,7 @@ export function useBankContext({
   const [pendingBet, setPendingBet] = useState<BankBet>(zeroBet());
   const [submitting, setSubmitting] = useState(false);
   const [prevKey, setPrevKey] = useState('');
+  const [zeroBetRequestKey, setZeroBetRequestKey] = useState<string | null>(null);
   const shownWinnerRef = useRef<string | null>(null);
 
   const myPlayer = useMemo<BankPlayerInfo | null>(() => {
@@ -54,6 +56,7 @@ export function useBankContext({
     const key = `r${gameData.round}-${gameData.phase}`;
     if (prevKey !== key) {
       setPrevKey(key);
+      setZeroBetRequestKey(null);
       if (gameData.phase === 'firstSubmit' || gameData.phase === 'secondSubmit') {
         setPendingBet(zeroBet());
         setSubmitting(false);
@@ -111,18 +114,49 @@ export function useBankContext({
   const showOpponentTracker = !isSpectator && !isFinished;
 
   /* 액션 */
-  const handleSubmitBet = useCallback(() => {
-    if (!myPlayer || submitting || !gameData) return;
-    if (!myPlayer.inventory) return;
-
-    const v = validateBet(pendingBet, myPlayer.inventory);
-    if (!v.ok) {
-      toast.error(v.reason);
-      return;
-    }
-    setSubmitting(true);
-    sendAction({ type: 'submitBet', bet: pendingBet });
-  }, [myPlayer, submitting, gameData, pendingBet, sendAction]);
+  const actionKey = gameData ? `r${gameData.round}-${gameData.phase}` : null;
+  const submitBet = useCallback(
+    (confirmedZero: boolean) => {
+      if (!myTurnInput || !myPlayer?.inventory || submitting || !gameData) return;
+      const v = validateBet(pendingBet, myPlayer.inventory);
+      if (!v.ok) {
+        toast.error(v.reason);
+        return;
+      }
+      if (
+        confirmedZero &&
+        (zeroBetRequestKey !== actionKey ||
+          !needsBankZeroBetConfirmation(gameData.phase, pendingBet))
+      )
+        return;
+      if (!confirmedZero && needsBankZeroBetConfirmation(gameData.phase, pendingBet)) {
+        setZeroBetRequestKey(actionKey);
+        return;
+      }
+      setZeroBetRequestKey(null);
+      setSubmitting(true);
+      sendAction({ type: 'submitBet', bet: pendingBet });
+    },
+    [
+      myTurnInput,
+      myPlayer,
+      submitting,
+      gameData,
+      pendingBet,
+      sendAction,
+      zeroBetRequestKey,
+      actionKey,
+    ],
+  );
+  const handleSubmitBet = useCallback(() => submitBet(false), [submitBet]);
+  const handleConfirmZeroBet = useCallback(() => submitBet(true), [submitBet]);
+  const handleCancelZeroBet = useCallback(() => setZeroBetRequestKey(null), []);
+  const zeroBetConfirmationOpen =
+    zeroBetRequestKey !== null &&
+    zeroBetRequestKey === actionKey &&
+    myTurnInput &&
+    !!gameData &&
+    needsBankZeroBetConfirmation(gameData.phase, pendingBet);
 
   const handleResetBet = useCallback(() => {
     setPendingBet(zeroBet());
@@ -191,6 +225,9 @@ export function useBankContext({
     pendingCount,
     submitting,
     handleSubmitBet,
+    zeroBetConfirmationOpen,
+    handleConfirmZeroBet,
+    handleCancelZeroBet,
     handleResetBet,
     handleNextRoundReady,
     handleSkipReveal,
