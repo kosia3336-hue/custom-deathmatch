@@ -5,7 +5,6 @@ import BetInput from './BetInput';
 import FinalResult from './FinalResult';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import MarkRevealPanel from './MarkRevealPanel';
-import PowderStageDeltaBanner from './PowderStageDeltaBanner';
 import DalmajiBetPanel from './skins/DalmajiBetPanel';
 import WaitingCard, { buildWaitingText } from './WaitingCard';
 
@@ -76,28 +75,13 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   }
 
   if (!isSpectator && myPlayer && isBet && myTurnInBet) {
-    const lastRecord = gameData.history.at(-1) ?? null;
-    if (hideBetInput) {
-      /*
-        모바일: 베팅판은 조작 칸의 베팅 버튼으로 여는 시트에 있다 → 여기선 배너만.
-        대기 카드는 내 차례에 '(내 닉네임)이 베팅 중...' 으로 떠 남 일처럼 읽혔고,
-        세로 자리만 차지했다.
-      */
-      return (
-        <PowderStageDeltaBanner
-          players={gameData.players}
-          lastRecord={lastRecord}
-          mySide={mySide}
-        />
-      );
-    }
+    /*
+      모바일: 베팅판은 조작 칸의 베팅 버튼으로 여는 시트에 있다. '몇 칸 꺼짐' 안내는
+      GameLayout 이 표식 위에 따로 띄운다 → 여기서 그릴 것이 없다.
+    */
+    if (hideBetInput) return null;
     return (
       <div className="flex flex-col gap-2">
-        <PowderStageDeltaBanner
-          players={gameData.players}
-          lastRecord={lastRecord}
-          mySide={mySide}
-        />
         {ctx.dalmaji ? (
           <DalmajiBetPanel
             turn={isBetFirst ? 'first' : 'second'}
@@ -131,14 +115,8 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   }
 
   if (!isSpectator && myPlayer && isBet && !myTurnInBet) {
-    const lastRecord = gameData.history.at(-1) ?? null;
     return (
       <div className="flex flex-col gap-2">
-        <PowderStageDeltaBanner
-          players={gameData.players}
-          lastRecord={lastRecord}
-          mySide={mySide}
-        />
         <WaitingCard
           text={buildWaitingText({
             phase,
@@ -157,16 +135,9 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
 
   if (!showWaiting) return null;
 
-  const lastRecord = gameData.history.at(-1) ?? null;
-
   if (isSpectator && isBet) {
     return (
       <div className="flex flex-col gap-2">
-        <PowderStageDeltaBanner
-          players={gameData.players}
-          lastRecord={lastRecord}
-          mySide={mySide}
-        />
         <WaitingCard
           text={buildWaitingText({
             phase,

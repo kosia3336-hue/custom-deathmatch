@@ -8,6 +8,7 @@ import FirstBetRevealBanner from './FirstBetRevealBanner';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
 import MarkRow from './MarkRow';
 import PhaseArea from './PhaseArea';
+import PowderStageDeltaBanner from './PowderStageDeltaBanner';
 import PowderInput from './PowderInput';
 import DalmajiBetPanel from './skins/DalmajiBetPanel';
 import DalmajiMarkRow from './skins/DalmajiMarkRow';
@@ -153,6 +154,18 @@ export default function GameLayout({ ctx }: Props) {
         */
       >
         <div data-game-intrinsic-stage className={styles.board}>
+          {/*
+            베팅 단계의 '몇 칸 꺼짐 / 유지' 는 판 맨 위, 표식 바로 위에 둔다.
+            얼마를 걸지 정할 때 가장 먼저 읽는 값이라서다. 예전에는 표식 아래
+            진행 안내 칸에 있어, 모바일에서는 베팅 버튼과 메모 사이에 끼었다.
+          */}
+          {(isBetFirst || isBetSecond) && (
+            <PowderStageDeltaBanner
+              players={gameData.players}
+              lastRecord={gameData.history.at(-1) ?? null}
+              mySide={ctx.mySide}
+            />
+          )}
           <div className="w-full min-w-0">
             <Marks
               size={desktop ? 'md' : 'sm'}
