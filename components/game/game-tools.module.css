@@ -1,8 +1,18 @@
+/*
+  게임 칸의 스크롤 상자. 부모(GameShell 의 relative 상자)를 꽉 채우되, 흐름에서
+  빼서 안쪽 캔버스 높이가 바깥 높이를 밀어 올리지 못하게 한다.
+
+  예전에는 흐름 안에 있어 캔버스 높이(useGameWorkspaceSize 가 잡는 값)만큼
+  이 상자가 늘었고, 그 늘어난 높이를 다시 '남은 높이' 로 읽었다 — 한 번 커진
+  높이가 줄지 않았다. 처음 잴 때 상단 바가 한 줄(61px)이었다가 차례 문구가
+  들어와 두 줄(87px)로 커지자 캔버스가 689px 에 굳어 모바일 화면이 27px 넘쳤다.
+  이제 이 상자는 늘 남은 높이 그대로이고, 판이 그보다 크면 이 안에서 스크롤한다.
+*/
 .viewport {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   min-height: 0;
   min-width: 0;
-  flex: 1;
   overflow: auto;
 }
 .workspace {
