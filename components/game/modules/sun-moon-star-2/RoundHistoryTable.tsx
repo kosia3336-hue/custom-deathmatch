@@ -37,7 +37,8 @@ export default function RoundHistoryTable({ history, mySide, players }: Props) {
 
   return (
     <ul className="space-y-2 text-[11px]">
-      {history.map((r) => {
+      {/* 다른 게임 기록과 같이 최신 라운드가 맨 위 */}
+      {[...history].reverse().map((r) => {
         const oppSide: SMS2Side = mySide === 'p1' ? 'p2' : 'p1';
         const myDelta = mySide ? r.chipDelta[mySide] : null;
         const oppDelta = mySide ? r.chipDelta[oppSide] : null;
