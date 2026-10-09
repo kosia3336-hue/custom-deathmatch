@@ -52,7 +52,7 @@ export default function ScorePanel({ p1, p2, firstSide, myId }: Props) {
                   칩 {p.chips}
                 </span>
                 <span className="text-right text-[11px] text-gray-500">
-                  빛가루 {p.powderStage}단계 ({range.min}~{range.max}g)
+                  빛가루 {range.min}~{range.max}g
                 </span>
               </div>
             </div>

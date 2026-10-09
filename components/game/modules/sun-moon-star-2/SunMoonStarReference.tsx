@@ -40,7 +40,11 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
       leftIsFirst={left.side === gameData.firstPlayerSide}
       leftChips={left.chips}
       rightLabel={
-        !isSpectator && opponent ? opponentDisplayName(opponent.nickname) : right.nickname
+        !isSpectator && opponent
+          ? desktop
+            ? opponentDisplayName(opponent.nickname)
+            : '상대' // 모바일 머리줄은 '칩 10 (상대)' — 짧게
+          : right.nickname
       }
       rightStage={right.powderStage}
       rightRemain={null}

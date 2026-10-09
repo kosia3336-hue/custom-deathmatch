@@ -49,6 +49,8 @@
 .bare {
   min-width: 0;
   flex-shrink: 0;
+  /* 바로 위 조작 버튼(베팅·분배)과 붙어 보이지 않게 */
+  margin-top: 6px;
 }
 .bare :global(.game-info-part) {
   border: 0;

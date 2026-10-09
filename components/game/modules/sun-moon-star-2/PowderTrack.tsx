@@ -98,23 +98,31 @@ export default function PowderTrack({
       {/* 상단 플레이어 라벨 + 선 표시 */}
       <div className="flex items-center gap-1 pb-1">
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-indigo-600">
-          <span className="truncate">{leftLabel}</span>
-          {leftIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
-          {chipsInLabel && (
-            <span className="ml-1.5 shrink-0 font-bold text-purple-700 tabular-nums">
-              칩 {leftChips}
-            </span>
+          {chipsInLabel ? (
+            <>
+              <span className="shrink-0 font-bold text-purple-700 tabular-nums">
+                칩 {leftChips}
+              </span>
+              <span className="ml-0.5 truncate">({leftLabel})</span>
+            </>
+          ) : (
+            <span className="truncate">{leftLabel}</span>
           )}
+          {leftIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
         </div>
         <div className="w-16 shrink-0 text-center text-[11px] text-gray-400">빛가루</div>
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-amber-600">
-          <span className="truncate">{rightLabel}</span>
-          {rightIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
-          {chipsInLabel && (
-            <span className="ml-1.5 shrink-0 font-bold text-purple-700 tabular-nums">
-              칩 {rightChips}
-            </span>
+          {chipsInLabel ? (
+            <>
+              <span className="shrink-0 font-bold text-purple-700 tabular-nums">
+                칩 {rightChips}
+              </span>
+              <span className="ml-0.5 truncate">({rightLabel})</span>
+            </>
+          ) : (
+            <span className="truncate">{rightLabel}</span>
           )}
+          {rightIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
         </div>
       </div>
 
@@ -141,19 +149,19 @@ export default function PowderTrack({
       {/* 하단 힌트 */}
       <div className="flex items-center gap-1 pt-1">
         <div className="flex-1 text-center text-[11px] font-medium text-indigo-500 tabular-nums">
-          {leftRemain !== null ? `${leftRemain}g` : stageWithRange(leftStage)}
+          {leftRemain !== null ? `${leftRemain}g` : stageRange(leftStage)}
         </div>
         <div className="w-16 shrink-0" />
         <div className="flex-1 text-center text-[11px] font-medium text-amber-500 tabular-nums">
-          {rightRemain !== null ? `${rightRemain}g` : stageWithRange(rightStage)}
+          {rightRemain !== null ? `${rightRemain}g` : stageRange(rightStage)}
         </div>
       </div>
     </div>
   );
 }
 
-/** 4단계 (61~80g) — 상대는 남은 양을 모르니 단계와 그 구간을 같이 보인다 */
-function stageWithRange(stage: SMS2PowderStage) {
+/** 61~80g — 상대는 남은 양을 모르니 그 단계의 g 구간을 보인다 */
+function stageRange(stage: SMS2PowderStage) {
   const { min, max } = powderStageRange(stage);
-  return `${stage}단계 (${min}~${max}g)`;
+  return `${min}~${max}g`;
 }
