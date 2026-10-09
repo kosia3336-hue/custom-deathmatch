@@ -65,8 +65,8 @@ export default function GameLayout({ ctx }: Props) {
     상황. 그걸 가린 채로 걸라고 하면 감으로 거는 수밖에 없다. 실제로 '베팅창이
     안 닫혀서 상대 상황을 모르고 베팅했다' 는 신고가 들어왔다.
 
-    접으면 판이 그대로 보이고, 아래 띠를 누르면 다시 펼친다. 차례나 라운드가
-    바뀌면 다시 펼친 상태로 돌아간다 — 접어 둔 것을 잊고 넘어가지 않도록.
+    접으면 판이 그대로 보이고, 조작 칸의 베팅 버튼을 누르면 다시 펼친다. 차례나
+    라운드가 바뀌면 다시 펼친 상태로 돌아간다 — 접어 둔 것을 잊고 넘어가지 않도록.
   */
   const betKey = `${gameData?.round}-${gameData?.phase}`;
   const [collapse, setCollapse] = useState({ key: betKey, on: false });
@@ -95,12 +95,34 @@ export default function GameLayout({ ctx }: Props) {
       />
     ) : undefined;
 
+  /*
+    모바일 베팅은 흑과백2처럼 조작 칸의 버튼으로 연다.
+
+    예전에는 베팅판을 접으면 '베팅하기 ↑' 띠가 화면 맨 아래에 겹쳐 떴다. 흐름
+    밖에 떠 있으니 그 아래 놓인 메모 열기 버튼을 가렸다. 버튼을 조작 칸에 두면
+    판과 메모 사이에 제자리를 차지해 아무것도 가리지 않는다.
+  */
+  const betButton =
+    !desktop && betTurn ? (
+      <button
+        type="button"
+        onClick={() => setBetCollapsed(false)}
+        className={
+          dalmaji
+            ? 'skin-dalmaji-btn skin-dalmaji-btn--gold w-full py-3'
+            : 'w-full rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg hover:bg-amber-700'
+        }
+      >
+        {isBetFirst ? '선 베팅하기 →' : '후 베팅하기 →'}
+      </button>
+    ) : undefined;
+
   return (
     <>
       <GameReferenceFrame
         autoAboveStage
         reference={<SunMoonStarReference ctx={ctx} />}
-        controls={powderInput && <div className={styles.powder}>{powderInput}</div>}
+        controls={powderInput ? <div className={styles.powder}>{powderInput}</div> : betButton}
         className={`gap-1 p-1.5 py-0.5 sm:p-1.5 sm:py-0.5 ${styles.frame}`}
         /*
           칩과 단계는 늘 보이게 둔다. 칩을 걸어 겨루는 판이라 양쪽 칩 수는
@@ -200,17 +222,6 @@ export default function GameLayout({ ctx }: Props) {
         </>
       )}
 
-      {/* 접어 둔 동안 — 판을 가리지 않는 한 줄. 누르면 다시 펼친다. */}
-      {!desktop && betTurn && betCollapsed && (
-        <button
-          type="button"
-          onClick={() => setBetCollapsed(false)}
-          className="bg-cdm-primary fixed inset-x-0 bottom-0 z-(--cdm-z-modal) px-4 py-3 text-sm font-bold text-white shadow-2xl"
-          style={{ paddingBottom: 'calc(0.75rem + var(--cdm-safe-bottom, 0px))' }}
-        >
-          베팅하기 ↑
-        </button>
-      )}
     </>
   );
 }

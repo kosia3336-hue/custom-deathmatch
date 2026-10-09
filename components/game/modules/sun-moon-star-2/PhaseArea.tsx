@@ -78,24 +78,17 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   if (!isSpectator && myPlayer && isBet && myTurnInBet) {
     const lastRecord = gameData.history.at(-1) ?? null;
     if (hideBetInput) {
-      /* 모바일: BetInput은 bottom-sheet로 분리 → 여기선 배너+대기만 */
+      /*
+        모바일: 베팅판은 조작 칸의 베팅 버튼으로 여는 시트에 있다 → 여기선 배너만.
+        대기 카드는 내 차례에 '(내 닉네임)이 베팅 중...' 으로 떠 남 일처럼 읽혔고,
+        세로 자리만 차지했다.
+      */
       return (
-        <div className="flex flex-col gap-2">
-          <PowderStageDeltaBanner
-            players={gameData.players}
-            lastRecord={lastRecord}
-            mySide={mySide}
-          />
-          <WaitingCard
-            text={buildWaitingText({
-              phase,
-              isSpectator,
-              firstPlayer,
-              secondPlayer,
-              mySubmittedPowder,
-            })}
-          />
-        </div>
+        <PowderStageDeltaBanner
+          players={gameData.players}
+          lastRecord={lastRecord}
+          mySide={mySide}
+        />
       );
     }
     return (
