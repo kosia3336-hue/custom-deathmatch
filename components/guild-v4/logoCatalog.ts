@@ -53,8 +53,19 @@ export const DEV_GUILD_LOGOS: DevGuildLogo[] = [
   { id: 'dagger', name: '단검' },
 ];
 
+/** 화면 표시용 로고 주소. 320px WebP (원본 PNG 는 1024px·약 2MB 였다). */
 export function devGuildLogoSrc(id: string): string {
-  return `/guild/logos/${id}.png?v=4`;
+  return `/guild/logos/${id}.webp`;
+}
+
+/**
+ * 저장된 마크 주소(DB 는 `/guild/logos/{id}.png`)를 화면에 그릴 주소로 바꾼다.
+ * 카탈로그 로고면 WebP 로, 그 밖의 주소(스토리지 업로드 등)는 그대로.
+ */
+export function guildMarkDisplaySrc(url: string): string {
+  const id = catalogLogoIdFromUrl(url);
+  if (id && /^\/guild\/logos\//.test(url)) return devGuildLogoSrc(id);
+  return url;
 }
 
 /** 상점 카탈로그 URL만. 예전 버킷 업로드는 인정하지 않는다. */

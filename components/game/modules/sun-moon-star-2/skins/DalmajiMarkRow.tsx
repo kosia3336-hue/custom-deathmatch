@@ -65,15 +65,15 @@ function DalmajiMarkCard({
       ].join(' ')}
       aria-label={`${labels[mark]}, 우선순위 ${MARK_PRIORITY[mark]}, 내 누적 ${total}g`}
     >
-      {lit && (
-        <span className="skin-dalmaji-mark-halo" aria-hidden>
-          <span className="skin-dalmaji-mark-halo-bloom" />
-          <span className="skin-dalmaji-mark-halo-ring" />
-        </span>
-      )}
       <span className="skin-dalmaji-mark-priority">#{MARK_PRIORITY[mark]}</span>
       {lit && <span className="skin-dalmaji-mark-lit-tag">점등</span>}
       <div className={`skin-dalmaji-mark-glyph ${size === 'md' ? 'h-16 w-16' : 'h-12 w-12'}`}>
+        {lit && (
+          <span className="skin-dalmaji-mark-halo" aria-hidden>
+            <span className="skin-dalmaji-mark-halo-bloom" />
+            <span className="skin-dalmaji-mark-halo-ring" />
+          </span>
+        )}
         <CelestialGlyph mark={mark} />
       </div>
       <span className="skin-dalmaji-mark-label">{labels[mark]}</span>

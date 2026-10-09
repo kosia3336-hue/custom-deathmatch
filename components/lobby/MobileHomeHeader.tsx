@@ -218,7 +218,7 @@ export default function MobileHomeHeader({ onCreateRoom }: Props) {
         >
           {/* 티어는 옆 글자가 말하므로 엠블럼은 꾸밈으로 둔다 */}
           <Image
-            src={`/rank/tier-${tier}.png`}
+            src={`/rank/tier-${tier}.webp`}
             alt=""
             width={36}
             height={36}

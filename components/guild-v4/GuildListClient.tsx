@@ -23,6 +23,7 @@ import {
   type DevGuildRankPeriod,
 } from './rankScore';
 import { useGuildDevStore } from './store';
+import { guildMarkDisplaySrc } from './logoCatalog';
 
 const RANK_TABS = [
   { id: 'weekly', label: '주간' },
@@ -216,7 +217,7 @@ function GuildListCrest({
       <div className="guild-list-crest-metal">
         <div className="guild-list-crest-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={`${name} 길드`} />
+          <img src={guildMarkDisplaySrc(src)} alt={`${name} 길드`} />
         </div>
       </div>
     </div>

@@ -227,8 +227,67 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
         ))}
       </svg>
 
-      <svg className="skin-dalmaji-sky" viewBox="0 0 960 540" preserveAspectRatio="xMidYMax slice">
+      {/*
+        해·달은 배경 그림과 따로 그린다.
+
+        배경 그림은 가로로 긴 화면에 맞춰 그려서(960×540) 화면 비율에 따라 양옆이
+        잘린다. 해·달이 그 안에 있으면 세로 화면에서 화면 밖으로 밀려나고, 둘레의
+        빛은 배경색 쪽에 '화면의 몇 %' 로 따로 칠해 두어 빈 하늘에 빛만 남았다.
+        PC 에서도 화면 비율만큼 빛과 원판이 비껴 보였다.
+
+        그래서 원판과 빛을 한 그림에 넣어 늘 같이 움직이게 하고, 자리는 CSS 가
+        배경 그림과 같은 계산으로 잡는다 — 가로 화면에서는 예전 자리 그대로,
+        세로 화면에서는 화면 안쪽으로 당기고 크기를 줄인다.
+        (값: app/globals.css 의 .skin-dalmaji-orb)
+      */}
+      <svg className="skin-dalmaji-orb skin-dalmaji-orb--sun" viewBox="-132 -180 560 560">
         <defs>
+          <radialGradient id={`${uid}-sun-glow`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(255, 180, 120, 0.45)" />
+            <stop offset="55%" stopColor="rgba(255, 180, 120, 0)" />
+          </radialGradient>
+          <radialGradient id={`${uid}-sun-body`} cx="32%" cy="28%" r="72%">
+            <stop offset="0%" stopColor="#fff0c8" />
+            <stop offset="28%" stopColor="#ff6a2a" />
+            <stop offset="70%" stopColor="#d02418" />
+            <stop offset="100%" stopColor="#9a140c" />
+          </radialGradient>
+        </defs>
+        <circle cx="148" cy="100" r="280" fill={`url(#${uid}-sun-glow)`} />
+        <circle
+          cx="148"
+          cy="100"
+          r="52"
+          fill="none"
+          stroke="rgba(255, 210, 140, 0.28)"
+          strokeWidth="8"
+        />
+        <circle cx="148" cy="100" r="44" fill={`url(#${uid}-sun-body)`} />
+        <circle
+          cx="148"
+          cy="100"
+          r="42.4"
+          fill="none"
+          stroke="rgba(255, 230, 170, 0.75)"
+          strokeWidth="1.8"
+        />
+        <circle
+          cx="148"
+          cy="100"
+          r="38"
+          fill="none"
+          stroke="rgba(255, 180, 90, 0.35)"
+          strokeWidth="1"
+        />
+        <circle cx="136" cy="88" r="9" fill="rgba(255, 244, 210, 0.5)" />
+      </svg>
+
+      <svg className="skin-dalmaji-orb skin-dalmaji-orb--moon" viewBox="480 -198 600 600">
+        <defs>
+          <radialGradient id={`${uid}-moon-glow`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(255, 232, 186, 0.5)" />
+            <stop offset="58%" stopColor="rgba(255, 232, 186, 0)" />
+          </radialGradient>
           <radialGradient id={`${uid}-moon-atm`} cx="50%" cy="50%" r="50%">
             <stop offset="70%" stopColor="transparent" />
             <stop offset="86%" stopColor="rgba(255, 228, 160, 0.48)" />
@@ -249,12 +308,69 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
             <stop offset="0%" stopColor="rgba(255, 252, 244, 0.88)" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
-          <radialGradient id={`${uid}-sun-body`} cx="32%" cy="28%" r="72%">
-            <stop offset="0%" stopColor="#fff0c8" />
-            <stop offset="28%" stopColor="#ff6a2a" />
-            <stop offset="70%" stopColor="#d02418" />
-            <stop offset="100%" stopColor="#9a140c" />
-          </radialGradient>
+          <filter id={`${uid}-mottle`} x="-12%" y="-12%" width="124%" height="124%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.034"
+              numOctaves="4"
+              seed="11"
+              result="t"
+            />
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.4 0"
+            />
+          </filter>
+          <clipPath id={`${uid}-moon-clip`}>
+            <circle cx="780" cy="102" r="70" />
+          </clipPath>
+        </defs>
+        <circle cx="780" cy="102" r="300" fill={`url(#${uid}-moon-glow)`} />
+        <circle cx="780" cy="102" r="108" fill={`url(#${uid}-moon-atm)`} />
+        <circle
+          cx="780"
+          cy="102"
+          r="86"
+          fill="none"
+          stroke="rgba(255, 230, 170, 0.18)"
+          strokeWidth="10"
+        />
+        <g clipPath={`url(#${uid}-moon-clip)`}>
+          <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-body)`} />
+          {!lowSpec && (
+            <rect
+              x="710"
+              y="32"
+              width="140"
+              height="140"
+              filter={`url(#${uid}-mottle)`}
+              opacity="0.22"
+              style={{ mixBlendMode: 'multiply' }}
+            />
+          )}
+          <g opacity="0.26" style={{ mixBlendMode: 'multiply' }}>
+            <ellipse cx="754" cy="96" rx="28" ry="20" fill="#6e6450" />
+            <ellipse cx="770" cy="80" rx="16" ry="12" fill="#5c5848" />
+            <ellipse cx="798" cy="92" rx="15" ry="11" fill="#6a6050" />
+            <ellipse cx="806" cy="112" rx="15" ry="11" fill="#625848" />
+          </g>
+          <circle cx="810" cy="126" r="5.2" fill="#8a6428" opacity="0.45" />
+          <circle cx="752" cy="118" r="4.2" fill="#8a6428" opacity="0.4" />
+          <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-limb)`} />
+          <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-spec)`} />
+        </g>
+        <circle
+          cx="780"
+          cy="102"
+          r="68.6"
+          fill="none"
+          stroke="rgba(255, 248, 220, 0.7)"
+          strokeWidth="1.7"
+        />
+      </svg>
+
+      <svg className="skin-dalmaji-sky" viewBox="0 0 960 540" preserveAspectRatio="xMidYMax slice">
+        <defs>
           <radialGradient id={`${uid}-lantern`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(255, 210, 90, 0.9)" />
             <stop offset="100%" stopColor="transparent" />
@@ -303,19 +419,6 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
               opacity="0.32"
             />
           </pattern>
-          <filter id={`${uid}-mottle`} x="-12%" y="-12%" width="124%" height="124%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.034"
-              numOctaves="4"
-              seed="11"
-              result="t"
-            />
-            <feColorMatrix
-              type="matrix"
-              values="0 0 0 0 0.55  0 0 0 0 0.48  0 0 0 0 0.28  0 0 0 0.4 0"
-            />
-          </filter>
           <filter id={`${uid}-hanji`} x="-10%" y="-20%" width="120%" height="140%">
             <feTurbulence
               type="fractalNoise"
@@ -329,86 +432,10 @@ export default function DalmajiFieldFx({ sky }: { sky: DalmajiSky }) {
               values="0 0 0 0 0.78  0 0 0 0 0.7  0 0 0 0 0.48  0 0 0 0.16 0"
             />
           </filter>
-          <clipPath id={`${uid}-moon-clip`}>
-            <circle cx="780" cy="102" r="70" />
-          </clipPath>
           <clipPath id={`${uid}-water-clip`}>
             <rect x="0" y="418" width="960" height="122" />
           </clipPath>
         </defs>
-
-        <g className="skin-dalmaji-orb skin-dalmaji-orb--sun">
-          <circle
-            cx="148"
-            cy="100"
-            r="52"
-            fill="none"
-            stroke="rgba(255, 210, 140, 0.28)"
-            strokeWidth="8"
-          />
-          <circle cx="148" cy="100" r="44" fill={`url(#${uid}-sun-body)`} />
-          <circle
-            cx="148"
-            cy="100"
-            r="42.4"
-            fill="none"
-            stroke="rgba(255, 230, 170, 0.75)"
-            strokeWidth="1.8"
-          />
-          <circle
-            cx="148"
-            cy="100"
-            r="38"
-            fill="none"
-            stroke="rgba(255, 180, 90, 0.35)"
-            strokeWidth="1"
-          />
-          <circle cx="136" cy="88" r="9" fill="rgba(255, 244, 210, 0.5)" />
-        </g>
-
-        <g className="skin-dalmaji-orb skin-dalmaji-orb--moon">
-          <circle cx="780" cy="102" r="108" fill={`url(#${uid}-moon-atm)`} />
-          <circle
-            cx="780"
-            cy="102"
-            r="86"
-            fill="none"
-            stroke="rgba(255, 230, 170, 0.18)"
-            strokeWidth="10"
-          />
-          <g clipPath={`url(#${uid}-moon-clip)`}>
-            <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-body)`} />
-            {!lowSpec && (
-              <rect
-                x="710"
-                y="32"
-                width="140"
-                height="140"
-                filter={`url(#${uid}-mottle)`}
-                opacity="0.22"
-                style={{ mixBlendMode: 'multiply' }}
-              />
-            )}
-            <g opacity="0.26" style={{ mixBlendMode: 'multiply' }}>
-              <ellipse cx="754" cy="96" rx="28" ry="20" fill="#6e6450" />
-              <ellipse cx="770" cy="80" rx="16" ry="12" fill="#5c5848" />
-              <ellipse cx="798" cy="92" rx="15" ry="11" fill="#6a6050" />
-              <ellipse cx="806" cy="112" rx="15" ry="11" fill="#625848" />
-            </g>
-            <circle cx="810" cy="126" r="5.2" fill="#8a6428" opacity="0.45" />
-            <circle cx="752" cy="118" r="4.2" fill="#8a6428" opacity="0.4" />
-            <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-limb)`} />
-            <circle cx="780" cy="102" r="70" fill={`url(#${uid}-moon-spec)`} />
-          </g>
-          <circle
-            cx="780"
-            cy="102"
-            r="68.6"
-            fill="none"
-            stroke="rgba(255, 248, 220, 0.7)"
-            strokeWidth="1.7"
-          />
-        </g>
 
         <g className="skin-dalmaji-clouds">
           <path

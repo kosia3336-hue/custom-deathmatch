@@ -605,6 +605,10 @@ export async function finalizeRankedMultiGameEnd(
   const [pa, pb] = humans as [Player & { memberId: string }, Player & { memberId: string }];
   const idA = pa.memberId!;
   const idB = pb.memberId!;
+  if (idA === idB) {
+    console.log('[rank:finalize] skip — same member on both seats');
+    return { ...result, isRanked: true };
+  }
 
   const nonAiRankings = result.rankings.filter((r) => r.playerId !== AI_PLAYER_ID);
   const isDraw = nonAiRankings.length > 1 && nonAiRankings.every((r) => r.rank === 1);

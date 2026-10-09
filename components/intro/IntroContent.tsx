@@ -310,7 +310,7 @@ export default async function IntroContent() {
               <div className="guide-screen">
                 <div className="guide-screen-frame">
                   <Image
-                    src="/brand/intro-gameplay.png"
+                    src="/brand/intro-gameplay.webp"
                     alt="사중력 사목 플레이 화면 — 돌을 놓고 중력을 고르는 1:1 대결"
                     width={649}
                     height={649}

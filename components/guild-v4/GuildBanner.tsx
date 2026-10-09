@@ -4,6 +4,7 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { GuildSummary } from '@/lib/guild/types';
+import { guildMarkDisplaySrc } from './logoCatalog';
 
 const TITLE_MIN_PX = 10;
 
@@ -399,7 +400,7 @@ export function GuildBannerCrest({ src, name }: { src: string; name: string }) {
       <div className="guild-banner-crest-metal">
         <div className="guild-banner-crest-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={`${name} 길드`} />
+          <img src={guildMarkDisplaySrc(src)} alt={`${name} 길드`} />
         </div>
       </div>
     </div>

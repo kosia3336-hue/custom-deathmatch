@@ -132,7 +132,7 @@ export function RankQueueModal({ open, onClose, onMinimize }: Props) {
           <span aria-hidden className="rank-queue-pulse absolute inset-0 rounded-full border-2 border-cdm-primary" />
           <span aria-hidden className="absolute inset-4 rounded-full border border-white/12" />
           <Image
-            src={`/rank/tier-${tier}.png`}
+            src={`/rank/tier-${tier}.webp`}
             alt=""
             width={80}
             height={80}

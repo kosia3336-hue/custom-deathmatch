@@ -18,7 +18,7 @@ export default function IntroRankPanel() {
       {TIERS.map((tier, i) => (
         <li key={tier.id} className={`intro-tier intro-tier--${i}`}>
           <Image
-            src={`/rank/tier-${tier.id}.png`}
+            src={`/rank/tier-${tier.id}.webp`}
             alt=""
             width={128}
             height={128}

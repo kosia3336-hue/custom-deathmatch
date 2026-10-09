@@ -1387,6 +1387,8 @@ export function endGame(
 ) {
   const room = roomStore.get(roomId);
   if (!room) return;
+  // 한 판은 한 번만 끝낸다 — 결과 저장·랭크 정산·보상 지급이 두 번 돌지 않게
+  if (room.status === 'finished') return;
 
   clearTurnExpiry(io, roomId);
 

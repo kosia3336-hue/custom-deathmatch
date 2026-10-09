@@ -11,6 +11,7 @@
  * 기존 길드 화면·RPC 16개는 건드리지 않는다.
  */
 
+import { randomUUID } from 'node:crypto';
 import type { IO, TypedSocket } from './types.js';
 import { GAME_IDS } from '@shared/types/game.js';
 import type { Player } from '@shared/types/room.js';
@@ -93,6 +94,12 @@ class GuildWarRoomManager {
   private io: IO | null = null;
   private initialized = false;
   private state: RtbState = createTable();
+  /**
+   * 테이블을 새로 만들 때마다 바뀌는 실행 id. 세트 번호(setIndex)는 테이블마다
+   * 0 부터 다시 세므로, 이걸 붙이지 않으면 서버 재시작 뒤의 세트가 예전 세트와
+   * 같은 정산 id 가 되어 DB 가 '이미 정산함' 으로 보고 결과를 버린다.
+   */
+  private tableRunId = randomUUID();
   private watchers = new Map<string, Watcher>();
   /** 이번 세트를 친 뒤 다음 세트 시작 직전에 관전으로 내릴 사람. */
   private spectateReserve = new Set<string>();
@@ -157,6 +164,7 @@ class GuildWarRoomManager {
     for (const token of [...this.watchers.keys()]) this.evict(token, reason);
 
     this.state = createTable();
+    this.tableRunId = randomUUID();
     this.watchers.clear();
     this.spectateReserve.clear();
     this.actionRate.clear();
@@ -322,7 +330,7 @@ class GuildWarRoomManager {
     if (this.settling) return;
     this.settling = true;
     try {
-      const setId = `${GUILD_WAR_ROOM_ID}:${this.state.setIndex}`;
+      const setId = `${GUILD_WAR_ROOM_ID}:${this.tableRunId}:${this.state.setIndex}`;
       const entries = Object.entries(deltas).map(([guildId, delta]) => ({ guildId, delta }));
       if (entries.length > 0) await this.persistSettle(setId, entries);
       await this.betweenSets();
