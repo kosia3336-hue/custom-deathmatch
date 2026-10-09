@@ -86,8 +86,9 @@ export function RoomChatBody({ scope, scrollClassName, onSend }: Props) {
         )}
       </div>
       <div className="border-cdm-border flex shrink-0 gap-2 border-t p-3">
+        {/* iOS 는 16px 미만 입력칸에 포커스하면 화면을 확대한다 — 좁은 화면은 16px(text-base) */}
         <input
-          className="rounded-cdm-md border-cdm-border bg-cdm-bg focus:border-cdm-primary placeholder:text-cdm-fg-subtle min-w-0 flex-1 border px-3 py-2 text-sm outline-none"
+          className="rounded-cdm-md border-cdm-border bg-cdm-bg focus:border-cdm-primary placeholder:text-cdm-fg-subtle min-w-0 flex-1 border px-3 py-2 text-base md:text-sm outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}

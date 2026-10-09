@@ -35,9 +35,10 @@ export const LobbyChatInput = forwardRef<HTMLInputElement>((_props, ref) => {
 
   return (
     <div className="flex shrink-0 gap-2 border-t border-cdm-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* iOS 는 16px 미만 입력칸에 포커스하면 화면을 확대한다 — 좁은 화면은 16px(text-base) */}
       <input
         ref={ref}
-        className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"
+        className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-base md:text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
