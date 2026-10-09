@@ -45,12 +45,8 @@ function stepsFromRecord(record: SMS2RoundRecord): SMS2ResolveStep[] {
       firstBet: record.bets[firstSide],
       secondBet: record.bets[secondSide],
     },
-    {
-      type: 'litDecision',
-      litMark: record.litMark,
-      tieBreak: record.tieBreak,
-      totals: record.markTotalsBefore,
-    },
+    /* 양쪽 빛가루 합산(판정 합계·소멸량)은 비공개라 넣지 않는다 — 서버도 게임 중엔 0 으로 가린다 */
+    { type: 'litDecision', litMark: record.litMark, tieBreak: record.tieBreak },
   ];
   for (const side of ['p1', 'p2'] as SMS2Side[]) {
     for (const mark of MARK_IDS) {
@@ -64,7 +60,7 @@ function stepsFromRecord(record: SMS2RoundRecord): SMS2ResolveStep[] {
     }
   }
   steps.push(
-    { type: 'powderBurn', mark: record.litMark, total: record.markTotalsBefore[record.litMark] },
+    { type: 'powderBurn', mark: record.litMark },
     {
       type: 'roundSummary',
       chipAfter: record.chipAfter,

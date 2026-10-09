@@ -7,6 +7,7 @@ import type {
   SMS2MarkId,
   SMS2PlayerPublic,
   SMS2PowderSubmission,
+  SMS2ResolveStep,
   SMS2RoundRecord,
   SMS2SelfPrivate,
   SMS2Side,
@@ -176,8 +177,13 @@ function sanitizeRoundForView(
   return {
     ...r,
     powderSubmission,
-    markTotalsBefore: { ...r.markTotalsBefore },
-    markTotalsAfter: { ...r.markTotalsAfter },
+    /*
+      표식별 합산(양쪽 빛가루를 더한 값)은 게임 중에 0 으로 가린다. 내 기여를 빼면
+      상대 분배가 드러난다 — 룰상 공개는 남은 빛가루의 20g 구간(단계)뿐이다.
+      화면은 이 값을 쓰지 않는다. 끝난 뒤(gameOver)에는 위에서 원본을 돌려준다.
+    */
+    markTotalsBefore: zeroPowder(),
+    markTotalsAfter: zeroPowder(),
     bets: { p1: { ...r.bets.p1 }, p2: { ...r.bets.p2 } },
     chipDelta: { ...r.chipDelta },
     chipAfter: { ...r.chipAfter },
@@ -185,6 +191,19 @@ function sanitizeRoundForView(
     stageAfter: { ...r.stageAfter },
     auto: { ...r.auto },
   };
+}
+
+/** 정산 단계에서 양쪽 빛가루 합산(판정 합계·소멸량)을 뺀다 — sanitizeRoundForView 와 같은 이유 */
+function hideStepTotals(step: SMS2ResolveStep): SMS2ResolveStep {
+  if (step.type === 'litDecision') {
+    const { totals: _totals, ...rest } = step;
+    return rest;
+  }
+  if (step.type === 'powderBurn') {
+    const { total: _total, ...rest } = step;
+    return rest;
+  }
+  return step;
 }
 
 function buildGameDataForViewer(
@@ -220,7 +239,7 @@ function buildGameDataForViewer(
   }
 
   if (s.phase === 'resolve' && s.resolveSteps.length > 0) {
-    data.resolveSteps = [...s.resolveSteps];
+    data.resolveSteps = s.gameOver ? [...s.resolveSteps] : s.resolveSteps.map(hideStepTotals);
   }
 
   if ((s.phase === 'resolve' || s.phase === 'roundEnd') && s.lastRoundRecord) {

@@ -126,9 +126,21 @@ describe('해달별2 전체 정산 표시', () => {
         roundResult: record,
         history: [record],
       };
-      expect(resolveStepsForDisplay(current)).toEqual(result.steps);
+      // 양쪽 빛가루 합산(판정 합계·소멸량)은 비공개라 복원 스텝에도 넣지 않는다
+      const publicSteps = result.steps.map((step) => {
+        if (step.type === 'litDecision') {
+          const { totals: _totals, ...rest } = step;
+          return rest;
+        }
+        if (step.type === 'powderBurn') {
+          const { total: _total, ...rest } = step;
+          return rest;
+        }
+        return step;
+      });
+      expect(resolveStepsForDisplay(current)).toEqual(publicSteps);
       current.roundResult = { ...record, round: 1 };
-      expect(resolveStepsForDisplay(current)).toEqual(result.steps);
+      expect(resolveStepsForDisplay(current)).toEqual(publicSteps);
       current.history = [{ ...record, round: 1 }];
       expect(resolveStepsForDisplay(current)).toBeNull();
     },

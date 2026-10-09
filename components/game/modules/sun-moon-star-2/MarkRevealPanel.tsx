@@ -145,7 +145,7 @@ export default function MarkRevealPanel({
           style={{ animationDelay: `${sms2RevealRowDelay(4)}ms` }}
           className={`${styles.reveal} ${styles.burn} rounded px-2 py-1.5 text-[11px]`}
         >
-          {MARK_STYLES[burn.mark].icon} {MARK_STYLES[burn.mark].label}의 빛가루 {burn.total}g 소멸
+          {MARK_STYLES[burn.mark].icon} {MARK_STYLES[burn.mark].label}의 빛가루 소멸
         </p>
       )}
     </section>

@@ -121,8 +121,12 @@ export type SMS2ResolveStep =
       litMark: SMS2MarkId;
       /** 동률로 우선순위에 의해 결정됐는가 */
       tieBreak: boolean;
-      /** 판정에 사용된 각 표식 합산 (클라이언트 표시용, 게임 중에도 공개) */
-      totals: { sun: number; moon: number; star: number };
+      /**
+       * 판정에 사용된 각 표식 합산(양쪽 빛가루를 더한 값).
+       * 게임 중에는 보내지 않는다 — 내 기여를 빼면 상대가 어디에 몇 g 넣었는지가
+       * 드러난다. 룰상 공개는 '남은 빛가루의 20g 구간' 뿐이다. 끝난 뒤(기록)에만 채운다.
+       */
+      totals?: { sun: number; moon: number; star: number };
     }
   | {
       type: 'payout';
@@ -140,8 +144,8 @@ export type SMS2ResolveStep =
   | {
       type: 'powderBurn';
       mark: SMS2MarkId;
-      /** 소멸된 합산량 */
-      total: number;
+      /** 소멸된 합산량 — totals 와 같은 이유로 게임 중에는 보내지 않는다 */
+      total?: number;
     }
   | {
       type: 'roundSummary';
