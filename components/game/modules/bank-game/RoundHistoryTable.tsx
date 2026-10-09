@@ -25,7 +25,8 @@ export default function RoundHistoryTable({ history, mySide, players, variant = 
     <ul
       className={`bank-history ${variant === 'mobile' ? 'space-y-2 text-[11px]' : 'space-y-1 text-[11px]'}`}
     >
-      {history.map((r) => (
+      {/* 다른 게임 기록과 같이 최신 라운드가 맨 위 */}
+      {[...history].reverse().map((r) => (
         <RoundEntry key={r.round} r={r} mySide={mySide} players={players} variant={variant} />
       ))}
     </ul>

@@ -66,7 +66,8 @@ export function SilperSidePanel({
       {gameData.segmentsHistory.length > 0 && (
         <GameInfoPart title="지난 세그먼트" kind="history">
           <div className="text-cdm-fg-muted space-y-1 text-xs">
-            {gameData.segmentsHistory.map((segment) => (
+            {/* 최신 세그먼트가 맨 위 */}
+            {[...gameData.segmentsHistory].reverse().map((segment) => (
               <div key={segment.rematchIndex} className="tabular-nums">
                 #{segment.rematchIndex} · {segment.rounds.length}R ·{' '}
                 {segment.resolution === 'rematchNeeded'

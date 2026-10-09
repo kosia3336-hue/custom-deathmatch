@@ -13,7 +13,8 @@ export function RoundHistoryTable({
   if (history.length === 0) return null;
   return (
     <div className="space-y-1 text-xs">
-      {history.map((r) => {
+      {/* 다른 게임 기록과 같이 최신 라운드가 맨 위 */}
+      {[...history].reverse().map((r) => {
         const entries = Object.entries(r.players);
         return (
           <div
