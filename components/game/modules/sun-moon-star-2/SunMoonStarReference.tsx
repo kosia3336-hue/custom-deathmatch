@@ -56,7 +56,8 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
         PC 는 점수 칸이 판 위에 붙으므로 트랙까지 넣으면 판이 밀려 넘친다 —
         예전처럼 점수 카드와 트랙을 따로 둔다.
       */}
-      <GameInfoPart title="점수" sizeToContent>
+      {/* 칸 이름은 '현황'. 저장된 PC 배치를 잇도록 id 는 예전 '점수' 를 쓴다. */}
+      <GameInfoPart title="현황" toolId="점수" kind="score" sizeToContent>
         {desktop ? (
           <Scores
             p1={gameData.players.p1}

@@ -35,9 +35,7 @@ export default function DalmajiScorePanel({ p1, p2, firstSide, myId }: Props) {
                   {p.chips}칩
                 </span>
                 <span className="text-right text-[11px] text-[#c9b888]/70">
-                  빛가루 {p.powderStage}단계
-                  <br />
-                  {range.min}~{range.max}g
+                  빛가루 {p.powderStage}단계 ({range.min}~{range.max}g)
                 </span>
               </div>
             </div>

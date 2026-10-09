@@ -1,6 +1,7 @@
 'use client';
 
 import type { SMS2PowderStage } from '@/shared/types/sun-moon-star-2';
+import { powderStageRange } from '@/shared/types/sun-moon-star-2';
 import { POWDER_STAGE_LABELS } from './constants';
 
 /* ════════════════════════════════════════════════════════════
@@ -140,13 +141,19 @@ export default function PowderTrack({
       {/* 하단 힌트 */}
       <div className="flex items-center gap-1 pt-1">
         <div className="flex-1 text-center text-[11px] font-medium text-indigo-500 tabular-nums">
-          {leftRemain !== null ? `${leftRemain}g` : `${leftStage}단계`}
+          {leftRemain !== null ? `${leftRemain}g` : stageWithRange(leftStage)}
         </div>
         <div className="w-16 shrink-0" />
         <div className="flex-1 text-center text-[11px] font-medium text-amber-500 tabular-nums">
-          {rightRemain !== null ? `${rightRemain}g` : `${rightStage}단계`}
+          {rightRemain !== null ? `${rightRemain}g` : stageWithRange(rightStage)}
         </div>
       </div>
     </div>
   );
+}
+
+/** 4단계 (61~80g) — 상대는 남은 양을 모르니 단계와 그 구간을 같이 보인다 */
+function stageWithRange(stage: SMS2PowderStage) {
+  const { min, max } = powderStageRange(stage);
+  return `${stage}단계 (${min}~${max}g)`;
 }
