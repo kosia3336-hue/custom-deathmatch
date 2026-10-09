@@ -182,12 +182,11 @@ export default function GameShell({ children }: Props) {
       <GameHudLeft
         round={round}
         order={order}
-        ranked={isRankedRoom}
         onOpenInfo={() => setShowInfo(true)}
       />,
     );
     return () => setHeaderLeft(null);
-  }, [setHeaderLeft, round, order, isRankedRoom]);
+  }, [setHeaderLeft, round, order]);
 
   // 상단 우측: 메모 · 방 채팅 · 게임 룰 · 무르기 · 설정
   const hasMemo = hud?.memo != null;

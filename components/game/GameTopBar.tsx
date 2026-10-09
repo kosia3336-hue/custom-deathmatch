@@ -90,12 +90,10 @@ export function ElapsedTime({ startedAt }: { startedAt: number | null | undefine
 export function GameHudLeft({
   round,
   order,
-  ranked,
   onOpenInfo,
 }: {
   round?: React.ReactNode;
   order?: React.ReactNode;
-  ranked?: boolean;
   onOpenInfo?: () => void;
 }) {
   const setHeaderGuide = useContext(RoomLayoutContext)?.setHeaderGuide;
@@ -152,11 +150,7 @@ export function GameHudLeft({
         {round != null && (
           <span className="text-cdm-fg text-xs font-bold tabular-nums sm:text-sm">{round}</span>
         )}
-        {ranked && (
-          <span className="rounded-cdm-md bg-cdm-rank text-cdm-fg shrink-0 px-1.5 py-0.5 text-[11px] font-bold tracking-wide uppercase">
-            랭크
-          </span>
-        )}
+        {/* 랭크 여부는 'i'(방 정보)에 있다. 판 위에 늘 띄워 둘 정보가 아니라 뺐다. */}
         {orderLabel && setHeaderGuide && (
           <div
             aria-hidden
