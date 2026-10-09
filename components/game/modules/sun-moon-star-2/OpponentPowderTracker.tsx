@@ -28,7 +28,7 @@ export default function OpponentPowderTracker({
   const roundButton =
     'border-cdm-border text-cdm-fg hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm disabled:opacity-30';
   return (
-    <div data-powder-note-round={round} className="flex flex-col gap-2">
+    <div data-powder-note-round={round} className="@container flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -92,18 +92,37 @@ function EstimateSlot({
 }) {
   const style = MARK_STYLES[mark];
   const clamp = (v: number) => Math.max(0, Math.min(max, Math.floor(v)));
+  /*
+    빛가루 분배 창(PowderSlot)과 같은 한 줄: [−5][−] [수] [+][+5] — 손에 익은 모양 그대로.
+    PC 메모 창처럼 폭이 좁으면(19rem 미만) 표식 글자를 숨기고 버튼을 좁혀 숫자 칸 자리를 남긴다.
+  */
+  const step =
+    'border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-9 shrink-0 rounded-md border font-bold disabled:opacity-40';
+  const small = `${step} w-8 text-[11px] @max-[19rem]:w-7`;
+  const big = `${step} w-9 text-lg @max-[19rem]:w-8`;
   return (
-    <div className="bg-cdm-bg flex items-center gap-1.5 rounded px-2 py-1">
-      <span className="flex w-10 shrink-0 items-center gap-1">
-        <span className="text-sm">{style.icon}</span>
-        <span className={`text-[11px] font-bold ${style.textSoft}`}>{style.label}</span>
+    <div className="bg-cdm-bg flex items-center gap-1.5 rounded-lg px-2 py-1.5 @max-[19rem]:gap-1 @max-[19rem]:px-1.5">
+      <span className="flex w-12 shrink-0 items-center gap-1 @max-[19rem]:w-auto">
+        <span className="text-base">{style.icon}</span>
+        <span className={`text-xs font-bold ${style.textSoft} @max-[19rem]:hidden`}>
+          {style.label}
+        </span>
       </span>
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value - 5))}
+        disabled={value <= 0}
+        aria-label={`${style.label} 추정 5 줄이기`}
+        className={small}
+      >
+        −5
+      </button>
       <button
         type="button"
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= 0}
         aria-label={`${style.label} 추정 줄이기`}
-        className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
+        className={big}
       >
         −
       </button>
@@ -117,16 +136,25 @@ function EstimateSlot({
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
         aria-label={`${style.label} 상대 추정`}
-        className="border-cdm-border bg-cdm-bg text-cdm-fg focus:ring-cdm-primary h-8 min-w-0 flex-1 rounded border text-center text-sm font-bold tabular-nums focus:ring-2 focus:outline-none"
+        className="border-cdm-border bg-cdm-bg text-cdm-fg focus:ring-cdm-primary h-9 min-w-0 flex-1 rounded-md border text-center text-base font-bold tabular-nums focus:ring-2 focus:outline-none"
       />
       <button
         type="button"
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
         aria-label={`${style.label} 추정 늘리기`}
-        className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 h-8 w-8 shrink-0 rounded border text-sm font-bold disabled:opacity-40"
+        className={big}
       >
         +
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value + 5))}
+        disabled={value >= max}
+        aria-label={`${style.label} 추정 5 늘리기`}
+        className={small}
+      >
+        +5
       </button>
     </div>
   );
