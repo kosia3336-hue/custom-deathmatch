@@ -2,7 +2,7 @@
 
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useGameToolsRegistration } from '@/contexts/GameToolsContext';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import BetInput from './BetInput';
 import FirstBetRevealBanner from './FirstBetRevealBanner';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
@@ -15,11 +15,6 @@ import DalmajiMarkRow from './skins/DalmajiMarkRow';
 import DalmajiPowderPanel from './skins/DalmajiPowderPanel';
 import { SunMoonStarReference } from './SunMoonStarReference';
 import styles from './game-layout.module.css';
-
-/** 베팅 시트 높이(390×750 실측 약 340px) + 여유. 판 정보가 이 위에 다 들어와야 자동으로 연다. */
-const BET_SHEET_HEIGHT_PX = 360;
-
-type SheetChoice = 'auto' | 'open' | 'closed';
 
 /** 점수·기록·추리는 독립 창, 표식은 무대, 빛가루 입력은 하단. 모바일 베팅은 접을 수 있는 시트. */
 
@@ -65,6 +60,7 @@ export default function GameLayout({ ctx }: Props) {
 
   /* ── 빛가루 분배 차례 (제출 뒤에도 취소하려고 다시 열 수 있다) ── */
   const powderTurn = !isSpectator && !!myPlayer && ctx.isPowder;
+  const needsInput = betTurn || (powderTurn && !mySubmittedPowder);
 
   /*
     모바일에서는 빛가루 분배·베팅 입력판을 시트로 띄우고, 접을 수 있게 한다.
@@ -77,49 +73,16 @@ export default function GameLayout({ ctx }: Props) {
     빛가루 분배판은 판 아래에 늘 펼쳐 두었는데, 세 줄 입력판이 화면 세로의
     3분의 1을 차지해 모바일에서 스크롤이 생겼다. 그래서 베팅과 같은 시트로 옮겼다.
 
-    빛가루 분배는 차례가 되면 시트가 펼쳐진다. 베팅은 판 정보(몇 칸 꺼짐, 표식,
-    선 베팅 내역)를 먼저 읽고 정하는 것이라, 시트가 그 정보를 가리면 자동으로
-    펼치지 않는다 — 조작 칸의 베팅 버튼을 눌러 연다. 화면이 커서 시트를 펼쳐도
-    정보가 위에 다 보이면 지금처럼 바로 펼친다.
-
-    접으면 판이 그대로 보이고, 버튼을 누르면 다시 펼친다. 라운드·단계가 바뀌거나
-    빛가루를 제출하면 'auto'(위 규칙대로)로 돌아간다 — 접어 둔 것을 잊지 않도록.
+    입력할 차례가 되면 시트가 펼쳐지고, 접으면 판이 그대로 보인다. 조작 칸의
+    버튼을 누르면 다시 펼친다. 라운드·단계가 바뀌거나 빛가루를 제출하면 기본
+    상태(입력할 게 있으면 펼침)로 돌아간다 — 접어 둔 것을 잊고 넘어가지 않도록.
   */
   const sheetKey = `${gameData?.round}-${gameData?.phase}-${mySubmittedPowder ? 'sent' : ''}`;
-  const [sheet, setSheet] = useState<{ key: string; choice: SheetChoice }>({
-    key: sheetKey,
-    choice: 'auto',
-  });
+  const [sheet, setSheet] = useState({ key: sheetKey, open: needsInput });
   // 라운드·단계·제출이 바뀌면 기본 상태로 (렌더 중 상태 조정 — React 권장 패턴)
-  if (sheet.key !== sheetKey) setSheet({ key: sheetKey, choice: 'auto' });
-
-  /* 베팅 시트를 펼쳐도 판 정보가 그 위에 다 보이는지 — 이 단계에서 잰 값만 믿는다 */
-  const infoRef = useRef<HTMLDivElement>(null);
-  const [infoFit, setInfoFit] = useState<{ key: string; fits: boolean } | null>(null);
-  useEffect(() => {
-    const info = infoRef.current;
-    if (!info || desktop) return;
-    const check = () =>
-      setInfoFit({
-        key: sheetKey,
-        fits: info.getBoundingClientRect().bottom <= window.innerHeight - BET_SHEET_HEIGHT_PX,
-      });
-    const observer = new ResizeObserver(check);
-    observer.observe(info);
-    window.addEventListener('resize', check);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', check);
-    };
-  }, [sheetKey, desktop]);
-
-  const autoOpen = powderTurn
-    ? !mySubmittedPowder
-    : betTurn && infoFit?.key === sheetKey && infoFit.fits;
-  const sheetOpen =
-    sheet.key === sheetKey && (sheet.choice === 'auto' ? autoOpen : sheet.choice === 'open');
-  const setSheetOpen = (open: boolean) =>
-    setSheet({ key: sheetKey, choice: open ? 'open' : 'closed' });
+  if (sheet.key !== sheetKey) setSheet({ key: sheetKey, open: needsInput });
+  const sheetOpen = sheet.key === sheetKey && sheet.open;
+  const setSheetOpen = (open: boolean) => setSheet({ key: sheetKey, open });
   const showSheet = !desktop && sheetOpen && (betTurn || powderTurn);
 
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
@@ -158,9 +121,7 @@ export default function GameLayout({ ctx }: Props) {
           : tone === 'quiet'
             ? 'w-full rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-600'
             : `w-full rounded-xl py-3 text-sm font-bold text-white shadow-lg ${
-                tone === 'bet'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
+                tone === 'bet' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'
               }`
       }
     >
@@ -183,9 +144,7 @@ export default function GameLayout({ ctx }: Props) {
         autoAboveStage
         reference={<SunMoonStarReference ctx={ctx} />}
         controls={
-          desktop
-            ? powderInput && <div className={styles.powder}>{powderInput}</div>
-            : mobileControls
+          desktop ? powderInput && <div className={styles.powder}>{powderInput}</div> : mobileControls
         }
         className={`gap-1 p-1.5 py-0.5 sm:p-1.5 sm:py-0.5 ${styles.frame}`}
         /*
@@ -195,40 +154,37 @@ export default function GameLayout({ ctx }: Props) {
         */
       >
         <div data-game-intrinsic-stage className={styles.board}>
-          {/* 베팅 전에 읽을 판 정보 — 베팅 시트가 이걸 가리면 자동으로 열지 않는다 */}
-          <div ref={infoRef} className="flex w-full min-w-0 flex-col gap-1">
-            {/*
-              베팅 단계의 '몇 칸 꺼짐 / 유지' 는 판 맨 위, 표식 바로 위에 둔다.
-              얼마를 걸지 정할 때 가장 먼저 읽는 값이라서다. 예전에는 표식 아래
-              진행 안내 칸에 있어, 모바일에서는 베팅 버튼과 메모 사이에 끼었다.
-            */}
-            {(isBetFirst || isBetSecond) && (
-              <PowderStageDeltaBanner
-                players={gameData.players}
-                lastRecord={gameData.history.at(-1) ?? null}
-                mySide={ctx.mySide}
-              />
-            )}
-            <div className="w-full min-w-0">
-              <Marks
-                size={desktop ? 'md' : 'sm'}
-                myContribution={gameData.selfPrivate?.myMarkContribution ?? null}
-                pendingPowder={markRowPendingPowder}
-                roundPowder={markRowRoundPowder}
-                litMark={litMark}
-                dimUnlit={isResolve || isRoundEnd}
-              />
-            </div>
-
-            {isBetSecond && revealedBetFirst && (
-              <FirstBetRevealBanner
-                firstBet={revealedBetFirst}
-                firstSide={firstSide}
-                firstNick={firstPlayer.nickname}
-                isMyTurn={!isSpectator && myTurnInBet}
-              />
-            )}
+          {/*
+            베팅 단계의 '몇 칸 꺼짐 / 유지' 는 판 맨 위, 표식 바로 위에 둔다.
+            얼마를 걸지 정할 때 가장 먼저 읽는 값이라서다. 예전에는 표식 아래
+            진행 안내 칸에 있어, 모바일에서는 베팅 버튼과 메모 사이에 끼었다.
+          */}
+          {(isBetFirst || isBetSecond) && (
+            <PowderStageDeltaBanner
+              players={gameData.players}
+              lastRecord={gameData.history.at(-1) ?? null}
+              mySide={ctx.mySide}
+            />
+          )}
+          <div className="w-full min-w-0">
+            <Marks
+              size={desktop ? 'md' : 'sm'}
+              myContribution={gameData.selfPrivate?.myMarkContribution ?? null}
+              pendingPowder={markRowPendingPowder}
+              roundPowder={markRowRoundPowder}
+              litMark={litMark}
+              dimUnlit={isResolve || isRoundEnd}
+            />
           </div>
+
+          {isBetSecond && revealedBetFirst && (
+            <FirstBetRevealBanner
+              firstBet={revealedBetFirst}
+              firstSide={firstSide}
+              firstNick={firstPlayer.nickname}
+              isMyTurn={!isSpectator && myTurnInBet}
+            />
+          )}
 
           {/* 입력 / 대기 / 정산 / 종료 — 자동 스크롤 타깃 */}
           <div className="w-full min-w-0">
@@ -302,6 +258,7 @@ export default function GameLayout({ ctx }: Props) {
           </div>
         </>
       )}
+
     </>
   );
 }
