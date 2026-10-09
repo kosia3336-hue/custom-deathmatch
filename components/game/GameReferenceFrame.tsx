@@ -104,23 +104,36 @@ export function GameReferenceFrame({
             {controls}
             {!desktop && notes.length > 0 && (
               <div className={styles.notes}>
-                {notes.map((tool) => (
-                  <section
-                    key={tool.id}
-                    aria-label={tool.title}
-                    data-game-reference-panel
-                    data-reference-kind={tool.kind}
-                    className={styles.references}
-                  >
-                    <div className={styles.panelHeading}>{tool.title}</div>
+                {notes.map((tool) =>
+                  tool.mobileBare ? (
                     <div
-                      className={styles.content}
-                      data-size-to-content={tool.sizeToContent || undefined}
+                      key={tool.id}
+                      aria-label={tool.title}
+                      data-game-reference-panel
+                      data-reference-kind={tool.kind}
+                      data-reference-bare
+                      className={styles.bare}
                     >
                       {tool.content}
                     </div>
-                  </section>
-                ))}
+                  ) : (
+                    <section
+                      key={tool.id}
+                      aria-label={tool.title}
+                      data-game-reference-panel
+                      data-reference-kind={tool.kind}
+                      className={styles.references}
+                    >
+                      <div className={styles.panelHeading}>{tool.title}</div>
+                      <div
+                        className={styles.content}
+                        data-size-to-content={tool.sizeToContent || undefined}
+                      >
+                        {tool.content}
+                      </div>
+                    </section>
+                  ),
+                )}
               </div>
             )}
           </>

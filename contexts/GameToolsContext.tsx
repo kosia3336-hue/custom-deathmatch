@@ -36,6 +36,8 @@ export interface GameTool {
   sizeToContent?: boolean;
   /** 모바일 위치를 정하는 대신 이미 렌더한 info/controls의 PC 중복만 막는다. */
   mobileSlot?: 'info' | 'controls';
+  /** 모바일 메모 칸에서 제목·테두리 없이 내용만 둔다(예: '메모 열기' 버튼 하나). PC 창은 그대로. */
+  mobileBare?: boolean;
 }
 
 interface Registration {

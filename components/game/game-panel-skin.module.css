@@ -188,6 +188,12 @@
   background: var(--cdm-skin-panel-header) var(--cdm-skin-panel-texture) center / 260px;
   box-shadow: inset 3px 0 var(--cdm-skin-panel-accent);
 }
+/* 내용만 두는 모바일 메모 칸(GameTool.mobileBare) — 스킨 색은 쓰되 판·테두리는 깔지 않는다 */
+.theme :global([data-game-reference-panel][data-reference-bare]) {
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
 .theme :global([data-panel-inset]),
 .theme :global(.game-tool-panel .game-info-part),
 .theme :global([data-game-reference-panel] .game-info-part) {

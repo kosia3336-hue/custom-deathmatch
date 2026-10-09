@@ -52,6 +52,7 @@ export function GameInfoPart({
   sizeToContent = false,
   defaultOrder,
   kind,
+  mobileBare = false,
 }: {
   title?: ReactNode;
   children: ReactNode;
@@ -63,6 +64,8 @@ export function GameInfoPart({
   /** 게임별 기본 패널 순서. 지정하지 않으면 공통 배치 정책을 따른다. */
   defaultOrder?: number;
   kind?: GameTool['kind'];
+  /** 모바일 메모 칸에서 제목·테두리 없이 내용만 — GameTool.mobileBare */
+  mobileBare?: boolean;
 }) {
   const split = useContext(SplitReferenceContext);
   const tone = useContext(ReferenceToneContext);
@@ -80,6 +83,7 @@ export function GameInfoPart({
                 gameReferenceOrder(typeof title === 'string' ? title : '판 정보', kind),
               preferredBodyHeight,
               sizeToContent,
+              mobileBare,
               content: (
                 <SplitReferenceContext.Provider value={false}>
                   <ReferenceToneContext.Provider value={tone}>
@@ -101,6 +105,7 @@ export function GameInfoPart({
       sizeToContent,
       defaultOrder,
       kind,
+      mobileBare,
       inheritedClass,
       className,
       children,
