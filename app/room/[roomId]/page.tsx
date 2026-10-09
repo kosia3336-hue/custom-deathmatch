@@ -37,6 +37,11 @@ import { cn } from '@/lib/utils';
   채팅은 넓은 화면이면 채팅창으로 펴 둔다. 머리를 끌어 가장자리 가까이 놓으면 상·하·좌·우에 붙고
   (본문은 그만큼 비켜남), 그 밖이면 그 자리에 떠 있다(공용 DockablePanel). 좁은 화면은 헤더 채팅 버튼 → 시트.
 */
+/* 대기실 상단 버튼 — 좁은 화면: 테두리 없이 아이콘 위 · 글자 아래 / 넓은 화면: 테두리 + 옆 글자 */
+const WAITING_HEADER_BTN =
+  'flex flex-col items-center gap-0.5 rounded-cdm-md px-1.5 py-1 text-cdm-fg-muted transition-colors hover:bg-cdm-bg-elev-1 md:flex-row md:gap-1.5 md:border md:border-cdm-border md:bg-cdm-bg md:px-3 md:py-1.5';
+const WAITING_HEADER_LABEL = 'text-[11px] leading-none font-medium md:text-sm';
+
 export default function WaitingRoomPage() {
   const params = useParams();
   const router = useRouter();
@@ -219,27 +224,36 @@ export default function WaitingRoomPage() {
   useEffect(() => {
     setHeaderRight(
       <>
+        {/*
+          좁은 화면은 테두리 없이 아이콘 + 아래 글자(방 정보 · 방 설정 · 방 채팅)로 —
+          게임 상단 바와 같은 모양. 넓은 화면은 테두리 버튼에 옆 글자 그대로.
+        */}
         <button
           onClick={() => setShowRoomInfo(true)}
-          className="flex items-center gap-1.5 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-1 transition-colors md:px-3"
+          className={WAITING_HEADER_BTN}
           title="방 정보"
+          aria-label="방 정보"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="hidden text-sm font-medium md:inline">방 정보</span>
+          <span className={WAITING_HEADER_LABEL}>방 정보</span>
         </button>
         {isHost && (
           <button
             onClick={openRoomSettings}
-            className="flex items-center gap-1.5 rounded-cdm-md border border-cdm-border bg-cdm-bg px-2 py-1.5 text-cdm-fg-muted hover:bg-cdm-bg-elev-1 transition-colors md:px-3"
-            title="설정 변경"
+            className={WAITING_HEADER_BTN}
+            title="방 설정"
+            aria-label="방 설정"
           >
             <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="hidden text-sm font-medium md:inline">설정 변경</span>
+            <span className={WAITING_HEADER_LABEL}>
+              <span className="md:hidden">방 설정</span>
+              <span className="hidden md:inline">설정 변경</span>
+            </span>
           </button>
         )}
         {/* 넓은 화면은 본문 옆 채팅창이 있으므로 좁은 화면에서만 */}

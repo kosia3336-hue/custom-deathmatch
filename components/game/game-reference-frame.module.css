@@ -51,6 +51,8 @@
   flex-shrink: 0;
   /* 바로 위 조작 버튼(베팅·분배)과 붙어 보이지 않게 */
   margin-top: 6px;
+  /* 판(표식)·현황 패널 안쪽과 왼쪽 줄을 맞춘다 — 판의 좌우 여백(8px)만큼 */
+  padding-left: 8px;
 }
 .bare :global(.game-info-part) {
   border: 0;

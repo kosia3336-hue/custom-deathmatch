@@ -65,7 +65,7 @@ export default function ChatButton({ scope }: { scope: ChatScope }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="border-cdm-border bg-cdm-bg text-cdm-fg-muted hover:bg-cdm-bg-elev-1 relative flex flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 transition-colors md:px-3"
+        className="text-cdm-fg-muted hover:bg-cdm-bg-elev-1 rounded-cdm-md relative flex flex-col items-center gap-0.5 px-1.5 py-1 transition-colors"
         aria-label="방 채팅"
         title="방 채팅"
       >
