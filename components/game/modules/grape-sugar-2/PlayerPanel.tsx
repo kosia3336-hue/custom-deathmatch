@@ -22,7 +22,7 @@ export function PlayerPanel({
 }) {
   return (
     <div
-      className={`relative z-10 flex min-w-0 flex-wrap items-center gap-2 px-3 py-2 ${
+      className={`relative z-10 flex min-w-0 flex-wrap content-start items-center gap-2 px-3 py-2 ${
         candy
           ? `skin-candy-panel ${isMe ? 'ring-1 ring-white' : ''}`
           : `rounded-lg border ${isMe ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white'}`

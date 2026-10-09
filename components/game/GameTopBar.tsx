@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useContext, useEffect, useState, useRef } from 'react';
+import { RoomLayoutContext } from '@/contexts/RoomLayoutContext';
 import { createCountdownTickGate, formatCountdown } from '@/lib/countdownTick';
 import { playCountdownTickSfx } from '@/lib/audio/synth/general';
 import { serverNow } from '@/lib/serverClock';
@@ -97,8 +98,42 @@ export function GameHudLeft({
   ranked?: boolean;
   onOpenInfo?: () => void;
 }) {
+  const setHeaderGuide = useContext(RoomLayoutContext)?.setHeaderGuide;
+  const textArea = useRef<HTMLDivElement>(null);
+  const orderMeasure = useRef<HTMLSpanElement>(null);
+  const [orderOverflow, setOrderOverflow] = useState(false);
+  const orderLabel = typeof order === 'string' ? formatTurnLabel(order) : null;
+  useEffect(() => {
+    if (!setHeaderGuide || !textArea.current || !orderMeasure.current) return;
+    const area = textArea.current;
+    const measure = orderMeasure.current;
+    const update = () =>
+      setOrderOverflow(measure.getBoundingClientRect().width > area.clientWidth + 1);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(area);
+    observer.observe(measure);
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    window.addEventListener('resize', update);
+    desktop.addEventListener('change', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+      desktop.removeEventListener('change', update);
+    };
+  }, [orderLabel, setHeaderGuide]);
+  useEffect(() => {
+    setHeaderGuide?.(
+      orderOverflow && orderLabel ? (
+        <p data-game-round-guide className="m-0 text-xs leading-relaxed break-words text-slate-200">
+          {orderLabel}
+        </p>
+      ) : null,
+    );
+    return () => setHeaderGuide?.(null);
+  }, [orderOverflow, orderLabel, setHeaderGuide]);
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2">
       {onOpenInfo && (
         <button
           type="button"
@@ -110,7 +145,10 @@ export function GameHudLeft({
           <Icon name="info" />
         </button>
       )}
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      <div
+        ref={textArea}
+        className="relative flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5"
+      >
         {round != null && (
           <span className="text-cdm-fg text-xs font-bold tabular-nums sm:text-sm">{round}</span>
         )}
@@ -119,12 +157,25 @@ export function GameHudLeft({
             랭크
           </span>
         )}
-        {typeof order === 'string' && (
-          <span
-            className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg max-w-[min(42vw,12rem)] truncate px-1.5 py-0.5 text-[11px] font-bold"
-            title={formatTurnLabel(order)}
+        {orderLabel && setHeaderGuide && (
+          <div
+            aria-hidden
+            className="pointer-events-none invisible absolute inset-x-0 top-0 h-0 overflow-hidden"
           >
-            {formatTurnLabel(order)}
+            <span
+              ref={orderMeasure}
+              className="inline-block w-max px-1.5 py-0.5 text-[11px] leading-relaxed font-bold whitespace-nowrap"
+            >
+              {orderLabel}
+            </span>
+          </div>
+        )}
+        {orderLabel && !(orderOverflow && setHeaderGuide) && (
+          <span
+            className="rounded-cdm-md bg-cdm-ink-border text-cdm-ink-fg max-w-full px-1.5 py-0.5 text-[11px] leading-relaxed font-bold [overflow-wrap:anywhere] whitespace-normal"
+            title={orderLabel}
+          >
+            {orderLabel}
           </span>
         )}
         {order != null && typeof order !== 'string' && order}

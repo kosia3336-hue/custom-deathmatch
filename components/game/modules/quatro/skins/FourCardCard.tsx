@@ -16,7 +16,6 @@ interface FourCardCardProps {
   selected?: boolean;
   dimmed?: boolean;
   onClick?: () => void;
-  badge?: string;
 }
 
 /** 포카드 스킨 전용 트럼프 카드. 숫자·문양은 DOM, 삽화와 뒷면만 래스터 에셋을 쓴다. */
@@ -26,7 +25,6 @@ export default function FourCardCard({
   selected,
   dimmed,
   onClick,
-  badge,
 }: FourCardCardProps) {
   const fit: CSSProperties = {
     height: size === 'sm' ? 'clamp(44px, 7cqh, 48px)' : 'clamp(64px, 10cqh, 72px)',
@@ -74,7 +72,6 @@ export default function FourCardCard({
         <span>{card.num}</span>
         <span>{info.symbol}</span>
       </span>
-      {badge && <span className="skin-four-card-badge">{badge}</span>}
     </>
   );
 

@@ -30,6 +30,8 @@ export interface RoomLayoutContextValue {
   setHeaderRight: (content: ReactNode) => void;
   /** 상단 바 아래에 붙는 얇은 줄. */
   setHeaderBelow: (content: ReactNode) => void;
+  /** 차례 안내가 한 줄에 들어가지 않으면 상단 바 전체 폭의 다음 줄로 표시한다. */
+  setHeaderGuide?: (content: ReactNode) => void;
   setFooter: (content: ReactNode) => void;
   /** true면 sticky 푸터 바를 렌더하지 않음 (모달과 겹침·클릭 가로채기 방지) */
   setFooterHidden: (hidden: boolean) => void;

@@ -19,6 +19,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
   const [headerLeft, setHeaderLeftState] = useState<ReactNode>(null);
   const [headerRight, setHeaderRightState] = useState<ReactNode>(null);
   const [headerBelow, setHeaderBelowState] = useState<ReactNode>(null);
+  const [headerGuide, setHeaderGuideState] = useState<ReactNode>(null);
   const [footer, setFooterState] = useState<ReactNode>(null);
   const [footerHidden, setFooterHiddenState] = useState(false);
   const [hud, setHudState] = useState<GameHud | null>(null);
@@ -39,6 +40,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
   const setHeaderLeft = useCallback((content: ReactNode) => setHeaderLeftState(content), []);
   const setHeaderRight = useCallback((content: ReactNode) => setHeaderRightState(content), []);
   const setHeaderBelow = useCallback((content: ReactNode) => setHeaderBelowState(content), []);
+  const setHeaderGuide = useCallback((content: ReactNode) => setHeaderGuideState(content), []);
   const setFooter = useCallback((content: ReactNode) => setFooterState(content), []);
   const setFooterHidden = useCallback((hidden: boolean) => setFooterHiddenState(hidden), []);
   const setHud = useCallback((v: GameHud | null) => setHudState(v), []);
@@ -50,20 +52,32 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
       setHeaderLeft,
       setHeaderRight,
       setHeaderBelow,
+      setHeaderGuide,
       setFooter,
       setFooterHidden,
       setHud,
       hud,
     }),
-    [setHeaderLeft, setHeaderRight, setHeaderBelow, setFooter, setFooterHidden, setHud, hud],
+    [
+      setHeaderLeft,
+      setHeaderRight,
+      setHeaderBelow,
+      setHeaderGuide,
+      setFooter,
+      setFooterHidden,
+      setHud,
+      hud,
+    ],
   );
 
   return (
     <RoomLayoutContext.Provider value={context}>
-      <div className="flex min-h-screen flex-col bg-cdm-page">
+      <div className="bg-cdm-page flex min-h-screen flex-col">
         {/* 공통 헤더 */}
-        <div className="ink-scope sticky top-0 z-(--cdm-z-sticky) border-b border-cdm-ink-border bg-cdm-ink/95 backdrop-blur">
-          <div className={`mx-auto flex ${headerWidth} items-center justify-between gap-2 px-4 py-3 md:px-6`}>
+        <div className="ink-scope border-cdm-ink-border bg-cdm-ink/95 sticky top-0 z-(--cdm-z-sticky) border-b backdrop-blur">
+          <div
+            className={`mx-auto flex ${headerWidth} items-center justify-between gap-2 px-4 py-3 md:px-6`}
+          >
             <div className="min-w-0 flex-1">
               {/*
                 게임 화면은 이 자리를 라운드·차례·타이머로 바꿔 쓴다. 방 제목과
@@ -73,13 +87,13 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
               {headerLeft ??
                 (room ? (
                   <>
-                    <h1 className="flex min-w-0 items-center gap-1.5 text-base font-bold text-cdm-fg md:text-lg">
+                    <h1 className="text-cdm-fg flex min-w-0 items-center gap-1.5 text-base font-bold md:text-lg">
                       {room.isRanked && <RankedRoomBadge />}
                       <span className="min-w-0 truncate">
                         {room.isRanked ? rankedRoomMatchup(room, myId) : room.title}
                       </span>
                     </h1>
-                    <p className="text-xs text-cdm-fg-muted md:text-sm">
+                    <p className="text-cdm-fg-muted text-xs md:text-sm">
                       {room.gameName}
                       {' · '}
                       {PLAY_MODE_LABEL[room.playMode]}
@@ -87,13 +101,13 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
                   </>
                 ) : (
                   <div className="space-y-1.5">
-                    <div className="h-5 w-40 animate-pulse rounded bg-cdm-bg-elev-2" />
-                    <div className="h-3.5 w-24 animate-pulse rounded bg-cdm-bg-elev-1" />
+                    <div className="bg-cdm-bg-elev-2 h-5 w-40 animate-pulse rounded" />
+                    <div className="bg-cdm-bg-elev-1 h-3.5 w-24 animate-pulse rounded" />
                   </div>
                 ))}
             </div>
             <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-              <span className="hidden md:flex items-center">
+              <span className="hidden items-center md:flex">
                 <RankQueueDesktopChip />
               </span>
               {headerRight}
@@ -104,7 +118,12 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
             라운드 진행 현황. 상단 바에 붙여 한 덩어리로 읽히게 한다 —
             따로 떼면 무대 높이를 그만큼 먹는다.
           */}
-          {headerBelow && <div className={`mx-auto ${headerWidth} px-4 pb-2 md:px-6`}>{headerBelow}</div>}
+          {(headerGuide || headerBelow) && (
+            <div className={`mx-auto ${headerWidth} space-y-1 px-4 pb-2 md:px-6`}>
+              {headerGuide}
+              {headerBelow}
+            </div>
+          )}
         </div>
 
         {/* 페이지 콘텐츠 */}
@@ -112,7 +131,7 @@ export default function RoomLayout({ children }: { children: ReactNode }) {
 
         {/* 공통 푸터 */}
         {footer && !footerHidden && (
-          <div className="sticky bottom-0 z-(--cdm-z-sticky) border-t border-cdm-border bg-cdm-bg/90 px-4 py-3 backdrop-blur md:px-6">
+          <div className="border-cdm-border bg-cdm-bg/90 sticky bottom-0 z-(--cdm-z-sticky) border-t px-4 py-3 backdrop-blur md:px-6">
             <div className="mx-auto flex w-full max-w-2xl items-center gap-2 md:gap-3">
               {footer}
             </div>

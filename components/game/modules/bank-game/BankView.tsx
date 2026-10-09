@@ -96,10 +96,6 @@ function BankView(props: GameModuleViewProps<BankGameData>) {
           60%  { transform: scale(1.02); opacity: 1; }
           100% { transform: scale(1.0); opacity: 1; }
         }
-        @keyframes bankSlideUp {
-          from { transform: translateY(100%); }
-          to   { transform: translateY(0); }
-        }
         @keyframes bankAmountReveal {
           0%   { transform: scale(0.6); opacity: 0; }
           70%  { transform: scale(1.08); opacity: 1; }

@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
+import styles from './layout.module.css';
 import {
   TL_PUZZLE_COUNT,
   TL_WRONG_LOCK_MS,
@@ -119,6 +120,7 @@ function TransletterView({
 
   return (
     <GameReferenceFrame
+      className={`${styles.frame} py-1.5 sm:py-1.5`}
       reference={
         <>
           <GameInfoPart title="점수" kind="score" sizeToContent>
@@ -145,7 +147,7 @@ function TransletterView({
         </>
       }
     >
-      <div data-game-intrinsic-stage className="flex w-full max-w-lg flex-col justify-center gap-2">
+      <div data-game-intrinsic-stage className="flex w-full max-w-lg flex-col gap-4 self-start">
         {gameData.puzzles.map((pz, i) => {
           const solved = gameData.mySolved[i];
           const locked = now < lockedUntil[i];
@@ -153,7 +155,7 @@ function TransletterView({
             <div
               key={i}
               className={cn(
-                'rounded-cdm-lg border p-2.5 transition-colors',
+                'rounded-cdm-lg border px-3 py-2 transition-colors',
                 solved ? 'border-cdm-success bg-cdm-success/10' : 'border-cdm-border bg-cdm-bg',
               )}
             >

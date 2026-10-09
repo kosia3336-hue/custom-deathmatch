@@ -28,6 +28,14 @@
   min-width: 0;
   overflow: hidden;
 }
+/* 넓은 PC에서도 점수·판·상하 창을 같은 최대 폭에 맞춘다. */
+.workspace > .game,
+.workspace > .top,
+.workspace > .bottom {
+  width: 100%;
+  max-width: 1024px;
+  justify-self: center;
+}
 .mobile {
   position: relative;
   min-height: 0;
@@ -72,6 +80,8 @@
 }
 .top,
 .bottom {
+  /* 끝까지 스크롤한 창에서도 전체 화면 스크롤로 하단 조작부에 접근한다. */
+  overscroll-behavior: auto;
   --region-limit: min(23dvh, 190px);
   max-height: var(--region-limit);
   flex-direction: row;

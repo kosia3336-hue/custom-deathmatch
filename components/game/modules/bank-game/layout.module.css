@@ -1,0 +1,14 @@
+.frame {
+  --game-stage-min-height: 1px;
+}
+
+/* 입력·대기·정산 내용만큼 높이를 확보하고 빈 게임판을 늘리지 않는다. */
+.frame [data-game-stage-row] {
+  flex: 0 0 auto;
+}
+
+.frame [data-game-stage-row] > div {
+  flex: 0 0 auto;
+  width: 100%;
+  container-type: inline-size;
+}

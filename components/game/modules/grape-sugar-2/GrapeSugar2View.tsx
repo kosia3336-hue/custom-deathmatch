@@ -4,6 +4,7 @@ import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import GameLoading from '@/components/game/GameLoading';
 import { GameReferenceFrame } from '@/components/game/GameReferenceFrame';
 import { useGameHud } from '@/hooks/useGameHud';
+import { cn } from '@/lib/utils';
 import { submitStage } from '@/lib/gameSeat';
 import type { SkinTheme } from '@/lib/skins/registry';
 import type { GS2CardId, GS2GameData, GS2Side } from '@/shared/types/grape-sugar-2';
@@ -178,7 +179,7 @@ function GrapeSugar2View({
         />
       )}
       <GameReferenceFrame
-        className={isCandy ? 'skin-candy-field' : undefined}
+        className={cn(isCandy && 'skin-candy-field', isInput && styles.inputFrame)}
         reference={
           <GameInfoStack>
             <GameInfoPart title="점수" sizeToContent>
@@ -220,7 +221,12 @@ function GrapeSugar2View({
             ))}
           </div>
         )}
-        <div className="flex h-full w-full max-w-2xl flex-col justify-center gap-2 overflow-hidden">
+        <div
+          className={cn(
+            'flex h-full w-full max-w-2xl flex-col gap-2 overflow-hidden',
+            isInput ? 'justify-start' : 'justify-center',
+          )}
+        >
           {isInput ? (
             myPlayer && !isSpectator ? (
               <div className={styles.input} data-game-intrinsic-stage>

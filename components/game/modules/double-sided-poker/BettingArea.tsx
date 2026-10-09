@@ -139,6 +139,7 @@ export function BettingArea({
           onCancel={fold}
           cancelLabel="다이"
           cancelClassName="ip-betting-fold"
+          cancelPosition="right"
           confirmLabel={(value) => `${value * multiplier}칩 베팅`}
           onConfirm={(value) =>
             sendAction(

@@ -11,6 +11,7 @@ export function PokerAmountInput({
   maximumLabel = '최대',
   cancelLabel = '취소',
   cancelClassName,
+  cancelPosition = 'left',
   onCancel,
   onConfirm,
   onPreview,
@@ -24,6 +25,7 @@ export function PokerAmountInput({
   maximumLabel?: string;
   cancelLabel?: string;
   cancelClassName?: string;
+  cancelPosition?: 'left' | 'right';
   onCancel: () => void;
   onConfirm: (amount: number) => void;
   onPreview?: (amount: number) => void;
@@ -40,6 +42,11 @@ export function PokerAmountInput({
     setDraft(String(next));
     onPreview?.(next);
   };
+  const cancelButton = (
+    <button type="button" className={cancelClassName} onClick={onCancel}>
+      {cancelLabel}
+    </button>
+  );
   return (
     <div className="ip-raise-input">
       <div className="ip-raise-top">
@@ -104,10 +111,8 @@ export function PokerAmountInput({
           {maximumLabel} {max}
         </span>
       </div>
-      <div className="ip-raise-confirm">
-        <button type="button" className={cancelClassName} onClick={onCancel}>
-          {cancelLabel}
-        </button>
+      <div className="ip-raise-confirm" data-cancel-position={cancelPosition}>
+        {cancelPosition === 'left' && cancelButton}
         <button
           type="button"
           className="ip-betting-primary"
@@ -116,6 +121,7 @@ export function PokerAmountInput({
         >
           {valid ? confirmLabel(parsed) : '금액 확인'}
         </button>
+        {cancelPosition === 'right' && cancelButton}
       </div>
     </div>
   );

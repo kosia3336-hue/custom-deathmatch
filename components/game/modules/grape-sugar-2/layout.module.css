@@ -11,3 +11,11 @@
   flex-direction: column;
   gap: 8px;
 }
+.inputFrame {
+  --game-stage-min-height: 240px;
+}
+@media (min-width: 1024px) {
+  .input {
+    max-width: 480px;
+  }
+}

@@ -191,6 +191,9 @@
   grid-template-columns: 1fr 2fr;
   gap: 8px;
 }
+.bettingPanel :global(.ip-raise-confirm[data-cancel-position='right']) {
+  grid-template-columns: 2fr 1fr;
+}
 @media (min-width: 640px) {
   .bettingPanel :global(.ip-betting-action) {
     min-height: 68px;

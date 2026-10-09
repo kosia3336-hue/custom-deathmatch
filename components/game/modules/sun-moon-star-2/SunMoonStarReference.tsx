@@ -3,7 +3,7 @@
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
-import OpponentPowderTracker from './OpponentPowderTracker';
+import OpponentPowderMemo from './OpponentPowderMemo';
 import PowderTrack from './PowderTrack';
 import RoundHistoryTable from './RoundHistoryTable';
 import ScorePanel from './ScorePanel';
@@ -40,7 +40,8 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
       </GameInfoPart>
       {showTracker && opponent && (
         <GameInfoPart title="상대 빛가루 추리" sizeToContent>
-          <OpponentPowderTracker
+          <OpponentPowderMemo
+            dalmaji={dalmaji}
             round={powderNotes.round}
             latestRound={powderNotes.latest}
             estimate={powderNotes.estimate}

@@ -100,7 +100,8 @@ function SeedSeotdaView({
 
   return (
     <GameReferenceFrame
-      autoAboveStage
+      className={styles.frame}
+      autoAboveStage="mobile"
       controls={
         <div className="flex flex-col gap-2">
           <SeedChoiceArea key={`seed-${actionKey}`} gameData={gameData} myId={myId} />
@@ -131,7 +132,10 @@ function SeedSeotdaView({
         </>
       }
     >
-      <main className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid h-full w-full grid-cols-3 content-center items-center justify-center gap-1 overflow-hidden border p-1 sm:gap-3 sm:p-4 lg:grid-cols-1 lg:gap-1.5 lg:p-2">
+      <main
+        data-game-intrinsic-stage
+        className="border-cdm-border bg-cdm-bg-elev-1 rounded-cdm-xl grid w-full grid-cols-3 content-center items-center justify-center gap-1 overflow-hidden border p-1 sm:gap-3 sm:p-4 lg:grid-cols-1 lg:gap-1.5 lg:p-2"
+      >
         <div className="order-1 text-center">
           <p className="text-cdm-fg-subtle text-[11px] leading-3 font-bold tracking-[0.14em]">
             SEED

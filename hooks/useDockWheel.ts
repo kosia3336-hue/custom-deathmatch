@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from 'react';
 import type { DockRegions } from './useDockTargets';
+import { shouldRevealDock } from '@/lib/dockWheel';
 
 export function useDockWheel(regions: RefObject<DockRegions>, desktop: boolean) {
   useEffect(() => {
@@ -23,6 +24,25 @@ export function useDockWheel(regions: RefObject<DockRegions>, desktop: boolean) 
           if (canScrollY(current)) return;
           if (current === region) break;
           current = current.parentElement;
+        }
+        const viewport = region.closest<HTMLElement>('[data-game-scroll-viewport]');
+        const viewportBounds = viewport?.getBoundingClientRect();
+        if (
+          viewport &&
+          viewportBounds &&
+          shouldRevealDock(event.deltaY, region.getBoundingClientRect(), {
+            top: viewportBounds.top,
+            bottom: viewportBounds.bottom,
+            scrollTop: viewport.scrollTop,
+            maxScroll: viewport.scrollHeight - viewport.clientHeight,
+          })
+        ) {
+          const scale =
+            event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1;
+          const previous = viewport.scrollTop;
+          viewport.scrollTop += event.deltaY * scale;
+          if (viewport.scrollTop !== previous) event.preventDefault();
+          return;
         }
         if (region.scrollWidth <= region.clientWidth + 1) return;
         const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? region.clientWidth : 1;

@@ -1,4 +1,5 @@
 'use client';
+import { GameMemoDisclosure } from '@/components/game/GameMemoDisclosure';
 import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import OpponentInventoryTracker from './OpponentInventoryTracker';
 import RoundHistoryTable from './RoundHistoryTable';
@@ -32,7 +33,13 @@ export function BankReference({ ctx }: { ctx: BankContextValue }) {
       </GameInfoPart>
       {showOpponentTracker && (
         <GameInfoPart title="나의 메모 - 상대 잔여 추리" toolId="상대 잔여 추리" sizeToContent>
-          <OpponentInventoryTracker notes={inventoryNotes} />
+          <GameMemoDisclosure
+            title="나의 메모 - 상대 잔여 추리"
+            skin={ctx.skin}
+            summary={<>R{inventoryNotes.round}</>}
+          >
+            <OpponentInventoryTracker notes={inventoryNotes} />
+          </GameMemoDisclosure>
         </GameInfoPart>
       )}
     </GameInfoStack>

@@ -100,7 +100,7 @@ export default function GameLayout({ ctx }: Props) {
         autoAboveStage
         reference={<SunMoonStarReference ctx={ctx} />}
         controls={powderInput && <div className={styles.powder}>{powderInput}</div>}
-        className={`gap-1.5 p-1.5 ${styles.frame}`}
+        className={`gap-1 p-1.5 py-0.5 sm:p-1.5 sm:py-0.5 ${styles.frame}`}
         /*
           칩과 단계는 늘 보이게 둔다. 칩을 걸어 겨루는 판이라 양쪽 칩 수는
           '가끔 확인하는 참고' 가 아니라 매 수마다 읽는 값이다. 메모 안으로

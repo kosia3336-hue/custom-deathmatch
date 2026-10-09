@@ -25,6 +25,8 @@ import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import GameRulesButton from './GameRulesButton';
 import { cn } from '@/lib/utils';
+import { setDockState } from '@/lib/dockPanel';
+import { gameToolDockId } from '@/lib/gameToolsLayout';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
 import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
@@ -100,14 +102,26 @@ export default function GameShell({ children }: Props) {
   const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
+  const isBanPick = room?.gameId === GAME_IDS.BAN_PICK;
+  const toolScope = tools.scope;
+  useEffect(() => {
+    if (isBanPick && tools.desktop) {
+      setDockState(gameToolDockId(toolScope, 'chat'), { mode: 'docked', edge: 'right' });
+    }
+  }, [isBanPick, tools.desktop, toolScope]);
   /* 상단 바(무르기)와 설정 시트가 함께 쓰므로 헤더를 그리기 전에 정해 둔다. */
   const isEventRoom =
     room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
     room?.gameId === GAME_IDS.SUN_MOON_STAR_EVENT ||
     room?.gameId === GAME_IDS.RING_THE_BELL;
-  const showRulesShortcut = !!room && !isEventRoom;
+  const showRulesShortcut = !!room && !isEventRoom && !isRankedRoom && !isBanPick;
   const showUndo =
-    !isSpectator && !!room && !isRankedRoom && !isEventRoom && room.playMode !== 'tutorial';
+    !isSpectator &&
+    !!room &&
+    !isRankedRoom &&
+    !isEventRoom &&
+    !isBanPick &&
+    room.playMode !== 'tutorial';
   const showResign = room?.playMode === 'multi' && !isSpectator && !isEventRoom;
   const gameStateSig = gameState
     ? `${gameState.turnNumber}-${gameState.turnStartedAt ?? ''}-${gameState.message}`
@@ -361,9 +375,9 @@ export default function GameShell({ children }: Props) {
       >
         <SoundSettings className="py-3" />
         <ul className="divide-cdm-border divide-y">
-          {!showRulesShortcut && (
+          {!showRulesShortcut && !isBanPick && (
             <SettingRow
-              label="게임 규칙"
+              label="게임 룰"
               onClick={() => {
                 setShowSettings(false);
                 setShowRules(true);
@@ -448,7 +462,12 @@ export default function GameShell({ children }: Props) {
         </div>
       </Modal>
 
-      <Modal open={!!undoProposal} title="무르기 요청" closable={false} className="max-w-sm">
+      <Modal
+        open={showUndo && !!undoProposal}
+        title="무르기 요청"
+        closable={false}
+        className="max-w-sm"
+      >
         {undoProposal && (
           <>
             <p className="text-cdm-fg-muted mb-6 text-sm">

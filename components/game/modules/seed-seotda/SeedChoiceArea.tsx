@@ -44,7 +44,12 @@ export function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameDat
     카드를 작게 하고 고르는 줄과 단추 줄을 한 칸씩만 쓴다.
   */
   return (
-    <section className="border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 text-center">
+    <section
+      className={cn(
+        'border-cdm-border bg-cdm-bg rounded-cdm-lg border p-2 text-center',
+        styles.controls,
+      )}
+    >
       <p className="text-cdm-fg text-[11px] leading-4 font-black">
         버릴 패를 고르세요. 버리면 시드패와 남은 한 장으로 겨룹니다.
       </p>
@@ -63,7 +68,7 @@ export function SeedChoiceArea({ gameData, myId }: { gameData: SeedSeotdaGameDat
               onClick={() => setDiscardIndex(index as 0 | 1)}
               aria-label={`${index + 1}번째 카드를 버릴 패로 선택`}
             >
-              <SeedSeotdaCard card={card} size="sm" />
+              <SeedSeotdaCard card={card} size="sm" className={styles.choiceCard} />
               <span className="text-cdm-accent mt-0.5 block text-[11px] leading-3 font-black">
                 {discardIndex === index ? '버릴 패' : '선택'}
               </span>

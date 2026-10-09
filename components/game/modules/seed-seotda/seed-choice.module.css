@@ -1,13 +1,56 @@
 .choices {
   display: contents;
 }
+@media (max-width: 1023px) {
+  .frame {
+    --game-stage-min-height: 160px;
+    gap: 5px;
+    padding-block: 6px;
+  }
+  .controls {
+    padding-block: 4px;
+  }
+  .frame [data-game-stage-row],
+  .frame [data-game-stage-row] > div {
+    flex: 0 0 auto;
+  }
+  .frame [data-game-stage-row] > div {
+    width: 100%;
+    container-type: inline-size;
+  }
+}
 @media (min-width: 1024px) {
+  .controls {
+    padding-block: 4px;
+  }
+  .choices {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .choices > :first-child {
+    margin-top: 0;
+  }
+  .choices > :last-child {
+    width: 100%;
+    margin-top: 0;
+  }
+  .choiceCard {
+    width: 1.85rem;
+  }
   .seed.seed {
     height: clamp(50px, calc(100cqh - 280px), 93px);
     width: clamp(32px, calc((100cqh - 280px) * 0.645), 60px);
   }
 }
 @media (max-width: 1023px) and (max-height: 700px) {
+  .frame {
+    /* 양쪽 손패·공용 시드패 크기는 유지하고 남는 상하 공간만 줄인다. */
+    --game-stage-min-height: 120px;
+  }
   .seed.seed {
     width: 48px;
     height: 75px;
@@ -22,5 +65,9 @@
     width: 100%;
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+  .choices > :first-child,
+  .choices > :last-child {
+    margin-top: 0;
   }
 }
