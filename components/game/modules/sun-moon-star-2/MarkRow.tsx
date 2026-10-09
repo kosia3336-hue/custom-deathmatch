@@ -19,6 +19,8 @@ interface Props {
   myContribution: SMS2PowderSubmission | null;
   /** 빛가루 입력 중 실시간 반영 (제출 전 미리보기) */
   pendingPowder: SMS2PowderSubmission | null;
+  /** 이번 라운드 분배량 — 누적 기여와 별도로 표시 */
+  roundPowder: SMS2PowderSubmission | null;
   /** 점등된 표식 (resolve 이후) */
   litMark: SMS2MarkId | null;
   /** 점등이 결정된 이후 비점등 dim 처리 */
@@ -30,6 +32,7 @@ interface Props {
 export default function MarkRow({
   myContribution,
   pendingPowder,
+  roundPowder,
   litMark,
   dimUnlit,
   size = 'sm',
@@ -43,6 +46,7 @@ export default function MarkRow({
           size={size}
           myContribution={myContribution?.[mark] ?? 0}
           pendingPowder={pendingPowder?.[mark] ?? 0}
+          roundPowder={roundPowder?.[mark] ?? null}
           lit={litMark === mark}
           dim={dimUnlit && litMark !== null && litMark !== mark}
         />
@@ -56,6 +60,7 @@ function MarkCell({
   size,
   myContribution,
   pendingPowder,
+  roundPowder,
   lit,
   dim,
 }: {
@@ -63,6 +68,7 @@ function MarkCell({
   size: 'sm' | 'md';
   myContribution: number;
   pendingPowder: number;
+  roundPowder: number | null;
   lit: boolean;
   dim: boolean;
 }) {
@@ -84,7 +90,7 @@ function MarkCell({
   return (
     <div
       className={`relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 transition-all duration-300 ${sizeCls} ${baseCls} ${dimCls}`}
-      aria-label={`${style.label}, 우선순위 ${MARK_PRIORITY[mark]}, 내 누적 ${myCommittedContribution}g`}
+      aria-label={`${style.label}, 우선순위 ${MARK_PRIORITY[mark]}, 내 누적 ${myCommittedContribution}g${roundPowder !== null ? `, 이번 ${roundPowder}g` : ''}`}
     >
       {/* 우선순위 배지 */}
       <span className="absolute top-1 left-1 rounded-full bg-white/70 px-1 py-0 text-[11px] font-bold text-gray-500">
@@ -104,13 +110,12 @@ function MarkCell({
         <span className={`${labelCls} font-bold ${textCls}`}>{style.label}</span>
       </div>
 
-      {/* 내 누적 기여 — 실제 값 있을 때만 */}
-      {myCommittedContribution > 0 && (
-        <div className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${style.chipSelf}`}>
-          내 {myCommittedContribution}g
-          {pendingPowder > 0 && (
-            <span className="ml-0.5 text-[11px] opacity-70">(+{pendingPowder})</span>
-          )}
+      {(myCommittedContribution > 0 || roundPowder !== null) && (
+        <div
+          className={`flex flex-col items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${style.chipSelf}`}
+        >
+          <span>내 누적 {myCommittedContribution}g</span>
+          {roundPowder !== null && <span className="opacity-75">이번 {roundPowder}g</span>}
         </div>
       )}
     </div>

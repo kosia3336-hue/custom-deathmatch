@@ -108,8 +108,3 @@ export const POWDER_STAGE_LABELS: Record<number, string> = {
   4: '61~80',
   5: '81~100',
 };
-
-/** 정산 스텝 간 간격 (ms) */
-export const RESOLVE_STEP_INTERVAL_MS = 1300;
-/** 정산 첫 스텝 표시 지연 (ms) */
-export const RESOLVE_FIRST_DELAY_MS = 400;

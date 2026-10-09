@@ -39,6 +39,7 @@ export default function GameLayout({ ctx }: Props) {
     myTurnInBet,
     revealedBetFirst,
     markRowPendingPowder,
+    markRowRoundPowder,
     litMark,
     dalmaji,
     pendingBet,
@@ -83,7 +84,7 @@ export default function GameLayout({ ctx }: Props) {
     !isSpectator && myPlayer && ctx.isPowder ? (
       <Powder
         powderRemain={gameData.selfPrivate?.powderRemain ?? 0}
-        value={ctx.pendingPowder}
+        value={markRowRoundPowder ?? ctx.pendingPowder}
         submitted={mySubmittedPowder}
         opponentSubmitted={opponent?.submittedPowder ?? false}
         submitting={submitting}
@@ -113,6 +114,7 @@ export default function GameLayout({ ctx }: Props) {
               size={desktop ? 'md' : 'sm'}
               myContribution={gameData.selfPrivate?.myMarkContribution ?? null}
               pendingPowder={markRowPendingPowder}
+              roundPowder={markRowRoundPowder}
               litMark={litMark}
               dimUnlit={isResolve || isRoundEnd}
             />

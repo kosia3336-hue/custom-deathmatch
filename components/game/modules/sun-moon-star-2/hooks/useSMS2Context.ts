@@ -1,4 +1,5 @@
 'use client';
+import { powderDisplayForRound } from '@/lib/sunMoonStarDisplay';
 import { useGameAction } from '@/components/game/GameActionContext';
 import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 
@@ -185,8 +186,10 @@ export function useSMS2Context({
 
   const revealedBetFirst: SMS2ChipBet | null = firstPlayer?.publicBet ?? null;
 
-  const markRowPendingPowder: SMS2PowderSubmission | null =
-    isPowder && myPlayer && !mySubmittedPowder ? pendingPowder : null;
+  const { preview: markRowPendingPowder, submitted: markRowRoundPowder } = powderDisplayForRound(
+    gameData,
+    pendingPowder,
+  );
 
   const showTracker = !isSpectator && !!myPlayer && !!opponent;
 
@@ -240,6 +243,7 @@ export function useSMS2Context({
     litMark,
     revealedBetFirst,
     markRowPendingPowder,
+    markRowRoundPowder,
 
     /* actions */
     handleSubmitPowder,

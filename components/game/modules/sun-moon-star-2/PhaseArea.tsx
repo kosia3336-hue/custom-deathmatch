@@ -1,7 +1,6 @@
 'use client';
 
-import type { SMS2ResolveStep } from '@/shared/types/sun-moon-star-2';
-import { useState } from 'react';
+import { resolveStepsForDisplay } from '@/lib/sunMoonStarDisplay';
 import BetInput from './BetInput';
 import FinalResult from './FinalResult';
 import type { SMS2ContextValue } from './hooks/useSMS2Context';
@@ -50,18 +49,6 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
     myTurnInBet,
   } = ctx;
 
-  /*
-   * resolve → roundEnd 전환 시 resolveSteps가 null이 돼도 패널이 유지되도록 캐싱.
-   * MarkRevealPanel은 round를 기준으로 연출하므로 새 서버 투영이 도착해도 다시 시작하지 않는다.
-   * powder 페이즈(새 라운드)가 오면 새 steps가 들어오며 자연스럽게 덮어쓰기됨.
-   */
-  const [cachedResolveSteps, setCachedResolveSteps] = useState<SMS2ResolveStep[] | null>(null);
-  if (gameData?.resolveSteps && gameData.resolveSteps !== cachedResolveSteps) {
-    // 렌더 중 state 조정(React 공식 패턴). ref 에 렌더 중 대입하던 것을 대체한다 —
-    // effect 로 미루면 steps 가 처음 들어온 프레임에 패널이 빈 채로 그려진다.
-    setCachedResolveSteps(gameData.resolveSteps);
-  }
-
   if (!gameData || !firstSide || !firstPlayer || !secondPlayer) return null;
 
   if (isFinished) {
@@ -78,10 +65,12 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
   if (isResolve || isRoundEnd) {
     return (
       <MarkRevealPanel
-        resolveSteps={cachedResolveSteps}
+        resolveSteps={resolveStepsForDisplay(gameData)}
         round={gameData.round}
         players={gameData.players}
         mySide={mySide}
+        dalmaji={ctx.dalmaji}
+        complete={isRoundEnd}
       />
     );
   }
