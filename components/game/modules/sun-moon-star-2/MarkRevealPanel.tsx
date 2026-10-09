@@ -1,7 +1,7 @@
 'use client';
 
 import type { SMS2PlayerPublic, SMS2ResolveStep, SMS2Side } from '@/shared/types/sun-moon-star-2';
-import { MARK_IDS } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, sms2RevealRowDelay } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
 import styles from './mark-reveal.module.css';
 
@@ -80,7 +80,7 @@ export default function MarkRevealPanel({
               <tr
                 key={mark}
                 data-result-row={mark}
-                style={{ animationDelay: `${400 + index * 1300}ms` }}
+                style={{ animationDelay: `${sms2RevealRowDelay(index)}ms` }}
                 className={`${styles.reveal} ${decision?.litMark === mark ? `${styles.litRow} ${dalmaji ? '' : style.bgSoft}` : ''}`}
               >
                 <th scope="row" className="px-1 py-1.5 font-medium">
@@ -113,7 +113,7 @@ export default function MarkRevealPanel({
           {summary && (
             <tr
               data-result-row="summary"
-              style={{ animationDelay: '4300ms' }}
+              style={{ animationDelay: `${sms2RevealRowDelay(3)}ms` }}
               className={`${styles.reveal} ${styles.summary} border-t`}
             >
               <th scope="row" className="py-2 font-medium">
@@ -142,7 +142,7 @@ export default function MarkRevealPanel({
       {burn && (
         <p
           data-result-row="burn"
-          style={{ animationDelay: '5600ms' }}
+          style={{ animationDelay: `${sms2RevealRowDelay(4)}ms` }}
           className={`${styles.reveal} ${styles.burn} rounded px-2 py-1.5 text-[11px]`}
         >
           {MARK_STYLES[burn.mark].icon} {MARK_STYLES[burn.mark].label}의 빛가루 {burn.total}g 소멸

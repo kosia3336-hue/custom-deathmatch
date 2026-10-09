@@ -32,9 +32,7 @@ import type {
 import {
   FINAL_RESULT_HOLD_MS,
   NEXT_ROUND_AUTO_DELAY_MS,
-  RESOLVE_FINISH_HOLD_MS,
-  RESOLVE_START_DELAY_MS,
-  RESOLVE_STEP_DELAY_MS,
+  RESOLVE_HOLD_MS,
   ROUND_END_HOLD_MS,
   SUDDEN_DEATH_INTRO_MS,
 } from './constants.js';
@@ -617,10 +615,7 @@ function proceedFromBetSecond(io: IO, s: SMS2InternalState) {
 
   void broadcastState(io, s);
 
-  const animMs =
-    RESOLVE_START_DELAY_MS +
-    result.steps.length * RESOLVE_STEP_DELAY_MS +
-    RESOLVE_FINISH_HOLD_MS;
+  const animMs = RESOLVE_HOLD_MS;
   const gen = s.aiGeneration;
   s.resolveTimer = setTimeout(() => {
     if (!gameStates.has(s.roomId) || s.aiGeneration !== gen) return;
