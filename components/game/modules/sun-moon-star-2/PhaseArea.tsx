@@ -166,28 +166,6 @@ export default function PhaseArea({ ctx, hideBetInput = false }: Props) {
 
   const lastRecord = gameData.history.at(-1) ?? null;
 
-  /* 빛가루 제출 후 상대 대기 중 — 다음 라운드 꺼진 칸 미리 표시 */
-  if (isPowder && mySubmittedPowder) {
-    return (
-      <div className="flex flex-col gap-2">
-        <PowderStageDeltaBanner
-          players={gameData.players}
-          lastRecord={lastRecord}
-          mySide={mySide}
-        />
-        <WaitingCard
-          text={buildWaitingText({
-            phase,
-            isSpectator,
-            firstPlayer,
-            secondPlayer,
-            mySubmittedPowder,
-          })}
-        />
-      </div>
-    );
-  }
-
   if (isSpectator && isBet) {
     return (
       <div className="flex flex-col gap-2">
