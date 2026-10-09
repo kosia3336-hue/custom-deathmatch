@@ -41,7 +41,6 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
       {showTracker && opponent && (
         <GameInfoPart title="상대 빛가루 추리" sizeToContent>
           <OpponentPowderMemo
-            dalmaji={dalmaji}
             round={powderNotes.round}
             latestRound={powderNotes.latest}
             estimate={powderNotes.estimate}

@@ -1,9 +1,11 @@
 'use client';
 
 import { Icon } from '@/components/cdm/Icon';
+import { useGameToolsRegistration } from '@/contexts/GameToolsContext';
 import type { SMS2MarkId } from '@/shared/types/sun-moon-star-2';
 import { MARK_IDS } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
+import OpponentPowderTracker from './OpponentPowderTracker';
 import type { OpponentPowderEstimate } from './types';
 
 /*
@@ -13,10 +15,11 @@ import type { OpponentPowderEstimate } from './types';
   줄마다 −/+ 로 적었다. 한 라운드에 숫자 세 개를 적는 데 시트까지 여닫아야 했고,
   적는 동안 판이 가려졌다. 이제 라운드 넘김 · 해 · 달 · 별 · 합을 한 줄에 두고
   바로 적는다. 칸을 누르면 숫자가 통째로 선택돼 바로 덮어 쓸 수 있다.
+
+  PC 는 세로 자리가 넉넉해 예전처럼 줄마다 −/+ 가 있는 세로 메모를 쓴다.
 */
 
 interface Props {
-  dalmaji: boolean;
   round: number;
   latestRound: number;
   estimate: OpponentPowderEstimate;
@@ -26,7 +29,12 @@ interface Props {
   onReset: () => void;
 }
 
-export default function OpponentPowderMemo({
+export default function OpponentPowderMemo(props: Props) {
+  const desktop = useGameToolsRegistration()?.desktop ?? false;
+  return desktop ? <OpponentPowderTracker {...props} /> : <OneLineMemo {...props} />;
+}
+
+function OneLineMemo({
   round,
   latestRound,
   estimate,
