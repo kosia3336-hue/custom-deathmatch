@@ -37,6 +37,12 @@ export function useOpponentPowderNotes(
     ? powderStagesForRound(data, side, current.round)
     : { before: 5 as const, after: 5 as const };
   const max = powderStageRange(stages.before).max;
+  /* 1라운드부터 지금 라운드까지 적어 둔 추정의 합 — 상대가 지금까지 쓴 빛가루 추정 */
+  let totalAll = 0;
+  for (let r = 1; r <= latest; r += 1) {
+    const note = readPowderRoundNote(current.notes, r);
+    totalAll += note.sun + note.moon + note.star;
+  }
   return {
     round: current.round,
     latest,
@@ -46,6 +52,7 @@ export function useOpponentPowderNotes(
       basedOnStageNow: stages.after,
     },
     max,
+    totalAll,
     selectRound: (round: number) =>
       setState((prev) => ({ ...prev, round: Math.max(1, Math.min(latest, round)) })),
     change: (mark: SMS2MarkId, value: number) =>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { SMS2MarkId } from '@/shared/types/sun-moon-star-2';
-import { MARK_IDS } from '@/shared/types/sun-moon-star-2';
+import { MARK_IDS, SMS2_INITIAL_POWDER } from '@/shared/types/sun-moon-star-2';
 import { MARK_STYLES } from './constants';
 import type { OpponentPowderEstimate } from './types';
 
@@ -10,6 +10,8 @@ interface Props {
   latestRound: number;
   estimate: OpponentPowderEstimate;
   max: number;
+  /** 1라운드부터 최신 라운드까지 추정 합 */
+  totalAll: number;
   onSelectRound: (round: number) => void;
   onChange: (mark: SMS2MarkId, value: number) => void;
   onReset: () => void;
@@ -20,6 +22,7 @@ export default function OpponentPowderTracker({
   latestRound,
   estimate,
   max,
+  totalAll,
   onSelectRound,
   onChange,
   onReset,
@@ -72,9 +75,15 @@ export default function OpponentPowderTracker({
           />
         ))}
       </div>
-      <p className="text-cdm-fg-muted px-2 text-right text-xs">
-        합 <span className="text-cdm-fg font-bold tabular-nums">{total}g</span>
-      </p>
+      {/* 빛가루 분배 창의 '총 0g / 70g' 막대와 같은 모양 */}
+      <div className="space-y-2 px-1">
+        <SumBar label={`R${round} 합`} value={total} max={max} />
+        <SumBar
+          label={latestRound > 1 ? `전체 합 (R1~R${latestRound})` : '전체 합'}
+          value={totalAll}
+          max={SMS2_INITIAL_POWDER}
+        />
+      </div>
     </div>
   );
 }
@@ -156,6 +165,45 @@ function EstimateSlot({
       >
         +5
       </button>
+    </div>
+  );
+}
+
+/** '총 Ng / 최대g' + 채움 막대 — PowderInput 의 총합 막대와 같은 모양·색 */
+function SumBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const over = value > max;
+  const color = over
+    ? 'bg-rose-400'
+    : pct >= 90
+      ? 'bg-amber-500'
+      : pct >= 50
+        ? 'bg-amber-400'
+        : 'bg-amber-300';
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-cdm-fg-muted">
+          {label} <span className="text-cdm-fg font-bold tabular-nums">{value}</span>g /{' '}
+          <span className="tabular-nums">{max}</span>g
+        </span>
+        <span className={`font-bold tabular-nums ${over ? 'text-rose-600' : 'text-amber-600'}`}>
+          {pct}%
+        </span>
+      </div>
+      <div
+        className="bg-cdm-bg-elev-2 h-2 w-full overflow-hidden rounded-full"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+      >
+        <div
+          className={`h-full transition-all duration-200 ${color}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
     </div>
   );
 }

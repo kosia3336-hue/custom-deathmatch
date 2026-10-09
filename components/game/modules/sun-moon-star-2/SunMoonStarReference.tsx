@@ -81,6 +81,7 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
             latestRound={powderNotes.latest}
             estimate={powderNotes.estimate}
             max={powderNotes.max}
+            totalAll={powderNotes.totalAll}
             onSelectRound={powderNotes.selectRound}
             onChange={powderNotes.change}
             onReset={powderNotes.reset}
