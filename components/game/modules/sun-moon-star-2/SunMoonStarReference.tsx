@@ -33,6 +33,7 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
   const trackView = (
     <Track
       compact
+      chipsInLabel={!desktop}
       leftLabel={!isSpectator && myPlayer ? '나' : left.nickname}
       leftStage={left.powderStage}
       leftRemain={!isSpectator && myPlayer ? (gameData.selfPrivate?.powderRemain ?? null) : null}
@@ -50,21 +51,22 @@ export function SunMoonStarReference({ ctx }: { ctx: SMS2ContextValue }) {
   return (
     <GameInfoStack>
       {/*
-        모바일은 점수와 빛가루 트랙을 한 칸에 둔다. 따로 두면 칸마다 제목·여백이
-        붙어 판이 그만큼 아래로 밀렸다. 트랙 모양은 그대로다.
+        모바일은 점수 칸에 빛가루 트랙만 둔다. 점수 카드와 트랙이 이름·빛가루 단계를
+        두 번씩 보여 줘 세로 자리만 먹었다. 칩은 트랙 위 이름 옆에 붙인다.
         PC 는 점수 칸이 판 위에 붙으므로 트랙까지 넣으면 판이 밀려 넘친다 —
-        예전처럼 트랙을 따로 둔다.
+        예전처럼 점수 카드와 트랙을 따로 둔다.
       */}
       <GameInfoPart title="점수" sizeToContent>
-        <div className="flex flex-col gap-2">
+        {desktop ? (
           <Scores
             p1={gameData.players.p1}
             p2={gameData.players.p2}
             firstSide={firstSide}
             myId={myId}
           />
-          {!desktop && trackView}
-        </div>
+        ) : (
+          trackView
+        )}
       </GameInfoPart>
       {showTracker && opponent && (
         <GameInfoPart title="상대 빛가루 추리" sizeToContent>

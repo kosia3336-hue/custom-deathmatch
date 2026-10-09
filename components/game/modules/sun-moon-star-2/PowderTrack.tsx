@@ -27,6 +27,8 @@ interface Props {
    * compact=true 면 칩 행을 숨기고 단계 시각화만 표시.
    */
   compact?: boolean;
+  /** 칩을 위쪽 이름 옆에 보통 크기로 둔다 — 모바일 점수 칸이 점수 카드 없이 트랙만 쓸 때 */
+  chipsInLabel?: boolean;
 }
 
 type RowState = 'dim' | 'active' | 'lit';
@@ -88,19 +90,30 @@ export default function PowderTrack({
   rightIsFirst,
   rightChips,
   compact = false,
+  chipsInLabel = false,
 }: Props) {
   return (
     <div className="space-y-1 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
       {/* 상단 플레이어 라벨 + 선 표시 */}
       <div className="flex items-center gap-1 pb-1">
-        <div className="flex-1 truncate text-center text-xs font-semibold text-indigo-600">
-          {leftLabel}
-          {leftIsFirst && <span className="ml-1 text-amber-500">선</span>}
+        <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-indigo-600">
+          <span className="truncate">{leftLabel}</span>
+          {leftIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
+          {chipsInLabel && (
+            <span className="ml-1.5 shrink-0 font-bold text-purple-700 tabular-nums">
+              칩 {leftChips}
+            </span>
+          )}
         </div>
         <div className="w-16 shrink-0 text-center text-[11px] text-gray-400">빛가루</div>
-        <div className="flex-1 truncate text-center text-xs font-semibold text-amber-600">
-          {rightLabel}
-          {rightIsFirst && <span className="ml-1 text-amber-500">선</span>}
+        <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-amber-600">
+          <span className="truncate">{rightLabel}</span>
+          {rightIsFirst && <span className="ml-1 shrink-0 text-amber-500">선</span>}
+          {chipsInLabel && (
+            <span className="ml-1.5 shrink-0 font-bold text-purple-700 tabular-nums">
+              칩 {rightChips}
+            </span>
+          )}
         </div>
       </div>
 

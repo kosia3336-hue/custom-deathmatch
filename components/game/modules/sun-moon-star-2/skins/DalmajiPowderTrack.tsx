@@ -15,6 +15,7 @@ interface Props {
   rightIsFirst: boolean;
   rightChips: number;
   compact?: boolean;
+  chipsInLabel?: boolean;
 }
 
 type RowState = 'dim' | 'active' | 'lit';
@@ -39,18 +40,29 @@ export default function DalmajiPowderTrack({
   rightIsFirst,
   rightChips,
   compact = false,
+  chipsInLabel = false,
 }: Props) {
   return (
     <div className="skin-dalmaji-track">
       <div className="flex items-center gap-1 pb-1">
-        <div className="flex-1 truncate text-center text-xs font-semibold text-[#f0d078]">
-          {leftLabel}
-          {leftIsFirst && <span className="ml-1">선</span>}
+        <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-[#f0d078]">
+          <span className="truncate">{leftLabel}</span>
+          {leftIsFirst && <span className="ml-1 shrink-0">선</span>}
+          {chipsInLabel && (
+            <span className="ml-1.5 shrink-0 font-bold text-[#fff4d4] tabular-nums">
+              {leftChips}칩
+            </span>
+          )}
         </div>
         <div className="w-16 shrink-0 text-center text-[11px] text-[#c9b888]/70">빛가루</div>
-        <div className="flex-1 truncate text-center text-xs font-semibold text-[#e8c56a]">
-          {rightLabel}
-          {rightIsFirst && <span className="ml-1">선</span>}
+        <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-[#e8c56a]">
+          <span className="truncate">{rightLabel}</span>
+          {rightIsFirst && <span className="ml-1 shrink-0">선</span>}
+          {chipsInLabel && (
+            <span className="ml-1.5 shrink-0 font-bold text-[#fff4d4] tabular-nums">
+              {rightChips}칩
+            </span>
+          )}
         </div>
       </div>
 
