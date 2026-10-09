@@ -275,7 +275,7 @@ function Emblem({ tier, hidden }: { tier: RankTier; hidden: boolean }) {
   return (
     <span className="rank-vs-emblem-wrap">
       <Image
-        src={`/rank/tier-${tier}.png`}
+        src={`/rank/tier-${tier}.webp`}
         alt=""
         width={128}
         height={128}

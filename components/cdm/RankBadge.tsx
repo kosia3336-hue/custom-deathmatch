@@ -17,7 +17,7 @@ const TIER_COLOR: Record<DisplayRankTier, string> = {
 };
 
 function iconPath(tier: DisplayRankTier): string {
-  return `/rank/tier-${tier}.png`;
+  return `/rank/tier-${tier}.webp`;
 }
 
 export interface RankBadgeProps {

@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { guildMarkDisplaySrc } from '@/components/guild-v4/logoCatalog';
 
 export interface GuildMarkInfo {
   /** 길드 마크 이미지 URL */
@@ -55,7 +56,7 @@ export function GuildMark({ mark, size = 'md', className }: GuildMarkProps) {
   );
 
   if (isCatalogLogo(mark.url)) {
-    const catalogSrc = mark.url.split('?')[0] || mark.url;
+    const catalogSrc = guildMarkDisplaySrc(mark.url.split('?')[0] || mark.url);
     return (
       <Image
         src={catalogSrc}

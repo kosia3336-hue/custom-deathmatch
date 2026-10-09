@@ -3204,7 +3204,7 @@ body {
 
 /* 게임 셸 전체 배경 — 스킨 착용 시 GameShell 래퍼에 적용 */
 .skin-bg-meow {
-  background: url('/skins/meow/background.png') center / cover no-repeat;
+  background: url('/skins/meow/background.webp') center / cover no-repeat;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -3420,11 +3420,11 @@ body {
   background-repeat: no-repeat;
   border: 0;
 }
-.skin-meow-tile-sprite--0 { background-image: url('/skins/meow/tile-0.png'); color: #5b6472; }
-.skin-meow-tile-sprite--1 { background-image: url('/skins/meow/tile-1.png'); color: #3f66a8; }
-.skin-meow-tile-sprite--2 { background-image: url('/skins/meow/tile-2.png'); color: #2f7d59; }
-.skin-meow-tile-sprite--3 { background-image: url('/skins/meow/tile-3.png'); color: #ad702a; }
-.skin-meow-tile-sprite--4 { background-image: url('/skins/meow/tile-4.png'); color: #c1547d; }
+.skin-meow-tile-sprite--0 { background-image: url('/skins/meow/tile-0.webp'); color: #5b6472; }
+.skin-meow-tile-sprite--1 { background-image: url('/skins/meow/tile-1.webp'); color: #3f66a8; }
+.skin-meow-tile-sprite--2 { background-image: url('/skins/meow/tile-2.webp'); color: #2f7d59; }
+.skin-meow-tile-sprite--3 { background-image: url('/skins/meow/tile-3.webp'); color: #ad702a; }
+.skin-meow-tile-sprite--4 { background-image: url('/skins/meow/tile-4.webp'); color: #c1547d; }
 .skin-meow-sprite-count {
   position: absolute;
   left: 0; right: 0; bottom: 15%;
@@ -3438,7 +3438,7 @@ body {
   display: block;
   width: 100%;
   aspect-ratio: 495 / 105;
-  background: url('/skins/meow/submit.png') center / 100% 100% no-repeat;
+  background: url('/skins/meow/submit.webp') center / 100% 100% no-repeat;
   border: 0;
   cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
@@ -3455,7 +3455,7 @@ body {
   min-width: 9rem;
   aspect-ratio: 210 / 55;
   padding: 0 1.5rem 0.2rem;
-  background: url('/skins/meow/ribbon.png') center / 100% 100% no-repeat;
+  background: url('/skins/meow/ribbon.webp') center / 100% 100% no-repeat;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -3466,7 +3466,7 @@ body {
   width: 4.5rem;
   aspect-ratio: 150 / 65;
   margin: 0 auto;
-  background: url('/skins/meow/slot-ear.png') center / contain no-repeat;
+  background: url('/skins/meow/slot-ear.webp') center / contain no-repeat;
   opacity: 0.9;
 }
 
@@ -3476,8 +3476,8 @@ body {
   background-position: bottom center;
   pointer-events: none;
 }
-.skin-meow-cat-img--left  { background-image: url('/skins/meow/cat-left.png');  aspect-ratio: 125 / 130; }
-.skin-meow-cat-img--sleep { background-image: url('/skins/meow/cat-sleep.png'); aspect-ratio: 241 / 158; }
+.skin-meow-cat-img--left  { background-image: url('/skins/meow/cat-left.webp');  aspect-ratio: 125 / 130; }
+.skin-meow-cat-img--sleep { background-image: url('/skins/meow/cat-sleep.webp'); aspect-ratio: 241 / 158; }
 
 /* ── 팝인 애니메이션 (타일 등장) ── */
 @keyframes meow-pop {
@@ -3502,7 +3502,7 @@ body {
 
 .skin-bg-candy {
   /* top 정렬 — 상단 우측 안내판이 항상 보이도록 (아래쪽을 크롭) */
-  background: url('/skins/candy/background-2.png') top center / cover no-repeat;
+  background: url('/skins/candy/background-2.webp') top center / cover no-repeat;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -3598,7 +3598,7 @@ body {
 /* ── 라운드 인디케이터 (얼음 바) ── */
 .skin-candy-round {
   position: relative;
-  background: url('/skins/candy/round-panel.png') center / 100% 100% no-repeat;
+  background: url('/skins/candy/round-panel.webp') center / 100% 100% no-repeat;
   aspect-ratio: 736 / 139;
   max-height: 4.75rem;
   display: flex;
@@ -3623,16 +3623,16 @@ body {
   border: 0;
   border-radius: 0.6rem;
 }
-.skin-candy-card--minus3     { background-image: url('/skins/candy/card-minus3.png');     color: #c04a63; }
-.skin-candy-card--plus5      { background-image: url('/skins/candy/card-plus5.png');      color: #2f8a63; }
-.skin-candy-card--copy       { background-image: url('/skins/candy/card-copy.png');       color: #3f6cb0; }
-.skin-candy-card--grapeBless { background-image: url('/skins/candy/card-grapeBless.png'); color: #7c53b8; }
-.skin-candy-card--earthCrush { background-image: url('/skins/candy/card-earthCrush.png'); color: #b07a2a; }
-.skin-candy-card--dice       { background-image: url('/skins/candy/card-dice.png');       color: #a3862a; }
-.skin-candy-card--breath     { background-image: url('/skins/candy/card-breath.png');     color: #2f8a80; }
-.skin-candy-card--highRisk   { background-image: url('/skins/candy/card-highRisk.png');   color: #c26a2e; }
-.skin-candy-card--spaceCrush { background-image: url('/skins/candy/card-spaceCrush.png'); color: #5b62c0; }
-.skin-candy-card--noAction   { background-image: url('/skins/candy/card-noAction.png');   color: #8b93a5; }
+.skin-candy-card--minus3     { background-image: url('/skins/candy/card-minus3.webp');     color: #c04a63; }
+.skin-candy-card--plus5      { background-image: url('/skins/candy/card-plus5.webp');      color: #2f8a63; }
+.skin-candy-card--copy       { background-image: url('/skins/candy/card-copy.webp');       color: #3f6cb0; }
+.skin-candy-card--grapeBless { background-image: url('/skins/candy/card-grapeBless.webp'); color: #7c53b8; }
+.skin-candy-card--earthCrush { background-image: url('/skins/candy/card-earthCrush.webp'); color: #b07a2a; }
+.skin-candy-card--dice       { background-image: url('/skins/candy/card-dice.webp');       color: #a3862a; }
+.skin-candy-card--breath     { background-image: url('/skins/candy/card-breath.webp');     color: #2f8a80; }
+.skin-candy-card--highRisk   { background-image: url('/skins/candy/card-highRisk.webp');   color: #c26a2e; }
+.skin-candy-card--spaceCrush { background-image: url('/skins/candy/card-spaceCrush.webp'); color: #5b62c0; }
+.skin-candy-card--noAction   { background-image: url('/skins/candy/card-noAction.webp');   color: #8b93a5; }
 
 .skin-candy-card-btn {
   transition: transform 0.15s ease, filter 0.15s ease;
@@ -3655,15 +3655,15 @@ body {
 .skin-candy-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
 .skin-candy-btn:active:not(:disabled) { transform: scale(0.95); }
 .skin-candy-btn:disabled { opacity: 0.4; filter: grayscale(0.5); cursor: not-allowed; }
-.skin-candy-btn--m5  { background-image: url('/skins/candy/btn-m5.png');  aspect-ratio: 80 / 65; }
-.skin-candy-btn--m1  { background-image: url('/skins/candy/btn-m1.png');  aspect-ratio: 77 / 65; }
-.skin-candy-btn--p1  { background-image: url('/skins/candy/btn-p1.png');  aspect-ratio: 75 / 65; }
-.skin-candy-btn--p5  { background-image: url('/skins/candy/btn-p5.png');  aspect-ratio: 70 / 65; }
-.skin-candy-btn--max { background-image: url('/skins/candy/btn-max.png'); aspect-ratio: 80 / 65; }
+.skin-candy-btn--m5  { background-image: url('/skins/candy/btn-m5.webp');  aspect-ratio: 80 / 65; }
+.skin-candy-btn--m1  { background-image: url('/skins/candy/btn-m1.webp');  aspect-ratio: 77 / 65; }
+.skin-candy-btn--p1  { background-image: url('/skins/candy/btn-p1.webp');  aspect-ratio: 75 / 65; }
+.skin-candy-btn--p5  { background-image: url('/skins/candy/btn-p5.webp');  aspect-ratio: 70 / 65; }
+.skin-candy-btn--max { background-image: url('/skins/candy/btn-max.webp'); aspect-ratio: 80 / 65; }
 
 /* 설탕 입력칸 — 시안의 '0' 프레임 */
 .skin-candy-input {
-  background: url('/skins/candy/btn-0.png') center / 100% 100% no-repeat;
+  background: url('/skins/candy/btn-0.webp') center / 100% 100% no-repeat;
   border: 0;
   text-align: center;
   font-weight: 700;
@@ -7551,7 +7551,7 @@ html[data-native-app] .site-footer--home {
 .skin-four-card-joker {
   width: 78%;
   height: 72%;
-  background-image: url('/skins/four-card/joker-moon.png');
+  background-image: url('/skins/four-card/joker-moon.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
