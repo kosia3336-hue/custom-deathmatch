@@ -70,9 +70,14 @@ export default function BetInput({
       ? '0장 베팅 확정 (패스)'
       : `${totalCount}장 / ${formatKRW(totalAmount)}원 확정`;
 
+  /*
+    판 폭은 게임판에 맞춘다(w-full, 넓은 화면은 max-w-md). 예전에는 내용 폭에 맞춰
+    잡혔는데, 숫자 입력칸이 폭을 정하지 않으면 기본 폭(20자 분량)을 고집해 판이
+    374px 밑으로 줄지 않았다 — 375px 폰에서 게임판(336px) 양옆으로 삐져나갔다.
+  */
   return (
     <div
-      className={`bank-bet-panel bank-bet-panel--${turn} space-y-3 rounded-xl border-2 ${accentBorder} ${accentBg} p-3 ${
+      className={`bank-bet-panel bank-bet-panel--${turn} w-full max-w-md min-w-0 space-y-3 rounded-xl border-2 ${accentBorder} ${accentBg} p-3 ${
         disabled ? 'opacity-60' : ''
       }`}
     >
@@ -196,7 +201,7 @@ function BetRow({
           const n = parseInt(e.target.value.replace(/\D/g, ''), 10);
           onChange(clamp(isNaN(n) ? 0 : n));
         }}
-        className={`bank-quantity-input ${inputSize} min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:outline-none ${accentRing} disabled:bg-gray-100`}
+        className={`bank-quantity-input ${inputSize} w-0 min-w-0 flex-1 rounded-md border border-gray-300 bg-white text-center text-base font-bold text-gray-800 tabular-nums focus:ring-2 focus:outline-none ${accentRing} disabled:bg-gray-100`}
       />
       <button
         type="button"

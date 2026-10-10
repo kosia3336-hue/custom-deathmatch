@@ -106,9 +106,9 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
           </div>
         );
       }
-      // 모바일 bottom-sheet 모드: 여기서 BetInput 렌더링 생략
+      // 판 폭을 꽉 채운다 — 게임판이 가운데 정렬이라, 감싸는 칸이 폭을 안 가지면 베팅 판이 내용만큼 줄거나 넘친다
       return (
-        <div ref={ref}>
+        <div ref={ref} className="flex w-full justify-center">
           <BetInput
             turn={isFirstSubmit ? 'first' : 'second'}
             inventory={myPlayer.inventory}
