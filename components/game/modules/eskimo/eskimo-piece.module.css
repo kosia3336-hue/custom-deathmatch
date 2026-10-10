@@ -1,12 +1,10 @@
-/* 아이스크림 말 색. 테마 색(라이트·다크)과 무관하게 맛 색을 고정한다. */
 .artwork {
-  /* 선 — 딸기 */
-  --token-face: #f2559b;
-  --token-face-light: #ffb3d4;
-  --token-edge: #c9286f;
-  --token-edge-dark: #9c1b55;
-  --token-engraving: rgb(255 255 255 / 0.45);
-  --token-symbol: #b01e5f;
+  --token-face: var(--cdm-primary);
+  --token-face-light: color-mix(in srgb, var(--cdm-primary) 65%, var(--cdm-bg));
+  --token-edge: var(--cdm-primary-strong);
+  --token-edge-dark: color-mix(in srgb, var(--cdm-primary-strong) 75%, var(--cdm-fg));
+  --token-engraving: color-mix(in srgb, var(--cdm-bg) 40%, transparent);
+  --token-symbol: var(--cdm-fg-inverse);
 
   display: block;
   width: 100%;
@@ -14,23 +12,23 @@
   overflow: visible;
 }
 
-/* 후 — 민트초코 */
 .artwork[data-tone='highlight'] {
-  --token-face: #6fd6bd;
-  --token-face-light: #c8f5e9;
-  --token-edge: #2fae8f;
-  --token-edge-dark: #1f8068;
-  --token-engraving: rgb(255 255 255 / 0.5);
-  --token-symbol: #4a2417;
+  --token-face: var(--cdm-highlight);
+  --token-face-light: color-mix(in srgb, var(--cdm-highlight) 55%, var(--cdm-bg));
+  --token-edge: var(--cdm-highlight-strong);
+  --token-edge-dark: color-mix(in srgb, var(--cdm-highlight-strong) 75%, var(--cdm-fg));
+  --token-symbol: var(--cdm-fg);
 }
 
-/* 북극곰 — 얼음 접시 */
 .artwork[data-tone='bear'] {
-  --token-edge: #8ccbf0;
-  --token-edge-dark: #d8f0ff;
+  --token-face: var(--cdm-bg-elev-2);
+  --token-face-light: var(--cdm-bg);
+  --token-edge: var(--cdm-border-strong);
+  --token-edge-dark: var(--cdm-fg-subtle);
+  --token-engraving: var(--cdm-border-strong);
 }
 
 .shadow {
-  fill: #5b2d1e;
-  opacity: 0.2;
+  fill: var(--cdm-fg);
+  opacity: 0.16;
 }
