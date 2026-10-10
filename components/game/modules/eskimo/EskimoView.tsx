@@ -25,6 +25,7 @@ import {
 } from '@/shared/types/eskimo';
 import { EskimoMarker, EskimoPiece } from './EskimoPiece';
 import { ESKIMO_WIN_HINT, eskimoCellName, eskimoMoveLabel } from './notation';
+import parlor from './eskimo-parlor.module.css';
 
 function EskimoView({ gameData, myId }: GameModuleViewProps<EskimoGameData>) {
   useAbstractStrategyMoveSfx(gameData?.board);
@@ -159,7 +160,12 @@ function PlaySurface({
   }, [guide, setHeaderBelow]);
 
   const players = orderedPlayers(gameData, myId);
-  const bearStatus = bearLocked ? `🐻‍❄️ ${gameData.bearLockTurns}턴 잠김` : '🐻‍❄️ 이동 가능';
+  const bearStatus = (
+    <span className="inline-flex items-center gap-1">
+      <EskimoMarker tone="bear" />
+      {bearLocked ? `${gameData.bearLockTurns}턴 잠김` : '이동 가능'}
+    </span>
+  );
 
   const cells: EskimoCell[] = [];
   for (let r = 0; r < ESKIMO_SIZE; r += 1) {
@@ -172,6 +178,7 @@ function PlaySurface({
 
   return (
     <GameReferenceFrame
+      className={parlor.parlor}
       reference={<EskimoSidePanel gameData={gameData} myId={myId} />}
       info={
         <PlayerStrip
@@ -189,7 +196,7 @@ function PlaySurface({
     >
       <div
         data-game-intrinsic-stage
-        className="border-cdm-border bg-cdm-bg rounded-cdm-lg mx-auto flex w-full max-w-xl flex-col items-center border p-2 sm:p-3"
+        className="mx-auto flex w-full max-w-xl flex-col items-center p-2 sm:p-3"
       >
         <Board3D
           columns={ESKIMO_SIZE}
@@ -197,6 +204,9 @@ function PlaySurface({
           maxWidth="34rem"
           density="compact"
           fit
+          className={parlor.board}
+          frameClassName={parlor.frame}
+          gridClassName={parlor.grid}
         >
           {cells.map((cell) => {
             const key = eskimoCellKey(cell);
@@ -224,28 +234,28 @@ function PlaySurface({
                 state={
                   won ? 'highlight' : selected || armed ? 'selected' : target ? 'available' : 'idle'
                 }
-                className={cn(!active && 'cursor-default')}
+                className={cn(parlor.cell, !active && 'cursor-default')}
               >
                 {piece && (
                   <EskimoPiece
                     piece={piece}
                     firstPlayerId={firstPlayerId}
-                    className={cn(pickable && 'drop-shadow-[0_0_6px_var(--cdm-primary)]')}
+                    className={cn(pickable && 'drop-shadow-[0_0_6px_rgb(242_85_155_/_0.85)]')}
                   />
                 )}
                 {armed && sourcePiece && (
                   <EskimoPiece piece={sourcePiece} firstPlayerId={firstPlayerId} ghost />
                 )}
                 {target && !armed && (
-                  <span className="bg-cdm-success absolute top-1/2 left-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80 shadow-sm" />
-                )}
-                {isLast && !won && (
-                  <span className="border-cdm-primary/60 pointer-events-none absolute inset-[6%] rounded-md border-2 border-dashed" />
-                )}
-                {piece === ESKIMO_BEAR && bearLocked && (
-                  <span className="bg-cdm-fg text-cdm-bg absolute top-0.5 right-0.5 z-[2] flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-black tabular-nums">
-                    {gameData.bearLockTurns}
+                  <span className={parlor.sprinkles} aria-hidden>
+                    <span />
+                    <span />
+                    <span />
                   </span>
+                )}
+                {isLast && !won && <span className={parlor.lastMove} aria-hidden />}
+                {piece === ESKIMO_BEAR && bearLocked && !finished && (
+                  <span className={parlor.lockBadge}>{gameData.bearLockTurns}</span>
                 )}
               </BoardCellButton3D>
             );
@@ -253,18 +263,15 @@ function PlaySurface({
         </Board3D>
       </div>
 
+      {/* 결과는 판 아래쪽에 띄워 포위된 북극곰이 가려지지 않게 한다 */}
       {finished && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-          <div className="border-cdm-primary bg-cdm-bg/95 rounded-cdm-lg max-w-xs border px-5 py-4 text-center shadow-(--cdm-shadow-lg) backdrop-blur">
-            <p className="text-cdm-primary text-base font-black">
-              {winnerName ? `${winnerName} 승리!` : '게임 종료'}
-            </p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center p-3">
+          <div className={parlor.result}>
+            <p className={parlor.resultTitle}>{winnerName ? `${winnerName} 승리!` : '게임 종료'}</p>
             {gameData.winType && (
-              <p className="text-cdm-fg mt-1 text-xs font-bold">
-                {ESKIMO_WIN_HINT[gameData.winType]}
-              </p>
+              <p className={parlor.resultHint}>{ESKIMO_WIN_HINT[gameData.winType]}</p>
             )}
-            <p className="text-cdm-fg-muted mt-1 text-xs">{gameData.finishReason}</p>
+            <p className={parlor.resultReason}>{gameData.finishReason}</p>
           </div>
         </div>
       )}
@@ -289,14 +296,10 @@ function EskimoSidePanel({ gameData, myId }: { gameData: EskimoGameData; myId: s
           {orderedPlayers(gameData, myId).map(([playerId, player]) => (
             <div
               key={playerId}
-              className={cn(
-                'flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm',
-                !finished && gameData.currentPlayerId === playerId
-                  ? 'bg-cdm-primary-soft text-cdm-primary'
-                  : 'text-cdm-fg bg-cdm-bg-elev-1',
-              )}
+              className={parlor.playerRow}
+              data-active={!finished && gameData.currentPlayerId === playerId}
             >
-              <span className="flex min-w-0 items-center gap-2 font-semibold">
+              <span className="flex min-w-0 items-center gap-2">
                 <EskimoMarker
                   tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'}
                 />
@@ -305,25 +308,20 @@ function EskimoSidePanel({ gameData, myId }: { gameData: EskimoGameData; myId: s
                   {playerId === myId ? ' (나)' : ''}
                 </span>
               </span>
-              <span className="text-xs font-black">
+              <span className={parlor.seatChip}>
                 {playerId === gameData.firstPlayerId ? '선' : '후'}
               </span>
             </div>
           ))}
-          <div className="text-cdm-fg bg-cdm-bg-elev-1 flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm">
-            <span className="flex items-center gap-2 font-semibold">
+          <div className={parlor.playerRow}>
+            <span className="flex items-center gap-2">
               <EskimoMarker tone="bear" /> 북극곰
             </span>
-            <span
-              className={cn(
-                'text-xs font-black tabular-nums',
-                locked ? 'text-cdm-fg-muted' : 'text-cdm-success',
-              )}
-            >
+            <span className={parlor.bearState} data-ready={!locked}>
               {locked ? `${locked}턴 뒤 이동 가능` : '이동 가능'}
             </span>
           </div>
-          <p className="text-cdm-fg-subtle px-1 text-[11px] leading-relaxed">
+          <p className={parlor.note}>
             북극곰을 옮기면 다음 {ESKIMO_BEAR_LOCK_TURNS}턴(양쪽 차례 합산) 동안 아무도 옮길 수
             없습니다.
           </p>
@@ -344,13 +342,10 @@ function EskimoHistory({ gameData }: { gameData: EskimoGameData }) {
   return (
     <ol className="flex flex-col gap-1">
       {[...log].reverse().map((entry) => (
-        <li
-          key={entry.turn}
-          className="bg-cdm-bg-elev-1 text-cdm-fg-muted flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
-        >
-          <span className="text-cdm-fg w-8 shrink-0 font-black tabular-nums">{entry.turn}T</span>
+        <li key={entry.turn} className={parlor.historyRow}>
+          <span className="w-8 shrink-0 font-black tabular-nums">{entry.turn}T</span>
           <EskimoMarker tone={entry.actorId === gameData.firstPlayerId ? 'primary' : 'highlight'} />
-          <span className="text-cdm-fg truncate font-semibold">
+          <span className="truncate font-semibold">
             {gameData.players[entry.actorId]?.nickname}
           </span>
           <span className="ml-auto shrink-0 tabular-nums">{eskimoMoveLabel(entry)}</span>
