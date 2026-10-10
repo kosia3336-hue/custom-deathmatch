@@ -54,8 +54,13 @@ function GrapeSugar2View({
   }, [gameData, myId]);
 
   const opponent = useMemo(() => {
-    if (!gameData || !myId) return gameData?.players.p2 ?? null;
-    return gameData.players.p1.id === myId ? gameData.players.p2 : gameData.players.p1;
+    /*
+      관전자는 p1·p2 어느 쪽도 아니다. 예전에는 'p1 이 나면 p2, 아니면 p1' 이라
+      관전자에게 상대가 p1 이 되고, '나' 자리도 p1 로 채워 두 칸이 같은 사람이었다
+      (포도설탕2 관전에서 두 사람 카드·설탕이 똑같이 보인 원인).
+    */
+    if (!gameData) return null;
+    return gameData.players.p2.id === myId ? gameData.players.p1 : gameData.players.p2;
   }, [gameData, myId]);
 
   const mySide: GS2Side | null = myPlayer?.side ?? null;

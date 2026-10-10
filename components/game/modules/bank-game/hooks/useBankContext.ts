@@ -42,9 +42,9 @@ export function useBankContext({
   }, [gameData, myId]);
 
   const opponent = useMemo<BankPlayerInfo | null>(() => {
+    // 관전자(p1·p2 아님)에게는 p2 — p1 이 '나' 자리에 오므로 반대편이 되게
     if (!gameData) return null;
-    if (!myId) return gameData.players.p2;
-    return gameData.players.p1.id === myId ? gameData.players.p2 : gameData.players.p1;
+    return gameData.players.p2.id === myId ? gameData.players.p1 : gameData.players.p2;
   }, [gameData, myId]);
 
   const inventoryNotes = useBankInventoryNotes(
