@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import InquiryModal from '@/components/support/InquiryModal';
+import InquirySubmitModal from '@/components/InquirySubmitModal';
 import { Icon } from './Icon';
 import { UnreadBadge } from './UnreadBadge';
 import { useGuildChatUnread } from '@/components/guild-v4/GuildChatLive';
@@ -25,7 +25,7 @@ interface Tab {
  * 랭킹·길드는 하단 탭으로 올라갔으므로 여기서는 뺀다(같은 곳으로 가는 문이 둘이면
  * 어느 쪽이 정식인지 흐려진다). 칭호·상점·공지·출석·문의는 이 시트가 유일한 문이다.
  */
-/** 문의하기 — 회원은 이 주소로 가지 않고 모달(InquiryModal)로 연다. 비회원은 페이지 → 로그인. */
+/** 문의하기 — 회원은 이 주소로 가지 않고 공통 문의 모달(InquirySubmitModal, PC GNB 와 같은 것)로 연다. 비회원은 페이지 → 로그인. */
 const INQUIRY_HREF = '/support/inquiry';
 
 const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOnly?: boolean }[] = [
@@ -112,7 +112,11 @@ export function MobileTabBar({ isMember }: Props) {
 
   return (
     <>
-      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
+      <InquirySubmitModal
+        open={inquiryOpen}
+        onClose={() => setInquiryOpen(false)}
+        onSuccess={() => setInquiryOpen(false)}
+      />
       {/* 더보기 시트 */}
       {menuOpen && (
         <div className="fixed inset-0 z-(--cdm-z-overlay) sm:hidden" role="dialog" aria-label="메뉴">
