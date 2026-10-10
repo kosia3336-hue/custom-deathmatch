@@ -7029,6 +7029,22 @@ html[data-native-app] .site-footer--home {
   border-top: 1px solid rgba(199, 154, 82, 0.25);
 }
 
+/* 모바일 베팅 시트 — 흰 시트 대신 금고 판 색(어두운 패널 · 놋쇠 테두리·손잡이) */
+.skin-treasury-field .bank-bet-sheet {
+  border-top: 1px solid var(--tr-brass-dim) !important;
+  color: var(--tr-ivory);
+  background: linear-gradient(180deg, rgba(15, 34, 45, 0.98), rgba(5, 12, 20, 0.99)) !important;
+  box-shadow:
+    0 -12px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px rgba(241, 208, 138, 0.14) !important;
+}
+.skin-treasury-field .bank-bet-sheet-handle {
+  background: var(--tr-brass) !important;
+}
+.skin-treasury-field .bank-bet-sheet-hint {
+  color: var(--tr-muted) !important;
+}
+
 .skin-treasury-field .bank-primary-action {
   border: 1px solid var(--tr-brass) !important;
   color: #fff4d8 !important;

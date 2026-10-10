@@ -126,8 +126,10 @@ export default function GameLayout({ ctx }: Props) {
               aria-label="입력판 접고 판 보기"
               className="flex w-full flex-col items-center gap-1 pt-2 pb-1"
             >
-              <span className="h-1 w-10 rounded-full bg-gray-300" />
-              <span className="text-[11px] font-semibold text-gray-400">눌러서 접고 판 보기</span>
+              <span className="bank-bet-sheet-handle h-1 w-10 rounded-full bg-gray-300" />
+              <span className="bank-bet-sheet-hint text-[11px] font-semibold text-gray-400">
+                눌러서 접고 판 보기
+              </span>
             </button>
             <div
               className="flex justify-center overflow-y-auto px-4"
