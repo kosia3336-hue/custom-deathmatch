@@ -32,12 +32,14 @@ export function BankReference({ ctx }: { ctx: BankContextValue }) {
         />
       </GameInfoPart>
       {showOpponentTracker && (
-        <GameInfoPart title="나의 메모 - 상대 잔여 추리" toolId="상대 잔여 추리" sizeToContent>
-          <GameMemoDisclosure
-            title="나의 메모 - 상대 잔여 추리"
-            skin={ctx.skin}
-            summary={<>R{inventoryNotes.round}</>}
-          >
+        /* 모바일은 해달별2처럼 '메모 열기' 버튼 하나만 — 패널·제목·요약 없이(mobileBare) */
+        <GameInfoPart
+          title="나의 메모 - 상대 잔여 추리"
+          toolId="상대 잔여 추리"
+          sizeToContent
+          mobileBare
+        >
+          <GameMemoDisclosure title="나의 메모 - 상대 잔여 추리" skin={ctx.skin}>
             <OpponentInventoryTracker notes={inventoryNotes} />
           </GameMemoDisclosure>
         </GameInfoPart>

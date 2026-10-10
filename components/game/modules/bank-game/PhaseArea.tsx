@@ -19,10 +19,12 @@ interface Props {
   /** 모바일 bottom-sheet 모드일 때 BetInput 인라인 렌더링 생략 */
   /** 라운드 종료 버튼을 무대에 그리지 않는다. controls 로 옮겨 그릴 때 쓴다. */
   hideNextRound?: boolean;
+  /** 베팅 판을 무대에 그리지 않는다. 모바일은 시트로 띄운다(GameLayout). */
+  hideBetInput?: boolean;
 }
 
 const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
-  { ctx, size = 'sm', hideNextRound = false },
+  { ctx, size = 'sm', hideNextRound = false, hideBetInput = false },
   ref,
 ) {
   const {
@@ -106,6 +108,7 @@ const PhaseArea = forwardRef<HTMLDivElement, Props>(function PhaseArea(
           </div>
         );
       }
+      if (hideBetInput) return null;
       // 판 폭을 꽉 채운다 — 게임판이 가운데 정렬이라, 감싸는 칸이 폭을 안 가지면 베팅 판이 내용만큼 줄거나 넘친다
       return (
         <div ref={ref} className="flex w-full justify-center">
