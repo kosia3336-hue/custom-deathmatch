@@ -110,6 +110,11 @@ export interface QuatroGameData {
   nextTurnId: string | null;
   me: QuatroPlayerView | null; // 관전자는 null
   opp: QuatroPlayerView | null;
+  /**
+   * 관전자 전용 — 두 플레이어 자리(선 플레이어 순서 아님, 입장 순서). 공개(오픈)한
+   * 카드만 보이고 나머지는 뒷면. 플레이어에게는 없다(me/opp 를 쓴다).
+   */
+  seats?: QuatroPlayerView[];
   players: Record<string, { nickname: string }>;
   vps: QuatroVpView[];
   /** open 단계: 내가 선택 완료했는지 */

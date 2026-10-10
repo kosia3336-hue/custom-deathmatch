@@ -559,6 +559,12 @@ export function buildGameData(s: QuatroState, viewerId: string | null): QuatroGa
     nextTurnId: nextTurnId(s),
     me: meP ? playerView(s, meP, viewerId, true) : null,
     opp: oppP ? playerView(s, oppP, viewerId, false) : null,
+    /*
+      관전자에게도 두 플레이어의 공개 카드는 보여 준다. 예전에는 me/opp 가 모두 null
+      이라 관전 화면에 가상 플레이어 6명만 나오고 판(두 사람 패)이 통째로 비었다.
+      isSelf=false 라 오픈한 카드만 앞면 — 플레이어가 상대를 보는 것과 같다.
+    */
+    ...(meP ? {} : { seats: s.players.map((p) => playerView(s, p, viewerId, false)) }),
     players: {
       [a.id]: { nickname: maskNick(s, viewerId, a) },
       [b.id]: { nickname: maskNick(s, viewerId, b) },

@@ -9,7 +9,12 @@ import { useGameHud } from '@/hooks/useGameHud';
 import { opponentDisplayName } from '@/lib/anonymousOpponents';
 import type { SkinTheme } from '@/lib/skins/registry';
 import { cn } from '@/lib/utils';
-import { QUATRO_MAX_MULLIGANS, QUATRO_VP_COUNT, type QuatroGameData } from '@/shared/types/quatro';
+import {
+  QUATRO_MAX_MULLIGANS,
+  QUATRO_VP_COUNT,
+  type QuatroGameData,
+  type QuatroPlayerView,
+} from '@/shared/types/quatro';
 import { memo, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ActionBtn } from './ActionBtn';
@@ -35,6 +40,7 @@ function QuatroView({
   const shownResultRef = useRef(false);
   const me = gameData?.me;
   const opp = gameData?.opp;
+  const seats = gameData?.seats ?? [];
   const isMyTurn = gameData?.currentTurnId === myId;
   const phase = gameData?.phase;
   const isFourCard = skin === 'four-card';
@@ -83,7 +89,14 @@ function QuatroView({
                 ? '최종 공개'
                 : gameData.phase === 'open'
                   ? '(공동 차례) 카드 공개'
-                  : `${gameData.currentTurnId === myId ? '(내 차례)' : '(상대 차례)'} ${gameData.phase === 'mulligan' ? '멀리건 선택' : '카드 교환'}`,
+                  : `${
+                      gameData.currentTurnId === myId
+                        ? '(내 차례)'
+                        : gameData.me
+                          ? '(상대 차례)'
+                          : // 관전자에게 '상대' 는 누구인지 모른다 — 차례인 사람 이름으로
+                            `(${gameData.players[gameData.currentTurnId ?? '']?.nickname ?? '상대'} 차례)`
+                    } ${gameData.phase === 'mulligan' ? '멀리건 선택' : '카드 교환'}`,
         }
       : null,
   );
@@ -170,12 +183,12 @@ function QuatroView({
       }
       reference={
         <>
-          {(me || opp) && (
+          {(me || opp || seats.length > 0) && (
             <GameInfoPart title="플레이어 점수판" sizeToContent>
               <div className="grid grid-cols-2 gap-2">
-                {[me, opp].filter(Boolean).map((player) => (
+                {(me || opp ? [me, opp] : seats).filter(Boolean).map((player) => (
                   <div key={player!.id} className="text-xs">
-                    <b>{player!.id === myId ? '나' : opponentDisplayName(player!.nickname)}</b>
+                    <b>{player!.id === myId ? '나' : opponentDisplayName(player!.nickname, !me)}</b>
                     <p>
                       교환 {player!.vpUsedCount}/{QUATRO_VP_COUNT}
                     </p>
@@ -208,28 +221,22 @@ function QuatroView({
       >
         {/* 상대 */}
         {opp && !gameData.result && (
-          <section className="quatro-panel rounded-cdm-lg border-cdm-border bg-cdm-bg border p-1.5">
-            <div className="mb-1 flex items-center justify-between text-sm">
-              <span className="text-cdm-fg font-semibold">
-                {opponentDisplayName(opp.nickname)}
-                {gameData.firstId === opp.id && (
-                  <span className="bg-cdm-highlight/20 text-cdm-highlight ml-1.5 rounded px-1.5 text-[11px] font-bold">
-                    선
-                  </span>
-                )}
-              </span>
-            </div>
-            <div className="flex gap-2 pt-1">
-              {opp.hand.map((h, i) => (
-                <CardFace
-                  key={i}
-                  card={h.card}
-                  badge={h.open ? '공개' : undefined}
-                  fourCard={isFourCard}
-                />
-              ))}
-            </div>
-          </section>
+          <SeatPanel
+            player={opp}
+            name={opponentDisplayName(opp.nickname)}
+            isFirst={gameData.firstId === opp.id}
+            fourCard={isFourCard}
+          />
+        )}
+
+        {/* 관전자 — 두 플레이어의 공개 카드(오픈한 카드만 앞면). 판 위아래에 한 사람씩 */}
+        {!me && seats[0] && !gameData.result && (
+          <SeatPanel
+            player={seats[0]}
+            name={seats[0].nickname}
+            isFirst={gameData.firstId === seats[0].id}
+            fourCard={isFourCard}
+          />
         )}
 
         {/* 가상 플레이어 6명 */}
@@ -326,6 +333,15 @@ function QuatroView({
           </section>
         )}
 
+        {!me && seats[1] && !gameData.result && (
+          <SeatPanel
+            player={seats[1]}
+            name={seats[1].nickname}
+            isFirst={gameData.firstId === seats[1].id}
+            fourCard={isFourCard}
+          />
+        )}
+
         {/* 결과 */}
         {gameData.result && (
           <section className="quatro-panel quatro-result rounded-cdm-lg border-cdm-primary bg-cdm-primary-soft/40 border-2 p-4">
@@ -356,6 +372,39 @@ function QuatroView({
         )}
       </div>
     </GameReferenceFrame>
+  );
+}
+
+/** 다른 사람의 패 한 줄 — 오픈한 카드만 앞면. 플레이어가 보는 상대 패 · 관전자가 보는 두 자리에 쓴다 */
+function SeatPanel({
+  player,
+  name,
+  isFirst,
+  fourCard,
+}: {
+  player: QuatroPlayerView;
+  name: string;
+  isFirst: boolean;
+  fourCard: boolean;
+}) {
+  return (
+    <section className="quatro-panel rounded-cdm-lg border-cdm-border bg-cdm-bg border p-1.5">
+      <div className="mb-1 flex items-center justify-between text-sm">
+        <span className="text-cdm-fg font-semibold">
+          {name}
+          {isFirst && (
+            <span className="bg-cdm-highlight/20 text-cdm-highlight ml-1.5 rounded px-1.5 text-[11px] font-bold">
+              선
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="flex gap-2 pt-1">
+        {player.hand.map((h, i) => (
+          <CardFace key={i} card={h.card} badge={h.open ? '공개' : undefined} fourCard={fourCard} />
+        ))}
+      </div>
+    </section>
   );
 }
 
