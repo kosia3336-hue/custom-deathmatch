@@ -435,6 +435,16 @@ import {
   getDoubleSidedPokerResultData,
 } from './games/double-sided-poker/index.js';
 import {
+  initEskimo,
+  handleEskimoAction,
+  cleanupEskimo,
+  getEskimoState,
+  emitEskimoStateToSocket,
+  performEskimoUndo,
+  canEskimoUndo,
+  getEskimoResultData,
+} from './games/eskimo/index.js';
+import {
   initMyeongchuri,
   handleMyeongchuriAction,
   cleanupMyeongchuri,
@@ -499,6 +509,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performDoubleSidedPokerUndo,
     canUndo: canDoubleSidedPokerUndo,
     getResultData: getDoubleSidedPokerResultData,
+  },
+  [GAME_IDS.ESKIMO]: {
+    init: initEskimo,
+    handleAction: handleEskimoAction,
+    cleanup: cleanupEskimo,
+    getState: getEskimoState,
+    emitStateToSocket: emitEskimoStateToSocket,
+    performUndo: performEskimoUndo,
+    canUndo: canEskimoUndo,
+    getResultData: getEskimoResultData,
   },
   [GAME_IDS.MYEONGCHURI]: {
     init: initMyeongchuri,

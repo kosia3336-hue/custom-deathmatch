@@ -37,6 +37,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.SEED_SEOTDA]: 'round',
   [GAME_IDS.DOUBLE_SIDED_POKER]: 'round',
   [GAME_IDS.MYEONGCHURI]: 'round',
+  [GAME_IDS.ESKIMO]: 'turn',
   [GAME_IDS.RING_THE_BELL]: 'event',
 } as const;
 

@@ -27,6 +27,7 @@ import ChoiceHoldemViewer from '@/components/archive/viewers/choice-holdem';
 import SeedSeotdaViewer from '@/components/archive/viewers/seed-seotda';
 import DoubleSidedPokerViewer from '@/components/archive/viewers/double-sided-poker';
 import MyeongchuriViewer from '@/components/archive/viewers/myeongchuri';
+import EskimoViewer from '@/components/archive/viewers/eskimo';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -52,6 +53,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.SEED_SEOTDA]: SeedSeotdaViewer,
   [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerViewer,
   [GAME_IDS.MYEONGCHURI]: MyeongchuriViewer,
+  [GAME_IDS.ESKIMO]: EskimoViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {

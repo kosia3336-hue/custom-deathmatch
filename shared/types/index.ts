@@ -136,6 +136,22 @@ export type {
   MyeongchuriSymbol,
   MyeongchuriTile,
 } from './myeongchuri';
+export {
+  ESKIMO_BEAR,
+  ESKIMO_BEAR_LOCK_TURNS,
+  ESKIMO_DEFAULT_TURN_SECONDS,
+  ESKIMO_SIZE,
+} from './eskimo';
+export type {
+  EskimoAction,
+  EskimoArchiveRecord,
+  EskimoBoard,
+  EskimoCell,
+  EskimoGameData,
+  EskimoLastAction,
+  EskimoPhase,
+  EskimoWinType,
+} from './eskimo';
 export type {
   SeedSeotdaAction,
   SeedSeotdaArchiveRecord,

@@ -40,6 +40,7 @@ import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
   MYEONGCHURI_DEFAULT_THINK_SECONDS,
 } from '@/shared/types/myeongchuri';
+import { ESKIMO_DEFAULT_TURN_SECONDS } from '@/shared/types/eskimo';
 
 const COUNTER_MATCH_MODE_ID = 'counter-match';
 
@@ -231,6 +232,12 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       setTimeLimitEnabled(true);
       setTimeLimitMin(Math.floor(MYEONGCHURI_DEFAULT_PICK_SECONDS / 60));
       setTimeLimitSec(MYEONGCHURI_DEFAULT_PICK_SECONDS % 60);
+    }
+    // 에스키모는 한 수 2분 안에 못 두면 진다 — 시간 제한을 2분으로 맞춘다
+    if (g.id === GAME_IDS.ESKIMO) {
+      setTimeLimitEnabled(true);
+      setTimeLimitMin(Math.floor(ESKIMO_DEFAULT_TURN_SECONDS / 60));
+      setTimeLimitSec(ESKIMO_DEFAULT_TURN_SECONDS % 60);
     }
     setError('');
   };
