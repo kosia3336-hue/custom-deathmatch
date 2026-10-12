@@ -176,7 +176,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
   const showsAbstractAiThinkTime =
     playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
-  const showsAbstractAiDifficulty = showsAbstractAiThinkTime;
+  // 에스키모 COM 은 고민 시간 없이 난이도(보통·어려움)만 고른다
+  const showsAbstractAiDifficulty =
+    showsAbstractAiThinkTime || (playMode === 'com' && selectedGame?.id === GAME_IDS.ESKIMO);
   const computedTimeLimit =
     canConfigureTimeLimit && timeLimitEnabled ? timeLimitMin * 60 + timeLimitSec : null;
 

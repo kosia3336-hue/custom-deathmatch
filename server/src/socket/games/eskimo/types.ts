@@ -1,3 +1,4 @@
+import type { AbstractAiDifficulty } from '@shared/types/game.js';
 import type { Player, PlayMode } from '@shared/types/room.js';
 import type {
   EskimoBoard,
@@ -35,6 +36,10 @@ export interface EskimoState {
   /** [선, 후] */
   players: [Player, Player];
   playMode: PlayMode;
+  aiDifficulty: AbstractAiDifficulty;
+  /** COM 이 읽기 시작할 때마다 올린다. 읽는 사이 판이 바뀌면 결과를 버리는 표시. */
+  aiTicket: number;
+  aiTimer: ReturnType<typeof setTimeout> | null;
   board: EskimoBoard;
   currentPlayerId: string;
   firstPlayerId: string;

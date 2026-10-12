@@ -1,5 +1,6 @@
 import { cloneEskimoBoard } from '@shared/logic/eskimo.js';
 import type { GameState } from '@shared/types/events.js';
+import { AI_PLAYER_ID } from '@shared/types/room.js';
 import type {
   EskimoArchiveRecord,
   EskimoGameData,
@@ -41,7 +42,8 @@ export function toEskimoGameData(state: EskimoState, viewerId: string | null): E
     winType: state.winType,
     winCells: state.winCells.map((cell) => ({ ...cell })),
     finishReason: state.finishReason,
-    turnStartedAt: state.gameOver ? null : state.turnStartedAt,
+    turnStartedAt:
+      state.gameOver || state.currentPlayerId === AI_PLAYER_ID ? null : state.turnStartedAt,
     timeLimitSeconds: state.timeLimitSeconds,
   };
 }
@@ -87,8 +89,10 @@ export function emitEskimoStateToSocket(socket: TypedSocket, roomId: string) {
 export function clearEskimoTimers(state: EskimoState) {
   if (state.turnTimer) clearTimeout(state.turnTimer);
   if (state.finishTimer) clearTimeout(state.finishTimer);
+  if (state.aiTimer) clearTimeout(state.aiTimer);
   state.turnTimer = null;
   state.finishTimer = null;
+  state.aiTimer = null;
 }
 
 export function toEskimoRecord(state: EskimoState): EskimoArchiveRecord {

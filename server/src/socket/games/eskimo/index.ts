@@ -15,7 +15,8 @@ import {
   type EskimoCell,
   type EskimoWinType,
 } from '@shared/types/eskimo.js';
-import type { Player, PlayMode } from '@shared/types/room.js';
+import { resolveAbstractAiDifficulty } from '@shared/types/game.js';
+import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
 import { sessions } from '../../../store/sessions.js';
 import type { IO, TypedSocket } from '../../types.js';
 import {
@@ -26,8 +27,11 @@ import {
   toEskimoRecord,
 } from './state.js';
 import type { EskimoEndGameFn, EskimoState } from './types.js';
+import { runEskimoAi, terminateEskimoAiWorker } from './ai-run.js';
 
 const FINISH_DISPLAY_MS = 3000;
+/** COM 이 두기 전 최소 뜸. 어려움은 읽는 시간이 이미 길어 거의 안 기다린다. */
+const AI_MIN_DELAY_MS = 700;
 
 const WIN_REASON: Record<EskimoWinType, string> = {
   surround: '북극곰의 사방을 막아',
@@ -48,6 +52,7 @@ function finishGame(
 ) {
   if (state.gameOver) return;
   clearEskimoTimers(state);
+  terminateEskimoAiWorker(state.roomId);
   const winner = state.players.find((player) => player.id === win.playerId)!;
   const loser = otherPlayer(state, win.playerId);
   state.gameOver = true;
@@ -77,6 +82,7 @@ function armTurnTimer(io: IO, state: EskimoState) {
   if (state.turnTimer) clearTimeout(state.turnTimer);
   state.turnTimer = null;
   if (!state.timeLimitSeconds || state.gameOver) return;
+  if (state.currentPlayerId === AI_PLAYER_ID) return;
   state.turnTimer = scheduleTurnExpiry(
     io,
     state,
@@ -109,6 +115,48 @@ function passTurnTo(io: IO, state: EskimoState, playerId: string) {
   }
   armTurnTimer(io, state);
   void broadcastEskimoState(io, state);
+  scheduleAi(io, state);
+}
+
+/**
+ * COM 차례면 수를 읽어 둔다. 읽는 동안 판이 바뀌었으면(무르기·종료) 결과를 버린다 —
+ * aiTicket 이 그 판을 가리킨다.
+ */
+function scheduleAi(io: IO, state: EskimoState) {
+  if (state.playMode !== 'com' || state.gameOver) return;
+  if (state.currentPlayerId !== AI_PLAYER_ID) return;
+  const ticket = (state.aiTicket += 1);
+  const startedAt = Date.now();
+  const input = {
+    board: cloneEskimoBoard(state.board),
+    firstPlayerId: state.firstPlayerId,
+    playerId: AI_PLAYER_ID,
+    bearLockTurns: state.bearLockTurns,
+    positions: [...state.positions],
+    difficulty: state.aiDifficulty,
+  };
+  const stale = () =>
+    eskimoStates.get(state.roomId) !== state ||
+    state.gameOver ||
+    state.aiTicket !== ticket ||
+    state.currentPlayerId !== AI_PLAYER_ID;
+  void runEskimoAi(state.roomId, input).then((result) => {
+    if (stale()) return;
+    const wait = Math.max(0, AI_MIN_DELAY_MS - (Date.now() - startedAt));
+    state.aiTimer = setTimeout(() => {
+      state.aiTimer = null;
+      if (stale()) return;
+      if (!result) {
+        finishGame(io, state, {
+          playerId: otherPlayer(state, AI_PLAYER_ID).id,
+          type: 'no-move',
+          cells: [],
+        });
+        return;
+      }
+      applyAction(io, state, AI_PLAYER_ID, result.action);
+    }, wait);
+  });
 }
 
 function validate(state: EskimoState, actorId: string, action: EskimoAction): string | null {
@@ -190,6 +238,7 @@ export function initEskimo(
   startedAt: number,
   timeLimitSeconds: number | null,
   endGameCallback: EskimoEndGameFn,
+  gameOptions: Record<string, unknown> = {},
 ) {
   const previous = eskimoStates.get(roomId);
   if (previous) clearEskimoTimers(previous);
@@ -200,6 +249,9 @@ export function initEskimo(
     roomId,
     players: [first, second],
     playMode,
+    aiDifficulty: resolveAbstractAiDifficulty(gameOptions.aiDifficulty),
+    aiTicket: 0,
+    aiTimer: null,
     board,
     currentPlayerId: first.id,
     firstPlayerId: first.id,
@@ -225,6 +277,7 @@ export function initEskimo(
   eskimoStates.set(roomId, state);
   armTurnTimer(io, state);
   void broadcastEskimoState(io, state);
+  scheduleAi(io, state);
 }
 
 export function handleEskimoAction(
@@ -236,7 +289,7 @@ export function handleEskimoAction(
   const state = eskimoStates.get(roomId);
   if (!state || state.gameOver) return;
   const actorId = sessions.getToken(socket.id) ?? socket.id;
-  if (!state.players.some((player) => player.id === actorId)) return;
+  if (actorId === AI_PLAYER_ID || !state.players.some((player) => player.id === actorId)) return;
   applyAction(io, state, actorId, rawData as unknown as EskimoAction, socket);
 }
 
@@ -244,6 +297,7 @@ export function cleanupEskimo(roomId: string) {
   const state = eskimoStates.get(roomId);
   if (state) clearEskimoTimers(state);
   eskimoStates.delete(roomId);
+  terminateEskimoAiWorker(roomId);
 }
 
 export function getEskimoState(roomId: string) {
@@ -256,14 +310,30 @@ export function getEskimoResultData(roomId: string) {
   return state ? toEskimoRecord(state) : undefined;
 }
 
-/** 1:1 무르기는 마지막 한 수를 되돌린다(상대 동의는 방 쪽에서 받는다). */
+/**
+ * 되돌아갈 스냅숏 위치. -1 이면 무를 수 없다.
+ * 1:1 은 마지막 한 수(상대 동의는 방 쪽에서 받는다), COM 판은 사람 차례가 될 때까지
+ * 되돌려 COM 의 수와 내 수를 함께 무른다.
+ */
+function undoTargetIndex(state: EskimoState) {
+  const stack = state.undoStack;
+  if (state.playMode !== 'com') return stack.length - 1;
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    if (stack[index].currentPlayerId !== AI_PLAYER_ID) return index;
+  }
+  return -1;
+}
+
 export function performEskimoUndo(io: IO, roomId: string) {
   const state = eskimoStates.get(roomId);
   if (!state || state.gameOver) return false;
-  const snapshot = state.undoStack.pop();
-  if (!snapshot) return false;
+  const target = undoTargetIndex(state);
+  if (target < 0) return false;
+  const snapshot = state.undoStack[target];
+  state.undoStack.length = target;
 
   clearEskimoTimers(state);
+  state.aiTicket += 1; // 읽던 COM 수는 버린다
   state.board = cloneEskimoBoard(snapshot.board);
   state.currentPlayerId = snapshot.currentPlayerId;
   state.turnNumber = snapshot.turnNumber;
@@ -275,12 +345,13 @@ export function performEskimoUndo(io: IO, roomId: string) {
 
   armTurnTimer(io, state);
   void broadcastEskimoState(io, state);
+  scheduleAi(io, state);
   return true;
 }
 
 export function canEskimoUndo(roomId: string) {
   const state = eskimoStates.get(roomId);
-  return Boolean(state && !state.gameOver && state.undoStack.length > 0);
+  return Boolean(state && !state.gameOver && undoTargetIndex(state) >= 0);
 }
 
 export { emitEskimoStateToSocket };
