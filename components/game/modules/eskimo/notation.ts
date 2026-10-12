@@ -14,8 +14,7 @@ export function eskimoMoveLabel(entry: EskimoLastAction) {
 
 export const ESKIMO_WIN_HINT: Record<string, string> = {
   surround: '북극곰 포위',
-  repetition: '반복수',
   timeout: '제한시간 초과',
-  'no-move': '둘 수 없음',
+  'no-move': '더 둘 수 있는 수 없음',
   forfeit: '기권',
 };

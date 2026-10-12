@@ -129,6 +129,28 @@ describe('에스키모 COM 수 읽기', () => {
     }
   });
 
+  it.each(['normal', 'hard'] as const)(
+    '%s: 남은 수가 전부 반복수면 둘 수가 없다(null)',
+    (difficulty) => {
+      const board = emptyBoard();
+      board[0][0] = AI_PLAYER_ID;
+      board[0][1] = HUMAN;
+      board[1][1] = HUMAN;
+      board[2][0] = HUMAN;
+      board[4][4] = ESKIMO_BEAR;
+      const after = applyEskimoAction(board, {
+        type: 'move',
+        from: { row: 0, col: 0 },
+        to: { row: 1, col: 0 },
+      });
+      const result = ai(board, difficulty, {
+        bearLockTurns: 2,
+        positions: [eskimoPositionKey(after, HUMAN)],
+      });
+      expect(result).toBeNull();
+    },
+  );
+
   it('어려움은 정해진 시간 안에 여러 수 깊이까지 읽는다', () => {
     const start = Date.now();
     const result = chooseEskimoAiAction({

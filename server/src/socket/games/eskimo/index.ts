@@ -6,14 +6,14 @@ import {
   createEskimoBoard,
   eskimoPositionKey,
   findEskimoSurround,
-  hasEskimoMove,
+  hasEskimoLegalMove,
+  isEskimoRepetition,
 } from '@shared/logic/eskimo.js';
 import {
   ESKIMO_BEAR,
   ESKIMO_BEAR_LOCK_TURNS,
   type EskimoAction,
   type EskimoCell,
-  type EskimoWinType,
 } from '@shared/types/eskimo.js';
 import { resolveAbstractAiDifficulty } from '@shared/types/game.js';
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
@@ -33,12 +33,12 @@ const FINISH_DISPLAY_MS = 3000;
 /** COM 이 두기 전 최소 뜸. 어려움은 읽는 시간이 이미 길어 거의 안 기다린다. */
 const AI_MIN_DELAY_MS = 700;
 
-const WIN_REASON: Record<EskimoWinType, string> = {
+/** 이 게임이 직접 끝내는 사유. 시간 초과는 공통 처리(gameTurnExpiry)가 맡는다. */
+type EskimoFinishType = 'surround' | 'no-move';
+
+const WIN_REASON: Record<EskimoFinishType, string> = {
   surround: '북극곰의 사방을 막아',
-  repetition: '상대가 이미 나왔던 판을 다시 만들어(반복수)',
-  timeout: '상대의 제한시간 초과로',
-  'no-move': '상대가 둘 수 있는 수가 없어',
-  forfeit: '상대의 기권으로',
+  'no-move': '상대가 더 둘 수 있는 수가 없어',
 };
 
 function otherPlayer(state: EskimoState, playerId: string) {
@@ -48,7 +48,7 @@ function otherPlayer(state: EskimoState, playerId: string) {
 function finishGame(
   io: IO,
   state: EskimoState,
-  win: { playerId: string; type: EskimoWinType; cells: EskimoCell[] },
+  win: { playerId: string; type: EskimoFinishType; cells: EskimoCell[] },
 ) {
   if (state.gameOver) return;
   clearEskimoTimers(state);
@@ -88,24 +88,29 @@ function armTurnTimer(io: IO, state: EskimoState) {
     state,
     'turnTimer',
     () => state.currentPlayerId,
-    () => {
-      if (eskimoStates.get(state.roomId) !== state || state.gameOver) return;
-      finishGame(io, state, {
-        playerId: otherPlayer(state, state.currentPlayerId).id,
-        type: 'timeout',
-        cells: [],
-      });
-    },
+    // 시간 초과 판정(랭크는 즉시 패배, 일반 방은 상대가 계속·종료 선택)은 공통 처리가 한다
+    () => {},
     state.timeLimitSeconds * 1000,
   );
 }
 
-/** 다음 차례로 넘긴다. 넘겨받은 쪽이 둘 수가 하나도 없으면 그대로 진다. */
+/**
+ * 다음 차례로 넘긴다. 넘겨받은 쪽이 둘 수 있는 수가 없으면 그대로 진다.
+ * 반복수는 금지 수라, 남은 수가 전부 반복수여도 '더 둘 수 있는 수가 없는' 것이다.
+ */
 function passTurnTo(io: IO, state: EskimoState, playerId: string) {
   state.currentPlayerId = playerId;
   state.turnNumber += 1;
   state.turnStartedAt = Date.now();
-  if (!hasEskimoMove(state.board, playerId, state.bearLockTurns > 0)) {
+  if (
+    !hasEskimoLegalMove(
+      state.board,
+      playerId,
+      state.bearLockTurns > 0,
+      state.firstPlayerId,
+      new Set(state.positions),
+    )
+  ) {
     finishGame(io, state, {
       playerId: otherPlayer(state, playerId).id,
       type: 'no-move',
@@ -162,7 +167,12 @@ function scheduleAi(io: IO, state: EskimoState) {
 function validate(state: EskimoState, actorId: string, action: EskimoAction): string | null {
   if (actorId !== state.currentPlayerId) return '상대 턴입니다.';
   if (!action || action.type !== 'move') return '알 수 없는 행동입니다.';
-  if (canEskimoMove(state.board, action, actorId, state.bearLockTurns > 0)) return null;
+  if (canEskimoMove(state.board, action, actorId, state.bearLockTurns > 0)) {
+    if (isEskimoRepetition(state.board, action, state.firstPlayerId, new Set(state.positions))) {
+      return '반복수는 둘 수 없습니다. 이전에 나온 판과 같아집니다.';
+    }
+    return null;
+  }
   const piece =
     action.from && Number.isInteger(action.from.row) && Number.isInteger(action.from.col)
       ? state.board[action.from.row]?.[action.from.col]
@@ -212,13 +222,8 @@ function applyAction(
   state.actionLog.push(entry);
 
   const opponent = otherPlayer(state, actorId);
-  // 반복수는 금지 수라 포위보다 먼저 본다 — 반복수로 포위를 만들어도 반칙패다
-  const key = eskimoPositionKey(state.board, state.firstPlayerId);
-  if (state.positions.includes(key)) {
-    finishGame(io, state, { playerId: opponent.id, type: 'repetition', cells: [] });
-    return true;
-  }
-  state.positions.push(key);
+  // 반복수는 validate 에서 이미 막았다
+  state.positions.push(eskimoPositionKey(state.board, state.firstPlayerId));
 
   const surround = findEskimoSurround(state.board);
   if (surround) {

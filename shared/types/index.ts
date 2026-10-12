@@ -139,7 +139,6 @@ export type {
 export {
   ESKIMO_BEAR,
   ESKIMO_BEAR_LOCK_TURNS,
-  ESKIMO_DEFAULT_TURN_SECONDS,
   ESKIMO_SIZE,
 } from './eskimo';
 export type {

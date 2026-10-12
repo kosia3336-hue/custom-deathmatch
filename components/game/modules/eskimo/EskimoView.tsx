@@ -15,7 +15,7 @@ import type { GameModuleViewProps } from '@/hooks/useGameModuleConnection';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import { cn } from '@/lib/utils';
-import { eskimoCellKey, eskimoMoveTargets } from '@/shared/logic/eskimo';
+import { eskimoCellKey, eskimoLegalTargets, eskimoMoveTargets } from '@/shared/logic/eskimo';
 import {
   ESKIMO_BEAR,
   ESKIMO_SIZE,
@@ -151,18 +151,32 @@ function PlaySurface({
     [subscribeError],
   );
 
+  /* 지금까지 나온 판 — 반복수가 되는 칸은 고를 수 없다(서버도 받지 않는다). */
+  const positions = useMemo(() => new Set(gameData.positions ?? []), [gameData.positions]);
+  const legalTargets = (from: EskimoCell) =>
+    eskimoLegalTargets(board, from, myId, bearLocked, firstPlayerId, positions);
   const targets = useMemo(
-    () => (source ? eskimoMoveTargets(board, source, myId, bearLocked) : []),
-    [board, bearLocked, myId, source],
+    () =>
+      source ? eskimoLegalTargets(board, source, myId, bearLocked, firstPlayerId, positions) : [],
+    [board, bearLocked, firstPlayerId, myId, positions, source],
   );
   const targetKeys = useMemo(() => new Set(targets.map(eskimoCellKey)), [targets]);
+  /* 미끄러져 닿긴 하지만 반복수라 막힌 칸 — 왜 못 가는지 ✕ 로 보여 준다. */
+  const repeatKeys = useMemo(() => {
+    if (!source) return new Set<string>();
+    return new Set(
+      eskimoMoveTargets(board, source, myId, bearLocked)
+        .map(eskimoCellKey)
+        .filter((key) => !targetKeys.has(key)),
+    );
+  }, [bearLocked, board, myId, source, targetKeys]);
   const winKeys = useMemo(() => new Set(gameData.winCells.map(eskimoCellKey)), [gameData.winCells]);
   const last = gameData.lastAction?.action ?? null;
 
   function canPick(cell: EskimoCell) {
     const piece = board[cell.row][cell.col];
     if (piece !== myId && piece !== ESKIMO_BEAR) return false;
-    return eskimoMoveTargets(board, cell, myId, bearLocked).length > 0;
+    return legalTargets(cell).length > 0;
   }
 
   function handleClick(cell: EskimoCell) {
@@ -247,6 +261,7 @@ function PlaySurface({
             const moving = slide != null && eskimoCellKey(slide.move.action.to) === key;
             const selected = source != null && eskimoCellKey(source) === key;
             const target = targetKeys.has(key);
+            const repeat = repeatKeys.has(key);
             const armed = target && placement.armed === key;
             const won = winKeys.has(key);
             const isLast =
@@ -258,11 +273,13 @@ function PlaySurface({
                 onClick={() => handleClick(cell)}
                 disabled={!active || (!target && !canPick(cell))}
                 aria-label={`${eskimoCellName(cell)} ${
-                  piece === null
-                    ? '빈칸'
-                    : piece === ESKIMO_BEAR
-                      ? '북극곰'
-                      : `${gameData.players[piece]?.nickname ?? ''}의 말`
+                  repeat
+                    ? '반복수라 둘 수 없음'
+                    : piece === null
+                      ? '빈칸'
+                      : piece === ESKIMO_BEAR
+                        ? '북극곰'
+                        : `${gameData.players[piece]?.nickname ?? ''}의 말`
                 }`}
                 tone="plain"
                 state={won ? 'highlight' : 'idle'}
@@ -303,6 +320,15 @@ function PlaySurface({
                       armed ? 'ring-cdm-success/30 ring-4' : 'opacity-80',
                     )}
                   />
+                )}
+                {repeat && (
+                  <span
+                    data-eskimo-repeat
+                    title="반복수라 둘 수 없습니다"
+                    className="text-cdm-accent pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm leading-none font-black opacity-80"
+                  >
+                    ✕
+                  </span>
                 )}
                 {isLast && !won && (
                   <span className="border-cdm-primary/60 pointer-events-none absolute inset-[6%] rounded-md border-2 border-dashed" />

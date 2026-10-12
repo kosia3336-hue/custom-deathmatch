@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createEskimoBoard, eskimoMoveTargets, findEskimoSurround } from '@shared/logic/eskimo.js';
+import {
+  applyEskimoAction,
+  createEskimoBoard,
+  eskimoMoveTargets,
+  eskimoPositionKey,
+  findEskimoSurround,
+} from '@shared/logic/eskimo.js';
 import { ESKIMO_BEAR, type EskimoBoard, type EskimoCell } from '@shared/types/eskimo.js';
 import type { Player } from '@shared/types/room.js';
 import type { IO, TypedSocket } from '../socket/types.js';
@@ -197,28 +203,53 @@ describe('에스키모 진행', () => {
     expect(state.winType).toBe('surround');
   });
 
-  it('이미 나왔던 판을 다시 만들면 그 수를 둔 쪽이 진다(반복수)', () => {
+  it('반복수(이미 나왔던 판)는 둘 수 없다 — 거부하고 차례는 그대로', () => {
     const { state } = start('es-repeat');
     move('es-repeat', A, cell(4, 0), cell(1, 0));
     move('es-repeat', B, cell(0, 4), cell(3, 4));
     move('es-repeat', A, cell(1, 0), cell(4, 0));
     expect(state.gameOver).toBe(false);
     // 후가 (3,4) 를 위로 밀면 (0,4) 로 돌아가 시작 판과 같아진다
-    move('es-repeat', B, cell(3, 4), cell(0, 4));
-    expect(state.gameOver).toBe(true);
-    expect(state.winnerId).toBe(A);
-    expect(state.winType).toBe('repetition');
+    const socket = move('es-repeat', B, cell(3, 4), cell(0, 4));
+    expect(socket.emit).toHaveBeenCalledWith('error', {
+      message: '반복수는 둘 수 없습니다. 이전에 나온 판과 같아집니다.',
+    });
+    expect(state.gameOver).toBe(false);
+    expect(state.currentPlayerId).toBe(B);
+    expect(state.board[3][4]).toBe(B);
+    expect(state.actionLog).toHaveLength(3);
   });
 
-  it('제한 시간 안에 두지 못하면 상대가 이긴다', () => {
-    vi.useFakeTimers();
-    const { state } = start('es-timeout', 120);
-    vi.advanceTimersByTime(119_000);
-    expect(state.gameOver).toBe(false);
-    vi.advanceTimersByTime(1_000);
+  it('남은 수가 전부 반복수면 더 둘 수 있는 수가 없어 진다', () => {
+    const { state } = start('es-only-repeat');
+    // 선(A)의 말은 (0,0) 하나, 갈 수 있는 곳은 (1,0) 뿐 — 북극곰은 잠겨 있다
+    const board = emptyBoard();
+    board[0][0] = A;
+    board[0][1] = B;
+    board[1][1] = B;
+    board[2][0] = B;
+    board[3][3] = B;
+    board[4][4] = ESKIMO_BEAR;
+    state.board = board;
+    state.currentPlayerId = B;
+    state.bearLockTurns = 3;
+    // 후가 (3,3)→(3,4) 로 둔 뒤 선이 (0,0)→(1,0) 으로 둔 판이 이미 나왔던 판이라고 둔다
+    const afterB = applyEskimoAction(board, { type: 'move', from: cell(3, 3), to: cell(3, 4) });
+    const afterA = applyEskimoAction(afterB, { type: 'move', from: cell(0, 0), to: cell(1, 0) });
+    state.positions.push(eskimoPositionKey(afterA, A));
+
+    move('es-only-repeat', B, cell(3, 3), cell(3, 4));
     expect(state.gameOver).toBe(true);
     expect(state.winnerId).toBe(B);
-    expect(state.winType).toBe('timeout');
+    expect(state.winType).toBe('no-move');
+  });
+
+  it('시간 초과는 공통 처리에 맡기고 게임이 직접 끝내지 않는다', () => {
+    vi.useFakeTimers();
+    const { state } = start('es-timeout', 120);
+    expect(state.turnTimer).not.toBeNull();
+    vi.advanceTimersByTime(121_000);
+    expect(state.gameOver).toBe(false);
   });
 
   it('무르기는 판·곰 잠금·반복수 기록을 한 수 전으로 돌린다', () => {

@@ -38,6 +38,7 @@ export function toEskimoGameData(state: EskimoState, viewerId: string | null): E
     bearLockTurns: state.bearLockTurns,
     lastAction: state.lastAction ? cloneAction(state.lastAction) : null,
     history: state.actionLog.map(cloneAction),
+    positions: [...state.positions],
     winnerId: state.winnerId,
     winType: state.winType,
     winCells: state.winCells.map((cell) => ({ ...cell })),

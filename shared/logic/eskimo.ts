@@ -173,3 +173,53 @@ export function eskimoPositionKey(board: EskimoBoard, firstPlayerId: string): st
   }
   return key;
 }
+
+/** 이 수를 두면 판 모양이 이전에 나온 판과 같아지는지(반복수). */
+export function isEskimoRepetition(
+  board: EskimoBoard,
+  action: EskimoAction,
+  firstPlayerId: string,
+  positions: ReadonlySet<string>,
+): boolean {
+  return positions.has(eskimoPositionKey(applyEskimoAction(board, action), firstPlayerId));
+}
+
+/**
+ * 실제로 둘 수 있는 도착점 — 갈 수 있는 칸에서 반복수가 되는 칸을 뺀다.
+ * 반복수는 금지 수라 서버도 받지 않고, 화면도 고를 수 없게 한다.
+ */
+export function eskimoLegalTargets(
+  board: EskimoBoard,
+  from: EskimoCell,
+  playerId: string,
+  bearLocked: boolean,
+  firstPlayerId: string,
+  positions: ReadonlySet<string>,
+): EskimoCell[] {
+  return eskimoMoveTargets(board, from, playerId, bearLocked).filter(
+    (to) => !isEskimoRepetition(board, { type: 'move', from, to }, firstPlayerId, positions),
+  );
+}
+
+/** 반복수가 아닌 수가 하나라도 있는지. 없으면 '더 둘 수 있는 수가 없어' 진다. */
+export function hasEskimoLegalMove(
+  board: EskimoBoard,
+  playerId: string,
+  bearLocked: boolean,
+  firstPlayerId: string,
+  positions: ReadonlySet<string>,
+): boolean {
+  for (let row = 0; row < ESKIMO_SIZE; row += 1) {
+    for (let col = 0; col < ESKIMO_SIZE; col += 1) {
+      const piece = board[row][col];
+      if (piece !== playerId && piece !== ESKIMO_BEAR) continue;
+      const from = { row, col };
+      if (
+        eskimoLegalTargets(board, from, playerId, bearLocked, firstPlayerId, positions).length > 0
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}

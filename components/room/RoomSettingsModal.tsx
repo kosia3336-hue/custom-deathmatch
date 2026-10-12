@@ -45,7 +45,6 @@ import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
   MYEONGCHURI_DEFAULT_THINK_SECONDS,
 } from '@/shared/types/myeongchuri';
-import { ESKIMO_DEFAULT_TURN_SECONDS } from '@/shared/types/eskimo';
 
 interface Props {
   open: boolean;
@@ -210,12 +209,6 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
       setTimeLimitEnabled(true);
       setTimeLimitMin(Math.floor(MYEONGCHURI_DEFAULT_PICK_SECONDS / 60));
       setTimeLimitSec(MYEONGCHURI_DEFAULT_PICK_SECONDS % 60);
-    }
-    // 에스키모로 바꾸면 한 수 제한 시간을 2분으로 맞춘다
-    if (g.id === GAME_IDS.ESKIMO && room.gameId !== GAME_IDS.ESKIMO) {
-      setTimeLimitEnabled(true);
-      setTimeLimitMin(Math.floor(ESKIMO_DEFAULT_TURN_SECONDS / 60));
-      setTimeLimitSec(ESKIMO_DEFAULT_TURN_SECONDS % 60);
     }
     setError('');
   };

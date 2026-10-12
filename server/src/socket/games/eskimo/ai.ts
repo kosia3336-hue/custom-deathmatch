@@ -10,7 +10,8 @@
  * · 어려움: 정해진 시간 동안 1수, 2수, 3수… 점점 깊게 읽어(반복 심화) 가장 깊이
  *   읽은 결과로 둔다. 워커 스레드에서 돌려 게임 서버를 멈추지 않는다.
  *
- * 반복수는 '그 판이 이전에 나왔는지' 라 지나온 길에 따라 결과가 달라진다. 그래서
+ * 반복수(이전에 나온 판을 다시 만드는 수)는 둘 수 없는 수로 빼고, 남은 수가 없으면
+ * 진 것으로 본다. 이 판정은 지나온 길에 따라 달라지므로
  * 전치표(transposition table)는 수 순서 정렬에만 쓰고 점수를 재사용하지 않는다.
  */
 import { ESKIMO_BEAR, ESKIMO_BEAR_LOCK_TURNS, ESKIMO_SIZE } from '@shared/types/eskimo.js';
@@ -352,8 +353,11 @@ function search(
     const key = pos.key();
     let score: number;
     if (ctx.seen.has(key)) {
-      score = -WIN + ply + 1; // 반복수 — 둔 쪽(나) 패
-    } else if (pos.surrounded()) {
+      // 반복수는 둘 수 없는 수다
+      pos.undo(m, prevLock);
+      continue;
+    }
+    if (pos.surrounded()) {
       score = WIN - ply - 1; // 포위 — 둔 쪽(나) 승
     } else {
       ctx.seen.add(key);
@@ -379,7 +383,9 @@ function search(
       break;
     }
   }
-  if (bestMove) ctx.bestMoveAt[pos.side].set(pos.key(), bestMove);
+  // 남은 수가 전부 반복수면 더 둘 수 있는 수가 없어 진다
+  if (!bestMove) return -WIN + ply;
+  ctx.bestMoveAt[pos.side].set(pos.key(), bestMove);
   return best;
 }
 
@@ -390,8 +396,7 @@ function scoreRoot(ctx: SearchContext, moves: Move[], depth: number): { m: Move;
     const prevLock = pos.play(m);
     const key = pos.key();
     let score: number;
-    if (ctx.seen.has(key)) score = -WIN + 1;
-    else if (pos.surrounded()) score = WIN - 1;
+    if (pos.surrounded()) score = WIN - 1;
     else {
       ctx.seen.add(key);
       score = -search(ctx, depth - 1, -Infinity, Infinity, 1);
@@ -426,7 +431,13 @@ export function chooseEskimoAiAction(input: EskimoAiInput): EskimoAiResult | nul
     if (key !== null) seen.add(key);
   }
   seen.add(pos.key());
-  const rootMoves = pos.moves();
+  // 반복수는 둘 수 없는 수라 처음부터 뺀다. 남는 수가 없으면 둘 수 있는 수가 없는 것이다.
+  const rootMoves = pos.moves().filter((m) => {
+    const prevLock = pos.play(m);
+    const repeated = seen.has(pos.key());
+    pos.undo(m, prevLock);
+    return !repeated;
+  });
   if (rootMoves.length === 0) return null;
 
   const ctx: SearchContext = {
@@ -471,8 +482,7 @@ export function chooseEskimoAiAction(input: EskimoAiInput): EskimoAiResult | nul
         const key = pos.key();
         let score: number;
         try {
-          if (seen.has(key)) score = -WIN + 1;
-          else if (pos.surrounded()) score = WIN - 1;
+          if (pos.surrounded()) score = WIN - 1;
           else {
             seen.add(key);
             try {
