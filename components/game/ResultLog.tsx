@@ -40,6 +40,7 @@ export default function ResultLog() {
   const gameResult = useRoomStore((s) => s.gameResult);
   const rankGameEnded = useRoomStore((s) => s.rankGameEnded);
   const room = useRoomStore((s) => s.room);
+  const chatRoomId = useRoomStore((s) => s.chatRoomId);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const { member } = useCurrentMember();
   const { setHeaderRight, setFooter } = useRoomLayout();
@@ -57,12 +58,10 @@ export default function ResultLog() {
 
   const isSuperAiRoom = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    isSuperAiRoom
-    || (
-      nickname === '천하'
-      && (room?.gameId === GAME_IDS.FOUR_GRAVITY || room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS)
-      && room?.playMode === 'solo'
-    );
+    isSuperAiRoom ||
+    (nickname === '천하' &&
+      (room?.gameId === GAME_IDS.FOUR_GRAVITY || room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS) &&
+      room?.playMode === 'solo');
 
   const handleLobby = useCallback(() => {
     getSocket().emit('game:leave');
@@ -123,22 +122,24 @@ export default function ResultLog() {
       router.push(`/room/${room?.id}/play`);
     };
     socket.on('game:state', handleGameState);
-    return () => { socket.off('game:state', handleGameState); };
+    return () => {
+      socket.off('game:state', handleGameState);
+    };
   }, [isSpecialSolo, room?.id, router]);
 
   useEffect(() => {
     const showRankRequeue =
-      !!gameResult
-      && gameResult.isRanked === true
-      && room?.isRanked === true
-      && room.playMode === 'multi'
-      && !isSpectator
-      && !!member;
+      !!gameResult &&
+      gameResult.isRanked === true &&
+      room?.isRanked === true &&
+      room.playMode === 'multi' &&
+      !isSpectator &&
+      !!member;
 
     setFooter(
       <>
         {!cancelled && (
-          <span className="mr-auto inline-flex items-center gap-1 text-xs text-cdm-fg-muted">
+          <span className="text-cdm-fg-muted mr-auto inline-flex items-center gap-1 text-xs">
             <Countdown seconds={AUTO_LEAVE_SEC} onComplete={handleLobby} format="mm:ss" />
             <span>후 자동 이동</span>
           </span>
@@ -146,7 +147,9 @@ export default function ResultLog() {
         {isSpecialSolo && (
           <Button
             variant="secondary"
-            onClick={() => { getSocket().emit('game:undo:request'); }}
+            onClick={() => {
+              getSocket().emit('game:undo:request');
+            }}
           >
             무르기
           </Button>
@@ -168,7 +171,9 @@ export default function ResultLog() {
           </Button>
         )}
         {!room?.isRanked && <Button onClick={handleRematch}>다시하기</Button>}
-        <Button variant="secondary" onClick={handleLobby}>로비로</Button>
+        <Button variant="secondary" onClick={handleLobby}>
+          로비로
+        </Button>
       </>,
     );
     return () => setFooter(null);
@@ -337,10 +342,10 @@ export default function ResultLog() {
       ) : null}
 
       {/* 결과 채팅 (멀티 모드만) */}
-      {room?.playMode === 'multi' && (
+      {(room?.playMode === 'multi' || (!room && chatRoomId === gameResult.roomId)) && (
         <Card className="mt-6">
-          <h2 className="mb-2 text-sm font-semibold text-cdm-fg">결과 채팅</h2>
-          <RoomChat scope="room" />
+          <h2 className="text-cdm-fg mb-2 text-sm font-semibold">결과 채팅</h2>
+          <RoomChat scope="room" readOnly={!room} />
         </Card>
       )}
     </div>

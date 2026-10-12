@@ -1,34 +1,7 @@
 .artwork {
-  --token-face: var(--cdm-primary);
-  --token-face-light: color-mix(in srgb, var(--cdm-primary) 65%, var(--cdm-bg));
-  --token-edge: var(--cdm-primary-strong);
-  --token-edge-dark: color-mix(in srgb, var(--cdm-primary-strong) 75%, var(--cdm-fg));
-  --token-engraving: color-mix(in srgb, var(--cdm-bg) 40%, transparent);
-  --token-symbol: var(--cdm-fg-inverse);
-
   display: block;
   width: 100%;
   height: 100%;
-  overflow: visible;
-}
-
-.artwork[data-tone='highlight'] {
-  --token-face: var(--cdm-highlight);
-  --token-face-light: color-mix(in srgb, var(--cdm-highlight) 55%, var(--cdm-bg));
-  --token-edge: var(--cdm-highlight-strong);
-  --token-edge-dark: color-mix(in srgb, var(--cdm-highlight-strong) 75%, var(--cdm-fg));
-  --token-symbol: var(--cdm-fg);
-}
-
-.artwork[data-tone='bear'] {
-  --token-face: var(--cdm-bg-elev-2);
-  --token-face-light: var(--cdm-bg);
-  --token-edge: var(--cdm-border-strong);
-  --token-edge-dark: var(--cdm-fg-subtle);
-  --token-engraving: var(--cdm-border-strong);
-}
-
-.shadow {
-  fill: var(--cdm-fg);
-  opacity: 0.16;
+  object-fit: contain;
+  user-select: none;
 }

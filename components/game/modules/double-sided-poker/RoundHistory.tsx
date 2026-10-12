@@ -1,6 +1,5 @@
 'use client';
 
-import { PlayingCard } from '@/components/game/cards';
 import type { DoubleSidedPokerRoundResult } from '@/shared/types/double-sided-poker';
 import { SELECTION_LABEL } from './presentation';
 
@@ -28,28 +27,26 @@ export function RoundHistory({
               ? '무승부'
               : `${players[round.winnerId ?? '']?.nickname ?? '상대'} 승리`}
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex min-w-0 flex-col gap-2">
             {Object.entries(round.cards)
               .sort(([a], [b]) => Number(b === myId) - Number(a === myId))
               .map(([id, card]) => (
-                <div key={id}>
-                  <p className="mb-1 truncate">
+                <div key={id} className="min-w-0">
+                  <p className="break-words">
                     {players[id]?.nickname ?? '상대'}
                     {id === myId && ' (나)'} ·{' '}
                     {round.selections[id] ? SELECTION_LABEL[round.selections[id]!] : '다이'}
                   </p>
-                  <div className="flex gap-1">
-                    <PlayingCard value={card.front} face="front" size="sm" />
-                    {card.back != null ? (
-                      <PlayingCard value={card.back} face="back" size="sm" />
-                    ) : (
-                      <span
-                        className="border-cdm-border bg-cdm-bg-elev-2 flex aspect-[60/83] w-10 items-center justify-center rounded border"
-                        aria-label="비공개 뒷면"
-                      >
-                        ?
-                      </span>
-                    )}
+                  <div className="text-cdm-fg-muted flex flex-wrap gap-x-3 gap-y-1 tabular-nums">
+                    <span>
+                      앞면 <b className="text-cdm-fg">{card.front}</b>
+                    </span>
+                    <span>
+                      뒷면 <b className="text-cdm-fg">{card.back ?? '비공개'}</b>
+                    </span>
+                    <span>
+                      {round.chipCountsAfter[id] != null ? `${round.chipCountsAfter[id]}칩` : ''}
+                    </span>
                   </div>
                 </div>
               ))}

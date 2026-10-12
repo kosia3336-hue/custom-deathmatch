@@ -24,6 +24,7 @@ interface RoomState {
   /** 랭크 매치 종료 시 본인 전용 `rank:game:ended` (티어 배지·RP 세부 등 기획 페이로드) */
   rankGameEnded: RankGameEndedPayload | null;
   messages: ChatMessage[];
+  chatRoomId: string | null;
   lastSeenMsgCount: number;
   countdown: number | null;
   isSpectator: boolean;
@@ -35,6 +36,7 @@ interface RoomState {
   setGameResult: (result: GameResult | null) => void;
   setRankGameEnded: (payload: RankGameEndedPayload | null) => void;
   addMessage: (msg: ChatMessage) => void;
+  beginRoomChat: (roomId: string) => void;
   clearMessages: () => void;
   clearChatUnread: () => void;
   setCountdown: (n: number | null) => void;
@@ -58,12 +60,20 @@ export const useRoomStore = create<RoomState>((set) => ({
   gameResult: null,
   rankGameEnded: null,
   messages: [],
+  chatRoomId: null,
   lastSeenMsgCount: 0,
   countdown: null,
   isSpectator: false,
   reconnectingPlayers: [],
 
-  setRoom: (room) => set(s => ({ room, timeExpiry: s.room?.id === room?.id ? s.timeExpiry : null })),
+  setRoom: (room) =>
+    set((s) => ({
+      room,
+      timeExpiry: s.room?.id === room?.id ? s.timeExpiry : null,
+      ...(room && s.chatRoomId !== room.id
+        ? { chatRoomId: room.id, messages: [], lastSeenMsgCount: 0 }
+        : {}),
+    })),
   setGameState: (state) => set({ gameState: state }),
   setGameResult: (result) =>
     set((s) => ({
@@ -77,7 +87,24 @@ export const useRoomStore = create<RoomState>((set) => ({
             : null,
     })),
   setRankGameEnded: (payload) => set({ rankGameEnded: payload }),
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages.slice(-199), msg] })),
+  beginRoomChat: (roomId) =>
+    set((s) =>
+      s.chatRoomId === roomId
+        ? s
+        : {
+            chatRoomId: roomId,
+            messages: [],
+            lastSeenMsgCount: 0,
+          },
+    ),
+  addMessage: (msg) =>
+    set((s) =>
+      s.messages.some((m) => m.id === msg.id)
+        ? s
+        : {
+            messages: [...s.messages, msg],
+          },
+    ),
   clearMessages: () => set({ messages: [], lastSeenMsgCount: 0 }),
   clearChatUnread: () => set((s) => ({ lastSeenMsgCount: s.messages.length })),
   setCountdown: (n) => set({ countdown: n }),
@@ -118,9 +145,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       return {
         room: {
           ...s.room,
-          players: s.room.players.map((p) =>
-            p.id === playerId ? { ...p, isReady: ready } : p,
-          ),
+          players: s.room.players.map((p) => (p.id === playerId ? { ...p, isReady: ready } : p)),
         },
       };
     }),
@@ -151,6 +176,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       gameResult: null,
       rankGameEnded: null,
       messages: [],
+      chatRoomId: null,
       lastSeenMsgCount: 0,
       countdown: null,
       isSpectator: false,

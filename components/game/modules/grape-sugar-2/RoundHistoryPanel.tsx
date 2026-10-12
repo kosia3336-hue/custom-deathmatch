@@ -16,8 +16,11 @@ export function RoundHistoryPanel({
   const orderedSides: GS2Side[] = mySide === 'p2' ? ['p2', 'p1'] : ['p1', 'p2'];
 
   return (
-    <div className={candy ? 'skin-candy-board' : 'rounded-xl border border-gray-200 bg-white'}>
-      <div className="space-y-1.5 border-t border-gray-100 p-2">
+    <div
+      data-panel-inset
+      className={candy ? 'skin-candy-board' : 'rounded-xl border border-gray-200 bg-white'}
+    >
+      <div data-panel-inset className="space-y-1.5 border-t border-gray-100 p-2">
         {history.length === 0 ? (
           <p className="py-6 text-center text-xs text-gray-400">아직 기록이 없습니다</p>
         ) : (

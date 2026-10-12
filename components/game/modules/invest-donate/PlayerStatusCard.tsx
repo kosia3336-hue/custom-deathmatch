@@ -27,7 +27,7 @@ export default function PlayerStatusCard({ players, roundHistory, myId, isSpecta
   );
 
   return (
-    <div className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
+    <div data-panel-inset className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
       {pIds.map((pid, idx) => {
         const p = players[pid];
         const isMe = !isSpectator && pid === myId;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
@@ -41,6 +41,7 @@ export function BottomSheet({
   children,
   className,
   bodyClassName,
+  keyboardAware = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -51,6 +52,8 @@ export function BottomSheet({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** 채팅처럼 키보드를 사용하는 시트는 실제 보이는 화면 안에 맞춘다. */
+  keyboardAware?: boolean;
 }) {
   /*
     한 번도 안 열었으면 아무것도 만들지 않는다. 한 번 열고 나면 그대로 둔다 —
@@ -60,7 +63,40 @@ export function BottomSheet({
     effect 로 미루면 한 프레임 늦게 열려 시트가 튀어 오른다.
   */
   const [everOpened, setEverOpened] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
   if (open && !everOpened) setEverOpened(true);
+
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!open) {
+      if (
+        sheet?.contains(document.activeElement) &&
+        document.activeElement instanceof HTMLElement
+      ) {
+        document.activeElement.blur();
+      }
+      return;
+    }
+    if (!keyboardAware || !sheet) return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const fitViewport = () => {
+      sheet.style.bottom = `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`;
+      sheet.style.maxHeight = `${viewport.height * 0.8}px`;
+      sheet.style.setProperty('--sheet-viewport-height', `${viewport.height}px`);
+    };
+    fitViewport();
+    viewport.addEventListener('resize', fitViewport);
+    viewport.addEventListener('scroll', fitViewport);
+    return () => {
+      viewport.removeEventListener('resize', fitViewport);
+      viewport.removeEventListener('scroll', fitViewport);
+      // 숨겨진 입력창의 포커스가 키보드를 유지하거나 시트를 다시 스크롤하지 않게 한다.
+      if (sheet.contains(document.activeElement) && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    };
+  }, [open, keyboardAware]);
 
   /* 시트가 열려 있는 동안 뒤 화면이 따라 스크롤되지 않게 한다. */
   useEffect(() => {
@@ -97,10 +133,12 @@ export function BottomSheet({
       />
 
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         aria-hidden={!open}
+        inert={!open}
         className={cn(
           'fixed inset-x-0 bottom-0 z-(--cdm-z-modal) mx-auto flex max-h-[80dvh] w-full max-w-2xl',
           'border-cdm-border bg-cdm-bg flex-col rounded-t-2xl border-t shadow-(--cdm-shadow-md)',

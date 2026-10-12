@@ -10,7 +10,6 @@ import GameLoading from '@/components/game/GameLoading';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAbstractStrategyMoveSfx } from '@/hooks/useAbstractStrategyMoveSfx';
-import { cn } from '@/lib/utils';
 import {
   canMoveTripleGomokuStone,
   canPlaceTripleGomokuSetup,
@@ -23,8 +22,7 @@ import {
 import type { TripleGomokuCell, TripleGomokuGameData } from '@/shared/types/triple-gomoku';
 import { TripleGomokuBoardView, type TripleGomokuCellMark } from './BoardView';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
-import { GamePiece3D, usePlacementConfirm } from '@/components/game/abstract-strategy';
+import { GamePiece3D, PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
 
 const WIN_HINT: Record<string, string> = {
   line: '오목 완성',
@@ -95,7 +93,6 @@ function PlaySurface({
   const { setHud, setHeaderBelow } = useRoomLayout();
   const setup = gameData.phase === 'setup';
   const reserve = gameData.reserves[seatId] ?? 0;
-  const sidePanel = <TripleGomokuSidePanel gameData={gameData} myId={myId} />;
 
   useEffect(() => {
     setHud({
@@ -252,7 +249,29 @@ function PlaySurface({
 
   return (
     <>
-      <GameReferenceFrame reference={sidePanel}>
+      <GameReferenceFrame
+        info={
+          <PlayerStrip
+            entries={Object.entries(gameData.players)
+              .sort(
+                ([a], [b]) =>
+                  Number(b === gameData.firstPlayerId) - Number(a === gameData.firstPlayerId),
+              )
+              .map(([playerId, player]) => ({
+                id: playerId,
+                name: player.nickname,
+                isMe: playerId === myId,
+                marker: (
+                  <GamePiece3D
+                    tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'}
+                  />
+                ),
+                active: !finished && gameData.currentPlayerId === playerId,
+                detail: `${playerId === gameData.firstPlayerId ? '선' : '후'} · 돌 ${gameData.reserves[playerId] ?? 0}`,
+              }))}
+          />
+        }
+      >
         <TripleGomokuBoardView
           board={gameData.board}
           firstPlayerId={gameData.firstPlayerId}
@@ -267,49 +286,6 @@ function PlaySurface({
         />
       </GameReferenceFrame>
     </>
-  );
-}
-
-function TripleGomokuSidePanel({
-  gameData,
-  myId,
-}: {
-  gameData: TripleGomokuGameData;
-  myId: string;
-}) {
-  return (
-    <GameInfoStack>
-      <GameInfoPart title="플레이어" kind="score" sizeToContent>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(gameData.players)
-            .sort(([a], [b]) => Number(b === myId) - Number(a === myId))
-            .map(([playerId, player]) => (
-              <div
-                key={playerId}
-                className={cn(
-                  'flex flex-wrap items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm',
-                  gameData.currentPlayerId === playerId && gameData.phase !== 'finished'
-                    ? 'bg-cdm-primary-soft text-cdm-primary'
-                    : 'text-cdm-fg bg-cdm-bg-elev-1',
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2 font-semibold">
-                  <span className="block h-3.5 w-3.5 shrink-0">
-                    <GamePiece3D
-                      tone={playerId === gameData.firstPlayerId ? 'primary' : 'highlight'}
-                    />
-                  </span>
-                  {player.nickname}
-                  {playerId === myId ? ' (나)' : ''}
-                </span>
-                <span className="font-black tabular-nums">
-                  돌 {gameData.reserves[playerId] ?? 0}
-                </span>
-              </div>
-            ))}
-        </div>
-      </GameInfoPart>
-    </GameInfoStack>
   );
 }
 

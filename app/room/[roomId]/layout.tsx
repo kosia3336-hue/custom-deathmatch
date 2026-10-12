@@ -1,7 +1,8 @@
 'use client';
 
 import { ReactNode, useState, useCallback, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
+import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
 import { useDockState } from '@/hooks/useDockState';
 import { ROOM_CHAT_DOCK_ID } from '@/components/room/RoomChatDockPanel';
@@ -13,6 +14,9 @@ import { useMySocketId } from '@/hooks/useMySocketId';
 import { rankedRoomMatchup } from '@/lib/rankedRoomTitle';
 
 export default function RoomLayout({ children }: { children: ReactNode }) {
+  const params = useParams();
+  // 단계별 페이지가 교체되어도 방 이벤트와 채팅 구독은 유지한다.
+  useRoom(typeof params.roomId === 'string' ? params.roomId : null);
   const room = useRoomStore((s) => s.room);
   const myId = useMySocketId();
 

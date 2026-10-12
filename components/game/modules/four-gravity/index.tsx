@@ -14,7 +14,6 @@ import { getSkinTheme } from '@/lib/skins/registry';
 import Board from './Board';
 import GravitySelector from './GravitySelector';
 import PhaseIndicator from './PhaseIndicator';
-import InfoPanel from './InfoPanel';
 import Modal from '@/components/ui/Modal';
 import { GameFrame, fitBoardWidth } from '@/components/game/GameFrame';
 import Button from '@/components/ui/Button';
@@ -194,7 +193,7 @@ export default function FourGravityGame() {
       </Modal>
       <GameFrame
         info={
-          <div className="lg:hidden">
+          <div className="flex flex-col gap-1.5">
             <PlayerStrip
               entries={(['black', 'white'] as const).map((color) => {
                 const player = gameData.players[color];
@@ -207,17 +206,15 @@ export default function FourGravityGame() {
                       className={`ring-cdm-border-strong h-3.5 w-3.5 rounded-full ring-1 ${STONE_COLOR_CLASS[color]}`}
                     />
                   ),
-                  detail: `돌 ${player.stoneCount}`,
+                  detail: `${color === 'black' ? '선' : '후'} · 돌 ${player.stoneCount}`,
                   active: !gameData.winner && gameData.currentColor === color,
                 };
               })}
-              extra={
-                <>
-                  중립 {gameData.neutralCount}
-                  {gameData.lastGravity ? ` · 금지 ${DIR_LABEL[gameData.lastGravity]}` : ''}
-                </>
-              }
             />
+            <p className="text-cdm-fg-muted text-center text-[11px]">
+              중립 {gameData.neutralCount}
+              {gameData.lastGravity ? ` · 금지 ${DIR_LABEL[gameData.lastGravity]}` : ''}
+            </p>
           </div>
         }
         controls={
@@ -258,7 +255,6 @@ export default function FourGravityGame() {
             )}
           </div>
         }
-        aside={<FourGravitySidePanel gameData={gameData} />}
       >
         <Board
           board={gameData.board}
@@ -277,16 +273,5 @@ export default function FourGravityGame() {
         />
       </GameFrame>
     </>
-  );
-}
-
-function FourGravitySidePanel({ gameData }: { gameData: FourGravityGameData }) {
-  return (
-    <InfoPanel
-      players={gameData.players}
-      currentColor={gameData.currentColor}
-      neutralCount={gameData.neutralCount}
-      lastGravity={gameData.lastGravity}
-    />
   );
 }

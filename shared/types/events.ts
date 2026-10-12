@@ -6,7 +6,6 @@ import type {
   PlayMode,
   DisplayedTitle,
   GuildMark,
-  TurnOrderMode,
 } from './room';
 import type { RankMatchedPayload, RankTier } from './rank';
 import type {
@@ -92,6 +91,8 @@ export interface ChatMessage {
   message: string;
   scope: ChatScope;
   isSystem: boolean;
+  /** 개인 설정에서 숨길 수 있는 관전자 입·퇴장 시스템 알림. */
+  systemEvent?: 'spectator_join' | 'spectator_leave';
   timestamp: number;
   /** v2 — 발신자의 표시 칭호 (보유자만) */
   senderTitle?: DisplayedTitle | null;

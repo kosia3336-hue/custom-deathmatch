@@ -88,7 +88,13 @@ export function GameInfoPart({
                 <SplitReferenceContext.Provider value={false}>
                   <ReferenceToneContext.Provider value={tone}>
                     <div className={inheritedClass}>
-                      <GameInfoPart className={className}>{children}</GameInfoPart>
+                      {/* PC 창의 테두리·제목·본문 여백은 DockablePanel이 한 번만 만든다. */}
+                      <div
+                        data-panel-content
+                        className={cn('game-info-content min-w-0', className)}
+                      >
+                        {children}
+                      </div>
                     </div>
                   </ReferenceToneContext.Provider>
                 </SplitReferenceContext.Provider>

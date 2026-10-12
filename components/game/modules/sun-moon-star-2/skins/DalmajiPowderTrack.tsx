@@ -44,7 +44,7 @@ export default function DalmajiPowderTrack({
   chipsInLabel = false,
 }: Props) {
   return (
-    <div className="skin-dalmaji-track">
+    <div data-panel-inset className="skin-dalmaji-track">
       <div className="flex items-center gap-1 pb-1">
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-[#f0d078]">
           {chipsInLabel ? (

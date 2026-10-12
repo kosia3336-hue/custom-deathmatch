@@ -173,7 +173,7 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
                           value={reason}
                           onChange={(e) => setReason(e.target.value)}
                           placeholder="삭제 사유 (3자 이상)"
-                          className="text-xs"
+                          className="text-[16px]"
                         />
                         <div className="flex gap-1.5">
                           <Button

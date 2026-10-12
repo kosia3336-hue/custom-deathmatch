@@ -18,6 +18,7 @@ import Modal from '@/components/ui/Modal';
 import { useRoomChatUnread } from '@/hooks/useRoomChatUnread';
 import RoomInfoSheet, { InfoRow } from '@/components/room/RoomInfoSheet';
 import { SoundSettings } from '@/components/cdm/SoundSettings';
+import ChatNotificationSettings from '@/components/room/ChatNotificationSettings';
 import { TimeExpiryModal } from './TimeExpiryModal';
 import { BottomSheet } from '@/components/cdm/BottomSheet';
 import { Icon, UnreadBadge } from '@/components/cdm';
@@ -178,13 +179,7 @@ export default function GameShell({ children }: Props) {
   const order = isGuildWar ? hud?.order : (hud?.order ?? getGameStatus(gameState, myId));
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
-    setHeaderLeft(
-      <GameHudLeft
-        round={round}
-        order={order}
-        onOpenInfo={() => setShowInfo(true)}
-      />,
-    );
+    setHeaderLeft(<GameHudLeft round={round} order={order} onOpenInfo={() => setShowInfo(true)} />);
     return () => setHeaderLeft(null);
   }, [setHeaderLeft, round, order]);
 
@@ -373,6 +368,7 @@ export default function GameShell({ children }: Props) {
         className={gamePanelSkinClass(skinTheme, true)}
       >
         <SoundSettings className="py-3" />
+        <ChatNotificationSettings />
         <ul className="divide-cdm-border divide-y">
           {!showRulesShortcut && !isBanPick && (
             <SettingRow

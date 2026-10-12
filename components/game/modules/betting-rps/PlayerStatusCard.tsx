@@ -16,7 +16,11 @@ export default function PlayerStatusCard({ players, myId, round, isSpectator }: 
   );
 
   return (
-    <div data-brps-status className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2">
+    <div
+      data-brps-status
+      data-panel-inset
+      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2"
+    >
       {pIds.map((pid, idx) => {
         const p = players[pid];
         const isMe = !isSpectator && pid === myId;

@@ -1,28 +1,32 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { getSocket, getOrCreateSessionToken } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
 import { useLobbyChatStore } from '@/stores/lobbyChat';
 import type { GameTimeExpiry } from '@/shared/types/events';
-import type { Room, Player, ChatMessage, GameState, GameResult, RankGameEndedPayload } from '@/shared/types';
+import type {
+  Room,
+  Player,
+  ChatMessage,
+  GameState,
+  GameResult,
+  RankGameEndedPayload,
+} from '@/shared/types';
 
-export function useRoom(roomId: string) {
-  const mountedRef = useRef(false);
-
+export function useRoom(roomId: string | null) {
   useEffect(() => {
-    if (mountedRef.current) return;
-    mountedRef.current = true;
-
-    useRoomStore.getState().clearMessages();
+    if (!roomId) return;
+    useRoomStore.getState().beginRoomChat(roomId);
     // 방 진입 시 로비 채팅도 초기화 (방어적 — useLobby/RankVsOverlay에서 이미 처리되지만,
     // 새로고침으로 직접 /room/[id] 진입한 경우를 커버)
     useLobbyChatStore.getState().clearAll();
-  }, []);
+  }, [roomId]);
 
   useEffect(() => {
+    if (!roomId) return;
     const socket = getSocket();
 
     const onRoomState = (room: Room) => {
@@ -33,17 +37,33 @@ export function useRoom(roomId: string) {
       useRoomStore.getState().setSpectator(isSpectator);
     };
     const onPlayerJoined = (player: Player) => useRoomStore.getState().addPlayer(player);
-    const onPlayerLeft = ({ playerId, nickname, newHostId }: { playerId: string; nickname: string; newHostId?: string }) => {
+    const onPlayerLeft = ({
+      playerId,
+      nickname,
+      newHostId,
+    }: {
+      playerId: string;
+      nickname: string;
+      newHostId?: string;
+    }) => {
       useRoomStore.getState().removePlayer(playerId);
       if (newHostId) useRoomStore.getState().setHost(newHostId);
       toast.info(`${nickname} 님이 나갔습니다.`);
     };
-    const onPlayerReady = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, true);
-    const onPlayerUnready = ({ playerId }: { playerId: string }) => useRoomStore.getState().setPlayerReady(playerId, false);
-    const onPlayerKicked = ({ playerId }: { playerId: string }) => useRoomStore.getState().removePlayer(playerId);
-    const onHostChanged = ({ newHostId }: { newHostId: string }) => useRoomStore.getState().setHost(newHostId);
-    const onCountdown = ({ count }: { count: number }) => useRoomStore.getState().setCountdown(count);
-    const onGameStarted = () => { useRoomStore.getState().setCountdown(null); useRoomStore.getState().setTimeExpiry(null); };
+    const onPlayerReady = ({ playerId }: { playerId: string }) =>
+      useRoomStore.getState().setPlayerReady(playerId, true);
+    const onPlayerUnready = ({ playerId }: { playerId: string }) =>
+      useRoomStore.getState().setPlayerReady(playerId, false);
+    const onPlayerKicked = ({ playerId }: { playerId: string }) =>
+      useRoomStore.getState().removePlayer(playerId);
+    const onHostChanged = ({ newHostId }: { newHostId: string }) =>
+      useRoomStore.getState().setHost(newHostId);
+    const onCountdown = ({ count }: { count: number }) =>
+      useRoomStore.getState().setCountdown(count);
+    const onGameStarted = () => {
+      useRoomStore.getState().setCountdown(null);
+      useRoomStore.getState().setTimeExpiry(null);
+    };
     const onSettingsUpdated = (room: Room) => useRoomStore.getState().updateSettings(room);
     const onDisbanded = () => {
       const s = useRoomStore.getState();
@@ -66,7 +86,9 @@ export function useRoom(roomId: string) {
       if (state.roomId !== roomId) return;
       useRoomStore.getState().setGameState(state);
     };
-    const onGameEnded = (result: GameResult) => { useRoomStore.getState().setGameResult(result); };
+    const onGameEnded = (result: GameResult) => {
+      useRoomStore.getState().setGameResult(result);
+    };
     const onTimeExpiry = (value: GameTimeExpiry | null) => {
       if (value && value.roomId !== roomId) return;
       useRoomStore.getState().setTimeExpiry(value);
@@ -79,10 +101,24 @@ export function useRoom(roomId: string) {
     };
 
     // 재연결 관련 핸들러
-    const onPlayerReconnecting = ({ playerId, nickname, secondsLeft }: { playerId: string; nickname: string; secondsLeft: number }) => {
+    const onPlayerReconnecting = ({
+      playerId,
+      nickname,
+      secondsLeft,
+    }: {
+      playerId: string;
+      nickname: string;
+      secondsLeft: number;
+    }) => {
       useRoomStore.getState().addReconnectingPlayer({ playerId, nickname, secondsLeft });
     };
-    const onPlayerReconnected = ({ playerId, nickname }: { playerId: string; nickname: string }) => {
+    const onPlayerReconnected = ({
+      playerId,
+      nickname,
+    }: {
+      playerId: string;
+      nickname: string;
+    }) => {
       useRoomStore.getState().removeReconnectingPlayer(playerId);
       toast.success(`${nickname} 님이 재연결되었습니다.`);
     };
@@ -136,11 +172,4 @@ export function useRoom(roomId: string) {
       socket.off('session:restored', onSessionRestored);
     };
   }, [roomId]);
-
-  return {
-    room: useRoomStore((s) => s.room),
-    gameState: useRoomStore((s) => s.gameState),
-    gameResult: useRoomStore((s) => s.gameResult),
-    countdown: useRoomStore((s) => s.countdown),
-  };
 }

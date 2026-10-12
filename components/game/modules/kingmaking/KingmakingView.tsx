@@ -21,11 +21,11 @@ import {
   Board3D,
   BoardCellButton3D,
   GamePiece3D,
+  PlayerStrip,
   usePlacementConfirm,
 } from '@/components/game/abstract-strategy';
 import { StackVisual } from './StackVisual';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart, GameInfoStack } from '@/components/game/GameInfoPart';
 import SpringRainFieldFx from './skins/SpringRainFieldFx';
 
 const MOVE_LABELS = ['한 칸 직선', '룩', '나이트', '비숍', '퀸'];
@@ -91,7 +91,6 @@ function KingmakingBoard({
     isPlayer && (isSolo || gameData.currentPlayerId === myId) && gameData.phase === 'playing';
   const myReserve = gameData.reserves[seatId] ?? { normal: 0, special: 0 };
   const canPlay = isMyTurn;
-  const sidePanel = <KingmakingSidePanel gameData={gameData} myId={myId} springRain={springRain} />;
 
   useEffect(() => {
     setHud({
@@ -173,7 +172,31 @@ function KingmakingBoard({
     <>
       <GameReferenceFrame
         className={springRain ? 'skin-spring-rain-field' : undefined}
-        reference={sidePanel}
+        info={
+          <PlayerStrip
+            entries={Object.entries(gameData.players)
+              .sort(
+                ([a], [b]) =>
+                  Number(b === gameData.firstPlayerId) - Number(a === gameData.firstPlayerId),
+              )
+              .map(([playerId, player]) => {
+                const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
+                return {
+                  id: playerId,
+                  name: player.nickname,
+                  isMe: playerId === myId,
+                  marker: (
+                    <GamePiece3D
+                      tone={playerIds.indexOf(playerId) === 0 ? 'primary' : 'highlight'}
+                    />
+                  ),
+                  active: !finished && gameData.currentPlayerId === playerId,
+                  detail: playerId === gameData.firstPlayerId ? '선' : '후',
+                  secondaryDetail: `일반 ${reserve.normal} · 특수 ${reserve.special}`,
+                };
+              })}
+          />
+        }
       >
         {springRain && <SpringRainFieldFx />}
         <div
@@ -296,58 +319,6 @@ function KingmakingBoard({
         )}
       </GameReferenceFrame>
     </>
-  );
-}
-
-function KingmakingSidePanel({
-  gameData,
-  myId,
-  springRain,
-}: {
-  gameData: KingmakingGameData;
-  myId: string;
-  springRain: boolean;
-}) {
-  return (
-    <GameInfoStack className={springRain ? 'skin-spring-rain-side' : undefined}>
-      <GameInfoPart title="남은 말" kind="score" sizeToContent>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(gameData.players)
-            .sort(([a], [b]) => Number(b === myId) - Number(a === myId))
-            .map(([playerId, player]) => {
-              const reserve = gameData.reserves[playerId] ?? { normal: 0, special: 0 };
-              return (
-                <div
-                  key={playerId}
-                  className={cn(
-                    'rounded-md px-2.5 py-2',
-                    gameData.currentPlayerId === playerId && gameData.phase === 'playing'
-                      ? 'bg-cdm-primary/20'
-                      : 'bg-cdm-bg-elev-1',
-                  )}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span className="flex min-w-0 items-center gap-2 font-semibold">
-                      <span className="block h-3.5 w-3.5 shrink-0">
-                        <GamePiece3D
-                          tone={
-                            Object.keys(gameData.players)[0] === playerId ? 'primary' : 'highlight'
-                          }
-                        />
-                      </span>
-                      {player.nickname}
-                      {playerId === myId ? ' (나)' : ''}
-                    </span>
-                    <span className="shrink-0 text-xs font-bold tabular-nums">
-                      일반 {reserve.normal} · 특수 {reserve.special}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </GameInfoPart>
-    </GameInfoStack>
   );
 }
 

@@ -1,0 +1,83 @@
+/* 페이지의 핑크 테마와 독립적으로 판 표면은 흰색을 유지한다. */
+.board,
+.turnPalette {
+  --cdm-primary: #d94783;
+  --cdm-primary-soft: #fce1ec;
+}
+
+.board {
+  --cdm-bg: var(--cdm-fg-inverse);
+  --cdm-bg-elev-1: var(--cdm-fg-inverse);
+  --cdm-bg-elev-2: var(--cdm-fg-inverse);
+  --cdm-bg-elev-3: color-mix(in srgb, var(--cdm-fg-inverse) 92%, var(--cdm-fg));
+  --cdm-border: color-mix(in srgb, var(--cdm-fg-inverse) 86%, var(--cdm-fg));
+  --cdm-border-strong: color-mix(in srgb, var(--cdm-fg-inverse) 76%, var(--cdm-fg));
+}
+
+.grid {
+  --eskimo-cell-gap: clamp(0.12rem, 0.5vw, 0.25rem);
+  gap: var(--eskimo-cell-gap) !important;
+}
+
+.playerStrip {
+  border-radius: 0;
+}
+
+.movingCell {
+  z-index: 3;
+}
+
+.piecePosition {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.activePiece {
+  filter: drop-shadow(0 0 5px var(--cdm-primary));
+}
+
+.bearMeter {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 0 3px;
+}
+
+.bearSegment {
+  width: 16px;
+  height: 12px;
+  border: 1.5px solid color-mix(in srgb, var(--cdm-primary) 40%, transparent);
+  transform: skewX(-20deg);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.bearSegment[data-filled='true'] {
+  border-color: var(--cdm-primary);
+  background: var(--cdm-primary);
+}
+
+.sliding {
+  will-change: transform;
+  animation: slide-piece var(--slide-duration) cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes slide-piece {
+  from {
+    transform: translate(
+      calc(var(--slide-x) * (100% + var(--eskimo-cell-gap))),
+      calc(var(--slide-y) * (100% + var(--eskimo-cell-gap)))
+    );
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sliding {
+    animation-duration: 0.01ms;
+  }
+}

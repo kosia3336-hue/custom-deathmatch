@@ -130,7 +130,7 @@ export function WaitingRoomChatContent({
   const id = useId();
   useEffect(() => {
     if (!active || channels.channel !== 'lobby') return;
-    const timer = setTimeout(() => lobbyInputRef.current?.focus(), 50);
+    const timer = setTimeout(() => lobbyInputRef.current?.focus({ preventScroll: true }), 50);
     return () => clearTimeout(timer);
   }, [active, channels.channel]);
   return (

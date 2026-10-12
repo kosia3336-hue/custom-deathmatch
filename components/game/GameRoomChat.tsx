@@ -113,12 +113,13 @@ export function GameChatSheet({
       open={open}
       onClose={onClose}
       title="방 채팅"
+      keyboardAware
       headerTitle={channels.channel === 'room' ? '방 채팅' : '길드 채팅'}
       headerRight={<GameRoomChatActions channels={channels} active={open} skin={skin} />}
       bodyClassName="px-0"
       className={gamePanelSkinClass(skin, true)}
     >
-      <div className="flex h-[52dvh] flex-col">
+      <div className="flex h-[calc(var(--sheet-viewport-height,100dvh)*0.52)] min-h-0 flex-col">
         <GameRoomChatBody channels={channels} onSend={onSend} />
       </div>
     </BottomSheet>

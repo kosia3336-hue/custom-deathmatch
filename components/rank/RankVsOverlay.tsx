@@ -10,11 +10,21 @@ import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { playRankMatchBellSfx } from '@/lib/audio/synth/general';
 import { RANK_VS_NAV_SEC, RANK_VS_SEC, RankVsView } from '@/components/rank/RankVsView';
-import type { GameResult, RankGameEndedPayload } from '@/shared/types';
+import type { ChatMessage, GameResult, RankGameEndedPayload } from '@/shared/types';
 
 function leaveVsToPlay(roomId: string, push: (href: string) => void) {
   useLobbyChatStore.getState().clearAll();
-  useRoomStore.getState().reset();
+  const state = useRoomStore.getState();
+  if (state.room && state.room.id !== roomId) {
+    // 이전 방 상태를 정리해도 VS 화면에서 이미 받은 새 방 채팅은 보존한다.
+    const chat =
+      state.chatRoomId === roomId
+        ? { chatRoomId: roomId, messages: state.messages, lastSeenMsgCount: state.lastSeenMsgCount }
+        : null;
+    state.reset();
+    if (chat) useRoomStore.setState(chat);
+  }
+  state.beginRoomChat(roomId);
   push(`/room/${roomId}/play`);
   useRankMatchStore.getState().clearMatched();
 }
@@ -61,6 +71,10 @@ export function RankVsOverlay() {
     const socket = getSocket();
     const roomId = matched.roomId;
     const isCounter = matched.hiddenMatch === true;
+    useRoomStore.getState().beginRoomChat(roomId);
+    const onChatMessage = (msg: ChatMessage) => {
+      if (msg.scope === 'room' || msg.scope === 'game') useRoomStore.getState().addMessage(msg);
+    };
 
     const onRankEnded = (payload: RankGameEndedPayload) => {
       if (payload.roomId !== roomId) return;
@@ -94,28 +108,33 @@ export function RankVsOverlay() {
     };
 
     socket.on('rank:game:ended', onRankEnded);
+    socket.on('chat:message', onChatMessage);
     socket.on('game:ended', onEnded);
     socket.on('room:disbanded', onDisbanded);
     if (isCounter) socket.on('room:game:started', onGameStarted);
 
     const stuck = isCounter
-      ? setTimeout(() => {
-          const live = useRankMatchStore.getState().matched;
-          if (!live || live.roomId !== roomId) return;
-          const stored = useRoomStore.getState().gameResult;
-          if (stored?.roomId === roomId) {
-            leaveVsToResult(roomId, router.push);
-            return;
-          }
-          toast.error('게임을 시작하지 못했습니다.');
-          useRankMatchStore.getState().clearMatched();
-          useRoomStore.getState().reset();
-          router.push('/lobby');
-        }, (RANK_VS_NAV_SEC + 8) * 1000)
+      ? setTimeout(
+          () => {
+            const live = useRankMatchStore.getState().matched;
+            if (!live || live.roomId !== roomId) return;
+            const stored = useRoomStore.getState().gameResult;
+            if (stored?.roomId === roomId) {
+              leaveVsToResult(roomId, router.push);
+              return;
+            }
+            toast.error('게임을 시작하지 못했습니다.');
+            useRankMatchStore.getState().clearMatched();
+            useRoomStore.getState().reset();
+            router.push('/lobby');
+          },
+          (RANK_VS_NAV_SEC + 8) * 1000,
+        )
       : null;
 
     return () => {
       socket.off('rank:game:ended', onRankEnded);
+      socket.off('chat:message', onChatMessage);
       socket.off('game:ended', onEnded);
       socket.off('room:disbanded', onDisbanded);
       if (isCounter) socket.off('room:game:started', onGameStarted);

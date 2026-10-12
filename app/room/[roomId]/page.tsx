@@ -17,7 +17,6 @@ import InviteButton from '@/components/room/InviteButton';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
-import { useRoom } from '@/hooks/useRoom';
 import { useMySocketId } from '@/hooks/useMySocketId';
 import { useNicknameStore } from '@/stores/nickname';
 import { isCheonhaNickname } from '@/shared/cheonha';
@@ -49,7 +48,8 @@ export default function WaitingRoomPage() {
   const roomId = params.roomId as string;
   const inviteToken = searchParams.get('invite');
 
-  const { room, countdown } = useRoom(roomId);
+  const room = useRoomStore((s) => s.room);
+  const countdown = useRoomStore((s) => s.countdown);
   const myId = useMySocketId();
   const requireNickname = useNicknameStore((s) => s.requireNickname);
   const { setHeaderRight, setFooterHidden } = useRoomLayout();

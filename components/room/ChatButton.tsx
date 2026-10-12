@@ -45,11 +45,12 @@ function RoomChatSheet({
       open={open}
       onClose={onClose}
       title="방 채팅"
+      keyboardAware
       headerTitle={<WaitingRoomChatTitle channels={channels} />}
       bodyClassName="px-0"
       headerRight={<WaitingRoomChatActions channels={channels} />}
     >
-      <div className="flex h-[52dvh] flex-col">
+      <div className="flex h-[calc(var(--sheet-viewport-height,100dvh)*0.52)] min-h-0 flex-col">
         <WaitingRoomChatContent scope={scope} active={open} channels={channels} />
       </div>
     </BottomSheet>

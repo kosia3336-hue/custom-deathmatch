@@ -94,7 +94,10 @@ export default function PowderTrack({
   chipsInLabel = false,
 }: Props) {
   return (
-    <div className="space-y-1 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+    <div
+      data-panel-inset
+      className="space-y-1 rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+    >
       {/* 상단 플레이어 라벨 + 선 표시 */}
       <div className="flex items-center gap-1 pb-1">
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs font-semibold text-indigo-600">

@@ -11,7 +11,7 @@ interface Props {
 
 export default function OpponentInferPanel({ opponentNickname, opponentCoinStock }: Props) {
   return (
-    <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3">
+    <div data-panel-inset className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold tracking-wide text-gray-400">
           {opponentNickname} 남은 코인

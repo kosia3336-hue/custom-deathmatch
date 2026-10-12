@@ -40,7 +40,6 @@ import BankGame from '@/components/game/modules/bank-game';
 import BanPickGame from '@/components/game/modules/ban-pick';
 import CounterBanGame from '@/components/game/modules/counter-ban';
 import GameModulePlaceholder from '@/components/game/GameModulePlaceholder';
-import { useRoom } from '@/hooks/useRoom';
 import { useRoomStore } from '@/stores/room';
 import { getSocket } from '@/lib/socket';
 import { GAME_IDS } from '@/shared/types';
@@ -84,7 +83,7 @@ export default function PlayPage() {
   const router = useRouter();
   const roomId = params.roomId as string;
 
-  const { gameResult } = useRoom(roomId);
+  const gameResult = useRoomStore((s) => s.gameResult);
   const gameState = useRoomStore((s) => s.gameState);
   const gameId = useRoomStore((s) => s.room?.gameId);
   const roomId_ = useRoomStore((s) => s.room?.id);
@@ -135,7 +134,8 @@ export default function PlayPage() {
         // 밴픽·카운터 밴픽은 game:state 대신 전용 이벤트로 화면을 초기화한다.
         // 모듈을 먼저 마운트해야 해당 이벤트를 구독하고 game:sync를 요청할 수 있다.
         if (!gameId || roomId_ !== roomId) return <GameLoading />;
-        if (gameId !== GAME_IDS.BAN_PICK && (!gameState || gameState.roomId !== roomId)) return <GameLoading />;
+        if (gameId !== GAME_IDS.BAN_PICK && (!gameState || gameState.roomId !== roomId))
+          return <GameLoading />;
         return GameModule ? <GameModule /> : <GameModulePlaceholder />;
       })()}
     </GameShell>

@@ -463,14 +463,15 @@ function GuildNameEditor({
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
-          <TextInput
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            maxLength={20}
-            fullWidth={false}
-            className="h-8 w-[180px] text-sm"
-            autoFocus
-          />
+          <div className="min-w-0 max-w-[180px] flex-1">
+            <TextInput
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={20}
+              className="h-8 min-w-0 w-full text-[16px]"
+              autoFocus
+            />
+          </div>
           <Button
             size="sm"
             disabled={busy || !nameValid || draft.trim() === g.name}

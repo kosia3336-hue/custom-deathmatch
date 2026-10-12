@@ -30,6 +30,7 @@ export default function TileTracker({
   return (
     <section
       aria-label={`R${round} 타일 추리`}
+      data-panel-inset
       className={`border-cdm-border text-cdm-fg rounded-xl border px-3 py-2 ${skin === 'duality' ? 'skin-duality-tracker !text-slate-200' : 'bg-cdm-bg-elev-1'}`}
     >
       <div className="text-cdm-fg-muted mb-2 flex flex-wrap items-start justify-between gap-2 text-[11px]">

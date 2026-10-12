@@ -148,6 +148,14 @@
   height: auto;
   overflow: visible;
 }
+/* 도킹 창 안의 전체 내용 래퍼는 외곽을 반복하지 않는다. 입력·기록 행의 구분선은 유지한다. */
+.body :global([data-panel-inset]) {
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
 /* 채팅은 목록만 스크롤하고 입력/전송은 항상 본문 아래에 남는다. */
 .body.resizable {
   flex-shrink: 0;

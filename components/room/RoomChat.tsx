@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
+import { useSpectatorNotifications } from '@/hooks/useSpectatorNotifications';
+import { isChatMessageVisible } from '@/lib/chatSettings';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
@@ -19,6 +21,7 @@ interface Props {
   scrollClassName?: string;
   /** 개발 미리보기에서는 네트워크 전송 대신 로컬 메시지를 추가한다. */
   onSend?: (message: string, scope: ChatScope) => void;
+  readOnly?: boolean;
 }
 
 /**
@@ -27,31 +30,45 @@ interface Props {
  *  - 관전자 👁️ 마크
  *  - 시스템 메시지는 텍스트만
  */
-export default function RoomChat({ scope, scrollClassName, onSend }: Props) {
+export default function RoomChat({ scope, scrollClassName, onSend, readOnly }: Props) {
   return (
     <div className="rounded-cdm-lg border-cdm-border bg-cdm-bg flex flex-col border">
-      <RoomChatBody scope={scope} scrollClassName={scrollClassName} onSend={onSend} />
+      <RoomChatBody
+        scope={scope}
+        scrollClassName={scrollClassName}
+        onSend={onSend}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
 
 /** 공용 메시지·입력 본문. 대기실 채널창과 인게임 방 채팅에서 공유한다. */
-export function RoomChatBody({ scope, scrollClassName, onSend }: Props) {
+export function RoomChatBody({ scope, scrollClassName, onSend, readOnly = false }: Props) {
   const allMessages = useRoomStore((s) => s.messages);
+  const spectatorNotifications = useSpectatorNotifications();
   const messages = useMemo(() => {
-    if (scope === 'guild_war') return allMessages.filter((m) => m.scope === 'guild_war');
-    return allMessages.filter((m) => m.scope === 'room' || m.scope === 'game');
-  }, [allMessages, scope]);
+    return allMessages.filter(
+      (m) =>
+        (scope === 'guild_war'
+          ? m.scope === 'guild_war'
+          : m.scope === 'room' || m.scope === 'game') &&
+        isChatMessageVisible(m, spectatorNotifications),
+    );
+  }, [allMessages, scope, spectatorNotifications]);
   const spectators = useRoomStore((s) => s.room?.spectators ?? EMPTY_SPECTATORS);
   const nickname = useNicknameStore((s) => s.nickname);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const followingLatest = useRef(true);
   const [reportTarget, setReportTarget] = useState<{ memberId: string; nickname: string } | null>(
     null,
   );
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (followingLatest.current) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'auto' });
+    }
   }, [messages]);
 
   const send = () => {
@@ -65,8 +82,12 @@ export function RoomChatBody({ scope, scrollClassName, onSend }: Props) {
     <>
       <div
         ref={scrollRef}
+        onScroll={(e) => {
+          const node = e.currentTarget;
+          followingLatest.current = node.scrollHeight - node.scrollTop - node.clientHeight < 32;
+        }}
         className={cn(
-          'max-h-[280px] min-h-[120px] flex-1 space-y-2 overflow-y-auto p-4',
+          'max-h-[280px] min-h-[120px] flex-1 space-y-2 overflow-y-auto overscroll-contain p-4',
           scrollClassName,
         )}
       >
@@ -85,20 +106,22 @@ export function RoomChatBody({ scope, scrollClassName, onSend }: Props) {
           </p>
         )}
       </div>
-      <div className="border-cdm-border flex shrink-0 gap-2 border-t p-3">
-        {/* iOS 는 16px 미만 입력칸에 포커스하면 화면을 확대한다 — 좁은 화면은 16px(text-base) */}
-        <input
-          className="rounded-cdm-md border-cdm-border bg-cdm-bg focus:border-cdm-primary placeholder:text-cdm-fg-subtle min-w-0 flex-1 border px-3 py-2 text-base md:text-sm outline-none"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder={scope === 'guild_war' ? '같은 길드에게만 보입니다' : '메시지 입력...'}
-          maxLength={200}
-        />
-        <Button size="sm" onClick={send} className="shrink-0">
-          전송
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="border-cdm-border flex shrink-0 gap-2 border-t p-3">
+          {/* 루트 글꼴 크기와 무관하게 16px을 유지해 iOS 입력 포커스 확대를 막는다. */}
+          <input
+            className="rounded-cdm-md border-cdm-border bg-cdm-bg focus:border-cdm-primary placeholder:text-cdm-fg-subtle min-w-0 flex-1 border px-3 py-2 text-[16px] outline-none"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && send()}
+            placeholder={scope === 'guild_war' ? '같은 길드에게만 보입니다' : '메시지 입력...'}
+            maxLength={200}
+          />
+          <Button size="sm" onClick={send} className="shrink-0">
+            전송
+          </Button>
+        </div>
+      )}
 
       <ReportModal
         open={!!reportTarget}

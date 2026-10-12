@@ -20,13 +20,11 @@ import { getSkinTheme } from '@/lib/skins/registry';
 import Button from '@/components/ui/Button';
 import Board from './Board';
 import PrisonerBar from './PrisonerBar';
-import InfoPanel from './InfoPanel';
 import { PlayerStrip, usePlacementConfirm } from '@/components/game/abstract-strategy';
 import { OWNER_COLOR } from './constants';
 import { WIN_TYPE_TOAST_LABEL } from './constants';
 import { getValidMoves, getValidPrisonerPlacements } from './boardUtils';
 import { useRoomLayout } from '@/contexts/RoomLayoutContext';
-import { GameInfoPart } from '@/components/game/GameInfoPart';
 
 export default function DoubleSidedChessGame() {
   const gameState = useRoomStore((s) => s.gameState);
@@ -41,16 +39,15 @@ export default function DoubleSidedChessGame() {
 
   const isSuperAiSolo = isSuperAiGameOptions(room?.gameOptions);
   const isSpecialSolo =
-    isSuperAiSolo
-    || (
-      nickname === '천하'
-      && room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS
-      && room?.playMode === 'solo'
-    );
+    isSuperAiSolo ||
+    (nickname === '천하' &&
+      room?.gameId === GAME_IDS.DOUBLE_SIDED_CHESS &&
+      room?.playMode === 'solo');
 
-  const isAIMode = isSpecialSolo && !!gameData && (
-    gameData.players.first.id === 'AI' || gameData.players.second.id === 'AI'
-  );
+  const isAIMode =
+    isSpecialSolo &&
+    !!gameData &&
+    (gameData.players.first.id === 'AI' || gameData.players.second.id === 'AI');
 
   const myId = useMySocketId();
   const { setHud } = useRoomLayout();
@@ -72,7 +69,6 @@ export default function DoubleSidedChessGame() {
     setHud({
       round: `${turnNumber}턴`,
       order: gameData.winner ? '종료' : isMyTurn ? '내 차례' : '상대 차례',
-      memo: <DoubleSidedChessSidePanel gameData={gameData} />,
     });
     return () => setHud(null);
   }, [gameData, isMyTurn, setHud, turnNumber]);
@@ -232,13 +228,15 @@ export default function DoubleSidedChessGame() {
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="flex flex-1 flex-col items-center gap-1 p-2 lg:p-4">
           <div className="w-full max-w-2xl shrink-0">
-            <div className="lg:hidden">
+            <div>
               <PlayerStrip
-                entries={(['second', 'first'] as const).map((owner) => ({
+                desktopVisible
+                entries={(['first', 'second'] as const).map((owner) => ({
                   id: owner,
                   name: gameData.players[owner].nickname,
                   isMe: myOwner === owner,
                   marker: <span className={`h-3.5 w-3.5 rounded-full ${OWNER_COLOR[owner].bg}`} />,
+                  detail: owner === 'first' ? '선' : '후',
                   active: !gameData.winner && gameData.currentOwner === owner,
                 }))}
               />
@@ -306,13 +304,5 @@ export default function DoubleSidedChessGame() {
         </div>
       </div>
     </div>
-  );
-}
-
-function DoubleSidedChessSidePanel({ gameData }: { gameData: DoubleSidedChessGameData }) {
-  return (
-    <GameInfoPart title="플레이어" sizeToContent>
-      <InfoPanel players={gameData.players} currentOwner={gameData.currentOwner} />
-    </GameInfoPart>
   );
 }

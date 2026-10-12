@@ -22,7 +22,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
   return (
     <div className={cn('flex flex-col gap-1', fullWidth && 'w-full')}>
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-cdm-fg">
+        <label htmlFor={inputId} className="text-cdm-fg text-sm font-medium">
           {label}
         </label>
       )}
@@ -30,13 +30,12 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
         ref={ref}
         id={inputId}
         aria-invalid={error ? true : undefined}
-        aria-describedby={
-          error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
-        }
+        aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
         className={cn(
-          'h-10 rounded-cdm-md border bg-cdm-bg px-3 text-sm text-cdm-fg placeholder:text-cdm-fg-subtle',
+          // iPhone 입력 포커스 자동 확대를 피하도록 루트 크기와 무관하게 16px을 유지한다.
+          'rounded-cdm-md bg-cdm-bg text-cdm-fg placeholder:text-cdm-fg-subtle h-10 border px-3 text-[16px]',
           'transition-colors focus:outline-none focus-visible:[box-shadow:var(--cdm-ring-primary)]',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'disabled:cursor-not-allowed disabled:opacity-50',
           error
             ? 'border-cdm-accent focus:border-cdm-accent'
             : success
@@ -47,11 +46,11 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
         {...rest}
       />
       {error ? (
-        <p id={`${inputId}-error`} className="text-xs text-cdm-accent">
+        <p id={`${inputId}-error`} className="text-cdm-accent text-xs">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${inputId}-hint`} className="text-xs text-cdm-fg-muted">
+        <p id={`${inputId}-hint`} className="text-cdm-fg-muted text-xs">
           {hint}
         </p>
       ) : null}

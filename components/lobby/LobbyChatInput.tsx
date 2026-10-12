@@ -24,7 +24,7 @@ export const LobbyChatInput = forwardRef<HTMLInputElement>((_props, ref) => {
 
   if (!nickname) {
     return (
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-cdm-border bg-cdm-bg-elev-1 px-4 py-3 text-xs text-cdm-fg-muted">
+      <div className="border-cdm-border bg-cdm-bg-elev-1 text-cdm-fg-muted flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3 text-xs">
         <span>로그인 후 채팅에 참여할 수 있습니다.</span>
         <Button size="sm" variant="primary" onClick={() => requireNickname(() => undefined)}>
           로그인
@@ -34,11 +34,11 @@ export const LobbyChatInput = forwardRef<HTMLInputElement>((_props, ref) => {
   }
 
   return (
-    <div className="flex shrink-0 gap-2 border-t border-cdm-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      {/* iOS 는 16px 미만 입력칸에 포커스하면 화면을 확대한다 — 좁은 화면은 16px(text-base) */}
+    <div className="border-cdm-border flex shrink-0 gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* iOS 는 16px 미만 입력칸에 포커스하면 화면을 확대한다 — 좁은 화면은 16px(text-[16px]) */}
       <input
         ref={ref}
-        className="min-w-0 flex-1 rounded-cdm-md border border-cdm-border bg-cdm-bg px-3 py-2 text-base md:text-sm outline-none focus:border-cdm-primary placeholder:text-cdm-fg-subtle"
+        className="rounded-cdm-md border-cdm-border bg-cdm-bg focus:border-cdm-primary placeholder:text-cdm-fg-subtle min-w-0 flex-1 border px-3 py-2 text-[16px] outline-none"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {

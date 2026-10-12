@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { Player, PlayMode } from '@shared/types/room.js';
+import type { ChatMessage } from '@shared/types/events.js';
 import {
   AI_PLAYER_ID,
   PLAY_MODE_LABEL,
@@ -135,7 +136,12 @@ function supportsPlayMode(
   return gameSupportsPlayMode(game, playMode);
 }
 
-function emitRoomSystemMessage(io: IO, roomId: string, message: string): void {
+function emitRoomSystemMessage(
+  io: IO,
+  roomId: string,
+  message: string,
+  systemEvent?: ChatMessage['systemEvent'],
+): void {
   io.to(socketRoom(roomId)).emit('chat:message', {
     id: uuid(),
     sender: 'system',
@@ -143,6 +149,7 @@ function emitRoomSystemMessage(io: IO, roomId: string, message: string): void {
     message,
     scope: 'room',
     isSystem: true,
+    ...(systemEvent ? { systemEvent } : {}),
     timestamp: Date.now(),
   });
 }
@@ -788,7 +795,8 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     }
 
     const spectator = makePlayer(socket, false);
-    roomStore.addSpectator(roomId, spectator);
+    const alreadySpectating = room.spectators.some((p) => p.id === spectator.id);
+    if (!alreadySpectating) roomStore.addSpectator(roomId, spectator);
     // v2.2: 방 안에서도 로비 채팅/접속자 현황을 받도록 LOBBY_ROOM 을 유지한다(더 이상 leave 안 함).
     socket.join(socketRoom(roomId));
     sessions.setRoom(socket.id, roomId);
@@ -797,6 +805,14 @@ export function registerRoomHandlers(io: IO, socket: TypedSocket) {
     callback({ success: true, room: stateForSender });
     sendRoomState(io, roomId);
     broadcastRoomUpdated(io, roomId);
+    if (!alreadySpectating) {
+      emitRoomSystemMessage(
+        io,
+        roomId,
+        `${spectator.nickname} 님이 관전자로 들어왔습니다.`,
+        'spectator_join',
+      );
+    }
   });
 
   socket.on('spectate:leave', () => {
@@ -987,8 +1003,7 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
     io.to(socketRoom(roomId)).emit('room:host:changed', { newHostId: result.newHostId });
   }
 
-  // '님이 나갔습니다' 알림은 플레이어가 나갈 때만 보낸다. 관전자가 들고 나는 것까지
-  // 알리면 판 도중 알림이 계속 떠 방해가 된다. 관전자 수는 room:state 로 갱신된다.
+  // 플레이어 퇴장은 기존 이벤트로, 관전자 퇴장은 개인 설정으로 숨길 수 있는 채팅 알림으로 보낸다.
   if (leavingWasPlayer) {
     emitToRoomWithViewerNickname(
       io,
@@ -996,6 +1011,13 @@ export function handleLeaveRoom(io: IO, socket: TypedSocket) {
       'room:player:left',
       { playerId, ...(result.newHostId ? { newHostId: result.newHostId } : {}) },
       leavingNicknameRaw,
+    );
+  } else if (spectatorsBefore.some((spectator) => spectator.id === playerId)) {
+    emitRoomSystemMessage(
+      io,
+      roomId,
+      `${leavingNicknameRaw} 님이 관전에서 나갔습니다.`,
+      'spectator_leave',
     );
   }
 
