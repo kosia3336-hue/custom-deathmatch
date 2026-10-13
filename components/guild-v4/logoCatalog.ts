@@ -71,6 +71,6 @@ export function guildMarkDisplaySrc(url: string): string {
 /** 상점 카탈로그 URL만. 예전 버킷 업로드는 인정하지 않는다. */
 export function catalogLogoIdFromUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  const m = url.match(/\/(?:dev\/)?guild\/logos\/([a-z0-9-]+)\.png/i);
+  const m = url.match(/\/(?:dev\/)?guild\/logos\/([a-z0-9-]+)\.(?:png|webp)/i);
   return m?.[1] ?? null;
 }

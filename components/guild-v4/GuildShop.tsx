@@ -215,7 +215,8 @@ export function GuildShopSection({
                         variant: 'primary',
                         run: () =>
                           act(
-                            { action: 'set_mark', markUrl: src },
+                            // 표시용 주소(.webp)가 아니라 로고 id 를 보낸다 — 서버는 id 로 저장 주소(.png)를 만든다
+                            { action: 'set_mark', logoId: logo.id },
                             `길드 로고를 적용했습니다. (-${GUILD_MARK_COST_GP} GP)`,
                           ),
                       });

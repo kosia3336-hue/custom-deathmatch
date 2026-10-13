@@ -663,7 +663,8 @@ export async function findGuildIdForMember(memberId: string): Promise<string | n
 }
 
 export function parseCatalogLogoId(markUrl: string): string | null {
-  const m = markUrl.match(/\/(?:dev\/)?guild\/logos\/([a-z0-9-]+)\.png/i);
+  // 화면은 WebP(.webp), DB 저장 주소는 .png — 둘 다 같은 로고로 읽는다
+  const m = markUrl.match(/\/(?:dev\/)?guild\/logos\/([a-z0-9-]+)\.(?:png|webp)/i);
   return m?.[1] ?? null;
 }
 
