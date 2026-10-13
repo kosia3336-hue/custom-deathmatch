@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
  * 먹지 않으므로 뼈대의 info 자리에 늘 펴 둔다(design.md §14.9).
  *
  * PC·모바일 모두 게임판 위에 표시한다. 별도 플레이어 패널을 중복 등록하지 않는다.
+ * PC에서는 선·후의 활성 강조가 동일하게 보이도록 외곽 모서리를 각지게 표시한다.
  * ════════════════════════════════════════════════════════════ */
 
 export interface PlayerStripEntry {
@@ -43,7 +44,7 @@ export function PlayerStrip({
   return (
     <div
       className={cn(
-        'abstract-player-strip border-cdm-border bg-cdm-bg text-cdm-fg rounded-cdm-lg flex items-stretch overflow-hidden border',
+        'abstract-player-strip border-cdm-border bg-cdm-bg text-cdm-fg rounded-cdm-lg flex items-stretch overflow-hidden border lg:rounded-none',
         !desktopVisible && 'lg:hidden',
         className,
       )}

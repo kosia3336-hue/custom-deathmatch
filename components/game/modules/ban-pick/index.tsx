@@ -608,7 +608,7 @@ export default function BanPickGame() {
 
   const rankBanPickBanner =
     room?.isRanked === true ? (
-      <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center">
+      <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center lg:hidden">
         <span className="text-[11px] font-semibold text-amber-900">
           랭크 게임 · {firstName} vs {secondName}
         </span>

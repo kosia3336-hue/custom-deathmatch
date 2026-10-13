@@ -7,6 +7,7 @@ import type {
 } from '@/shared/types/double-sided-poker';
 import { BetBoard } from './BetBoard';
 import { SELECTION_LABEL } from './presentation';
+import styles from './double-sided-poker.module.css';
 
 export function PlayerPanel({
   player,
@@ -63,7 +64,8 @@ export function PlayerPanel({
   return (
     <section
       className={cn(
-        'rounded-cdm-lg flex min-w-0 flex-col justify-center gap-2 border p-3 transition',
+        'rounded-cdm-lg flex min-w-0 flex-col justify-center border transition',
+        styles.player,
         isCurrent ? 'border-cdm-primary bg-cdm-primary-soft' : 'border-cdm-border bg-cdm-bg-elev-1',
       )}
     >

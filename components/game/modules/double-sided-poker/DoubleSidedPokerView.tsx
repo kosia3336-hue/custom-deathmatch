@@ -15,6 +15,7 @@ import { BettingArea } from './BettingArea';
 import { PlayerPanel } from './PlayerPanel';
 import { ResultOverlay } from './ResultOverlay';
 import { RoundHistory } from './RoundHistory';
+import styles from './double-sided-poker.module.css';
 
 function DoubleSidedPokerView({
   gameData,
@@ -98,9 +99,10 @@ function DoubleSidedPokerView({
 
   return (
     <GameReferenceFrame
+      className={styles.frame}
       reference={
         <>
-          <GameInfoPart title="플레이어 점수판" sizeToContent>
+          <GameInfoPart title="플레이어 점수판" className={styles.score} sizeToContent>
             <GamePlayerScoreboard
               myId={myId}
               entries={playerIds.map((id) => ({
@@ -134,7 +136,7 @@ function DoubleSidedPokerView({
       */}
       <main
         data-game-intrinsic-stage
-        className="mx-auto flex w-full max-w-xl min-w-0 flex-col justify-center gap-2 p-2"
+        className={`mx-auto flex w-full max-w-xl min-w-0 flex-col justify-center ${styles.stage}`}
       >
         {seatOrder.map((playerId) => (
           <PlayerPanel

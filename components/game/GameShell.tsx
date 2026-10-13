@@ -60,6 +60,8 @@ export default function GameShell({ children }: Props) {
   useGameAudio();
   const router = useRouter();
   const room = useRoomStore((s) => s.room);
+  const isBanPick = room?.gameId === GAME_IDS.BAN_PICK;
+  const isRankedBanPick = isBanPick && room?.isRanked === true;
   const timeExpiry = useRoomStore((s) => s.timeExpiry);
   const gameState = useRoomStore((s) => s.gameState);
   const skinTheme = getSkinTheme(gameState?.activeSkin, room?.gameId ?? '');
@@ -72,15 +74,15 @@ export default function GameShell({ children }: Props) {
   const channels = useGameChatChannel();
   const messagesLen = useRoomStore((s) => s.messages.length);
   /*
-    밴픽(랭크·카운터매치)은 넓은 화면에서 채팅을 오른쪽 사이드바 맨 위에 직접 그린다
+    일반 밴픽·카운터매치는 넓은 화면에서 채팅을 오른쪽 사이드바에 직접 그린다.
+    랭크 밴픽은 상단 방 채팅 버튼으로 공통 시트를 연다.
     (BanPickChatPanel). 여기서 창으로도 띄우면 채팅과 사이드바가 세로줄을 하나씩 차지한다.
   */
-  const isBanPickRoom = room?.gameId === GAME_IDS.BAN_PICK;
   const desktopScreen = useGameDesktop();
-  const chatInBanPickSidebar = isBanPickRoom && desktopScreen;
+  const chatInBanPickSidebar = isBanPick && desktopScreen && !isRankedBanPick;
   const extraTools = useMemo<GameTool[]>(
     () => [
-      ...(chatInBanPickSidebar
+      ...(chatInBanPickSidebar || isRankedBanPick
         ? []
         : [
             {
@@ -99,20 +101,20 @@ export default function GameShell({ children }: Props) {
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels, skinTheme, chatInBanPickSidebar],
+    [hud?.memo, channels, skinTheme, chatInBanPickSidebar, isRankedBanPick],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
-  const chatUnread = useRoomChatUnread(showChat || tools.desktop);
+  const desktopChatVisible = tools.desktop && !isRankedBanPick;
+  const chatUnread = useRoomChatUnread(showChat || desktopChatVisible);
   useEffect(() => {
-    if (tools.desktop) useRoomStore.getState().clearChatUnread();
-  }, [tools.desktop, messagesLen]);
+    if (desktopChatVisible) useRoomStore.getState().clearChatUnread();
+  }, [desktopChatVisible, messagesLen]);
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const myId = useMySocketId();
   const [showRules, setShowRules] = useState(false);
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
-  const isBanPick = room?.gameId === GAME_IDS.BAN_PICK;
   /* 상단 바(무르기)와 설정 시트가 함께 쓰므로 헤더를 그리기 전에 정해 둔다. */
   const isEventRoom =
     room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
@@ -182,9 +184,26 @@ export default function GameShell({ children }: Props) {
   const order = isGuildWar ? hud?.order : (hud?.order ?? getGameStatus(gameState, myId));
   /* ── 상단 바 왼쪽: 라운드 · 차례 · 남은 시간 ── */
   useEffect(() => {
-    setHeaderLeft(<GameHudLeft round={round} order={order} onOpenInfo={() => setShowInfo(true)} />);
+    setHeaderLeft(
+      <GameHudLeft
+        round={
+          isRankedBanPick ? (
+            <>
+              <span className="lg:hidden">{round}</span>
+              <span className="hidden lg:inline" data-ranked-banpick-title>
+                랭크 게임 · {room.players.map((player) => player.nickname).join(' vs ')}
+              </span>
+            </>
+          ) : (
+            round
+          )
+        }
+        order={order}
+        onOpenInfo={() => setShowInfo(true)}
+      />,
+    );
     return () => setHeaderLeft(null);
-  }, [setHeaderLeft, round, order]);
+  }, [setHeaderLeft, round, order, isRankedBanPick, room?.players]);
 
   // 상단 우측: 메모 · 방 채팅 · 게임 룰 · 무르기 · 설정
   const hasMemo = hud?.memo != null;
@@ -210,7 +229,11 @@ export default function GameShell({ children }: Props) {
           onClick={() => setShowChat(true)}
           aria-label="방 채팅"
           title="방 채팅"
-          className={cn(HEADER_BTN, 'relative lg:hidden')}
+          className={cn(
+            HEADER_BTN,
+            'relative',
+            isRankedBanPick ? 'lg:flex-row lg:gap-1.5' : 'lg:hidden',
+          )}
         >
           <Icon name="chat" />
           <span className={HEADER_BTN_LABEL}>방 채팅</span>
@@ -257,6 +280,7 @@ export default function GameShell({ children }: Props) {
     skinTheme,
     showRulesShortcut,
     showUndo,
+    isRankedBanPick,
     undoWaiting,
     requestUndo,
   ]);
@@ -431,7 +455,7 @@ export default function GameShell({ children }: Props) {
       )}
 
       <GameChatSheet
-        open={showChat && !tools.desktop}
+        open={showChat && (!tools.desktop || isRankedBanPick)}
         onClose={() => setShowChat(false)}
         channels={channels}
         skin={skinTheme}

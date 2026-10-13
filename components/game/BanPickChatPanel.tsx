@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { GameRoomChatActions, GameRoomChatBody, useGameChatChannel } from './GameRoomChat';
+import { useRoomStore } from '@/stores/room';
 
 /**
  * 밴픽 넓은 화면 — 오른쪽 사이드바 맨 위에 펴 두는 방 채팅.
@@ -10,6 +11,9 @@ import { GameRoomChatActions, GameRoomChatBody, useGameChatChannel } from './Gam
  */
 export function BanPickChatPanel({ className }: { className?: string }) {
   const channels = useGameChatChannel();
+  const isRanked = useRoomStore((state) => state.room?.isRanked === true);
+  // 랭크 밴픽은 상단 바의 방 채팅 버튼을 사용해 같은 채팅을 중복 표시하지 않는다.
+  if (isRanked) return null;
   return (
     <section
       aria-label="방 채팅"

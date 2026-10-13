@@ -1,0 +1,59 @@
+/* 카드 크기와 조작 버튼은 유지하고, 양면포커의 세로 여백만 압축한다. */
+.frame {
+  --game-stage-min-height: 280px;
+  gap: 2px;
+  padding: 3px;
+}
+
+.stage {
+  gap: 4px;
+  padding: 0;
+}
+
+.player {
+  gap: 2px;
+  padding: 4px;
+}
+
+.player :global([aria-label='면별 베팅 칩']) > div {
+  padding: 2px 8px;
+}
+
+/* 이름과 보유 칩을 같은 줄에 놓아 베팅판에 필요한 높이를 확보한다. */
+.score :global([data-score-row]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 6px;
+  padding: 4px 8px;
+}
+
+.score :global([data-score-row]) > p:last-child {
+  grid-column: 1 / -1;
+}
+
+.frame :global([aria-label='플레이어 조작판']) {
+  gap: 3px;
+  padding: 6px;
+}
+
+.frame :global(.ip-betting-summary) {
+  padding: 3px 0;
+}
+
+.frame :global(.ip-betting-status) {
+  padding: 2px 8px;
+}
+
+.frame :global(.ip-branch-picker) {
+  padding: 2px;
+}
+
+.frame :global(.ip-raise-input) {
+  gap: 4px;
+}
+
+.frame :global(.ip-branch-hint),
+.frame :global(.ip-branch-locked) {
+  margin: 0;
+}

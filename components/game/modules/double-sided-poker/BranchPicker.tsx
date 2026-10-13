@@ -15,7 +15,7 @@ export function BranchPicker({
 }) {
   if (locked) {
     return (
-      <p className="text-cdm-fg-muted mb-2 text-center text-[11px] font-bold">
+      <p className="ip-branch-locked text-cdm-fg-muted text-center text-[11px] font-bold">
         이번 라운드 선택 —{' '}
         <span className="text-cdm-highlight font-black">{BRANCH_LABEL[value].slice(0, 2)}</span>
       </p>
