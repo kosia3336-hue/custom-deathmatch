@@ -56,6 +56,11 @@ const subscribeDesktop = (notify: () => void) => {
 const getDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
 const getServerDesktop = () => false;
 
+/** 넓은 화면(1024px 이상) — 편의기능 창이 화면에 붙는 기준과 같다. */
+export function useGameDesktop() {
+  return useSyncExternalStore(subscribeDesktop, getDesktop, getServerDesktop);
+}
+
 /** 게임별 배치 id는 독립적이다. 넘버 4에서 옮겨도 다른 게임·대기실 배치는 바뀌지 않는다. */
 export function useGameToolsController(scope: string, extraTools: GameTool[] = []) {
   const desktop = useSyncExternalStore(subscribeDesktop, getDesktop, getServerDesktop);

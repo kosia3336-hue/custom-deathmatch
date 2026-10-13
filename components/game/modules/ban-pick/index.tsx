@@ -1,5 +1,6 @@
 'use client';
 
+import { BanPickChatPanel } from '@/components/game/BanPickChatPanel';
 import GameLoading from '@/components/game/GameLoading';
 
 import { useEffect, useRef, useState } from 'react';
@@ -851,124 +852,127 @@ export default function BanPickGame() {
       </div>
 
       {/* ── 데스크탑 사이드바 ── */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:gap-4 lg:border-l lg:border-gray-100 lg:bg-gray-50 lg:p-4">
-        {/* 플레이어 패널 */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">플레이어</h3>
-          <PlayerPanel
-            name={firstName}
-            banCount={data.banCounts[0]}
-            maxBan={data.banCount}
-            isCurrentTurn={data.currentPlayer === 'first' && data.phase === 'banning'}
-            isMe={firstIsMe}
-            tier={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfTier : myPosition === 'second' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
-            rp={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfRp : myPosition === 'second' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
-            placement={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfIsPlacement : myPosition === 'second' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
-          />
-          <PlayerPanel
-            name={secondName}
-            banCount={data.banCounts[1]}
-            maxBan={data.banCount}
-            isCurrentTurn={(data.currentPlayer === 'second' || data.currentPlayer === 'com') && data.phase === 'banning'}
-            isMe={secondIsMe}
-            tier={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfTier : myPosition === 'first' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
-            rp={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfRp : myPosition === 'first' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
-            placement={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfIsPlacement : myPosition === 'first' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
-          />
-        </div>
-
-        {/* 타이머 (시간제한 있을 때만, 밴 단계) */}
-        {data.timeLimit > 0 && data.phase === 'banning' && (
-          <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
-            <p className="mb-1 text-xs text-gray-400">남은 시간</p>
-            <BanTimer deadline={data.turnDeadline} timeLimit={data.timeLimit} />
+      <div className="hidden lg:flex lg:min-h-0 lg:w-80 lg:flex-col lg:gap-4 lg:border-l lg:border-gray-100 lg:bg-gray-50 lg:p-4">
+        <BanPickChatPanel className="h-[42%] min-h-56 shrink-0" />
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+          {/* 플레이어 패널 */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">플레이어</h3>
+            <PlayerPanel
+              name={firstName}
+              banCount={data.banCounts[0]}
+              maxBan={data.banCount}
+              isCurrentTurn={data.currentPlayer === 'first' && data.phase === 'banning'}
+              isMe={firstIsMe}
+              tier={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfTier : myPosition === 'second' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
+              rp={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfRp : myPosition === 'second' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
+              placement={rankMatchTiers ? (myPosition === 'first' ? rankMatchTiers.selfIsPlacement : myPosition === 'second' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
+            />
+            <PlayerPanel
+              name={secondName}
+              banCount={data.banCounts[1]}
+              maxBan={data.banCount}
+              isCurrentTurn={(data.currentPlayer === 'second' || data.currentPlayer === 'com') && data.phase === 'banning'}
+              isMe={secondIsMe}
+              tier={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfTier : myPosition === 'first' ? (rankMatchTiers.opponentTier ?? undefined) : undefined) : undefined}
+              rp={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfRp : myPosition === 'first' ? (rankMatchTiers.opponentRp ?? undefined) : undefined) : undefined}
+              placement={rankMatchTiers ? (myPosition === 'second' ? rankMatchTiers.selfIsPlacement : myPosition === 'first' ? (rankMatchTiers.opponentIsPlacement ?? undefined) : undefined) : undefined}
+            />
           </div>
-        )}
 
-        {/* 밴 삭제 타이머 (데스크탑 사이드바) */}
-        {data.phase === 'unban' && unbanState && (
-          <div className={cn(
-            'rounded-xl border p-4 text-center',
-            isMyUnbanTurn ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-white',
-          )}>
-            <p className={cn('mb-1 text-xs', isMyUnbanTurn ? 'text-emerald-600' : 'text-gray-400')}>
-              {isMyUnbanTurn ? '밴 삭제 선택 시간' : '밴 삭제 대기 중'}
-            </p>
-            <BanTimer deadline={unbanState.turnDeadline} timeLimit={15} />
-            {isMyUnbanTurn && (
-              <button
-                onClick={handleUnbanSkip}
-                className="mt-3 w-full rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                스킵 (아이템 유지)
-              </button>
-            )}
-          </div>
-        )}
+          {/* 타이머 (시간제한 있을 때만, 밴 단계) */}
+          {data.timeLimit > 0 && data.phase === 'banning' && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4 text-center">
+              <p className="mb-1 text-xs text-gray-400">남은 시간</p>
+              <BanTimer deadline={data.turnDeadline} timeLimit={data.timeLimit} />
+            </div>
+          )}
 
-        {/* 밴 시퀀스 */}
-        <div className="flex-1">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">밴 순서</h3>
-          <div className="space-y-1">
-            {data.sequence.map((turn, i) => {
-              const isDone = i < data.currentSequenceIdx;
-              const isCurrent = i === data.currentSequenceIdx && data.phase === 'banning';
-              const label = turn.playerIdx === 0 ? firstName : secondName;
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex items-center justify-between rounded-lg px-3 py-1.5 text-xs',
-                    isDone && 'bg-gray-100 text-gray-400 line-through',
-                    isCurrent && 'bg-indigo-100 font-semibold text-indigo-700',
-                    !isDone && !isCurrent && 'bg-white text-gray-600',
-                  )}
+          {/* 밴 삭제 타이머 (데스크탑 사이드바) */}
+          {data.phase === 'unban' && unbanState && (
+            <div className={cn(
+              'rounded-xl border p-4 text-center',
+              isMyUnbanTurn ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-white',
+            )}>
+              <p className={cn('mb-1 text-xs', isMyUnbanTurn ? 'text-emerald-600' : 'text-gray-400')}>
+                {isMyUnbanTurn ? '밴 삭제 선택 시간' : '밴 삭제 대기 중'}
+              </p>
+              <BanTimer deadline={unbanState.turnDeadline} timeLimit={15} />
+              {isMyUnbanTurn && (
+                <button
+                  onClick={handleUnbanSkip}
+                  className="mt-3 w-full rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  <span className="truncate">{label}</span>
-                  <span className="ml-2 shrink-0">{turn.count}밴</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                  스킵 (아이템 유지)
+                </button>
+              )}
+            </div>
+          )}
 
-        {/* 추첨 결과 패널 (데스크탑) */}
-        {data.phase === 'lottery' && (
-          <div className="rounded-xl border border-yellow-200 bg-white p-4">
-            {lotteryReveal && pickedGame ? (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <p className="mb-1 text-xs text-gray-400 text-center">
-                  {data.games.filter((g) => !bannedSet.has(g.id)).length}개 중 추첨
-                </p>
-                <p className="mb-1 text-center text-base font-bold text-yellow-700">{pickedGame.name}</p>
-                <p className="mb-3 text-center text-xs text-yellow-600">
-                  {pickedGame.name}{getKoreanSubjectParticle(pickedGame.name)} 추첨되었습니다!
-                </p>
-                {!isSpectator && (
-                  <button
-                    onClick={handleReady}
-                    disabled={readySent}
+          {/* 밴 시퀀스 */}
+          <div className="flex-1">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">밴 순서</h3>
+            <div className="space-y-1">
+              {data.sequence.map((turn, i) => {
+                const isDone = i < data.currentSequenceIdx;
+                const isCurrent = i === data.currentSequenceIdx && data.phase === 'banning';
+                const label = turn.playerIdx === 0 ? firstName : secondName;
+                return (
+                  <div
+                    key={i}
                     className={cn(
-                      'w-full rounded-lg py-2.5 text-sm font-semibold transition-colors',
-                      readySent ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700',
+                      'flex items-center justify-between rounded-lg px-3 py-1.5 text-xs',
+                      isDone && 'bg-gray-100 text-gray-400 line-through',
+                      isCurrent && 'bg-indigo-100 font-semibold text-indigo-700',
+                      !isDone && !isCurrent && 'bg-white text-gray-600',
                     )}
                   >
-                    {readySent ? '대기 중...' : '게임 시작'}
-                  </button>
-                )}
-              </motion.div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 py-2 text-sm text-gray-400">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-                추첨 중...
-              </div>
-            )}
+                    <span className="truncate">{label}</span>
+                    <span className="ml-2 shrink-0">{turn.count}밴</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
+
+          {/* 추첨 결과 패널 (데스크탑) */}
+          {data.phase === 'lottery' && (
+            <div className="rounded-xl border border-yellow-200 bg-white p-4">
+              {lotteryReveal && pickedGame ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <p className="mb-1 text-xs text-gray-400 text-center">
+                    {data.games.filter((g) => !bannedSet.has(g.id)).length}개 중 추첨
+                  </p>
+                  <p className="mb-1 text-center text-base font-bold text-yellow-700">{pickedGame.name}</p>
+                  <p className="mb-3 text-center text-xs text-yellow-600">
+                    {pickedGame.name}{getKoreanSubjectParticle(pickedGame.name)} 추첨되었습니다!
+                  </p>
+                  {!isSpectator && (
+                    <button
+                      onClick={handleReady}
+                      disabled={readySent}
+                      className={cn(
+                        'w-full rounded-lg py-2.5 text-sm font-semibold transition-colors',
+                        readySent ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700',
+                      )}
+                    >
+                      {readySent ? '대기 중...' : '게임 시작'}
+                    </button>
+                  )}
+                </motion.div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 py-2 text-sm text-gray-400">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
+                  추첨 중...
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

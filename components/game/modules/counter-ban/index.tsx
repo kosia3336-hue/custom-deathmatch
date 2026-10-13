@@ -1,5 +1,6 @@
 'use client';
 
+import { BanPickChatPanel } from '@/components/game/BanPickChatPanel';
 import { useEffect, useRef, useState } from 'react';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { getSocket } from '@/lib/socket';
@@ -157,33 +158,36 @@ export default function CounterBanGame() {
         </div>
       </div>
 
-      <div className="relative z-1 hidden lg:flex lg:w-64 lg:flex-col lg:gap-4 lg:border-l lg:border-cdm-ink-border lg:bg-[color-mix(in_srgb,var(--cdm-ink-strong)_55%,transparent)] lg:p-4">
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-cdm-ink-fg-muted">플레이어</h3>
-          <SidePlayer
-            name={selfName}
-            isMe
-            locked={Boolean(view.myPick)}
-            active={view.phase === 'picking'}
-            tier={rankMatchTiers?.selfTier}
-            rp={rankMatchTiers?.selfRp}
-            placement={rankMatchTiers?.selfIsPlacement === true}
-          />
-          <SidePlayer
-            name={oppName}
-            isMe={false}
-            locked={Boolean(oppRevealed)}
-            active={view.phase === 'picking'}
-            tier={rankMatchTiers?.opponentTier ?? undefined}
-            hideRp
-          />
-        </div>
-        {view.phase === 'picking' && view.deadline ? (
-          <div className="rounded-xl border border-cdm-ink-border bg-[color-mix(in_srgb,var(--cdm-ink-strong)_70%,transparent)] p-4 text-center">
-            <p className="mb-1 text-xs text-cdm-ink-fg-muted">남은 시간</p>
-            <BanTimer deadline={view.deadline} />
+      <div className="relative z-1 hidden lg:flex lg:min-h-0 lg:w-80 lg:flex-col lg:gap-4 lg:border-l lg:border-cdm-ink-border lg:bg-[color-mix(in_srgb,var(--cdm-ink-strong)_55%,transparent)] lg:p-4">
+        <BanPickChatPanel className="h-[42%] min-h-56 shrink-0" />
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-cdm-ink-fg-muted">플레이어</h3>
+            <SidePlayer
+              name={selfName}
+              isMe
+              locked={Boolean(view.myPick)}
+              active={view.phase === 'picking'}
+              tier={rankMatchTiers?.selfTier}
+              rp={rankMatchTiers?.selfRp}
+              placement={rankMatchTiers?.selfIsPlacement === true}
+            />
+            <SidePlayer
+              name={oppName}
+              isMe={false}
+              locked={Boolean(oppRevealed)}
+              active={view.phase === 'picking'}
+              tier={rankMatchTiers?.opponentTier ?? undefined}
+              hideRp
+            />
           </div>
-        ) : null}
+          {view.phase === 'picking' && view.deadline ? (
+            <div className="rounded-xl border border-cdm-ink-border bg-[color-mix(in_srgb,var(--cdm-ink-strong)_70%,transparent)] p-4 text-center">
+              <p className="mb-1 text-xs text-cdm-ink-fg-muted">남은 시간</p>
+              <BanTimer deadline={view.deadline} />
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

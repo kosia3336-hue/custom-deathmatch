@@ -26,11 +26,9 @@ import { GameHudLeft, ElapsedTime } from '@/components/game/GameTopBar';
 import { GameRulesModal } from '@/components/game/GameRulesModal';
 import GameRulesButton from './GameRulesButton';
 import { cn } from '@/lib/utils';
-import { setDockState } from '@/lib/dockPanel';
-import { gameToolDockId } from '@/lib/gameToolsLayout';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
-import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
+import { useGameDesktop, useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
 import GameToolsWorkspace from './GameToolsWorkspace';
 import GameHistoryAction from './GameHistoryAction';
@@ -73,24 +71,35 @@ export default function GameShell({ children }: Props) {
   const [showMemo, setShowMemo] = useState(false);
   const channels = useGameChatChannel();
   const messagesLen = useRoomStore((s) => s.messages.length);
+  /*
+    밴픽(랭크·카운터매치)은 넓은 화면에서 채팅을 오른쪽 사이드바 맨 위에 직접 그린다
+    (BanPickChatPanel). 여기서 창으로도 띄우면 채팅과 사이드바가 세로줄을 하나씩 차지한다.
+  */
+  const isBanPickRoom = room?.gameId === GAME_IDS.BAN_PICK;
+  const desktopScreen = useGameDesktop();
+  const chatInBanPickSidebar = isBanPickRoom && desktopScreen;
   const extraTools = useMemo<GameTool[]>(
     () => [
-      {
-        id: 'chat',
-        title: '방 채팅',
-        defaultOrder: -10,
-        content: <GameRoomChatBody channels={channels} />,
-        headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
-        headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
-        minBodyHeight: 220,
-        preferredBodyHeight: 330,
-        resizable: true,
-      },
+      ...(chatInBanPickSidebar
+        ? []
+        : [
+            {
+              id: 'chat',
+              title: '방 채팅',
+              defaultOrder: -10,
+              content: <GameRoomChatBody channels={channels} />,
+              headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
+              headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
+              minBodyHeight: 220,
+              preferredBodyHeight: 330,
+              resizable: true,
+            },
+          ]),
       ...(hud?.memo
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels, skinTheme],
+    [hud?.memo, channels, skinTheme, chatInBanPickSidebar],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
   const chatUnread = useRoomChatUnread(showChat || tools.desktop);
@@ -104,12 +113,6 @@ export default function GameShell({ children }: Props) {
   const isSpectator = useRoomStore((s) => s.isSpectator);
   const isRankedRoom = room?.isRanked === true;
   const isBanPick = room?.gameId === GAME_IDS.BAN_PICK;
-  const toolScope = tools.scope;
-  useEffect(() => {
-    if (isBanPick && tools.desktop) {
-      setDockState(gameToolDockId(toolScope, 'chat'), { mode: 'docked', edge: 'right' });
-    }
-  }, [isBanPick, tools.desktop, toolScope]);
   /* 상단 바(무르기)와 설정 시트가 함께 쓰므로 헤더를 그리기 전에 정해 둔다. */
   const isEventRoom =
     room?.gameId === GAME_IDS.INDIAN_POKER_EVENT ||
