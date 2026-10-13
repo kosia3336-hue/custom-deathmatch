@@ -20,6 +20,7 @@ import { usePathname } from 'next/navigation';
 /** 푸터를 감출 경로 — 몰입이 필요하거나(인게임) 관리/인증 흐름인 화면 */
 const HIDDEN_PREFIXES = [
   '/room',        // 인게임·대기실
+  '/classic',     // 초창기 로비 (옛 화면에는 푸터가 없었다)
   '/dev',         // 로컬 인게임 프리뷰
   '/admin',
   '/auth',

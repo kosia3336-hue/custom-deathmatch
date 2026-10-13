@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
   // ── 비로그인 ────────────────────────────────────────────────
   // 소개(/about), 로비(/lobby), 랭킹(/ranking), 공지(/notice), 룰(/rules),
-  // 약관(/legal/*) 등은 로그인 없이도 볼 수 있다. 로비는 둘러보기까지만 열어 두고,
+  // 약관(/legal/*), 초창기 로비(/classic) 등은 로그인 없이도 볼 수 있다. 로비는 둘러보기까지만 열어 두고,
   // 방 입장·생성 같은 실제 행동에서 각 화면이 로그인을 요구한다.
   // 마이페이지 등 로그인이 필요한 화면은 /login 으로 보낸다(로그인 후 원래 위치로 복귀).
   if (!user) {
@@ -93,7 +93,9 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/notice') ||
       pathname.startsWith('/titles') ||
       pathname.startsWith('/rules') ||
-      pathname.startsWith('/support/inquiry');
+      pathname.startsWith('/support/inquiry') ||
+      pathname === '/classic' ||
+      pathname.startsWith('/classic/');
 
     if (isPublic) {
       if (pathname === '/about') markIntroSeen(response);
@@ -159,7 +161,9 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/ranking') ||
       pathname.startsWith('/rules') ||
       pathname.startsWith('/titles') ||
-      pathname.startsWith('/notice');
+      pathname.startsWith('/notice') ||
+      pathname === '/classic' ||
+      pathname.startsWith('/classic/');
 
     if (canBrowse) return response;
     return NextResponse.redirect(new URL('/signup/agreement', request.url));

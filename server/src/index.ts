@@ -6,6 +6,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from '@shared/types/e
 import type { IO } from './socket/types.js';
 import config from './config.js';
 import { registerGameRoutes, initGames, getGames } from './routes/games.js';
+import { countClassicOccupiedRooms, mountClassicSockets, registerClassicRoutes } from './classic/mount.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { setupSocketHandlers } from './socket/index.js';
 import { preloadBiasTitlesCache } from './shop/biasTitlesCache.js';
@@ -34,12 +35,15 @@ async function main() {
 
     return {
       status: 'ok',
-      // 대기 중인 방도 재시작하면 사라지므로 함께 센다
-      activeRooms: occupied.length,
+      // 대기 중인 방도 재시작하면 사라지므로 함께 센다.
+      // /classic 네임스페이스 방도 같은 프로세스 메모리라 같이 센다.
+      activeRooms: occupied.length + countClassicOccupiedRooms(),
       inGameRooms: occupied.filter((r) => r.status === 'playing').length,
       timestamp: Date.now(),
     };
   });
+
+  await registerClassicRoutes(app);
 
   // io 인스턴스는 listen 후 생성되므로 lazy getter로 전달
   let ioInstance: IO | null = null;
@@ -53,6 +57,7 @@ async function main() {
   });
 
   setupSocketHandlers(ioInstance);
+  mountClassicSockets(ioInstance);
 
   const { startLiveDummy } = await import('./dummy/live/index.js');
   void startLiveDummy(ioInstance).catch((err) => {

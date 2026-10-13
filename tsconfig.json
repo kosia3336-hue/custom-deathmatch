@@ -44,6 +44,7 @@
   "exclude": [
     "node_modules",
     "server",
+    "classic-era/server",
     "app/dev",
     "app/super-ai",
     "tmp-app-dev",

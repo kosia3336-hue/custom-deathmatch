@@ -1,0 +1,425 @@
+import type { GameState } from '../../../../../../classic-era/shared/types/events.js';
+import type { FourGravityGameData } from '../../../../../../classic-era/shared/types/four-gravity.js';
+import { AI_PLAYER_ID } from '../../../../../../classic-era/shared/types/room.js';
+import { AI_DELAY, WIN_DISPLAY_MS } from './constants.js';
+import type { IO, TypedSocket } from './constants.js';
+import type { InternalState, WinResult } from './types.js';
+import { cloneBoard, applyGravity, findMovedPosition, calcNeutralCandidates } from './board.js';
+import { checkWin, hasEmptyCells } from './win.js';
+import { getCandidateCells, getValidDirections, findBestMoveIterative, type AIWorkerData } from './ai.js';
+import { Worker } from 'worker_threads';
+import { fileURLToPath } from 'url';
+import { extname, dirname, join } from 'path';
+import { socketRoom } from '../../utils.js';
+
+export const gameStates = new Map<string, InternalState>();
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randDelay(): number {
+  return AI_DELAY.min + Math.random() * (AI_DELAY.max - AI_DELAY.min);
+}
+
+/* ────────────────────── broadcasting ─────────────────── */
+
+function toGameData(s: InternalState): FourGravityGameData {
+  return {
+    board: s.board,
+    currentPlayer: s.currentPlayer,
+    currentColor: s.currentColor,
+    phase: s.phase,
+    lastGravity: s.currentColor === 'black' ? s.lastGravityBlack : s.lastGravityWhite,
+    placedPosition: s.placedPosition,
+    movedPosition: s.movedPosition,
+    neutralCandidates: s.neutralCandidates,
+    players: {
+      black: { ...s.blackPlayer },
+      white: { ...s.whitePlayer },
+    },
+    neutralCount: s.neutralCount,
+    winner: s.winner,
+    winLine: s.winLine,
+    winType: s.winType,
+  };
+}
+
+function phaseMessage(s: InternalState): string {
+  if (s.gameOver) {
+    if (s.winType === 'timeout') return '시간 초과로 게임이 종료되었습니다.';
+    if (s.winType === 'no-space') return '둘 곳이 없어 게임이 종료되었습니다.';
+    if (s.winType === 'no-neutral') return '중립 돌을 놓을 수 없어 게임이 종료되었습니다.';
+    return '사목이 완성되어 게임이 종료되었습니다.';
+  }
+  const isAI = s.currentPlayer === AI_PLAYER_ID;
+  if (isAI) {
+    switch (s.phase) {
+      case 'place':   return 'AI가 생각 중입니다...';
+      case 'gravity': return 'AI가 중력을 선택 중입니다...';
+      case 'neutral': return 'AI가 중립 돌을 놓는 중입니다...';
+      default:        return 'AI가 생각 중입니다...';
+    }
+  }
+  switch (s.phase) {
+    case 'place':   return '보드에 돌을 놓으세요';
+    case 'gravity': return '중력 방향을 선택하세요';
+    case 'neutral': return '경로 위에 중립 돌을 놓으세요';
+    default:        return '상대 턴입니다. 기다려 주세요...';
+  }
+}
+
+function buildGameState(s: InternalState): GameState {
+  return {
+    roomId: s.roomId,
+    message: phaseMessage(s),
+    currentTurn: s.currentPlayer,
+    turnNumber: s.turnNumber,
+    startedAt: s.startedAt,
+    turnStartedAt: s.timeLimitSeconds ? s.turnStartedAt : null,
+    gameData: toGameData(s),
+  };
+}
+
+export function broadcastState(io: IO, s: InternalState) {
+  io.to(socketRoom(s.roomId)).emit('game:state', buildGameState(s));
+}
+
+export function emitStateToSocket(socket: TypedSocket, s: InternalState) {
+  socket.emit('game:state', buildGameState(s));
+}
+
+/* ────────────────────── game-over handlers ───────────── */
+
+function buildEndPayload(
+  s: InternalState,
+  winnerId: string,
+  winnerNick: string,
+  loserId: string,
+  loserNick: string,
+) {
+  return {
+    rankings: [
+      { playerId: winnerId, nickname: winnerNick, rank: 1, score: 1 },
+      { playerId: loserId, nickname: loserNick, rank: 2, score: 0 },
+    ],
+    totalTurns: s.turnNumber,
+    gameResultData: {
+      winType: s.winType,
+      winLine: s.winLine,
+      finalBoard: s.board,
+      blackStones: s.blackPlayer.stoneCount,
+      whiteStones: s.whitePlayer.stoneCount,
+      neutralStones: s.neutralCount,
+      actions: s.actionLog,
+      players: {
+        black: { nickname: s.blackPlayer.nickname },
+        white: { nickname: s.whitePlayer.nickname },
+      },
+    },
+  };
+}
+
+function scheduleGameEnd(
+  io: IO,
+  s: InternalState,
+  payload: ReturnType<typeof buildEndPayload>,
+) {
+  setTimeout(() => {
+    if (!gameStates.has(s.roomId)) return;
+    const roomId = s.roomId;
+    gameStates.delete(roomId);
+    terminateAIWorker(roomId);
+    s.endGameCallback(io, roomId, payload);
+  }, WIN_DISPLAY_MS);
+}
+
+function resolveGame(
+  io: IO,
+  s: InternalState,
+  opts: {
+    winnerId: string;
+    loserId: string;
+    winType: InternalState['winType'];
+    winLine?: InternalState['winLine'];
+  },
+) {
+  const winnerNick = opts.winnerId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+  const loserNick = opts.loserId === s.blackPlayer.id ? s.blackPlayer.nickname : s.whitePlayer.nickname;
+
+  s.winner = opts.winnerId;
+  s.winLine = opts.winLine ?? null;
+  s.winType = opts.winType;
+  s.gameOver = true;
+  s.phase = 'waiting';
+  broadcastState(io, s);
+
+  scheduleGameEnd(io, s, buildEndPayload(s, opts.winnerId, winnerNick, opts.loserId, loserNick));
+}
+
+function getWinnerLoser(s: InternalState, currentIsWinner: boolean) {
+  const winnerId = currentIsWinner
+    ? (s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id)
+    : (s.currentColor === 'black' ? s.whitePlayer.id : s.blackPlayer.id);
+  const loserId = winnerId === s.blackPlayer.id ? s.whitePlayer.id : s.blackPlayer.id;
+  return { winnerId, loserId };
+}
+
+/* ────────────────────── turn timer ─────────────────────── */
+
+export function clearTurnTimer(s: InternalState) {
+  if (s.turnTimer) {
+    clearTimeout(s.turnTimer);
+    s.turnTimer = null;
+  }
+}
+
+export function startTurnTimer(io: IO, s: InternalState) {
+  clearTurnTimer(s);
+  if (!s.timeLimitSeconds || s.currentPlayer === AI_PLAYER_ID) return;
+  s.turnStartedAt = Date.now();
+  s.turnTimer = setTimeout(() => {
+    handleTimeout(io, s);
+  }, s.timeLimitSeconds * 1000);
+}
+
+export function handleTimeout(io: IO, s: InternalState) {
+  if (s.gameOver) return;
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, false);
+  resolveGame(io, s, { winnerId, loserId, winType: 'timeout' });
+}
+
+export function handleWin(io: IO, s: InternalState, wr: WinResult) {
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, wr.winner === 'current');
+  resolveGame(io, s, { winnerId, loserId, winType: wr.type, winLine: wr.line });
+}
+
+export function handleNoNeutral(io: IO, s: InternalState) {
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, false);
+  resolveGame(io, s, { winnerId, loserId, winType: 'no-neutral' });
+}
+
+export function handleNoSpace(io: IO, s: InternalState) {
+  clearTurnTimer(s);
+  const { winnerId, loserId } = getWinnerLoser(s, true);
+  resolveGame(io, s, { winnerId, loserId, winType: 'no-space' });
+}
+
+/* ────────────────────── turn management ──────────────── */
+
+export function finishTurn(io: IO, s: InternalState) {
+  clearTurnTimer(s);
+  const wr = checkWin(s.board, s.currentColor);
+  if (wr) { handleWin(io, s, wr); return; }
+  if (!hasEmptyCells(s.board)) { handleNoSpace(io, s); return; }
+
+  s.turnNumber++;
+  s.currentColor = s.currentColor === 'black' ? 'white' : 'black';
+  s.currentPlayer = s.currentColor === 'black' ? s.blackPlayer.id : s.whitePlayer.id;
+  s.phase = 'place';
+  s.placedPosition = null;
+  s.movedPosition = null;
+  s.neutralCandidates = [];
+
+  startTurnTimer(io, s);
+  broadcastState(io, s);
+
+  if (s.playMode === 'com' && s.currentPlayer === AI_PLAYER_ID) {
+    runAITurn(io, s.roomId);
+  }
+}
+
+/* ────────────────────── AI turn runner ───────────────── */
+
+function getQuickFallbackMove(s: InternalState) {
+  const cells = getCandidateCells(s.board);
+  const lastGrav = s.currentColor === 'black' ? s.lastGravityBlack : s.lastGravityWhite;
+  const dirs = getValidDirections(lastGrav);
+
+  // 안전한 수를 찾아 반환: no-neutral 자폭이 없는 첫 번째 (cell, dir) 조합
+  for (const cell of cells) {
+    if (s.board[cell.row][cell.col] !== 'empty') continue;
+    for (const dir of dirs) {
+      if (dir === 'none') {
+        return { place: cell, gravity: 'none' as const, neutral: null };
+      }
+      const b1 = cloneBoard(s.board);
+      b1[cell.row][cell.col] = s.currentColor;
+      const b2 = applyGravity(b1, dir);
+      const mp = findMovedPosition(cell, dir, b1, b2);
+      const ncands = calcNeutralCandidates(cell, mp, b2);
+      if (ncands.length > 0) {
+        return { place: cell, gravity: dir, neutral: ncands[0] };
+      }
+    }
+  }
+
+  // 최후 수단: 중앙에 'none' (또는 첫 번째 방향)
+  const center = { row: 4, col: 4 };
+  const safeDir = dirs.find(d => d === 'none') ?? dirs[0] ?? 'none';
+  return { place: center, gravity: safeDir, neutral: null };
+}
+
+
+/* ── 퍼시스턴트 워커 풀 (룸당 1개 유지, 게임 종료 시 terminate) ── */
+
+const aiWorkerMap = new Map<string, Worker>();
+
+function resolveWorkerPath(): string {
+  const selfPath = fileURLToPath(import.meta.url);
+  const isTs = extname(selfPath) === '.ts';
+  // dev: .mjs 부트스트랩이 tsx를 등록한 후 ai-worker.ts를 로드
+  // prod: tsup으로 컴파일된 ai-worker.js를 직접 로드
+  return isTs
+    ? join(dirname(selfPath), 'ai-worker-boot.mjs')
+    : join(dirname(selfPath), 'ai-worker.js');
+}
+
+let _workerPath: string | null = null;
+
+function getOrCreateAIWorker(roomId: string): Worker {
+  const existing = aiWorkerMap.get(roomId);
+  if (existing) return existing;
+  _workerPath ??= resolveWorkerPath();
+  const worker = new Worker(_workerPath);
+  aiWorkerMap.set(roomId, worker);
+  return worker;
+}
+
+export function terminateAIWorker(roomId: string) {
+  const worker = aiWorkerMap.get(roomId);
+  if (worker) {
+    worker.terminate();
+    aiWorkerMap.delete(roomId);
+  }
+}
+
+function runAIWithWorker(s: InternalState): Promise<ReturnType<typeof findBestMoveIterative>> {
+  const workerData: AIWorkerData = {
+    board: s.board,
+    currentColor: s.currentColor,
+    lastGravityBlack: s.lastGravityBlack,
+    lastGravityWhite: s.lastGravityWhite,
+  };
+
+  return new Promise((resolve) => {
+    const worker = getOrCreateAIWorker(s.roomId);
+
+    let settled = false;
+    const settle = (move: ReturnType<typeof findBestMoveIterative>) => {
+      if (settled) return;
+      settled = true;
+      resolve(move);
+    };
+
+    const onMessage = (move: ReturnType<typeof findBestMoveIterative>) => {
+      cleanup();
+      settle(move);
+    };
+    const onError = (err: Error) => {
+      console.error('[AI Worker Error]', err);
+      cleanup();
+      terminateAIWorker(s.roomId);
+      settle(getQuickFallbackMove(s));
+    };
+    const onExit = (code: number) => {
+      cleanup();
+      if (!settled) {
+        if (code !== 0 && gameStates.has(s.roomId)) {
+          console.error(`[AI Worker] exited unexpectedly with code ${code}`);
+        }
+        aiWorkerMap.delete(s.roomId);
+        settle(getQuickFallbackMove(s));
+      }
+    };
+    const cleanup = () => {
+      worker.off('message', onMessage);
+      worker.off('error', onError);
+      worker.off('exit', onExit);
+    };
+
+    worker.once('message', onMessage);
+    worker.once('error', onError);
+    worker.once('exit', onExit);
+    worker.postMessage(workerData);
+  });
+}
+
+export async function runAITurn(io: IO, roomId: string) {
+  const s = gameStates.get(roomId);
+  if (!s || s.gameOver || s.currentPlayer !== AI_PLAYER_ID) return;
+
+  const move = await runAIWithWorker(s);
+
+  // 워커가 고민하는 동안 방이 사라졌을 수 있음
+  if (!gameStates.has(roomId)) return;
+
+  /* ① place */
+  await wait(randDelay());
+  if (!gameStates.has(roomId)) return;
+
+  s.board[move.place.row][move.place.col] = s.currentColor;
+  s.placedPosition = move.place;
+  if (s.currentColor === 'black') s.blackPlayer.stoneCount++;
+  else s.whitePlayer.stoneCount++;
+  s.actionLog.push({
+    turnNumber: s.turnNumber,
+    color: s.currentColor,
+    nickname: s.currentColor === 'black' ? s.blackPlayer.nickname : s.whitePlayer.nickname,
+    steps: [{ type: 'place', row: move.place.row, col: move.place.col }],
+  });
+  s.phase = 'gravity';
+  broadcastState(io, s);
+
+  /* ② gravity */
+  await wait(randDelay());
+  if (!gameStates.has(roomId)) return;
+
+  if (move.gravity === 'none') {
+    if (s.currentColor === 'black') s.lastGravityBlack = 'none';
+    else s.lastGravityWhite = 'none';
+    s.movedPosition = s.placedPosition;
+    s.neutralCandidates = [];
+    const aiLog = s.actionLog[s.actionLog.length - 1];
+    if (aiLog) aiLog.steps.push({ type: 'gravity', direction: 'none' });
+    finishTurn(io, s);
+    return;
+  }
+
+  const boardBefore = cloneBoard(s.board);
+  s.board = applyGravity(s.board, move.gravity);
+  if (s.currentColor === 'black') s.lastGravityBlack = move.gravity;
+  else s.lastGravityWhite = move.gravity;
+  s.movedPosition = findMovedPosition(s.placedPosition!, move.gravity, boardBefore, s.board);
+
+  const aiGLog = s.actionLog[s.actionLog.length - 1];
+  if (aiGLog) aiGLog.steps.push({ type: 'gravity', direction: move.gravity });
+
+  const wr = checkWin(s.board, s.currentColor);
+  if (wr) { handleWin(io, s, wr); return; }
+
+  const cands = calcNeutralCandidates(s.placedPosition!, s.movedPosition!, s.board);
+  s.neutralCandidates = cands;
+
+  if (cands.length === 0) {
+    handleNoNeutral(io, s);
+    return;
+  }
+
+  s.phase = 'neutral';
+  broadcastState(io, s);
+
+  /* ③ neutral */
+  await wait(randDelay());
+  if (!gameStates.has(roomId)) return;
+
+  const neutralPos = move.neutral ?? cands[0];
+  s.board[neutralPos.row][neutralPos.col] = 'neutral';
+  s.neutralCount++;
+  const aiNLog = s.actionLog[s.actionLog.length - 1];
+  if (aiNLog) aiNLog.steps.push({ type: 'neutral', row: neutralPos.row, col: neutralPos.col });
+  finishTurn(io, s);
+}
