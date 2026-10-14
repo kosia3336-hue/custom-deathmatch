@@ -49,8 +49,9 @@ export function PlayerPanel({
       {player.card && <PlayingCard value={player.card.front} face="front" size="sm" />}
       {player.card?.back != null && <PlayingCard value={player.card.back} face="back" size="sm" />}
       {player.card && player.card.back == null && (
-        // 크기는 sm 카드(60×83)에 맞춘다. 나란히 놓였을 때 한 장만 작아 보이면 어색하다.
-        <span className="border-cdm-border-strong bg-cdm-bg-elev-2 text-cdm-fg-subtle rounded-cdm-sm flex aspect-[60/83] w-[60px] items-center justify-center border text-lg font-black">
+        // 크기는 sm 카드(PlayingCard: 너비 3rem·넓은 화면 3.5rem, 5:7)와 같게 — 예전 고정 60×83 은
+        // 실제 카드(모바일 45×63)보다 커서 상대 카드 줄에만 20px 가까운 빈 높이가 생겼다.
+        <span className="border-cdm-border-strong bg-cdm-bg-elev-2 text-cdm-fg-subtle rounded-cdm-sm flex aspect-[5/7] w-12 items-center justify-center border text-lg font-black sm:w-14">
           ?
         </span>
       )}

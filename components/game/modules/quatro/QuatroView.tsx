@@ -215,7 +215,8 @@ function QuatroView({
       <div
         data-game-intrinsic-stage
         className={cn(
-          'quatro-stage flex w-full max-w-3xl min-w-0 flex-col justify-center gap-2 p-3 sm:gap-3',
+          // 모바일은 판 여백을 줄여 조작부까지 한 화면에 — 넓은 화면은 그대로
+          'quatro-stage flex w-full max-w-3xl min-w-0 flex-col justify-center gap-1 p-1 sm:gap-3 sm:p-3',
           isFourCard && 'skin-four-card-table',
         )}
       >

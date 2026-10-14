@@ -1,22 +1,28 @@
 /* 카드 크기와 조작 버튼은 유지하고, 양면포커의 세로 여백만 압축한다. */
 .frame {
-  --game-stage-min-height: 280px;
+  /* 판 내용(두 사람 칸) 높이에 맞춘다 — 더 크게 잡으면 작은 폰에서 그만큼 스크롤이 생긴다. */
+  --game-stage-min-height: 220px;
   gap: 2px;
   padding: 3px;
 }
 
 .stage {
-  gap: 4px;
+  gap: 2px;
   padding: 0;
 }
 
+/* 가운데 판(두 사람 칸)의 여백 — 작은 폰에서도 조작부와 한 화면에 들어오게 바짝 붙인다. */
 .player {
-  gap: 2px;
-  padding: 4px;
+  gap: 1px;
+  padding: 2px 4px;
 }
 
 .player :global([aria-label='면별 베팅 칩']) > div {
-  padding: 2px 8px;
+  padding: 1px 8px;
+}
+
+.player :global([aria-label='면별 베팅 칩']) > div > span:last-child {
+  line-height: 24px;
 }
 
 /* 이름과 보유 칩을 같은 줄에 놓아 베팅판에 필요한 높이를 확보한다. */
