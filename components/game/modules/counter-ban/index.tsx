@@ -1,6 +1,6 @@
 'use client';
 
-import { BanPickChatPanel } from '@/components/game/BanPickChatPanel';
+import { BanPickSideTool } from '@/components/game/BanPickSideTool';
 import { useEffect, useRef, useState } from 'react';
 import { RankBadge } from '@/components/cdm/RankBadge';
 import { getSocket } from '@/lib/socket';
@@ -158,9 +158,7 @@ export default function CounterBanGame() {
         </div>
       </div>
 
-      <div className="relative z-1 hidden lg:flex lg:min-h-0 lg:w-80 lg:flex-col lg:gap-4 lg:border-l lg:border-cdm-ink-border lg:bg-[color-mix(in_srgb,var(--cdm-ink-strong)_55%,transparent)] lg:p-4">
-        <BanPickChatPanel className="h-[42%] min-h-56 shrink-0" />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+      <BanPickSideTool title="카운터 밴 정보" ink>
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-cdm-ink-fg-muted">플레이어</h3>
             <SidePlayer
@@ -187,8 +185,7 @@ export default function CounterBanGame() {
               <BanTimer deadline={view.deadline} />
             </div>
           ) : null}
-        </div>
-      </div>
+        </BanPickSideTool>
     </div>
   );
 }

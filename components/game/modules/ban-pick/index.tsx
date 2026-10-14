@@ -1,6 +1,6 @@
 'use client';
 
-import { BanPickChatPanel } from '@/components/game/BanPickChatPanel';
+import { BanPickSideTool } from '@/components/game/BanPickSideTool';
 import GameLoading from '@/components/game/GameLoading';
 
 import { useEffect, useRef, useState } from 'react';
@@ -852,9 +852,7 @@ export default function BanPickGame() {
       </div>
 
       {/* ── 데스크탑 사이드바 ── */}
-      <div className="hidden lg:flex lg:min-h-0 lg:w-80 lg:flex-col lg:gap-4 lg:border-l lg:border-gray-100 lg:bg-gray-50 lg:p-4">
-        <BanPickChatPanel className="h-[42%] min-h-56 shrink-0" />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+      <BanPickSideTool title="밴픽 정보">
           {/* 플레이어 패널 */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">플레이어</h3>
@@ -972,8 +970,7 @@ export default function BanPickGame() {
               )}
             </div>
           )}
-        </div>
-      </div>
+        </BanPickSideTool>
     </div>
   );
 }

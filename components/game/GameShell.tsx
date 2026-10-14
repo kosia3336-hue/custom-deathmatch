@@ -28,7 +28,7 @@ import GameRulesButton from './GameRulesButton';
 import { cn } from '@/lib/utils';
 import { ANONYMOUS_NICKNAME } from '@/lib/anonymousOpponents';
 import { GAME_IDS } from '@/shared/types/game';
-import { useGameDesktop, useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
+import { useGameToolsController, type GameTool } from '@/contexts/GameToolsContext';
 import { ProgressRing } from '@/components/cdm/ProgressRing';
 import GameToolsWorkspace from './GameToolsWorkspace';
 import GameHistoryAction from './GameHistoryAction';
@@ -74,41 +74,36 @@ export default function GameShell({ children }: Props) {
   const channels = useGameChatChannel();
   const messagesLen = useRoomStore((s) => s.messages.length);
   /*
-    일반 밴픽·카운터매치는 넓은 화면에서 채팅을 오른쪽 사이드바에 직접 그린다.
-    랭크 밴픽은 상단 방 채팅 버튼으로 공통 시트를 연다.
-    (BanPickChatPanel). 여기서 창으로도 띄우면 채팅과 사이드바가 세로줄을 하나씩 차지한다.
+    밴픽도 다른 게임처럼 넓은 화면은 채팅을 편의기능 창(오른쪽 기본, 떼었다 붙였다)으로,
+    좁은 화면은 상단 바 채팅 아이콘(시트)으로 연다. 밴픽 사이드바(플레이어·타이머·밴 순서)도
+    같은 창으로 등록돼 채팅 아래에 붙는다(BanPickSideTool).
   */
-  const desktopScreen = useGameDesktop();
-  const chatInBanPickSidebar = isBanPick && desktopScreen && !isRankedBanPick;
   const extraTools = useMemo<GameTool[]>(
     () => [
-      ...(chatInBanPickSidebar || isRankedBanPick
-        ? []
-        : [
-            {
-              id: 'chat',
-              title: '방 채팅',
-              defaultOrder: -10,
-              content: <GameRoomChatBody channels={channels} />,
-              headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
-              headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
-              minBodyHeight: 220,
-              preferredBodyHeight: 330,
-              resizable: true,
-            },
-          ]),
+      ...[
+        {
+          id: 'chat',
+          title: '방 채팅',
+          defaultOrder: -10,
+          content: <GameRoomChatBody channels={channels} />,
+          headerTitle: channels.channel === 'room' ? '방 채팅' : '길드 채팅',
+          headerActions: <GameRoomChatActions channels={channels} skin={skinTheme} />,
+          minBodyHeight: 220,
+          preferredBodyHeight: 330,
+          resizable: true,
+        },
+      ],
       ...(hud?.memo
         ? [{ id: 'reference', title: '편의기능', content: hud.memo, preferredBodyHeight: 300 }]
         : []),
     ],
-    [hud?.memo, channels, skinTheme, chatInBanPickSidebar, isRankedBanPick],
+    [hud?.memo, channels, skinTheme],
   );
   const tools = useGameToolsController(room?.gameId ?? 'game', extraTools);
-  const desktopChatVisible = tools.desktop && !isRankedBanPick;
-  const chatUnread = useRoomChatUnread(showChat || desktopChatVisible);
+  const chatUnread = useRoomChatUnread(showChat || tools.desktop);
   useEffect(() => {
-    if (desktopChatVisible) useRoomStore.getState().clearChatUnread();
-  }, [desktopChatVisible, messagesLen]);
+    if (tools.desktop) useRoomStore.getState().clearChatUnread();
+  }, [tools.desktop, messagesLen]);
   const [showLeave, setShowLeave] = useState(false);
   const [leaveMode, setLeaveMode] = useState<'leave' | 'resign'>('leave');
   const myId = useMySocketId();
@@ -229,11 +224,7 @@ export default function GameShell({ children }: Props) {
           onClick={() => setShowChat(true)}
           aria-label="방 채팅"
           title="방 채팅"
-          className={cn(
-            HEADER_BTN,
-            'relative',
-            isRankedBanPick ? 'lg:flex-row lg:gap-1.5' : 'lg:hidden',
-          )}
+          className={cn(HEADER_BTN, 'relative', 'lg:hidden')}
         >
           <Icon name="chat" />
           <span className={HEADER_BTN_LABEL}>방 채팅</span>
@@ -455,7 +446,7 @@ export default function GameShell({ children }: Props) {
       )}
 
       <GameChatSheet
-        open={showChat && (!tools.desktop || isRankedBanPick)}
+        open={showChat && !tools.desktop}
         onClose={() => setShowChat(false)}
         channels={channels}
         skin={skinTheme}
