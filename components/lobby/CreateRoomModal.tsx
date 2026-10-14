@@ -195,8 +195,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       : null;
   const canConfigureTimeLimit =
     playMode === 'multi' && !isRandom && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
-  const showsAbstractAiThinkTime =
-    playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiThinkTime = playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
   // 에스키모 COM 은 고민 시간 없이 난이도(보통·어려움)만 고른다
   const showsAbstractAiDifficulty =
     showsAbstractAiThinkTime || (playMode === 'com' && selectedGame?.id === GAME_IDS.ESKIMO);
@@ -216,6 +215,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     (isBanPick && !hiddenMatch) ||
     showsAbstractAiThinkTime ||
+    showsAbstractAiDifficulty ||
     // 솔로 명추리는 혼자 두므로 생각 시간 항목이 없다
     (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
 
@@ -311,8 +311,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
           title: title.trim(),
           playMode,
           roomType: isSoloLikePlayMode(playMode) ? 'public' : roomType,
-          password:
-            !isSoloLikePlayMode(playMode) && roomType === 'private' ? password : undefined,
+          password: !isSoloLikePlayMode(playMode) && roomType === 'private' ? password : undefined,
           maxPlayers: useHidden ? 2 : maxPlayers,
           timeLimitSeconds: computedTimeLimit,
           gameOptions: Object.keys(gameOptions).length > 0 ? gameOptions : undefined,
@@ -410,7 +409,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
 
       {/* 켜고 끄는 항목 — 켜면 그 줄 아래에 세부 입력이 열린다 */}
       {(!isSoloLikePlayMode(playMode) || canConfigureTimeLimit) && (
-        <div className="divide-y divide-cdm-border rounded-lg border border-cdm-border px-4">
+        <div className="divide-cdm-border border-cdm-border divide-y rounded-lg border px-4">
           {!isSoloLikePlayMode(playMode) && (
             <SwitchRow
               label="비밀방"
@@ -494,140 +493,144 @@ export default function CreateRoomModal({ open, onClose }: Props) {
         </div>
       )}
 
-      {/* 상세 설정 — 게임을 골라야 열린다. 아직이면 접은 채로 안내만 띄운다 */}
-      <SettingsAccordion
-        open={detailOpen}
-        onToggle={() => setDetailOpen((v) => !v)}
-        blocked={!selectedGame}
-        onBlockedClick={() => setError('게임을 먼저 선택해 주세요.')}
-      >
-        {!hasDetailOptions ? (
-          <EmptyDetailNotice />
-        ) : (
-          <>
-            {/* 최대 인원 */}
-            {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
-              <SettingField label="최대 인원">
-                <div className="flex flex-wrap gap-2">
-                  {playerRange.map((n) => (
-                    <OptionButton
-                      key={n}
-                      size="square"
-                      active={maxPlayers === n}
-                      onClick={() => setMaxPlayers(n)}
+      {/*
+        상세 설정 — 게임을 골라야 열린다. 아직이면 접은 채로 안내만 띄운다.
+        고른 게임에 게임별 항목이 없으면 상세 설정 자체를 띄우지 않는다.
+      */}
+      {(!selectedGame || hasDetailOptions) && (
+        <SettingsAccordion
+          open={detailOpen}
+          onToggle={() => setDetailOpen((v) => !v)}
+          blocked={!selectedGame}
+          onBlockedClick={() => setError('게임을 먼저 선택해 주세요.')}
+        >
+          {!hasDetailOptions ? (
+            <EmptyDetailNotice />
+          ) : (
+            <>
+              {/* 최대 인원 */}
+              {playMode === 'multi' && selectedGame && !isRandom && playerRange.length > 1 && (
+                <SettingField label="최대 인원">
+                  <div className="flex flex-wrap gap-2">
+                    {playerRange.map((n) => (
+                      <OptionButton
+                        key={n}
+                        size="square"
+                        active={maxPlayers === n}
+                        onClick={() => setMaxPlayers(n)}
+                      >
+                        {n}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </SettingField>
+              )}
+
+              {/* 초기 칩 (인디언홀덤Q) */}
+              {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
+                <SettingField label="초기 칩" hint="(기본 25)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={CHIPS_MIN}
+                      max={CHIPS_MAX}
+                      step={CHIPS_STEP}
+                      value={initialChips}
+                      onChange={(e) => setInitialChips(Number(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-cdm-fg w-12 text-right text-sm font-bold">
+                      {initialChips}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {CHIPS_PRESETS.map((v) => (
+                      <OptionButton
+                        key={v}
+                        size="sm"
+                        active={initialChips === v}
+                        onClick={() => setInitialChips(v)}
+                      >
+                        {v}개
+                      </OptionButton>
+                    ))}
+                  </div>
+                </SettingField>
+              )}
+
+              {/* 제시 숫자 개수 (수식완성N) */}
+              {selectedGame?.id === GAME_IDS.FORMULA_COMPLETION && (
+                <SettingField label="제시 숫자 N" hint="(기본 4)">
+                  <div className="flex gap-2">
+                    {[4, 5, 6].map((count) => (
+                      <OptionButton
+                        key={count}
+                        size="square"
+                        active={formulaNumberCount === count}
+                        onClick={() => setFormulaNumberCount(count)}
+                      >
+                        {count}
+                      </OptionButton>
+                    ))}
+                  </div>
+                  <p className="text-cdm-fg-subtle mt-2 text-xs">
+                    숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
+                  </p>
+                </SettingField>
+              )}
+
+              {/* 밴 개수 (밴픽 모드) */}
+              {isBanPick && !hiddenMatch && (
+                <SettingField label="밴 개수" hint="(1인당, 기본 1)">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setBanCount(Math.max(1, banCount - 1))}
+                      disabled={banCount <= 1}
+                      className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
                     >
-                      {n}
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 초기 칩 (인디언홀덤Q) */}
-            {selectedGame?.id === GAME_IDS.INDIAN_POKER && (
-              <SettingField label="초기 칩" hint="(기본 25)">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={CHIPS_MIN}
-                    max={CHIPS_MAX}
-                    step={CHIPS_STEP}
-                    value={initialChips}
-                    onChange={(e) => setInitialChips(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-cdm-fg w-12 text-right text-sm font-bold">
-                    {initialChips}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {CHIPS_PRESETS.map((v) => (
-                    <OptionButton
-                      key={v}
-                      size="sm"
-                      active={initialChips === v}
-                      onClick={() => setInitialChips(v)}
+                      −
+                    </button>
+                    <span className="text-cdm-ink-fg w-8 text-center text-base font-bold">
+                      {banCount}
+                    </span>
+                    <button
+                      onClick={() => setBanCount(Math.min(6, banCount + 1))}
+                      disabled={banCount >= 6}
+                      className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
                     >
-                      {v}개
-                    </OptionButton>
-                  ))}
-                </div>
-              </SettingField>
-            )}
+                      +
+                    </button>
+                  </div>
+                </SettingField>
+              )}
 
-            {/* 제시 숫자 개수 (수식완성N) */}
-            {selectedGame?.id === GAME_IDS.FORMULA_COMPLETION && (
-              <SettingField label="제시 숫자 N" hint="(기본 4)">
-                <div className="flex gap-2">
-                  {[4, 5, 6].map((count) => (
-                    <OptionButton
-                      key={count}
-                      size="square"
-                      active={formulaNumberCount === count}
-                      onClick={() => setFormulaNumberCount(count)}
-                    >
-                      {count}
-                    </OptionButton>
-                  ))}
-                </div>
-                <p className="text-cdm-fg-subtle mt-2 text-xs">
-                  숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
-                </p>
-              </SettingField>
-            )}
+              {showsAbstractAiThinkTime && (
+                <AbstractAiThinkTimeField
+                  value={abstractAiThinkSeconds}
+                  onChange={setAbstractAiThinkSeconds}
+                />
+              )}
 
-            {/* 밴 개수 (밴픽 모드) */}
-            {isBanPick && !hiddenMatch && (
-              <SettingField label="밴 개수" hint="(1인당, 기본 1)">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setBanCount(Math.max(1, banCount - 1))}
-                    disabled={banCount <= 1}
-                    className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
-                  >
-                    −
-                  </button>
-                  <span className="text-cdm-ink-fg w-8 text-center text-base font-bold">
-                    {banCount}
-                  </span>
-                  <button
-                    onClick={() => setBanCount(Math.min(6, banCount + 1))}
-                    disabled={banCount >= 6}
-                    className="border-cdm-border text-cdm-fg-muted hover:bg-cdm-bg-elev-1 flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold transition-colors disabled:opacity-30"
-                  >
-                    +
-                  </button>
-                </div>
-              </SettingField>
-            )}
+              {showsAbstractAiDifficulty && (
+                <AbstractAiDifficultyField
+                  gameId={selectedGame?.id ?? ''}
+                  value={abstractAiDifficulty}
+                  onChange={setAbstractAiDifficulty}
+                />
+              )}
 
-            {showsAbstractAiThinkTime && (
-              <AbstractAiThinkTimeField
-                value={abstractAiThinkSeconds}
-                onChange={setAbstractAiThinkSeconds}
-              />
-            )}
-
-            {showsAbstractAiDifficulty && (
-              <AbstractAiDifficultyField
-                gameId={selectedGame?.id ?? ''}
-                value={abstractAiDifficulty}
-                onChange={setAbstractAiDifficulty}
-              />
-            )}
-
-            {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
-              <MyeongchuriThinkTimeField
-                enabled={thinkEnabled}
-                seconds={thinkSeconds}
-                onEnabledChange={setThinkEnabled}
-                onSecondsChange={setThinkSeconds}
-              />
-            )}
-
-          </>
-        )}
-      </SettingsAccordion>
+              {selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo' && (
+                <MyeongchuriThinkTimeField
+                  enabled={thinkEnabled}
+                  seconds={thinkSeconds}
+                  onEnabledChange={setThinkEnabled}
+                  onSecondsChange={setThinkSeconds}
+                />
+              )}
+            </>
+          )}
+        </SettingsAccordion>
+      )}
     </RoomModalShell>
   );
 }

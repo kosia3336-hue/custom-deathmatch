@@ -134,7 +134,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
     setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
-    setAbstractAiDifficulty(resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId));
+    setAbstractAiDifficulty(
+      resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId),
+    );
     const myeongchuri = resolveMyeongchuriOptions(room.gameOptions);
     setThinkEnabled(myeongchuri.thinkEnabled);
     setThinkSeconds(myeongchuri.thinkSeconds);
@@ -173,8 +175,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   }, [open, onClose]);
 
   const canConfigureTimeLimit = playMode === 'multi' && selectedGame?.id !== GAME_IDS.KNIGHTS_TOUR;
-  const showsAbstractAiThinkTime =
-    playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
+  const showsAbstractAiThinkTime = playMode === 'com' && isAbstractStrategyGameId(selectedGame?.id);
   // 에스키모 COM 은 고민 시간 없이 난이도(보통·어려움)만 고른다
   const showsAbstractAiDifficulty =
     showsAbstractAiThinkTime || (playMode === 'com' && selectedGame?.id === GAME_IDS.ESKIMO);
@@ -193,7 +194,13 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     setSelectedGame(g);
     let nextPlayMode = playMode;
     if (!supportsPlayMode(g, nextPlayMode)) {
-      nextPlayMode = g.supportsMulti ? 'multi' : g.supportsCom ? 'com' : g.supportsSolo ? 'solo' : 'tutorial';
+      nextPlayMode = g.supportsMulti
+        ? 'multi'
+        : g.supportsCom
+          ? 'com'
+          : g.supportsSolo
+            ? 'solo'
+            : 'tutorial';
       setPlayMode(nextPlayMode);
     }
     // 새 게임의 인원 범위로 조정
@@ -310,8 +317,14 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     });
   };
 
-  // 방 설정에서는 언제나 방 유형·시간제한 중 하나는 있다
-  const hasDetailOptions = true;
+  // 상세 설정에 넣을 게임별 항목이 있을 때만 상세 설정을 띄운다
+  const hasDetailOptions =
+    (playMode === 'multi' && Boolean(selectedGame) && playerRange.length > 1) ||
+    selectedGame?.id === GAME_IDS.INDIAN_POKER ||
+    selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
+    showsAbstractAiThinkTime ||
+    showsAbstractAiDifficulty ||
+    (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
 
   return (
     <RoomModalShell
@@ -354,68 +367,134 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         maxLength={30}
       />
 
-      {/* 상세 설정 — 방 설정에서는 게임이 이미 정해져 있어 항상 열 수 있다 */}
-      <SettingsAccordion open={detailOpen} onToggle={() => setDetailOpen((v) => !v)}>
-        {!hasDetailOptions ? null : (
-          <>
-            {/* 플레이 모드 */}
-            {selectedGame && (
-              <SettingField label="플레이 모드">
-                <div className="flex flex-wrap gap-2">
-                  {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
-                    <OptionButton
-                      key={key}
-                      active={playMode === key}
-                      onClick={() => selectPlayMode(key)}
-                    >
-                      {PLAY_MODE_LABEL[key]}
-                    </OptionButton>
+      {/*
+        플레이 모드·방 유형·시간 제한은 방의 성격을 정하는 선택이라 본문에 둔다(방 만들기와 같은 배치).
+        상세 설정에는 게임별 추가 항목만 남기고, 그런 항목이 없는 게임은 상세 설정 자체를 띄우지 않는다.
+      */}
+      {/* 플레이 모드 */}
+      {selectedGame && (
+        <SettingField label="플레이 모드">
+          <div className="flex flex-wrap gap-2">
+            {PLAY_MODES.filter((key) => gameSupportsPlayMode(selectedGame, key)).map((key) => (
+              <OptionButton key={key} active={playMode === key} onClick={() => selectPlayMode(key)}>
+                {PLAY_MODE_LABEL[key]}
+              </OptionButton>
+            ))}
+          </div>
+        </SettingField>
+      )}
+
+      {/* 방 유형 — 멀티/COM 모드 */}
+      {!isSoloLikePlayMode(playMode) && (
+        <>
+          <SettingField label="방 유형">
+            <div className="flex gap-2">
+              {[
+                { key: 'public' as RoomType, label: '공개' },
+                { key: 'private' as RoomType, label: '비밀' },
+              ].map((rt) => (
+                <OptionButton
+                  key={rt.key}
+                  active={roomType === rt.key}
+                  onClick={() => {
+                    setRoomType(rt.key);
+                    setPassword('');
+                  }}
+                >
+                  {rt.label}
+                </OptionButton>
+              ))}
+            </div>
+          </SettingField>
+
+          {/* 비밀번호 */}
+          {roomType === 'private' && (
+            <Input
+              label={room.roomType === 'private' ? '새 비밀번호 (변경 시만 입력)' : '비밀번호'}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'}
+              maxLength={8}
+            />
+          )}
+        </>
+      )}
+
+      {/* 시간제한 */}
+      {canConfigureTimeLimit && (
+        <SettingField label="시간제한">
+          <div className="flex gap-2">
+            {[
+              { enabled: false, label: '∞ 무제한' },
+              { enabled: true, label: '시간제한' },
+            ].map((opt) => (
+              <OptionButton
+                key={String(opt.enabled)}
+                active={timeLimitEnabled === opt.enabled}
+                onClick={() => setTimeLimitEnabled(opt.enabled)}
+              >
+                {opt.label}
+              </OptionButton>
+            ))}
+          </div>
+
+          {timeLimitEnabled && (
+            <div className="mt-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <select
+                  value={timeLimitMin}
+                  onChange={(e) => setTimeLimitMin(Number(e.target.value))}
+                  className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                >
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {i}
+                    </option>
                   ))}
-                </div>
-              </SettingField>
-            )}
-
-            {/* 방 유형 — 멀티/COM 모드 */}
-            {!isSoloLikePlayMode(playMode) && (
-              <>
-                <SettingField label="방 유형">
-                  <div className="flex gap-2">
-                    {[
-                      { key: 'public' as RoomType, label: '공개' },
-                      { key: 'private' as RoomType, label: '비밀' },
-                    ].map((rt) => (
-                      <OptionButton
-                        key={rt.key}
-                        active={roomType === rt.key}
-                        onClick={() => {
-                          setRoomType(rt.key);
-                          setPassword('');
-                        }}
-                      >
-                        {rt.label}
-                      </OptionButton>
-                    ))}
-                  </div>
-                </SettingField>
-
-                {/* 비밀번호 */}
-                {roomType === 'private' && (
-                  <Input
-                    label={
-                      room.roomType === 'private' ? '새 비밀번호 (변경 시만 입력)' : '비밀번호'
-                    }
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={
-                      room.roomType === 'private' ? '변경하지 않으면 기존 유지' : '4~8자리'
-                    }
-                    maxLength={8}
-                  />
-                )}
-              </>
-            )}
-
+                </select>
+                <span className="text-cdm-fg-muted text-sm">분</span>
+                <select
+                  value={timeLimitSec}
+                  onChange={(e) => setTimeLimitSec(Number(e.target.value))}
+                  className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
+                >
+                  {[0, 10, 15, 20, 30, 45].map((s) => (
+                    <option key={s} value={s}>
+                      {String(s).padStart(2, '0')}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-cdm-fg-muted text-sm">초</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: '30초', min: 0, sec: 30 },
+                  { label: '1분', min: 1, sec: 0 },
+                  { label: '2분', min: 2, sec: 0 },
+                  { label: '3분', min: 3, sec: 0 },
+                  { label: '5분', min: 5, sec: 0 },
+                ].map((p) => (
+                  <OptionButton
+                    key={p.label}
+                    size="sm"
+                    active={timeLimitMin === p.min && timeLimitSec === p.sec}
+                    onClick={() => {
+                      setTimeLimitMin(p.min);
+                      setTimeLimitSec(p.sec);
+                    }}
+                  >
+                    {p.label}
+                  </OptionButton>
+                ))}
+              </div>
+            </div>
+          )}
+        </SettingField>
+      )}
+      {hasDetailOptions && (
+        <SettingsAccordion open={detailOpen} onToggle={() => setDetailOpen((v) => !v)}>
+          <>
             {/* 최대 인원 */}
             {playMode === 'multi' && selectedGame && playerRange.length > 1 && (
               <SettingField label="최대 인원">
@@ -511,81 +590,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                 onSecondsChange={setThinkSeconds}
               />
             )}
-
-            {/* 시간제한 */}
-            {canConfigureTimeLimit && (
-              <SettingField label="시간제한">
-                <div className="flex gap-2">
-                  {[
-                    { enabled: false, label: '∞ 무제한' },
-                    { enabled: true, label: '시간제한' },
-                  ].map((opt) => (
-                    <OptionButton
-                      key={String(opt.enabled)}
-                      active={timeLimitEnabled === opt.enabled}
-                      onClick={() => setTimeLimitEnabled(opt.enabled)}
-                    >
-                      {opt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-
-                {timeLimitEnabled && (
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={timeLimitMin}
-                        onChange={(e) => setTimeLimitMin(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {Array.from({ length: 11 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {i}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">분</span>
-                      <select
-                        value={timeLimitSec}
-                        onChange={(e) => setTimeLimitSec(Number(e.target.value))}
-                        className="border-cdm-border focus:border-cdm-primary h-10 rounded-lg border px-3 text-sm focus:outline-none"
-                      >
-                        {[0, 10, 15, 20, 30, 45].map((s) => (
-                          <option key={s} value={s}>
-                            {String(s).padStart(2, '0')}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-cdm-fg-muted text-sm">초</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: '30초', min: 0, sec: 30 },
-                        { label: '1분', min: 1, sec: 0 },
-                        { label: '2분', min: 2, sec: 0 },
-                        { label: '3분', min: 3, sec: 0 },
-                        { label: '5분', min: 5, sec: 0 },
-                      ].map((p) => (
-                        <OptionButton
-                          key={p.label}
-                          size="sm"
-                          active={timeLimitMin === p.min && timeLimitSec === p.sec}
-                          onClick={() => {
-                            setTimeLimitMin(p.min);
-                            setTimeLimitSec(p.sec);
-                          }}
-                        >
-                          {p.label}
-                        </OptionButton>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </SettingField>
-            )}
           </>
-        )}
-      </SettingsAccordion>
+        </SettingsAccordion>
+      )}
     </RoomModalShell>
   );
 }

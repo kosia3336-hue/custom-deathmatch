@@ -556,17 +556,7 @@ export default function WaitingRoomPage() {
           setReportTarget(target);
           setShowRoomInfo(false);
         }}
-        footer={
-          isHost ? (
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => { setShowRoomInfo(false); openRoomSettings(); }}
-            >
-              설정 변경
-            </Button>
-          ) : undefined
-        }
+        // 설정 변경은 상단의 '방 설정' 버튼 하나로 연다 — 방 정보는 보기 전용
       />
 
       {/* 방 설정 변경 모달 (방장 전용) */}
