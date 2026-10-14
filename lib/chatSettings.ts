@@ -46,7 +46,11 @@ export function subscribeChatSettings(notify: () => void): () => void {
   };
 }
 
-export function isChatMessageVisible(
+/**
+ * 안 읽은 채팅 배지에 셀 메시지인지. '관전자 입·퇴장 알림' 을 끄면 관전자 입·퇴장만 배지에서 빠진다.
+ * 채팅창에는 설정과 상관없이 항상 보인다 — 이 설정은 배지(알림)만 켜고 끈다.
+ */
+export function countsTowardChatBadge(
   message: ChatMessage,
   spectatorNotifications: boolean,
 ): boolean {

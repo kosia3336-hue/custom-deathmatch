@@ -3,7 +3,7 @@ import {
   getSpectatorNotifications,
   setSpectatorNotifications,
   subscribeChatSettings,
-  isChatMessageVisible,
+  countsTowardChatBadge,
 } from '../../../lib/chatSettings';
 import type { ChatMessage } from '../../../shared/types';
 
@@ -38,7 +38,7 @@ describe('관전자 알림 개인 설정', () => {
     expect(getSpectatorNotifications()).toBe(false);
   });
 
-  it('관전자 입·퇴장만 숨기며 채팅 원본, 일반 대화, 다른 시스템 메시지는 유지한다', () => {
+  it('꺼짐이면 관전자 입·퇴장만 배지에서 빼고, 일반 대화·다른 시스템 메시지는 센다', () => {
     const message: ChatMessage = {
       id: 'join',
       sender: 'system',
@@ -55,11 +55,11 @@ describe('관전자 알림 개인 설정', () => {
       { ...message, id: 'settings', systemEvent: undefined, message: '방 설정 변경' },
       { ...message, id: 'user', isSystem: false, message: '관전자 입장이라는 일반 대화' },
     ];
-    expect(messages.filter((m) => isChatMessageVisible(m, false)).map((m) => m.id)).toEqual([
+    expect(messages.filter((m) => countsTowardChatBadge(m, false)).map((m) => m.id)).toEqual([
       'settings',
       'user',
     ]);
-    expect(messages.filter((m) => isChatMessageVisible(m, true))).toHaveLength(4);
+    expect(messages.filter((m) => countsTowardChatBadge(m, true))).toHaveLength(4);
     expect(messages).toHaveLength(4);
   });
 });

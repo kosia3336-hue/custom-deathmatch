@@ -4,8 +4,6 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { getSocket } from '@/lib/socket';
 import { useRoomStore } from '@/stores/room';
 import { useNicknameStore } from '@/stores/nickname';
-import { useSpectatorNotifications } from '@/hooks/useSpectatorNotifications';
-import { isChatMessageVisible } from '@/lib/chatSettings';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/cdm/Button';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
@@ -46,16 +44,12 @@ export default function RoomChat({ scope, scrollClassName, onSend, readOnly }: P
 /** 공용 메시지·입력 본문. 대기실 채널창과 인게임 방 채팅에서 공유한다. */
 export function RoomChatBody({ scope, scrollClassName, onSend, readOnly = false }: Props) {
   const allMessages = useRoomStore((s) => s.messages);
-  const spectatorNotifications = useSpectatorNotifications();
+  // 관전자 입·퇴장 알림 설정은 배지만 바꾼다(useRoomChatUnread). 채팅창에는 늘 보인다.
   const messages = useMemo(() => {
-    return allMessages.filter(
-      (m) =>
-        (scope === 'guild_war'
-          ? m.scope === 'guild_war'
-          : m.scope === 'room' || m.scope === 'game') &&
-        isChatMessageVisible(m, spectatorNotifications),
+    return allMessages.filter((m) =>
+      scope === 'guild_war' ? m.scope === 'guild_war' : m.scope === 'room' || m.scope === 'game',
     );
-  }, [allMessages, scope, spectatorNotifications]);
+  }, [allMessages, scope]);
   const spectators = useRoomStore((s) => s.room?.spectators ?? EMPTY_SPECTATORS);
   const nickname = useNicknameStore((s) => s.nickname);
   const [input, setInput] = useState('');
