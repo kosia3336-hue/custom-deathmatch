@@ -13,9 +13,7 @@
  * ── 쓰는 법 ───────────────────────────────────────────────────
  * 아래 배열에 게임 ID 를 넣으면 즉시 감춰진다. 출시할 때 지우면 된다.
  */
-export const UNRELEASED_GAME_IDS: readonly string[] = [
-  'game-030', // 에스키모
-];
+export const UNRELEASED_GAME_IDS: readonly string[] = [];
 
 export function isUnreleasedGame(gameId: string): boolean {
   return UNRELEASED_GAME_IDS.includes(gameId);
