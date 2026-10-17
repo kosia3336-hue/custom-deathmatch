@@ -71,6 +71,7 @@ export default function InfoPanel({ players, roundHistory, myId }: InfoPanelProp
                       }`}
                     >
                       {pr.color === 'black' ? '흑' : '백'}
+                      {pr.tile != null && <span className="ml-0.5 tabular-nums">{pr.tile}</span>}
                     </span>
                     <span
                       className="text-cdm-fg-muted max-w-20 truncate text-[11px]"

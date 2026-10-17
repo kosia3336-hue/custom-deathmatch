@@ -100,3 +100,52 @@ describe('배수 흑과백 의심 결과와 획득 점수 기록', () => {
     }
   });
 });
+
+describe('배수 흑과백 라운드 기록의 타일 숫자', () => {
+  it('보는 사람 본인이 낸 숫자만 실린다', () => {
+    vi.useFakeTimers();
+    const roomId = 'record-own-tile';
+    const players = ['me', 'opponent'].map(
+      (id, i) =>
+        ({ id, nickname: id, isHost: !i, isReady: true, joinedAt: Date.now() }) as Player,
+    );
+    const io = {
+      in: () => ({ fetchSockets: async () => [] }),
+      to: () => ({ emit: vi.fn() }),
+    } as unknown as IO;
+    const act = (id: string, action: MultipleBnwAction) =>
+      handleMultipleBnwAction(io, { id, emit: vi.fn() } as unknown as TypedSocket, roomId, action);
+    const viewAs = (id: string) => {
+      const socket = { id, emit: vi.fn() } as unknown as TypedSocket;
+      emitStateToSocket(socket, gameStates.get(roomId)!);
+      return (socket.emit as ReturnType<typeof vi.fn>).mock.calls.find(
+        ([event]) => event === 'game:state',
+      )![1].gameData as MultipleBnwGameData;
+    };
+    try {
+      initMultipleBnw(io, roomId, players, 'multi', Date.now(), 60, vi.fn());
+      const first = gameStates.get(roomId)!.firstPlayerId;
+      const second = first === 'me' ? 'opponent' : 'me';
+      act(first, { type: 'submitTile', tile: 5 });
+      act(second, { type: 'respondTile', tile: 8 });
+      act(first, { type: 'suspectFirst', suspect: false });
+      if (gameStates.get(roomId)!.phase === 'suspectSecond')
+        act(second, { type: 'suspectSecond', suspect: false });
+
+      const tiles: Record<string, number> = { [first]: 5, [second]: 8 };
+      for (const id of ['me', 'opponent']) {
+        const other = id === 'me' ? 'opponent' : 'me';
+        const record = viewAs(id).roundHistory[0].players;
+        expect(record[id].tile).toBe(tiles[id]);
+        expect(record[other]).not.toHaveProperty('tile');
+      }
+      const spectator = viewAs('spectator').roundHistory[0].players;
+      expect(spectator.me).not.toHaveProperty('tile');
+      expect(spectator.opponent).not.toHaveProperty('tile');
+    } finally {
+      cleanupMultipleBnw(roomId);
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+});

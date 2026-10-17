@@ -42,7 +42,8 @@ function playerToInfo(p: MBNWPlayerInternal): MBNWPlayerInfo {
   };
 }
 
-function toClientRoundHistory(history: MBNWRoundActionLog[]): MBNWRoundRecord[] {
+/** 타일 숫자는 보는 사람 본인 것만 싣는다 — 상대·관전자 숫자는 끝까지 비공개. */
+function toClientRoundHistory(history: MBNWRoundActionLog[], viewerId: string): MBNWRoundRecord[] {
   return history.map((r) => ({
     round: r.round,
     firstPlayerId: r.firstPlayerId,
@@ -51,6 +52,7 @@ function toClientRoundHistory(history: MBNWRoundActionLog[]): MBNWRoundRecord[] 
         pid,
         {
           color: pr.tileColor,
+          ...(pid === viewerId ? { tile: pr.tile } : {}),
           suspected: pr.suspected,
           suspectSuccess: pr.suspectSuccess,
           bonusPoint: pr.bonusPoint,
@@ -157,7 +159,7 @@ function buildGameDataForPlayer(s: InternalState, pid: string): MultipleBnwGameD
     colorReveal: s.colorReveal ? { ...s.colorReveal } : null,
     suspectResult,
     resultData,
-    roundHistory: toClientRoundHistory(s.roundHistory),
+    roundHistory: toClientRoundHistory(s.roundHistory, pid),
     winner: s.winner,
     winType: s.winType,
     myTile,

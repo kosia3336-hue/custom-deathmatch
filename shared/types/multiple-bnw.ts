@@ -57,12 +57,14 @@ export interface MBNWResultData {
   players: Record<string, MBNWResultPlayerData>;
 }
 
-/** 라운드 기록 — 타일 숫자 비공개, 색상만 기록 */
+/** 라운드 기록 — 상대 타일 숫자는 비공개, 색상만 기록. 숫자는 본인 것만 실린다. */
 export interface MBNWRoundRecord {
   round: number;
   firstPlayerId: string;
   players: Record<string, {
     color: MBNWTileColor;
+    /** 내가 낸 타일 숫자. 받는 사람 본인 칸에만 있고 상대·관전자에게는 없다. */
+    tile?: number;
     suspected: boolean;
     suspectSuccess: boolean | null;
     bonusPoint: number;
