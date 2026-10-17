@@ -11,8 +11,10 @@ export default defineConfig({
     environment: 'node',
   },
   resolve: {
-    alias: {
-      '@shared': resolve(__dirname, '../shared'),
-    },
+    alias: [
+      { find: '@shared', replacement: resolve(__dirname, '../shared') },
+      // 웹 lib 를 그대로 시험할 때 (lib 은 '@/…' 로 가져온다)
+      { find: /^@\/(.*)$/, replacement: `${resolve(__dirname, '..')}/$1` },
+    ],
   },
 });

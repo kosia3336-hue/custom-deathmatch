@@ -7,13 +7,14 @@ import {
 import { recalcAfterMatchDelete, type MatchRow } from '@/lib/rank/recalcAfterMatchDelete';
 
 const MATCH_COLUMNS =
-  'id, season_id, winner_id, loser_id, winner_tier, winner_rp_before, winner_rp_gain, winner_promoted, loser_tier, loser_rp_before, loser_rp_loss, loser_demoted, played_at';
+  'id, season_id, winner_id, loser_id, winner_tier, winner_rp_before, winner_rp_gain, winner_rp_after, winner_promoted, loser_tier, loser_rp_before, loser_rp_loss, loser_rp_after, loser_demoted, played_at';
 
 /**
  * 랭크 전적 1건 삭제 + 당사자 두 명의 RP·티어·연승/연패·시즌 승패 자동 역산.
  *
- * 역산은 rank_match_history 에 저장된 '경기 직전 스냅샷'에서 출발해
+ * 역산은 삭제한 경기 바로 앞 경기의 '경기 후' 상태에서 출발해
  * 이후 경기를 다시 적용하는 방식이라, 티어 경계를 넘나든 경우에도 값이 맞는다.
+ * 랭크 초기화권을 쓴 회원은 마지막 초기화 이후 경기만 본다 — 그 앞 경기를 지우면 랭크는 그대로다.
  */
 export async function POST(req: Request) {
   const admin = await requireAdminMember();
@@ -72,17 +73,33 @@ export async function POST(req: Request) {
   // 4) 남은 기록으로 두 사람 각각 역산
   const results = [];
   for (const memberId of memberIds) {
-    const { data: rest } = await db
+    // 이 시즌 마지막 랭크 초기화 (ref_id: "{season}" 또는 "{season}:{seq}")
+    const { data: resets } = await db
+      .from('shop_consumable_uses')
+      .select('used_at, ref_id')
+      .eq('member_id', memberId)
+      .eq('kind', 'rank_reset')
+      .eq('ref_kind', 'rank_season')
+      .order('used_at', { ascending: false });
+    const resetAt =
+      ((resets ?? []) as { used_at: string; ref_id: string }[]).find(
+        (u) => u.ref_id === String(seasonId) || u.ref_id.startsWith(`${seasonId}:`),
+      )?.used_at ?? null;
+
+    let query = db
       .from('rank_match_history')
       .select(MATCH_COLUMNS)
       .eq('season_id', seasonId)
       .or(`winner_id.eq.${memberId},loser_id.eq.${memberId}`)
       .order('played_at', { ascending: true });
+    if (resetAt) query = query.gt('played_at', resetAt);
+    const { data: rest } = await query;
 
-    const all = (rest ?? []) as MatchRow[];
-    const later = all.filter((m) => m.played_at > deleted.played_at);
-
-    const r = recalcAfterMatchDelete(memberId, deleted, later, all);
+    const r = recalcAfterMatchDelete(memberId, deleted, (rest ?? []) as MatchRow[], resetAt);
+    if (r.skipped) {
+      results.push({ ...r, updateError: null });
+      continue;
+    }
 
     const { error: uErr } = await db
       .from('rank_stats')

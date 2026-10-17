@@ -94,8 +94,10 @@ export default function RankMatchHistoryPanel({ memberId, nickname, onChanged }:
       if (!r.ok) throw new Error(j.error ?? '삭제에 실패했습니다.');
 
       const lines = (j.results ?? []).map(
-        (x: { tier: string; rp: number; winStreak: number; lossStreak: number }) =>
-          `${x.tier} ${x.rp}RP · ${x.winStreak > 0 ? `${x.winStreak}연승` : x.lossStreak > 0 ? `${x.lossStreak}연패` : '연속 없음'}`,
+        (x: { skipped?: boolean; tier: string; rp: number; winStreak: number; lossStreak: number }) =>
+          x.skipped
+            ? '랭크 그대로'
+            : `${x.tier} ${x.rp}RP · ${x.winStreak > 0 ? `${x.winStreak}연승` : x.lossStreak > 0 ? `${x.lossStreak}연패` : '연속 없음'}`,
       );
       toast.success(`전적을 삭제하고 역산했습니다. (${lines.join(' / ')})`);
 
