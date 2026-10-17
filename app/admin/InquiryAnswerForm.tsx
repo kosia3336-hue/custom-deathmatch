@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/cdm/Button';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
+import { sendInquiryAnswerMail } from '@/lib/inquiry/sendAnswerMail';
 
 export default function InquiryAnswerForm({ inquiryId }: { inquiryId: string }) {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function InquiryAnswerForm({ inquiryId }: { inquiryId: string }) 
         const sb = getBrowserSupabase();
         await callRpc(sb, 'admin_answer_inquiry', { p_id: inquiryId, p_body: body.trim() });
         toast.success('답변이 등록되었습니다');
+        await sendInquiryAnswerMail(inquiryId);
         setBody('');
         router.refresh();
       } catch (e) {

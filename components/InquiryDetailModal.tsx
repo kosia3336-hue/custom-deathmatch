@@ -7,6 +7,7 @@ import { Button } from '@/components/cdm/Button';
 import { InquiryStatusChip } from '@/components/cdm/StatusChip';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { callRpc } from '@/lib/supabase/rpc';
+import { sendInquiryAnswerMail } from '@/lib/inquiry/sendAnswerMail';
 import type { InquiryStatus } from '@/lib/supabase/database.types';
 
 export interface InquiryDetailData {
@@ -51,6 +52,7 @@ export default function InquiryDetailModal({ inquiry, isAdmin = false, onClose, 
           p_body: answerText.trim(),
         });
         toast.success('답변이 등록되었습니다');
+        await sendInquiryAnswerMail(inquiry!.id);
         onClose();
         onRefresh();
       } catch (e) {

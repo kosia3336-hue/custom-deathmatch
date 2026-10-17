@@ -396,6 +396,15 @@ function MailDetail({
                   공지 보기
                 </Link>
               )}
+              {mail.id.startsWith('inquiry:') && (
+                <Link
+                  href="/me?tab=support"
+                  onClick={() => setOpen(false)}
+                  className="mt-3 inline-block text-sm font-semibold text-cdm-primary hover:underline"
+                >
+                  문의 내역 보기
+                </Link>
+              )}
               {mail.id.startsWith('guild-join:') && (
                 <Link
                   href="/guild"
