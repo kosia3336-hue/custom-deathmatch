@@ -396,6 +396,15 @@ export type {
   FormulaCompletionGameData,
   FormulaCompletionArchiveRecord,
 } from './formula-completion';
+export { FF_REVEAL_MS, FF_TOTAL_ROUNDS, FF_WIN_SCORE } from './farewell-formula';
+export type {
+  FarewellFormulaAction,
+  FarewellFormulaArchiveRecord,
+  FarewellFormulaAttemptFeedback,
+  FarewellFormulaGameData,
+  FarewellFormulaPhase,
+  FarewellFormulaRoundResult,
+} from './farewell-formula';
 export {
   QUATRO_SUIT_PRIORITY,
   QUATRO_MAX_MULLIGANS,

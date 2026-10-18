@@ -48,6 +48,7 @@ export const GAME_IDS = {
   /** 기간 한정 길드전 「링 더 벨」. 시스템 룸 `guild-war` 전용. `games` 테이블에 없음. */
   RING_THE_BELL: 'game-029',
   ESKIMO: 'game-030',
+  FAREWELL_FORMULA: 'game-031',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

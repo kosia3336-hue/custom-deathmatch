@@ -13,6 +13,7 @@ const games = [
   ['triple-gomoku', 'TripleGomoku'],
   ['choice-holdem', 'ChoiceHoldem'],
   ['myeongchuri', 'Myeongchuri'],
+  ['farewell-formula', 'FarewellFormula'],
 ];
 const modules: Record<string, () => Promise<any>> = {
   'word-puzzle': () => import('../socket/games/word-puzzle/index.js'),
@@ -24,6 +25,7 @@ const modules: Record<string, () => Promise<any>> = {
   'triple-gomoku': () => import('../socket/games/triple-gomoku/index.js'),
   'choice-holdem': () => import('../socket/games/choice-holdem/index.js'),
   myeongchuri: () => import('../socket/games/myeongchuri/index.js'),
+  'farewell-formula': () => import('../socket/games/farewell-formula/index.js'),
 };
 const path = fileURLToPath(new URL('../../../public/dev/refactor-fixtures', import.meta.url));
 describe('additional previews use private server projections', () => {
@@ -147,6 +149,16 @@ describe('additional previews use private server projections', () => {
           act(data().currentPlayerId, { type: 'pick', letters: ['C', 'D'] });
           save();
           expect(data().rounds).toHaveLength(1);
+        }
+        if (slug === 'farewell-formula') {
+          const st = await import('../socket/games/farewell-formula/state.js');
+          act('me', {
+            type: 'submit',
+            removedUnitIds:
+              st.farewellFormulaStates.get(roomId)!.puzzle.solutions[0]!.removedUnitIds,
+          });
+          save();
+          expect(data().lastResult.outcome).toBe('correct');
         }
         for (const sample of Object.values(snapshots)) {
           const key = ['history', 'rounds'].find(
