@@ -41,7 +41,8 @@ export interface BNW2PlayerInfo {
 export interface BNW2RevealData {
   players: Record<string, {
     color: BNW2Color;
-    points: number;
+    /** 게임 중에는 본인 것만 값이 오고 상대·관전자 것은 null. 끝난 판은 모두 보인다. */
+    points: number | null;
     scoreChange: number;
     scoreBefore: number;
     scoreAfter: number;

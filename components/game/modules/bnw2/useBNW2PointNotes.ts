@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import {
+  bnw2NoteRange,
   bnw2NoteStage,
   initializeBNW2PointNotes,
   updateBNW2PointNote,
   type BNW2PointNotes,
 } from '@/lib/bnw2PointNotes';
-import { BNW2_INITIAL_POINTS, bnw2StageRange, type BNW2GameData } from '@/shared/types/bnw2';
+import { BNW2_INITIAL_POINTS, type BNW2GameData } from '@/shared/types/bnw2';
 
 /** View가 소유해 단계·도킹·화면 크기 변경에도 메모를 유지한다. 새 경기만 초기화한다. */
 export function useBNW2PointNotes(
@@ -46,7 +47,7 @@ export function useBNW2PointNotes(
     reset: () =>
       setStored((prev) => ({
         ...prev,
-        notes: updateBNW2PointNote(prev.notes, round, bnw2StageRange(stage).hi, stage),
+        notes: updateBNW2PointNote(prev.notes, round, bnw2NoteRange(stage).hi, stage),
       })),
   };
 }

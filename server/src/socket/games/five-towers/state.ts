@@ -351,11 +351,13 @@ function _applyDbgView(s: InternalState, viewerId: string, data: FTGameData): FT
 
 /* ────────── broadcast ────────── */
 
-export async function broadcastState(io: IO, s: InternalState) {
+/** onlyPlayerId 를 주면 그 플레이어 화면에만 보낸다 (상대·관전자에게 티가 나면 안 되는 갱신). */
+export async function broadcastState(io: IO, s: InternalState, onlyPlayerId?: string) {
   const room = socketRoom(s.roomId);
   const sockets = await io.in(room).fetchSockets();
   for (const sock of sockets) {
     const pid = sessions.getToken(sock.id) ?? sock.id;
+    if (onlyPlayerId && pid !== onlyPlayerId) continue;
     const isPlayer = pid === s.player1.id || pid === s.player2.id;
     let gameData = isPlayer
       ? buildGameDataForPlayer(s, pid)
@@ -552,16 +554,18 @@ export function handleAction(io: IO, socket: TypedSocket, s: InternalState, acto
 }
 
 function applyAction(io: IO, s: InternalState, actor: FTPlayerInternal, action: FTAction) {
-  clearTurnTimer(s);
-
-  let consumesTurn = true;
+  /*
+    정보 아이템은 턴을 소모하지 않는다. 시계도 그대로 흘러야 한다 — 다시 걸면 상대 화면의
+    남은 시간이 처음으로 돌아가 '정보를 썼다' 가 드러났다. 갱신도 쓴 사람에게만 보낸다.
+  */
+  const consumesTurn = !(action.type === 'item' && action.item === 'info');
+  if (consumesTurn) clearTurnTimer(s);
 
   if (action.type === 'stack') {
     applyStack(s, actor, action.tower, action.count);
   } else if (action.type === 'item') {
     if (action.item === 'info') {
       applyInfo(s, actor, action.targets);
-      consumesTurn = false; // 정보 아이템은 턴을 소모하지 않음
     } else if (action.item === 'zero') {
       applyZero(s, actor, action.target);
     } else if (action.item === 'secret') {
@@ -574,6 +578,7 @@ function applyAction(io: IO, s: InternalState, actor: FTPlayerInternal, action: 
 
   // 게임 종료 체크
   if (checkGameOver(s)) {
+    clearTurnTimer(s);
     finalize(io, s);
     return;
   }
@@ -582,8 +587,12 @@ function applyAction(io: IO, s: InternalState, actor: FTPlayerInternal, action: 
     advanceTurn(s);
   }
   pushUndoSnapshot(s);
-  startTurnTimer(io, s);
-  broadcastState(io, s);
+  if (consumesTurn) {
+    startTurnTimer(io, s);
+    broadcastState(io, s);
+  } else {
+    broadcastState(io, s, actor.id);
+  }
 
   if (s.playMode === 'com') s.onAITurn?.(io, s);
 }

@@ -33,7 +33,10 @@ describe('흑과백2 라운드별 개인 메모', () => {
     expect(updateBNW2PointNote({}, 1, 199, 3)[1]).toBe(60);
     expect(updateBNW2PointNote({}, 1, -1, 3)[1]).toBe(41);
     expect(updateBNW2PointNote({}, 1, 52.9, 3)[1]).toBe(52);
-    expect(updateBNW2PointNote({}, 1, 10, 0)[1]).toBe(0);
+    // 맨 아래 칸은 0 과 1~20 이 같은 모양이라 0~20 — 올인(잔여 0)이 드러나지 않는다
+    expect(updateBNW2PointNote({}, 1, 10, 0)[1]).toBe(10);
+    expect(updateBNW2PointNote({}, 1, 0, 1)[1]).toBe(0);
+    expect(updateBNW2PointNote({}, 1, 25, 1)[1]).toBe(20);
     expect(updateBNW2PointNote({}, 0, 1, 3)).toEqual({});
     expect(updateBNW2PointNote({}, 1, NaN, 3)).toEqual({});
   });

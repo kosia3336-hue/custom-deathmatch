@@ -1,11 +1,11 @@
 'use client';
 
-import { bnw2StageRange } from '@/shared/types/bnw2';
+import { bnw2NoteRange } from '@/lib/bnw2PointNotes';
 import type { useBNW2PointNotes } from './useBNW2PointNotes';
 
 export function OpponentPointTracker({ notes }: { notes: ReturnType<typeof useBNW2PointNotes> }) {
   const { round, currentRound, stage, estimate, change, reset, selectRound } = notes;
-  const { lo, hi } = bnw2StageRange(stage);
+  const { lo, hi } = bnw2NoteRange(stage);
 
   return (
     <section aria-label={`R${round} 상대 잔여 추리`} className="text-cdm-fg flex flex-col gap-2">

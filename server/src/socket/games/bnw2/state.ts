@@ -51,31 +51,43 @@ function phaseMessage(s: InternalState): string {
   return '게임이 종료되었습니다.';
 }
 
+/**
+ * 남이 보는 표시등 칸수. 잔여 0 은 1~20 과 같은 한 칸으로 보낸다.
+ *
+ * 화면의 표시등은 0 을 1~20 과 똑같이 그린다(PointTrack). 그런데 0 을 그대로 보내면
+ * 상대 잔여 추리가 0~0 으로 묶여 '올인했다' 가 드러났다. 보내는 쪽에서 가린다.
+ */
+function shownStage(stage: number, revealSelf: boolean): number {
+  return revealSelf ? stage : Math.max(1, stage);
+}
+
 function playerToInfo(p: BNW2PlayerInternal, revealSelf: boolean): BNW2PlayerInfo {
   return {
     id: p.id,
     nickname: p.nickname,
     score: p.score,
-    stage: calcBNW2Stage(p.remainingPoints),
+    stage: shownStage(calcBNW2Stage(p.remainingPoints), revealSelf),
     remainingPoints: revealSelf ? p.remainingPoints : null,
     submitted: p.submitted,
   };
 }
 
-function buildRevealData(s: InternalState): BNW2RevealData | null {
+/** 공개 단계에도 상대 숫자는 비공개(liveRoundHistory 와 같은 규칙). 끝난 판은 모두 보인다. */
+function buildRevealData(s: InternalState, viewerId: string | null): BNW2RevealData | null {
   if (s.phase !== 'reveal' && s.phase !== 'finished') return null;
   if (s.actionLog.length === 0) return null;
   const last = s.actionLog[s.actionLog.length - 1];
   const players: BNW2RevealData['players'] = {};
   for (const [pid, pd] of Object.entries(last.players)) {
+    const open = s.phase === 'finished' || pid === viewerId;
     players[pid] = {
       color: pd.color,
-      points: pd.points,
+      points: open ? pd.points : null,
       scoreChange: pd.scoreChange,
       scoreBefore: pd.scoreBefore,
       scoreAfter: pd.scoreAfter,
-      stageBefore: pd.stageBefore,
-      stageAfter: pd.stageAfter,
+      stageBefore: shownStage(pd.stageBefore, open),
+      stageAfter: shownStage(pd.stageAfter, open),
     };
   }
   return { players, winnerId: last.winnerId };
@@ -95,9 +107,9 @@ function buildGameDataForPlayer(s: InternalState, socketId: string): BNW2GameDat
     round: s.round,
     firstPlayerId: s.firstPlayerId,
     players,
-    prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
+    prevFirstStage: s.phase === 'secondSubmit' ? shownStage(s.prevFirstStage, socketId === s.firstPlayerId) : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
-    revealData: buildRevealData(s),
+    revealData: buildRevealData(s, socketId),
     roundHistory,
     winner: s.winner,
     winType: s.winType,
@@ -124,9 +136,9 @@ function buildSpectatorGameData(s: InternalState): BNW2GameData {
     round: s.round,
     firstPlayerId: s.firstPlayerId,
     players,
-    prevFirstStage: s.phase === 'secondSubmit' ? s.prevFirstStage : null,
+    prevFirstStage: s.phase === 'secondSubmit' ? shownStage(s.prevFirstStage, false) : null,
     firstPlayerColor: s.phase === 'secondSubmit' && s.firstPoints !== null ? calcBNW2Color(s.firstPoints) : null,
-    revealData: buildRevealData(s),
+    revealData: buildRevealData(s, null),
     roundHistory,
     winner: s.winner,
     winType: s.winType,
@@ -149,7 +161,12 @@ function liveRoundHistory(s: InternalState, viewerId: string | null) {
     players: Object.fromEntries(
       Object.entries(record.players).map(([pid, pd]) => [
         pid,
-        { ...pd, points: pid === viewerId ? pd.points : null },
+        {
+          ...pd,
+          points: pid === viewerId ? pd.points : null,
+          stageBefore: shownStage(pd.stageBefore, pid === viewerId),
+          stageAfter: shownStage(pd.stageAfter, pid === viewerId),
+        },
       ]),
     ),
   }));

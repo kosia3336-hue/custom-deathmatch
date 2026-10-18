@@ -13,6 +13,14 @@ export function initializeBNW2PointNotes(notes: BNW2PointNotes, currentRound: nu
   return next;
 }
 
+/**
+ * 메모로 고를 수 있는 상대 잔여 범위.
+ * 표시등 맨 아래 칸은 0 과 1~20 을 똑같이 보여 주므로(서버도 0 을 1 칸으로 보낸다) 0~20 이다.
+ */
+export function bnw2NoteRange(stage: number) {
+  return stage <= 1 ? { lo: 0, hi: bnw2StageRange(1).hi } : bnw2StageRange(stage);
+}
+
 export function updateBNW2PointNote(
   notes: BNW2PointNotes,
   round: number,
@@ -20,7 +28,7 @@ export function updateBNW2PointNote(
   stage: number,
 ) {
   if (!Number.isInteger(round) || round < 1 || !Number.isFinite(value)) return notes;
-  const { lo, hi } = bnw2StageRange(stage);
+  const { lo, hi } = bnw2NoteRange(stage);
   return { ...notes, [round]: Math.max(lo, Math.min(hi, Math.floor(value))) };
 }
 
