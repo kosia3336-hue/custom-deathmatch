@@ -8,6 +8,7 @@ import { Icon } from '@/components/cdm/Icon';
 import { TitleBadge, type TitleEffect } from '@/components/cdm/TitleBadge';
 import { GuildInfoModal } from '@/components/guild-v4/GuildInfoModal';
 import { cn } from '@/lib/utils';
+import { MarkdownView, extractPlainText } from '@/lib/markdown';
 import type { GuildSummary } from '@/lib/guild/types';
 import type { GuildV4Snapshot } from '@/lib/guild-v4/types';
 import type { TitleColor } from '@/lib/supabase/database.types';
@@ -229,9 +230,12 @@ function MailListRow({
   const meta = KIND_META[mail.kind];
   const unread = !mail.readAt;
   // 칭호 편지는 body 가 '칭호 획득!' 뒤에 오는 설명이라 칭호 이름을 앞세운다.
+  // 공지 편지 본문은 공지 원문(마크다운)이라 서식 기호를 걷어 낸다.
   const preview = mail.titleGrant
     ? `「${mail.titleGrant.name}」 ${mail.titleGrant.description ?? ''}`.trim()
-    : mail.body;
+    : mail.kind === 'notice'
+      ? extractPlainText(mail.body, 160)
+      : mail.body;
   return (
     <div
       className={cn(
@@ -384,9 +388,13 @@ function MailDetail({
             <>
               <h3 className="mt-3 text-base font-bold leading-snug text-cdm-fg">{mail.title}</h3>
               <p className="mt-1 text-xs text-cdm-fg-muted">보낸이 · {mail.sender}</p>
-              <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-cdm-fg">
-                {mail.body}
-              </div>
+              {mail.kind === 'notice' ? (
+                <MarkdownView source={mail.body} className="mt-4 text-sm leading-relaxed text-cdm-fg" />
+              ) : (
+                <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-cdm-fg">
+                  {mail.body}
+                </div>
+              )}
               {mail.kind === 'notice' && mail.id.startsWith('notice:') && (
                 <Link
                   href={`/notice/${mail.id.slice('notice:'.length)}`}
