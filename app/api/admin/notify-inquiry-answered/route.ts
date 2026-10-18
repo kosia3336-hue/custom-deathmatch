@@ -46,14 +46,16 @@ export async function POST(req: NextRequest) {
   }
 
   const subject = String(q.title ?? '').trim() || '문의';
-  const title = `문의 답변 · ${subject}`;
+  // 제목이 상한을 넘으면 문의 제목 쪽을 줄인다 — 문장 틀은 남긴다
+  const room = MAX_TITLE - '문의하신 「」에 답변드립니다.'.length;
+  const shortSubject = subject.length > room ? `${subject.slice(0, room - 1)}…` : subject;
   const { error: insErr } = await db.from('mailbox_items').upsert(
     {
       member_id: q.author_id,
       source_key: `inquiry:${q.id}`,
       kind: 'system',
-      title: title.length > MAX_TITLE ? `${title.slice(0, MAX_TITLE - 1)}…` : title,
-      body: `문의하신 「${subject}」에 답변드립니다.\n\n${q.answer_body}`,
+      title: `문의하신 「${shortSubject}」에 답변드립니다.`,
+      body: q.answer_body,
       sender: '운영팀',
       payload: { inquiryId: q.id },
     },

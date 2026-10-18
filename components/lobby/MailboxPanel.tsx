@@ -56,6 +56,16 @@ const KIND_META: Record<
   },
 };
 
+/** 편지 종류 이름. 문의 답변은 시스템 편지지만 따로 부른다. */
+function mailLabel(mail: MailItem): string {
+  return mail.id.startsWith('inquiry:') ? '문의 답변' : KIND_META[mail.kind].label;
+}
+
+/** 목록 제목. 종류 이름을 앞에 붙이므로, 제목이 같은 말로 시작하면(공지 편지) 겹치지 않게 뗀다. */
+function mailRowTitle(mail: MailItem, label: string): string {
+  return mail.title.startsWith(`${label} `) ? mail.title.slice(label.length + 1) : mail.title;
+}
+
 function formatMailTime(ts: number): string {
   const diff = Date.now() - ts;
   if (diff < 45_000) return '방금';
@@ -228,6 +238,7 @@ function MailListRow({
   onDelete: (id: string) => void;
 }) {
   const meta = KIND_META[mail.kind];
+  const label = mailLabel(mail);
   const unread = !mail.readAt;
   // 칭호 편지는 body 가 '칭호 획득!' 뒤에 오는 설명이라 칭호 이름을 앞세운다.
   // 공지 편지 본문은 공지 원문(마크다운)이라 서식 기호를 걷어 낸다.
@@ -260,25 +271,23 @@ function MailListRow({
           <KindGlyph kind={mail.kind} />
         </span>
         <span className="min-w-0 flex-1">
-          <span
-            className={cn(
-              'block truncate text-sm',
-              unread ? 'font-bold text-cdm-fg' : 'font-medium text-cdm-fg',
+          {/* 종류(공지·칭호·보상·문의 답변…)는 제목 앞에 본문과 같은 글씨로 */}
+          <span className="flex min-w-0 items-center gap-1.5 text-sm">
+            {unread && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cdm-primary" aria-label="미읽음" />
             )}
-          >
-            {mail.title}
+            <span className="shrink-0 text-cdm-fg-muted">{label}</span>
+            <span
+              className={cn('min-w-0 truncate', unread ? 'font-bold text-cdm-fg' : 'font-medium text-cdm-fg')}
+            >
+              {mailRowTitle(mail, label)}
+            </span>
           </span>
-          {/* 열지 않고도 무슨 편지인지 알 수 있게 두 줄까지 보여 준다. */}
-          <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-cdm-fg-muted">
+          {/* 본문은 한 줄만, 넘치면 … */}
+          <span className="mt-0.5 block truncate text-xs leading-relaxed text-cdm-fg-muted">
             {preview}
           </span>
           <MailAttachments mail={mail} />
-          <span className="mt-1.5 flex items-center gap-1.5">
-            {unread && (
-              <span className="h-1.5 w-1.5 rounded-full bg-cdm-primary" aria-label="미읽음" />
-            )}
-            <span className={cn('text-[11px] font-semibold', meta.fg)}>{meta.label}</span>
-          </span>
         </span>
       </button>
       <div className="flex shrink-0 flex-col items-end gap-1 px-2 py-3">
@@ -354,7 +363,7 @@ function MailDetail({
               )}
             >
               <KindGlyph kind={mail.kind} />
-              {meta.label}
+              {mailLabel(mail)}
             </span>
             <span className="text-[11px] text-cdm-fg-subtle">{formatMailTime(mail.createdAt)}</span>
             {remaining && (
