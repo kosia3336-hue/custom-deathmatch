@@ -96,6 +96,12 @@ export function useSocket(): void {
      * 모바일에서 백그라운드로 가면 소켓이 죽으므로, 돌아왔을 때 클라이언트는
      * '매칭 중' 으로 보이는데 서버는 이미 잊은 상태가 된다. 큐에 있던 상태면
      * 다시 넣어 준다.
+     *
+     * 'connect' 가 아니라 세션이 붙은 뒤(session:restored / session:new)에 넣는다.
+     * 붙자마자 넣으면 서버가 아직 이 소켓의 세션을 모를 때가 있다 — 끊긴 옛 연결이
+     * 서버에 살아 있으면 restore 가 '이어서 접속' 확인을 기다리며 멈춘다. 그러면
+     * 서버는 '닉네임을 확인할 수 없습니다' 로 거절하고, 여기서 대기를 걷어내 매칭이
+     * 취소됐다(iOS 사파리에서 화면을 옮기다 연결이 한 번 바뀌는 경우).
      */
     const onReconnectRequeue = () => {
       if (!useRankMatchStore.getState().queuing) return;
@@ -108,14 +114,16 @@ export function useSocket(): void {
     };
 
     s.on('rank:queue:matched', onRankMatched);
-    s.on('connect', onReconnectRequeue);
+    s.on('session:restored', onReconnectRequeue);
+    s.on('session:new', onReconnectRequeue);
     s.on('session:restored', onSessionRestored);
     s.on('session:replaced', onSessionReplaced);
     s.on('connect_error', onConnectError);
 
     return () => {
       s.off('rank:queue:matched', onRankMatched);
-      s.off('connect', onReconnectRequeue);
+      s.off('session:restored', onReconnectRequeue);
+      s.off('session:new', onReconnectRequeue);
       s.off('session:restored', onSessionRestored);
       s.off('session:replaced', onSessionReplaced);
       s.off('connect_error', onConnectError);
