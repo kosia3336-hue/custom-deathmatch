@@ -50,21 +50,16 @@ function FarewellFormulaView({ gameData, myId }: GameModuleViewProps<FarewellFor
         className="flex w-full flex-col items-center justify-center gap-3 px-2 py-3 sm:px-4 sm:py-5"
       >
         <Card className={styles.board}>
-          <header className="text-center">
-            <p className="text-cdm-fg-subtle text-xs font-bold tracking-[0.16em]">이별 횟수</p>
-            <p className="text-cdm-primary mt-1 text-4xl font-black tabular-nums">
-              {gameData.goodbyeCount}
-              <span className="ml-1 text-base">회</span>
-            </p>
-          </header>
-
           {gameData.phase === 'playing' && isPlayer ? (
             <PlayingFormula
               key={`${gameData.round}-${gameData.roundStartedAt}`}
               gameData={gameData}
             />
           ) : (
-            <StaticFormula gameData={gameData} />
+            <>
+              <GoodbyeCounter target={gameData.goodbyeCount} />
+              <StaticFormula gameData={gameData} />
+            </>
           )}
 
           {gameData.phase === 'reveal' && gameData.lastResult && (
@@ -110,46 +105,32 @@ function PlayingFormula({ gameData }: { gameData: FarewellFormulaGameData }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-cdm-fg-muted text-center text-xs">
-        지울 숫자와 기호를 누르세요. 괄호는 한쪽을 누르면 한 쌍이 함께 선택됩니다.
-      </p>
+      <GoodbyeCounter current={removed.size} target={gameData.goodbyeCount} />
       <FormulaTokens gameData={gameData} removed={removed} onToggle={toggle} />
       <div className={styles.preview} aria-live="polite">
         <span className="text-cdm-fg-subtle text-[10px] font-bold tracking-wide">완성 수식</span>
         <span className="min-h-7 font-mono text-lg font-black break-all">{expression || '—'}</span>
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <span
-          className={cn(
-            'text-sm font-black tabular-nums',
-            removed.size === gameData.goodbyeCount
-              ? 'text-cdm-success'
-              : removed.size > gameData.goodbyeCount
-                ? 'text-cdm-accent'
-                : 'text-cdm-fg-muted',
-          )}
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+        <Button
+          variant="tertiary"
+          size="sm"
+          fullWidth
+          disabled={removed.size === 0}
+          onClick={() => setRemoved(new Set())}
         >
-          {removed.size} / {gameData.goodbyeCount}회
-        </span>
-        <div className="flex gap-2">
-          <Button
-            variant="tertiary"
-            size="sm"
-            disabled={removed.size === 0}
-            onClick={() => setRemoved(new Set())}
-          >
-            되돌리기
-          </Button>
-          <Button
-            size="sm"
-            disabled={removed.size !== gameData.goodbyeCount || !expression}
-            onClick={() =>
-              sendAction({ type: 'submit', removedUnitIds: [...removed].sort((a, b) => a - b) })
-            }
-          >
-            정답 제출
-          </Button>
-        </div>
+          선택 초기화
+        </Button>
+        <Button
+          size="sm"
+          fullWidth
+          disabled={removed.size !== gameData.goodbyeCount || !expression}
+          onClick={() =>
+            sendAction({ type: 'submit', removedUnitIds: [...removed].sort((a, b) => a - b) })
+          }
+        >
+          정답 제출
+        </Button>
       </div>
       {gameData.myFeedback && (
         <p key={gameData.myFeedback.attemptedAt} className={styles.feedback} role="status">
@@ -160,20 +141,40 @@ function PlayingFormula({ gameData }: { gameData: FarewellFormulaGameData }) {
   );
 }
 
+function GoodbyeCounter({ current, target }: { current?: number; target: number }) {
+  return (
+    <header className="text-center">
+      <p className="text-cdm-fg-subtle text-[11px] font-bold tracking-[0.14em]">이별 횟수</p>
+      <p
+        className={cn(
+          'mt-1 text-2xl font-black tabular-nums',
+          current == null
+            ? 'text-cdm-primary'
+            : current === target
+              ? 'text-cdm-success'
+              : current > target
+                ? 'text-cdm-accent'
+                : 'text-cdm-primary',
+        )}
+      >
+        {current != null && (
+          <>
+            {current}
+            <span className="text-cdm-fg-subtle mx-1 text-sm">/</span>
+          </>
+        )}
+        {target}
+        <span className="ml-1 text-sm">회</span>
+      </p>
+    </header>
+  );
+}
+
 function StaticFormula({ gameData }: { gameData: FarewellFormulaGameData }) {
   const removed = new Set(
     gameData.phase === 'reveal' ? (gameData.lastResult?.removedUnitIds ?? []) : [],
   );
-  return (
-    <>
-      <FormulaTokens gameData={gameData} removed={removed} />
-      {gameData.phase === 'playing' && (
-        <p className="text-cdm-fg-muted text-center text-xs">
-          플레이어들의 풀이를 관전하고 있습니다.
-        </p>
-      )}
-    </>
-  );
+  return <FormulaTokens gameData={gameData} removed={removed} />;
 }
 
 function FormulaTokens({
