@@ -18,10 +18,14 @@ import { farewellFormulaStates } from '../socket/games/farewell-formula/state.js
 import type { IO, TypedSocket } from '../socket/types.js';
 
 describe('이별 공식 수식 판정', () => {
-  it('정수·유리수·거듭제곱과 두 종류 괄호를 정확히 계산한다', () => {
+  it('정수·유리수·제곱·루트·팩토리얼과 괄호를 정확히 계산한다', () => {
     expect(evaluateFarewellEquation('2^3×8-64=0').correct).toBe(true);
     expect(evaluateFarewellEquation('[8÷(3-1)]=4').correct).toBe(true);
     expect(evaluateFarewellEquation('1÷3+1÷3=2÷3').correct).toBe(true);
+    expect(evaluateFarewellEquation('√9+3!=9').correct).toBe(true);
+    expect(evaluateFarewellEquation('√(9÷16)=3÷4').correct).toBe(true);
+    expect(evaluateFarewellEquation('√2=1').correct).toBe(false);
+    expect(evaluateFarewellEquation('21!=1').correct).toBe(false);
     expect(evaluateFarewellEquation('1÷0=2').correct).toBe(false);
     expect(evaluateFarewellEquation('1=1=1').correct).toBe(false);
   });
@@ -52,15 +56,55 @@ describe('이별 공식 문제은행', () => {
     const bank = getFarewellFormulaPuzzleBank();
     expect(bank.length).toBeGreaterThanOrEqual(20);
     for (const puzzle of bank) {
+      expect(puzzle.goodbyeCount, puzzle.source).toBeGreaterThanOrEqual(2);
       const solved = findMinimumFarewellSolutions(puzzle.source, puzzle.goodbyeCount, 1);
       expect(solved.minimum, puzzle.source).toBe(puzzle.goodbyeCount);
       expect(solved.solutions[0]?.expression, puzzle.source).toBeTruthy();
     }
   });
+
+  it('어려움 문제은행은 제곱·루트·팩토리얼을 모두 포함한다', () => {
+    const sources = getFarewellFormulaPuzzleBank('hard').map((puzzle) => puzzle.source);
+    expect(sources.some((source) => source.includes('^'))).toBe(true);
+    expect(sources.some((source) => source.includes('√'))).toBe(true);
+    expect(sources.some((source) => source.includes('!'))).toBe(true);
+  });
 });
 
 describe('이별 공식 대전', () => {
-  it('오답에는 점수를 주지 않고 라운드를 유지하며, 4점 선취 시 종료한다', async () => {
+  it('어려움 설정으로 시작하면 특수 기호 문제를 출제한다', () => {
+    const roomId = 'farewell-formula-hard';
+    const players: Player[] = [
+      {
+        id: 'hard-first',
+        nickname: '플레이어 1',
+        isHost: true,
+        isReady: true,
+        joinedAt: Date.now(),
+      },
+      {
+        id: 'hard-second',
+        nickname: '플레이어 2',
+        isHost: false,
+        isReady: true,
+        joinedAt: Date.now(),
+      },
+    ];
+    const io = { in: () => ({ fetchSockets: async () => [] }) } as unknown as IO;
+    initFarewellFormula(io, roomId, players, 'multi', Date.now(), null, vi.fn(), {
+      farewellDifficulty: 'hard',
+    });
+    try {
+      const state = farewellFormulaStates.get(roomId)!;
+      expect(state.difficulty).toBe('hard');
+      expect(state.puzzle.difficulty).toBe('hard');
+      expect(state.puzzle.source).toMatch(/(?:\^|√|!)/);
+    } finally {
+      cleanupFarewellFormula(roomId);
+    }
+  });
+
+  it('오답은 상대에게 1점을 주고 라운드를 끝내며, 4점 선취 시 종료한다', async () => {
     vi.useFakeTimers();
     const roomId = 'farewell-formula-clinch';
     const first: Player = {
@@ -84,13 +128,33 @@ describe('이별 공식 대전', () => {
     sessions.linkToken(socket.id, first.id);
     try {
       initFarewellFormula(io, roomId, [first, second], 'multi', Date.now(), null, onEnd);
+      const opening = farewellFormulaStates.get(roomId)!;
+      const allUnitIds = [...new Set(opening.puzzle.tokens.map((token) => token.unitId))];
+      let wrongUnits: number[] | null = null;
+      for (let firstIndex = 0; firstIndex < allUnitIds.length && !wrongUnits; firstIndex++) {
+        for (let secondIndex = firstIndex + 1; secondIndex < allUnitIds.length; secondIndex++) {
+          const candidate = [allUnitIds[firstIndex]!, allUnitIds[secondIndex]!];
+          const expression = buildFarewellExpression(opening.puzzle.tokens, candidate);
+          if (!evaluateFarewellEquation(expression).correct) {
+            wrongUnits = candidate;
+            break;
+          }
+        }
+      }
+      expect(wrongUnits).not.toBeNull();
       handleFarewellFormulaAction(io, socket, roomId, {
         type: 'submit',
-        removedUnitIds: [],
+        removedUnitIds: wrongUnits!,
       });
-      expect(farewellFormulaStates.get(roomId)?.phase).toBe('playing');
+      expect(farewellFormulaStates.get(roomId)?.phase).toBe('reveal');
       expect(farewellFormulaStates.get(roomId)?.scores[first.id]).toBe(0);
-      await vi.advanceTimersByTimeAsync(400);
+      expect(farewellFormulaStates.get(roomId)?.scores[second.id]).toBe(1);
+      expect(farewellFormulaStates.get(roomId)?.lastResult).toMatchObject({
+        outcome: 'wrong',
+        callerId: first.id,
+        scorerId: second.id,
+      });
+      await vi.advanceTimersByTimeAsync(FF_REVEAL_MS);
 
       for (let score = 1; score <= FF_WIN_SCORE; score++) {
         const state = farewellFormulaStates.get(roomId)!;
@@ -104,8 +168,8 @@ describe('이별 공식 대전', () => {
 
       const finished = farewellFormulaStates.get(roomId)!;
       expect(finished.phase).toBe('finished');
-      expect(finished.round).toBe(FF_WIN_SCORE);
-      expect(finished.history).toHaveLength(FF_WIN_SCORE);
+      expect(finished.round).toBe(FF_WIN_SCORE + 1);
+      expect(finished.history).toHaveLength(FF_WIN_SCORE + 1);
       await vi.advanceTimersByTimeAsync(3000);
       expect(onEnd).toHaveBeenCalledOnce();
       expect(onEnd.mock.calls[0]?.[2]?.rankings?.[0]).toMatchObject({

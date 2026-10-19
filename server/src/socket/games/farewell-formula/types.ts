@@ -1,4 +1,7 @@
-import type { FarewellFormulaRoundResult } from '@shared/types/farewell-formula.js';
+import type {
+  FarewellFormulaDifficulty,
+  FarewellFormulaRoundResult,
+} from '@shared/types/farewell-formula.js';
 import type {
   FarewellFormulaToken,
   FarewellFormulaSolution,
@@ -22,12 +25,14 @@ export interface FarewellFormulaPuzzle {
   source: string;
   tokens: FarewellFormulaToken[];
   goodbyeCount: number;
+  difficulty: FarewellFormulaDifficulty;
   solutions: FarewellFormulaSolution[];
 }
 
 export interface FarewellFormulaState {
   roomId: string;
   playMode: PlayMode;
+  difficulty: FarewellFormulaDifficulty;
   players: [Player, Player];
   phase: 'playing' | 'reveal' | 'finished';
   round: number;

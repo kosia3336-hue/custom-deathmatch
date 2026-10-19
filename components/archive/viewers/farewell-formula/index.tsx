@@ -58,6 +58,7 @@ export default function FarewellFormulaViewer({
       <div className="flex flex-col gap-2">
         {data.history.map((round) => {
           const caller = round.callerId ? data.players[round.callerId]?.nickname : null;
+          const scorer = round.scorerId ? data.players[round.scorerId]?.nickname : null;
           return (
             <Card key={round.round} className="p-3 sm:p-4">
               <div className="flex items-start gap-3">
@@ -77,7 +78,13 @@ export default function FarewellFormulaViewer({
                           : 'bg-cdm-highlight-soft text-cdm-highlight-strong',
                       )}
                     >
-                      {round.outcome === 'correct' ? `${caller ?? '플레이어'} +1` : '시간 종료'}
+                      {round.outcome === 'correct'
+                        ? `${scorer ?? caller ?? '플레이어'} +1`
+                        : round.outcome === 'wrong'
+                          ? scorer
+                            ? `${caller ?? '플레이어'} 오답 · ${scorer} +1`
+                            : '오답'
+                          : '시간 종료'}
                     </span>
                   </div>
                   <p className="text-cdm-fg-subtle mt-1 text-xs">이별 {round.goodbyeCount}회</p>

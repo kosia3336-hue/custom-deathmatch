@@ -5,6 +5,14 @@ export const FF_TOTAL_ROUNDS = 7;
 export const FF_WIN_SCORE = 4;
 export const FF_REVEAL_MS = 2800;
 
+export const FAREWELL_FORMULA_DIFFICULTIES = ['normal', 'hard'] as const;
+export type FarewellFormulaDifficulty = (typeof FAREWELL_FORMULA_DIFFICULTIES)[number];
+export const DEFAULT_FAREWELL_FORMULA_DIFFICULTY: FarewellFormulaDifficulty = 'normal';
+
+export function resolveFarewellFormulaDifficulty(value: unknown): FarewellFormulaDifficulty {
+  return value === 'hard' ? 'hard' : DEFAULT_FAREWELL_FORMULA_DIFFICULTY;
+}
+
 export type FarewellFormulaPhase = 'playing' | 'reveal' | 'finished';
 
 export type FarewellFormulaAction = {
@@ -22,7 +30,8 @@ export interface FarewellFormulaRoundResult {
   source: string;
   goodbyeCount: number;
   callerId: string | null;
-  outcome: 'correct' | 'timeout';
+  scorerId: string | null;
+  outcome: 'correct' | 'wrong' | 'timeout';
   removedUnitIds: number[];
   correctedExpression: string;
   answerRemovedUnitIds: number[];
@@ -39,6 +48,7 @@ export interface FarewellFormulaGameData {
   source: string;
   tokens: FarewellFormulaToken[];
   goodbyeCount: number;
+  difficulty: FarewellFormulaDifficulty;
   scores: Record<string, number>;
   players: Record<string, { nickname: string }>;
   roundStartedAt: number;

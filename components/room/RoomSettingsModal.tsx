@@ -11,6 +11,7 @@ import { useRoomLayout } from '@/contexts/RoomLayoutContext';
 import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
   DEFAULT_ABSTRACT_AI_THINK_SECONDS,
+  DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
@@ -20,9 +21,11 @@ import {
   isSoloLikePlayMode,
   resolveAbstractAiDifficulty,
   resolveAbstractAiThinkSeconds,
+  resolveFarewellFormulaDifficulty,
 } from '@/shared/types';
 import type {
   AbstractAiDifficulty,
+  FarewellFormulaDifficulty,
   Game,
   PlayMode,
   Room,
@@ -40,6 +43,7 @@ import {
 import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
+import FarewellFormulaDifficultyField from '@/components/room-modal/FarewellFormulaDifficultyField';
 import { resolveMyeongchuriOptions } from '@/shared/logic/myeongchuri';
 import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
@@ -72,6 +76,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [farewellDifficulty, setFarewellDifficulty] = useState<FarewellFormulaDifficulty>(
+    DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
+  );
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
     DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   );
@@ -133,6 +140,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         ? room.gameOptions.numberCount
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
+    setFarewellDifficulty(resolveFarewellFormulaDifficulty(room.gameOptions?.farewellDifficulty));
     setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
     setAbstractAiDifficulty(
       resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId),
@@ -281,6 +289,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
       gameOptions.numberCount = formulaNumberCount;
     }
+    if (selectedGame.id === GAME_IDS.FAREWELL_FORMULA) {
+      gameOptions.farewellDifficulty = farewellDifficulty;
+    }
     if (showsAbstractAiThinkTime) {
       gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
     }
@@ -322,6 +333,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     (playMode === 'multi' && Boolean(selectedGame) && playerRange.length > 1) ||
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
+    selectedGame?.id === GAME_IDS.FAREWELL_FORMULA ||
     showsAbstractAiThinkTime ||
     showsAbstractAiDifficulty ||
     (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
@@ -564,6 +576,13 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
                   숫자가 많을수록 조합할 수 있는 수식이 복잡해집니다.
                 </p>
               </SettingField>
+            )}
+
+            {selectedGame?.id === GAME_IDS.FAREWELL_FORMULA && (
+              <FarewellFormulaDifficultyField
+                value={farewellDifficulty}
+                onChange={setFarewellDifficulty}
+              />
             )}
 
             {showsAbstractAiThinkTime && (

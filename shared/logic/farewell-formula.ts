@@ -41,13 +41,14 @@ interface Fraction {
 
 type MathToken =
   | { kind: 'number'; value: bigint }
-  | { kind: 'operator'; value: '+' | '-' | '*' | '/' | '^' }
+  | { kind: 'operator'; value: '+' | '-' | '*' | '/' | '^' | '√' | '!' }
   | { kind: 'open'; value: '(' | '[' }
   | { kind: 'close'; value: ')' | ']' };
 
 const MAX_SOURCE_LENGTH = 96;
 const MAX_LITERAL_DIGITS = 8;
 const MAX_EXPONENT = 9n;
+const MAX_FACTORIAL = 20n;
 const MAX_MAGNITUDE = 10n ** 24n;
 
 function abs(value: bigint) {
@@ -129,6 +130,40 @@ function power(base: Fraction, exponent: Fraction) {
   return negative ? fraction(denominator, numerator) : fraction(numerator, denominator);
 }
 
+function integerSquareRoot(value: bigint) {
+  if (value < 0n) throw new Error('음수의 루트는 계산할 수 없습니다.');
+  if (value < 2n) return value;
+  let current = value;
+  let next = (current + 1n) / 2n;
+  while (next < current) {
+    current = next;
+    next = (current + value / current) / 2n;
+  }
+  return current;
+}
+
+function squareRoot(value: Fraction) {
+  if (value.numerator < 0n) throw new Error('음수의 루트는 계산할 수 없습니다.');
+  const numerator = integerSquareRoot(value.numerator);
+  const denominator = integerSquareRoot(value.denominator);
+  if (
+    numerator * numerator !== value.numerator ||
+    denominator * denominator !== value.denominator
+  ) {
+    throw new Error('루트 안은 완전제곱수여야 합니다.');
+  }
+  return fraction(numerator, denominator);
+}
+
+function factorial(value: Fraction) {
+  if (value.denominator !== 1n || value.numerator < 0n || value.numerator > MAX_FACTORIAL) {
+    throw new Error('팩토리얼은 0부터 20 사이의 정수만 계산할 수 있습니다.');
+  }
+  let result = 1n;
+  for (let factor = 2n; factor <= value.numerator; factor++) result *= factor;
+  return fraction(result);
+}
+
 function formatFraction(value: Fraction) {
   return value.denominator === 1n
     ? value.numerator.toString()
@@ -158,7 +193,7 @@ function mathTokens(input: string): MathToken[] {
       index = end;
       continue;
     }
-    if (char === '+' || char === '-' || char === '^') {
+    if (char === '+' || char === '-' || char === '^' || char === '√' || char === '!') {
       tokens.push({ kind: 'operator', value: char });
       index++;
       continue;
@@ -230,15 +265,28 @@ class Parser {
       const value = this.parseUnary();
       return token.value === '+' ? value : fraction(-value.numerator, value.denominator);
     }
+    if (token?.kind === 'operator' && token.value === '√') {
+      this.index++;
+      return squareRoot(this.parseUnary());
+    }
     return this.parsePower();
   }
 
   private parsePower(): Fraction {
-    const base = this.parsePrimary();
+    const base = this.parsePostfix();
     const token = this.tokens[this.index];
     if (token?.kind !== 'operator' || token.value !== '^') return base;
     this.index++;
     return power(base, this.parseUnary());
+  }
+
+  private parsePostfix(): Fraction {
+    let value = this.parsePrimary();
+    while (this.tokens[this.index]?.kind === 'operator' && this.tokens[this.index]?.value === '!') {
+      this.index++;
+      value = factorial(value);
+    }
+    return value;
   }
 
   private parsePrimary(): Fraction {
@@ -308,7 +356,7 @@ export function tokenizeFarewellFormula(input: string): FarewellFormulaLayout {
   const source = normalizeEquation(input);
   if (!source || source.length > MAX_SOURCE_LENGTH)
     throw new Error('문제 수식의 길이가 올바르지 않습니다.');
-  if (!/^[0-9+\-×÷^=()[\]]+$/.test(source))
+  if (!/^[0-9+\-×÷^√!=()[\]]+$/.test(source))
     throw new Error('문제 수식에 허용되지 않은 문자가 있습니다.');
 
   const stack: Array<{ text: '(' | '['; index: number }> = [];

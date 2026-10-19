@@ -34,6 +34,7 @@ export function toFarewellFormulaGameData(
     source: state.puzzle.source,
     tokens: state.puzzle.tokens.map((token) => ({ ...token })),
     goodbyeCount: state.puzzle.goodbyeCount,
+    difficulty: state.difficulty,
     scores: { ...state.scores },
     players: {
       [first.id]: { nickname: maskNickname(state, viewerId, first.id, first.nickname) },

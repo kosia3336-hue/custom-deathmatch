@@ -7,6 +7,7 @@ import {
   FF_REVEAL_MS,
   FF_TOTAL_ROUNDS,
   FF_WIN_SCORE,
+  resolveFarewellFormulaDifficulty,
   type FarewellFormulaAction,
   type FarewellFormulaRoundResult,
 } from '@shared/types/farewell-formula.js';
@@ -31,7 +32,12 @@ function setFeedback(state: FarewellFormulaState, playerId: string, message: str
 }
 
 function dealRound(state: FarewellFormulaState) {
-  const puzzle = generateFarewellFormulaPuzzle(state.round, state.usedPuzzleKeys);
+  const puzzle = generateFarewellFormulaPuzzle(
+    state.round,
+    state.usedPuzzleKeys,
+    Math.random,
+    state.difficulty,
+  );
   state.usedPuzzleKeys.add(puzzle.key);
   state.puzzle = puzzle;
   state.phase = 'playing';
@@ -168,12 +174,51 @@ function resolveCorrect(
     source: state.puzzle.source,
     goodbyeCount: state.puzzle.goodbyeCount,
     callerId,
+    scorerId: callerId,
     outcome: 'correct',
     removedUnitIds: [...removedUnitIds],
     correctedExpression: expression,
     answerRemovedUnitIds: [...answer.removedUnitIds],
     answerExpression: answer.expression,
     reason: '올바른 수식을 먼저 완성했습니다.',
+    elapsedMs: Math.max(0, Date.now() - state.roundStartedAt),
+    scoresAfter: { ...state.scores },
+  };
+  state.history.push(result);
+  state.lastResult = result;
+  state.phase = 'reveal';
+  void broadcastFarewellFormulaState(io, state);
+  revealThenAdvance(io, state);
+}
+
+function resolveWrong(
+  io: IO,
+  state: FarewellFormulaState,
+  callerId: string,
+  removedUnitIds: number[],
+  expression: string,
+  reason: string,
+) {
+  if (state.gameOver || state.phase !== 'playing') return;
+  stopRoundTimers(state);
+  const scorer =
+    state.playMode === 'solo'
+      ? null
+      : (state.players.find((player) => player.id !== callerId) ?? null);
+  if (scorer) state.scores[scorer.id] = (state.scores[scorer.id] ?? 0) + 1;
+  const answer = state.puzzle.solutions[0]!;
+  const result: FarewellFormulaRoundResult = {
+    round: state.round,
+    source: state.puzzle.source,
+    goodbyeCount: state.puzzle.goodbyeCount,
+    callerId,
+    scorerId: scorer?.id ?? null,
+    outcome: 'wrong',
+    removedUnitIds: [...removedUnitIds],
+    correctedExpression: expression,
+    answerRemovedUnitIds: [...answer.removedUnitIds],
+    answerExpression: answer.expression,
+    reason,
     elapsedMs: Math.max(0, Date.now() - state.roundStartedAt),
     scoresAfter: { ...state.scores },
   };
@@ -193,6 +238,7 @@ function resolveTimeout(io: IO, state: FarewellFormulaState) {
     source: state.puzzle.source,
     goodbyeCount: state.puzzle.goodbyeCount,
     callerId: null,
+    scorerId: null,
     outcome: 'timeout',
     removedUnitIds: [],
     correctedExpression: answer.expression,
@@ -228,6 +274,7 @@ export function initFarewellFormula(
   startedAt: number,
   timeLimitSeconds: number | null,
   endGameCallback: FarewellFormulaEndGameFn,
+  gameOptions: Record<string, unknown> = {},
 ) {
   const previous = farewellFormulaStates.get(roomId);
   if (previous) clearFarewellFormulaTimers(previous);
@@ -237,13 +284,15 @@ export function initFarewellFormula(
   if (!first) throw new Error('이별 공식을 시작할 플레이어가 필요합니다.');
   const second = playMode === 'solo' ? first : players[1];
   if (!second) throw new Error('멀티/COM 이별 공식은 두 명의 플레이어가 필요합니다.');
+  const difficulty = resolveFarewellFormulaDifficulty(gameOptions.farewellDifficulty);
   const state: FarewellFormulaState = {
     roomId,
     playMode,
+    difficulty,
     players: [first, second],
     phase: 'playing',
     round: 1,
-    puzzle: generateFarewellFormulaPuzzle(1),
+    puzzle: generateFarewellFormulaPuzzle(1, new Set(), Math.random, difficulty),
     usedPuzzleKeys: new Set(),
     scores: { [first.id]: 0, [second.id]: 0 },
     history: [],
@@ -297,8 +346,7 @@ export function handleFarewellFormulaAction(
   const expression = buildFarewellExpression(state.puzzle.tokens, removedUnitIds);
   const evaluation = evaluateFarewellEquation(expression);
   if (!evaluation.correct) {
-    setFeedback(state, playerId, evaluation.reason);
-    void broadcastFarewellFormulaState(io, state);
+    resolveWrong(io, state, playerId, removedUnitIds, expression, evaluation.reason);
     return;
   }
   resolveCorrect(io, state, playerId, removedUnitIds, expression);

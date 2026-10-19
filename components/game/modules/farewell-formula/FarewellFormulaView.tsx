@@ -66,12 +66,21 @@ function FarewellFormulaView({ gameData, myId }: GameModuleViewProps<FarewellFor
             <div className={styles.reveal}>
               <p className="text-sm font-bold">
                 {gameData.lastResult.outcome === 'correct'
-                  ? `${gameData.players[gameData.lastResult.callerId ?? '']?.nickname ?? '플레이어'} 정답 · +1점`
-                  : '제한시간 종료'}
+                  ? `${gameData.players[gameData.lastResult.scorerId ?? '']?.nickname ?? '플레이어'} 정답 · +1점`
+                  : gameData.lastResult.outcome === 'wrong'
+                    ? gameData.lastResult.scorerId
+                      ? `${gameData.players[gameData.lastResult.callerId ?? '']?.nickname ?? '플레이어'} 오답 · ${gameData.players[gameData.lastResult.scorerId]?.nickname ?? '상대'} +1점`
+                      : '오답 · 득점 없음'
+                    : '제한시간 종료'}
               </p>
               <p className="mt-1 font-mono text-base font-black break-all">
                 {gameData.lastResult.correctedExpression}
               </p>
+              {gameData.lastResult.outcome === 'wrong' && (
+                <p className="text-cdm-fg-muted mt-1 font-mono text-xs break-all">
+                  정답 예시 {gameData.lastResult.answerExpression}
+                </p>
+              )}
             </div>
           )}
 
@@ -105,7 +114,7 @@ function PlayingFormula({ gameData }: { gameData: FarewellFormulaGameData }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <GoodbyeCounter current={removed.size} target={gameData.goodbyeCount} />
+      <GoodbyeCounter target={gameData.goodbyeCount} />
       <FormulaTokens gameData={gameData} removed={removed} onToggle={toggle} />
       <div className={styles.preview} aria-live="polite">
         <span className="text-cdm-fg-subtle text-[10px] font-bold tracking-wide">완성 수식</span>
@@ -141,28 +150,11 @@ function PlayingFormula({ gameData }: { gameData: FarewellFormulaGameData }) {
   );
 }
 
-function GoodbyeCounter({ current, target }: { current?: number; target: number }) {
+function GoodbyeCounter({ target }: { target: number }) {
   return (
     <header className="text-center">
       <p className="text-cdm-fg-subtle text-[11px] font-bold tracking-[0.14em]">이별 횟수</p>
-      <p
-        className={cn(
-          'mt-1 text-2xl font-black tabular-nums',
-          current == null
-            ? 'text-cdm-primary'
-            : current === target
-              ? 'text-cdm-success'
-              : current > target
-                ? 'text-cdm-accent'
-                : 'text-cdm-primary',
-        )}
-      >
-        {current != null && (
-          <>
-            {current}
-            <span className="text-cdm-fg-subtle mx-1 text-sm">/</span>
-          </>
-        )}
+      <p className="text-cdm-primary mt-1 text-2xl font-black tabular-nums">
         {target}
         <span className="ml-1 text-sm">회</span>
       </p>

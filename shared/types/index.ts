@@ -396,11 +396,19 @@ export type {
   FormulaCompletionGameData,
   FormulaCompletionArchiveRecord,
 } from './formula-completion';
-export { FF_REVEAL_MS, FF_TOTAL_ROUNDS, FF_WIN_SCORE } from './farewell-formula';
+export {
+  DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
+  FAREWELL_FORMULA_DIFFICULTIES,
+  FF_REVEAL_MS,
+  FF_TOTAL_ROUNDS,
+  FF_WIN_SCORE,
+  resolveFarewellFormulaDifficulty,
+} from './farewell-formula';
 export type {
   FarewellFormulaAction,
   FarewellFormulaArchiveRecord,
   FarewellFormulaAttemptFeedback,
+  FarewellFormulaDifficulty,
   FarewellFormulaGameData,
   FarewellFormulaPhase,
   FarewellFormulaRoundResult,
