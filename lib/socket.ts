@@ -110,9 +110,17 @@ export function getSocket(): TypedSocket {
       },
     }) as TypedSocket;
 
+    /*
+      같은 화면에서 다시 붙는 것(네트워크 끊김·앱 전환)은 '새 탭' 이 아니다.
+      서버는 옛 연결이 끊긴 걸 늦게(최대 45초) 알아채므로, 그 사이 다시 붙으면
+      '이어서 접속' 확인을 기다리며 세션을 넘겨주지 않았다. 그동안 게임방에 못 돌아가
+      차례 시간이 그대로 흘러 패배한 일이 있었다. 두 번째 연결부터는 바로 이어받는다.
+    */
+    let connectedOnce = false;
     socket.on('connect', () => {
       const token = getOrCreateSessionToken();
-      socket!.emit('session:restore', { token });
+      socket!.emit('session:restore', connectedOnce ? { token, confirmed: true } : { token });
+      connectedOnce = true;
       // 기기 시계 오차를 잰다 — 타이머가 서버 마감과 같은 시각을 가리키도록.
       void syncServerClock(socket!);
     });
