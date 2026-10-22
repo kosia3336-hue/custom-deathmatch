@@ -20,9 +20,9 @@ export default function FarewellFormulaDifficultyField({
           어려움
         </OptionButton>
       </div>
-      <p className="text-cdm-fg-subtle mt-2 text-xs">
-        어려움에서는 제곱, 루트, 팩토리얼 기호가 등장합니다.
-      </p>
+      {value === 'hard' && (
+        <p className="text-cdm-fg-subtle mt-2 text-xs">특수 기호(^,!,루트) 사용될 수 있습니다</p>
+      )}
     </SettingField>
   );
 }
