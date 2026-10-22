@@ -12,6 +12,7 @@ import { setupSocketHandlers } from './socket/index.js';
 import { preloadBiasTitlesCache } from './shop/biasTitlesCache.js';
 import { roomStore } from './store/rooms.js';
 import { startGuildRankSettleLoop } from './rank/settleGuildRankDueV4.js';
+import { warmFarewellFormulaPuzzles } from './socket/games/farewell-formula/generator.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -58,6 +59,10 @@ async function main() {
 
   setupSocketHandlers(ioInstance);
   mountClassicSockets(ioInstance);
+
+  void warmFarewellFormulaPuzzles().catch((err: unknown) => {
+    app.log.warn({ err }, '[이별 공식] 자동 출제 캐시 준비 실패');
+  });
 
   const { startLiveDummy } = await import('./dummy/live/index.js');
   void startLiveDummy(ioInstance).catch((err) => {

@@ -26,6 +26,7 @@ export interface FarewellFormulaPuzzle {
   tokens: FarewellFormulaToken[];
   goodbyeCount: number;
   difficulty: FarewellFormulaDifficulty;
+  origin: 'generated' | 'bank';
   solutions: FarewellFormulaSolution[];
 }
 

@@ -13,7 +13,10 @@ import {
   handleFarewellFormulaAction,
   initFarewellFormula,
 } from '../socket/games/farewell-formula/index.js';
-import { getFarewellFormulaPuzzleBank } from '../socket/games/farewell-formula/generator.js';
+import {
+  getFarewellFormulaPuzzleBank,
+  warmFarewellFormulaPuzzles,
+} from '../socket/games/farewell-formula/generator.js';
 import { farewellFormulaStates } from '../socket/games/farewell-formula/state.js';
 import type { IO, TypedSocket } from '../socket/types.js';
 
@@ -72,7 +75,8 @@ describe('이별 공식 문제은행', () => {
 });
 
 describe('이별 공식 대전', () => {
-  it('어려움 설정으로 시작하면 특수 기호 문제를 출제한다', () => {
+  it('어려움 설정으로 시작하면 자동 생성한 특수 기호 문제를 출제한다', async () => {
+    await warmFarewellFormulaPuzzles();
     const roomId = 'farewell-formula-hard';
     const players: Player[] = [
       {
@@ -98,9 +102,11 @@ describe('이별 공식 대전', () => {
       const state = farewellFormulaStates.get(roomId)!;
       expect(state.difficulty).toBe('hard');
       expect(state.puzzle.difficulty).toBe('hard');
+      expect(state.puzzle.origin).toBe('generated');
       expect(state.puzzle.source).toMatch(/(?:\^|√|!)/);
     } finally {
       cleanupFarewellFormula(roomId);
+      await warmFarewellFormulaPuzzles();
     }
   });
 

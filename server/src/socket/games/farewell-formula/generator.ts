@@ -1,115 +1,138 @@
-import {
-  findMinimumFarewellSolutions,
-  tokenizeFarewellFormula,
-} from '@shared/logic/farewell-formula.js';
+import { setImmediate } from 'node:timers/promises';
 import {
   DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
+  FAREWELL_FORMULA_DIFFICULTIES,
   type FarewellFormulaDifficulty,
 } from '@shared/types/farewell-formula.js';
+import { getFarewellFormulaPuzzleBank } from './bank.js';
+import {
+  generateProceduralFarewellPuzzle,
+  type FarewellGoodbyeCount,
+  type FarewellRandomSource,
+} from './procedural.js';
 import type { FarewellFormulaPuzzle } from './types.js';
 
-type RandomSource = () => number;
-
-/**
- * 난이도별 문제 후보. 모듈을 읽을 때 완전탐색으로 실제 최소 삭제 횟수를 검증한다.
- * 출제 데이터가 수정되어 더 짧은 우회 정답이 생기면 서버가 조용히 잘못 출제하지 않는다.
- */
-const PUZZLE_SPECS = [
-  { source: '12+8+7=20', goodbyeCount: 2, difficulty: 'normal' },
-  { source: '9×7=63+4', goodbyeCount: 2, difficulty: 'normal' },
-  { source: '48÷6-5=8', goodbyeCount: 2, difficulty: 'normal' },
-  { source: '438÷6=8×2', goodbyeCount: 3, difficulty: 'normal' },
-  { source: '152+6+2=7×3', goodbyeCount: 3, difficulty: 'normal' },
-  { source: '90÷5=132+6-2', goodbyeCount: 3, difficulty: 'normal' },
-  { source: '5×5+7=100÷45', goodbyeCount: 3, difficulty: 'normal' },
-  { source: '64÷82+1=9×5', goodbyeCount: 3, difficulty: 'normal' },
-  { source: '6×6-5-2=31-5', goodbyeCount: 4, difficulty: 'normal' },
-  { source: '9×7×6=63+4', goodbyeCount: 4, difficulty: 'normal' },
-  { source: '4×(9-2)+1×2=28', goodbyeCount: 4, difficulty: 'normal' },
-  { source: '11×4×2=50-6-7', goodbyeCount: 4, difficulty: 'normal' },
-  { source: '(7+59)×3=2736×3', goodbyeCount: 5, difficulty: 'normal' },
-  { source: '48÷6+5=86×2', goodbyeCount: 5, difficulty: 'normal' },
-
-  { source: '2^5=32×3', goodbyeCount: 2, difficulty: 'hard' },
-  { source: '√9=3+4', goodbyeCount: 2, difficulty: 'hard' },
-  { source: '3!=6+4', goodbyeCount: 2, difficulty: 'hard' },
-  { source: '8×98+1=2^6', goodbyeCount: 3, difficulty: 'hard' },
-  { source: '3^3+5=382+4', goodbyeCount: 3, difficulty: 'hard' },
-  { source: '√9=3+45', goodbyeCount: 3, difficulty: 'hard' },
-  { source: '3!=6+45', goodbyeCount: 3, difficulty: 'hard' },
-  { source: '3^753+5×6=32', goodbyeCount: 4, difficulty: 'hard' },
-  { source: '√25=5+678', goodbyeCount: 4, difficulty: 'hard' },
-  { source: '3!=6+789', goodbyeCount: 4, difficulty: 'hard' },
-  { source: '2^5×44×9=32', goodbyeCount: 5, difficulty: 'hard' },
-  { source: '(3+5)^2×2=644-2', goodbyeCount: 5, difficulty: 'hard' },
-  { source: '√64=8+1234', goodbyeCount: 5, difficulty: 'hard' },
-  { source: '4!=24+6789', goodbyeCount: 5, difficulty: 'hard' },
-] as const;
-
-const PUZZLE_BANK: FarewellFormulaPuzzle[] = PUZZLE_SPECS.map((spec) => {
-  const layout = tokenizeFarewellFormula(spec.source);
-  const solved = findMinimumFarewellSolutions(spec.source, spec.goodbyeCount, 16);
-  if (solved.minimum !== spec.goodbyeCount || solved.solutions.length === 0) {
-    throw new Error(
-      `[이별 공식] 문제 검증 실패: ${spec.source} (예상 ${spec.goodbyeCount}, 실제 ${solved.minimum})`,
-    );
-  }
-  return {
-    key: spec.source,
-    source: layout.source,
-    tokens: layout.tokens,
-    goodbyeCount: spec.goodbyeCount,
-    difficulty: spec.difficulty,
-    solutions: solved.solutions,
-  };
-});
+export { getFarewellFormulaPuzzleBank } from './bank.js';
 
 const ROUND_GOODBYE_COUNTS = [2, 2, 3, 3, 4, 4, 5] as const;
+const GOODBYE_COUNTS = [2, 3, 4, 5] as const;
+const CACHE_PER_BUCKET = 2;
+const RECENT_KEY_LIMIT = 512;
 
-function shuffled<T>(values: readonly T[], random: RandomSource) {
-  const result = [...values];
-  for (let index = result.length - 1; index > 0; index--) {
-    const swap = Math.floor(random() * (index + 1));
-    [result[index], result[swap]] = [result[swap]!, result[index]!];
-  }
-  return result;
+interface PuzzleBucket {
+  count: FarewellGoodbyeCount;
+  difficulty: FarewellFormulaDifficulty;
+  ready: FarewellFormulaPuzzle[];
 }
 
-export function generateFarewellFormulaPuzzle(
-  round: number,
-  usedKeys: ReadonlySet<string> = new Set(),
-  random: RandomSource = Math.random,
-  difficulty: FarewellFormulaDifficulty = DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
-): FarewellFormulaPuzzle {
-  const goodbyeCount =
-    ROUND_GOODBYE_COUNTS[Math.max(0, Math.min(ROUND_GOODBYE_COUNTS.length - 1, round - 1))]!;
-  const pool = shuffled(
-    PUZZLE_BANK.filter(
-      (puzzle) => puzzle.goodbyeCount === goodbyeCount && puzzle.difficulty === difficulty,
-    ),
-    random,
-  );
-  const selected = pool.find((puzzle) => !usedKeys.has(puzzle.key)) ?? pool[0];
-  if (!selected) throw new Error(`[이별 공식] ${goodbyeCount}회 문제 후보가 없습니다.`);
+function clonePuzzle(puzzle: FarewellFormulaPuzzle): FarewellFormulaPuzzle {
   return {
-    ...selected,
-    tokens: selected.tokens.map((token) => ({ ...token })),
-    solutions: selected.solutions.map((solution) => ({
+    ...puzzle,
+    tokens: puzzle.tokens.map((token) => ({ ...token })),
+    solutions: puzzle.solutions.map((solution) => ({
       removedUnitIds: [...solution.removedUnitIds],
       expression: solution.expression,
     })),
   };
 }
 
-export function getFarewellFormulaPuzzleBank(difficulty?: FarewellFormulaDifficulty) {
-  return PUZZLE_BANK.filter((puzzle) => difficulty == null || puzzle.difficulty === difficulty).map(
-    (puzzle) => ({
-      ...puzzle,
-      tokens: puzzle.tokens.map((token) => ({ ...token })),
-      solutions: puzzle.solutions.map((solution) => ({
-        removedUnitIds: [...solution.removedUnitIds],
-        expression: solution.expression,
-      })),
-    }),
+/** 진행 중인 방의 타이머를 막지 않도록 백그라운드에서 검증한 문제만 캐시에 넣는다. */
+export class FarewellFormulaPuzzlePool {
+  private readonly buckets = FAREWELL_FORMULA_DIFFICULTIES.flatMap((difficulty) =>
+    GOODBYE_COUNTS.map((count): PuzzleBucket => ({ count, difficulty, ready: [] })),
   );
+  private readonly pending = new Set<PuzzleBucket>();
+  private readonly recentKeys = new Set<string>();
+  private readonly fallback = getFarewellFormulaPuzzleBank();
+  private refillPromise: Promise<void> | null = null;
+
+  constructor(private readonly random: FarewellRandomSource = Math.random) {}
+
+  /** 서버 기동 때 8개 버킷(난이도×삭제 횟수)을 미리 채운다. */
+  warm(): Promise<void> {
+    for (const bucket of this.buckets) {
+      if (bucket.ready.length < CACHE_PER_BUCKET) this.pending.add(bucket);
+    }
+    return this.refill();
+  }
+
+  take(
+    round: number,
+    usedKeys: ReadonlySet<string>,
+    difficulty: FarewellFormulaDifficulty,
+    random: FarewellRandomSource = this.random,
+  ): FarewellFormulaPuzzle {
+    const count =
+      ROUND_GOODBYE_COUNTS[Math.max(0, Math.min(ROUND_GOODBYE_COUNTS.length - 1, round - 1))]!;
+    const bucket = this.buckets.find(
+      (entry) => entry.count === count && entry.difficulty === difficulty,
+    )!;
+    // 생성 문제는 꺼내 쓰고 버린다. 같은 방의 문제와 겹치는 캐시 항목도 제외한다.
+    const index = bucket.ready.findIndex((puzzle) => !usedKeys.has(puzzle.key));
+    const generated = index < 0 ? null : bucket.ready.splice(index, 1)[0]!;
+    this.pending.add(bucket);
+    void this.refill().catch((error: unknown) => {
+      console.warn('[이별 공식] 자동 출제 캐시 보충 실패', error);
+    });
+    if (generated) return clonePuzzle(generated);
+
+    // 부팅 직후·동시 게임 증가·검증 시간 초과 시에도 이미 검증된 문제로 즉시 시작한다.
+    const fallback = this.fallback.filter(
+      (puzzle) =>
+        puzzle.goodbyeCount === count &&
+        puzzle.difficulty === difficulty &&
+        !usedKeys.has(puzzle.key),
+    );
+    const selected = fallback[Math.floor(random() * fallback.length)];
+    if (!selected) throw new Error(`[이별 공식] ${difficulty} ${count}회 문제 후보가 없습니다.`);
+    return clonePuzzle(selected);
+  }
+
+  private refill(): Promise<void> {
+    if (!this.refillPromise) {
+      this.refillPromise = this.fillPending().finally(() => {
+        this.refillPromise = null;
+      });
+    }
+    return this.refillPromise;
+  }
+
+  private async fillPending() {
+    // take()는 조합 검증을 실행하지 않고 바로 반환한다.
+    await setImmediate();
+    while (this.pending.size > 0) {
+      const bucket = this.pending.values().next().value!;
+      this.pending.delete(bucket);
+      if (bucket.ready.length >= CACHE_PER_BUCKET) continue;
+      const puzzle = await generateProceduralFarewellPuzzle(
+        bucket.count,
+        bucket.difficulty,
+        this.recentKeys,
+        this.random,
+      );
+      if (!puzzle) continue;
+      bucket.ready.push(puzzle);
+      this.recentKeys.add(puzzle.key);
+      if (this.recentKeys.size > RECENT_KEY_LIMIT) {
+        this.recentKeys.delete(this.recentKeys.values().next().value!);
+      }
+      // 한 종류가 캐시를 독점하지 않도록 다른 버킷 뒤에 재등록한다.
+      if (bucket.ready.length < CACHE_PER_BUCKET) this.pending.add(bucket);
+    }
+  }
+}
+
+const puzzlePool = new FarewellFormulaPuzzlePool();
+
+export function warmFarewellFormulaPuzzles() {
+  return puzzlePool.warm();
+}
+
+export function generateFarewellFormulaPuzzle(
+  round: number,
+  usedKeys: ReadonlySet<string> = new Set(),
+  random: FarewellRandomSource = Math.random,
+  difficulty: FarewellFormulaDifficulty = DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
+): FarewellFormulaPuzzle {
+  return puzzlePool.take(round, usedKeys, difficulty, random);
 }

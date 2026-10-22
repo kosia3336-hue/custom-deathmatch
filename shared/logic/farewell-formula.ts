@@ -405,42 +405,58 @@ export function buildFarewellExpression(
     .join('');
 }
 
-function combinations(
-  values: readonly number[],
-  size: number,
-  visit: (picked: number[]) => boolean,
-) {
+function* combinations(values: readonly number[], size: number): Generator<number[]> {
   const picked: number[] = [];
-  const walk = (start: number): boolean => {
-    if (picked.length === size) return visit([...picked]);
+  function* walk(start: number): Generator<number[]> {
+    if (picked.length === size) {
+      yield [...picked];
+      return;
+    }
     const remaining = size - picked.length;
     for (let index = start; index <= values.length - remaining; index++) {
       picked.push(values[index]!);
-      if (walk(index + 1)) return true;
+      yield* walk(index + 1);
       picked.pop();
     }
-    return false;
-  };
-  walk(0);
+  }
+  yield* walk(0);
 }
 
-/** 문제 은행 검증과 테스트용 완전탐색. 먼저 성립하는 최소 삭제 횟수만 반환한다. */
-export function findMinimumFarewellSolutions(
+interface FarewellSearchResult {
+  minimum: number | null;
+  solutions: FarewellFormulaSolution[];
+}
+
+/** 한 조합씩 검증한다. 서버는 중간에 실행권을 돌려주거나 검증을 중단할 수 있다. */
+export function* searchFarewellSolutions(
   input: string,
   maxDeletions = 6,
   limit = 16,
-): { minimum: number | null; solutions: FarewellFormulaSolution[] } {
+): Generator<void, FarewellSearchResult> {
   const layout = tokenizeFarewellFormula(input);
   for (let count = 0; count <= Math.min(maxDeletions, layout.unitIds.length); count++) {
     const solutions: FarewellFormulaSolution[] = [];
-    combinations(layout.unitIds, count, (removedUnitIds) => {
+    for (const removedUnitIds of combinations(layout.unitIds, count)) {
       const expression = buildFarewellExpression(layout.tokens, removedUnitIds);
       if (evaluateFarewellEquation(expression).correct) {
         solutions.push({ removedUnitIds, expression });
       }
-      return solutions.length >= limit;
-    });
+      if (solutions.length >= limit) return { minimum: count, solutions };
+      yield;
+    }
     if (solutions.length > 0) return { minimum: count, solutions };
   }
   return { minimum: null, solutions: [] };
+}
+
+/** 문제은행 검증과 테스트용 완전탐색. 먼저 성립하는 최소 삭제 횟수만 반환한다. */
+export function findMinimumFarewellSolutions(
+  input: string,
+  maxDeletions = 6,
+  limit = 16,
+): FarewellSearchResult {
+  const search = searchFarewellSolutions(input, maxDeletions, limit);
+  let step = search.next();
+  while (!step.done) step = search.next();
+  return step.value;
 }
