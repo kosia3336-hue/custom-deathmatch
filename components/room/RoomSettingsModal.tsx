@@ -40,6 +40,12 @@ import {
 import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTimeField';
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
+import LoopCheckOptionsField from '@/components/room-modal/LoopCheckOptionsField';
+import {
+  resolveLoopCheckOptions,
+  type LoopCheckBestOf,
+  type LoopCheckColorMode,
+} from '@/shared/types/loop-check';
 import { resolveMyeongchuriOptions } from '@/shared/logic/myeongchuri';
 import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
@@ -72,6 +78,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [timeLimitSec, setTimeLimitSec] = useState(0);
   const [initialChips, setInitialChips] = useState(25);
   const [formulaNumberCount, setFormulaNumberCount] = useState(FC_DEFAULT_NUMBER_COUNT);
+  const [loopCheckBestOf, setLoopCheckBestOf] = useState<LoopCheckBestOf>(5);
+  const [loopCheckColorMode, setLoopCheckColorMode] = useState<LoopCheckColorMode>('standard');
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
     DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   );
@@ -133,6 +141,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         ? room.gameOptions.numberCount
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
+    const loopCheck = resolveLoopCheckOptions(room.gameOptions);
+    setLoopCheckBestOf(loopCheck.bestOf);
+    setLoopCheckColorMode(loopCheck.colorMode);
     setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
     setAbstractAiDifficulty(
       resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId),
@@ -281,6 +292,10 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     if (selectedGame.id === GAME_IDS.FORMULA_COMPLETION) {
       gameOptions.numberCount = formulaNumberCount;
     }
+    if (selectedGame.id === GAME_IDS.LOOP_CHECK) {
+      gameOptions.loopCheckBestOf = loopCheckBestOf;
+      gameOptions.loopCheckColorMode = loopCheckColorMode;
+    }
     if (showsAbstractAiThinkTime) {
       gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
     }
@@ -322,6 +337,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     (playMode === 'multi' && Boolean(selectedGame) && playerRange.length > 1) ||
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
+    selectedGame?.id === GAME_IDS.LOOP_CHECK ||
     showsAbstractAiThinkTime ||
     showsAbstractAiDifficulty ||
     (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
@@ -570,6 +586,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
               <AbstractAiThinkTimeField
                 value={abstractAiThinkSeconds}
                 onChange={setAbstractAiThinkSeconds}
+              />
+            )}
+
+            {selectedGame?.id === GAME_IDS.LOOP_CHECK && (
+              <LoopCheckOptionsField
+                bestOf={loopCheckBestOf}
+                colorMode={loopCheckColorMode}
+                onBestOfChange={setLoopCheckBestOf}
+                onColorModeChange={setLoopCheckColorMode}
               />
             )}
 

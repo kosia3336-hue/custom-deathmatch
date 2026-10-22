@@ -385,6 +385,16 @@ import {
   getKnightTourResultData,
 } from './games/knights-tour/index.js';
 import {
+  initLoopCheck,
+  handleLoopCheckAction,
+  cleanupLoopCheck,
+  getLoopCheckState,
+  emitLoopCheckStateToSocket,
+  performLoopCheckUndo,
+  canLoopCheckUndo,
+  getLoopCheckResultData,
+} from './games/loop-check/index.js';
+import {
   initKingmaking,
   handleKingmakingAction,
   cleanupKingmaking,
@@ -559,6 +569,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performCompleteHapUndo,
     canUndo: canCompleteHapUndo,
     getResultData: getCompleteHapResultData,
+  },
+  [GAME_IDS.LOOP_CHECK]: {
+    init: initLoopCheck,
+    handleAction: handleLoopCheckAction,
+    cleanup: cleanupLoopCheck,
+    getState: getLoopCheckState,
+    emitStateToSocket: emitLoopCheckStateToSocket,
+    performUndo: performLoopCheckUndo,
+    canUndo: canLoopCheckUndo,
+    getResultData: getLoopCheckResultData,
   },
   [GAME_IDS.FORMULA_COMPLETION]: {
     init: initFormulaCompletion,

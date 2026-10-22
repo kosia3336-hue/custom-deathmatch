@@ -29,6 +29,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.FORMULA_COMPLETION]: 'round',
   [GAME_IDS.COMPLETE_HAP]: 'round',
   [GAME_IDS.KNIGHTS_TOUR]: 'round',
+  [GAME_IDS.LOOP_CHECK]: 'round',
   [GAME_IDS.KINGMAKING]: 'turn',
   [GAME_IDS.TRIPLE_GOMOKU]: 'turn',
   [GAME_IDS.RANDOM]: 'selection',
@@ -65,7 +66,7 @@ export function getGameProgress(
     [GAME_IDS.NUMBER_FOUR]: NUMBER4_ROUNDS,
     [GAME_IDS.SILPER_BNW]: SBNW_TOTAL_ROUNDS,
   };
-  const total = data.totalRounds ?? data.maxRound ?? fixedRounds[gameId];
+  const total = data.totalRounds ?? data.maxRound ?? data.bestOf ?? fixedRounds[gameId];
   return typeof total === 'number' ? `${data.round} / ${total}R` : `${data.round}R`;
 }
 
@@ -120,6 +121,7 @@ export function getGameClock(
   if (
     gameId === GAME_IDS.FORMULA_COMPLETION ||
     gameId === GAME_IDS.KNIGHTS_TOUR ||
+    gameId === GAME_IDS.LOOP_CHECK ||
     gameId === GAME_IDS.WORD_PUZZLE
   ) {
     seconds = data.roundSeconds;

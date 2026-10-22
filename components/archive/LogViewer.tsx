@@ -22,6 +22,7 @@ import BankGameViewer from '@/components/archive/viewers/bank-game';
 import FormulaCompletionViewer from '@/components/archive/viewers/formula-completion';
 import CompleteHapViewer from '@/components/archive/viewers/complete-hap';
 import KnightsTourViewer from '@/components/archive/viewers/knights-tour';
+import LoopCheckViewer from '@/components/archive/viewers/loop-check';
 import KingmakingViewer from '@/components/archive/viewers/kingmaking';
 import TripleGomokuViewer from '@/components/archive/viewers/triple-gomoku';
 import ChoiceHoldemViewer from '@/components/archive/viewers/choice-holdem';
@@ -49,6 +50,7 @@ export const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionViewer,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapViewer,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourViewer,
+  [GAME_IDS.LOOP_CHECK]: LoopCheckViewer,
   [GAME_IDS.KINGMAKING]: KingmakingViewer,
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuViewer,
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemViewer,
