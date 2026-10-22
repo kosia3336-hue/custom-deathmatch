@@ -25,7 +25,7 @@
  *
  * 특징:
  *   - 체크포인트로 중단/재개 (.transletter-checkpoint.json)
- * 출력: shared/data/transletter-words.generated.ts (검수 후 transletter-words.ts 에 반영)
+ * 출력: shared/data/transletter-words.generated.ts (검수 후 topic-words.ts 에 반영)
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -121,7 +121,7 @@ function loadCkpt() {
 const saveCkpt = (c) => writeFileSync(CKPT, JSON.stringify(c));
 
 function existingCurated() {
-  const p = join(DATA_DIR, 'transletter-words.ts');
+  const p = join(DATA_DIR, 'topic-words.ts');
   if (!existsSync(p)) return {};
   const src = readFileSync(p, 'utf8');
   const map = {};
@@ -205,13 +205,13 @@ async function main() {
     join(DATA_DIR, 'transletter-words.generated.ts'),
     `/**
  * 트랜스레터 — 카테고리별 단어 (자동 생성: 큐레이션 + 우리말샘 cat·인기순 수집).
- * ⚠ scripts/build-transletter-words.mjs 가 생성. 검수 후 transletter-words.ts 에 반영하세요.
+ * ⚠ scripts/build-transletter-words.mjs 가 생성. 검수 후 topic-words.ts 에 반영하세요.
  *   낯선 단어가 섞일 수 있습니다(인기순은 완벽한 친숙도 지표 아님).
  * 생성: ${new Date().toISOString()}
  */
-import type { TransletterCategory } from './transletter-words';
+import type { TopicWords } from './topic-words';
 
-export const TRANSLETTER_CATEGORIES_GENERATED: TransletterCategory[] = [
+export const TRANSLETTER_CATEGORIES_GENERATED: TopicWords[] = [
 ${block}
 ];
 `,
@@ -220,7 +220,7 @@ ${block}
 
   const total = Object.values(result).reduce((a, w) => a + w.length, 0);
   console.log(`\n✅ 완료 — 총 ${total}단어 → shared/data/transletter-words.generated.ts`);
-  console.log('   내용 확인 후 transletter-words.ts 로 반영하면 게임에 적용됩니다.');
+  console.log('   내용 확인 후 topic-words.ts 로 반영하면 게임에 적용됩니다.');
 }
 
 main().catch((e) => { console.error('\n오류:', e); process.exit(1); });

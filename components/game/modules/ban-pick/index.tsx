@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { playBanSfx, playLotteryPingSfx, playLotteryFinalSfx, playUnbanSfx, playUnbanTurnStartSfx } from '@/lib/audio/synth/general';
 import { serverNow } from '@/lib/serverClock';
 import { RankBadge } from '@/components/cdm/RankBadge';
+import { lastSyllableHasBatchim } from '@/shared/lib/hangul';
 import type { Game } from '@/shared/types/game';
 import type { RankTier } from '@/shared/types/rank';
 import type {
@@ -54,10 +55,7 @@ interface UnbanState {
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 
 function getKoreanSubjectParticle(word: string): '이' | '가' {
-  if (!word) return '이';
-  const code = word.charCodeAt(word.length - 1);
-  if (code < 0xac00 || code > 0xd7a3) return '이';
-  return (code - 0xac00) % 28 === 0 ? '가' : '이';
+  return lastSyllableHasBatchim(word) === false ? '가' : '이';
 }
 
 function buildLotterySequence(

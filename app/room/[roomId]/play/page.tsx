@@ -17,6 +17,7 @@ import BettingRpsGame from '@/components/game/modules/betting-rps';
 import QuatroGame from '@/components/game/modules/quatro';
 import WordPuzzleGame from '@/components/game/modules/word-puzzle';
 import TransletterGame from '@/components/game/modules/transletter';
+import NoVowelGame from '@/components/game/modules/no-vowel';
 import FormulaCompletionGame from '@/components/game/modules/formula-completion';
 import CompleteHapGame from '@/components/game/modules/complete-hap';
 import KnightsTourGame from '@/components/game/modules/knights-tour';
@@ -65,6 +66,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.QUATRO]: QuatroGame,
   [GAME_IDS.WORD_PUZZLE]: WordPuzzleGame,
   [GAME_IDS.TRANSLETTER]: TransletterGame,
+  [GAME_IDS.NO_VOWEL]: NoVowelGame,
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionGame,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapGame,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourGame,

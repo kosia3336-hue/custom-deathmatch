@@ -1,20 +1,22 @@
 /**
- * 트랜스레터 — 주제(카테고리)별 출제 단어.
+ * 주제(카테고리)별 단어 — 트랜스레터·모음이 없어요가 함께 출제에 쓴다.
  *
  * 동물/식물/음식: 우리말샘 cat·인기순 수집분에서 흔한 단어만 선별.
- * 음악/미술/운동/사물/신체/자연·장소: 큐레이션 (흔하고 알아보기 쉬운 것 위주).
+ * 음악/미술/운동/사물/신체/자연/장소: 큐레이션 (흔하고 알아보기 쉬운 것 위주).
  * (표준국어대사전 API 는 cat 필터가 무시되고, 우리말샘 자동 수집은 낯선 종·학술어가
  *  많이 섞여 사람이 선별해야 한다 — 그 결과가 이 목록이다.)
  *
  * 규칙: 2~5음절 한글 단어. 낯선 단어(못 맞히는 라운드)를 피한다.
+ * 게임마다 더 거르는 조건은 각 게임이 정한다(모음이 없어요는 겹받침 단어를 뺀다).
+ * 단어를 늘릴 때: scripts/build-transletter-words.mjs 로 수집 → 검수 후 여기에 반영.
  */
 
-export interface TransletterCategory {
+export interface TopicWords {
   name: string;
   words: string[];
 }
 
-export const TRANSLETTER_CATEGORIES: TransletterCategory[] = [
+export const TOPIC_WORDS: TopicWords[] = [
   {
     name: '동물',
     words: [
@@ -56,12 +58,20 @@ export const TRANSLETTER_CATEGORIES: TransletterCategory[] = [
     ],
   },
   {
-    name: '자연·장소',
+    name: '자연',
     words: [
       '무지개', '소나기', '눈사람', '고드름', '아지랑이', '노을', '별자리', '보름달', '초승달', '은하수',
       '바다', '강물', '호수', '폭포', '계곡', '언덕', '동굴', '사막', '화산', '빙하',
+    ],
+  },
+  {
+    name: '장소',
+    words: [
       '학교', '병원', '도서관', '우체국', '경찰서', '소방서', '수영장', '놀이터', '박물관', '미술관',
       '기차역', '공항', '항구', '시장', '공원', '운동장', '주차장', '정류장', '백화점', '편의점',
+      '방송국', '은행', '시청', '영화관', '미용실', '빵집', '서점', '약국', '식당', '호텔',
+      '체육관', '동물원', '식물원', '수족관', '놀이공원', '터미널', '지하철역', '세탁소', '문구점', '꽃집',
+      '노래방', '유치원', '공장', '농장', '목장', '사무실', '카페', '목욕탕', '주유소', '야영장',
     ],
   },
   {
@@ -100,10 +110,10 @@ export const TRANSLETTER_CATEGORIES: TransletterCategory[] = [
   },
 ];
 
-/** 전체 (카테고리, 단어) 쌍 — 출제용 평탄화 */
-export function transletterWordEntries(): Array<{ category: string; word: string }> {
+/** 전체 (주제, 단어) 쌍 — 출제용 평탄화. 2~5음절 한글만. */
+export function topicWordEntries(): Array<{ category: string; word: string }> {
   const out: Array<{ category: string; word: string }> = [];
-  for (const c of TRANSLETTER_CATEGORIES) {
+  for (const c of TOPIC_WORDS) {
     for (const w of c.words) {
       if (/^[가-힣]{2,5}$/.test(w)) out.push({ category: c.name, word: w });
     }

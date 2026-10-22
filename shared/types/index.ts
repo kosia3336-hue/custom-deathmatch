@@ -372,6 +372,15 @@ export type {
   WordPuzzleRoundResult,
   WordPuzzleGameData,
 } from './word-puzzle';
+export { WR_PUZZLE_COUNT, WR_TIME_LIMIT_SEC, WR_WRONG_LOCK_MS } from './word-race';
+export type {
+  WordRacePhase,
+  WordRaceAction,
+  WordRacePuzzleView,
+  WordRaceResult,
+  WordRaceGameData,
+} from './word-race';
+export type { NoVowelAction, NoVowelGameData } from './no-vowel';
 export { TL_PUZZLE_COUNT, TL_TIME_LIMIT_SEC, TL_WRONG_LOCK_MS } from './transletter';
 export type {
   TransletterPhase,

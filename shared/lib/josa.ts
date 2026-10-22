@@ -8,6 +8,8 @@
  *
  * 클라이언트·서버가 함께 쓴다.
  */
+import { decompose } from './hangul';
+
 export type JosaPair = '이/가' | '을/를' | '은/는' | '과/와' | '으로/로';
 
 interface Tail {
@@ -37,11 +39,9 @@ const LATIN_RIEUL = new Set(['l', 'r']);
 function tailOf(word: string): Tail | null {
   const ch = word.trimEnd().slice(-1);
   if (!ch) return null;
+  const syllable = decompose(ch);
+  if (syllable) return { batchim: syllable.jong !== 0, rieul: syllable.jong === 8 };
   const code = ch.charCodeAt(0);
-  if (code >= 0xac00 && code <= 0xd7a3) {
-    const jong = (code - 0xac00) % 28;
-    return { batchim: jong !== 0, rieul: jong === 8 };
-  }
   // 낱자 자음(ㅋㅋ·ㄹ)은 이름(키읔·리을)으로 읽어 받침이 있다. 낱자 모음은 없다.
   if (code >= 0x3131 && code <= 0x314e) return { batchim: true, rieul: code === 0x3139 };
   if (code >= 0x314f && code <= 0x3163) return { batchim: false, rieul: false };

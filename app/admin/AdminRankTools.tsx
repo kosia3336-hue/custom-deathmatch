@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { RANK_TIER_LABEL } from '@/lib/rankedRoomTitle';
 import { calcRankRpParts, rankTierNumericForRp } from '@shared/types/rank';
+import { lastSyllableHasBatchim } from '@shared/lib/hangul';
 import RankMatchHistoryPanel from './RankMatchHistoryPanel';
 
 const GRANT_TIERS = ['bronze', 'silver', 'gold', 'diamond', 'challenger'] as const;
@@ -26,10 +27,7 @@ function clampStreak(n: number | null): number {
 }
 
 function subjectMarker(label: string): '이' | '가' {
-  const last = [...label].at(-1) ?? '';
-  const code = last.charCodeAt(0);
-  if (code < 0xac00 || code > 0xd7a3) return '가';
-  return (code - 0xac00) % 28 === 0 ? '가' : '이';
+  return lastSyllableHasBatchim(label) ? '이' : '가';
 }
 
 function rowTierLabel(row: SearchRow): string {

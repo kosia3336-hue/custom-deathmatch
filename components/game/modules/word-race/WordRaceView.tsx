@@ -17,15 +17,20 @@ import { serverNow } from '@/lib/serverClock';
 import { cn } from '@/lib/utils';
 import styles from './layout.module.css';
 import {
-  TL_PUZZLE_COUNT,
-  TL_WRONG_LOCK_MS,
-  type TransletterGameData,
-} from '@/shared/types/transletter';
+  WR_PUZZLE_COUNT,
+  WR_WRONG_LOCK_MS,
+  type WordRaceGameData,
+} from '@/shared/types/word-race';
 
-function TransletterView({
+/**
+ * 단어 맞히기 스피드 레이스 화면 — 트랜스레터·모음이 없어요가 함께 쓴다.
+ * 게임마다 다른 것은 문제 글자 모양(shownClassName)뿐이다.
+ */
+function WordRaceView({
   gameData,
   myId,
-}: GameModuleViewProps<TransletterGameData> & { isSolo?: boolean }) {
+  shownClassName,
+}: GameModuleViewProps<WordRaceGameData> & { shownClassName?: string }) {
   const sendAction = useGameAction();
   const { setHud } = useRoomLayout();
   useEffect(() => {
@@ -43,8 +48,8 @@ function TransletterView({
   }, [gameData, setHud]);
   const { subscribeError } = useGameFeedback();
 
-  const [inputs, setInputs] = useState<string[]>(() => Array(TL_PUZZLE_COUNT).fill(''));
-  const [lockedUntil, setLockedUntil] = useState<number[]>(() => Array(TL_PUZZLE_COUNT).fill(0));
+  const [inputs, setInputs] = useState<string[]>(() => Array(WR_PUZZLE_COUNT).fill(''));
+  const [lockedUntil, setLockedUntil] = useState<number[]>(() => Array(WR_PUZZLE_COUNT).fill(0));
   /*
     렌더 중 Date.now() 를 읽으면 서버와 클라이언트 값이 갈려 hydration 이 어긋난다.
     서버가 준 시작 시각으로 초기화하면 양쪽이 같은 값을 그리고, 첫 화면도 '남은 시간
@@ -69,7 +74,7 @@ function TransletterView({
         if (i >= 0) {
           setLockedUntil((prev) => {
             const n = [...prev];
-            n[i] = serverNow() + TL_WRONG_LOCK_MS;
+            n[i] = serverNow() + WR_WRONG_LOCK_MS;
             return n;
           });
         }
@@ -130,14 +135,14 @@ function TransletterView({
                 {
                   id: myId,
                   nickname: gameData.players[myId]?.nickname ?? '관전',
-                  value: `${gameData.myCount}/${TL_PUZZLE_COUNT}`,
+                  value: `${gameData.myCount}/${WR_PUZZLE_COUNT}`,
                 },
                 ...(!gameData.isSolo
                   ? [
                       {
                         id: oppId,
                         nickname: gameData.players[oppId]?.nickname ?? '상대',
-                        value: `${gameData.oppCount}/${TL_PUZZLE_COUNT}`,
+                        value: `${gameData.oppCount}/${WR_PUZZLE_COUNT}`,
                       },
                     ]
                   : []),
@@ -165,8 +170,13 @@ function TransletterView({
                 </span>
                 {solved && <span className="text-cdm-success text-[11px] font-bold">✓ 완료</span>}
               </div>
-              <p className="text-cdm-fg mb-1.5 text-center text-2xl font-extrabold tracking-wide">
-                {pz.transformed}
+              <p
+                className={cn(
+                  'text-cdm-fg mb-1.5 text-center text-2xl font-extrabold tracking-wide',
+                  shownClassName,
+                )}
+              >
+                {pz.shown}
               </p>
               {gameData.phase === 'playing' && isPlayer && !solved && (
                 <div className="flex gap-1.5">
@@ -227,4 +237,4 @@ function TransletterView({
   );
 }
 
-export default memo(TransletterView);
+export default memo(WordRaceView);

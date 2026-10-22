@@ -26,6 +26,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.QUATRO]: 'round',
   [GAME_IDS.WORD_PUZZLE]: 'round',
   [GAME_IDS.TRANSLETTER]: 'match',
+  [GAME_IDS.NO_VOWEL]: 'match',
   [GAME_IDS.FORMULA_COMPLETION]: 'round',
   [GAME_IDS.COMPLETE_HAP]: 'round',
   [GAME_IDS.KNIGHTS_TOUR]: 'round',
@@ -127,7 +128,7 @@ export function getGameClock(
   } else if (gameId === GAME_IDS.COMPLETE_HAP) {
     seconds = data.matchSeconds;
     startedAt = data.phase === 'playing' ? data.matchStartedAt : null;
-  } else if (gameId === GAME_IDS.TRANSLETTER) {
+  } else if (gameId === GAME_IDS.TRANSLETTER || gameId === GAME_IDS.NO_VOWEL) {
     seconds = data.timeLimitSec;
     startedAt = data.phase === 'playing' ? data.startedAt : null;
   } else {

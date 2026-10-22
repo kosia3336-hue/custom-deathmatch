@@ -3,7 +3,7 @@ import { GameActionProvider } from '@/components/game/GameActionContext';
 import { useGameModuleConnection } from '@/hooks/useGameModuleConnection';
 import { GAME_IDS } from '@/shared/types/game';
 import type { TransletterGameData } from '@/shared/types/transletter';
-import TransletterView from './TransletterView';
+import WordRaceView from '../word-race/WordRaceView';
 
 export default function TransletterGame() {
   const { sendAction, ...props } = useGameModuleConnection<TransletterGameData>(
@@ -11,7 +11,7 @@ export default function TransletterGame() {
   );
   return (
     <GameActionProvider send={sendAction}>
-      <TransletterView key={props.gameKey} {...props} />
+      <WordRaceView key={props.gameKey} {...props} />
     </GameActionProvider>
   );
 }

@@ -355,6 +355,16 @@ import {
   getTransletterResultData,
 } from './games/transletter/index.js';
 import {
+  initNoVowel,
+  handleNoVowelAction,
+  cleanupNoVowel,
+  getNoVowelState,
+  emitNoVowelStateToSocket,
+  performNoVowelUndo,
+  canNoVowelUndo,
+  getNoVowelResultData,
+} from './games/no-vowel/index.js';
+import {
   initFormulaCompletion,
   handleFormulaCompletionAction,
   cleanupFormulaCompletion,
@@ -589,6 +599,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performTransletterUndo,
     canUndo: canTransletterUndo,
     getResultData: getTransletterResultData,
+  },
+  [GAME_IDS.NO_VOWEL]: {
+    init: initNoVowel,
+    handleAction: handleNoVowelAction,
+    cleanup: cleanupNoVowel,
+    getState: getNoVowelState,
+    emitStateToSocket: emitNoVowelStateToSocket,
+    performUndo: performNoVowelUndo,
+    canUndo: canNoVowelUndo,
+    getResultData: getNoVowelResultData,
   },
   [GAME_IDS.QUATRO]: {
     init: initQuatro,
