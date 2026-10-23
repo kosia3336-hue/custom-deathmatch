@@ -44,6 +44,12 @@ import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTim
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
 import FarewellFormulaDifficultyField from '@/components/room-modal/FarewellFormulaDifficultyField';
+import LoopCheckOptionsField from '@/components/room-modal/LoopCheckOptionsField';
+import {
+  resolveLoopCheckOptions,
+  type LoopCheckBestOf,
+  type LoopCheckColorMode,
+} from '@/shared/types/loop-check';
 import { resolveMyeongchuriOptions } from '@/shared/logic/myeongchuri';
 import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
@@ -79,6 +85,8 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
   const [farewellDifficulty, setFarewellDifficulty] = useState<FarewellFormulaDifficulty>(
     DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
   );
+  const [loopCheckBestOf, setLoopCheckBestOf] = useState<LoopCheckBestOf>(5);
+  const [loopCheckColorMode, setLoopCheckColorMode] = useState<LoopCheckColorMode>('standard');
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
     DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   );
@@ -141,6 +149,9 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
         : FC_DEFAULT_NUMBER_COUNT;
     setFormulaNumberCount(numberCount);
     setFarewellDifficulty(resolveFarewellFormulaDifficulty(room.gameOptions?.farewellDifficulty));
+    const loopCheck = resolveLoopCheckOptions(room.gameOptions);
+    setLoopCheckBestOf(loopCheck.bestOf);
+    setLoopCheckColorMode(loopCheck.colorMode);
     setAbstractAiThinkSeconds(resolveAbstractAiThinkSeconds(room.gameOptions));
     setAbstractAiDifficulty(
       resolveAbstractAiDifficulty(room.gameOptions?.aiDifficulty, room.gameId),
@@ -292,6 +303,10 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     if (selectedGame.id === GAME_IDS.FAREWELL_FORMULA) {
       gameOptions.farewellDifficulty = farewellDifficulty;
     }
+    if (selectedGame.id === GAME_IDS.LOOP_CHECK) {
+      gameOptions.loopCheckBestOf = loopCheckBestOf;
+      gameOptions.loopCheckColorMode = loopCheckColorMode;
+    }
     if (showsAbstractAiThinkTime) {
       gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
     }
@@ -334,6 +349,7 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     selectedGame?.id === GAME_IDS.FAREWELL_FORMULA ||
+    selectedGame?.id === GAME_IDS.LOOP_CHECK ||
     showsAbstractAiThinkTime ||
     showsAbstractAiDifficulty ||
     (selectedGame?.id === GAME_IDS.MYEONGCHURI && playMode !== 'solo');
@@ -589,6 +605,15 @@ export default function RoomSettingsModal({ open, room, onClose }: Props) {
               <AbstractAiThinkTimeField
                 value={abstractAiThinkSeconds}
                 onChange={setAbstractAiThinkSeconds}
+              />
+            )}
+
+            {selectedGame?.id === GAME_IDS.LOOP_CHECK && (
+              <LoopCheckOptionsField
+                bestOf={loopCheckBestOf}
+                colorMode={loopCheckColorMode}
+                onBestOfChange={setLoopCheckBestOf}
+                onColorModeChange={setLoopCheckColorMode}
               />
             )}
 

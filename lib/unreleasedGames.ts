@@ -17,6 +17,7 @@ import { GAME_IDS } from '@/shared/types/game';
 
 export const UNRELEASED_GAME_IDS: readonly string[] = [
   GAME_IDS.NO_VOWEL,
+  GAME_IDS.LOOP_CHECK,
   GAME_IDS.FAREWELL_FORMULA,
 ];
 

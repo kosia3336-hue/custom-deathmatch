@@ -21,6 +21,7 @@ import NoVowelGame from '@/components/game/modules/no-vowel';
 import FormulaCompletionGame from '@/components/game/modules/formula-completion';
 import CompleteHapGame from '@/components/game/modules/complete-hap';
 import KnightsTourGame from '@/components/game/modules/knights-tour';
+import LoopCheckGame from '@/components/game/modules/loop-check';
 import KingmakingGame from '@/components/game/modules/kingmaking';
 import TripleGomokuGame from '@/components/game/modules/triple-gomoku';
 import ChoiceHoldemGame from '@/components/game/modules/choice-holdem';
@@ -71,6 +72,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.FORMULA_COMPLETION]: FormulaCompletionGame,
   [GAME_IDS.COMPLETE_HAP]: CompleteHapGame,
   [GAME_IDS.KNIGHTS_TOUR]: KnightsTourGame,
+  [GAME_IDS.LOOP_CHECK]: LoopCheckGame,
   [GAME_IDS.KINGMAKING]: KingmakingGame,
   [GAME_IDS.TRIPLE_GOMOKU]: TripleGomokuGame,
   [GAME_IDS.CHOICE_HOLDEM]: ChoiceHoldemGame,

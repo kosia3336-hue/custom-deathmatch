@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_IDS } from '../../../shared/types/game';
 import type { GameState } from '../../../shared/types/events';
-import { GAME_PROGRESS, getGameClock, getGameProgress, getGameStatus } from '../../../lib/gameProgress';
+import {
+  GAME_PROGRESS,
+  getGameClock,
+  getGameProgress,
+  getGameStatus,
+} from '../../../lib/gameProgress';
 import { formatCountdown } from '../../../lib/countdownTick';
 
 const state = (gameData: unknown): GameState => ({
@@ -28,7 +33,9 @@ describe('공통 게임 상단 바', () => {
   });
   it('개별 HUD가 없는 게임도 현재 진행 단계를 상단 바 문구로 만든다', () => {
     expect(getGameStatus(state({ phase: 'betting', currentTurnId: 'me' }), 'me')).toBe('내 차례');
-    expect(getGameStatus(state({ phase: 'betting', currentTurnId: 'other' }), 'me')).toBe('상대 차례');
+    expect(getGameStatus(state({ phase: 'betting', currentTurnId: 'other' }), 'me')).toBe(
+      '상대 차례',
+    );
     expect(getGameStatus(state({ phase: 'reveal' }), 'me')).toBe('공개');
     expect(getGameStatus(state({ phase: 'finished' }), 'me')).toBe('종료');
   });
@@ -42,6 +49,23 @@ describe('공통 게임 상단 바', () => {
       getGameClock(GAME_IDS.KNIGHTS_TOUR, state({ ...data, phase: 'round-result' }), 300)
         .turnStartedAt,
     ).toBeNull();
+  });
+  it('루프체크의 3·5·7전 설정과 실제 라운드 타이머를 사용한다', () => {
+    for (const bestOf of [3, 5, 7]) {
+      const data = { round: 2, bestOf, phase: 'playing', roundSeconds: 90, roundStartedAt: 3000 };
+      expect(getGameProgress(GAME_IDS.LOOP_CHECK, state(data))).toBe(`2 / ${bestOf}R`);
+      expect(getGameClock(GAME_IDS.LOOP_CHECK, state(data), 60)).toEqual({
+        timeLimitSeconds: 90,
+        turnStartedAt: 3000,
+      });
+      expect(
+        getGameClock(GAME_IDS.LOOP_CHECK, state({ ...data, phase: 'reveal' }), 60).turnStartedAt,
+      ).toBeNull();
+      expect(
+        getGameClock(GAME_IDS.LOOP_CHECK, state({ ...data, roundSeconds: null }), 60)
+          .timeLimitSeconds,
+      ).toBeNull();
+    }
   });
   it('결합은 라운드가 바뀌어도 전체 경기의 마감 시각을 유지한다', () => {
     expect(

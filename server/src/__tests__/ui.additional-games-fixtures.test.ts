@@ -14,6 +14,7 @@ const games = [
   ['choice-holdem', 'ChoiceHoldem'],
   ['myeongchuri', 'Myeongchuri'],
   ['farewell-formula', 'FarewellFormula'],
+  ['loop-check', 'LoopCheck'],
 ];
 const modules: Record<string, () => Promise<any>> = {
   'word-puzzle': () => import('../socket/games/word-puzzle/index.js'),
@@ -26,6 +27,7 @@ const modules: Record<string, () => Promise<any>> = {
   'choice-holdem': () => import('../socket/games/choice-holdem/index.js'),
   myeongchuri: () => import('../socket/games/myeongchuri/index.js'),
   'farewell-formula': () => import('../socket/games/farewell-formula/index.js'),
+  'loop-check': () => import('../socket/games/loop-check/index.js'),
 };
 const path = fileURLToPath(new URL('../../../public/dev/refactor-fixtures', import.meta.url));
 describe('additional previews use private server projections', () => {
@@ -99,6 +101,18 @@ describe('additional previews use private server projections', () => {
           });
           save();
           expect(data().lastRoundResult.correct).toBe(true);
+        }
+        if (slug === 'loop-check') {
+          const st = await import('../socket/games/loop-check/state.js');
+          expect(snapshots.initial.solution).toBeUndefined();
+          expect(snapshots.spectator.solution).toBeUndefined();
+          act('me', {
+            type: 'submit',
+            roundId: snapshots.initial.roundId,
+            path: st.loopCheckStates.get(roomId)!.solution,
+          });
+          save();
+          expect(data().lastResult.outcome).toBe('correct');
         }
         if (slug === 'knights-tour') {
           act('me', { type: 'move', ...snapshots.initial.board.activeCells[0] });

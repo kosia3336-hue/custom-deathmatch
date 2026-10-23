@@ -29,6 +29,7 @@ import DoubleSidedPokerViewer from '@/components/archive/viewers/double-sided-po
 import MyeongchuriViewer from '@/components/archive/viewers/myeongchuri';
 import EskimoViewer from '@/components/archive/viewers/eskimo';
 import FarewellFormulaViewer from '@/components/archive/viewers/farewell-formula';
+import LoopCheckViewer from '@/components/archive/viewers/loop-check';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.FOUR_GRAVITY]: FourGravityViewer,
@@ -56,6 +57,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.MYEONGCHURI]: MyeongchuriViewer,
   [GAME_IDS.ESKIMO]: EskimoViewer,
   [GAME_IDS.FAREWELL_FORMULA]: FarewellFormulaViewer,
+  [GAME_IDS.LOOP_CHECK]: LoopCheckViewer,
 };
 
 export default function LogViewer({ record }: { record: GameRecordFile }) {

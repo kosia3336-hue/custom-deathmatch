@@ -44,6 +44,8 @@ import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTim
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
 import FarewellFormulaDifficultyField from '@/components/room-modal/FarewellFormulaDifficultyField';
+import LoopCheckOptionsField from '@/components/room-modal/LoopCheckOptionsField';
+import type { LoopCheckBestOf, LoopCheckColorMode } from '@/shared/types/loop-check';
 import {
   MYEONGCHURI_DEFAULT_PICK_SECONDS,
   MYEONGCHURI_DEFAULT_THINK_SECONDS,
@@ -115,6 +117,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [farewellDifficulty, setFarewellDifficulty] = useState<FarewellFormulaDifficulty>(
     DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
   );
+  const [loopCheckBestOf, setLoopCheckBestOf] = useState<LoopCheckBestOf>(5);
+  const [loopCheckColorMode, setLoopCheckColorMode] = useState<LoopCheckColorMode>('standard');
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
     DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   );
@@ -158,6 +162,8 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setInitialChips(25);
     setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
     setFarewellDifficulty(DEFAULT_FAREWELL_FORMULA_DIFFICULTY);
+    setLoopCheckBestOf(5);
+    setLoopCheckColorMode('standard');
     setAbstractAiThinkSeconds(DEFAULT_ABSTRACT_AI_THINK_SECONDS);
     setAbstractAiDifficulty(DEFAULT_ABSTRACT_AI_DIFFICULTY);
     setBanCount(3);
@@ -226,6 +232,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     selectedGame?.id === GAME_IDS.FAREWELL_FORMULA ||
+    selectedGame?.id === GAME_IDS.LOOP_CHECK ||
     (isBanPick && !hiddenMatch) ||
     showsAbstractAiThinkTime ||
     showsAbstractAiDifficulty ||
@@ -308,6 +315,10 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       }
       if (selectedGame.id === GAME_IDS.FAREWELL_FORMULA) {
         gameOptions.farewellDifficulty = farewellDifficulty;
+      }
+      if (selectedGame.id === GAME_IDS.LOOP_CHECK) {
+        gameOptions.loopCheckBestOf = loopCheckBestOf;
+        gameOptions.loopCheckColorMode = loopCheckColorMode;
       }
       if (showsAbstractAiThinkTime) {
         gameOptions.aiThinkSeconds = abstractAiThinkSeconds;
@@ -631,6 +642,15 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 <AbstractAiThinkTimeField
                   value={abstractAiThinkSeconds}
                   onChange={setAbstractAiThinkSeconds}
+                />
+              )}
+
+              {selectedGame?.id === GAME_IDS.LOOP_CHECK && (
+                <LoopCheckOptionsField
+                  bestOf={loopCheckBestOf}
+                  colorMode={loopCheckColorMode}
+                  onBestOfChange={setLoopCheckBestOf}
+                  onColorModeChange={setLoopCheckColorMode}
                 />
               )}
 

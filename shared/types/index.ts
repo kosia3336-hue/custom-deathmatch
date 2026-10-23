@@ -1,4 +1,5 @@
 export type { AbstractAiDifficulty, Game } from './game';
+export * from './loop-check';
 export {
   ABSTRACT_AI_DIFFICULTIES,
   DEFAULT_ABSTRACT_AI_DIFFICULTY,

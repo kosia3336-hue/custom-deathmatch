@@ -1,0 +1,83 @@
+.board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+.cell {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 5px;
+  cursor: crosshair;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.cell:disabled {
+  cursor: default;
+}
+.cell:focus-visible {
+  outline: 3px solid var(--cdm-primary);
+  outline-offset: 2px;
+  z-index: 2;
+}
+.selected {
+  box-shadow:
+    inset 0 0 0 3px white,
+    inset 0 0 0 4px #101820;
+}
+.route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.step {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 1px 3px;
+  background: #101820;
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  z-index: 1;
+}
+.symbol {
+  display: inline-grid;
+  place-items: center;
+  width: 55%;
+  height: 55%;
+  border-radius: 50%;
+  background: white;
+  color: #101820;
+  font-family: Arial, sans-serif;
+  font-size: clamp(15px, 3.6vw, 24px);
+  line-height: 1;
+  pointer-events: none;
+}
+.stage {
+  width: min(100%, 28rem, max(15rem, calc(100cqh - 11rem)));
+  margin: auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cell {
+    transition: box-shadow 100ms ease;
+  }
+}
