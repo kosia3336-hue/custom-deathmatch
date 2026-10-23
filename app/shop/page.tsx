@@ -12,7 +12,6 @@ import { formatCdp } from '@/lib/cdp/format';
 import { CdpIcon } from '@/components/cdm/CdpIcon';
 import { getSupabaseServiceRole, isSupabaseServiceRoleConfigured } from '@/lib/supabase/service-role';
 import ShopClient from './ShopClient';
-import SongpyeonBalance from './SongpyeonBalance';
 
 export const metadata: Metadata = {
   title: '상점',
@@ -193,7 +192,6 @@ export default async function ShopPage({ searchParams }: Props) {
                 누적 획득 {formatCdp(cdp.totalEarned)} · 누적 소비 {formatCdp(cdp.totalSpent)}
               </p>
             </div>
-            <SongpyeonBalance initialBalance={songpyeonBalance} />
           </div>
         </Card>
 
