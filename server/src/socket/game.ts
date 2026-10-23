@@ -375,6 +375,16 @@ import {
   getFormulaCompletionResultData,
 } from './games/formula-completion/index.js';
 import {
+  initFarewellFormula,
+  handleFarewellFormulaAction,
+  cleanupFarewellFormula,
+  getFarewellFormulaState,
+  emitFarewellFormulaStateToSocket,
+  performFarewellFormulaUndo,
+  canFarewellFormulaUndo,
+  getFarewellFormulaResultData,
+} from './games/farewell-formula/index.js';
+import {
   initCompleteHap,
   handleCompleteHapAction,
   cleanupCompleteHap,
@@ -579,6 +589,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performFormulaCompletionUndo,
     canUndo: canFormulaCompletionUndo,
     getResultData: getFormulaCompletionResultData,
+  },
+  [GAME_IDS.FAREWELL_FORMULA]: {
+    init: initFarewellFormula,
+    handleAction: handleFarewellFormulaAction,
+    cleanup: cleanupFarewellFormula,
+    getState: getFarewellFormulaState,
+    emitStateToSocket: emitFarewellFormulaStateToSocket,
+    performUndo: performFarewellFormulaUndo,
+    canUndo: canFarewellFormulaUndo,
+    getResultData: getFarewellFormulaResultData,
   },
   [GAME_IDS.WORD_PUZZLE]: {
     init: initWordPuzzle,

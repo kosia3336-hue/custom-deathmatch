@@ -32,6 +32,7 @@ import SeedSeotdaViewer from '@/components/archive/viewers/seed-seotda';
 import DoubleSidedPokerViewer from '@/components/archive/viewers/double-sided-poker';
 import MyeongchuriViewer from '@/components/archive/viewers/myeongchuri';
 import EskimoViewer from '@/components/archive/viewers/eskimo';
+import FarewellFormulaViewer from '@/components/archive/viewers/farewell-formula';
 import Link from 'next/link';
 
 const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
@@ -59,6 +60,7 @@ const VIEWER_MAP: Record<string, ComponentType<{ record: GameRecordFile }>> = {
   [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerViewer,
   [GAME_IDS.MYEONGCHURI]: MyeongchuriViewer,
   [GAME_IDS.ESKIMO]: EskimoViewer,
+  [GAME_IDS.FAREWELL_FORMULA]: FarewellFormulaViewer,
 };
 
 export default function ArchiveViewPage() {

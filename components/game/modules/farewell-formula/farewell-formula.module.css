@@ -1,0 +1,109 @@
+.board {
+  display: flex;
+  width: min(100%, 52rem);
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.formula {
+  display: flex;
+  min-height: 76px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: var(--cdm-radius-lg, 12px);
+  background: var(--cdm-bg-elev-1);
+  padding: 12px;
+}
+
+.token {
+  display: inline-flex;
+  min-width: 1.15em;
+  min-height: 1.45em;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--cdm-radius-sm, 6px);
+  color: var(--cdm-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+button.token {
+  cursor: pointer;
+}
+
+button.token:hover {
+  border-color: var(--cdm-primary);
+  background: var(--cdm-primary-soft);
+}
+
+button.token:focus-visible {
+  outline: 2px solid var(--cdm-primary);
+  outline-offset: 2px;
+}
+
+.token.removed {
+  color: var(--cdm-fg-subtle);
+  text-decoration-line: line-through;
+  text-decoration-color: var(--cdm-accent);
+  text-decoration-thickness: 3px;
+  opacity: 0.5;
+}
+
+.preview {
+  display: flex;
+  min-height: 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--cdm-border);
+  border-radius: var(--cdm-radius-md, 8px);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.feedback {
+  border-radius: var(--cdm-radius-md, 8px);
+  background: var(--cdm-accent-soft);
+  padding: 8px 12px;
+  color: var(--cdm-accent-strong);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reveal {
+  border-radius: var(--cdm-radius-md, 8px);
+  background: var(--cdm-success-soft);
+  padding: 12px;
+  color: var(--cdm-success);
+  text-align: center;
+}
+
+@media (max-width: 639px) {
+  .board {
+    gap: 14px;
+    padding: 12px;
+  }
+
+  .formula {
+    min-height: 64px;
+    gap: 1px;
+    padding: 9px 6px;
+  }
+
+  .token {
+    min-width: 1em;
+    font-size: clamp(20px, 6vw, 26px);
+  }
+}

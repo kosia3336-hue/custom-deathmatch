@@ -28,6 +28,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.TRANSLETTER]: 'match',
   [GAME_IDS.NO_VOWEL]: 'match',
   [GAME_IDS.FORMULA_COMPLETION]: 'round',
+  [GAME_IDS.FAREWELL_FORMULA]: 'round',
   [GAME_IDS.COMPLETE_HAP]: 'round',
   [GAME_IDS.KNIGHTS_TOUR]: 'round',
   [GAME_IDS.KINGMAKING]: 'turn',
@@ -120,6 +121,7 @@ export function getGameClock(
   let startedAt: unknown = state?.turnStartedAt;
   if (
     gameId === GAME_IDS.FORMULA_COMPLETION ||
+    gameId === GAME_IDS.FAREWELL_FORMULA ||
     gameId === GAME_IDS.KNIGHTS_TOUR ||
     gameId === GAME_IDS.WORD_PUZZLE
   ) {
