@@ -14,6 +14,22 @@ import { hasSeenIntro, markIntroSeen } from '@/lib/intro-cookie';
  * 영구정지(banned) → /banned
  * 일시정지(suspended) → /suspended (단 /support/inquiry, /auth/signout 은 허용)
  */
+/**
+ * 회원 상태(탈퇴·정지·관리자) 1분 기억 — 페이지 이동마다 members/members_private 를 다시 읽지 않는다.
+ * Supabase 전송량을 줄이려는 것(2026-10-24 무료 한도 초과로 서비스 정지).
+ */
+interface MemberGate {
+  member: { id: string; withdrawn_at: string | null } | null;
+  priv: { status?: string; role?: string } | null;
+  until: number;
+}
+const MEMBER_GATE_TTL_MS = 60_000;
+const memberGateCache = new Map<string, MemberGate>();
+function rememberMemberGate(userId: string, gate: MemberGate) {
+  if (memberGateCache.size >= 5_000) memberGateCache.clear();
+  memberGateCache.set(userId, gate);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -122,15 +138,25 @@ export async function middleware(request: NextRequest) {
 
   // 두 조회는 서로 의존하지 않는다. 미들웨어는 모든 페이지 이동마다 도므로
   // 순차로 기다리면 왕복 지연이 그대로 첫 바이트까지 밀린다.
-  const [memberRes, privRes] = await Promise.all([
-    sb.from('members').select('id, withdrawn_at').eq('id', user.id).maybeSingle(),
-    sb
-      .from('members_private')
-      .select('status, role')
-      .eq('member_id', user.id)
-      .maybeSingle(),
-  ]);
-  const memberRow = memberRes.data as unknown as { id: string; withdrawn_at: string | null } | null;
+  // 결과는 회원마다 1분 기억한다(정지·탈퇴는 최대 1분 늦게 반영). 가입 전(행 없음)은 기억하지 않는다.
+  let gate = memberGateCache.get(user.id);
+  if (!gate || gate.until <= Date.now()) {
+    const [memberRes, privRes] = await Promise.all([
+      sb.from('members').select('id, withdrawn_at').eq('id', user.id).maybeSingle(),
+      sb
+        .from('members_private')
+        .select('status, role')
+        .eq('member_id', user.id)
+        .maybeSingle(),
+    ]);
+    gate = {
+      member: memberRes.data as unknown as MemberGate['member'],
+      priv: privRes.data as unknown as MemberGate['priv'],
+      until: Date.now() + MEMBER_GATE_TTL_MS,
+    };
+    if (gate.member) rememberMemberGate(user.id, gate);
+  }
+  const memberRow = gate.member;
 
   const isWithdrawn = !!memberRow?.withdrawn_at;
   const isSignupPending = !memberRow && !isWithdrawn;
@@ -138,7 +164,7 @@ export async function middleware(request: NextRequest) {
   let status: 'active' | 'suspended' | 'banned' | undefined;
   let role: 'user' | 'admin' | undefined;
   if (memberRow && !isWithdrawn) {
-    const privRow = privRes.data as unknown as { status?: string; role?: string } | null;
+    const privRow = gate.priv;
     status = privRow?.status as 'active' | 'suspended' | 'banned' | undefined;
     role = privRow?.role as 'user' | 'admin' | undefined;
   }

@@ -19,6 +19,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import type { MemberStatus, TitleColor } from '@/lib/supabase/database.types';
 import { loadResolvedDisplayedTitle } from '@shared/titles/resolve-displayed';
 import { canUseDevSwitch } from '@/lib/auth/dev-users';
+import { getVerifiedUser, type VerifiedUser } from '@/lib/auth/verifiedUser';
 
 export type AuthState =
   | { kind: 'LOGGED_OUT' }
@@ -61,15 +62,12 @@ interface PrivRowSel {
 /**
  * 아래 조회들은 모두 React `cache` 로 감싼다.
  * 한 요청 안에서 레이아웃·페이지·중첩 컴포넌트가 각각 인증 상태를 물어보는데,
- * 감싸지 않으면 그때마다 Supabase 왕복이 새로 발생한다(특히 auth.getUser 는 매번
- * 네트워크 호출이다). 캐시는 요청 단위라 요청 간에 상태가 새지 않는다.
+ * 감싸지 않으면 그때마다 Supabase 왕복이 새로 발생한다. 캐시는 요청 단위라 요청 간에
+ * 상태가 새지 않는다. 로그인 확인 자체는 lib/auth/verifiedUser 가 토큰 단위로 1분 기억한다.
  */
-const getCurrentUser = cache(async () => {
+const getCurrentUser = cache(async (): Promise<VerifiedUser | null> => {
   const supabase = await getServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getVerifiedUser(supabase);
 });
 
 const getMemberRow = cache(async (userId: string): Promise<MemberRowSel | null> => {

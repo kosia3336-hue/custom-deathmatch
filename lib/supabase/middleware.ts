@@ -7,6 +7,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import type { Database } from './database.types';
 import { getSupabaseUrl, getSupabaseAnonKey } from './env';
+import { getVerifiedUser } from '@/lib/auth/verifiedUser';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,10 +29,8 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // 세션 새로고침 (이 호출이 만료된 토큰을 자동 갱신)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 세션 새로고침(만료된 토큰 자동 갱신) + 토큰 확인. 같은 토큰은 1분 동안 다시 묻지 않는다.
+  const user = await getVerifiedUser(supabase);
 
   return { response, user };
 }

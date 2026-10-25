@@ -9,6 +9,7 @@ import { fetchGameRule, fetchAllGameRules, hasMeaningfulRule } from '@/lib/gameR
 import { getSiteUrl, jsonLdScript } from '@/lib/site';
 import { cn } from '@/lib/utils';
 import { isUnreleasedGame } from '@/lib/unreleasedGames';
+import { ruleImageSrc } from '@/lib/ruleImageSrc';
 
 interface Props {
   params: Promise<{ gameId: string }>;
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       // 룰 이미지가 있으면 공유 카드 썸네일로 그대로 쓴다
       ...(content?.imageUrl
-        ? { images: [{ url: content.imageUrl, alt: `${game.name} 룰` }] }
+        ? { images: [{ url: ruleImageSrc(content.imageUrl), alt: `${game.name} 룰` }] }
         : {}),
     },
   };

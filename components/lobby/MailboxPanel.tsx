@@ -310,6 +310,32 @@ function MailListRow({
   );
 }
 
+/**
+ * 공지 편지 본문. 우편함 목록에는 공지 앞부분만 오므로(전송량 절약) 열 때 전체 본문을 받는다.
+ * 받는 동안·실패하면 앞부분을 그대로 보여 준다.
+ */
+function NoticeMailBody({ mail }: { mail: MailItem }) {
+  const noticeId = mail.id.startsWith('notice:') ? mail.id.slice('notice:'.length) : null;
+  const [full, setFull] = useState<{ id: string; body: string } | null>(null);
+
+  useEffect(() => {
+    if (!noticeId) return;
+    let alive = true;
+    fetch(`/api/notices/${noticeId}/body`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { body?: string } | null) => {
+        if (alive && typeof d?.body === 'string') setFull({ id: noticeId, body: d.body });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [noticeId]);
+
+  const body = full && full.id === noticeId ? full.body : mail.body;
+  return <MarkdownView source={body} className="mt-4 text-sm leading-relaxed text-cdm-fg" />;
+}
+
 function MailDetail({
   mail,
   onBack,
@@ -398,7 +424,7 @@ function MailDetail({
               <h3 className="mt-3 text-base font-bold leading-snug text-cdm-fg">{mail.title}</h3>
               <p className="mt-1 text-xs text-cdm-fg-muted">보낸이 · {mail.sender}</p>
               {mail.kind === 'notice' ? (
-                <MarkdownView source={mail.body} className="mt-4 text-sm leading-relaxed text-cdm-fg" />
+                <NoticeMailBody mail={mail} />
               ) : (
                 <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-cdm-fg">
                   {mail.body}

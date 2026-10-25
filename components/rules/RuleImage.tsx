@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { ruleImageSrc } from '@/lib/ruleImageSrc';
 
 interface Props {
   /** 룰 이미지 URL (관리자 페이지에서 등록). 저장소 경로·스토리지 URL 모두 가능 */
@@ -20,7 +21,7 @@ export default function RuleImage({ src, name, className }: Props) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={ruleImageSrc(src)}
       alt={`${name} 룰 안내 이미지`}
       loading="lazy"
       className={cn('h-auto w-full rounded-cdm-md border border-cdm-border', className)}

@@ -1,6 +1,7 @@
 import { MarkdownView } from '@/lib/markdown';
 import { categoryHue } from '@/lib/gameRules';
 import { cn } from '@/lib/utils';
+import { ruleImageSrc } from '@/lib/ruleImageSrc';
 
 interface Props {
   /** 게임 이름 — 상단 명판에 들어간다 */
@@ -44,7 +45,7 @@ export default function RuleSheet({ name, category, source, imageUrl, className 
         {imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={imageUrl}
+            src={ruleImageSrc(imageUrl)}
             alt={`${name} 게임판`}
             loading="lazy"
             className="mx-auto mb-5 h-auto w-full max-w-md rounded-cdm-md"
