@@ -14,6 +14,7 @@ import { Countdown } from '@/components/cdm/Countdown';
 import { GAME_IDS, isSuperAiGameOptions } from '@/shared/types/game';
 import { Card } from '@/components/cdm/Card';
 import RoomChat from '@/components/room/RoomChat';
+import { AdSlot } from '@/components/ads/AdSlot';
 import { VIEWER_MAP } from '@/components/archive/LogViewer';
 import GameLogView from '@/components/game/GameLogView';
 import { RankResultSection } from '@/components/game/RankResultSection';
@@ -340,6 +341,9 @@ export default function ResultLog() {
       {myRankOutcome ? (
         <RankResultSection outcome={myRankOutcome} rankEnded={rankEndedMatch} />
       ) : null}
+
+      {/* 광고 — 결과 아래, 채팅 위. 설정이 없으면 그리지 않는다(lib/ads.ts) */}
+      <AdSlot placement="result" className="mt-6" />
 
       {/* 결과 채팅 (멀티 모드만) */}
       {(room?.playMode === 'multi' || (!room && chatRoomId === gameResult.roomId)) && (

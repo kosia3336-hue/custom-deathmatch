@@ -14,6 +14,7 @@ import { useRankMatchStore } from '@/stores/rankMatch';
 import { useCurrentMember } from '@/hooks/useCurrentMember';
 import { toast } from 'sonner';
 import type { RoomSummary } from '@/shared/types';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export default function LobbyClient() {
   const lobby = useLobby();
@@ -70,6 +71,9 @@ export default function LobbyClient() {
             />
           </>
         )}
+
+        {/* 광고 — 방 목록 아래. 설정이 없으면 그리지 않는다(lib/ads.ts) */}
+        <AdSlot placement="lobby" className="pt-2" />
       </div>
 
       <CreateRoomModal open={showCreate} onClose={() => setShowCreate(false)} />

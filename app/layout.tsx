@@ -15,6 +15,7 @@ import SiteFooter from '@/components/layout/SiteFooter';
 import OfflineOverlay from '@/components/providers/OfflineOverlay';
 import { getAccountSettings } from '@/lib/auth/server';
 import { getSiteUrl } from '@/lib/site';
+import { adsenseClient } from '@/lib/ads';
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -94,6 +95,8 @@ export const metadata: Metadata = {
       'naver-site-verification': '63e940384c0b56ae3779d9de83e5d817ba01b5fa',
     },
   },
+  // 애드센스 사이트 소유 확인 — 애드센스를 켰을 때만(lib/ads.ts)
+  ...(adsenseClient() ? { other: { 'google-adsense-account': adsenseClient()! } } : {}),
 };
 
 export const viewport: Viewport = {
