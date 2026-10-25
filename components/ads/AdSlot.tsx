@@ -52,6 +52,11 @@ function AdUnitView({ unit }: { unit: AdUnit }) {
     const host = ref.current;
     if (!host) return;
     host.innerHTML = '';
+    // 앱(웹뷰) 안에서는 애드센스·애드핏 정책상 광고를 띄우지 않는다
+    if (document.documentElement.hasAttribute('data-native-app')) {
+      host.parentElement?.setAttribute('hidden', '');
+      return;
+    }
     const ins = document.createElement('ins');
 
     if (unit.provider === 'adsense' && unit.client) {

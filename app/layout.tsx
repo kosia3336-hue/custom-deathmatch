@@ -141,6 +141,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { isLoggedIn, initial } = await getBgmInitial();
+  const adsense = adsenseClient();
 
   return (
     // data-native-app 을 인라인 스크립트가 붙이므로 html 속성 불일치 경고는 끈다
@@ -151,6 +152,14 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: NATIVE_APP_SCRIPT }} />
+        {/* 애드센스 사이트 확인·광고 코드. 자동 광고는 애드센스 화면에서 꺼 둔다 — 광고는 AdSlot 두 자리에만 */}
+        {adsense && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsense}`}
+            crossOrigin="anonymous"
+          />
+        )}
       </head>
       <body className="flex min-h-full flex-col bg-cdm-bg text-cdm-fg">
         <SocketProvider>
