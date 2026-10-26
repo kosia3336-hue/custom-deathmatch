@@ -475,6 +475,16 @@ import {
   getEskimoResultData,
 } from './games/eskimo/index.js';
 import {
+  initSquareMok,
+  handleSquareMokAction,
+  cleanupSquareMok,
+  getSquareMokState,
+  emitSquareMokStateToSocket,
+  performSquareMokUndo,
+  canSquareMokUndo,
+  getSquareMokResultData,
+} from './games/square-mok/index.js';
+import {
   initMyeongchuri,
   handleMyeongchuriAction,
   cleanupMyeongchuri,
@@ -539,6 +549,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performDoubleSidedPokerUndo,
     canUndo: canDoubleSidedPokerUndo,
     getResultData: getDoubleSidedPokerResultData,
+  },
+  [GAME_IDS.SQUARE_MOK]: {
+    init: initSquareMok,
+    handleAction: handleSquareMokAction,
+    cleanup: cleanupSquareMok,
+    getState: getSquareMokState,
+    emitStateToSocket: emitSquareMokStateToSocket,
+    performUndo: performSquareMokUndo,
+    canUndo: canSquareMokUndo,
+    getResultData: getSquareMokResultData,
   },
   [GAME_IDS.ESKIMO]: {
     init: initEskimo,

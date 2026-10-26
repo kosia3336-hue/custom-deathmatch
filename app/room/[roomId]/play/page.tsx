@@ -29,6 +29,7 @@ import SeedSeotdaGame from '@/components/game/modules/seed-seotda';
 import DoubleSidedPokerGame from '@/components/game/modules/double-sided-poker';
 import MyeongchuriGame from '@/components/game/modules/myeongchuri';
 import EskimoGame from '@/components/game/modules/eskimo';
+import SquareMokGame from '@/components/game/modules/square-mok';
 import FarewellFormulaGame from '@/components/game/modules/farewell-formula';
 import MultipleBnwGame from '@/components/game/modules/multiple-bnw';
 import WinningStreakGame from '@/components/game/modules/winning-streak';
@@ -80,6 +81,7 @@ const GAME_MODULES: Record<string, ComponentType> = {
   [GAME_IDS.DOUBLE_SIDED_POKER]: DoubleSidedPokerGame,
   [GAME_IDS.MYEONGCHURI]: MyeongchuriGame,
   [GAME_IDS.ESKIMO]: EskimoGame,
+  [GAME_IDS.SQUARE_MOK]: SquareMokGame,
   [GAME_IDS.FAREWELL_FORMULA]: FarewellFormulaGame,
   [GAME_IDS.BAN_PICK]: BanPickGame,
 };
