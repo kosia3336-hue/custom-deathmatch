@@ -36,7 +36,7 @@ function WordRaceView({
   useEffect(() => {
     if (!gameData) return;
     setHud({
-      round: '3문제',
+      round: gameData.levelLabel ? `3문제 · ${gameData.levelLabel}` : '3문제',
       order:
         gameData.phase === 'playing'
           ? gameData.isSolo

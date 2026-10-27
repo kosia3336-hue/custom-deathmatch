@@ -13,6 +13,7 @@ import {
   DEFAULT_ABSTRACT_AI_DIFFICULTY,
   DEFAULT_ABSTRACT_AI_THINK_SECONDS,
   DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
+  DEFAULT_TRANSLETTER_DIFFICULTY,
   FC_DEFAULT_NUMBER_COUNT,
   GAME_IDS,
   PLAY_MODES,
@@ -24,6 +25,7 @@ import {
 import type {
   AbstractAiDifficulty,
   FarewellFormulaDifficulty,
+  TransletterDifficulty,
   Game,
   PlayMode,
   RoomType,
@@ -44,6 +46,7 @@ import AbstractAiThinkTimeField from '@/components/room-modal/AbstractAiThinkTim
 import AbstractAiDifficultyField from '@/components/room-modal/AbstractAiDifficultyField';
 import MyeongchuriThinkTimeField from '@/components/room-modal/MyeongchuriThinkTimeField';
 import FarewellFormulaDifficultyField from '@/components/room-modal/FarewellFormulaDifficultyField';
+import TransletterDifficultyField from '@/components/room-modal/TransletterDifficultyField';
 import LoopCheckOptionsField from '@/components/room-modal/LoopCheckOptionsField';
 import type { LoopCheckBestOf, LoopCheckColorMode } from '@/shared/types/loop-check';
 import {
@@ -117,6 +120,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
   const [farewellDifficulty, setFarewellDifficulty] = useState<FarewellFormulaDifficulty>(
     DEFAULT_FAREWELL_FORMULA_DIFFICULTY,
   );
+  const [transletterDifficulty, setTransletterDifficulty] = useState<TransletterDifficulty>(
+    DEFAULT_TRANSLETTER_DIFFICULTY,
+  );
   const [loopCheckBestOf, setLoopCheckBestOf] = useState<LoopCheckBestOf>(5);
   const [loopCheckColorMode, setLoopCheckColorMode] = useState<LoopCheckColorMode>('standard');
   const [abstractAiThinkSeconds, setAbstractAiThinkSeconds] = useState(
@@ -162,6 +168,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     setInitialChips(25);
     setFormulaNumberCount(FC_DEFAULT_NUMBER_COUNT);
     setFarewellDifficulty(DEFAULT_FAREWELL_FORMULA_DIFFICULTY);
+    setTransletterDifficulty(DEFAULT_TRANSLETTER_DIFFICULTY);
     setLoopCheckBestOf(5);
     setLoopCheckColorMode('standard');
     setAbstractAiThinkSeconds(DEFAULT_ABSTRACT_AI_THINK_SECONDS);
@@ -232,6 +239,7 @@ export default function CreateRoomModal({ open, onClose }: Props) {
     selectedGame?.id === GAME_IDS.INDIAN_POKER ||
     selectedGame?.id === GAME_IDS.FORMULA_COMPLETION ||
     selectedGame?.id === GAME_IDS.FAREWELL_FORMULA ||
+    selectedGame?.id === GAME_IDS.TRANSLETTER ||
     selectedGame?.id === GAME_IDS.LOOP_CHECK ||
     (isBanPick && !hiddenMatch) ||
     showsAbstractAiThinkTime ||
@@ -315,6 +323,9 @@ export default function CreateRoomModal({ open, onClose }: Props) {
       }
       if (selectedGame.id === GAME_IDS.FAREWELL_FORMULA) {
         gameOptions.farewellDifficulty = farewellDifficulty;
+      }
+      if (selectedGame.id === GAME_IDS.TRANSLETTER) {
+        gameOptions.transletterDifficulty = transletterDifficulty;
       }
       if (selectedGame.id === GAME_IDS.LOOP_CHECK) {
         gameOptions.loopCheckBestOf = loopCheckBestOf;
@@ -610,6 +621,13 @@ export default function CreateRoomModal({ open, onClose }: Props) {
                 <FarewellFormulaDifficultyField
                   value={farewellDifficulty}
                   onChange={setFarewellDifficulty}
+                />
+              )}
+
+              {selectedGame?.id === GAME_IDS.TRANSLETTER && (
+                <TransletterDifficultyField
+                  value={transletterDifficulty}
+                  onChange={setTransletterDifficulty}
                 />
               )}
 
