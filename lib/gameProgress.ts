@@ -27,6 +27,7 @@ export const GAME_PROGRESS = {
   [GAME_IDS.WORD_PUZZLE]: 'round',
   [GAME_IDS.TRANSLETTER]: 'match',
   [GAME_IDS.NO_VOWEL]: 'match',
+  [GAME_IDS.JOGAK]: 'round',
   [GAME_IDS.FORMULA_COMPLETION]: 'round',
   [GAME_IDS.FAREWELL_FORMULA]: 'round',
   [GAME_IDS.COMPLETE_HAP]: 'round',
@@ -125,6 +126,7 @@ export function getGameClock(
     gameId === GAME_IDS.FAREWELL_FORMULA ||
     gameId === GAME_IDS.KNIGHTS_TOUR ||
     gameId === GAME_IDS.LOOP_CHECK ||
+    gameId === GAME_IDS.JOGAK ||
     gameId === GAME_IDS.WORD_PUZZLE
   ) {
     seconds = data.roundSeconds;

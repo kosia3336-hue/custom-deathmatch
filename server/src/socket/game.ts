@@ -365,6 +365,16 @@ import {
   getNoVowelResultData,
 } from './games/no-vowel/index.js';
 import {
+  initJogak,
+  handleJogakAction,
+  cleanupJogak,
+  getJogakState,
+  emitJogakStateToSocket,
+  performJogakUndo,
+  canJogakUndo,
+  getJogakResultData,
+} from './games/jogak/index.js';
+import {
   initFormulaCompletion,
   handleFormulaCompletionAction,
   cleanupFormulaCompletion,
@@ -649,6 +659,16 @@ export const gameModules: Record<string, GameModuleHandlers> = {
     performUndo: performNoVowelUndo,
     canUndo: canNoVowelUndo,
     getResultData: getNoVowelResultData,
+  },
+  [GAME_IDS.JOGAK]: {
+    init: initJogak,
+    handleAction: handleJogakAction,
+    cleanup: cleanupJogak,
+    getState: getJogakState,
+    emitStateToSocket: emitJogakStateToSocket,
+    performUndo: performJogakUndo,
+    canUndo: canJogakUndo,
+    getResultData: getJogakResultData,
   },
   [GAME_IDS.QUATRO]: {
     init: initQuatro,

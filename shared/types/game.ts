@@ -51,6 +51,8 @@ export const GAME_IDS = {
   NO_VOWEL: 'game-031',
   LOOP_CHECK: 'game-032',
   FAREWELL_FORMULA: 'game-033',
+  /** game-034 는 사각목(feat/square-mok)이 쓴다. */
+  JOGAK: 'game-035',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;

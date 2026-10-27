@@ -382,6 +382,20 @@ export type {
   WordRaceGameData,
 } from './word-race';
 export type { NoVowelAction, NoVowelGameData } from './no-vowel';
+export {
+  JG_TOTAL_ROUNDS,
+  JG_WIN_SCORE,
+  JG_ROUND_SEC,
+  JG_REVEAL_MS,
+  JG_WRONG_LOCK_MS,
+} from './jogak';
+export type {
+  JogakPhase,
+  JogakAction,
+  JogakRoundRecord,
+  JogakResult,
+  JogakGameData,
+} from './jogak';
 export { TL_PUZZLE_COUNT, TL_TIME_LIMIT_SEC, TL_WRONG_LOCK_MS } from './transletter';
 export type {
   TransletterPhase,

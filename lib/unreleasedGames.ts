@@ -19,6 +19,7 @@ export const UNRELEASED_GAME_IDS: readonly string[] = [
   GAME_IDS.NO_VOWEL,
   GAME_IDS.LOOP_CHECK,
   GAME_IDS.FAREWELL_FORMULA,
+  GAME_IDS.JOGAK,
 ];
 
 export function isUnreleasedGame(gameId: string): boolean {

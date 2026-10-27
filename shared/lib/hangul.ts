@@ -1,5 +1,5 @@
 /**
- * 한글 자모 분해/조합 유틸 — 트랜스레터·모음이 없어요·조사 고르기 등이 함께 쓴다.
+ * 한글 자모 분해/조합 유틸 — 트랜스레터·모음이 없어요·조각조각·조사 고르기 등이 함께 쓴다.
  *
  * 완성형 한글(가~힣, 0xAC00~0xD7A3)은
  *   code = 0xAC00 + (초성 * 21 + 중성) * 28 + 종성
@@ -78,4 +78,10 @@ export function consonantSkeleton(word: string): string {
       return s ? CHO[s.cho] + JONG[s.jong] : ch;
     })
     .join('');
+}
+
+/** 한 글자의 초성·중성·종성 자모. 받침이 없으면 jong 은 ''. 한글 음절이 아니면 null. */
+export function jamoOf(ch: string): { cho: string; jung: string; jong: string } | null {
+  const s = decompose(ch);
+  return s ? { cho: CHO[s.cho], jung: JUNG[s.jung], jong: JONG[s.jong] } : null;
 }
