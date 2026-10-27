@@ -6,7 +6,7 @@
 -- supports_com  = true : COM(가짜 상대 봇) 모드. scheduleAi() 가 사람처럼 2.5~9초
 --   랜덤 지연 후 정답을 제출한다(전략 판단 없음 — 정답이 고정된 스피드 퍼즐이라
 --   COM은 지연만 준다).
--- supports_solo = true : 1:1 솔로(1인 연습) 모드. 상대 없이 혼자 3라운드를 클리어한다.
+-- supports_solo = true : 1:1 솔로(1인 연습) 모드. 상대 없이 혼자 7라운드를 푼다.
 --   서버 word-puzzle/index.ts 의 initWordPuzzle/finishGame 이 playMode==='solo' 를
 --   별도 분기로 처리(단일 랭킹 보고, AI 없음). COM과 solo 는 서로 배타적이지 않고
 --   방 만들기에서 둘 다 선택 가능하다.

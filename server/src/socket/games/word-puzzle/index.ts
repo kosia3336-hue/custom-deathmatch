@@ -3,6 +3,7 @@ import type { GameState } from '@shared/types/events.js';
 import { AI_PLAYER_ID, type Player, type PlayMode } from '@shared/types/room.js';
 import {
   WP_TOTAL_ROUNDS,
+  WP_WIN_SCORE,
   WP_ROUND_SECONDS,
   WP_REVEAL_MS,
   type WordPuzzleAction,
@@ -35,6 +36,8 @@ interface WPState {
   phase: 'playing' | 'reveal' | 'finished';
   round: number;
   answerWords: string[];
+  /** 이번 판에 이미 낸 단어 — 7라운드 동안 같은 단어가 다시 나오지 않게 */
+  usedWords: Set<string>;
   grid: string[];
   scores: Record<string, number>;
   history: WordPuzzleRoundResult[];
@@ -55,7 +58,9 @@ const WORDS = wordPickPool();
 
 {
   const st = wordDictStats();
-  console.log(`[word-puzzle] 출제 풀 ${st.pickPool}단어(큐레이션) · 검색사전 ${st.dict}단어(stdict) 로드`);
+  console.log(
+    `[word-puzzle] 출제 풀 ${st.pickPool}단어(큐레이션) · 검색사전 ${st.dict}단어(stdict) 로드`,
+  );
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -67,9 +72,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** 라운드 출제: 서로 다른 3단어 + 글자 9개 셔플 */
+/** 라운드 출제: 이번 판에 안 나온 서로 다른 3단어 + 글자 9개 셔플 */
 function dealRound(s: WPState) {
-  const picked = shuffle(WORDS).slice(0, 3);
+  const picked = shuffle(WORDS.filter((w) => !s.usedWords.has(w))).slice(0, 3);
+  for (const w of picked) s.usedWords.add(w);
   s.answerWords = picked;
   s.grid = shuffle(picked.join('').split(''));
   s.phase = 'playing';
@@ -99,6 +105,7 @@ function buildGameData(s: WPState, viewerId: string | null): WordPuzzleGameData 
     phase: s.phase,
     round: s.round,
     totalRounds: WP_TOTAL_ROUNDS,
+    winScore: WP_WIN_SCORE,
     grid: s.phase === 'playing' || s.phase === 'reveal' ? s.grid : [],
     scores: { ...s.scores },
     players: {
@@ -177,6 +184,16 @@ function scheduleAi(io: IO, s: WPState) {
   }, delay);
 }
 
+/**
+ * 승부가 났는가 — 4점을 먼저 땄거나, 남은 라운드를 다 따도 뒤집을 수 없을 때.
+ * 솔로는 상대가 없으니 7라운드를 모두 푼다.
+ */
+function decided(s: WPState): boolean {
+  if (s.playMode === 'solo') return false;
+  const [sa, sb] = s.players.map((p) => s.scores[p.id] ?? 0);
+  return Math.max(sa, sb) >= WP_WIN_SCORE || Math.abs(sa - sb) > WP_TOTAL_ROUNDS - s.round;
+}
+
 function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string[] | null) {
   clearTimer(s);
   const result: WordPuzzleRoundResult = {
@@ -194,7 +211,7 @@ function endRound(io: IO, s: WPState, winnerId: string | null, submitted: string
 
   s.timer = setTimeout(() => {
     if (!gameStates.has(s.roomId) || s.gameOver) return;
-    if (s.round >= WP_TOTAL_ROUNDS) {
+    if (s.round >= WP_TOTAL_ROUNDS || decided(s)) {
       finishGame(io, s);
     } else {
       s.round++;
@@ -295,6 +312,7 @@ export function initWordPuzzle(
     phase: 'playing',
     round: 1,
     answerWords: [],
+    usedWords: new Set(),
     grid: [],
     scores: { [p0.id]: 0, [p1.id]: 0 },
     history: [],
@@ -404,4 +422,9 @@ export function canWordPuzzleUndo(_roomId: string): boolean {
 export function getWordPuzzleResultData(roomId: string): unknown {
   const s = gameStates.get(roomId);
   return s ? { history: s.history, scores: s.scores } : undefined;
+}
+
+/** 테스트용 — 지금 라운드의 정답 3단어 */
+export function wordPuzzleAnswerOf(roomId: string): string[] | undefined {
+  return gameStates.get(roomId)?.answerWords;
 }
