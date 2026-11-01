@@ -52,6 +52,7 @@ export const GAME_IDS = {
   LOOP_CHECK: 'game-032',
   FAREWELL_FORMULA: 'game-033',
   SQUARE_MOK: 'game-034',
+  JOGAK: 'game-035',
   RANDOM: 'random',
   BAN_PICK: 'ban-pick',
 } as const;
