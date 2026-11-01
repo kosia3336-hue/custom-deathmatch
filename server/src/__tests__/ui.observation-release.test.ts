@@ -16,6 +16,11 @@ const games = [
   { id: GAME_IDS.FAREWELL_FORMULA, name: '이별 공식' },
   { id: GAME_IDS.FORMULA_COMPLETION, name: '수식완성N' },
 ];
+/** 출시 전 게임 (2026-11-01 기준) */
+const unreleased = [
+  { id: GAME_IDS.SQUARE_MOK, name: '사각목' },
+  { id: GAME_IDS.JOGAK, name: '조각조각' },
+];
 
 describe('신규 게임 출시 전 배포', () => {
   it('운영 게임 ID와 겹치지 않고 세 게임의 서버 모듈을 유지한다', () => {
@@ -26,18 +31,22 @@ describe('신규 게임 출시 전 배포', () => {
     for (const game of games.slice(0, 3)) expect(gameModules[game.id]?.init).toBeTypeOf('function');
   });
 
-  it('신규 두 게임과 기존 출시 전 게임을 일반 사용자 목록에서 감춘다', () => {
+  it('출시한 세 게임은 일반 사용자에게 보이고, 출시 전 게임만 감춘다', () => {
     expect(new Set(UNRELEASED_GAME_IDS).size).toBe(UNRELEASED_GAME_IDS.length);
-    expect(filterUnreleased(games, false)).toEqual([games[3]]);
-    for (const game of games.slice(0, 3)) {
+    expect(filterUnreleased([...games, ...unreleased], false)).toEqual(games);
+    for (const game of games) {
+      expect(isUnreleasedGame(game.id)).toBe(false);
+      expect(displayGameName(game.id, game.name, false)).toBe(game.name);
+    }
+    for (const game of unreleased) {
       expect(isUnreleasedGame(game.id)).toBe(true);
       expect(displayGameName(game.id, game.name, false)).toBe('신규 게임');
     }
   });
 
   it('관리자는 실제 게임 이름과 전체 목록을 확인한다', () => {
-    expect(filterUnreleased(games, true)).toEqual(games);
-    for (const game of games) expect(displayGameName(game.id, game.name, true)).toBe(game.name);
+    expect(filterUnreleased([...games, ...unreleased], true)).toEqual([...games, ...unreleased]);
+    for (const game of [...games, ...unreleased]) expect(displayGameName(game.id, game.name, true)).toBe(game.name);
     expect(displayGameName(GAME_IDS.FORMULA_COMPLETION, '수식완성N', false)).toBe('수식완성N');
   });
 
