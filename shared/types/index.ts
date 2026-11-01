@@ -366,7 +366,7 @@ export type {
   IPEKickedPayload,
   IPEHandResultPayload,
 } from './indian-poker-event';
-export { WP_TOTAL_ROUNDS, WP_ROUND_SECONDS, WP_WRONG_LOCK_MS, WP_REVEAL_MS } from './word-puzzle';
+export { WP_TOTAL_ROUNDS, WP_WIN_SCORE, WP_ROUND_SECONDS, WP_WRONG_LOCK_MS, WP_REVEAL_MS } from './word-puzzle';
 export type {
   WordPuzzlePhase,
   WordPuzzleAction,

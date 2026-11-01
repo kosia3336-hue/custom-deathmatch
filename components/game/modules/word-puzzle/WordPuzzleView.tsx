@@ -28,7 +28,9 @@ function WordRound({
   useEffect(() => {
     if (!gameData) return;
     setHud({
-      round: `${gameData.round} / ${gameData.totalRounds}R`,
+      round: gameData.isSolo
+        ? `${gameData.round} / ${gameData.totalRounds}R`
+        : `${gameData.round} / ${gameData.totalRounds}R · ${gameData.winScore}승`,
       order:
         gameData.phase === 'playing'
           ? gameData.isSolo

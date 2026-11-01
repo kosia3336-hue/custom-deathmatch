@@ -1,12 +1,14 @@
 /**
  * 단어 퍼즐 — 3글자 단어 3개의 글자 9개를 3×3 격자에 섞어 놓고
- * 원본 단어 3개를 조합해 맞추는 1:1 스피드 퍼즐.
+ * 원본 단어 3개를 조합해 맞추는 1:1 스피드 퍼즐. 7전 4승제 — 라운드마다 먼저 맞힌 사람이 1점.
  *
  * 판정: 제출한 3단어가 모두 사전에 있고, 9칸 글자를 정확히 소진하면 정답
  *       (원본과 다른 유효 조합도 정답으로 인정 — 중복 해법 억울함 방지)
  */
 
-export const WP_TOTAL_ROUNDS = 3;
+export const WP_TOTAL_ROUNDS = 7;
+/** 이 점수를 먼저 따면 남은 라운드 없이 이긴다 (솔로는 7라운드를 모두 푼다) */
+export const WP_WIN_SCORE = 4;
 export const WP_ROUND_SECONDS = 90;
 /** 오답 제출 시 클라이언트 재제출 잠금 */
 export const WP_WRONG_LOCK_MS = 3000;
@@ -30,6 +32,7 @@ export interface WordPuzzleGameData {
   phase: WordPuzzlePhase;
   round: number;
   totalRounds: number;
+  winScore: number;
   /** 3×3 격자 글자 (행 우선 9칸) */
   grid: string[];
   scores: Record<string, number>;
