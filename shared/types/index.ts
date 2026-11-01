@@ -396,13 +396,21 @@ export type {
   JogakResult,
   JogakGameData,
 } from './jogak';
-export { TL_PUZZLE_COUNT, TL_TIME_LIMIT_SEC, TL_WRONG_LOCK_MS } from './transletter';
+export {
+  TL_PUZZLE_COUNT,
+  TL_TIME_LIMIT_SEC,
+  TL_WRONG_LOCK_MS,
+  TRANSLETTER_DIFFICULTIES,
+  DEFAULT_TRANSLETTER_DIFFICULTY,
+  resolveTransletterDifficulty,
+} from './transletter';
 export type {
   TransletterPhase,
   TransletterAction,
   TransletterPuzzleView,
   TransletterResult,
   TransletterGameData,
+  TransletterDifficulty,
 } from './transletter';
 export {
   FC_TOTAL_ROUNDS,

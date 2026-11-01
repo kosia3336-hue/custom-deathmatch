@@ -53,4 +53,6 @@ export interface WordRaceGameData {
   result: WordRaceResult | null;
   /** 1인 솔로 모드 — 상대 없이 혼자 3문제를 푼다 */
   isSolo: boolean;
+  /** 난이도 이름 (트랜스레터 '어려움'). 없으면 표시하지 않는다. */
+  levelLabel?: string;
 }

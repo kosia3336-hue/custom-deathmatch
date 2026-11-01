@@ -38,8 +38,10 @@ export interface WordRacePuzzle {
 }
 
 export interface WordRaceConfig {
-  /** WR_PUZZLE_COUNT 개의 서로 다른 문제 */
-  makePuzzles: () => WordRacePuzzle[];
+  /** WR_PUZZLE_COUNT 개의 서로 다른 문제. 방 설정(난이도 등)을 받는다. */
+  makePuzzles: (gameOptions: Record<string, unknown>) => WordRacePuzzle[];
+  /** 화면에 붙일 난이도 이름 (예: '어려움'). 없으면 표시하지 않는다. */
+  levelLabel?: (gameOptions: Record<string, unknown>) => string | undefined;
 }
 
 interface PlayerProgress {
@@ -55,6 +57,7 @@ interface RaceState {
   players: [Player, Player];
   phase: 'playing' | 'finished';
   puzzles: WordRacePuzzle[]; // 두 플레이어 공통 3문제
+  levelLabel: string | undefined;
   progress: Record<string, PlayerProgress>;
   startedAt: number;
   result: WordRaceResult | null;
@@ -104,6 +107,7 @@ export function createWordRace(config: WordRaceConfig) {
       },
       result: s.result,
       isSolo: s.playMode === 'solo',
+      levelLabel: s.levelLabel,
     };
   }
 
@@ -152,7 +156,12 @@ export function createWordRace(config: WordRaceConfig) {
     // 시간 종료
     if (pa.count !== pb.count) {
       const winner = pa.count > pb.count ? a.id : b.id;
-      return { winnerId: winner, reason: `더 많이 맞힘 (${Math.max(pa.count, pb.count)}문제)`, counts, answers };
+      return {
+        winnerId: winner,
+        reason: `더 많이 맞힘 (${Math.max(pa.count, pb.count)}문제)`,
+        counts,
+        answers,
+      };
     }
     if (pa.count === 0) {
       return { winnerId: null, reason: '둘 다 못 맞힘 — 무승부', counts, answers };
@@ -205,7 +214,12 @@ export function createWordRace(config: WordRaceConfig) {
     const r = s.result;
     const rankings = r.winnerId
       ? [
-          { playerId: r.winnerId, nickname: (r.winnerId === a.id ? a : b).nickname, rank: 1, score: r.counts[r.winnerId] ?? 0 },
+          {
+            playerId: r.winnerId,
+            nickname: (r.winnerId === a.id ? a : b).nickname,
+            rank: 1,
+            score: r.counts[r.winnerId] ?? 0,
+          },
           {
             playerId: r.winnerId === a.id ? b.id : a.id,
             nickname: (r.winnerId === a.id ? b : a).nickname,
@@ -242,6 +256,7 @@ export function createWordRace(config: WordRaceConfig) {
     startedAt: number,
     _timeLimitSeconds: number | null,
     endGameCallback: EndGameFn,
+    gameOptions: Record<string, unknown> = {},
   ) {
     const prev = gameStates.get(roomId);
     if (prev) clearTimer(prev);
@@ -264,7 +279,8 @@ export function createWordRace(config: WordRaceConfig) {
       playMode,
       players: [p0, p1] as [Player, Player],
       phase: 'playing',
-      puzzles: config.makePuzzles(),
+      puzzles: config.makePuzzles(gameOptions),
+      levelLabel: config.levelLabel?.(gameOptions),
       progress: { [p0.id]: mkProgress(), [p1.id]: mkProgress() },
       startedAt,
       result: null,
@@ -282,7 +298,12 @@ export function createWordRace(config: WordRaceConfig) {
     void broadcastState(io, s);
   }
 
-  function handleAction(io: IO, socket: TypedSocket, roomId: string, data: Record<string, unknown>) {
+  function handleAction(
+    io: IO,
+    socket: TypedSocket,
+    roomId: string,
+    data: Record<string, unknown>,
+  ) {
     const s = gameStates.get(roomId);
     if (!s || s.gameOver || s.phase !== 'playing') return;
 
@@ -297,7 +318,9 @@ export function createWordRace(config: WordRaceConfig) {
     if (!Number.isInteger(index) || index < 0 || index >= WR_PUZZLE_COUNT) return;
     if (prog.solved[index]) return; // 이미 푼 문제
 
-    const word = String(action.word ?? '').replace(/\s/g, '').trim();
+    const word = String(action.word ?? '')
+      .replace(/\s/g, '')
+      .trim();
     if (!/^[가-힣]+$/.test(word)) {
       socket.emit('error', { message: '한글 단어를 입력해 주세요.' });
       return;
@@ -355,6 +378,7 @@ export function createWordRace(config: WordRaceConfig) {
     canUndo: (_roomId: string): boolean => false,
     getResultData,
     /** 테스트용 — 진행 중인 판의 문제(정답 포함) */
-    puzzlesOf: (roomId: string): readonly WordRacePuzzle[] | undefined => gameStates.get(roomId)?.puzzles,
+    puzzlesOf: (roomId: string): readonly WordRacePuzzle[] | undefined =>
+      gameStates.get(roomId)?.puzzles,
   };
 }
