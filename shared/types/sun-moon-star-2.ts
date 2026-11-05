@@ -16,27 +16,25 @@ export const SMS2_POWDER_STAGE_SIZE = 20;
 export const SMS2_POWDER_STAGE_COUNT = 5;
 
 /*
-  정산 결과판 연출 시간 — 화면(MarkRevealPanel)과 서버(정산 대기)가 같은 값을 쓴다.
+  정산 연출 시간 — 화면(MarkRevealPanel)과 서버(정산 대기)가 같은 값을 쓴다.
 
-  예전에는 화면이 해·달·별·최종 칩·소멸 다섯 줄을 약 6초에 다 보여 주는데,
-  서버는 정산 단계 수(베팅한 칸마다 하나씩 늘어난다) × 1.3초 + 2.8초를 기다린 뒤
-  다음 라운드까지 3.5초를 또 기다렸다. 한 라운드 정산이 14~18초로 늘어졌고,
-  그 대부분은 결과판이 다 나온 뒤 멈춰 있는 시간이었다.
-  이제 한 줄씩 SMS2_REVEAL_ROW_GAP_MS 간격으로 띄우고, 다 뜬 뒤
-  SMS2_RESOLVE_READ_HOLD_MS 만큼 읽을 시간을 준다.
+  정산 단계(베팅 공개 → 점등 → 칩마다 환급·몰수 → 소멸 → 라운드 결과)를
+  SMS2_RESOLVE_STEP_INTERVAL_MS 간격으로 하나씩 쌓고, 다 뜬 뒤
+  SMS2_RESOLVE_FINISH_HOLD_MS 만큼 읽을 시간을 준다.
+  10/09 에 표 한 장으로 줄이며 약 7초로 당겼다가, 선공이 후공 베팅을 보기 어렵다는
+  의견으로 '베팅 공개' 칸이 먼저 뜨는 예전 방식과 시간으로 되돌렸다.
 */
-export const SMS2_REVEAL_FIRST_ROW_MS = 300;
-export const SMS2_REVEAL_ROW_GAP_MS = 800;
-/** 한 줄이 떠오르는 애니메이션 길이 — mark-reveal.module.css 의 revealRow 와 같게 */
-export const SMS2_REVEAL_ROW_ANIM_MS = 260;
-/** 결과판 줄 순서: 해·달·별(0~2), 최종 칩(3), 빛가루 소멸(4) */
-export function sms2RevealRowDelay(index: number): number {
-  return SMS2_REVEAL_FIRST_ROW_MS + index * SMS2_REVEAL_ROW_GAP_MS;
+export const SMS2_RESOLVE_FIRST_DELAY_MS = 400;
+export const SMS2_RESOLVE_STEP_INTERVAL_MS = 1300;
+export const SMS2_RESOLVE_FINISH_HOLD_MS = 2800;
+/** 정산 단계가 stepCount 개일 때 서버가 roundEnd 로 넘어가기까지 기다리는 시간 */
+export function sms2ResolveHoldMs(stepCount: number): number {
+  return (
+    SMS2_RESOLVE_FIRST_DELAY_MS +
+    stepCount * SMS2_RESOLVE_STEP_INTERVAL_MS +
+    SMS2_RESOLVE_FINISH_HOLD_MS
+  );
 }
-/** 결과판 마지막 줄까지 다 보이는 시점 */
-export const SMS2_REVEAL_DONE_MS = sms2RevealRowDelay(4) + SMS2_REVEAL_ROW_ANIM_MS;
-/** 다 보인 뒤 읽을 시간 */
-export const SMS2_RESOLVE_READ_HOLD_MS = 1800;
 
 /* ───────── 표식 ───────── */
 

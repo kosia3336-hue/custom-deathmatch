@@ -8,15 +8,12 @@ export {
   SMS2_POWDER_STAGE_SIZE,
   MARK_IDS,
 } from '@shared/types/sun-moon-star-2.js';
-import { SMS2_REVEAL_DONE_MS, SMS2_RESOLVE_READ_HOLD_MS } from '@shared/types/sun-moon-star-2.js';
-
-/* 정산 대기 — 화면 결과판이 다 뜬 뒤 읽을 시간까지 (값: shared/types/sun-moon-star-2.ts) */
-export const RESOLVE_HOLD_MS = SMS2_REVEAL_DONE_MS + SMS2_RESOLVE_READ_HOLD_MS;
+/* 정산 대기 — 화면 정산 단계가 다 뜬 뒤 읽을 시간까지 (값: shared/types/sun-moon-star-2.ts) */
+export { sms2ResolveHoldMs } from '@shared/types/sun-moon-star-2.js';
 
 /* 라운드 전환 / 마감 */
 export const ROUND_END_HOLD_MS = 3000;
-/** 결과판은 정산 대기 동안 이미 읽었다 — 다음 라운드로 넘어가기 전 짧게만 둔다 */
-export const NEXT_ROUND_AUTO_DELAY_MS = 1500;
+export const NEXT_ROUND_AUTO_DELAY_MS = 3500;
 export const FINAL_RESULT_HOLD_MS = 3000;
 export const SUDDEN_DEATH_INTRO_MS = 2200;
 

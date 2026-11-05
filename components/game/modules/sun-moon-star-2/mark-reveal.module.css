@@ -4,11 +4,6 @@
   --result-border: #e5e7eb;
   --result-muted: #6b7280;
   --result-title: #7c3aed;
-  --result-gain: #047857;
-  --result-loss: #e11d48;
-  --result-summary: #eef2ff;
-  --result-burn-bg: #fff7ed;
-  --result-burn-fg: #9a3412;
   color: var(--result-fg);
   background: var(--result-bg);
   border-color: var(--result-border);
@@ -20,11 +15,6 @@
   --result-border: #796c45;
   --result-muted: #d4c5a3;
   --result-title: #f0d078;
-  --result-gain: #b0e4ca;
-  --result-loss: #ffb5ae;
-  --result-summary: #20323b;
-  --result-burn-bg: #30281e;
-  --result-burn-fg: #f7d5a3;
   background-color: var(--result-bg);
   background-image: linear-gradient(180deg, var(--dj-panel-0, #111b27), var(--dj-panel-1, #0c131e));
   box-shadow: inset 0 1px 0 rgb(255 244 212 / 10%);
@@ -35,66 +25,4 @@
 }
 .muted {
   color: var(--result-muted);
-}
-.gain {
-  color: var(--result-gain);
-}
-.loss {
-  color: var(--result-loss);
-}
-.header {
-  border-color: var(--result-border);
-}
-.summary {
-  border-color: var(--result-border);
-  background: var(--result-summary);
-}
-.burn {
-  color: var(--result-burn-fg);
-  background: var(--result-burn-bg);
-}
-.dalmaji .badge,
-.dalmaji .litRow {
-  color: var(--result-fg);
-  background: #413922;
-}
-.dalmaji .badge {
-  color: var(--result-title);
-  box-shadow: inset 0 0 0 1px rgb(240 208 120 / 30%);
-}
-
-/* 기존 400ms 시작 / 1.3초 간격. 행 높이를 유지해 읽는 중 결과판이 움직이지 않는다. */
-.reveal {
-  animation: revealRow 260ms ease-out both;
-}
-.complete .reveal {
-  animation: none;
-}
-@keyframes revealRow {
-  from {
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(3px);
-  }
-  to {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    animation-name: revealRowStill;
-    animation-duration: 1ms;
-  }
-}
-@keyframes revealRowStill {
-  from {
-    opacity: 0;
-    visibility: hidden;
-  }
-  to {
-    opacity: 1;
-    visibility: visible;
-  }
 }
