@@ -23,7 +23,7 @@ interface Tab {
 /**
  * '메뉴' 시트에 들어갈 부메뉴 — 상단 바가 없는 모바일에서 접근 경로 확보.
  * 랭킹·길드는 하단 탭으로 올라갔으므로 여기서는 뺀다(같은 곳으로 가는 문이 둘이면
- * 어느 쪽이 정식인지 흐려진다). 칭호·상점·공지·출석·문의는 이 시트가 유일한 문이다.
+ * 어느 쪽이 정식인지 흐려진다). 칭호·상점·공지·문의는 이 시트가 유일한 문이다.
  */
 /** 문의하기 — 회원은 이 주소로 가지 않고 공통 문의 모달(InquirySubmitModal, PC GNB 와 같은 것)로 연다. 비회원은 페이지 → 로그인. */
 const INQUIRY_HREF = '/support/inquiry';
@@ -34,7 +34,6 @@ const MENU_ITEMS: { href: string; label: string; icon: React.ReactNode; memberOn
   { href: '/shop', label: '상점', icon: <Icon name="shop" size="lg" />, memberOnly: true },
   { href: '/notice', label: '공지사항', icon: <Icon name="notice" size="lg" /> },
   // '소개'(/about)는 여기 두지 않는다 — 푸터에서 들어간다.
-  { href: '/attendance', label: '출석판', icon: <Icon name="attendance" size="lg" />, memberOnly: true },
   /*
     문의하기. 지금까지는 푸터에만 있어 모바일에서 사실상 닿지 않았다.
     비로그인도 쓸 수 있는 창구라 memberOnly 를 붙이지 않는다.

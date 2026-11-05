@@ -3,14 +3,16 @@
 import { useEffect, useId, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { TitleColor } from '@/lib/supabase/database.types';
+import { CheongryongTitle } from './title-effects/CheongryongTitle';
 
-export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang' | 'bokjumeoni' | 'hanji' | 'daltokki' | 'nakyeop' | 'fullmoon';
+export type TitleEffect = 'legend' | 'xuanwu' | 'baekho' | 'jujak' | 'cheongryong' | 'eternal' | 'issen' | 'seongha' | 'sakura' | 'frost' | 'lightning' | 'wave' | 'dojang' | 'bokjumeoni' | 'hanji' | 'daltokki' | 'nakyeop' | 'fullmoon';
 
 const EFFECT_CLASS: Record<TitleEffect, string> = {
   legend: 'title-legend',
   xuanwu: 'title-xuanwu',
   baekho: 'title-baekho',
   jujak: 'title-jujak',
+  cheongryong: 'title-cheongryong',
   eternal: 'title-eternal',
   issen: 'title-issen',
   seongha: 'title-seongha',
@@ -47,6 +49,9 @@ const SIZE_CLASS = {
  * docs/v2/15_common_ui.md §15.9.2
  */
 export function TitleBadge({ name, color, effect, size = 'md', className }: TitleBadgeProps) {
+  if (effect === 'cheongryong') {
+    return <CheongryongTitle name={name} sizeClassName={SIZE_CLASS[size]} className={className} />;
+  }
   if (effect === 'dojang') {
     return <TitleDojangMark name={name} size={size} className={className} />;
   }

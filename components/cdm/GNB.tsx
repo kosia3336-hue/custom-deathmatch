@@ -45,7 +45,6 @@ const NAV_ITEMS: { href: string; label: string }[] = [
 const MEMBER_NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/shop', label: '상점' },
   { href: '/guild', label: '길드' },
-  { href: '/attendance', label: '출석판' },
 ];
 
 /** 로컬 개발 서버 전용. 프로덕션 빌드는 이 분기를 넣지 않는다. */

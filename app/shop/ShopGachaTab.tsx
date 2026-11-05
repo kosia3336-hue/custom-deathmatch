@@ -19,7 +19,8 @@ interface Props {
 const WEIGHT_SUM = Object.values(GRADE_WEIGHTS).reduce((a, b) => a + b, 0);
 const SUMMARY_CHIPS = GRADE_ORDER.map((g) => ({
   label: g,
-  rate: `${Number(((GRADE_WEIGHTS[g] / WEIGHT_SUM) * 100).toFixed(1))}%`,
+  // S 가 0.02% 라 소수 둘째 자리까지 둔다(첫째 자리면 0% 로 보인다).
+  rate: `${Number(((GRADE_WEIGHTS[g] / WEIGHT_SUM) * 100).toFixed(2))}%`,
 }));
 
 export default function ShopGachaTab({ balance, onOpen }: Props) {

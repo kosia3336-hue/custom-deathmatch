@@ -1,0 +1,30 @@
+Current: Dragon from Chinese Dragon Banner.svg — 百楽兎 / Πrate
+Source and provenance:
+https://commons.wikimedia.org/wiki/File:Dragon_from_Chinese_Dragon_Banner.svg
+CC0 1.0 Universal. Original retained at
+assets/title-effects/cheongryong/eastern-dragon.svg.
+Current adaptation: user-directed editing with built-in imagegen, including
+an empty title area, corrected eyes, earlier pose studies and a new straight
+dragon rigged to travel clockwise along an oval title border. The current
+runtime is NOT unchanged original geometry.
+Original artwork and attribution are retained. See README.md and the prompts
+in assets/title-effects/cheongryong/ellipse/ (current) and edited/ (previous).
+
+Clouds and mist: Kenney Vleugels / Kenney.nl, Particle Pack 1.1, CC0.
+https://kenney.nl/assets/particle-pack
+Textures are shared with /effects/titles/baekho/; see its original LICENSE.txt.
+
+Previous reference: Ouroboros — published by xoxoxo / Openclipart
+CC0 1.0 Universal Public Domain Dedication
+
+Source: https://openclipart.org/detail/215030/ouroboros
+License and provenance: https://commons.wikimedia.org/wiki/File:Ouroboros.svg
+License deed: https://creativecommons.org/publicdomain/zero/1.0/
+Legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+The source artwork is dedicated to the public domain under CC0 1.0.
+It may be copied, modified and used commercially.
+
+Previous Ouroboros adaptation: metadata removal and azure coloring.
+The original path geometry is unchanged. Original SVG is retained at
+assets/title-effects/cheongryong/ouroboros.svg in the source repository.

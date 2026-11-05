@@ -78,6 +78,18 @@ describe('resolveBadge', () => {
     expect(isTitleEffectKey('jujak')).toBe(true);
   });
 
+  it('사방신(청룡)은 조회·소켓 스냅샷에서도 고유 효과를 유지한다', () => {
+    const cheongryong = {
+      id: 'cheongryong-title', name: '창공의 청룡', color: 'azure',
+      is_legend: true, effect: 'cheongryong',
+    };
+    expect(isTitleEffectKey('cheongryong')).toBe(true);
+    expect(composeDisplayedTitle(cheongryong, { key: 'frost' })).toEqual({
+      id: cheongryong.id, name: cheongryong.name, color: 'azure', effect: 'cheongryong',
+    });
+    expect(isOverlayApplied(cheongryong, { key: 'frost' })).toBe(false);
+  });
+
   it('시즌 레전드 칭호도 is_legend 이면 overlay 불가', () => {
     expect(resolveBadge(immortalTitle, { key: 'issen' })).toEqual({
       name: '불멸의 정점',

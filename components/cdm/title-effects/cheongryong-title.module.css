@@ -1,0 +1,149 @@
+.badge {
+  position: relative;
+  /* 이웃 닉네임·다음 행과 용이 겹치지 않도록 장식 크기만큼 공간을 확보한다. */
+  margin: 2.9em 3.2em;
+  isolation: isolate;
+  overflow: visible;
+  color: color-mix(in srgb, #1498cf 55%, var(--cdm-fg));
+  border-color: rgb(54 164 207 / 30%);
+  background: rgb(45 163 207 / 3%);
+}
+
+.label {
+  position: relative;
+  z-index: 2;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cdm-bg) 96%, transparent);
+  text-shadow:
+    0 0 0.18em var(--cdm-bg),
+    0 0 0.32em var(--cdm-bg);
+}
+
+/* 글자 배경이 목/몸통을 잘라 틈처럼 보이지 않도록 용이 앞에서 자연스럽게 겹친다. */
+.layer {
+  position: absolute;
+  inset: -2.7em -3.2em;
+  z-index: 3;
+  pointer-events: none;
+  user-select: none;
+}
+
+.projection {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  aspect-ratio: 820 / 430;
+  /* 가로 경로에 새 원화를 매핑한다. 이미지 전체를 타원으로 눌러 늘리지 않는다. */
+  transform: translate(-50%, -50%);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.dragon {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.atmosphere,
+.haze {
+  position: absolute;
+  z-index: 1;
+  /* 칭호 중심에 모으고, 위/아래로 크게 벗어나는 구름은 잘라낸다. */
+  inset: -1.6em -3.4em;
+  overflow: hidden;
+  mask-image: radial-gradient(ellipse, #000 35%, transparent 74%);
+  pointer-events: none;
+}
+
+.haze {
+  /* 옅은 안개만 글자/용 앞을 지나간다. */
+  z-index: 4;
+}
+
+.cloud,
+.mist {
+  position: absolute;
+  pointer-events: none;
+  background: color-mix(in srgb, #c0eaff 77%, var(--cdm-fg));
+  mask: url('/effects/titles/baekho/cloud-soft.webp') center / contain no-repeat;
+  /* 일정한 속도로 흐르고 양끝에서만 사라진다. 반전/정지 구간이 없다. */
+  animation: cloud-drift 38s linear infinite;
+  animation-play-state: var(--cdm-cheongryong-weather-state, running);
+}
+
+.cloudLeft {
+  left: -4.5em;
+  top: 50%;
+  margin-top: -2em;
+  width: 8em;
+  height: 3.8em;
+  --cloud-opacity: 0.4;
+  animation-delay: -7s;
+}
+
+.cloudRight {
+  left: -4.5em;
+  top: 50%;
+  margin-top: -1.7em;
+  width: 9em;
+  height: 3.6em;
+  --cloud-opacity: 0.34;
+  mask-image: url('/effects/titles/baekho/cloud.webp');
+  animation-duration: 47s;
+  animation-delay: -27s;
+}
+
+.cloudLow {
+  left: -4.5em;
+  top: 50%;
+  margin-top: -1.1em;
+  width: 10em;
+  height: 2.8em;
+  --cloud-opacity: 0.25;
+  animation-duration: 58s;
+  animation-delay: -42s;
+}
+
+.mist {
+  z-index: 2;
+  left: -4.5em;
+  top: 50%;
+  margin-top: -1.1em;
+  width: 9em;
+  height: 2.4em;
+  --cloud-opacity: 0.14;
+  filter: blur(0.12em);
+  animation-duration: 44s;
+  animation-delay: -16s;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  18%, 82% {
+    opacity: var(--cloud-opacity);
+  }
+  to {
+    transform: translateX(12em);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dragon,
+  .cloud,
+  .mist {
+    animation: none;
+    transform: none;
+  }
+  .cloudLeft { transform: translateX(4em); opacity: 0.25; }
+  .cloudRight { transform: translateX(8em); opacity: 0.2; }
+  .cloudLow { transform: translateX(6em); opacity: 0.18; }
+  .mist { transform: translateX(5em); opacity: 0.12; }
+}

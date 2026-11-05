@@ -133,9 +133,9 @@ export async function loadPoolContext(
       : {
           // titles 조회가 비었을 때만 쓰는 폴백. LEGEND_TITLE_ID 와 같이 움직인다.
           id: LEGEND_TITLE_ID,
-          name: '홍련의 주작',
-          color: 'red',
-          effect: 'jujak',
+          name: '창공의 청룡',
+          color: 'azure',
+          effect: 'cheongryong',
           description: null,
         },
   };
