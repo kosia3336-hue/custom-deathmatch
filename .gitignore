@@ -71,7 +71,8 @@ public/tmp-fixtures/
 /AGENTS.md
 /logs/
 /notes/
-/docs/
+/docs/*
+!/docs/troubleshooting.md
 /handover/
 
 # 운영 배포·실사용자 지급
