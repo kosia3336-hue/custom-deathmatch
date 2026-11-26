@@ -5,7 +5,7 @@
 <h3 align="center">브라우저에서 바로 하는 1:1 두뇌 게임 플랫폼</h3>
 
 <p align="center">
-  <a href="https://genius.choen.kr"><b>genius.choen.kr</b></a>
+  <a href="https://customdeathmatch.choen.kr"><b>customdeathmatch.choen.kr</b></a>
   <br>
   2026.03 개발 시작 · 2026.04 서비스 오픈 · 2인 개발
 </p>
