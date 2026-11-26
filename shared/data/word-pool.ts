@@ -5,8 +5,7 @@
  * 라운드 승패 판정: '해당 라운드의 정답 3단어'로만 한다(중복 답 불인정, O(1)).
  *
  * 검증 사전(dictSet): '검색 찬스' 아이템이 "이게 실제 단어인지" 확인할 때만 쓰는
- *   조회용 Set. 큐레이션 + 표준국어대사전 수집분(three-letter-words-collected.ts)을
- *   합친 표준어 3음절 사전. 라운드 판정에는 관여하지 않으며, 아이템 사용 시에만
+ *   조회용 Set. 큐레이션 목록만 쓴다. 라운드 판정에는 관여하지 않으며, 아이템 사용 시에만
  *   서버 메모리에서 O(1) 조회한다(외부 API 없음). getter 호출 시 1회만 구성(지연 로딩).
  */
 import { THREE_LETTER_WORDS } from './three-letter-words.js';
@@ -21,8 +20,8 @@ export function wordPickPool(): string[] {
 let _dictSet: Set<string> | null = null;
 
 /**
- * 검증용 사전 Set (큐레이션 + stdict 수집분). '검색 찬스' 조회 전용.
- * 최초 호출 시 1회 구성해 캐싱한다(약 3.9만 단어).
+ * 검증용 사전 Set (큐레이션 목록). '검색 찬스' 조회 전용.
+ * 최초 호출 시 1회 구성해 캐싱한다.
  */
 export function wordDictSet(): ReadonlySet<string> {
   if (!_dictSet) {

@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 server/node_modules
@@ -16,7 +14,6 @@ server/node_modules
 
 # next.js
 /.next/
-# 확인용 빌드 산출물 (NEXT_DIST_DIR=.next-verify / .next-mobile)
 /.next-verify/
 /.next-mobile/
 /out/
@@ -41,9 +38,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files. example 템플릿만 둔다.
 .env
 .env.*
+!.env.example
 
 # vercel
 .vercel
@@ -52,40 +50,49 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# docs — 개인 기획. UPL7 프리뷰만 추적.
-docs/*
-!docs/choen/
-docs/choen/*
-!docs/choen/upl7-preview/
-
-# supabase CLI 프로젝트 디렉터리.
-# 슬래시 없이 `supabase` 라고 쓰면 경로 어디에 있든 supabase 라는 이름의
-# 디렉터리·파일이 전부 걸린다. 실제로 lib/supabase/ 아래 소스가 조용히
-# 누락돼 클린 체크아웃에서 빌드가 깨졌다. 최상위 디렉터리만 무시한다.
+# supabase CLI 로컬 디렉터리.
+# 슬래시 없이 supabase 라고 쓰면 lib/supabase 소스까지 빠진다.
 /supabase/
 
-# local-only dev previews (skins, UI experiments)
+# local-only dev previews
 /app/dev/
 /public/dev/
-# 슈퍼 AI 페이지는 배포하지 않는다. 로컬에만 둔다.
 /app/super-ai/
 /tmp-app-dev/
 /tmp-public-dev/
-
-# Cursor MCP config (contains Supabase access token — do not commit)
-/.cursor/mcp.json
-
-# 개인 작업 방식 (choen 전용). 다른 기여자는 쓰지 않는다.
-# docs/ 는 ignore. docs/choen/upl7-preview/ 만 예외. 루트 AGENTS.md · logs/ 는 커밋하지 않는다.
-/AGENTS.md
-/logs/
-# 개인 메모·공식전 기보 변환본 (hwpx 원본 포함)
-/notes/
-# 게임 화면 확인용 fixture (DUMP_FIXTURES=1 로 생성)
 tmp-game-fixtures/
 public/tmp-fixtures/
 
-# 더 지니어스 1 플레이어 학습. 배포 전이라 추적하지 않는다.
-# 기획 문서는 docs/* 무시로 이미 빠진다.
+# 로컬 에디터·에이전트. 액세스 토큰이 들어 있다.
+/.cursor/
+/.claude/
+
+# 개인 작업 기록과 기획. 포폴 문서는 새로 작성한다.
+/AGENTS.md
+/logs/
+/notes/
+/docs/
+/handover/
+
+# 운영 배포·실사용자 지급
+/.github/
+/scripts/deploy/
+/scripts/backfill-dummy-app-metadata.mjs
+/scripts/check-hidden-titles-progress.mjs
+/ecosystem.config.cjs
+/db/grant_*.sql
+/app/auth/bypass/
+
+# 사전 덤프에서 뽑은 단어 목록
+/shared/data/three-letter-words-collected.ts
+
+# 출처가 문서화되지 않은 음원
+/public/audio/bgm/
+/public/audio/skins/candy/
+/public/audio/skins/meow/
+/public/audio/skins/showdown/
+/public/audio/sfx/board/move.mp3
+
+# 더 지니어스 1 플레이어 학습
 shared/genius-s1/
 server/src/__tests__/genius-s1.learning.test.ts

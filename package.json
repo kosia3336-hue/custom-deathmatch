@@ -15,8 +15,7 @@
     "test:watch": "pnpm --filter the-genius-server test:watch",
     "lint": "eslint",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "deploy": "./scripts/deploy/release.sh"
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

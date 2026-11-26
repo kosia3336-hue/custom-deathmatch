@@ -1,8 +1,7 @@
 /**
  * 광고 설정 — 환경변수로만 켠다. 값이 없으면 광고 자리 자체를 그리지 않는다.
  *
- * NEXT_PUBLIC_* 는 빌드할 때 들어가므로, 값을 넣거나 바꾼 뒤에는 다시 배포해야 한다
- * (운영: /Users/example/apps/custom-deathmatch/shared/.env.production).
+ * NEXT_PUBLIC_* 는 빌드할 때 들어가므로, 값을 넣거나 바꾼 뒤에는 다시 빌드해야 한다.
  *
  *   NEXT_PUBLIC_AD_PROVIDER     adsense | adfit
  *   ── 구글 애드센스 ──
